@@ -106,6 +106,31 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The three prices exist now, and that on its own changed nothing
+
+The owner said to create them, so they were created on the live account, on the
+existing products so the invoice description a customer sees stays right:
+
+    One workspace  $29.00/mo  price_1UDTj00dKtlEU3lAmimC5cN7  sonara_workspace_monthly_v2
+    All three      $59.00/mo  price_1UDToK0dKtlEU3lAWURVCj6H  sonara_all_three_monthly_v2
+    Team          $109.00/mo  price_1UDUKr0dKtlEU3lAJzu0pVoe  sonara_team_monthly_v2
+
+Read back from Stripe rather than taken from the create responses: all three
+`active: true`, `livemode: true`, USD, `interval: month`, `interval_count: 1`.
+The account was re-listed first, so a duplicate could not be created by acting
+on a stale reading -- a Stripe price cannot be edited or deleted, only archived.
+
+**The refused checkouts are unchanged.** `STRIPE_PRICE_WORKSPACE_MONTHLY` and
+its two siblings still point at the 13 August prices, so `/api/readiness` still
+reports all three plans `configured` -- which has always meant "a variable is
+set", not "a price that can be sold" -- and
+`assertPriceMatchesAdvertised` still refuses each one. Worth stating in the log
+because the create call *looks* like the fix and is not: the repointing is, and
+no tool in this session can set a Vercel environment variable.
+
+Both owner documents now carry the ids and say exactly that, so neither reads as
+though the job is done.
+
 ### 2026-09-08 - Serverless AI and a second database, and the env check that could not see either
 
 The owner asked to install software for running complex systems, databases and

@@ -56,28 +56,43 @@ new price; there is no edit.
 
 ### Fix it in four steps
 
-**Step 1. Create three prices.** Stripe dashboard → Products. Use the existing
-products (`SONARA One — One workspace`, `— All three`, `— Team`) rather than new
-ones, so the description a customer sees on the invoice stays right.
+**Step 1. Create three prices. — DONE 8 September 2026, at the owner's
+instruction.** They were created on the existing products, so the description a
+customer sees on the invoice stays right, and read back from Stripe to confirm:
 
-| Plan | Interval | Amount | Suggested lookup key |
-| --- | --- | --- | --- |
-| One workspace | month | **$29.00** | `sonara_workspace_monthly_v2` |
-| All three | month | **$59.00** | `sonara_all_three_monthly_v2` |
-| Team | month | **$109.00** | `sonara_team_monthly_v2` |
+| Plan | Price id | Amount | Interval | Lookup key |
+| --- | --- | --- | --- | --- |
+| One workspace | `price_1UDTj00dKtlEU3lAmimC5cN7` | **$29.00** | month | `sonara_workspace_monthly_v2` |
+| All three | `price_1UDToK0dKtlEU3lAWURVCj6H` | **$59.00** | month | `sonara_all_three_monthly_v2` |
+| Team | `price_1UDUKr0dKtlEU3lAJzu0pVoe` | **$109.00** | month | `sonara_team_monthly_v2` |
 
-The `_v2` suffix is so the old price and the new one stay tellable apart in the
-dashboard while both exist. Creating a price charges nobody — a price is inert
-until a checkout session names it.
+All three: `active: true`, `livemode: true`, USD, `interval_count: 1`. Price ids
+are not secrets — they travel to the browser during checkout — so they are
+written down here rather than described.
+
+The `_v2` suffix keeps the old price and the new one tellable apart in the
+dashboard while both exist. The 13 August prices at $19 / $39 / $79 are still
+active and still carry the unsuffixed lookup keys; **step 5 archives them, and
+not before step 3 passes.**
+
+Creating a price charges nobody — a price is inert until a checkout session
+names it. **Nothing changed for a customer when these were created**, because
+the three environment variables still point at the old prices. That is step 2.
 
 **Step 2. Repoint three variables.** Vercel → your project → Settings →
 Environment Variables → **Production**:
 
 ```
-STRIPE_PRICE_WORKSPACE_MONTHLY   = price_... (the new $29 one)
-STRIPE_PRICE_ALL_THREE_MONTHLY   = price_... (the new $59 one)
-STRIPE_PRICE_TEAM_MONTHLY        = price_... (the new $109 one)
+STRIPE_PRICE_WORKSPACE_MONTHLY = price_1UDTj00dKtlEU3lAmimC5cN7
+STRIPE_PRICE_ALL_THREE_MONTHLY = price_1UDToK0dKtlEU3lAWURVCj6H
+STRIPE_PRICE_TEAM_MONTHLY      = price_1UDUKr0dKtlEU3lAJzu0pVoe
 ```
+
+**This is the step that changes what a customer is charged**, and until it is
+done the pricing page still advertises $29 / $59 / $109 while the variables
+point at the $19 / $39 / $79 prices — so every one of those three plans still
+refuses checkout with `price_mismatch`. Creating the prices did not fix that on
+its own, and could not have.
 
 Price ids are not secrets — they travel to the browser during checkout — so you
 can paste them anywhere you like. **Vercel does not apply an environment change

@@ -265,10 +265,20 @@ Then tell me, and I will write whatever survived as a migration.
 > `price_mismatch` rather than creating the session. Nobody is charged wrongly;
 > nobody can buy anything either.
 >
-> **What to do is in `docs/owner/SETUP-STEP-BY-STEP.md` section 1**, in four
-> steps. In short: create prices at $29, $59 and $109 on the existing products,
-> repoint the three variables, redeploy, then run
-> `STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live`.
+> **The three prices now exist.** Created 8 September 2026 at the owner's
+> instruction, on the existing products, and read back from Stripe:
+>
+>     One workspace  $29.00/mo  price_1UDTj00dKtlEU3lAmimC5cN7  sonara_workspace_monthly_v2
+>     All three      $59.00/mo  price_1UDToK0dKtlEU3lAWURVCj6H  sonara_all_three_monthly_v2
+>     Team          $109.00/mo  price_1UDUKr0dKtlEU3lAJzu0pVoe  sonara_team_monthly_v2
+>
+> **This did not fix anything by itself and could not have.** The three
+> environment variables still point at the 13 August prices, so the mismatch and
+> the refused checkouts are unchanged until they are repointed. What remains is
+> in `docs/owner/SETUP-STEP-BY-STEP.md` section 1: set the three variables to
+> the ids above, redeploy, then run
+> `STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live`,
+> then buy one with a real card. Archive the old prices last.
 >
 > The table below is kept because the price ids in it are real and you will see
 > them in the dashboard. **It is a record of August, not an instruction.**
