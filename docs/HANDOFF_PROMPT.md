@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-228 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+234 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,65 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - Six repositories from screenshots, and the one nobody checks
+
+Six arrived as social-media posts: `cporter202/best-apis-for-lead-gen`,
+`cporter202/stock-market-signal-automation`, `browser-use/browsercode`,
+`anthropics/skills`, `anomalyco/opencode`, and one whose owner was cut off in the
+screenshot. All six are now in `data/open-source-tools.ts`, taking it to 234
+records. Four findings the next person should not have to rediscover.
+
+**`anthropics/skills` declares no licence.** No LICENSE, LICENCE or COPYING at
+any level, no licence section in the README, no `license` field in any
+package.json -- checked all three, because the post called it an open source
+collection and a 3.1M badge invites the assumption. The only licence texts in
+its 419 files are OFL fonts under `skills/canvas-design/canvas-fonts/` and a
+THIRD_PARTY_NOTICES.md covering bundled components. Under this project's own
+rule that is all rights reserved. The distinction worth keeping: using these
+skills *through Claude Code* is use of a product under Anthropic's terms;
+copying the repository's text into a skill SONARA ships is use of a work, and
+nothing there grants it. Blocked.
+
+**BrowserCode is a fork of opencode, and the two arrived separately.** Its
+LICENSE is MIT with `Copyright (c) 2025 opencode` -- correct fork practice, not a
+defect -- and its README says so outright. Both were recommended as separate
+finds hours apart; they are one codebase family, and the register now says so in
+both directions. BrowserCode is `needs_security_review` rather than
+reference-only for three measured reasons: it drives real Chrome through
+unconstrained CDP with agent-written JavaScript, its advertised install is
+`curl | bash`, and `packages/bcode-browser/src/telemetry.ts` is opt-out.
+
+**The fourth cporter202 API directory broke the standing prediction, half of
+it.** The register said to treat any further one as the same artefact until
+measured otherwise. Measured: same mega-list provenance -- `resources/source-audit.md`
+says so itself, including that curation deliberately kept the `?fpr=p2hrc6`
+tracking -- and 30 of 46 links affiliate. But no licence at all, where the other
+three are MIT, and an inline `Affiliate link: Yes` disclosure on 30 of its 31
+pages, where the other three have none. The prediction was rewritten to point at
+what contradicted it rather than left standing.
+
+**A dependency family is not a dependency.** `image-pipes` advertises
+Albumentations, and AlbumentationsX is dual-licensed AGPL-3.0 -- which triggers
+on network use and would oblige releasing this product's source. Its
+`backend/pyproject.toml` pins `albumentations==2.0.8`, the MIT package. No
+reciprocal exposure, and the reason is the pin rather than the family name. The
+owner handle also had to be searched rather than probed: it is `mrajaeim`, and
+reading it as `mrajaelm` from the screenshot failed every clone.
+
+Two corrections to things that were already wrong. `docs/owner/WHAT-IS-LEFT.md`
+said 228 reviewed repositories and 13 declaring no licence; both are derived, and
+`verify-doc-counts --check` failed until they read 234 and 15. And the header of
+`scripts/verify-adapted-skills.mjs` claimed the register held "227 reviewed
+repositories" of which "Two of those verdicts are blocked" -- 44 were blocked
+when it was written and 46 are now. Nothing checks a figure in a comment, so it
+was rewritten as a measurement with the date attached.
+
+**Verified:** `verify-open-source-registry` failed by name --
+`Blocked record Anthropic Agent Skills (anthropics/skills) must declare
+blockedUses` -- when `blockedUses` was removed from the new record, and passed
+once restored. `verify-doc-counts --check` failed on both stale figures before
+they were updated. `generate-product-integration-map` regenerated at 234.
 
 ### 2026-09-08 - The module-level version of that gap has nothing in it
 
