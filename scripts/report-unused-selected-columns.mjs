@@ -197,7 +197,17 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // than by eye. The first pass matched only `job.` and missed `title`, which
 // `jobTitle()` reaches through optional chaining -- shipping that would have
 // retitled every job page to "Text to speech request".
-const STAR_SELECT_COUNT = 27;
+// 27 -> 26 on 9 September 2026. `loadSite` in routes/sonara-scroll-routes.cjs
+// now names `id,slug,published_at,document` instead of `*`.
+//
+// The list was derived rather than eyed: every `row.` and `loaded.row.` in the
+// file, then a check that the row is never spread, stringified or destructured,
+// which is how a column reaches a caller without being named. `title` came up in
+// that grep and is deliberately NOT in the list -- those hits are the dashboard's
+// own separate query, and the editor renders `site.title` out of the parsed
+// document rather than the column. Including it "to be safe" would have put back
+// a column nothing reads, which is the thing this report exists to find.
+const STAR_SELECT_COUNT = 26;
 const COMPUTED_SELECT_COUNT = 23;
 
 // A column named in a comment is a column discussed, not used. Same reasoning

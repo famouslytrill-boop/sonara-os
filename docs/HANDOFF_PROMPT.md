@@ -106,6 +106,46 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - One query out of the blind spot, and why only one
+
+`report-unused-selected-columns.mjs` audits 108 multi-column selects and cannot
+audit 49 more: 26 `select=*` and 23 built at run time. A `select=*` is invisible
+to it in both directions -- it can say neither that a column is unused nor that it
+is used -- so those queries sit in a described blind spot rather than an audited
+one.
+
+`loadSite` in `routes/sonara-scroll-routes.cjs` is out of it. It now names
+`id,slug,published_at,document`, and that list was derived rather than eyed:
+every `row.` and `loaded.row.` in the file, then a check that the row is never
+spread, stringified or destructured -- the three ways a column reaches a caller
+without being named anywhere.
+
+**`title` came up in that grep and is deliberately absent.** Those hits belong to
+the dashboard's own separate query, and the editor renders `site.title` out of the
+parsed document rather than the column. Adding it "to be safe" would have put
+back a column nothing reads, which is the thing this report exists to find.
+
+The ratchet was lowered 27 to 26 with the reason attached, because the script
+asks for exactly that: *a fall nobody records looks exactly like a matcher that
+has stopped matching, which is how this guard was found.*
+
+**Why one and not eleven.** `routes/sonara-prompt-library-routes.cjs` was next
+and was left alone. Its rows are handed to renderers reading about
+twenty-five fields, and one of its three queries is
+`select=*,sonara_prompt_collection_items(*)` -- an embedded related table. That is
+the case the script's own message names: if the whole row really is handed on,
+the honest move is to raise the count deliberately rather than to guess a column
+list. Guessing there would ship a page that renders `undefined` in a field
+nobody tested, which is worse than an audited blind spot that is at least
+counted.
+
+The method is written into the ratchet comment so the remaining 26 can be done
+the same way rather than rediscovered.
+
+**Verified:** 4,036 tests, lint and doc counts pass; the scroll suites pass
+specifically; the file dropped out of the report's blind-spot list, which is the
+observable effect rather than an assertion about it.
+
 ### 2026-09-09 - One repository, one deployment target
 
 A Cloudflare Worker service named `sonara-os` was created with a Git integration
