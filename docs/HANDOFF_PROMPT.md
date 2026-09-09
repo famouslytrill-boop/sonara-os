@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 307 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 308 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,57 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - The D1 rollup schema, and a limit that clamped to one row
+
+The D1 database had existed for half an hour with zero tables. It has two now,
+both applied to the live database and verified by reading `sqlite_master` rather
+than by trusting four success flags: `rollup_daily_totals` and `rollup_runs`,
+with an index each.
+
+**Every identifier was checked against the 325 reserved table names rather than
+eyeballed**, and that check earned itself immediately: `bookings` is a Supabase
+table, so a column called `bookings` would have been refused by the adapter at
+read time with a message about system-of-record boundaries that nobody would
+connect to a column name. It is `bookings_made`.
+
+**Two columns exist for a reason that is not the numbers.** Every totals row
+carries `computed_at` and `source_rows`. A total of zero built from four thousand
+rows is a real zero; a total of zero built from no rows is a rollup that ran
+against nothing, and without the row count they are the same row. `source_rows`
+is `NOT NULL` in the schema and required by the write builder, so a caller who
+cannot say how many rows it read cannot write a total at all. That is shape 4
+from the checks skill -- absent read as zero -- moved into a schema.
+
+**D1 has no row-level security at all**, which is a stronger statement than the
+one that applies to Supabase. There the service-role key bypasses RLS, so
+`organization_id` filtering is the boundary that matters -- but RLS is still
+there, unused, as a second thing that would have to fail. In D1 there is no
+second thing. So every statement builder requires an organization id, refuses a
+blank one, and binds it as a parameter, and the test asserts that over the
+module's exports rather than over the ones somebody listed. A builder added later
+is covered the day it is added.
+
+**A test caught a real bug in the first draft.** The row limit read
+`Math.min(Math.max(Number(limit) || 90, 1), 366)`, which is wrong in a quiet way:
+a negative limit is truthy, so it survives the `||`, and `Math.max(-5, 1)` is
+**1**. A caller asking badly would get a single row back and read it as "that is
+all the data there is". A bad limit now falls back to the default, and the test
+covers the whole class rather than the one value that failed.
+
+Also corrected: the module header claimed a function `readDailyTotals` returning
+`{ ok, computed, row }`. No such function exists -- the module builds statements
+and runs nothing. A reason written rather than verified, found by reading the
+file back.
+
+`docs/owner/PRICING-STEP-BY-STEP.md` is new: the annual prices that do not exist
+yet, the six old prices and why archiving is last, and the check that would have
+caught the September mismatch. Every price ID in it was read from the live
+account on the day, not remembered.
+
+**Verified:** 4,033 tests pass, including 30 new ones. The schema was applied to
+the live database and then read back out of `sqlite_master`. Lint, typecheck,
+build, `verify:env` at 132 variables and `verify-doc-counts` all pass.
 
 ### 2026-09-09 - The bucket existed and nothing could talk to it
 
