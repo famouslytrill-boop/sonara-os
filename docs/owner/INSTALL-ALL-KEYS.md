@@ -241,13 +241,42 @@ Setting it costs you a live OpenAI key in an environment for no return.
 `AGENTKIT_OPENAI_API_KEY` — and it is a Python tool that does not run in the
 deployed application.
 
-### The nine you have to host yourself
+### The nine that are not installable, and are not meant to be
 
-Higgsfield, ComfyUI, Stable Audio 3, AudioCraft/MusicGen/AudioGen, OpenVoice,
-GPT-SoVITS, LTX-2, Wan 2.2, HunyuanVideo and CogVideoX take a URL and no key,
-because there is no hosted service to hold a key for — you run the machine. The
-same caveat as Step 4 applies and is the thing that catches people:
-`http://localhost:...` means *this serverless function*, not your laptop.
+ComfyUI, LTX-2, Wan 2.2, HunyuanVideo, CogVideoX, Stable Audio 3, AudioCraft,
+OpenVoice and GPT-SoVITS are recorded with `adapterMode: "reference_only"`.
+**There is no adapter and no variable to set.** They carry no `_ENABLED`, no
+`_URL` and no key, because they are records of repositories this project
+reviewed — not integrations waiting on configuration. Nothing about them can be
+"installed" or "switched on" from here.
+
+Two are blocked by licence rather than by effort, which no amount of work
+changes:
+
+- **AudioCraft** — the code is MIT but the published model weights are
+  **CC-BY-NC 4.0**. NonCommercial. This product is sold on paid plans, so those
+  weights cannot be used in it unless Meta relicenses them.
+- **HunyuanVideo** — the Tencent model licence carries usage restrictions that
+  need qualified review.
+
+Every one of the other seven records the same warning in a milder form: the code
+licence is not the model-weights licence, and the weights need reviewing
+separately before anything commercial happens. A permissive repository licence is
+not permission to sell what the model produces.
+
+**The supported way to actually run these models is the SONARA Open Media
+Worker** — you host the engine, and the application talks to your worker over a
+real adapter:
+
+```
+CREATOR_MEDIA_WORKER_URL   = https://<your worker>
+CREATOR_MEDIA_WORKER_TOKEN = <token>   ← Sensitive
+```
+
+The Step 4 caveat applies and is what catches people: `http://localhost:...`
+means *this serverless function*, not your laptop. Its registry record says
+activation requires a recorded licence review, which is the same point as above
+with a procedure attached.
 
 `CREATOR_MEDIA_WORKER_URL` and `CREATOR_MEDIA_WORKER_TOKEN` are the SONARA Open
 Media Worker, which is the supported way to put those models somewhere a

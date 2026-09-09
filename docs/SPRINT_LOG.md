@@ -2,6 +2,46 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - 23 capabilities routed to a provider that can never be configured
+
+Asked to make the nine self-hosted generation engines "installed and working".
+They cannot be, and are not meant to be: ComfyUI, LTX-2, Wan 2.2, HunyuanVideo,
+CogVideoX, Stable Audio 3, AudioCraft, OpenVoice and GPT-SoVITS are all recorded
+`adapterMode: "reference_only"` -- records of reviewed repositories, carrying no
+`enabledEnv`, no `baseUrlEnv` and no `requiredEnv`. Two are licence-blocked
+outright: **AudioCraft's published weights are CC-BY-NC 4.0**, which no
+engineering makes usable in a product sold on paid plans, and HunyuanVideo's
+Tencent licence needs qualified review.
+
+Looking for what could honestly be verified turned up a real defect.
+`chooseProvider` filtered candidates by declared capability alone, and a
+reference-only provider declares plenty. **23 of 44 capabilities auto-selected
+one** -- `voice_cloning`, `voice_conversion` and `voice_style_control` among
+them. The route checks `readiness.configured`, so nothing ever executed; what it
+produced was a job stamped `setup_required` naming a provider whose setup cannot
+be completed, plus a job row recording e.g. `audiocraft` as the provider for work
+that provider's licence forbids.
+
+**This is the FORM_CAPABILITY_ORDER story repeating one layer down.** That
+comment in `routes/creator-generation-routes.cjs` records a customer picking
+"Voice copy", being told voice work needs a permission on file, going away and
+recording one **naming a real person**, coming back and getting
+`capability_not_supported`. The fix was to filter the menu by what a provider
+declares. A reference-only provider declares things, so the same trap reopened on
+the API path, on the same sensitive capability.
+
+`lib/sonara-plain-language.cjs` had rendered `reference_only` as "Not offered
+here. Recorded for reference, and not connected" the whole time, so one registry
+was giving two answers, and `growth-studio-provider-registry.cjs` already
+excluded these from its candidates. The fix brings the two registries into
+agreement rather than inventing a rule: auto-selection skips them, and asking for
+one by name is refused with `provider_not_connected` instead of being parked.
+
+Falsified: restoring the unfiltered selection fails three assertions by name --
+auto-selection landing on an unconnectable provider, `node_graphs` still
+resolving, and `comfyui` accepted by name. 4,057 tests, lint, `verify:launch`
+exit 0.
+
 ### 2026-09-09 - main was red on merge, and the AI keys were never written down
 
 Checked the whole application against the chain rather than against memory.
