@@ -106,6 +106,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - main was red on merge, and the AI keys were never written down
+
+Checked the whole application against the chain rather than against memory.
+`pnpm run verify:launch` failed on `main`: **4,045 passing, 4 failing.** Bisected
+rather than guessed -- 78a36fd (this branch before the merge) ran 18/18 green on
+the three affected files, and af0e881 (#229's merge) ran 14 passing, 4 failing.
+The regression arrived with #229, and both PRs were green individually.
+
+**Two failures: a check tightened without its fixtures.** #229 narrowed
+`isStripePriceId` to `/^price_[A-Za-z0-9]+$/`, which is correct -- all 22 prices
+on the live account match it and none carries a separator. But
+`tests/one-ladder-on-the-pricing-page.test.js` set fixture ids as
+`price_${plan}`, so `price_workspace_monthly` became invalid, no new plan was
+buyable, the new ladder never replaced the old one, and the page rendered both.
+Fixed the fixtures rather than loosening the check: the check catches a real
+class of error and the fixture used a shape Stripe does not issue. The id is now
+derived from the plan key, so a plan added later gets a valid one.
+
+**Two failures: a literal that outlived what it described.** #229 moved
+`sonara-brand-registry.cjs` onto the current ladder, correctly. Two tests still
+asserted `["$0", "$7/mo", "$19/mo", "$39/mo"]`. They now compare the registry's
+prices to `STRIPE_PLANS` **by the registry's own plan keys**, which is the
+invariant actually worth holding -- that the public registry advertises what the
+table charges. Falsified: setting the registry to $49 while the table charges $59
+fails by name; restored, green.
+
+That is the same lesson twice in one day. A literal in a test is a second copy of
+a fact, and the copy does not move when the fact does.
+
+**The AI keys had no section anywhere, and one of them does nothing.** Read out
+of the provider registry and the routes that send them:
+
+- `ELEVENLABS_API_KEY`, `GEMINI_API_KEY` and `SUNO_API_KEY` (with its three URL
+  variables) are wired to real requests. `GEMINI_API_KEY` is verifiable by
+  inspection -- sent as `x-goog-api-key` on the generate, poll and download calls.
+- **`OPENAI_API_KEY` is read by nothing.** It appears in the classification, in
+  `check-risks.mjs` as a *name in a list of secrets to hunt for in client
+  bundles*, and in `scripts/setup-vercel-env.ps1`, which asks the owner to set
+  it. That is `GOOGLE_REDIRECT_URI` again: a variable the setup path requests and
+  nothing consumes. `tools/agentkit` uses OpenAI under its own name,
+  `AGENTKIT_OPENAI_API_KEY`, and does not run in the deployed application.
+- Nine generation providers are self-hosted and take a URL and no key.
+
+Written into `INSTALL-ALL-KEYS.md` as Step 3b. 4,049 tests, lint,
+`verify:launch` exit 0.
+
 ### 2026-09-09 - The annual price variables were fixed, and the yearly plans went on sale
 
 Set and redeployed by the owner at about 06:25 UTC. `/api/readiness` now returns

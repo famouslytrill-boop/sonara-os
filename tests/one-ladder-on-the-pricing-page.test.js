@@ -63,7 +63,23 @@ function connect(plans) {
   for (const key of touched) {
     if (!Object.prototype.hasOwnProperty.call(BASE_ENV, key)) delete process.env[key];
   }
-  for (const plan of plans) process.env[PRICE_ENV[plan]] = `price_${plan}`;
+  for (const plan of plans) process.env[PRICE_ENV[plan]] = stripeShapedPriceId(plan);
+}
+
+// A price id shaped the way Stripe actually issues them: `price_` and then
+// alphanumerics, no separators.
+//
+// This was `price_${plan}` -- `price_workspace_monthly` -- until
+// `isStripePriceId` was tightened to /^price_[A-Za-z0-9]+$/ on 9 September
+// 2026. That underscore made every fixture id invalid, so no plan was ever
+// buyable, so the new ladder never replaced the old one and four tests failed
+// at once. The check was right and the fixture was wrong: all 22 prices on the
+// live account match the tightened pattern and none contains a separator.
+//
+// Derived from the plan key rather than written out, so a plan added later gets
+// a valid id without anybody remembering this.
+function stripeShapedPriceId(plan) {
+  return `price_1Ladder${plan.replace(/[^A-Za-z0-9]/g, "")}`;
 }
 
 const at = (live) => (plan) => (live.includes(plan) ? "enabled" : "setup_required");
