@@ -52,8 +52,11 @@ already happened here:
 - **No licence file means all rights reserved.** Absence is not permission, and
   nobody here can grant what the author has not.
 
-A reciprocal licence (AGPL, GPL, OSL) triggers on *network* use, so a hosted
-product is the case it is written for. Set `reciprocalLicense` from reading the
+A reciprocal licence requires review of its exact version and use conditions.
+Do not equate GPL with AGPL: GPL does not generally require source disclosure
+merely for network use, whereas AGPL has a network-interaction condition for
+modified versions. OSL has separate external-deployment terms. Obtain legal
+review for the proposed use. Set `reciprocalLicense` from reading the
 licence, never from a substring search — see the comment on that field for the
 record where prose naming four reciprocal licences was miscounted as being one.
 
