@@ -2,6 +2,40 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - One repository, one deployment target
+
+A Cloudflare Worker service named `sonara-os` was created with a Git integration
+pointing at this repository. It failed instantly on the first commit it saw --
+zero seconds, which is what "nothing to build" looks like rather than what a
+failing build looks like -- and would have failed on every commit on every branch
+after it. There is no Worker here: no wrangler config of any spelling, no Worker
+entrypoint, and a build script that checks and loads `server.js`.
+
+The failure was reported on the PR rather than fixed, because both available
+fixes were decisions rather than repairs: disconnect the integration, or add a
+wrangler config and make this repository deploy to two places at once. The owner
+chose to disconnect.
+
+That is now written down twice, in the two places that stop it being
+rediscovered. `docs/architecture/EXTERNAL-SERVICES.md` gains a section saying
+Cloudflare is an API this application calls -- Workers AI, D1 and R2, all through
+adapters, all off by default -- and not a place it is deployed. And
+`tests/this-repository-is-not-a-cloudflare-worker.test.js` asserts the absence,
+because the next person to meet a red Workers check will reasonably try to make
+it pass by adding a wrangler config, and that is the one fix that quietly undoes
+the decision.
+
+The reason a second path matters here rather than merely being untidy: the
+controlled deployment workflow has a live-price gate in front of it, and that
+gate exists because a price mismatch once shipped while every check was green. A
+second production path is a path around it.
+
+**Verified:** the guard was falsified by writing a real `wrangler.toml` at the
+root -- it failed by name, printing the reason and pointing at the document --
+and passed again once removed. The build-script half is asserted separately,
+because a wrangler config could be absent while the build had been switched to a
+Worker bundler.
+
 ### 2026-09-09 - Yearly pricing exists, and a project one letter from our name
 
 Three yearly prices created on the live account, on the **same products** as
