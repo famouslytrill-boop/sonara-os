@@ -8,12 +8,19 @@
 // adapted from an AGPL or unlicensed repository would look exactly like one
 // written here -- markdown, same folder, no difference a reader would notice.
 //
-// data/open-source-tools.ts records 227 reviewed repositories and says for each
-// what may be done with it. Two of those verdicts are "blocked": AGPL-3.0 on
-// plannotator/artifact-server, whose network clause would oblige publishing
-// this product's source, and no licence at all on cporter202/automate-for-growth,
-// where the absence of a licence is not permission. This check is what makes
-// those verdicts reach the folder where the adapting actually happens.
+// data/open-source-tools.ts reviews every repository this project has looked at
+// and says for each what may be done with it. Dozens of those verdicts are
+// "blocked" -- 46 of 234 when this line was last measured, on 9 September 2026 --
+// for reasons that are not interchangeable: AGPL-3.0 on plannotator/artifact-server,
+// whose network clause would oblige publishing this product's source, and no
+// licence at all on cporter202/automate-for-growth and anthropics/skills, where
+// the absence of a licence is not permission. This check is what makes those
+// verdicts reach the folder where the adapting actually happens.
+//
+// The count is dated rather than asserted, because the previous version of this
+// comment said "227 reviewed repositories" and "Two of those verdicts are
+// blocked" when 44 of them were. Nothing checks a figure in a comment, so the
+// only honest form for one is a measurement with the day attached.
 //
 // TWO-SIDED, and the second half is the one that matters.
 //

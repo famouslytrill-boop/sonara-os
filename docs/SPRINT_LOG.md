@@ -2,6 +2,133 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - Ten repositories were registered twice, and four disagreed with themselves
+
+A screenshot arrived to be scanned for new repositories. Every repository
+legible in it was already registered, so there was nothing to add -- and
+checking that turned up something worse than a missing record.
+
+**Ten repositories had two records each.** Four of those pairs carried
+conflicting verdicts. `ripienaar/free-for-dev` was `blocked` in one record (no
+licence object at all, so all rights reserved) and `needs_license_review` in
+another whose licence field read `Not verified`. `HKUDS/Vibe-Trading` was
+`blocked` in one and `research_only` in the other. `mattpocock/skills` was
+`reference_only` in one and `optional_adapter_after_review` in the other.
+Which verdict somebody acted on depended on which record they scrolled to
+first.
+
+Nothing reported it, and the reason is worth keeping. `verify-open-source-registry.mjs`
+prints `Unique GitHub targets`, which reads like a uniqueness guarantee. The map
+behind it was keyed case-sensitively, so `ashishpatel26/500-AI-Agents-Projects`
+and `ashishpatel26/500-ai-agents-projects` counted as two different
+repositories, and the other nine pairs were never compared at all. A count that
+sounds like a check is the recurring defect in this repository, in its most
+literal form.
+
+**Fixed both halves.** The key is now lower-cased, and a new gate fails when two
+records name one repository, printing both slugs. The gate says to merge rather
+than delete, because the losing record usually holds a finding the survivor does
+not -- and in nine of the ten cases it did, so each merge folds that finding into
+the survivor's notes. Where verdicts conflicted, the stricter one won.
+
+**Two records named an organisation rather than a repository.** Both NVlabs
+records pointed at `https://github.com/NVlabs`, and one said so itself: *Keep as
+a research note until exact repository, license, and model terms are verified.*
+Now verified, by cloning the repositories they meant:
+
+- `NVlabs/EAGLE` -- code Apache-2.0, but a separate `LICENSE_MODEL` in both
+  `Eagle2_5/` and `Embodied/` puts the **model weights** under the NVIDIA
+  License, which states the work is *intended for use non-commercially* and
+  defines that as *academic or non-profit research purposes only*, with NVIDIA
+  carved out. SONARA is sold on paid plans, so the weights cannot be used here.
+  Recording one licence for that repository would have been true about the code
+  and wrong about the thing anybody would want.
+- `NVlabs/LongLive` -- Apache-2.0, confirmed in the README's own License
+  section, with a vendored MIT subdirectory. No non-commercial model licence in
+  the tree. Same organisation, same research area, different terms, which is why
+  both were cloned rather than one assumed from the other.
+
+**The merge exposed a governance rule that had stopped binding.**
+`tests/social-repository-intake.test.js` requires every repository in the
+1 September batch to stay out of adoption states and to declare a blocked-use
+boundary. `mattpocock/skills` satisfied both -- through the record that was not
+the one carrying its verdict, while the other advanced to
+`optional_adapter_after_review` and lost its boundary. Merging made the conflict
+visible and the test failed, which is the test working. Resolved the same way as
+every other conflict on this date: the stricter verdict wins, so it is
+`reference_only` with the boundary carried across, and moving it back is a
+decision somebody makes by editing `NEW_REPOSITORY_SLUGS` rather than the field.
+
+Three derived figures moved and one of them was a double-count: reciprocal
+repositories went from 31 to 30 because `logto-io/logto` was being counted
+twice. No reciprocal flag was lost -- both records already carried it, which was
+checked rather than assumed before the number was changed.
+
+**Verified:** the new gate was falsified by re-inserting exactly the original
+bug -- a second record differing only in URL case -- and it failed by name,
+printing both slugs. `verify-doc-counts --check` failed on all three stale
+figures before they were corrected. 3,931 tests, lint, typecheck, build and
+`pnpm audit` all pass.
+
+### 2026-09-09 - Six repositories from screenshots, and the one nobody checks
+
+Six arrived as social-media posts: `cporter202/best-apis-for-lead-gen`,
+`cporter202/stock-market-signal-automation`, `browser-use/browsercode`,
+`anthropics/skills`, `anomalyco/opencode`, and one whose owner was cut off in the
+screenshot. All six are now in `data/open-source-tools.ts`, taking it to 234
+records. Four findings the next person should not have to rediscover.
+
+**`anthropics/skills` declares no licence.** No LICENSE, LICENCE or COPYING at
+any level, no licence section in the README, no `license` field in any
+package.json -- checked all three, because the post called it an open source
+collection and a 3.1M badge invites the assumption. The only licence texts in
+its 419 files are OFL fonts under `skills/canvas-design/canvas-fonts/` and a
+THIRD_PARTY_NOTICES.md covering bundled components. Under this project's own
+rule that is all rights reserved. The distinction worth keeping: using these
+skills *through Claude Code* is use of a product under Anthropic's terms;
+copying the repository's text into a skill SONARA ships is use of a work, and
+nothing there grants it. Blocked.
+
+**BrowserCode is a fork of opencode, and the two arrived separately.** Its
+LICENSE is MIT with `Copyright (c) 2025 opencode` -- correct fork practice, not a
+defect -- and its README says so outright. Both were recommended as separate
+finds hours apart; they are one codebase family, and the register now says so in
+both directions. BrowserCode is `needs_security_review` rather than
+reference-only for three measured reasons: it drives real Chrome through
+unconstrained CDP with agent-written JavaScript, its advertised install is
+`curl | bash`, and `packages/bcode-browser/src/telemetry.ts` is opt-out.
+
+**The fourth cporter202 API directory broke the standing prediction, half of
+it.** The register said to treat any further one as the same artefact until
+measured otherwise. Measured: same mega-list provenance -- `resources/source-audit.md`
+says so itself, including that curation deliberately kept the `?fpr=p2hrc6`
+tracking -- and 30 of 46 links affiliate. But no licence at all, where the other
+three are MIT, and an inline `Affiliate link: Yes` disclosure on 30 of its 31
+pages, where the other three have none. The prediction was rewritten to point at
+what contradicted it rather than left standing.
+
+**A dependency family is not a dependency.** `image-pipes` advertises
+Albumentations, and AlbumentationsX is dual-licensed AGPL-3.0 -- which triggers
+on network use and would oblige releasing this product's source. Its
+`backend/pyproject.toml` pins `albumentations==2.0.8`, the MIT package. No
+reciprocal exposure, and the reason is the pin rather than the family name. The
+owner handle also had to be searched rather than probed: it is `mrajaeim`, and
+reading it as `mrajaelm` from the screenshot failed every clone.
+
+Two corrections to things that were already wrong. `docs/owner/WHAT-IS-LEFT.md`
+said 228 reviewed repositories and 13 declaring no licence; both are derived, and
+`verify-doc-counts --check` failed until they read 234 and 15. And the header of
+`scripts/verify-adapted-skills.mjs` claimed the register held "227 reviewed
+repositories" of which "Two of those verdicts are blocked" -- 44 were blocked
+when it was written and 46 are now. Nothing checks a figure in a comment, so it
+was rewritten as a measurement with the date attached.
+
+**Verified:** `verify-open-source-registry` failed by name --
+`Blocked record Anthropic Agent Skills (anthropics/skills) must declare
+blockedUses` -- when `blockedUses` was removed from the new record, and passed
+once restored. `verify-doc-counts --check` failed on both stale figures before
+they were updated. `generate-product-integration-map` regenerated at 234.
+
 ### 2026-09-08 - The module-level version of that gap has nothing in it
 
 The entry below records a gap and says it was not closed: the module report
