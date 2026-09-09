@@ -2,6 +2,62 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - Nothing was checking the tenant boundary, and my first attempt at checking it did not work
+
+`organization_id=eq.` in a PostgREST query string **is** the tenant boundary. The
+service-role key bypasses row-level security, so there is no second thing behind
+that filter: a query that forgets it returns every organization's rows, and the
+page renders them.
+
+Nothing was checking it. `verify-supabase-contract.mjs` scans the runtime, but
+for whether a referenced table is *in the contract* -- not whether the query
+naming it names an organization. So
+`scripts/report-tenant-scoped-queries.mjs` now does, and it is in `verify:gates`.
+
+**The audit found no violation.** 108 `rest()` calls across 200 runtime files:
+22 tenant-scoped and correctly filtered, 58 on tables carrying no organization,
+28 whose table cannot be resolved statically, 0 unfiltered.
+
+**Getting there took four corrections, and they are the point of the entry.**
+
+*A matcher that saw a third of the population.* The first version resolved table
+names from string literals only, found **one** call, and would have reported a
+clean audit over it. Table names here are constants and object-map lookups
+(`JOB_TABLE`, `TABLES[key]`), so resolution had to handle those, and argument
+extraction had to balance parentheses -- a template-literal query contains
+commas, parentheses and backticks, and splitting on the first comma reads the
+wrong argument.
+
+*Counting declarations as calls.* `rest` is declared per route file, and
+`async function rest(config, table, query = "", options = {})` matches `rest(`
+as readily as a call does. Fourteen declarations were being audited as call
+sites. That is measuring a different population from the one claimed.
+
+*Flagging inserts as holes.* A POST carries the organization in its body, so
+`rest(config, table, "", { method: "POST", body })` is correct. The check
+reported five of those as unfiltered before it learned to read the method. The
+same distinction matters far more in the other direction: an unfiltered **PATCH
+or DELETE** on a tenant table would rewrite or remove every organization's rows,
+not merely read them, and the check now treats those as strictly as reads.
+
+*And the one that mattered.* **Falsification found the check could not catch the
+bug it exists to catch.** Deleting `organization_id=eq.` from a real query in
+`market-intelligence-routes.cjs` left the run green -- because that call's table
+is a parameter, so it landed in the unresolvable bucket and was never examined.
+A check blind to the single edit it was written for is worse than no check, and
+that version was two minutes from being committed as passing.
+
+The fix was to judge the half of the call that *is* readable: when the table
+cannot be resolved but the query is a literal, whether that literal names an
+organization is still knowable, and it is now counted and ratcheted at zero.
+Both cases are caught now -- the deleted filter, and an unfiltered DELETE on a
+resolvable table, which fails by name.
+
+The 28 unresolvable calls are a described blind spot rather than an audited one,
+ratcheted so it cannot grow quietly, with a fall reported too -- a fall nobody
+records looks exactly like a matcher that stopped matching. 45 chain commands
+now; 4,072 tests, lint, `verify:launch` exit 0.
+
 ### 2026-09-09 - A CIO report whose numbers predate its own subject
 
 A Databricks link to "The great acceleration: CIO perspectives on generative AI"

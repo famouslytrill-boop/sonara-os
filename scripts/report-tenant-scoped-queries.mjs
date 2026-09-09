@@ -1,0 +1,265 @@
+#!/usr/bin/env node
+"use strict";
+
+// Every query against a tenant-scoped table must name the organization.
+//
+// The service-role key bypasses row-level security. That is not an oversight --
+// it is how this application reaches Postgres -- and it means the
+// `organization_id=eq.` filter in a query string IS the tenant boundary. There
+// is no second thing behind it. A query that forgets it does not fail; it
+// returns every organization's rows, and the page renders them.
+//
+// So this reads every `rest()` call in the runtime and classifies it. It fails
+// when a tenant-scoped table is queried without naming the organization.
+//
+// WHAT IT CANNOT SEE, WHICH IS THE POINT OF THE RATCHET
+//
+// `rest()` is a thin fetch wrapper defined per route file, and the table is
+// often a parameter: `rest(config, table, ...)` inside a helper the caller hands
+// a table name to. A static reader cannot resolve that, and pretending otherwise
+// would produce a check that reports a clean run over a third of the calls.
+//
+// So the unresolved count is recorded and ratcheted. If it rises, this says so
+// and asks for the reason -- because a fall nobody records looks exactly like a
+// matcher that has stopped matching, and a rise nobody records is the blind spot
+// growing quietly. The same reasoning, and the same shape, as
+// scripts/report-unused-selected-columns.mjs.
+
+import fs from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { TENANT_SCOPED_TABLES, GLOBAL_TABLES } = require("../lib/sonara-tenant-scoped-tables.cjs");
+
+const root = process.cwd();
+const SOURCE_DIRS = ["lib", "routes", "api"];
+const SOURCE_FILES = ["server.js"];
+
+// Recorded on 9 September 2026 from a clean run. Lower it when a call becomes
+// resolvable; raise it only with a reason written here.
+//
+// 28 of 108: fifteen are `rest(config, table, ...)` inside a helper whose caller
+// supplies the table, and six are a `path` built at the call site. Those two
+// shapes are most of it.
+const RECORDED_UNRESOLVED = 28;
+
+// Of those 42, how many carry a literal query with no organization_id in it.
+// This is the number that would move if somebody deleted a filter inside a
+// helper whose table is a parameter, which is the case the table ratchet alone
+// cannot see. Recorded 9 September 2026 from a clean run.
+const RECORDED_UNRESOLVED_NO_FILTER = 0;
+
+// A floor, so an empty or broken walk cannot pass as a clean audit.
+const MINIMUM_CALLS = 90;
+
+function walk(directory, found = []) {
+  if (!fs.existsSync(directory)) return found;
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) walk(full, found);
+    else if (/\.(c?js|mjs)$/.test(entry.name)) found.push(full);
+  }
+  return found;
+}
+
+// Arguments of a call, respecting nesting and strings. A regex cannot do this:
+// a template literal in a query string contains commas, parentheses and
+// backticks, and splitting on the first comma gets the wrong argument.
+function callArguments(source, openParen) {
+  let depth = 0;
+  let current = "";
+  const args = [];
+  let quote = null;
+  let escaped = false;
+  for (let i = openParen; i < source.length; i += 1) {
+    const character = source[i];
+    if (quote) {
+      current += character;
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === "`") { quote = character; current += character; continue; }
+    if (character === "(") { depth += 1; if (depth === 1) continue; }
+    if (character === ")") { depth -= 1; if (depth === 0) { args.push(current); return args; } }
+    if (character === "," && depth === 1) { args.push(current); current = ""; continue; }
+    current += character;
+  }
+  return null;
+}
+
+// Whether this call selects rows by filter, which decides whether an empty query
+// is a hole or a normal insert.
+//
+// A POST carries the organization in its body, so `rest(config, table, "", {
+// method: "POST", body })` is correct and flagging it is noise -- the first run
+// of this check flagged five of them. A GET, PATCH or DELETE is the opposite:
+// the query string is the only thing choosing which rows are read, changed or
+// removed, and an unfiltered PATCH or DELETE on a tenant table would rewrite
+// every organization's rows rather than merely read them.
+function filtersRows(args) {
+  const options = (args[3] || "").trim();
+  const method = options.match(/method\s*:\s*["'`]([A-Z]+)["'`]/);
+  if (!method) return true;
+  return method[1] !== "POST";
+}
+
+function tableNamesInScope(source) {
+  const direct = new Map();
+  for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*["'`]([a-z0-9_]+)["'`]/g)) {
+    direct.set(match[1], match[2]);
+  }
+  const maps = new Map();
+  for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:Object\.freeze\()?\{([\s\S]*?)\}/g)) {
+    const entries = new Map();
+    for (const entry of match[2].matchAll(/([A-Za-z_$][\w$]*|"[^"]+"|'[^']+')\s*:\s*["'`]([a-z0-9_]+)["'`]/g)) {
+      entries.set(entry[1].replace(/^["']|["']$/g, ""), entry[2]);
+    }
+    if (entries.size) maps.set(match[1], entries);
+  }
+  for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)/g)) {
+    const resolved = maps.get(match[2])?.get(match[3]);
+    if (resolved) direct.set(match[1], resolved);
+  }
+  return { direct, maps };
+}
+
+const files = [...SOURCE_FILES.map((name) => path.join(root, name)), ...SOURCE_DIRS.flatMap((dir) => walk(path.join(root, dir)))]
+  .filter((file) => fs.existsSync(file));
+
+const counts = { total: 0, tenantFiltered: 0, tenantUnfiltered: 0, notTenantScoped: 0, unresolvedTable: 0, unresolvedTableNoFilter: 0, unresolvedQuery: 0 };
+const unfiltered = [];
+const unresolvedNoFilter = [];
+const unresolvedShapes = new Map();
+
+for (const file of files) {
+  const source = fs.readFileSync(file, "utf8");
+  const { direct, maps } = tableNamesInScope(source);
+
+  for (const match of source.matchAll(/\brest\(/g)) {
+    // `rest` is declared per route file, and `async function rest(config, table,
+    // query = "", options = {})` matches this pattern as readily as a call does.
+    // Counting a declaration as a call is the population error: the first run of
+    // this check reported five calls "naming no organization" that were the five
+    // definitions of the helper itself.
+    const before = source.slice(Math.max(0, match.index - 30), match.index);
+    if (/\bfunction\s+$/.test(before)) continue;
+
+    const args = callArguments(source, match.index + "rest".length);
+    if (!args || args.length < 2) continue;
+    counts.total += 1;
+
+    const expression = args[1].trim();
+    let table = /^["'`]/.test(expression) ? expression.slice(1, -1) : direct.get(expression);
+    if (!table) {
+      const dotted = expression.match(/^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)$/);
+      if (dotted) table = maps.get(dotted[1])?.get(dotted[2]);
+    }
+
+    if (!table) {
+      counts.unresolvedTable += 1;
+      const shape = expression.slice(0, 40);
+      unresolvedShapes.set(shape, (unresolvedShapes.get(shape) || 0) + 1);
+
+      // The table is unknown, so whether it is tenant-scoped is unknown. But the
+      // query usually is a literal, and whether THAT names an organization is
+      // knowable -- so it is counted rather than waved past.
+      //
+      // This exists because the first version of this script did not have it,
+      // and the falsification found out: deleting `organization_id=eq.` from a
+      // real query in market-intelligence-routes.cjs left the run green, because
+      // that call's table is a parameter and landed here. A check blind to the
+      // one edit it exists to catch is worse than no check, so the blind bucket
+      // is now measured on the half of the call it can actually read.
+      const blindQuery = (args[2] || "").trim();
+      if (/^["'`]/.test(blindQuery) && !/organization_id=/.test(blindQuery) && filtersRows(args)) {
+        counts.unresolvedTableNoFilter += 1;
+        unresolvedNoFilter.push({ file: path.relative(root, file), expression: shape, query: blindQuery.slice(0, 120).replace(/\s+/g, " ") });
+      }
+      continue;
+    }
+
+    if (!TENANT_SCOPED_TABLES.has(table)) {
+      // Global tables carry no organization, so there is nothing to filter on.
+      // An unknown name lands here too and is not a tenant claim either way.
+      counts.notTenantScoped += 1;
+      continue;
+    }
+
+    const query = (args[2] || "").trim();
+    if (!/^["'`]/.test(query)) { counts.unresolvedQuery += 1; continue; }
+
+    if (/organization_id=/.test(query)) counts.tenantFiltered += 1;
+    else if (!filtersRows(args)) counts.notTenantScoped += 1;
+    else {
+      counts.tenantUnfiltered += 1;
+      unfiltered.push({ file: path.relative(root, file), table, query: query.slice(0, 140).replace(/\s+/g, " ") });
+    }
+  }
+}
+
+const failures = [];
+
+if (counts.total < MINIMUM_CALLS) {
+  failures.push(
+    `only ${counts.total} rest() calls found across ${files.length} runtime files, against a floor of ${MINIMUM_CALLS}. ` +
+    "This check has gone blind -- the walk or the matcher is broken, and a clean result here would mean nothing."
+  );
+}
+
+if (counts.tenantFiltered === 0) {
+  failures.push(
+    "no tenant-scoped query was resolved at all, so the organization filter was never actually checked on anything. " +
+    "A pass in this state is the check measuring nothing."
+  );
+}
+
+for (const entry of unfiltered) {
+  failures.push(
+    `${entry.file} queries the tenant-scoped table ${entry.table} without organization_id=. ` +
+    `The service-role key bypasses row-level security, so this returns every organization's rows: ${entry.query}`
+  );
+}
+
+if (counts.unresolvedTableNoFilter > RECORDED_UNRESOLVED_NO_FILTER) {
+  for (const entry of unresolvedNoFilter) {
+    failures.push(
+      `${entry.file} calls rest() on an unresolvable table (${entry.expression}) with a query naming no organization: ${entry.query}. ` +
+      "Whether that table is tenant-scoped cannot be read from here, which is exactly why it has to be answered by hand: " +
+      "either add organization_id= to the query, or name the table at the call site so this check can classify it."
+    );
+  }
+}
+
+if (counts.unresolvedTable > RECORDED_UNRESOLVED) {
+  failures.push(
+    `${counts.unresolvedTable} rest() calls have a table this reader cannot resolve, up from the recorded ${RECORDED_UNRESOLVED}. ` +
+    "The blind spot grew. Either resolve the new ones by naming the table at the call site, or raise RECORDED_UNRESOLVED " +
+    "in this script with the reason written beside it."
+  );
+}
+
+const shapes = [...unresolvedShapes.entries()].sort((a, b) => b[1] - a[1]).map(([shape, n]) => `${n}x ${shape}`).join(", ");
+
+console.log(
+  `Tenant-scoped query audit: ${counts.total} rest() calls across ${files.length} runtime files -- ` +
+  `${counts.tenantFiltered} tenant-scoped and filtered by organization_id, ${counts.tenantUnfiltered} tenant-scoped and NOT filtered, ` +
+  `${counts.notTenantScoped} on tables that carry no organization, ${counts.unresolvedTable} whose table cannot be resolved statically ` +
+  `(${shapes || "none"}), of which ${counts.unresolvedTableNoFilter} carry a literal query naming no organization, ` +
+  `${counts.unresolvedQuery} whose query is not a literal.`
+);
+
+if (counts.unresolvedTable < RECORDED_UNRESOLVED) {
+  console.log(
+    `The unresolved count fell to ${counts.unresolvedTable} from the recorded ${RECORDED_UNRESOLVED}. ` +
+    "Lower RECORDED_UNRESOLVED in this script to hold the ground: a fall nobody records looks exactly like a matcher that stopped matching."
+  );
+}
+
+if (failures.length) {
+  console.error("\nTenant-scoped query audit failed:");
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
