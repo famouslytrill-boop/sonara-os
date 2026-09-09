@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 314 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 315 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,54 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - The one log line every route error passes through printed the stack raw
+
+Swept every `console.*` in the runtime after the rate-limiter fix, on the
+principle that finding one unredacted sink means looking for the others. Eight
+in `server.js`, `lib/`, `routes/` and `api/`. Six were fine. One was the global
+route error handler, and it is the worst possible place for this.
+
+`lib/sonara-async-route-safety.cjs` ended with:
+
+    log(`[route-error] ${req.method} ${req.originalUrl || req.url} -> ${error && error.stack ? error.stack : error}`);
+
+**Every unhandled error in the application arrives on that line**, and it
+interpolated `error.stack` raw.
+
+What makes it worth a long entry is that the fix already existed and was written
+for exactly this. `lib/sonara-redaction.cjs` says so in its own header: "a
+Supabase failure carries a URL with an apikey query parameter or an Authorization
+header echo; a service-role key is a JWT ... redactError() exists because an
+Error is the usual carrier and `String(error)` drops the stack while
+`error.stack` keeps the URL that failed." The redactor existed, the hazard was
+documented in the redactor's own comment, its first pattern is named
+`supabase_or_jwt_key` and calls the service-role key "the single worst thing in
+this deployment to print" -- and the one sink every route error passes through
+did not call it.
+
+A failed PostgREST request would have printed the service-role key, on the path
+taken when something is already going wrong, which is also the path most likely
+to be pasted into a chat while somebody asks for help.
+
+The request line is scrubbed separately, and not as an afterthought: a URL can
+carry a token in its query string, and a shared-result link does, so
+`req.originalUrl` is a credential carrier of its own.
+
+`tests/the-route-error-log-does-not-print-the-key.test.js` holds it, and asserts
+in both directions -- the key must not appear, and the method, path and error
+message must still appear, because a redactor that removes everything is as
+useless as one that removes nothing and only the second failure is obvious.
+
+Falsified: restoring the original line fails three assertions by name, including
+"the service-role key reached the log". 4,077 tests, lint, `verify:launch`
+exit 0.
+
+This is the third sink in one day where a credential could reach a log --
+`server.js` had already found and fixed it for the rate limiter, and that fix is
+what prompted the sweep. Widening `redactError` is not the lesson; calling it
+from every sink is, and a sink nothing requires to call it is one somebody will
+forget again.
 
 ### 2026-09-09 - Nothing was checking the tenant boundary, and my first attempt at checking it did not work
 
