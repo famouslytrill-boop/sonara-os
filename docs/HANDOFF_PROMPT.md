@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-227 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+228 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,54 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - OmniRoute reviewed: MIT, real software, and still reference_only
+
+Arrived as a social-media screenshot naming no owner -- 15k stars, "#1 Repository
+Of The Day", 237 AI providers, 1.6B free tokens a month. The person in the video
+is a promoter, not the author, so the repository was found by search and confirmed
+with `git ls-remote` before anything was written down. A second repository
+(`gentoopeng/omniroute`) exists carrying different counts, which is exactly why
+the owner was not guessed into a permanent register.
+
+**LICENSE read 9 September 2026: MIT, Copyright (c) 2026 diegosouzapw.** So the
+licence is not the blocker. Measured rather than described: 13,237 files, 9,190
+TypeScript and 1,144 TSX, version 3.8.51. Real software, not a directory of
+links -- an affiliate-parameter sweep found 30 hits across 243,328 markdown
+links, nothing like the placement-list pattern two registered repositories turned
+out to be.
+
+Recorded `reference_only` on shape rather than licence. **82 production
+dependencies and 58 development ones**, against this repository's single
+production dependency, in TypeScript, where `pnpm run build` is a syntax check.
+Adopting it is not adding a library, it is adopting a second application. The
+usable option is the one its own README describes and needs none of its code
+here: host the gateway and reach it over HTTP through an adapter obeying the four
+rules -- the same shape as the media worker, and a candidate for the Provider
+Gateway AGENTS.md already requires.
+
+Two findings worth keeping. **In its favour:** its own free-tier documentation is
+markedly more disciplined than the promotion around it. It dates its research,
+counts shared pools once, separates first-month signup credits from the recurring
+grant, and explicitly refuses to headline the ~10B theoretical ceiling, calling
+that inflation. The screenshot claimed 237 providers and 1.6B tokens; the
+repository says 352 providers and ~1.47B documented recurring tokens. **The
+promoter's figures were stale, and on the token count higher than the source
+supports** -- which is the reason our own comparison rules require a date and a
+source on every number.
+
+**Against:** `SECURITY.md` records that stored credentials are AES-256-GCM
+encrypted with scrypt derivation but fall back to "passthrough mode (plaintext)
+when `STORAGE_ENCRYPTION_KEY` is not set". A default installation holding provider
+keys stores them unencrypted until somebody sets that variable, and a gateway
+holds every provider key at once. That is the first thing to fix if it is ever
+stood up, and it is in `safetyBoundaries` rather than only in prose.
+
+The register's own gate earned its place twice here: it refused the record for
+opening 228 entries while only 227 could be read, because the entry led with
+`slug` where the reader wants `name` first, and `verify-doc-counts` then failed
+`WHAT-IS-LEFT.md` for saying 227 reviewed repositories. Both are derived counts
+catching a hand edit, which is what they are for. 228 repositories now.
 
 ### 2026-09-09 - The media worker install guide, derived from the code that calls it
 
