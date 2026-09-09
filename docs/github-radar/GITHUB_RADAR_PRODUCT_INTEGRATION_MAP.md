@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-227 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 227.
+228 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 228.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -72,7 +72,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-56 repositories.
+57 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -107,6 +107,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs/LongLive) | Apache-2.0 (repository); one vendored subdirectory is MIT | Research only | long-video generation infrastructure |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
+| [OmniRoute](https://github.com/diegosouzapw/OmniRoute) | MIT | Read only | AI gateway |
 | [OpenCut](https://github.com/OpenCut-app/OpenCut) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | video editing |
 | [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
@@ -184,7 +185,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-131 repositories.
+132 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -273,6 +274,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs/LongLive) | Apache-2.0 (repository); one vendored subdirectory is MIT | Research only | long-video generation infrastructure |
 | [OBLITERATUS](https://github.com/elder-plinius/OBLITERATUS) | AGPL-3.0 upstream with a stated commercial-license option; legal | Blocked | model safety research |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
+| [OmniRoute](https://github.com/diegosouzapw/OmniRoute) | MIT | Read only | AI gateway |
 | [Open SaaS (wasp-lang)](https://github.com/wasp-lang/open-saas) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenAI Agents SDK (Python)](https://github.com/openai/openai-agents-python) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |

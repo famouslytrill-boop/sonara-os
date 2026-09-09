@@ -200,6 +200,97 @@ proven without your key pair. The first file you store is the proof.
 
 ---
 
+## Step 3b — The AI keys, and which of them do anything
+
+Read out of `lib/creator-generation-provider-registry.cjs` and the routes that
+send them, on 9 September 2026. **Three hosted AI keys are wired to a real
+request. One that the setup scripts ask for is not wired to anything.**
+
+### The three that work
+
+```
+ELEVENLABS_API_KEY  = <ElevenLabs key>        ← voice generation
+GEMINI_API_KEY      = <Google AI Studio key>  ← Google Veo / Gemini video
+SUNO_API_KEY        = <Suno key>              ← music generation
+SUNO_API_BASE_URL   = <Suno API base>
+SUNO_GENERATE_PATH  = <generate path>
+SUNO_STATUS_PATH_TEMPLATE = <status path template>
+```
+
+`GEMINI_API_KEY` is the one that is easiest to confirm: it is sent as
+`x-goog-api-key` in `routes/creator-generation-routes.cjs`, on the generate
+call, the poll and the download. Suno needs all four variables — the registry
+refuses the provider when any is blank, so setting the key alone leaves it off.
+
+A text model with nothing to host is Cloudflare Workers AI, in Step 3 above.
+
+### `OPENAI_API_KEY` does nothing. Do not bother setting it.
+
+No route, library or API handler reads it. It appears in exactly three places:
+`lib/sonara-environment-classification.cjs` (classified so `verify:env` stays
+quiet), `scripts/check-risks.mjs` — where it is a **name in a list of secrets to
+hunt for in client bundles**, not a credential — and `scripts/setup-vercel-env.ps1`
+and `scan-secrets-local.ps1`.
+
+**The PowerShell setup script asks for it anyway.** That is the same defect as
+`GOOGLE_REDIRECT_URI` in Step 5: a variable the setup path requests, that nothing
+consumes, which then sits in the environment looking like a working capability.
+Setting it costs you a live OpenAI key in an environment for no return.
+
+`tools/agentkit` does use an OpenAI key, but under its own name —
+`AGENTKIT_OPENAI_API_KEY` — and it is a Python tool that does not run in the
+deployed application.
+
+### The nine that are not installable, and are not meant to be
+
+ComfyUI, LTX-2, Wan 2.2, HunyuanVideo, CogVideoX, Stable Audio 3, AudioCraft,
+OpenVoice and GPT-SoVITS are recorded with `adapterMode: "reference_only"`.
+**There is no adapter and no variable to set.** They carry no `_ENABLED`, no
+`_URL` and no key, because they are records of repositories this project
+reviewed — not integrations waiting on configuration. Nothing about them can be
+"installed" or "switched on" from here.
+
+Two are blocked by licence rather than by effort, which no amount of work
+changes:
+
+- **AudioCraft** — the code is MIT but the published model weights are
+  **CC-BY-NC 4.0**. NonCommercial. This product is sold on paid plans, so those
+  weights cannot be used in it unless Meta relicenses them.
+- **HunyuanVideo** — the Tencent model licence carries usage restrictions that
+  need qualified review.
+
+Every one of the other seven records the same warning in a milder form: the code
+licence is not the model-weights licence, and the weights need reviewing
+separately before anything commercial happens. A permissive repository licence is
+not permission to sell what the model produces.
+
+**The supported way to actually run these models is the SONARA Open Media
+Worker** — you host the engine, and the application talks to your worker over a
+real adapter:
+
+```
+CREATOR_MEDIA_WORKER_URL   = https://<your worker>
+CREATOR_MEDIA_WORKER_TOKEN = <token>   ← Sensitive
+```
+
+**`docs/owner/MEDIA-WORKER-INSTALL.md` is the full build-and-install guide** —
+where to host it, the two endpoints your service must expose (`POST /v1/jobs`
+and `GET /v1/jobs/{id}`), every field the application sends, the three job
+states, and the four rules an output URL has to satisfy. Every one of those was
+read out of `routes/creator-generation-routes.cjs`, and a test fails if the guide
+and that code stop agreeing.
+
+The Step 4 caveat applies and is what catches people: `http://localhost:...`
+means *this serverless function*, not your laptop. Its registry record says
+activation requires a recorded licence review, which is the same point as above
+with a procedure attached.
+
+`CREATOR_MEDIA_WORKER_URL` and `CREATOR_MEDIA_WORKER_TOKEN` are the SONARA Open
+Media Worker, which is the supported way to put those models somewhere a
+deployed function can actually reach.
+
+---
+
 ## Step 4 — The eight self-hosted adapters, and why they are different
 
 Ollama, Langflow, Open WebUI, Crawl4AI, Dify, RAGFlow, whisper.cpp and voice

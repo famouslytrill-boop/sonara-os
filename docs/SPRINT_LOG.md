@@ -2,6 +2,225 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - Three of four rate limiters failed open in silence
+
+Audited the runtime against what a serverless function can actually do, rather
+than against what runs locally. Three sweeps came back clean and are worth
+recording as checked rather than assumed: **no runtime filesystem writes**
+(`fs.write*`, `createWriteStream`) anywhere in `server.js`, `lib/`, `routes/` or
+`api/`, which matters because the filesystem is read-only outside `/tmp`; **no
+`setInterval` or background `setTimeout`**, which matters because a function is
+frozen the moment it responds and anything scheduled after that never runs; and
+the only module-level mutable state in runtime code is lookup tables built once
+at require time, not state anybody assumes survives between requests.
+
+The one real finding was in `lib/sonara-rate-limit.cjs`, and the module had
+already got the hard part right: counters live in Postgres precisely because an
+in-process counter gives each concurrent instance its own budget, which is not a
+limit. `MEMORY_BUCKETS` is the local-development path and reports
+`durable: false`.
+
+**What was wrong was the fail-open.** When the Postgres RPC cannot be reached the
+limiter allows the request -- deliberately, because failing closed turns a
+transient database problem into a total authentication outage -- and the comment
+says the degraded flag "is logged so the condition is visible rather than
+silent". That was true in **one of four** call sites. Only
+`lib/sonara-customer-auth.cjs` passed `onDegraded`. Lead capture, public booking
+and the public scroll routes did not, so those three -- **the three reachable
+with no account, which is the entire abuse surface** -- degraded to no rate limit
+at all and said nothing.
+
+A comment asserting a guarantee that holds in a quarter of cases is the shape
+this repository keeps finding. Fixed by making the report the module's default
+rather than each caller's responsibility: an optional hook fails silent exactly
+when somebody adds a limiter, which is the moment nobody is reading that file --
+the same reasoning as the deny-by-default classifier in
+`lib/sonara-agent-authority.cjs`. A caller may still replace it and cannot switch
+it off by forgetting.
+
+The default redacts, and not decoratively: the error carries the PostgREST URL
+the call failed to reach and that URL carries an `apikey` parameter, so
+interpolating it raw prints the service-role credential into the log on exactly
+the path taken when the database is already struggling. `server.js` records
+finding that once already, and the new test asserts the key never appears.
+
+Falsified: making `onDegraded` optional again fails two assertions by name --
+"a limiter with no onDegraded degraded to fail-open and said nothing" and
+"onDegraded is optional again, so a new limiter can be silent". 4,072 tests,
+lint, `verify:launch` exit 0.
+
+### 2026-09-09 - OmniRoute reviewed: MIT, real software, and still reference_only
+
+Arrived as a social-media screenshot naming no owner -- 15k stars, "#1 Repository
+Of The Day", 237 AI providers, 1.6B free tokens a month. The person in the video
+is a promoter, not the author, so the repository was found by search and confirmed
+with `git ls-remote` before anything was written down. A second repository
+(`gentoopeng/omniroute`) exists carrying different counts, which is exactly why
+the owner was not guessed into a permanent register.
+
+**LICENSE read 9 September 2026: MIT, Copyright (c) 2026 diegosouzapw.** So the
+licence is not the blocker. Measured rather than described: 13,237 files, 9,190
+TypeScript and 1,144 TSX, version 3.8.51. Real software, not a directory of
+links -- an affiliate-parameter sweep found 30 hits across 243,328 markdown
+links, nothing like the placement-list pattern two registered repositories turned
+out to be.
+
+Recorded `reference_only` on shape rather than licence. **82 production
+dependencies and 58 development ones**, against this repository's single
+production dependency, in TypeScript, where `pnpm run build` is a syntax check.
+Adopting it is not adding a library, it is adopting a second application. The
+usable option is the one its own README describes and needs none of its code
+here: host the gateway and reach it over HTTP through an adapter obeying the four
+rules -- the same shape as the media worker, and a candidate for the Provider
+Gateway AGENTS.md already requires.
+
+Two findings worth keeping. **In its favour:** its own free-tier documentation is
+markedly more disciplined than the promotion around it. It dates its research,
+counts shared pools once, separates first-month signup credits from the recurring
+grant, and explicitly refuses to headline the ~10B theoretical ceiling, calling
+that inflation. The screenshot claimed 237 providers and 1.6B tokens; the
+repository says 352 providers and ~1.47B documented recurring tokens. **The
+promoter's figures were stale, and on the token count higher than the source
+supports** -- which is the reason our own comparison rules require a date and a
+source on every number.
+
+**Against:** `SECURITY.md` records that stored credentials are AES-256-GCM
+encrypted with scrypt derivation but fall back to "passthrough mode (plaintext)
+when `STORAGE_ENCRYPTION_KEY` is not set". A default installation holding provider
+keys stores them unencrypted until somebody sets that variable, and a gateway
+holds every provider key at once. That is the first thing to fix if it is ever
+stood up, and it is in `safetyBoundaries` rather than only in prose.
+
+The register's own gate earned its place twice here: it refused the record for
+opening 228 entries while only 227 could be read, because the entry led with
+`slug` where the reader wants `name` first, and `verify-doc-counts` then failed
+`WHAT-IS-LEFT.md` for saying 227 reviewed repositories. Both are derived counts
+catching a hand edit, which is what they are for. 228 repositories now.
+
+### 2026-09-09 - The media worker install guide, derived from the code that calls it
+
+Asked for instructions to install the SONARA Open Media Worker -- the supported
+way to run the open generation engines, since the nine reference-only records
+cannot be installed at all and a serverless function cannot host a GPU.
+
+The instructions are worth having because the contract was **only in the code**.
+`dispatchWorker`, `refreshWorker`, `completeFromProviderPayload`, `findOutputUrl`
+and `fetchSafeOutput` between them define a wire protocol nobody had written
+down: `POST /v1/jobs` with eight named fields and a bearer token, `GET
+/v1/jobs/{id}`, three job states, and four separate refusals on the output URL
+(https only, no redirects, 160 MB against both the header and the bytes, and the
+content type becomes the stored file's type). Somebody building a worker had to
+read the route to find any of it.
+
+`docs/owner/MEDIA-WORKER-INSTALL.md` writes it out. Nothing in it was designed
+here; every path, header, field, status and limit was read out of the route.
+
+**A written-down wire protocol is a second copy of a fact**, which is the thing
+that went wrong twice already today, and worse here: somebody following a stale
+version builds a worker that never completes a job, with no running system to
+contradict them. So
+`tests/the-media-worker-contract-is-what-the-code-sends.test.js` parses the
+contract back out of the route and checks the prose against it -- the body fields
+out of the `JSON.stringify` argument, the terminal statuses out of
+`completeFromProviderPayload`, the output keys out of `findOutputUrl`, the size
+cap out of `fetchSafeOutput`, and the capability list out of the registry.
+
+**Two of its own assertions were wrong first**, and both were the failure mode
+the check exists to catch, aimed at the check itself: the output-key matcher used
+`[a-z_]` and stopped at the capital in `generateVideoResponse`, captured
+`generate`, and demanded the guide document a key that does not exist; and the
+licence assertion could not see across a line break, so it reported a sentence
+that was present as missing. Fixed both rather than relaxing the guide.
+
+Falsified afterwards: changing the submit path to `/v2/jobs` and the cap to
+512 MB fails by name on both, and restoring the file goes green.
+
+### 2026-09-09 - 23 capabilities routed to a provider that can never be configured
+
+Asked to make the nine self-hosted generation engines "installed and working".
+They cannot be, and are not meant to be: ComfyUI, LTX-2, Wan 2.2, HunyuanVideo,
+CogVideoX, Stable Audio 3, AudioCraft, OpenVoice and GPT-SoVITS are all recorded
+`adapterMode: "reference_only"` -- records of reviewed repositories, carrying no
+`enabledEnv`, no `baseUrlEnv` and no `requiredEnv`. Two are licence-blocked
+outright: **AudioCraft's published weights are CC-BY-NC 4.0**, which no
+engineering makes usable in a product sold on paid plans, and HunyuanVideo's
+Tencent licence needs qualified review.
+
+Looking for what could honestly be verified turned up a real defect.
+`chooseProvider` filtered candidates by declared capability alone, and a
+reference-only provider declares plenty. **23 of 44 capabilities auto-selected
+one** -- `voice_cloning`, `voice_conversion` and `voice_style_control` among
+them. The route checks `readiness.configured`, so nothing ever executed; what it
+produced was a job stamped `setup_required` naming a provider whose setup cannot
+be completed, plus a job row recording e.g. `audiocraft` as the provider for work
+that provider's licence forbids.
+
+**This is the FORM_CAPABILITY_ORDER story repeating one layer down.** That
+comment in `routes/creator-generation-routes.cjs` records a customer picking
+"Voice copy", being told voice work needs a permission on file, going away and
+recording one **naming a real person**, coming back and getting
+`capability_not_supported`. The fix was to filter the menu by what a provider
+declares. A reference-only provider declares things, so the same trap reopened on
+the API path, on the same sensitive capability.
+
+`lib/sonara-plain-language.cjs` had rendered `reference_only` as "Not offered
+here. Recorded for reference, and not connected" the whole time, so one registry
+was giving two answers, and `growth-studio-provider-registry.cjs` already
+excluded these from its candidates. The fix brings the two registries into
+agreement rather than inventing a rule: auto-selection skips them, and asking for
+one by name is refused with `provider_not_connected` instead of being parked.
+
+Falsified: restoring the unfiltered selection fails three assertions by name --
+auto-selection landing on an unconnectable provider, `node_graphs` still
+resolving, and `comfyui` accepted by name. 4,057 tests, lint, `verify:launch`
+exit 0.
+
+### 2026-09-09 - main was red on merge, and the AI keys were never written down
+
+Checked the whole application against the chain rather than against memory.
+`pnpm run verify:launch` failed on `main`: **4,045 passing, 4 failing.** Bisected
+rather than guessed -- 78a36fd (this branch before the merge) ran 18/18 green on
+the three affected files, and af0e881 (#229's merge) ran 14 passing, 4 failing.
+The regression arrived with #229, and both PRs were green individually.
+
+**Two failures: a check tightened without its fixtures.** #229 narrowed
+`isStripePriceId` to `/^price_[A-Za-z0-9]+$/`, which is correct -- all 22 prices
+on the live account match it and none carries a separator. But
+`tests/one-ladder-on-the-pricing-page.test.js` set fixture ids as
+`price_${plan}`, so `price_workspace_monthly` became invalid, no new plan was
+buyable, the new ladder never replaced the old one, and the page rendered both.
+Fixed the fixtures rather than loosening the check: the check catches a real
+class of error and the fixture used a shape Stripe does not issue. The id is now
+derived from the plan key, so a plan added later gets a valid one.
+
+**Two failures: a literal that outlived what it described.** #229 moved
+`sonara-brand-registry.cjs` onto the current ladder, correctly. Two tests still
+asserted `["$0", "$7/mo", "$19/mo", "$39/mo"]`. They now compare the registry's
+prices to `STRIPE_PLANS` **by the registry's own plan keys**, which is the
+invariant actually worth holding -- that the public registry advertises what the
+table charges. Falsified: setting the registry to $49 while the table charges $59
+fails by name; restored, green.
+
+That is the same lesson twice in one day. A literal in a test is a second copy of
+a fact, and the copy does not move when the fact does.
+
+**The AI keys had no section anywhere, and one of them does nothing.** Read out
+of the provider registry and the routes that send them:
+
+- `ELEVENLABS_API_KEY`, `GEMINI_API_KEY` and `SUNO_API_KEY` (with its three URL
+  variables) are wired to real requests. `GEMINI_API_KEY` is verifiable by
+  inspection -- sent as `x-goog-api-key` on the generate, poll and download calls.
+- **`OPENAI_API_KEY` is read by nothing.** It appears in the classification, in
+  `check-risks.mjs` as a *name in a list of secrets to hunt for in client
+  bundles*, and in `scripts/setup-vercel-env.ps1`, which asks the owner to set
+  it. That is `GOOGLE_REDIRECT_URI` again: a variable the setup path requests and
+  nothing consumes. `tools/agentkit` uses OpenAI under its own name,
+  `AGENTKIT_OPENAI_API_KEY`, and does not run in the deployed application.
+- Nine generation providers are self-hosted and take a URL and no key.
+
+Written into `INSTALL-ALL-KEYS.md` as Step 3b. 4,049 tests, lint,
+`verify:launch` exit 0.
+
 ### 2026-09-09 - The annual price variables were fixed, and the yearly plans went on sale
 
 Set and redeployed by the owner at about 06:25 UTC. `/api/readiness` now returns

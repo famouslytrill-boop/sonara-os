@@ -6728,6 +6728,35 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "OmniRoute",
+    slug: "omniroute-ai-gateway",
+    category: ["AI gateway", "provider routing", "free-tier aggregation", "self-hosted service", "permissive licence"],
+    useCase: ["a named option for the Provider Gateway AGENTS.md already requires, if one is ever hosted rather than written"],
+    productFit: ["Creator Studio", "Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not vendor or depend on it -- 82 production dependencies against this repository's one, in TypeScript, with no build step here to compile it",
+      "if it is ever wanted, host it as a separate service and reach it over HTTP through an adapter obeying the four rules in docs/architecture/EXTERNAL-SERVICES.md, exactly as the media worker is reached; that needs none of its code in this tree",
+      "set STORAGE_ENCRYPTION_KEY before storing any provider key in it -- its own SECURITY.md records that storage falls back to plaintext when that variable is unset",
+      "do not build a shipped feature on the aggregated free tiers: a free tier is a price, and the vendor changes it without asking",
+    ],
+    officialUrl: "https://github.com/diegosouzapw/OmniRoute",
+    repoUrl: "https://github.com/diegosouzapw/OmniRoute",
+    notes:
+      "Cloned and measured 9 September 2026, arriving as a social-media screenshot that named no owner. The video is by a promoter rather than the author, so the repository was found by search and confirmed with git ls-remote before anything was recorded; a second repository (gentoopeng/omniroute) exists carrying different counts, which is why the owner was not guessed. LICENSE read: MIT, Copyright (c) 2026 diegosouzapw. 13,237 files, 9,190 TypeScript and 1,144 TSX, version 3.8.51, Node >=22.22.2. Real software rather than a directory of links: an affiliate-parameter sweep found 30 hits across 243,328 markdown links, which is noise rather than the placement-list pattern two other registered repositories turned out to be. The reason this is reference_only is not the licence, which permits use here, but shape and dependency surface: 82 production dependencies and 58 development ones against this repository's single production dependency, in TypeScript, where `pnpm run build` is a syntax check. Adopting it would not be adding a library, it would be adopting a second application. The usable option is the one its own README describes -- self-host the gateway and call it over HTTP -- which needs none of its code here and is the same shape as the media worker. Two things count in its favour and one against. In favour: telemetry is disabled by default and it is described as local-first with no hosted prompt-processing hop; and its own free-tier documentation is markedly more disciplined than the promotion around it, dating its research, counting shared pools once, separating first-month signup credits from the recurring grant, and explicitly refusing to headline the ~10B theoretical ceiling as inflation. The screenshot that prompted this review claimed 237 providers and 1.6B free tokens a month; the repository's own current documentation says 352 providers and ~1.47B documented recurring tokens, so the promoter's figures were stale and, on the token count, higher than the source supports. Against: SECURITY.md records that stored credentials are AES-256-GCM encrypted with scrypt derivation but fall back to 'passthrough mode (plaintext) when STORAGE_ENCRYPTION_KEY is not set', so a default installation holding provider keys stores them unencrypted until somebody sets that variable. That is a default-insecure fallback and is the first thing to fix if this is ever stood up.",
+    safetyBoundaries: [
+      "provider API keys are secrets and stay server-side, exactly as the service-role key does -- a gateway holds every one of them at once, so it is a higher-value target than any single provider",
+      "STORAGE_ENCRYPTION_KEY must be set before any key is stored, or storage is plaintext by its own documentation",
+      "the aggregated free tiers are a price and not a capability: nothing customer-facing may depend on a quota another company can withdraw",
+      "hosting it would not remove the adapter rules -- off by default, never a dependency, never renders configuration, validates anything that becomes part of a request",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

@@ -5,6 +5,7 @@ const path = require("node:path");
 const { _execFileSync } = require("node:child_process");
 const app = require("../server");
 const { SONARA_BRAND_REGISTRY } = require("../lib/sonara-brand-registry.cjs");
+const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
 const { assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 const LEGACY_ASSET_PATTERN = /sonara-(?:brand-system|friendly-premium|interface-engine|launch-ui|cohesive-2027|builder-2027|premium-mobile|premium-access|premium-ux)/i;
@@ -17,7 +18,24 @@ describe("canonical responsive application interface", () => {
     assert.equal(SONARA_BRAND_REGISTRY.parent.message, "Build, create, and grow—without losing control.");
     assert.deepEqual(SONARA_BRAND_REGISTRY.products.map((product) => product.name), ["Business Builder", "Creator Studio", "Growth Studio"]);
     assert.deepEqual(SONARA_BRAND_REGISTRY.products.map((product) => product.experienceMode), ["Forge", "Canvas", "Signal"]);
-    assert.deepEqual(SONARA_BRAND_REGISTRY.plans.map((plan) => plan.price), ["$0", "$7/mo", "$19/mo", "$39/mo"]);
+    // Prices read out of STRIPE_PLANS by the registry's own plan keys, not
+    // written out.
+    //
+    // These were the literals ["$0", "$7/mo", "$19/mo", "$39/mo"]. When the
+    // registry was moved onto the current ladder on 9 September 2026 the
+    // literals stayed behind, and this test failed for naming three plans the
+    // registry no longer carries -- while saying nothing about whether the two
+    // sources agreed, which is the thing actually worth asserting.
+    //
+    // Derived, it cannot go stale: repricing the table moves the expectation
+    // with it, and a registry that drifts away from the table fails here by
+    // name.
+    assert.deepEqual(
+      SONARA_BRAND_REGISTRY.plans.map((plan) => plan.price),
+      SONARA_BRAND_REGISTRY.plans.map((plan) => STRIPE_PLANS[plan.key].price),
+      "the public brand registry advertises a price the plan table does not charge"
+    );
+    assert.ok(SONARA_BRAND_REGISTRY.plans.length >= 3, "too few plans in the registry for the comparison above to mean anything");
   });
 
   it("renders one clean SONARA One homepage without retired visual systems", async () => {
