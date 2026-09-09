@@ -82,6 +82,7 @@ else fail("no Stripe webhook signature verification found in server.js");
 
 const secret = process.env.STRIPE_SECRET_KEY;
 const isPlaceholder = (value) => !value || /^(?:changeme|placeholder|your[_-]|xxx|todo)/i.test(value) || value.includes("...");
+const isStripePriceId = (value) => /^price_[A-Za-z0-9]+$/.test(String(value || "").trim()) && !isPlaceholder(value);
 
 // --require-live turns every reason this script has for not comparing into a
 // failure, so the run's exit code means what its last line says.
@@ -129,7 +130,7 @@ if (!isPlaceholder(secret) && !looksLikeStripeKey) {
   for (const [plan, config] of paidPlans) {
     const names = [config.env, ...(config.envAliases || [])];
     const values = names.map((name) => process.env[name]).filter(Boolean);
-    const priceId = values.find((value) => value.startsWith("price_"));
+    const priceId = values.find(isStripePriceId);
 
     if (!priceId) {
       // Set-but-unusable is a different fault from unset, and it looked
