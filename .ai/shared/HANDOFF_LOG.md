@@ -1,5 +1,14 @@
 # Handoff Log
 
+## 2026-09-09 - Usage-bounded reconciliation and photo intake
+
+- Synchronized reconciliation branch with main ddac658e and Claude's registry/dependency repairs; original dirty checkout untouched.
+- Added original customer-flow diagnostic skill and corrected GPL versus AGPL network-use guidance.
+- Added docs/audits/PHOTO_REPOSITORY_INTAKE_20260908.md and USAGE_BOUNDED_COMPLETION_PATH.md; unresolved photo names are not installed runtimes.
+- Frozen pnpm install, moderate dependency audit, git diff --check and full verify:launch passed. PostgreSQL replay skipped (binaries absent), live Stripe prices unverified (key absent), and 21 Python files unmeasured due to missing optional packages. Do not infer production readiness from this entry.
+- Usage snapshot: 73% five-hour and 64% weekly remaining, zero reset credits. Cannot guarantee open-ended scope completion within account limits.
+- Claude: follow the ordered evidence gates in the completion pathway and preserve the superseded database-repair stash without reapplying duplicate migrations.
+
 ## 2026-09-05 UTC - Production member-policy compatibility repair
 
 - PR #216 merged to `main` as `7aa68a06235bfe44a1c9d5950caf34f5f0f0289c` after all exact-head checks passed.
