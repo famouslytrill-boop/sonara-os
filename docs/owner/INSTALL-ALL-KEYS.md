@@ -116,11 +116,12 @@ point somewhere else.
 
 ---
 
-## Step 2 — Annual pricing (created, needs wiring)
+## Step 2 — Annual pricing (done 9 September 2026)
 
-The three yearly prices exist on the live account as of 9 September 2026. They
-are invisible on `/pricing` until these three variables are set, which is
-`hiddenUntilBuyable` working, not a fault:
+**Set and redeployed at about 06:25 UTC on 9 September 2026.** `/api/readiness`
+now returns an empty `invalid` block and `/pricing` serves all three yearly
+cards. Recorded here for the next person, and because the values are worth
+keeping written down:
 
 ```
 STRIPE_PRICE_WORKSPACE_ANNUAL = price_1UDdUl0dKtlEU3lA8EB46MUJ

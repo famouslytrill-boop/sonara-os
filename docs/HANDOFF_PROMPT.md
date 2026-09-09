@@ -106,6 +106,40 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - The annual price variables were fixed, and the yearly plans went on sale
+
+Set and redeployed by the owner at about 06:25 UTC. `/api/readiness` now returns
+`invalid` with every list empty -- supabase, stripe, resend, founderAccess and
+adminProtection -- against the three `invalid_prefix` entries it carried all
+morning. All three annual plans read `checkout: enabled, reason: configured`, and
+`/pricing` serves the yearly cards at $290 / $590 / $1090. That last one is the
+observable effect rather than an assertion about one: `hiddenUntilBuyable` had
+been holding those cards off the page precisely until a price existed to sell.
+
+The failed `production-connectivity` run was re-run rather than left red, since
+it had failed *before* the fix landed and its own logs named only that cause.
+
+**Checked the detail rather than the summary, deliberately.** Production still
+serves the build where `ok` is the literal `true`, so `ok: true` there is worth
+nothing. The empty `invalid` block is the signal, and the annual entries in
+`checkoutPlans` are the confirmation. Reading `services.stripe` and calling it
+cleared is the mistake made earlier the same day, and it is the reason the `ok`
+fix in this branch exists.
+
+**What is still not proven, stated plainly.** Both
+`assertPriceMatchesAdvertised` and `verify-stripe-env.mjs --require-live` compare
+the *amount*, and the duplicate price set recorded in
+`PRICING-STEP-BY-STEP.md` section 1b carries identical amounts on different
+products. A green readiness is therefore consistent with either set being
+configured. Nothing reachable from here distinguishes them -- the environment
+cannot be read and no endpoint exposes the configured id -- so the docs now say
+so and name the ten-second check in Vercel instead of implying the question is
+settled.
+
+Also still true, and unchanged by any of this: no card has ever completed a
+purchase on this account, so `positiveSubscribedUserTest` stays `pending` and the
+old $19/$39/$79 prices stay unarchived.
+
 ### 2026-09-09 - The key guide's "ten required variables" were the wrong ten
 
 Deriving the install steps from `lib/sonara-environment-classification.cjs`

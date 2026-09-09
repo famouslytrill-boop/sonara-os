@@ -64,7 +64,18 @@ A Vercel environment variable is read when a deployment is built. Changing one
 does not change the running deployment. Vercel → **Deployments** → the current
 production deployment → **⋯ → Redeploy**.
 
-### Check it
+### Check it — done, 9 September 2026
+
+`/api/readiness` returns `invalid` with every list empty, all three annual plans
+read `checkout: enabled, reason: configured`, and `/pricing` serves the three
+yearly cards at $290 / $590 / $1090.
+
+**One thing that check does not prove.** Both `assertPriceMatchesAdvertised` and
+`verify-stripe-env.mjs` compare the *amount*, and the duplicate set in section 1b
+carries the same amounts. So a green readiness is consistent with either set
+being configured. Confirming which takes ten seconds and cannot be done from
+outside: open the three variables in Vercel and check the ids against the table
+in section 1 — the right ones are the ones listed there.
 
 Open `/pricing`. Three yearly cards appear beside the monthly ones. Before this,
 there were none — that is `hiddenUntilBuyable` doing its job rather than a bug.
@@ -187,7 +198,9 @@ had exactly one subscription in its history, $9.99/mo, started and cancelled on
 ## The order, if you only read one thing
 
 1. ~~Create three yearly prices at $290 / $590 / $1090.~~ Done 9 September 2026.
-2. Set the three `_ANNUAL` variables in Vercel production, using the ids above.
-3. Redeploy, or nothing changes.
+2. ~~Set the three `_ANNUAL` variables in Vercel production.~~ Done 9 September
+   2026, ~06:25 UTC.
+3. ~~Redeploy.~~ Done — `/api/readiness` returns an empty `invalid` block and
+   `/pricing` shows the three yearly cards at $290 / $590 / $1090.
 4. Buy one plan with a real card. Confirm it unlocks. Refund yourself.
 5. **Then** archive the six old prices.
