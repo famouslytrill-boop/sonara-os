@@ -106,6 +106,71 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - Seven deploys each moved production's schema forward and shipped no code
+
+Reading the log of deployment run 34381505461 answered a question I had been
+carrying wrongly, and turned up a worse problem underneath it.
+
+**The correction first.** The owner checklist said `STRIPE_SECRET_KEY` was
+missing from the GitHub `production` environment and that installing it was the
+one blocking step. It is installed -- the run's own step env shows
+`STRIPE_SECRET_KEY: ***`. Anyone following that instruction would have gone to
+fix something already done. Two different things are blocking the deploy:
+
+- **Three 403s.** `starter_monthly`, `core_monthly` and `pro_monthly` fail with
+  `Stripe returned 403`. A 403 on a restricted key is a permissions answer, not
+  a bad price id. `docs/owner/INSTALL-ALL-KEYS.md` told the owner to grant
+  *"exactly one permission: Prices -> Read. Nothing else."* That instruction is
+  wrong and this is very likely the cause: the check fetches
+  `/v1/prices/{id}?expand[]=product`, and an expand needs read permission on the
+  thing being expanded. The key needs Prices:read **and** Products:read.
+- **Six redacted price ids.** `vercel env pull` reported *"65 Secret values
+  cannot be pulled"* and wrote `[SENSITIVE]`. Six `STRIPE_PRICE_*` variables are
+  marked Sensitive in Vercel, so the check receives a placeholder. The three
+  older ids are not marked and came through fine, which is what identifies the
+  flag as the cause. `PRICING-STEP-BY-STEP.md` had told the owner *"mark them
+  Sensitive if you like; the deploy check knows the difference between a
+  variable that is set-but-redacted and one that is absent."* That sentence was
+  true and useless -- the check does print a different message for each, and
+  fails on both -- and it is the reason six variables carry the flag. Withdrawn,
+  with the evidence written in beside it.
+
+**The worse problem.** The Stripe check ran *after* `supabase db push`. So each
+of the seven consecutive failed deployments between 8 and 9 September applied
+every pending migration to the production database and then stopped without
+deploying any code. Production Postgres reached migration 115 of 115 while the
+apex went on serving `36c1b2a`, 44 commits behind -- schema ahead of the
+application running against it. Each run's summary said "Schema changes were
+already applied to production" and each was telling the truth; nothing was
+reading them.
+
+The environment pull and the price check now run **before** the migration apply.
+Nothing in either needs a migration to have run: the dry-run above them has
+already proved the migration set applies, and these two read Vercel and Stripe.
+The failure becomes "abort having changed nothing".
+
+**Broken, and confirmed red, before committing.** Two new cases in
+`tests/the-deploy-proves-the-price-before-it-ships-it.test.js`. Restoring the old
+step order failed both by name -- *"the price check must run before migrations
+are applied"* and *"the price check reads the pulled environment"* -- while the
+other seven stayed green. Restored by copying the file back, not `git checkout`.
+
+**One thing the suite caught that I had missed.** Renaming the pull step to
+"...for configuration verification" broke
+`scripts/verify-agent-development-sync.mjs`, which asserts that step by name. Its
+uncaught assertion produced no parseable output, so five unrelated `gateWith`
+tests in `a-shared-baseline-that-is-behind-must-say-so.test.js` failed at once
+with confusing messages. The gate was right and the rename was real; the
+assertion now names the new step, with the reason beside it.
+
+Also: `verify-stripe-env.mjs` printed a bare `Stripe returned 403` and discarded
+Stripe's error body -- the one fact that resolves the failure was being fetched
+and thrown away. It now prints Stripe's own message, and names what a 403 and a
+404 each mean. Verified against the live API with an invalid key: the body
+surfaces, and Stripe redacts the key inside its own message.
+
+Still owner-only, and both are needed -- fixing one alone will not turn it green.
+
 ### 2026-09-09 - A new high advisory turned CI red, and the fix had a precedent
 
 `frontend-dependencies` failed on this branch. It is the audit gate: the job runs

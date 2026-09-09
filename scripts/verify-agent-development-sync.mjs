@@ -38,7 +38,12 @@ const guard = workflowStep(workflow, "Require protected production credentials")
 assert.match(guard, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
 assert.match(guard, /test -n "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/);
 
-const pull = workflowStep(workflow, "Pull production environment for database verification");
+// Renamed from "...for database verification" on 9 September 2026: the pulled
+// environment now also feeds the live Stripe price check, which was moved ahead
+// of the migration apply so a failure there stops before touching production's
+// schema. The step is the same step and the assertion below is unchanged --
+// only what it is called, because it no longer serves only the database.
+const pull = workflowStep(workflow, "Pull production environment for configuration verification");
 assert.doesNotMatch(pull, /SUPABASE_SERVICE_ROLE_KEY/);
 assert.match(pull, /vercel@latest env pull/);
 

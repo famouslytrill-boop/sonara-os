@@ -21,22 +21,66 @@ Two rules before any of it:
 
 ## Step 0 — The one that is blocking everything
 
-**`STRIPE_SECRET_KEY` in the GitHub protected environment.** Without it,
-Controlled Production Deployment fails at step 27 and the deploy step is
-skipped. Deployments #138 and #139 both stopped there. Production is still
-serving `36c1b2a` while newer commits sit in `main`.
+**Updated 9 September 2026 from deployment run 34381505461.** This section used
+to say `STRIPE_SECRET_KEY` was absent and that installing it was the whole job.
+That is no longer true and repeating it would send you to fix something that is
+already done: the run's log shows `STRIPE_SECRET_KEY: ***` injected into the
+step, so the secret **is** installed. The deploy is blocked by two different
+things, both visible in that one run.
 
-1. Stripe → **Developers → API keys → Create restricted key**
-2. Name it `github-deploy-price-check`
-3. Grant exactly one permission: **Prices → Read**. Nothing else.
-4. Copy the `rk_…` key
-5. GitHub → repo → **Settings → Environments → [the production environment] →
-   Add secret**, named `STRIPE_SECRET_KEY`
-6. Re-run **Controlled Production Deployment**
+### 0a — The restricted key cannot read prices
 
-A restricted key is enough because the script does one thing: `GET
-/v1/prices/{id}`. If that key leaked it could not charge, refund, or read a
+Three plans failed with `Stripe returned 403 for its configured price`
+(`starter_monthly`, `core_monthly`, `pro_monthly`). A 403 is Stripe saying the
+key is valid but not permitted — not that the price id is wrong.
+
+The likely cause is an instruction that used to be on this page: *"grant exactly
+one permission: Prices → Read. Nothing else."* That was wrong. The check fetches
+`GET /v1/prices/{id}?expand[]=product` — it expands the product deliberately,
+because `lib/sonara-billing.cjs` expands it too and refuses an archived product
+at checkout. **An expand needs read permission on the thing being expanded.**
+
+So the key needs two grants, not one:
+
+1. Stripe → **Developers → API keys** → edit `github-deploy-price-check`
+   (or create a restricted key by that name)
+2. Grant **Prices → Read** *and* **Products → Read**. Still nothing else.
+3. If you create a new key, copy the `rk_…` value into GitHub → repo →
+   **Settings → Environments → [the production environment]** → the
+   `STRIPE_SECRET_KEY` secret.
+
+Two read grants are still a small key: it cannot charge, refund, or read a
 customer. Do not use your full secret key here.
+
+Re-run the deploy and read the failure line — it now prints Stripe's own message
+alongside the status, which names the permission it wanted.
+
+### 0b — Six price ids are marked Sensitive in Vercel, so they arrive redacted
+
+The same run reported *"65 Secret values cannot be pulled from the `production`
+Environment"*, and six plans failed with `is set but does not hold a Stripe price
+id`: the three `_ANNUAL` variables plus `STRIPE_PRICE_WORKSPACE_MONTHLY`,
+`STRIPE_PRICE_ALL_THREE_MONTHLY` and `STRIPE_PRICE_TEAM_MONTHLY`.
+
+`vercel env pull` cannot return a sensitive value — it writes `[SENSITIVE]`
+instead — so the check receives a placeholder where a price id should be. The
+three older ids were not marked Sensitive and came through fine, which is what
+identifies the flag as the cause.
+
+A Stripe price id is not a secret; it is sent to every visitor of the pricing
+page. **`docs/owner/PRICING-STEP-BY-STEP.md` → "Put them in Vercel"** has the
+two commands that replace a Sensitive variable with a plain one.
+
+### Both, then redeploy
+
+0a and 0b are independent and the run fails on either, so fixing one alone will
+not turn it green. Production is still serving `36c1b2a` until both are done.
+
+One thing that has changed in your favour: the price check now runs **before**
+migrations are applied rather than after. The seven failed runs between 8 and 9
+September each applied every pending migration to production and then stopped,
+leaving the database ahead of the code. Another failed run will no longer do
+that.
 
 ---
 

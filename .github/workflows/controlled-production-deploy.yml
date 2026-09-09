@@ -153,6 +153,69 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
           supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
 
+      # This pull and the Stripe check below sit AHEAD of the migration apply,
+      # and that ordering is the whole point of them being here.
+      #
+      # They used to run after `supabase db push`. Between 8 and 9 September 2026
+      # seven consecutive deployments therefore did the same thing: applied every
+      # pending migration to the production database, then failed on the Stripe
+      # check and never deployed the code. Production Postgres reached migration
+      # 115 of 115 while the apex went on serving 36c1b2a, 44 commits behind --
+      # schema ahead of the application that runs against it, which is the one
+      # state a deploy pipeline exists to avoid. Each run's own summary said
+      # "Schema changes were already applied to production", and each was right.
+      #
+      # Nothing in either step needs a migration to have run. The dry-run above
+      # has already proved the migration set applies; these two read Vercel and
+      # Stripe. Moving them here turns that failure from "mutate the database,
+      # then abort" into "abort having changed nothing".
+      #
+      # The cost, stated rather than glossed: .env.production.catalog-verification
+      # now sits on the runner across the migration steps rather than only the
+      # verification ones. Same job, same runner, same file three steps already
+      # shared. The `if: always()` removal below and the `test ! -e` guard before
+      # the deploy are unchanged, and they remain the thing that enforces it is
+      # gone before any source leaves this machine.
+      - name: Pull production environment for configuration verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          pnpm dlx vercel@latest env pull .env.production.catalog-verification \
+            --environment=production \
+            --yes \
+            --token="$VERCEL_TOKEN"
+          test -s .env.production.catalog-verification
+
+      - name: Verify live Stripe prices match what the pricing page advertises
+        shell: bash
+        # The one check that compares every advertised amount against the price
+        # Stripe would actually charge, and until 8 September 2026 it had never
+        # run anywhere with a key.
+        #
+        # It skips without STRIPE_SECRET_KEY and used to exit 0 while skipping,
+        # so two owner runbooks compensated in prose: "read the last line rather
+        # than the exit code". That was followed, and the thing it guards
+        # against happened anyway -- the pricing page advertised $29/$59/$109
+        # while the configured prices charged $19/$39/$79, every headline plan
+        # refused checkout, and nothing reported a problem. --require-live turns
+        # every reason for not comparing into a failure.
+        #
+        # The price ids come from the pulled production environment, so this
+        # checks what production is actually configured with rather than what
+        # the repository hopes. The secret key cannot come from there: Vercel
+        # does not return sensitive variables as plaintext, which is the same
+        # reason the two steps above inject the service-role key from the
+        # protected GitHub environment. Verified on Node 22 that a variable
+        # already set in the environment beats one in --env-file, so a redacted
+        # key in the pulled file cannot shadow the injected one.
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
+
       # Capture a rollback checkpoint BEFORE any schema change lands. Migrations
       # are applied ahead of the deployment, so without this there is no recorded
       # point to return to if a later step fails.
@@ -224,18 +287,6 @@ jobs:
           supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Pull production environment for database verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          pnpm dlx vercel@latest env pull .env.production.catalog-verification \
-            --environment=production \
-            --yes \
-            --token="$VERCEL_TOKEN"
-          test -s .env.production.catalog-verification
-
       - name: Verify production catalog database boundary
         shell: bash
         # Sensitive variables pulled from Vercel are not returned as plaintext.
@@ -254,34 +305,6 @@ jobs:
         run: |
           set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs
-
-      - name: Verify live Stripe prices match what the pricing page advertises
-        shell: bash
-        # The one check that compares every advertised amount against the price
-        # Stripe would actually charge, and until 8 September 2026 it had never
-        # run anywhere with a key.
-        #
-        # It skips without STRIPE_SECRET_KEY and used to exit 0 while skipping,
-        # so two owner runbooks compensated in prose: "read the last line rather
-        # than the exit code". That was followed, and the thing it guards
-        # against happened anyway -- the pricing page advertised $29/$59/$109
-        # while the configured prices charged $19/$39/$79, every headline plan
-        # refused checkout, and nothing reported a problem. --require-live turns
-        # every reason for not comparing into a failure.
-        #
-        # The price ids come from the pulled production environment, so this
-        # checks what production is actually configured with rather than what
-        # the repository hopes. The secret key cannot come from there: Vercel
-        # does not return sensitive variables as plaintext, which is the same
-        # reason the two steps above inject the service-role key from the
-        # protected GitHub environment. Verified on Node 22 that a variable
-        # already set in the environment beats one in --env-file, so a redacted
-        # key in the pulled file cannot shadow the injected one.
-        env:
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-        run: |
-          set -euo pipefail
-          node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
 
       - name: Remove temporary production environment material
         if: always()

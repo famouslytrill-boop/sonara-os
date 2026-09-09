@@ -75,6 +75,39 @@ describe("the deploy proves the price before it ships it", () => {
     );
   });
 
+  // Added 9 September 2026, after the ordering this asserts had already cost
+  // something. The price check sat after `supabase db push`, so between 8 and 9
+  // September seven consecutive deployments applied every pending migration to
+  // the production database and then failed here without deploying any code.
+  // Production Postgres reached migration 115 of 115 while the apex served
+  // 36c1b2a, 44 commits behind it. Each run's summary said "Schema changes were
+  // already applied to production" and each was telling the truth.
+  //
+  // Failing before the database is touched is the difference between a deploy
+  // that did nothing and a deploy that left production's schema ahead of the
+  // application running against it.
+  it("runs before any migration is applied, so a failure leaves the database untouched", () => {
+    const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
+    const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
+    assert.ok(applyAt > 0, "the migration apply step is missing, so this ordering cannot be checked");
+    assert.ok(
+      checkAt < applyAt,
+      "the price check must run before migrations are applied; after them, a failure here has already moved production's " +
+      "schema ahead of the code, which is what happened seven times between 8 and 9 September 2026"
+    );
+  });
+
+  it("pulls the production environment before any migration is applied, since the check depends on it", () => {
+    const pullAt = WORKFLOW.indexOf("- name: Pull production environment");
+    const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
+    assert.ok(pullAt > 0, "the environment pull step is missing");
+    assert.ok(
+      pullAt < applyAt,
+      "the price check reads the pulled environment, so moving the check ahead of the migrations without the pull " +
+      "would leave it reading a file that does not exist yet"
+    );
+  });
+
   it("runs before the pulled environment is deleted, or it would have no price ids to read", () => {
     const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
     const cleanupAt = WORKFLOW.indexOf("Remove temporary production environment material");
