@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 313 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 314 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,53 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - Three of four rate limiters failed open in silence
+
+Audited the runtime against what a serverless function can actually do, rather
+than against what runs locally. Three sweeps came back clean and are worth
+recording as checked rather than assumed: **no runtime filesystem writes**
+(`fs.write*`, `createWriteStream`) anywhere in `server.js`, `lib/`, `routes/` or
+`api/`, which matters because the filesystem is read-only outside `/tmp`; **no
+`setInterval` or background `setTimeout`**, which matters because a function is
+frozen the moment it responds and anything scheduled after that never runs; and
+the only module-level mutable state in runtime code is lookup tables built once
+at require time, not state anybody assumes survives between requests.
+
+The one real finding was in `lib/sonara-rate-limit.cjs`, and the module had
+already got the hard part right: counters live in Postgres precisely because an
+in-process counter gives each concurrent instance its own budget, which is not a
+limit. `MEMORY_BUCKETS` is the local-development path and reports
+`durable: false`.
+
+**What was wrong was the fail-open.** When the Postgres RPC cannot be reached the
+limiter allows the request -- deliberately, because failing closed turns a
+transient database problem into a total authentication outage -- and the comment
+says the degraded flag "is logged so the condition is visible rather than
+silent". That was true in **one of four** call sites. Only
+`lib/sonara-customer-auth.cjs` passed `onDegraded`. Lead capture, public booking
+and the public scroll routes did not, so those three -- **the three reachable
+with no account, which is the entire abuse surface** -- degraded to no rate limit
+at all and said nothing.
+
+A comment asserting a guarantee that holds in a quarter of cases is the shape
+this repository keeps finding. Fixed by making the report the module's default
+rather than each caller's responsibility: an optional hook fails silent exactly
+when somebody adds a limiter, which is the moment nobody is reading that file --
+the same reasoning as the deny-by-default classifier in
+`lib/sonara-agent-authority.cjs`. A caller may still replace it and cannot switch
+it off by forgetting.
+
+The default redacts, and not decoratively: the error carries the PostgREST URL
+the call failed to reach and that URL carries an `apikey` parameter, so
+interpolating it raw prints the service-role credential into the log on exactly
+the path taken when the database is already struggling. `server.js` records
+finding that once already, and the new test asserts the key never appears.
+
+Falsified: making `onDegraded` optional again fails two assertions by name --
+"a limiter with no onDegraded degraded to fail-open and said nothing" and
+"onDegraded is optional again, so a new limiter can be silent". 4,072 tests,
+lint, `verify:launch` exit 0.
 
 ### 2026-09-09 - OmniRoute reviewed: MIT, real software, and still reference_only
 
