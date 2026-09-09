@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-226 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 226.
+227 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 227.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -72,7 +72,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-55 repositories.
+56 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -83,6 +83,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
 | [Bolt Slides](https://github.com/stackblitz/bolt-slides) | MIT | Read only | interactive presentations |
 | [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | social media scheduling |
+| [BYOC (Bring Your Own Cloud)](https://github.com/Ajayvarmaramineni/byoc) | Apache-2.0 | Read only | storage abstraction |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Diffusion Studio Editor](https://github.com/diffusionstudio/editor) | MPL-2.0 | Licence unresolved | video editing |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
@@ -183,7 +184,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-130 repositories.
+131 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -214,6 +215,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [book-to-skill](https://github.com/virgiliojr94/book-to-skill) | MIT | Adapt after review | agent skill packaging |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
 | [BrowserCode (browser-use)](https://github.com/browser-use/browsercode) | MIT (upstream opencode copyright, retained by the fork) | Security review first | coding agent |
+| [BYOC (Bring Your Own Cloud)](https://github.com/Ajayvarmaramineni/byoc) | Apache-2.0 | Read only | storage abstraction |
 | [camofox-browser](https://github.com/redf0x1/camofox-browser) | MIT | Blocked | browser automation |
 | [Casdoor](https://github.com/casdoor/casdoor) | Apache-2.0 | Research only | identity provider |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | component library |

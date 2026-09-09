@@ -147,11 +147,21 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
   // One row, scoped by organization as well as by id. The service key bypasses
   // row level security, so without the organization filter a guessed id from
   // another workspace would open.
+  //
+  // The columns are named rather than `*`, and the list is exactly what is read:
+  // `document` is what buildSite parses, and `id`, `slug` and `published_at` are
+  // what the editor renders. `title` is deliberately absent -- the editor shows
+  // `site.title`, which comes out of the document, not the column.
+  //
+  // Naming them is what lets scripts/report-unused-selected-columns.mjs see this
+  // query at all. A `select=*` is invisible to it: it can neither say a column is
+  // unused nor that it is used, so the query sits in a blind spot the report has
+  // to describe rather than audit.
   async function loadSite(scope, id) {
     if (!UUID.test(String(id || ""))) return { ok: false, code: "not_ours" };
     const found = await rest(
       scope.config,
-      `${TABLE}?select=*&id=eq.${enc(id)}&organization_id=eq.${enc(scope.organizationId)}&limit=1`
+      `${TABLE}?select=id,slug,published_at,document&id=eq.${enc(id)}&organization_id=eq.${enc(scope.organizationId)}&limit=1`
     );
     if (!found.ok) return { ok: false, code: "unreadable" };
     if (!found.rows[0]) return { ok: false, code: "not_found" };

@@ -2,6 +2,244 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - The annual price variables were fixed, and the yearly plans went on sale
+
+Set and redeployed by the owner at about 06:25 UTC. `/api/readiness` now returns
+`invalid` with every list empty -- supabase, stripe, resend, founderAccess and
+adminProtection -- against the three `invalid_prefix` entries it carried all
+morning. All three annual plans read `checkout: enabled, reason: configured`, and
+`/pricing` serves the yearly cards at $290 / $590 / $1090. That last one is the
+observable effect rather than an assertion about one: `hiddenUntilBuyable` had
+been holding those cards off the page precisely until a price existed to sell.
+
+The failed `production-connectivity` run was re-run rather than left red, since
+it had failed *before* the fix landed and its own logs named only that cause.
+
+**Checked the detail rather than the summary, deliberately.** Production still
+serves the build where `ok` is the literal `true`, so `ok: true` there is worth
+nothing. The empty `invalid` block is the signal, and the annual entries in
+`checkoutPlans` are the confirmation. Reading `services.stripe` and calling it
+cleared is the mistake made earlier the same day, and it is the reason the `ok`
+fix in this branch exists.
+
+**What is still not proven, stated plainly.** Both
+`assertPriceMatchesAdvertised` and `verify-stripe-env.mjs --require-live` compare
+the *amount*, and the duplicate price set recorded in
+`PRICING-STEP-BY-STEP.md` section 1b carries identical amounts on different
+products. A green readiness is therefore consistent with either set being
+configured. Nothing reachable from here distinguishes them -- the environment
+cannot be read and no endpoint exposes the configured id -- so the docs now say
+so and name the ten-second check in Vercel instead of implying the question is
+settled.
+
+Also still true, and unchanged by any of this: no card has ever completed a
+purchase on this account, so `positiveSubscribedUserTest` stays `pending` and the
+old $19/$39/$79 prices stay unarchived.
+
+### 2026-09-09 - The key guide's "ten required variables" were the wrong ten
+
+Deriving the install steps from `lib/sonara-environment-classification.cjs`
+rather than from the doc turned up that `docs/owner/INSTALL-ALL-KEYS.md` and the
+classification disagreed about which variables are required.
+
+The heading said ten. The list under it had **nine**, and three of those --
+`STRIPE_PRICE_WORKSPACE_MONTHLY`, `STRIPE_PRICE_ALL_THREE_MONTHLY`,
+`STRIPE_PRICE_TEAM_MONTHLY` -- are classified optional. Four that are genuinely
+required went unmentioned: `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `RESEND_FROM_EMAIL` and `NEXT_PUBLIC_SITE_URL`.
+
+**Why it survived.** `verify-doc-counts` checks countable claims, and "ten"
+matched the classification's ten exactly. The count was right while the names
+were wrong, so the section read as verified by a check that had never looked at
+it. An owner following the guide would have set nine variables, missed four, and
+had nothing to tell them -- the guide's own "prove it" step cannot name a
+variable the guide never asked for.
+
+Fixed the section against the printed `REQUIRED` set, and added
+`tests/the-key-guide-names-every-required-variable.test.js`, which asserts in
+both directions: every required name appears in the guide, and nothing the
+classification calls optional is presented as required inside the Step 1 block.
+Scoped to that block deliberately -- naming an optional variable elsewhere in the
+guide is the guide working.
+
+**Falsified before being trusted.** Restored the original section and the test
+failed naming all four omissions and all three wrong inclusions, then the fixed
+file was copied back and it went green. Regenerating the handoff was needed
+because the test count is derived: 4,049 tests, 311 files.
+
+Recorded while writing it down: the price variables being optional is correct
+rather than an oversight. The product runs without them and shows a plan as
+unbuyable instead of breaking, which is what `hiddenUntilBuyable` is for.
+
+### 2026-09-09 - Two sets of prices at the same amounts, and why the guard misses it
+
+Asked for the monthly price ids, read them off the live account rather than out
+of the doc, and the listing turned up something the doc did not have: **six
+prices at exactly the advertised amounts, created in the dashboard between 03:27
+and 04:00 UTC on 9 September, on six new products and with no lookup keys.** The
+correct annual three were created at 04:52 on the existing `SONARA One --`
+products, so the account now carries two parallel sets.
+
+The three monthly ids in `PRICING-STEP-BY-STEP.md` were checked against the live
+account and are right: `price_1UDTj00dKtlEU3lAmimC5cN7` at $29,
+`price_1UDToK0dKtlEU3lAWURVCj6H` at $59, `price_1UDUKr0dKtlEU3lAJzu0pVoe` at
+$109, all carrying their `_v2` lookup keys.
+
+**Why this is worth an entry.** `assertPriceMatchesAdvertised` re-fetches the
+configured price and compares the amount, and the duplicate amounts are
+identical -- so pointing a variable at one passes every check here and in the
+deploy. The damage is that the subscription lands on a different product: Stripe
+stops seeing the monthly and yearly as one plan billed two ways, the lookup keys
+are gone, and anything reasoning product-first is working from the wrong object.
+A wrong price id charging the right amount is harder to find than one charging
+the wrong amount, precisely because nothing complains. That is the shape
+CLAUDE.md describes, arriving through configuration rather than code.
+
+Recorded rather than acted on. Archiving live billing configuration is the
+owner's, and the existing rule -- nothing archived until a real card has
+completed a purchase -- covers these for the same reason it covers the old
+$19/$39/$79 set.
+
+Also written down because it is a guess worth testing before more work goes into
+it: `invalid_prefix` on the three `_ANNUAL` variables means the value does not
+begin with `price_` at all, so nothing was looked up. A `prod_...` id or a lookup
+key both produce it and both sit next to the price id in the dashboard. The
+Vercel environment cannot be read from here, so that is a likely cause and not a
+confirmed one, and it is written as such.
+
+### 2026-09-09 - BYOC reviewed: a permissive licence that still cannot be a dependency here
+
+`ajayvarmaramineni/byoc` arrived as a screenshot. Cloned and measured rather than
+read off the badges. **LICENSE read 9 September 2026: Apache License 2.0**, in
+the root and again under `python/`. So unlike the last several reviews, the
+licence is not the obstacle -- Apache-2.0 permits use in a hosted commercial
+product.
+
+Two licence details worth having written down, because both are the kind that get
+assumed: the appendix copyright line is left as unfilled boilerplate, and there
+is **no NOTICE file**. Neither weakens the grant, but it means there is no stated
+copyright holder to attribute, so anything adapted has to cite the repository and
+the date it was read instead.
+
+**What is actually in it**, measured: 188 files, 68 TypeScript and 43 Python,
+eight packages, 44 test files. Real software rather than a list of links -- which
+is not the assumption to make, given two "curated API directories" reviewed here
+turned out to be affiliate placement lists.
+
+The dependency claim checks out and is worth stating precisely because it is
+half-true: `@byoc/core` declares no runtime dependency but `@types/node`, and
+`@byoc/s3-compatible` declares only `@byoc/core`, so the **TypeScript** side
+genuinely carries no third-party runtime code. The **Python** distribution does
+not -- it pulls `httpx`, `cryptography` and `defusedxml`. The README's own table
+marks OneDrive and Dropbox as planned.
+
+**Recorded `reference_only`, and the reason is not the licence.** It is the shape
+of this repository: `server.js` is CommonJS with express as its single production
+dependency and `pnpm run build` is a syntax check. There is no path from a
+TypeScript package to production that does not begin by adding a compiler -- to
+replace `lib/sonara-r2-adapter.cjs` and `lib/sonara-aws-signature-v4.cjs`, which
+already exist and whose signing is checked against the signature examples AWS
+publishes. A permissive licence answers "may we", not "should we".
+
+**One thing was worth reading anyway.** Its
+`packages/s3-compatible/src/auth/signer.ts` percent-encodes `!'()*` by hand, for
+the same reason ours does: `encodeURIComponent` leaves those five characters
+alone and AWS requires them encoded. That trap cost a round of failing vectors
+here. Two independent implementations landing on the same correction is the
+closest thing to confirmation available without a live key.
+
+**Verified:** the register check was falsified rather than trusted green --
+`safetyBoundaries` was renamed on the new record and the check failed by name
+(`Open-source record BYOC (Bring Your Own Cloud) is missing safetyBoundaries.`),
+then the file was restored from a copy and it went green. Parsed record count
+moved 226 -> 227, confirming the record is read rather than merely present:
+`grep` counts 228 `repoUrl:` lines, and that gap between what grep sees and what
+the parser sees is why the count was checked both ways. Integration map
+regenerated, `WHAT-IS-LEFT.md` count corrected 226 -> 227, 4,045 tests and lint
+pass.
+
+### 2026-09-09 - `ok` was the literal true
+
+`/api/readiness` returned `ok: true`. Not computed and usually true -- the
+literal. No input could make it false, so a field named `ok` carried no
+information, and every reader taking it as a summary was reading a constant.
+
+It cost something the same day. Production served `ok: true` and
+`services.stripe: "configured"` while `invalid.stripe` named all three annual
+price variables with `invalid_prefix`: they had been set to something that is not
+a `price_` id, so the yearly plans could not be sold.
+`scripts/smoke-live-routes.mjs` reads `invalid` and failed correctly. Reading the
+top of the same response gave the opposite answer -- and I made exactly that
+mistake first, checked `services.stripe`, saw `configured`, and told the owner
+the failure had cleared. It had not.
+
+`services.stripe` is not the bug. It is computed from the secret key alone, which
+is a narrower claim than it reads but a true one. The bug was `ok` claiming to
+summarise a document it never read.
+
+**Where the line is drawn**, which is the arguable part:
+
+- `invalid` makes `ok` false. A variable IS set and cannot work. Nobody chose
+  that; it is a mistake with a value attached.
+- `missing` and `deferred` do not. An optional capability nobody configured is
+  the product working as designed, and folding them in would make `ok` false
+  forever -- the same defect wearing the opposite sign.
+
+The test writes the production payload into itself, so the exact response that
+shipped green is now a case that must come out red.
+
+**One thing worth recording about the test.** Its first version sliced the source
+between the derivation and `ok:` and asserted the slice never mentions `missing`
+or `deferred` -- and failed, on the explanatory comment above the derivation,
+which mentions both words in the course of saying they are excluded. It reads
+`withoutComments` from the shared stripper now. A check that reads prose as code
+is the same defect as one that reads code as prose, and this repository has
+shipped both.
+
+**Verified:** restoring the literal fails three assertions by name, including
+`ok is no longer derived from the invalid counts`; restoring the derivation
+returns nine passing. 4,044 tests and lint pass.
+
+### 2026-09-09 - One query out of the blind spot, and why only one
+
+`report-unused-selected-columns.mjs` audits 108 multi-column selects and cannot
+audit 49 more: 26 `select=*` and 23 built at run time. A `select=*` is invisible
+to it in both directions -- it can say neither that a column is unused nor that it
+is used -- so those queries sit in a described blind spot rather than an audited
+one.
+
+`loadSite` in `routes/sonara-scroll-routes.cjs` is out of it. It now names
+`id,slug,published_at,document`, and that list was derived rather than eyed:
+every `row.` and `loaded.row.` in the file, then a check that the row is never
+spread, stringified or destructured -- the three ways a column reaches a caller
+without being named anywhere.
+
+**`title` came up in that grep and is deliberately absent.** Those hits belong to
+the dashboard's own separate query, and the editor renders `site.title` out of the
+parsed document rather than the column. Adding it "to be safe" would have put
+back a column nothing reads, which is the thing this report exists to find.
+
+The ratchet was lowered 27 to 26 with the reason attached, because the script
+asks for exactly that: *a fall nobody records looks exactly like a matcher that
+has stopped matching, which is how this guard was found.*
+
+**Why one and not eleven.** `routes/sonara-prompt-library-routes.cjs` was next
+and was left alone. Its rows are handed to renderers reading about
+twenty-five fields, and one of its three queries is
+`select=*,sonara_prompt_collection_items(*)` -- an embedded related table. That is
+the case the script's own message names: if the whole row really is handed on,
+the honest move is to raise the count deliberately rather than to guess a column
+list. Guessing there would ship a page that renders `undefined` in a field
+nobody tested, which is worse than an audited blind spot that is at least
+counted.
+
+The method is written into the ratchet comment so the remaining 26 can be done
+the same way rather than rediscovered.
+
+**Verified:** 4,036 tests, lint and doc counts pass; the scroll suites pass
+specifically; the file dropped out of the report's blind-spot list, which is the
+observable effect rather than an assertion about it.
+
 ### 2026-09-09 - One repository, one deployment target
 
 A Cloudflare Worker service named `sonara-os` was created with a Git integration
