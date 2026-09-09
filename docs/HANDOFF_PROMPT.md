@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 312 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 313 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,44 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - The media worker install guide, derived from the code that calls it
+
+Asked for instructions to install the SONARA Open Media Worker -- the supported
+way to run the open generation engines, since the nine reference-only records
+cannot be installed at all and a serverless function cannot host a GPU.
+
+The instructions are worth having because the contract was **only in the code**.
+`dispatchWorker`, `refreshWorker`, `completeFromProviderPayload`, `findOutputUrl`
+and `fetchSafeOutput` between them define a wire protocol nobody had written
+down: `POST /v1/jobs` with eight named fields and a bearer token, `GET
+/v1/jobs/{id}`, three job states, and four separate refusals on the output URL
+(https only, no redirects, 160 MB against both the header and the bytes, and the
+content type becomes the stored file's type). Somebody building a worker had to
+read the route to find any of it.
+
+`docs/owner/MEDIA-WORKER-INSTALL.md` writes it out. Nothing in it was designed
+here; every path, header, field, status and limit was read out of the route.
+
+**A written-down wire protocol is a second copy of a fact**, which is the thing
+that went wrong twice already today, and worse here: somebody following a stale
+version builds a worker that never completes a job, with no running system to
+contradict them. So
+`tests/the-media-worker-contract-is-what-the-code-sends.test.js` parses the
+contract back out of the route and checks the prose against it -- the body fields
+out of the `JSON.stringify` argument, the terminal statuses out of
+`completeFromProviderPayload`, the output keys out of `findOutputUrl`, the size
+cap out of `fetchSafeOutput`, and the capability list out of the registry.
+
+**Two of its own assertions were wrong first**, and both were the failure mode
+the check exists to catch, aimed at the check itself: the output-key matcher used
+`[a-z_]` and stopped at the capital in `generateVideoResponse`, captured
+`generate`, and demanded the guide document a key that does not exist; and the
+licence assertion could not see across a line break, so it reported a sentence
+that was present as missing. Fixed both rather than relaxing the guide.
+
+Falsified afterwards: changing the submit path to `/v2/jobs` and the cap to
+512 MB fails by name on both, and restoring the file goes green.
 
 ### 2026-09-09 - 23 capabilities routed to a provider that can never be configured
 

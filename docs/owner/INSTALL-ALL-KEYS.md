@@ -273,6 +273,13 @@ CREATOR_MEDIA_WORKER_URL   = https://<your worker>
 CREATOR_MEDIA_WORKER_TOKEN = <token>   ← Sensitive
 ```
 
+**`docs/owner/MEDIA-WORKER-INSTALL.md` is the full build-and-install guide** —
+where to host it, the two endpoints your service must expose (`POST /v1/jobs`
+and `GET /v1/jobs/{id}`), every field the application sends, the three job
+states, and the four rules an output URL has to satisfy. Every one of those was
+read out of `routes/creator-generation-routes.cjs`, and a test fails if the guide
+and that code stop agreeing.
+
 The Step 4 caveat applies and is what catches people: `http://localhost:...`
 means *this serverless function*, not your laptop. Its registry record says
 activation requires a recorded licence review, which is the same point as above
