@@ -44,10 +44,18 @@ const SOURCE_FILES = ["server.js"];
 // shapes are most of it.
 const RECORDED_UNRESOLVED = 28;
 
-// Of those 42, how many carry a literal query with no organization_id in it.
-// This is the number that would move if somebody deleted a filter inside a
-// helper whose table is a parameter, which is the case the table ratchet alone
-// cannot see. Recorded 9 September 2026 from a clean run.
+// How many of those unresolved calls carry a literal query with no
+// organization_id in it.
+//
+// Deliberately not restating the unresolved total here. This comment said "of
+// those 42" for an hour after RECORDED_UNRESOLVED became 28, which is the same
+// defect this script exists to catch wearing a comment: a second copy of a fact
+// that does not move when the fact does. The count above is the one place it is
+// written.
+//
+// This is the number that moves if somebody deletes a filter inside a helper
+// whose table is a parameter, which is the case the table ratchet alone cannot
+// see. Recorded 9 September 2026 from a clean run.
 const RECORDED_UNRESOLVED_NO_FILTER = 0;
 
 // A floor, so an empty or broken walk cannot pass as a clean audit.
