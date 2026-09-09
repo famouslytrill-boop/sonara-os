@@ -2,6 +2,57 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - BYOC reviewed: a permissive licence that still cannot be a dependency here
+
+`ajayvarmaramineni/byoc` arrived as a screenshot. Cloned and measured rather than
+read off the badges. **LICENSE read 9 September 2026: Apache License 2.0**, in
+the root and again under `python/`. So unlike the last several reviews, the
+licence is not the obstacle -- Apache-2.0 permits use in a hosted commercial
+product.
+
+Two licence details worth having written down, because both are the kind that get
+assumed: the appendix copyright line is left as unfilled boilerplate, and there
+is **no NOTICE file**. Neither weakens the grant, but it means there is no stated
+copyright holder to attribute, so anything adapted has to cite the repository and
+the date it was read instead.
+
+**What is actually in it**, measured: 188 files, 68 TypeScript and 43 Python,
+eight packages, 44 test files. Real software rather than a list of links -- which
+is not the assumption to make, given two "curated API directories" reviewed here
+turned out to be affiliate placement lists.
+
+The dependency claim checks out and is worth stating precisely because it is
+half-true: `@byoc/core` declares no runtime dependency but `@types/node`, and
+`@byoc/s3-compatible` declares only `@byoc/core`, so the **TypeScript** side
+genuinely carries no third-party runtime code. The **Python** distribution does
+not -- it pulls `httpx`, `cryptography` and `defusedxml`. The README's own table
+marks OneDrive and Dropbox as planned.
+
+**Recorded `reference_only`, and the reason is not the licence.** It is the shape
+of this repository: `server.js` is CommonJS with express as its single production
+dependency and `pnpm run build` is a syntax check. There is no path from a
+TypeScript package to production that does not begin by adding a compiler -- to
+replace `lib/sonara-r2-adapter.cjs` and `lib/sonara-aws-signature-v4.cjs`, which
+already exist and whose signing is checked against the signature examples AWS
+publishes. A permissive licence answers "may we", not "should we".
+
+**One thing was worth reading anyway.** Its
+`packages/s3-compatible/src/auth/signer.ts` percent-encodes `!'()*` by hand, for
+the same reason ours does: `encodeURIComponent` leaves those five characters
+alone and AWS requires them encoded. That trap cost a round of failing vectors
+here. Two independent implementations landing on the same correction is the
+closest thing to confirmation available without a live key.
+
+**Verified:** the register check was falsified rather than trusted green --
+`safetyBoundaries` was renamed on the new record and the check failed by name
+(`Open-source record BYOC (Bring Your Own Cloud) is missing safetyBoundaries.`),
+then the file was restored from a copy and it went green. Parsed record count
+moved 226 -> 227, confirming the record is read rather than merely present:
+`grep` counts 228 `repoUrl:` lines, and that gap between what grep sees and what
+the parser sees is why the count was checked both ways. Integration map
+regenerated, `WHAT-IS-LEFT.md` count corrected 226 -> 227, 4,045 tests and lint
+pass.
+
 ### 2026-09-09 - `ok` was the literal true
 
 `/api/readiness` returned `ok: true`. Not computed and usually true -- the

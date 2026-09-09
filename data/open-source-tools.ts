@@ -6701,6 +6701,33 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "BYOC (Bring Your Own Cloud)",
+    slug: "byoc-bring-your-own-cloud",
+    category: ["storage abstraction", "user-owned storage", "S3-compatible client", "OAuth token handling", "permissive licence"],
+    useCase: ["reference for the R2 adapter this repository already has, and a named option if customer-owned storage is ever wanted"],
+    productFit: ["Creator Studio", "Internal Development"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not add as a dependency -- it is TypeScript and this repository has one production dependency and no build step, so consuming it means introducing a compiler to replace an adapter that already exists and is verified",
+      "if customer-owned storage is ever built, read this before designing it rather than after",
+      "Apache-2.0 requires the licence and attribution to travel with any copied code, so record the origin in the file if anything is adapted",
+    ],
+    officialUrl: "https://github.com/Ajayvarmaramineni/byoc",
+    repoUrl: "https://github.com/Ajayvarmaramineni/byoc",
+    notes:
+      "Cloned and measured 9 September 2026. LICENSE read: Apache License 2.0, full text, in the repository root and again under python/. Two details worth recording because they are the kind that get assumed: the appendix copyright line is left as the unfilled boilerplate and there is no NOTICE file, which changes nothing about the grant -- Apache-2.0 is declared in LICENSE and in package.json -- but does mean there is no stated copyright holder to attribute, so anything adapted should cite the repository and the date it was read. 188 files, 68 TypeScript and 43 Python, eight packages (core, browser, google-drive, local, memory, provider-sdk, s3-compatible, webdav) and 44 test files. This is real software, not a list of links. Measured rather than read off the README: @byoc/core 0.4.0 declares no runtime dependency but @types/node, and @byoc/s3-compatible declares only @byoc/core, so the TypeScript side genuinely carries no third-party runtime code; the Python distribution is not dependency-free and pulls httpx, cryptography and defusedxml. The README's own table marks OneDrive and Dropbox as planned, so the shipped backends are Google Drive, WebDAV/Nextcloud, S3-compatible including R2, plus local and memory. The reason this is reference_only is not the licence, which permits use here, but the shape of this repository: server.js is CommonJS with express as its single production dependency and `pnpm run build` is a syntax check, so there is no path from a TypeScript package to production that does not start by adding a compiler. Against that, lib/sonara-r2-adapter.cjs and lib/sonara-aws-signature-v4.cjs already exist and the signing is checked against the signature examples AWS publishes. One thing was worth reading anyway: packages/s3-compatible/src/auth/signer.ts percent-encodes !\'()* by hand for the same reason ours does -- encodeURIComponent leaves those five characters alone and AWS requires them encoded. Two independent implementations landing on the same correction is the closest thing to confirmation available without a live key.",
+    safetyBoundaries: [
+      "no customer file is moved to storage this project does not control without the customer choosing it explicitly",
+      "OAuth tokens for a customer's own cloud are secrets and stay server-side, exactly as the service-role key does",
+      "adopting this would not remove the adapter rules in docs/architecture/EXTERNAL-SERVICES.md -- off by default, never a dependency, never renders configuration, validates anything that becomes part of a request",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
