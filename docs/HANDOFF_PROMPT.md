@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 309 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 310 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,48 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - `ok` was the literal true
+
+`/api/readiness` returned `ok: true`. Not computed and usually true -- the
+literal. No input could make it false, so a field named `ok` carried no
+information, and every reader taking it as a summary was reading a constant.
+
+It cost something the same day. Production served `ok: true` and
+`services.stripe: "configured"` while `invalid.stripe` named all three annual
+price variables with `invalid_prefix`: they had been set to something that is not
+a `price_` id, so the yearly plans could not be sold.
+`scripts/smoke-live-routes.mjs` reads `invalid` and failed correctly. Reading the
+top of the same response gave the opposite answer -- and I made exactly that
+mistake first, checked `services.stripe`, saw `configured`, and told the owner
+the failure had cleared. It had not.
+
+`services.stripe` is not the bug. It is computed from the secret key alone, which
+is a narrower claim than it reads but a true one. The bug was `ok` claiming to
+summarise a document it never read.
+
+**Where the line is drawn**, which is the arguable part:
+
+- `invalid` makes `ok` false. A variable IS set and cannot work. Nobody chose
+  that; it is a mistake with a value attached.
+- `missing` and `deferred` do not. An optional capability nobody configured is
+  the product working as designed, and folding them in would make `ok` false
+  forever -- the same defect wearing the opposite sign.
+
+The test writes the production payload into itself, so the exact response that
+shipped green is now a case that must come out red.
+
+**One thing worth recording about the test.** Its first version sliced the source
+between the derivation and `ok:` and asserted the slice never mentions `missing`
+or `deferred` -- and failed, on the explanatory comment above the derivation,
+which mentions both words in the course of saying they are excluded. It reads
+`withoutComments` from the shared stripper now. A check that reads prose as code
+is the same defect as one that reads code as prose, and this repository has
+shipped both.
+
+**Verified:** restoring the literal fails three assertions by name, including
+`ok is no longer derived from the invalid counts`; restoring the derivation
+returns nine passing. 4,044 tests and lint pass.
 
 ### 2026-09-09 - One query out of the blind spot, and why only one
 
