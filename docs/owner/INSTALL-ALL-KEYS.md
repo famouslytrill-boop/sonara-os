@@ -42,51 +42,77 @@ customer. Do not use your full secret key here.
 
 ## Step 1 — The ten required variables
 
-These are the ones without which the product cannot serve a paying customer.
-All go in **Vercel → project `sonara-os` → Settings → Environment Variables →
+Read out of `lib/sonara-environment-classification.cjs`, which is the list
+`pnpm run verify:env` gates on. **This section previously named a different ten**
+— it counted the three monthly price variables as required and omitted four that
+are. Anyone following it set nine variables, missed four, and the word "ten" made
+it look finished. The list below is the classification's own `REQUIRED` set,
+printed from it rather than transcribed.
+
+All ten go in **Vercel → project `sonara-os` → Settings → Environment Variables →
 Production**.
 
-### Supabase — the database and sign-in
+### Supabase — the database and sign-in (5)
 
 Supabase → your project → **Settings → API**.
 
 ```
-SUPABASE_URL                = https://<project-ref>.supabase.co
-SUPABASE_ANON_KEY           = <the anon / publishable key>
-SUPABASE_SERVICE_ROLE_KEY   = <the service_role key>   ← server-only, mark Sensitive
+SUPABASE_URL                   = https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_URL       = https://<project-ref>.supabase.co   ← same value
+SUPABASE_ANON_KEY              = <the anon / publishable key>
+NEXT_PUBLIC_SUPABASE_ANON_KEY  = <the anon key>                      ← same value
+SUPABASE_SERVICE_ROLE_KEY      = <the service_role key>   ← server-only, Sensitive
 ```
 
-The service-role key **bypasses row-level security**. It is the reason
-`organization_id` filtering is the tenant boundary in this codebase, and it must
-never reach a browser. `scripts/verify-no-client-secrets.mjs` fails the build if
-it appears in anything client-side.
+The two `NEXT_PUBLIC_` variables hold the **same values** as their unprefixed
+twins and are required because browser-side code reads them under those names.
+That is safe for the URL and the anon key, which are public by design.
 
-### Stripe — payments
+**There is no `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` and there must never be
+one.** The service-role key bypasses row-level security — it is the reason
+`organization_id` filtering is the tenant boundary in this codebase.
+`scripts/verify-no-client-secrets.mjs` fails the build if it appears in anything
+client-side.
+
+### Stripe — payments (2)
 
 Stripe → **Developers → API keys**.
 
 ```
-STRIPE_SECRET_KEY               = sk_live_…      ← mark Sensitive
-STRIPE_WEBHOOK_SECRET           = whsec_…        ← from the webhook endpoint, not the API keys page
-STRIPE_PRICE_WORKSPACE_MONTHLY  = price_1UDTj00dKtlEU3lAmimC5cN7
-STRIPE_PRICE_ALL_THREE_MONTHLY  = price_1UDToK0dKtlEU3lAWURVCj6H
-STRIPE_PRICE_TEAM_MONTHLY       = price_1UDUKr0dKtlEU3lAJzu0pVoe
+STRIPE_SECRET_KEY     = sk_live_…   ← mark Sensitive
+STRIPE_WEBHOOK_SECRET = whsec_…     ← from the webhook endpoint, not the API keys page
 ```
 
 For the webhook secret: Stripe → **Developers → Webhooks → Add endpoint**,
 pointing at `https://sonaraindustries.com/api/stripe/webhook`. The signing
 secret appears after the endpoint is created.
 
-### Resend — email
+**The price variables are not in this list.** They are classified optional, and
+that is correct rather than an oversight: the product runs without them, showing
+a plan as unbuyable instead of breaking. They are Step 2, and the ids are in
+`docs/owner/PRICING-STEP-BY-STEP.md`.
+
+### Resend — email (2)
 
 Resend → **API Keys → Create API Key**.
 
 ```
-RESEND_API_KEY = re_…   ← mark Sensitive
+RESEND_API_KEY    = re_…                    ← mark Sensitive
+RESEND_FROM_EMAIL = <an address at a domain you verified in Resend>
 ```
 
 Verify your sending domain in Resend first, or mail is accepted and never
-delivered.
+delivered. `RESEND_FROM_EMAIL` must be at that verified domain.
+
+### The site's own address (1)
+
+```
+NEXT_PUBLIC_SITE_URL = https://sonaraindustries.com
+```
+
+Not a key and easy to skip for that reason. It is what links in outgoing email
+and Stripe redirect URLs are built from, so if it is wrong or missing those
+point somewhere else.
 
 ---
 

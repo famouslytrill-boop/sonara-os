@@ -2,6 +2,41 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - The key guide's "ten required variables" were the wrong ten
+
+Deriving the install steps from `lib/sonara-environment-classification.cjs`
+rather than from the doc turned up that `docs/owner/INSTALL-ALL-KEYS.md` and the
+classification disagreed about which variables are required.
+
+The heading said ten. The list under it had **nine**, and three of those --
+`STRIPE_PRICE_WORKSPACE_MONTHLY`, `STRIPE_PRICE_ALL_THREE_MONTHLY`,
+`STRIPE_PRICE_TEAM_MONTHLY` -- are classified optional. Four that are genuinely
+required went unmentioned: `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `RESEND_FROM_EMAIL` and `NEXT_PUBLIC_SITE_URL`.
+
+**Why it survived.** `verify-doc-counts` checks countable claims, and "ten"
+matched the classification's ten exactly. The count was right while the names
+were wrong, so the section read as verified by a check that had never looked at
+it. An owner following the guide would have set nine variables, missed four, and
+had nothing to tell them -- the guide's own "prove it" step cannot name a
+variable the guide never asked for.
+
+Fixed the section against the printed `REQUIRED` set, and added
+`tests/the-key-guide-names-every-required-variable.test.js`, which asserts in
+both directions: every required name appears in the guide, and nothing the
+classification calls optional is presented as required inside the Step 1 block.
+Scoped to that block deliberately -- naming an optional variable elsewhere in the
+guide is the guide working.
+
+**Falsified before being trusted.** Restored the original section and the test
+failed naming all four omissions and all three wrong inclusions, then the fixed
+file was copied back and it went green. Regenerating the handoff was needed
+because the test count is derived: 4,049 tests, 311 files.
+
+Recorded while writing it down: the price variables being optional is correct
+rather than an oversight. The product runs without them and shows a plan as
+unbuyable instead of breaking, which is what `hiddenUntilBuyable` is for.
+
 ### 2026-09-09 - Two sets of prices at the same amounts, and why the guard misses it
 
 Asked for the monthly price ids, read them off the live account rather than out
