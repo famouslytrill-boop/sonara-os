@@ -2,6 +2,42 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - Two sets of prices at the same amounts, and why the guard misses it
+
+Asked for the monthly price ids, read them off the live account rather than out
+of the doc, and the listing turned up something the doc did not have: **six
+prices at exactly the advertised amounts, created in the dashboard between 03:27
+and 04:00 UTC on 9 September, on six new products and with no lookup keys.** The
+correct annual three were created at 04:52 on the existing `SONARA One --`
+products, so the account now carries two parallel sets.
+
+The three monthly ids in `PRICING-STEP-BY-STEP.md` were checked against the live
+account and are right: `price_1UDTj00dKtlEU3lAmimC5cN7` at $29,
+`price_1UDToK0dKtlEU3lAWURVCj6H` at $59, `price_1UDUKr0dKtlEU3lAJzu0pVoe` at
+$109, all carrying their `_v2` lookup keys.
+
+**Why this is worth an entry.** `assertPriceMatchesAdvertised` re-fetches the
+configured price and compares the amount, and the duplicate amounts are
+identical -- so pointing a variable at one passes every check here and in the
+deploy. The damage is that the subscription lands on a different product: Stripe
+stops seeing the monthly and yearly as one plan billed two ways, the lookup keys
+are gone, and anything reasoning product-first is working from the wrong object.
+A wrong price id charging the right amount is harder to find than one charging
+the wrong amount, precisely because nothing complains. That is the shape
+CLAUDE.md describes, arriving through configuration rather than code.
+
+Recorded rather than acted on. Archiving live billing configuration is the
+owner's, and the existing rule -- nothing archived until a real card has
+completed a purchase -- covers these for the same reason it covers the old
+$19/$39/$79 set.
+
+Also written down because it is a guess worth testing before more work goes into
+it: `invalid_prefix` on the three `_ANNUAL` variables means the value does not
+begin with `price_` at all, so nothing was looked up. A `prod_...` id or a lookup
+key both produce it and both sit next to the price id in the dashboard. The
+Vercel environment cannot be read from here, so that is a likely cause and not a
+confirmed one, and it is written as such.
+
 ### 2026-09-09 - BYOC reviewed: a permissive licence that still cannot be a dependency here
 
 `ajayvarmaramineni/byoc` arrived as a screenshot. Cloned and measured rather than

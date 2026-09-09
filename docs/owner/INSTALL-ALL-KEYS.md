@@ -105,6 +105,11 @@ STRIPE_PRICE_TEAM_ANNUAL      = price_1UDdV30dKtlEU3lA9OltiqYX
 `docs/owner/PRICING-STEP-BY-STEP.md` has the full pricing procedure, including
 why the six old $19/$39/$79 prices are archived **last**.
 
+**Check the id against that file before pasting.** A second set of six prices
+exists on the live account at these exact amounts, on different products and
+without lookup keys, and because the amounts match, every check passes if you
+use one by mistake. Section 1b there lists them.
+
 ---
 
 ## Step 3 — The Cloudflare stack

@@ -71,6 +71,50 @@ there were none — that is `hiddenUntilBuyable` doing its job rather than a bug
 
 ---
 
+## 1b — A second set of prices exists at the same amounts. Do not use it.
+
+Read off the live account 9 September 2026. Six prices were created in the
+dashboard between 03:27 and 04:00 UTC that day, at exactly the amounts above,
+but on **six new products** and with **no lookup keys**:
+
+| Amount | Price ID | Product |
+|---|---|---|
+| $29/mo | `price_1UDcAR0dKtlEU3lA6xBfzRYu` | `prod_VE4J90xFtuitCR` One workspace |
+| $59/mo | `price_1UDcB60dKtlEU3lAiTaUfXLI` | `prod_VE4JQr6tRsGAXW` All three |
+| $109/mo | `price_1UDcC60dKtlEU3lABcH8EVw6` | `prod_VE4KC5s8A3DUa1` Team |
+| $290/yr | `price_1UDcdq0dKtlEU3lA6bTBV7Pk` | `prod_VE4n0iwdZOsdik` One workspace |
+| $590/yr | `price_1UDcfA0dKtlEU3lAaqioX8tE` | `prod_VE4o06VFm3PHBG` All three |
+| $1090/yr | `price_1UDcg80dKtlEU3lAoLjca1r0` | `prod_VE4pvgqfKzWGX5` Team |
+
+**The reason this needs a section of its own is that the guard does not catch
+it.** `assertPriceMatchesAdvertised` re-fetches the configured price and compares
+the *amount*. These amounts are identical, so pointing a variable at one of them
+passes every check in this repository and every check in the deploy.
+
+What breaks is quieter. The subscription lands on a different product, so Stripe
+reports it as an unrelated plan rather than as the monthly twin of the yearly
+one, the lookup keys are absent, and anything reasoning product-first —
+entitlements, reporting, a future move to new amounts — is working from the wrong
+object. A wrong price id that charges the right amount is harder to find than one
+that charges the wrong amount, because nothing complains.
+
+Use only the ids in the tables above and below this section: the ones on the
+`SONARA One —` products, carrying lookup keys.
+
+Not archived here, deliberately. Archiving is a destructive change to live
+billing configuration, it belongs to the owner, and the rule in section 2 —
+nothing is archived until a real card has completed a purchase — applies to these
+for the same reason it applies to the old $19/$39/$79 set.
+
+### If readiness says `invalid_prefix`
+
+That is not "the price is wrong". It means the value in Vercel does not begin
+with `price_` at all, so nothing was even looked up. The two values that produce
+it most often are a **product** id (`prod_...`) and a lookup key — both sit next
+to the price id in the dashboard, and both look plausible.
+
+---
+
 ## 2 — Archiving the old prices, and why it is last
 
 Six prices on this account still charge the old amounts:
