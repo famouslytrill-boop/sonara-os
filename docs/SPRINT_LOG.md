@@ -2,6 +2,117 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - The D1 rollup schema, and a limit that clamped to one row
+
+The D1 database had existed for half an hour with zero tables. It has two now,
+both applied to the live database and verified by reading `sqlite_master` rather
+than by trusting four success flags: `rollup_daily_totals` and `rollup_runs`,
+with an index each.
+
+**Every identifier was checked against the 325 reserved table names rather than
+eyeballed**, and that check earned itself immediately: `bookings` is a Supabase
+table, so a column called `bookings` would have been refused by the adapter at
+read time with a message about system-of-record boundaries that nobody would
+connect to a column name. It is `bookings_made`.
+
+**Two columns exist for a reason that is not the numbers.** Every totals row
+carries `computed_at` and `source_rows`. A total of zero built from four thousand
+rows is a real zero; a total of zero built from no rows is a rollup that ran
+against nothing, and without the row count they are the same row. `source_rows`
+is `NOT NULL` in the schema and required by the write builder, so a caller who
+cannot say how many rows it read cannot write a total at all. That is shape 4
+from the checks skill -- absent read as zero -- moved into a schema.
+
+**D1 has no row-level security at all**, which is a stronger statement than the
+one that applies to Supabase. There the service-role key bypasses RLS, so
+`organization_id` filtering is the boundary that matters -- but RLS is still
+there, unused, as a second thing that would have to fail. In D1 there is no
+second thing. So every statement builder requires an organization id, refuses a
+blank one, and binds it as a parameter, and the test asserts that over the
+module's exports rather than over the ones somebody listed. A builder added later
+is covered the day it is added.
+
+**A test caught a real bug in the first draft.** The row limit read
+`Math.min(Math.max(Number(limit) || 90, 1), 366)`, which is wrong in a quiet way:
+a negative limit is truthy, so it survives the `||`, and `Math.max(-5, 1)` is
+**1**. A caller asking badly would get a single row back and read it as "that is
+all the data there is". A bad limit now falls back to the default, and the test
+covers the whole class rather than the one value that failed.
+
+Also corrected: the module header claimed a function `readDailyTotals` returning
+`{ ok, computed, row }`. No such function exists -- the module builds statements
+and runs nothing. A reason written rather than verified, found by reading the
+file back.
+
+`docs/owner/PRICING-STEP-BY-STEP.md` is new: the annual prices that do not exist
+yet, the six old prices and why archiving is last, and the check that would have
+caught the September mismatch. Every price ID in it was read from the live
+account on the day, not remembered.
+
+**Verified:** 4,033 tests pass, including 30 new ones. The schema was applied to
+the live database and then read back out of `sqlite_master`. Lint, typecheck,
+build, `verify:env` at 132 variables and `verify-doc-counts` all pass.
+
+### 2026-09-09 - The bucket existed and nothing could talk to it
+
+Checked Stripe, Cloudflare and Vercel for changes. Cloudflare had three
+resources created within the previous half hour -- a Worker, the D1 database
+`sonaraindustriesd1`, and the R2 bucket `sonaraindustriesr2` -- and R2 was the
+one with no code behind it. There was a D1 adapter and a Workers AI adapter; the
+third leg of the serverless stack had nothing.
+
+**The signer had to come first.** The other ten adapters authenticate with a
+bearer token in a header. R2 speaks the S3 API, which authenticates by signing
+the request itself, so `lib/sonara-aws-signature-v4.cjs` is now here: canonical
+request, string to sign, the four-HMAC key derivation, and an Authorization
+header. Written rather than installed, for the same reason the TOTP
+implementation was -- one production dependency, and a public specification.
+
+**It is checked against AWS's numbers, not its own.** Signing code that is wrong
+returns a hex string exactly like signing code that is right, so the test asserts
+against two complete worked examples AWS publishes, each printing the canonical
+request, the string to sign and the final signature. Both are for `glacier`
+rather than `s3`, which is deliberate: the service name is an input to the
+derived key, so passing them proves the derivation rather than a tuning to one
+service.
+
+**The vectors found two real defects, which is what they were for.**
+
+- `signRequest` added `x-amz-content-sha256` unconditionally. S3 and R2 require
+  it; AWS's Create Vault example signs three headers and no content hash. The
+  first version produced a valid signature over four headers where the
+  documented one covers three, and every other assertion still passed --
+  canonical request, string to sign, key derivation. Correct in every part
+  checked against something, wrong in the one part assumed. It is now an option.
+- The body was read outside the timeout's `finally`. The abort would fire, the
+  timer would already be cleared, and a stalled download would hang a caller
+  with every bound in place and none reaching it. For a file store that is the
+  case that matters: headers arrive fast, bytes are the slow part.
+
+**One vector could not be made to pass, and it is not the signer.** AWS's second
+example prints a signature that does not follow from the canonical request the
+same page prints -- which this signer reproduces byte for byte. Seven variations
+were tried and none produced it; the page's own request shows two headers its
+printed canonical form omits, so the signature was very likely computed over a
+different request. The first vector closes completely, so it is the one that
+proves the chain. The finding is recorded in the test rather than the assertion
+deleted quietly.
+
+**What is not proven.** No call from this code has reached Cloudflare. Signing is
+verified; that R2 accepts the result needs an access key pair only the owner can
+create. The adapter header, the tests and the owner guide all say so in those
+words, and the first real `putObject` is the proof.
+
+Also corrected: the owner guide claimed fifty-eight environment variables and
+six service adapters. It is 132 and eleven. Neither figure was checked by
+anything, which is why both were wrong -- so the paragraph now names the command
+that prints them.
+
+**Verified:** swapping region and service in the key-derivation chain fails the
+published-vector test by name, and restoring returns it to green. 4,003 tests
+pass -- 36 new for the signer, 29 for the adapter -- along with lint, typecheck,
+build, `verify:env` (132 variables, all classified) and `pnpm audit`.
+
 ### 2026-09-09 - Ten repositories were registered twice, and four disagreed with themselves
 
 A screenshot arrived to be scanned for new repositories. Every repository

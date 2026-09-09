@@ -320,17 +320,80 @@ back to storing secrets in the clear.
 
 ### Everything else is optional, and that word is safe here
 
-Fifty-eight environment variables are read; ten are required. Forty of the rest
-are capabilities, every one of which degrades to a stated "setup required"
-rather than an error, and **none may become a launch dependency** — that is
-enforced by the release checks rather than by intention. That includes all six
-service adapters (Ollama, Langflow, Open WebUI, Crawl4AI, Dify, RAGFlow), every
+132 environment variables are read and ten are required. `pnpm run verify:env`
+prints that split and fails if a variable is read by the code and classified
+nowhere, so the numbers here come from a command rather than from memory — the
+previous version of this paragraph said fifty-eight variables and six adapters,
+and both had been true once.
+
+Every optional one degrades to a stated "setup required" rather than an error,
+and **none may become a launch dependency** — enforced by the release checks
+rather than by intention. That covers all eleven service adapters, every
 analytics key and every media provider.
 
-If you install one of those adapters on your laptop, the deployed application
-still cannot reach it: `http://localhost:11434` means "this serverless
-function", which is a machine in a datacentre with no Ollama on it.
-`docs/architecture/EXTERNAL-SERVICES.md` is the long version.
+Eight of those eleven adapters talk to software you run yourself: Ollama,
+Langflow, Open WebUI, Crawl4AI, Dify, RAGFlow, whisper.cpp and voice clone. If
+you install one on your laptop, the deployed application still cannot reach it.
+`http://localhost:11434` means "this serverless function", which is a machine in
+a datacentre with no Ollama on it. `docs/architecture/EXTERNAL-SERVICES.md` is
+the long version.
+
+### The three Cloudflare services, which are the exception to that
+
+These are hosted on public addresses, so the deployed application can reach them
+with nothing tunnelled and nothing running on your machine. You created all
+three on 9 September 2026, and this is what each needs before the code can use
+it. All three are still optional: set none of them and the product works.
+
+Your **account id** is the 32-character hex string in every Cloudflare dashboard
+URL. It is configuration rather than a secret — it appears in those URLs — and
+the same value is used by all three.
+
+**Workers AI** — running a language model without hosting one:
+
+```
+SONARA_WORKERS_AI_ENABLED=true
+SONARA_WORKERS_AI_URL=https://api.cloudflare.com/client/v4
+SONARA_WORKERS_AI_ACCOUNT=<your 32-character account id>
+SONARA_WORKERS_AI_MODEL=@cf/meta/llama-3.1-8b-instruct
+SONARA_WORKERS_AI_TOKEN=<API token with Workers AI: Read>
+```
+
+**D1** — the SQL database you created as `sonaraindustriesd1`. Its id is the
+UUID on its dashboard page:
+
+```
+SONARA_D1_ENABLED=true
+SONARA_D1_URL=https://api.cloudflare.com/client/v4
+SONARA_D1_ACCOUNT=<your 32-character account id>
+SONARA_D1_DATABASE=<the database UUID>
+SONARA_D1_TOKEN=<API token with D1: Edit>
+```
+
+D1 is for derived data only — counters, caches, rollups. The adapter refuses any
+statement naming a table your Supabase migrations create, so the two databases
+cannot come to disagree about a customer record.
+
+**R2** — the bucket you created as `sonaraindustriesr2`. This one needs a key
+*pair* rather than a token, because R2 speaks the S3 API. Create it under
+**R2 → Manage R2 API Tokens → Create API token**, scoped to that one bucket:
+
+```
+SONARA_R2_ENABLED=true
+SONARA_R2_URL=https://<your account id>.r2.cloudflarestorage.com
+SONARA_R2_BUCKET=sonaraindustriesr2
+SONARA_R2_ACCESS_KEY_ID=<the access key id>
+SONARA_R2_SECRET_ACCESS_KEY=<the secret access key>
+```
+
+Both R2 values are secrets. The access key id is not a password, but it is half
+of one, and nothing in this product displays either.
+
+One thing worth knowing before you rely on R2: no request from this code has
+ever reached Cloudflare. The request signing is checked against signature
+examples AWS publishes, so it is verified rather than hoped at — but that R2
+accepts the result is not something this repository can prove without your key
+pair. The first file you store is the proof.
 
 ---
 
