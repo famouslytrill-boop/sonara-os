@@ -6674,6 +6674,33 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: false,
   },
+  {
+    name: "Sonora (nolight132)",
+    slug: "nolight132-sonora-name-collision",
+    category: ["music streaming client", "desktop application", "reciprocal licence", "brand collision"],
+    useCase: ["none -- and the reason to keep the record is the name rather than the code"],
+    productFit: ["Creator Studio", "Internal Development"],
+    license: "GPL-3.0-or-later",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "adopt nothing from it -- GPL-3.0-or-later is reciprocal, and nothing in a Rust desktop music player belongs in this product anyway",
+      "know that it exists, because it is called Sonora and this company is called SONARA: one letter apart, both software, both public on GitHub",
+      "do not describe SONARA and this project as related in any public copy, and do not use its screenshots or assets",
+    ],
+    officialUrl: "https://github.com/nolight132/sonora",
+    repoUrl: "https://github.com/nolight132/sonora",
+    notes:
+      "Cloned and measured 9 September 2026. COPYING read: GNU General Public License version 3, 29 June 2007, and Cargo.toml declares `license = \"GPL-3.0-or-later\"` -- checked in both places rather than taken from the badge. 597 files, 226 of them Rust, a native music streaming client built on GPUI that plays Spotify, YouTube Music and local files. It is real software with a real licence, not a list. One precision worth recording rather than repeating the general rule: CLAUDE.md says a reciprocal licence (AGPL, GPL, OSL) triggers on network use, and for the AGPL that is exactly right. Plain GPL-3.0 triggers on **conveying** -- distribution -- which is why the AGPL's section 13 had to be written separately. So GPL-3.0 code behind a hosted service is a different question from AGPL code behind one. It changes nothing here, because a desktop audio player has nothing this product would take, but a future record on GPL-3.0 code that somebody does want should be reasoned about on the distribution trigger rather than the network one. The reason this record exists at all is the name. `nolight132/sonora` is one letter from SONARA, is also software, is also on GitHub, and had 441 installs when the screenshot was taken. That is a fact worth having written down before somebody meets it in a search result or a trademark check, not a legal opinion -- nobody here can give one.",
+    safetyBoundaries: [
+      "no GPL-licensed code incorporated into this product",
+      "no asset, screenshot or copy taken from a similarly-named project",
+      "no public statement implying a relationship between SONARA Industries and this project",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

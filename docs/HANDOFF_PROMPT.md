@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-225 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+226 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,41 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - Yearly pricing exists, and a project one letter from our name
+
+Three yearly prices created on the live account, on the **same products** as
+their monthly twins so Stripe reports one plan billed two ways rather than six
+unrelated things: $290, $590 and $1090, lookup keys `sonara_*_annual`. They are
+deliberately invisible on `/pricing` until the three `_ANNUAL` variables are set
+-- `hiddenUntilBuyable` doing its job. `docs/owner/PRICING-STEP-BY-STEP.md` now
+carries the real ids rather than placeholders.
+
+`docs/owner/INSTALL-ALL-KEYS.md` is new: every key in the order that unblocks
+the most, starting with the restricted Stripe key that has been holding
+production at `36c1b2a` since 8 September.
+
+**nolight132/sonora is registered, and the licence is not the interesting part.**
+COPYING read: GPL-3.0, and Cargo.toml declares `GPL-3.0-or-later` -- checked in
+both rather than taken from the badge. 597 files, 226 Rust, a native music
+client. Nothing here would ever take it. It is in the register because it is
+called **Sonora** and this company is called **SONARA**: one letter apart, both
+software, both public. That is worth having written down before somebody meets
+it in a search result.
+
+One precision recorded rather than a slogan repeated. `CLAUDE.md` says a
+reciprocal licence (AGPL, GPL, OSL) triggers on network use. For the AGPL that
+is exactly right. Plain GPL-3.0 triggers on **conveying** -- distribution --
+which is precisely why the AGPL needed its own section 13. It changes nothing
+for this record, but a future record on GPL-3.0 code somebody actually wants
+should be reasoned about on the distribution trigger, not the network one.
+
+Also: free-for-dev arrived again as a recommendation. It was already registered
+and already **blocked** -- the GitHub API returns no licence object at all, so
+all rights reserved. 132k stars is not a licence.
+
+**Verified:** the reciprocal count moved 30 to 31 and the register 225 to 226,
+both caught by `verify-doc-counts --check` before they were corrected.
 
 ### 2026-09-09 - The D1 rollup schema, and a limit that clamped to one row
 
