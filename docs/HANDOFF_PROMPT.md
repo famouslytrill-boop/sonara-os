@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-228 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+229 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,56 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - A CIO report whose numbers predate its own subject
+
+A Databricks link to "The great acceleration: CIO perspectives on generative AI"
+was submitted. Downloaded and read in full -- 24 pages, MIT Technology Review
+Insights, **sponsored by Databricks**, back matter reading "Copyright MIT
+Technology Review Insights, 2023. All rights reserved."
+
+**The preface is the most important part of it.** Seven interviews conducted
+April and May 2023, plus a global survey of **600 senior data and technology
+executives conducted May and June 2022**. Every percentage in the report comes
+from that survey, so the quantitative backbone was collected before the subject
+existed as a boardroom concern -- the report says so itself, describing the
+period as "before the business applications of generative AI became apparent in
+late 2022". It is now September 2026, so the report is three years old and its
+survey over four.
+
+Recorded because two separate things would make a figure from it wrong in our
+copy, and both are the failure the comparison rules exist to stop: it is stale,
+and its population is **enterprise CIOs**, not the founders, creators and small
+teams this product sells to.
+
+A third: **the largest numbers in it are borrowed rather than found.** McKinsey's
+$2.6-4.4 trillion and 60-70 per cent of worker time, Accenture's 40 per cent of
+working hours, Goldman Sachs's 7 per cent of global GDP are all citations.
+Attributing any of them to this report would be wrong, and the register record
+says to trace each to its original source before repeating it.
+
+Its own findings, for the record: 94 per cent of organizations using AI in some
+way, 14 per cent aiming for enterprise-wide AI by 2025, 8 per cent saying AI was
+critical to three or more business functions, nearly 70 per cent viewing a
+unified data platform as crucial, security and risk management at 31 per cent as
+the top tangible benefit. **One chart was deliberately not recorded**: Figure 5
+carries three statements and three percentages, and the text extraction does not
+reliably show which belongs to which, so guessing the mapping would have put an
+unverified number into a document about unverified numbers.
+
+Where the sponsorship shows is named rather than implied: the most emphasised
+conclusion is that a unified data platform is crucial, which is what the sponsor
+sells; Databricks' own Dolly model gets a passage; and two of the seven
+interviewees are Databricks' CTO and a founding advisor to MosaicML, which
+Databricks acquired. The report calls itself editorially independent, and that
+claim is recorded rather than assessed.
+
+Blocked in the register on the same reading as the IONOS guide -- free to view,
+all rights reserved, grants nothing -- with `blockedUses` naming the figure ban
+explicitly. The one thing carried forward is a shape and not a number: before
+generative AI, almost nobody had joined AI up across a business, which is the
+condition "one record, not three" addresses. That is useful while building and is
+not a marketing claim. 229 repositories on the register.
 
 ### 2026-09-09 - Three of four rate limiters failed open in silence
 

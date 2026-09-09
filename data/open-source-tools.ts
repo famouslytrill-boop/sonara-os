@@ -6757,6 +6757,42 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "MIT Technology Review Insights \"The great acceleration: CIO perspectives on generative AI\" (PDF, sponsored by Databricks)",
+    slug: "mit-tr-insights-cio-generative-ai-report",
+    category: ["industry research", "sponsored report", "market reference", "reviewed on request"],
+    useCase: ["reading what an enterprise-data vendor tells CIOs about generative AI"],
+    productFit: ["Internal Development"],
+    license:
+      "All rights reserved. The back matter reads \"\u00a9 Copyright MIT Technology Review Insights, 2023. All rights reserved.\" and the document grants nothing. A free download is a price of zero, not a licence.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "read it as industry intelligence; reading a published document needs no permission",
+      "copy no sentence, heading, table or chart from it into this product or its documentation",
+      "quote no figure from it in customer-facing copy -- the survey behind every percentage was run in May and June 2022, and the population was enterprise CIOs, not the market this product sells to",
+      "trace any borrowed statistic (McKinsey, Accenture, Goldman Sachs) to its original source before repeating it, and never cite it as this report's finding",
+    ],
+    officialUrl: "https://www.technologyreview.com",
+    repoUrl: "https://www.technologyreview.com",
+    notes:
+      "Submitted 9 September 2026 as a databricks.com link and read in full. A 24-page MIT Technology Review Insights report sponsored by Databricks, published 2023. Its preface states the evidence base and that is the most important thing in it: seven in-depth interviews conducted April and May 2023, plus a global survey of 600 senior data and technology executives conducted May and June 2022. Every percentage in the report comes from that 2022 survey, which is to say the quantitative backbone was collected before the subject existed as a boardroom concern -- the report itself says this was 'before the business applications of generative AI became apparent in late 2022'. It is now September 2026, so the report is three years old and its survey over four. Its own findings, as distinct from the ones it cites: 94 per cent of organizations using AI in some way, 14 per cent aiming for enterprise-wide AI by 2025, 8 per cent saying AI was critical to three or more business functions, nearly 70 per cent viewing a unified data platform as crucial, and security and risk management at 31 per cent as the top tangible benefit noted to date. The largest numbers in it are borrowed rather than found -- McKinsey's $2.6-4.4 trillion and 60-70 per cent of worker time, Accenture's 40 per cent of working hours, Goldman Sachs's 7 per cent of global GDP -- and attributing any of those to this report would be wrong. The sponsorship shows where it would be expected to: the conclusion most emphasised is that a unified data platform is crucial, which is what the sponsor sells; Databricks' own Dolly model gets a passage; and two of the seven interviewees are Databricks' CTO and a founding advisor to MosaicML, which Databricks acquired. The report describes itself as editorially independent and that claim is recorded rather than assessed. Blocked on the same reading as the IONOS guide: free to view, all rights reserved, grants nothing. The one thing worth carrying forward is a shape rather than a number, and it is in docs/market/2026-09-09-MIT-CIO-GENERATIVE-AI-REPORT.md.",
+    safetyBoundaries: [
+      "no sentence, heading, table or chart from this PDF appears in this codebase or its documentation",
+      "no figure from it reaches customer-facing copy: it fails the comparison rule on all three counts -- not current, not about our market, and in several cases not its own data",
+      "any statistic quoted from it is traced to its original source before being repeated, never cited as this report's",
+      "a sponsored report is intelligence about the sponsor's market position as much as about the market, and is never the basis of a claim we make about our own product",
+    ],
+    blockedUses: [
+      "copying or paraphrasing its text, headings, tables or charts into product copy, help pages or documentation",
+      "redistributing the PDF",
+      "treating a free download as a licence",
+      "quoting any of its figures in customer-facing copy, whose survey is from May and June 2022 and whose respondents were enterprise CIOs",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
