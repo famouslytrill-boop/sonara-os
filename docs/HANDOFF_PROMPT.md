@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-234 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+225 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,74 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - Ten repositories were registered twice, and four disagreed with themselves
+
+A screenshot arrived to be scanned for new repositories. Every repository
+legible in it was already registered, so there was nothing to add -- and
+checking that turned up something worse than a missing record.
+
+**Ten repositories had two records each.** Four of those pairs carried
+conflicting verdicts. `ripienaar/free-for-dev` was `blocked` in one record (no
+licence object at all, so all rights reserved) and `needs_license_review` in
+another whose licence field read `Not verified`. `HKUDS/Vibe-Trading` was
+`blocked` in one and `research_only` in the other. `mattpocock/skills` was
+`reference_only` in one and `optional_adapter_after_review` in the other.
+Which verdict somebody acted on depended on which record they scrolled to
+first.
+
+Nothing reported it, and the reason is worth keeping. `verify-open-source-registry.mjs`
+prints `Unique GitHub targets`, which reads like a uniqueness guarantee. The map
+behind it was keyed case-sensitively, so `ashishpatel26/500-AI-Agents-Projects`
+and `ashishpatel26/500-ai-agents-projects` counted as two different
+repositories, and the other nine pairs were never compared at all. A count that
+sounds like a check is the recurring defect in this repository, in its most
+literal form.
+
+**Fixed both halves.** The key is now lower-cased, and a new gate fails when two
+records name one repository, printing both slugs. The gate says to merge rather
+than delete, because the losing record usually holds a finding the survivor does
+not -- and in nine of the ten cases it did, so each merge folds that finding into
+the survivor's notes. Where verdicts conflicted, the stricter one won.
+
+**Two records named an organisation rather than a repository.** Both NVlabs
+records pointed at `https://github.com/NVlabs`, and one said so itself: *Keep as
+a research note until exact repository, license, and model terms are verified.*
+Now verified, by cloning the repositories they meant:
+
+- `NVlabs/EAGLE` -- code Apache-2.0, but a separate `LICENSE_MODEL` in both
+  `Eagle2_5/` and `Embodied/` puts the **model weights** under the NVIDIA
+  License, which states the work is *intended for use non-commercially* and
+  defines that as *academic or non-profit research purposes only*, with NVIDIA
+  carved out. SONARA is sold on paid plans, so the weights cannot be used here.
+  Recording one licence for that repository would have been true about the code
+  and wrong about the thing anybody would want.
+- `NVlabs/LongLive` -- Apache-2.0, confirmed in the README's own License
+  section, with a vendored MIT subdirectory. No non-commercial model licence in
+  the tree. Same organisation, same research area, different terms, which is why
+  both were cloned rather than one assumed from the other.
+
+**The merge exposed a governance rule that had stopped binding.**
+`tests/social-repository-intake.test.js` requires every repository in the
+1 September batch to stay out of adoption states and to declare a blocked-use
+boundary. `mattpocock/skills` satisfied both -- through the record that was not
+the one carrying its verdict, while the other advanced to
+`optional_adapter_after_review` and lost its boundary. Merging made the conflict
+visible and the test failed, which is the test working. Resolved the same way as
+every other conflict on this date: the stricter verdict wins, so it is
+`reference_only` with the boundary carried across, and moving it back is a
+decision somebody makes by editing `NEW_REPOSITORY_SLUGS` rather than the field.
+
+Three derived figures moved and one of them was a double-count: reciprocal
+repositories went from 31 to 30 because `logto-io/logto` was being counted
+twice. No reciprocal flag was lost -- both records already carried it, which was
+checked rather than assumed before the number was changed.
+
+**Verified:** the new gate was falsified by re-inserting exactly the original
+bug -- a second record differing only in URL case -- and it failed by name,
+printing both slugs. `verify-doc-counts --check` failed on all three stale
+figures before they were corrected. 3,931 tests, lint, typecheck, build and
+`pnpm audit` all pass.
 
 ### 2026-09-09 - Six repositories from screenshots, and the one nobody checks
 
