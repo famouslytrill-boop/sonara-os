@@ -106,6 +106,39 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - A new high advisory turned CI red, and the fix had a precedent
+
+`frontend-dependencies` failed on this branch. It is the audit gate: the job runs
+`pnpm audit --audit-level moderate`, and a later step whose whole body is
+`exit 1` fires when that step's outcome is failure.
+
+**GHSA-7w5x-hrqm-74c2** -- `smol-toml` at or below 1.7.0, denial of service via
+malformed TOML documents, patched in 1.7.1. It reaches this repository
+transitively: `. > @vercel/node > @vercel/build-utils > @vercel/python-analysis >
+smol-toml`, and `@vercel/node` is a development dependency, so nothing in the
+served application loads it.
+
+**Not caused by this branch**, and worth saying why that was checked rather than
+assumed: the commit before it touched `package.json` only to add two script
+entries, and the advisory is against a package neither the commit nor the branch
+introduced. It fails `main` identically. A new advisory landing against an
+existing tree is the audit gate doing exactly what it is for.
+
+The fix had a precedent sitting in the same file. `pnpm-workspace.yaml` carries
+an `overrides` block of advisory pins -- `path-to-regexp`, `undici`, `ajv`,
+`minimatch`, `js-yaml`, `serialize-javascript`, `postcss` -- and **`smol-toml`
+was already among them**, pinned `<1.6.1` to `1.6.1` for an earlier advisory
+against the same package. So this is the established move, made again: the pin
+becomes `<1.7.1` to `1.7.1`.
+
+Nothing was weakened to get green, which is the rule that matters here.
+`pnpm audit --audit-level moderate` now reports no known vulnerabilities on its
+own terms rather than on a relaxed threshold, no advisory was excluded, and the
+gate is untouched. `pnpm install --frozen-lockfile` still resolves, so the
+lockfile and the override agree.
+
+4,081 tests, lint, `verify:launch` exit 0.
+
 ### 2026-09-09 - Production has been 44 commits behind all day, and no check said so
 
 Went looking at deployment and found the gap is not that production is stale --
