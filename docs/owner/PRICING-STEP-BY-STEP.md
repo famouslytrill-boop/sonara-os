@@ -25,36 +25,24 @@ Those three are the pricing page. Nothing below is required to keep selling them
 
 ---
 
-## 1 — The annual plans, which do not exist yet
+## 1 — The annual plans, which now exist
 
-This is the only pricing work with money behind it. The plans are already
-written into `lib/sonara-stripe-plans.cjs` at **$290 / $590 / $1090**, marked
-`hiddenUntilBuyable`, which means the pricing page shows nothing at all for them
-until a real price exists. Create the prices and they appear. Do nothing and the
-page stays exactly as it is.
+**Created 9 September 2026 on the live account.** The three yearly prices are on
+the same products as their monthly twins, so Stripe reports them as one plan
+billed two ways rather than as six unrelated things:
 
-Two months free against monthly is the offer: $29 × 12 is $348, and the annual is
-$290.
-
-### Create each price on the product that already exists
-
-Do **not** create new products. Each annual price is the yearly twin of a
-monthly plan and belongs on the same product, or Stripe reporting will treat
-them as unrelated things.
-
-Stripe Dashboard → **Product catalogue** → open the product → **Add another
-price**.
-
-| Create on this product | Amount | Billing period | Set lookup key to |
+| Plan | Amount | Price ID | Lookup key |
 |---|---|---|---|
-| `prod_V4GVbBWtrp9JcH` (One workspace) | **290.00 USD** | Yearly | `sonara_workspace_annual` |
-| `prod_V4GVdWm2zvl9mC` (All three) | **590.00 USD** | Yearly | `sonara_all_three_annual` |
-| `prod_V4GVM5ZUxjyQm7` (Team) | **1090.00 USD** | Yearly | `sonara_team_annual` |
+| One workspace, yearly | $290/yr | `price_1UDdUl0dKtlEU3lA8EB46MUJ` | `sonara_workspace_annual` |
+| All three, yearly | $590/yr | `price_1UDdUv0dKtlEU3lArDuldBWw` | `sonara_all_three_annual` |
+| Team, yearly | $1090/yr | `price_1UDdV30dKtlEU3lA9OltiqYX` | `sonara_team_annual` |
 
-For each one: **Recurring**, billing period **Yearly**, currency **USD**. Leave
-tax behaviour unspecified, which is what the monthly three use.
+Two months free against monthly: $29 x 12 is $348, and the yearly is $290.
 
-Copy each new price ID as you go. They begin `price_1…`.
+**They are not on the pricing page yet, and that is not a bug.** The plans are
+marked `hiddenUntilBuyable` in `lib/sonara-stripe-plans.cjs`, so a yearly card
+appears only once the application has a price id to sell. That means the
+remaining step is setting three variables, below.
 
 ### Put them in Vercel
 
@@ -62,9 +50,9 @@ Vercel → project `sonara-os` → **Settings → Environment Variables** →
 **Production**:
 
 ```
-STRIPE_PRICE_WORKSPACE_ANNUAL   = <the $290 price id>
-STRIPE_PRICE_ALL_THREE_ANNUAL   = <the $590 price id>
-STRIPE_PRICE_TEAM_ANNUAL        = <the $1090 price id>
+STRIPE_PRICE_WORKSPACE_ANNUAL = price_1UDdUl0dKtlEU3lA8EB46MUJ
+STRIPE_PRICE_ALL_THREE_ANNUAL = price_1UDdUv0dKtlEU3lArDuldBWw
+STRIPE_PRICE_TEAM_ANNUAL      = price_1UDdV30dKtlEU3lA9OltiqYX
 ```
 
 Mark them **Sensitive** if you like; the deploy check knows the difference
@@ -154,8 +142,8 @@ had exactly one subscription in its history, $9.99/mo, started and cancelled on
 
 ## The order, if you only read one thing
 
-1. Create three yearly prices at $290 / $590 / $1090 on the existing products.
-2. Set the three `_ANNUAL` variables in Vercel production.
+1. ~~Create three yearly prices at $290 / $590 / $1090.~~ Done 9 September 2026.
+2. Set the three `_ANNUAL` variables in Vercel production, using the ids above.
 3. Redeploy, or nothing changes.
 4. Buy one plan with a real card. Confirm it unlocks. Refund yourself.
 5. **Then** archive the six old prices.

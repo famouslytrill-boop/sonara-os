@@ -2,6 +2,75 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - One repository, one deployment target
+
+A Cloudflare Worker service named `sonara-os` was created with a Git integration
+pointing at this repository. It failed instantly on the first commit it saw --
+zero seconds, which is what "nothing to build" looks like rather than what a
+failing build looks like -- and would have failed on every commit on every branch
+after it. There is no Worker here: no wrangler config of any spelling, no Worker
+entrypoint, and a build script that checks and loads `server.js`.
+
+The failure was reported on the PR rather than fixed, because both available
+fixes were decisions rather than repairs: disconnect the integration, or add a
+wrangler config and make this repository deploy to two places at once. The owner
+chose to disconnect.
+
+That is now written down twice, in the two places that stop it being
+rediscovered. `docs/architecture/EXTERNAL-SERVICES.md` gains a section saying
+Cloudflare is an API this application calls -- Workers AI, D1 and R2, all through
+adapters, all off by default -- and not a place it is deployed. And
+`tests/this-repository-is-not-a-cloudflare-worker.test.js` asserts the absence,
+because the next person to meet a red Workers check will reasonably try to make
+it pass by adding a wrangler config, and that is the one fix that quietly undoes
+the decision.
+
+The reason a second path matters here rather than merely being untidy: the
+controlled deployment workflow has a live-price gate in front of it, and that
+gate exists because a price mismatch once shipped while every check was green. A
+second production path is a path around it.
+
+**Verified:** the guard was falsified by writing a real `wrangler.toml` at the
+root -- it failed by name, printing the reason and pointing at the document --
+and passed again once removed. The build-script half is asserted separately,
+because a wrangler config could be absent while the build had been switched to a
+Worker bundler.
+
+### 2026-09-09 - Yearly pricing exists, and a project one letter from our name
+
+Three yearly prices created on the live account, on the **same products** as
+their monthly twins so Stripe reports one plan billed two ways rather than six
+unrelated things: $290, $590 and $1090, lookup keys `sonara_*_annual`. They are
+deliberately invisible on `/pricing` until the three `_ANNUAL` variables are set
+-- `hiddenUntilBuyable` doing its job. `docs/owner/PRICING-STEP-BY-STEP.md` now
+carries the real ids rather than placeholders.
+
+`docs/owner/INSTALL-ALL-KEYS.md` is new: every key in the order that unblocks
+the most, starting with the restricted Stripe key that has been holding
+production at `36c1b2a` since 8 September.
+
+**nolight132/sonora is registered, and the licence is not the interesting part.**
+COPYING read: GPL-3.0, and Cargo.toml declares `GPL-3.0-or-later` -- checked in
+both rather than taken from the badge. 597 files, 226 Rust, a native music
+client. Nothing here would ever take it. It is in the register because it is
+called **Sonora** and this company is called **SONARA**: one letter apart, both
+software, both public. That is worth having written down before somebody meets
+it in a search result.
+
+One precision recorded rather than a slogan repeated. `CLAUDE.md` says a
+reciprocal licence (AGPL, GPL, OSL) triggers on network use. For the AGPL that
+is exactly right. Plain GPL-3.0 triggers on **conveying** -- distribution --
+which is precisely why the AGPL needed its own section 13. It changes nothing
+for this record, but a future record on GPL-3.0 code somebody actually wants
+should be reasoned about on the distribution trigger, not the network one.
+
+Also: free-for-dev arrived again as a recommendation. It was already registered
+and already **blocked** -- the GitHub API returns no licence object at all, so
+all rights reserved. 132k stars is not a licence.
+
+**Verified:** the reciprocal count moved 30 to 31 and the register 225 to 226,
+both caught by `verify-doc-counts --check` before they were corrected.
+
 ### 2026-09-09 - The D1 rollup schema, and a limit that clamped to one row
 
 The D1 database had existed for half an hour with zero tables. It has two now,

@@ -168,7 +168,7 @@ from here, and it needs the service itself to be network-isolated.
 
 Licence, mostly. An adapter calls a service over HTTP; it does not copy anyone's
 code, which is why Apache and MIT services need nothing beyond attribution. The
-30 reciprocal repositories were a separate decision, and it has now been taken
+31 reciprocal repositories were a separate decision, and it has now been taken
 — see below.
 
 Cost. Every one of these is free because it runs on hardware you already pay
@@ -181,7 +181,7 @@ changes what may depend on it.
 
 Asked on 18 August 2026, decided the same day: **install what can be installed
 without changing SONARA's own licence, and install nothing that would change
-it.** The 30 reciprocal repositories in `data/open-source-tools.ts` were
+it.** The 31 reciprocal repositories in `data/open-source-tools.ts` were
 enumerated and worked through against that rule. Three things came out of it,
 and two were surprises.
 
@@ -225,6 +225,46 @@ surface is ever built, HyperFormula is the first thing to reconsider and the
 price is the question to settle first.
 
 ---
+
+## Cloudflare is an API this application calls, not a place it is deployed
+
+Settled 9 September 2026, and written down because the failure it produces looks
+like a broken build rather than a setting.
+
+A Cloudflare Worker service named `sonara-os` was created that day with a Git
+integration pointing at this repository. It failed on the first commit it saw and
+would have failed on every commit after it, on every branch, because **this
+repository contains no Worker**: no `wrangler.toml`, no `wrangler.json`, no
+Worker entrypoint. `pnpm run build` is `node --check server.js && node -e
+"require('./server')"` -- an Express 4 CommonJS application served through
+`api/index.js`. The check completed in zero seconds, which is what "nothing to
+build" looks like and is not what a failing build looks like.
+
+The owner chose to disconnect the Git integration rather than add a Worker, and
+that is the decision this section records.
+
+**Why that is the right way round.** The three Cloudflare services this project
+uses -- Workers AI, D1 and R2 -- are reached as HTTPS APIs from the Vercel
+function through the adapters in `lib/`, each off by default. None of them
+requires this application to run on Cloudflare. Making the repository deploy as a
+Worker as well would create a second production path with its own build, its own
+environment variables and its own failure modes, running beside a controlled
+deployment workflow that has a live-price gate in front of it. A second path is a
+path around that gate, and the gate exists because a price mismatch once shipped
+while every check was green.
+
+So: one deployment target, Vercel. Cloudflare is something this application
+calls, in exactly the way it calls Stripe and Supabase.
+
+**If a Worker is ever genuinely wanted** -- an edge cache, a webhook receiver,
+something that must run at the edge rather than in a function -- it belongs in
+its own repository with its own deployment, not bolted onto this one. That keeps
+one repository to one release path, which is the property that makes the release
+checks mean anything.
+
+`tests/this-repository-is-not-a-cloudflare-worker.test.js` asserts the absence,
+so the decision fails a build rather than being rediscovered from a red check
+nobody can explain.
 
 ## Sources
 
