@@ -21,6 +21,37 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+### 9 September 2026 -- `js-yaml` again, and the third stale override
+
+The note above ends by predicting this: *when an audit names a package this file
+already has an override for, check whether the override is the thing holding the
+tree on the vulnerable version.* This is that third case, and it took no
+investigation because the prediction named the check.
+
+`pnpm audit --audit-level moderate` failed on GHSA-2883-xcg3-v3hh (high):
+`js-yaml` `>=4.0.0 <4.3.2`, where `maxTotalMergeKeys` does not limit CPU use for
+empty merge sources. The register carried `"js-yaml@>=4.0.0 <4.3.1": "4.3.1"`,
+added on 3 September for GHSA-5p4m-2wfm-xmqj. `4.3.1` is inside the new
+vulnerable range, so the override was pinning the tree **to** the vulnerable
+version rather than away from it -- the same shape as `fast-uri` before it, and
+the same shape as the `js-yaml` entry before that. Raised to
+`"js-yaml@<4.3.2": "4.3.2"`, dropping the lower bound the way the `fast-uri` fix
+did, so the entry cannot go stale in the same direction again.
+
+Both paths remain development-only -- `.>mocha>js-yaml` and
+`.>@vercel/node>@vercel/build-utils>@vercel/python-analysis>js-yaml` -- and no
+runtime code in this repository parses YAML, so nothing served to a customer was
+exposed. This is a real patch rather than an exemption: the version in the tree
+changed to `4.3.2`, no audit threshold moved, and `pnpm audit` now reports no
+known vulnerabilities at `--audit-level low` as well as `moderate`.
+`pnpm install --frozen-lockfile` succeeds, and the 3,931 tests, lint and build
+all pass on the new tree.
+
+Three occurrences of one failure mode is a pattern rather than a coincidence.
+Every override in `pnpm-workspace.yaml` that still carries a lower bound is a
+candidate for the fourth, because a lower bound is what makes an entry describe
+one advisory instead of a floor.
+
 ### 2 September 2026 -- `fast-uri`, and an override that had gone stale
 
 Four **high** advisories in `fast-uri@3.1.5`, all reached the same way --
