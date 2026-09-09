@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 305 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 309 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-234 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+226 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,254 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - One repository, one deployment target
+
+A Cloudflare Worker service named `sonara-os` was created with a Git integration
+pointing at this repository. It failed instantly on the first commit it saw --
+zero seconds, which is what "nothing to build" looks like rather than what a
+failing build looks like -- and would have failed on every commit on every branch
+after it. There is no Worker here: no wrangler config of any spelling, no Worker
+entrypoint, and a build script that checks and loads `server.js`.
+
+The failure was reported on the PR rather than fixed, because both available
+fixes were decisions rather than repairs: disconnect the integration, or add a
+wrangler config and make this repository deploy to two places at once. The owner
+chose to disconnect.
+
+That is now written down twice, in the two places that stop it being
+rediscovered. `docs/architecture/EXTERNAL-SERVICES.md` gains a section saying
+Cloudflare is an API this application calls -- Workers AI, D1 and R2, all through
+adapters, all off by default -- and not a place it is deployed. And
+`tests/this-repository-is-not-a-cloudflare-worker.test.js` asserts the absence,
+because the next person to meet a red Workers check will reasonably try to make
+it pass by adding a wrangler config, and that is the one fix that quietly undoes
+the decision.
+
+The reason a second path matters here rather than merely being untidy: the
+controlled deployment workflow has a live-price gate in front of it, and that
+gate exists because a price mismatch once shipped while every check was green. A
+second production path is a path around it.
+
+**Verified:** the guard was falsified by writing a real `wrangler.toml` at the
+root -- it failed by name, printing the reason and pointing at the document --
+and passed again once removed. The build-script half is asserted separately,
+because a wrangler config could be absent while the build had been switched to a
+Worker bundler.
+
+### 2026-09-09 - Yearly pricing exists, and a project one letter from our name
+
+Three yearly prices created on the live account, on the **same products** as
+their monthly twins so Stripe reports one plan billed two ways rather than six
+unrelated things: $290, $590 and $1090, lookup keys `sonara_*_annual`. They are
+deliberately invisible on `/pricing` until the three `_ANNUAL` variables are set
+-- `hiddenUntilBuyable` doing its job. `docs/owner/PRICING-STEP-BY-STEP.md` now
+carries the real ids rather than placeholders.
+
+`docs/owner/INSTALL-ALL-KEYS.md` is new: every key in the order that unblocks
+the most, starting with the restricted Stripe key that has been holding
+production at `36c1b2a` since 8 September.
+
+**nolight132/sonora is registered, and the licence is not the interesting part.**
+COPYING read: GPL-3.0, and Cargo.toml declares `GPL-3.0-or-later` -- checked in
+both rather than taken from the badge. 597 files, 226 Rust, a native music
+client. Nothing here would ever take it. It is in the register because it is
+called **Sonora** and this company is called **SONARA**: one letter apart, both
+software, both public. That is worth having written down before somebody meets
+it in a search result.
+
+One precision recorded rather than a slogan repeated. `CLAUDE.md` says a
+reciprocal licence (AGPL, GPL, OSL) triggers on network use. For the AGPL that
+is exactly right. Plain GPL-3.0 triggers on **conveying** -- distribution --
+which is precisely why the AGPL needed its own section 13. It changes nothing
+for this record, but a future record on GPL-3.0 code somebody actually wants
+should be reasoned about on the distribution trigger, not the network one.
+
+Also: free-for-dev arrived again as a recommendation. It was already registered
+and already **blocked** -- the GitHub API returns no licence object at all, so
+all rights reserved. 132k stars is not a licence.
+
+**Verified:** the reciprocal count moved 30 to 31 and the register 225 to 226,
+both caught by `verify-doc-counts --check` before they were corrected.
+
+### 2026-09-09 - The D1 rollup schema, and a limit that clamped to one row
+
+The D1 database had existed for half an hour with zero tables. It has two now,
+both applied to the live database and verified by reading `sqlite_master` rather
+than by trusting four success flags: `rollup_daily_totals` and `rollup_runs`,
+with an index each.
+
+**Every identifier was checked against the 325 reserved table names rather than
+eyeballed**, and that check earned itself immediately: `bookings` is a Supabase
+table, so a column called `bookings` would have been refused by the adapter at
+read time with a message about system-of-record boundaries that nobody would
+connect to a column name. It is `bookings_made`.
+
+**Two columns exist for a reason that is not the numbers.** Every totals row
+carries `computed_at` and `source_rows`. A total of zero built from four thousand
+rows is a real zero; a total of zero built from no rows is a rollup that ran
+against nothing, and without the row count they are the same row. `source_rows`
+is `NOT NULL` in the schema and required by the write builder, so a caller who
+cannot say how many rows it read cannot write a total at all. That is shape 4
+from the checks skill -- absent read as zero -- moved into a schema.
+
+**D1 has no row-level security at all**, which is a stronger statement than the
+one that applies to Supabase. There the service-role key bypasses RLS, so
+`organization_id` filtering is the boundary that matters -- but RLS is still
+there, unused, as a second thing that would have to fail. In D1 there is no
+second thing. So every statement builder requires an organization id, refuses a
+blank one, and binds it as a parameter, and the test asserts that over the
+module's exports rather than over the ones somebody listed. A builder added later
+is covered the day it is added.
+
+**A test caught a real bug in the first draft.** The row limit read
+`Math.min(Math.max(Number(limit) || 90, 1), 366)`, which is wrong in a quiet way:
+a negative limit is truthy, so it survives the `||`, and `Math.max(-5, 1)` is
+**1**. A caller asking badly would get a single row back and read it as "that is
+all the data there is". A bad limit now falls back to the default, and the test
+covers the whole class rather than the one value that failed.
+
+Also corrected: the module header claimed a function `readDailyTotals` returning
+`{ ok, computed, row }`. No such function exists -- the module builds statements
+and runs nothing. A reason written rather than verified, found by reading the
+file back.
+
+`docs/owner/PRICING-STEP-BY-STEP.md` is new: the annual prices that do not exist
+yet, the six old prices and why archiving is last, and the check that would have
+caught the September mismatch. Every price ID in it was read from the live
+account on the day, not remembered.
+
+**Verified:** 4,033 tests pass, including 30 new ones. The schema was applied to
+the live database and then read back out of `sqlite_master`. Lint, typecheck,
+build, `verify:env` at 132 variables and `verify-doc-counts` all pass.
+
+### 2026-09-09 - The bucket existed and nothing could talk to it
+
+Checked Stripe, Cloudflare and Vercel for changes. Cloudflare had three
+resources created within the previous half hour -- a Worker, the D1 database
+`sonaraindustriesd1`, and the R2 bucket `sonaraindustriesr2` -- and R2 was the
+one with no code behind it. There was a D1 adapter and a Workers AI adapter; the
+third leg of the serverless stack had nothing.
+
+**The signer had to come first.** The other ten adapters authenticate with a
+bearer token in a header. R2 speaks the S3 API, which authenticates by signing
+the request itself, so `lib/sonara-aws-signature-v4.cjs` is now here: canonical
+request, string to sign, the four-HMAC key derivation, and an Authorization
+header. Written rather than installed, for the same reason the TOTP
+implementation was -- one production dependency, and a public specification.
+
+**It is checked against AWS's numbers, not its own.** Signing code that is wrong
+returns a hex string exactly like signing code that is right, so the test asserts
+against two complete worked examples AWS publishes, each printing the canonical
+request, the string to sign and the final signature. Both are for `glacier`
+rather than `s3`, which is deliberate: the service name is an input to the
+derived key, so passing them proves the derivation rather than a tuning to one
+service.
+
+**The vectors found two real defects, which is what they were for.**
+
+- `signRequest` added `x-amz-content-sha256` unconditionally. S3 and R2 require
+  it; AWS's Create Vault example signs three headers and no content hash. The
+  first version produced a valid signature over four headers where the
+  documented one covers three, and every other assertion still passed --
+  canonical request, string to sign, key derivation. Correct in every part
+  checked against something, wrong in the one part assumed. It is now an option.
+- The body was read outside the timeout's `finally`. The abort would fire, the
+  timer would already be cleared, and a stalled download would hang a caller
+  with every bound in place and none reaching it. For a file store that is the
+  case that matters: headers arrive fast, bytes are the slow part.
+
+**One vector could not be made to pass, and it is not the signer.** AWS's second
+example prints a signature that does not follow from the canonical request the
+same page prints -- which this signer reproduces byte for byte. Seven variations
+were tried and none produced it; the page's own request shows two headers its
+printed canonical form omits, so the signature was very likely computed over a
+different request. The first vector closes completely, so it is the one that
+proves the chain. The finding is recorded in the test rather than the assertion
+deleted quietly.
+
+**What is not proven.** No call from this code has reached Cloudflare. Signing is
+verified; that R2 accepts the result needs an access key pair only the owner can
+create. The adapter header, the tests and the owner guide all say so in those
+words, and the first real `putObject` is the proof.
+
+Also corrected: the owner guide claimed fifty-eight environment variables and
+six service adapters. It is 132 and eleven. Neither figure was checked by
+anything, which is why both were wrong -- so the paragraph now names the command
+that prints them.
+
+**Verified:** swapping region and service in the key-derivation chain fails the
+published-vector test by name, and restoring returns it to green. 4,003 tests
+pass -- 36 new for the signer, 29 for the adapter -- along with lint, typecheck,
+build, `verify:env` (132 variables, all classified) and `pnpm audit`.
+
+### 2026-09-09 - Ten repositories were registered twice, and four disagreed with themselves
+
+A screenshot arrived to be scanned for new repositories. Every repository
+legible in it was already registered, so there was nothing to add -- and
+checking that turned up something worse than a missing record.
+
+**Ten repositories had two records each.** Four of those pairs carried
+conflicting verdicts. `ripienaar/free-for-dev` was `blocked` in one record (no
+licence object at all, so all rights reserved) and `needs_license_review` in
+another whose licence field read `Not verified`. `HKUDS/Vibe-Trading` was
+`blocked` in one and `research_only` in the other. `mattpocock/skills` was
+`reference_only` in one and `optional_adapter_after_review` in the other.
+Which verdict somebody acted on depended on which record they scrolled to
+first.
+
+Nothing reported it, and the reason is worth keeping. `verify-open-source-registry.mjs`
+prints `Unique GitHub targets`, which reads like a uniqueness guarantee. The map
+behind it was keyed case-sensitively, so `ashishpatel26/500-AI-Agents-Projects`
+and `ashishpatel26/500-ai-agents-projects` counted as two different
+repositories, and the other nine pairs were never compared at all. A count that
+sounds like a check is the recurring defect in this repository, in its most
+literal form.
+
+**Fixed both halves.** The key is now lower-cased, and a new gate fails when two
+records name one repository, printing both slugs. The gate says to merge rather
+than delete, because the losing record usually holds a finding the survivor does
+not -- and in nine of the ten cases it did, so each merge folds that finding into
+the survivor's notes. Where verdicts conflicted, the stricter one won.
+
+**Two records named an organisation rather than a repository.** Both NVlabs
+records pointed at `https://github.com/NVlabs`, and one said so itself: *Keep as
+a research note until exact repository, license, and model terms are verified.*
+Now verified, by cloning the repositories they meant:
+
+- `NVlabs/EAGLE` -- code Apache-2.0, but a separate `LICENSE_MODEL` in both
+  `Eagle2_5/` and `Embodied/` puts the **model weights** under the NVIDIA
+  License, which states the work is *intended for use non-commercially* and
+  defines that as *academic or non-profit research purposes only*, with NVIDIA
+  carved out. SONARA is sold on paid plans, so the weights cannot be used here.
+  Recording one licence for that repository would have been true about the code
+  and wrong about the thing anybody would want.
+- `NVlabs/LongLive` -- Apache-2.0, confirmed in the README's own License
+  section, with a vendored MIT subdirectory. No non-commercial model licence in
+  the tree. Same organisation, same research area, different terms, which is why
+  both were cloned rather than one assumed from the other.
+
+**The merge exposed a governance rule that had stopped binding.**
+`tests/social-repository-intake.test.js` requires every repository in the
+1 September batch to stay out of adoption states and to declare a blocked-use
+boundary. `mattpocock/skills` satisfied both -- through the record that was not
+the one carrying its verdict, while the other advanced to
+`optional_adapter_after_review` and lost its boundary. Merging made the conflict
+visible and the test failed, which is the test working. Resolved the same way as
+every other conflict on this date: the stricter verdict wins, so it is
+`reference_only` with the boundary carried across, and moving it back is a
+decision somebody makes by editing `NEW_REPOSITORY_SLUGS` rather than the field.
+
+Three derived figures moved and one of them was a double-count: reciprocal
+repositories went from 31 to 30 because `logto-io/logto` was being counted
+twice. No reciprocal flag was lost -- both records already carried it, which was
+checked rather than assumed before the number was changed.
+
+**Verified:** the new gate was falsified by re-inserting exactly the original
+bug -- a second record differing only in URL case -- and it failed by name,
+printing both slugs. `verify-doc-counts --check` failed on all three stale
+figures before they were corrected. 3,931 tests, lint, typecheck, build and
+`pnpm audit` all pass.
 
 ### 2026-09-09 - Six repositories from screenshots, and the one nobody checks
 

@@ -47,6 +47,7 @@ const ragflow = require("../lib/sonara-ragflow-adapter.cjs");
 const whisper = require("../lib/sonara-whisper-adapter.cjs");
 const workersAi = require("../lib/sonara-workers-ai-adapter.cjs");
 const d1 = require("../lib/sonara-d1-adapter.cjs");
+const r2 = require("../lib/sonara-r2-adapter.cjs");
 
 // Every adapter on one page, because "which of these is on" is one question.
 // Each reports a host and never a URL -- readiness objects carry the configured
@@ -69,7 +70,8 @@ const SERVICES = Object.freeze([
   // sentence, and it belongs on the page rather than in a file nobody opens: a
   // free tier is a price, and a price is the vendor's to change.
   Object.freeze({ label: "Cloudflare Workers AI", what: "Runs models on Cloudflare's network, so there is nothing for you to host. Priced per use against a free allowance, which is a price rather than a licence — if that allowance changes it is Cloudflare's decision, so no part of this product depends on it.", readiness: (o) => workersAi.getWorkersAiReadiness(o) }),
-  Object.freeze({ label: "Cloudflare D1", what: "A SQL database at the edge, for derived data only — counters, caches, rollups, anything whose loss costs a recomputation. Supabase stays the system of record: this refuses any statement naming a table your migrations create.", readiness: (o) => d1.getD1Readiness(o) })
+  Object.freeze({ label: "Cloudflare D1", what: "A SQL database at the edge, for derived data only — counters, caches, rollups, anything whose loss costs a recomputation. Supabase stays the system of record: this refuses any statement naming a table your migrations create.", readiness: (o) => d1.getD1Readiness(o) }),
+  Object.freeze({ label: "Cloudflare R2", what: "File storage with no charge for reading files back out — media, exports, anything that is bytes rather than records. It holds the file; the record saying who owns it and who agreed to it stays in your database.", readiness: (o) => r2.getR2Readiness(o) })
 ]);
 
 const ROW_LIMIT = 500;

@@ -47,7 +47,11 @@ function addRepositoryTarget(rawUrl, source, metadata = {}) {
 
   const owner = segments[0];
   const repository = segments[1]?.replace(/\.git$/i, "");
-  const key = repository ? `${owner}/${repository}` : owner;
+  // Lower-cased, because GitHub owner and repository names are case-insensitive
+  // and this map is what decides whether two records name the same thing.
+  // ashishpatel26/500-AI-Agents-Projects and ashishpatel26/500-ai-agents-projects
+  // were two entries here and one repository on GitHub.
+  const key = (repository ? `${owner}/${repository}` : owner).toLowerCase();
   const kind = repository ? "repository" : "owner";
   const existing = repositoryTargets.get(`${kind}:${key}`) || { kind, owner, repository, sources: [], metadata: [] };
   existing.sources.push(source);
@@ -232,6 +236,45 @@ for (const block of toolBlocks) {
   } else {
     addRepositoryTarget(record.repoUrl, `data/open-source-tools.ts:${record.slug}`, record);
   }
+}
+
+// One repository, one verdict.
+//
+// The register's whole promise is that somebody meeting an outside repository
+// can read what was decided about it. Two records for one repository break that
+// promise in the worst available way: both are found, they disagree, and which
+// one somebody acts on depends on which they happened to scroll to.
+//
+// Ten repositories were registered twice when this was written on 9 September
+// 2026, and four of those pairs carried conflicting verdicts. ripienaar/free-for-dev
+// was `blocked` (no licence, all rights reserved) in one record and
+// `needs_license_review` with the licence recorded as "Not verified" in the
+// other -- the second written before the first settled it, and left standing
+// beside it. HKUDS/Vibe-Trading was `blocked` in one and `research_only` in the
+// other. Nothing reported any of this: the counts above were computed from a map
+// keyed case-sensitively, so ashishpatel26/500-AI-Agents-Projects and
+// ashishpatel26/500-ai-agents-projects were two unique targets, and the rest
+// simply were not compared.
+//
+// The fix for a duplicate is to merge, not to delete: the losing record usually
+// holds a finding the survivor does not, and deleting it erases work somebody
+// did. That is why this names both slugs rather than telling anybody to remove
+// one.
+const recordsByRepository = new Map();
+for (const target of repositoryTargets.values()) {
+  const slugs = target.sources
+    .filter((source) => source.startsWith("data/open-source-tools.ts:"))
+    .map((source) => source.slice("data/open-source-tools.ts:".length));
+  if (slugs.length > 1) {
+    recordsByRepository.set(`${target.owner}/${target.repository ?? ""}`.replace(/\/$/, ""), slugs);
+  }
+}
+for (const [repository, slugs] of recordsByRepository) {
+  errors.push(
+    `${repository} has ${slugs.length} records in data/open-source-tools.ts: ${slugs.join(", ")}. ` +
+      "A repository with two verdicts has none, because which one is read is an accident of scrolling. " +
+      "Merge them into one record -- fold the finding the other holds into its notes rather than deleting it."
+  );
 }
 
 const registrySource = read("docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md");

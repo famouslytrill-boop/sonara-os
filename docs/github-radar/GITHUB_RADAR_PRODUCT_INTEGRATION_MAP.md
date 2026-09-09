@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-234 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 234.
+226 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 226.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-55 repositories.
+53 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -23,7 +23,6 @@ Create, launch, run and manage a business.
 | [Business Machine Learning (firmai)](https://github.com/firmai/business-machine-learning) | AGPL-3.0 | Read only | applied analytics index |
 | [Cal (calcom/cal.diy, formerly cal.com)](https://github.com/calcom/cal.diy) | MIT at the repository root, from GitHub's detected licence field | Licence unresolved | appointment booking |
 | [Carbon (open ERP, MES and QMS for manufacturing)](https://github.com/crbnos/carbon) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | manufacturing |
-| [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
@@ -43,9 +42,8 @@ Create, launch, run and manage a business.
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
-| [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
+| [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
-| [Open SaaS](https://github.com/wasp-lang/open-saas) | MIT | Read only | SaaS boilerplate |
 | [Open SaaS (wasp-lang)](https://github.com/wasp-lang/open-saas) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
@@ -74,7 +72,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-56 repositories.
+55 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -85,7 +83,6 @@ Organize, protect, publish, monetize and grow creative work.
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
 | [Bolt Slides](https://github.com/stackblitz/bolt-slides) | MIT | Read only | interactive presentations |
 | [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | social media scheduling |
-| [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Diffusion Studio Editor](https://github.com/diffusionstudio/editor) | MPL-2.0 | Licence unresolved | video editing |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
@@ -106,10 +103,9 @@ Organize, protect, publish, monetize and grow creative work.
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | short-form video |
 | [NodeGraphQt](https://github.com/jchanvfx/NodeGraphQt) | MIT | Read only | node editor |
-| [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
-| [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
+| [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
+| [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs/LongLive) | Apache-2.0 (repository); one vendored subdirectory is MIT | Research only | long-video generation infrastructure |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
-| [Open Generative AI (open-gen-ai)](https://github.com/Anil-matcha/Open-Generative-AI) | MIT | Research only | image generation |
 | [OpenCut](https://github.com/OpenCut-app/OpenCut) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | video editing |
 | [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
@@ -121,6 +117,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [seek-tune (Shazam-style audio fingerprinting)](https://github.com/cgzirim/seek-tune) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio fingerprinting |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
+| [Sonora (nolight132)](https://github.com/nolight132/sonora) | GPL-3.0-or-later | Read only | music streaming client |
 | [Spleeter](https://github.com/deezer/spleeter) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio processing |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
@@ -139,7 +136,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-39 repositories.
+38 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -150,7 +147,6 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Best APIs for Lead Gen (cporter202)](https://github.com/cporter202/best-apis-for-lead-gen) | None declared (all rights reserved) | Blocked | API directory |
 | [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | social media scheduling |
 | [Business Machine Learning (firmai)](https://github.com/firmai/business-machine-learning) | AGPL-3.0 | Read only | applied analytics index |
-| [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
@@ -167,7 +163,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
 | [NotFair](https://github.com/nowork-studio/NotFair) | MIT | Read only | marketing automation |
-| [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
+| [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
@@ -187,17 +183,15 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-135 repositories.
+130 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
-| [500 AI Agents Projects](https://github.com/ashishpatel26/500-AI-Agents-Projects) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Research only | link directory |
 | [500 AI Agents Projects (ashishpatel26)](https://github.com/ashishpatel26/500-ai-agents-projects) | MIT | Read only | curated list |
 | [Academic Research Skills](https://github.com/Imbad0202/academic-research-skills) | Creative Commons Attribution-NonCommercial 4.0 International (CC | Blocked | Claude Code skills |
 | [Agency Agents / The Agency (msitarzewski)](https://github.com/msitarzewski/agency-agents) | MIT | Read only | agent personas |
 | [Agent Room](https://github.com/steviebuilds/agent-room) | MIT | Read only | developer tooling |
 | [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
-| [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | course |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT | Read only | course material |
 | [Anthropic Agent Skills (anthropics/skills)](https://github.com/anthropics/skills) | None declared (all rights reserved) | Blocked | agent skills |
 | [Anthropic Cybersecurity Skills (community)](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) | Apache-2.0 | Research only | Claude Code skills |
@@ -247,7 +241,6 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Figranium](https://github.com/figranium/figranium) | GPL-3.0, read from the GitHub API's detected license.spdx_id on  | Read only | browser automation |
 | [Flint](https://github.com/chintanpatel24/flint) | MIT | Read only | local knowledge base |
 | [Flox](https://github.com/flox/flox) | GPL-2.0, read from the GitHub API's detected license.spdx_id on  | Read only | developer environments |
-| [free-for.dev](https://github.com/ripienaar/free-for-dev) | Not verified. The repository page did not surface a licence and  | Licence unresolved | free-tier service index |
 | [free-for.dev](https://github.com/ripienaar/free-for-dev) | None declared. The GitHub API returns no `license` object at all | Blocked | link directory |
 | [FreeToken](https://github.com/FlashML-org/FreeToken) | Apache-2.0; model weights and accelerator dependencies require s | Research only | local model inference |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
@@ -268,18 +261,16 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [LangChain](https://github.com/langchain-ai/langchain) | MIT; integration packages and providers require separate review. | Read only | agent framework |
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | adapter_built | visual agent builder |
 | [LightRAG](https://github.com/HKUDS/LightRAG) | MIT | Read only | retrieval augmented generation |
-| [Logto](https://github.com/logto-io/logto) | MPL-2.0 | Research only | identity provider |
 | [Logto](https://github.com/logto-io/logto) | MPL-2.0, read from the GitHub API's detected license.spdx_id on  | Read only | authentication |
 | [Lovable for Beginners](https://github.com/cporter202/lovable-for-beginners) | None declared (all rights reserved) | Blocked | course material |
 | [Metabigor](https://github.com/j3ssie/metabigor) | MIT | Blocked | OSINT |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [Next.js](https://github.com/vercel/next.js) | MIT | Research only | web framework |
 | [NodeGraphQt](https://github.com/jchanvfx/NodeGraphQt) | MIT | Read only | node editor |
-| [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
-| [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
+| [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
+| [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs/LongLive) | Apache-2.0 (repository); one vendored subdirectory is MIT | Research only | long-video generation infrastructure |
 | [OBLITERATUS](https://github.com/elder-plinius/OBLITERATUS) | AGPL-3.0 upstream with a stated commercial-license option; legal | Blocked | model safety research |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
-| [Open SaaS](https://github.com/wasp-lang/open-saas) | MIT | Read only | SaaS boilerplate |
 | [Open SaaS (wasp-lang)](https://github.com/wasp-lang/open-saas) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenAI Agents SDK (Python)](https://github.com/openai/openai-agents-python) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
@@ -308,8 +299,8 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [SAM Sovereign Agent Mesh](https://github.com/google/sam) | Apache-2.0 | Security review first | peer-to-peer agents |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
-| [Skills for Real Engineers](https://github.com/mattpocock/skills) | MIT | Read only | agent skills |
-| [Skills for Real Engineers (Matt Pocock)](https://github.com/mattpocock/skills) | MIT | Adapt after review | agent skills |
+| [Skills for Real Engineers (Matt Pocock)](https://github.com/mattpocock/skills) | MIT | Read only | agent skills |
+| [Sonora (nolight132)](https://github.com/nolight132/sonora) | GPL-3.0-or-later | Read only | music streaming client |
 | [Stock Market Signal Automation (cporter202)](https://github.com/cporter202/stock-market-signal-automation) | MIT | Read only | webhook starter kit |
 | [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
@@ -373,5 +364,4 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | [Superpowers](https://github.com/obra/superpowers) | MIT | Adapt after review | developer workflow |
 | [The Code — Developer Resources (newsletter landing page)](https://learn-code-tiles.lovable.app/) | All rights reserved. The page carries \ | Blocked | see the register |
 | [Unity ML-Agents Toolkit](https://github.com/Unity-Technologies/ml-agents) | NOASSERTION: GitHub detects a licence file it cannot classify. U | Licence unresolved | see the register |
-| [Vibe-Trading agent](https://github.com/HKUDS/Vibe-Trading) | MIT | Research only | automated trading |
 | [XenDroid Xbox 360 emulator](https://example.invalid/blocked) | No licence declared | Blocked | see the register |

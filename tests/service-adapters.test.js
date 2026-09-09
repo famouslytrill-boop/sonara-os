@@ -14,6 +14,7 @@ const whisper = require("../lib/sonara-whisper-adapter.cjs");
 const workersAi = require("../lib/sonara-workers-ai-adapter.cjs");
 const d1 = require("../lib/sonara-d1-adapter.cjs");
 const voiceClone = require("../lib/sonara-voice-clone-adapter.cjs");
+const r2 = require("../lib/sonara-r2-adapter.cjs");
 
 const saved = {};
 function setEnv(values) {
@@ -46,6 +47,18 @@ const ADAPTERS = [
     readiness: (o) => d1.getD1Readiness(o),
     extras: { account: "0123456789abcdef0123456789abcdef", database: "3f1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d", token: "secret-key-value" },
     secrets: ["token"]
+  },
+  {
+    name: "R2",
+    keys: r2.ENV_KEYS,
+    readiness: (o) => r2.getR2Readiness(o),
+    // Both halves of the credential are secrets here. Unlike the Workers AI and
+    // D1 account id, which is configuration and appears in every dashboard URL,
+    // an R2 access key id is half of a key pair and nothing on any page needs it.
+    // Both secrets carry the harness sentinel, which is what the "never renders
+    // a declared secret" assertion greps for in the rendered JSON.
+    extras: { bucket: "sonaraindustriesr2", access_key_id: "secret-key-value", secret_access_key: "secret-key-value" },
+    secrets: ["access_key_id", "secret_access_key"]
   }
 ];
 

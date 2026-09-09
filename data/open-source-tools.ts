@@ -106,33 +106,6 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
-    name: "Open Generative AI (open-gen-ai)",
-    slug: "open-gen-ai-media-platform",
-    category: ["image generation", "video generation", "lip sync", "hosted API dependency"],
-    useCase: ["none shipped -- the self-hosted claim does not survive reading the README"],
-    productFit: ["Creator Studio"],
-    license: "MIT",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "research_only",
-    recommendedAction: [
-      "do not ship a feature on this without first establishing what MuAPI costs and who pays it",
-      "route any model call through the Provider Gateway if it is ever adopted, never from the application directly",
-      "keep provenance, consent and the anti-clone rule in front of any lip-sync or voice capability",
-    ],
-    officialUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
-    repoUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
-    notes:
-      "The submitted description said it is free, has no subscription and runs entirely on your machine. Its own README banner reads 'Powered by MuAPI' and offers 400+ models across 14 studios, which is a hosted API rather than local inference; those two statements cannot both be true. CLAUDE.md's rule applies directly -- a hosted service with a free tier is a price, not a licence, and a shipped feature resting on one stops working when the tier changes, which is the vendor's decision and not this project's. The MIT licence on the wrapper is real and is not the constraint. Lip sync is separately governed here by the anti-clone, provenance and consent rules in AGENTS.md.",
-    safetyBoundaries: [
-      "no paid model API introduced as a dependency of a shipped feature",
-      "no voice or likeness generated without recorded consent",
-      "no model call outside the Provider Gateway",
-    ],
-    humanReviewRequired: true,
-  },
-  {
     name: "Vibe Trading",
     slug: "vibe-trading-strategy-agents",
     category: ["trading strategy generation", "backtesting", "financial automation"],
@@ -150,7 +123,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://github.com/HKUDS/Vibe-Trading",
     repoUrl: "https://github.com/HKUDS/Vibe-Trading",
     notes:
-      "LICENSE read 19 August 2026 from HKUDS/Vibe-Trading: MIT. Blocked for the same reason as AutoHedge: generating and exporting trading strategies is financial advice by any ordinary reading, and this product's catalogue was cut by eleven entries for describing work that did not exist. Worth recording how this record was nearly wrong. The screenshot submitted under this heading showed the Agentic Inbox README, so the Apache-2.0 badge visible in it belonged to a different project; the first version of this record carried that licence with a note saying it was unconfirmed. It is MIT. A licence copied from an image of the wrong repository is the reason this register reads LICENSE files.",
+      "LICENSE read 19 August 2026 from HKUDS/Vibe-Trading: MIT. Blocked for the same reason as AutoHedge: generating and exporting trading strategies is financial advice by any ordinary reading, and this product's catalogue was cut by eleven entries for describing work that did not exist. Worth recording how this record was nearly wrong. The screenshot submitted under this heading showed the Agentic Inbox README, so the Apache-2.0 badge visible in it belonged to a different project; the first version of this record carried that licence with a note saying it was unconfirmed. It is MIT. A licence copied from an image of the wrong repository is the reason this register reads LICENSE files. Merged 9 September 2026 with a second record for this same repository, which described it as an LLM-driven trading agent and reached the same conclusion by the same route: MIT verified from the LICENSE file, blocked from product surfaces because a permissive licence answers only the licence question and trading advice is regulated. Two records, one verdict; the blocked one is kept because it is the stricter of the two.",
     safetyBoundaries: ["no order placed on any venue", "no strategy presented to a customer as advice"],
     blockedUses: ["any trading, backtesting or strategy export surfaced to a customer"],
     humanReviewRequired: true,
@@ -322,28 +295,6 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     notes:
       "LICENSE read 19 August 2026. The file splits the repository four ways: website/ is CC BY-SA 4.0, authentik/enterprise/ is under the licence defined in its own directory, client-side JavaScript is MIT Expat, and everything else is MIT. A register entry saying only MIT would be the kind of claim that reads like a verified fact and is not.",
     safetyBoundaries: ["nothing under authentik/enterprise/ used or referenced", "MIT attribution preserved for anything derived from the core"],
-    humanReviewRequired: true,
-  },
-  {
-    name: "Logto",
-    slug: "logto-identity",
-    category: ["identity provider", "authentication", "reciprocal licence"],
-    useCase: ["identity research, unmodified use only"],
-    productFit: ["Internal Development"],
-    license: "MPL-2.0",
-    licenseRisk: "medium",
-    reciprocalLicense: true,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "research_only",
-    recommendedAction: [
-      "use unmodified if used at all -- MPL's obligation attaches to the file, so patching one file obliges offering that file's source",
-      "record any patch, however small, before it is made",
-    ],
-    officialUrl: "https://logto.io",
-    repoUrl: "https://github.com/logto-io/logto",
-    notes:
-      "LICENSE read 19 August 2026: Mozilla Public License. Submitted by the owner in a screenshot batch. MPL-2.0 is reciprocal per file rather than per product -- a much narrower obligation than AGPL and a wider one than MIT, and the difference matters at the moment somebody patches a file to fix something small.",
-    safetyBoundaries: ["no Logto file modified without meeting the MPL file-level source obligation"],
     humanReviewRequired: true,
   },
   {
@@ -552,8 +503,8 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "Creator Studio media analysis research",
       "Growth Studio content intelligence research",
     ],
-    license: "Model/code licenses require review before commercial use.",
-    licenseRisk: "unknown",
+    license: "Apache-2.0 for the code; the model weights are under the NVIDIA License, which is non-commercial only",
+    licenseRisk: "high",
     reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
@@ -561,9 +512,9 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "research/reference adapter only",
       "do not ship model weights commercially without license review",
     ],
-    officialUrl: "https://github.com/NVlabs",
-    repoUrl: "https://github.com/NVlabs",
-    notes: "Keep as a research note until exact repository, license, and model terms are verified.",
+    officialUrl: "https://github.com/NVlabs/EAGLE",
+    repoUrl: "https://github.com/NVlabs/EAGLE",
+    notes: "Settled 9 September 2026 by cloning the repository this record had never named. It previously pointed at https://github.com/NVlabs -- the organisation, not a repository -- and said so itself: `Keep as a research note until exact repository, license, and model terms are verified.` Now verified. NVlabs/EAGLE ships LICENSE (Apache-2.0) at the root and a separate LICENSE_MODEL in both Eagle2_5/ and Embodied/, and the model licence is the one that decides this: the NVIDIA License states the Work and derivative works `are intended for use non-commercially`, and defines non-commercially as `for academic or non-profit research purposes only`, with NVIDIA and its affiliates carved out. SONARA One is sold on paid plans, so the weights cannot be used here at all. The Apache-2.0 code is a different question and is permissive. Recording the split rather than one licence for the repository is the whole point: a record saying `Apache-2.0` would have been true about the code and wrong about the thing anybody would actually want.",
     safetyBoundaries: [
       "no robotics control outputs",
       "no surveillance or tactical analysis",
@@ -577,8 +528,8 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["long-video generation infrastructure", "video inference/training research", "creator media research"],
     useCase: ["understand long-video workflows", "performance planning", "render cost research"],
     productFit: ["Creator Studio", "Research Lab", "Performance Planner", "Render & Speed Tools"],
-    license: "Model/code licenses require review before commercial use.",
-    licenseRisk: "unknown",
+    license: "Apache-2.0 (repository); one vendored subdirectory is MIT",
+    licenseRisk: "low",
     reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
@@ -587,9 +538,9 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "no production video generation integration without compute, cost, and license review",
       "use for understanding long-video workflows and performance planning",
     ],
-    officialUrl: "https://github.com/NVlabs",
-    repoUrl: "https://github.com/NVlabs",
-    notes: "No video generation dependency or model weight is bundled.",
+    officialUrl: "https://github.com/NVlabs/LongLive",
+    repoUrl: "https://github.com/NVlabs/LongLive",
+    notes: "Settled 9 September 2026 by cloning the repository this record had never named -- it pointed at https://github.com/NVlabs, the organisation rather than a repository, which is why its licence read `Model/code licenses require review before commercial use`. LICENSE read: Apache-2.0, and README.md says so explicitly at its License section. The vendored fouroversix/ subdirectory carries its own MIT licence, Copyright (c) 2025 Jack Cook. Unlike NVlabs/EAGLE, recorded directly above, there is no separate non-commercial model licence in the tree. That difference is the reason both were cloned rather than one being assumed from the other: same organisation, same research area, different terms. Still research_only, and for a reason the licence does not touch -- no video generation dependency or model weight is bundled here, and the safety boundaries below are the binding constraint.",
     safetyBoundaries: [
       "no deepfake tooling",
       "no impersonation",
@@ -1317,84 +1268,6 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "n8n not embedded in or resold as part of the hosted product",
       "no additional service added to the Vercel deployment without an owner decision",
       "any local model runs behind the Provider Gateway",
-    ],
-    humanReviewRequired: true,
-  },
-  {
-    name: "Open SaaS",
-    slug: "open-saas-boilerplate",
-    category: ["SaaS boilerplate", "billing patterns", "admin dashboard reference"],
-    useCase: ["Stripe subscription and credit modelling", "admin analytics layout", "onboarding and account lifecycle"],
-    productFit: ["Business Builder", "Admin Command Center"],
-    license: "MIT",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "reference_only",
-    recommendedAction: [
-      "read the Stripe subscription and credit-balance handling against SONARA's own billing code",
-      "do not adopt Wasp, Prisma or the React frontend",
-    ],
-    officialUrl: "https://opensaas.sh",
-    repoUrl: "https://github.com/wasp-lang/open-saas",
-    notes:
-      "A free SaaS boilerplate on the Wasp full-stack framework with React, Node and Prisma, covering auth, email, Stripe payments and an admin dashboard. Licence verified as MIT. Reference only for the same reason as the FastAPI template: adopting it means a second framework, a second ORM and a second frontend build alongside the Express and Supabase stack already in production. Its subscription and credit handling is the part worth reading closely, because that is the piece SONARA has to get exactly right for paid customers and there is no bundler here to hide a mistake in.",
-    safetyBoundaries: [
-      "no second framework or ORM in the deployment",
-      "no second auth implementation",
-      "billing changes stay owner-approved",
-    ],
-    humanReviewRequired: true,
-  },
-  {
-    name: "Chakra UI",
-    slug: "chakra-ui-component-system",
-    category: ["component library", "design system", "accessibility reference"],
-    useCase: ["accessible component semantics", "focus management", "design token structure", "colour contrast in dark mode"],
-    productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
-    license: "MIT",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "reference_only",
-    recommendedAction: [
-      "read the accessibility and focus behaviour of individual components",
-      "do not install the package; this product ships no bundler and no React",
-      "reimplement any adopted behaviour in plain CSS and server-rendered markup",
-    ],
-    officialUrl: "https://chakra-ui.com",
-    repoUrl: "https://github.com/chakra-ui/chakra-ui",
-    notes:
-      "A React component system with strong accessibility defaults and a well-structured token scale. Licence verified as MIT. It cannot be installed here: SONARA serves plain HTML from an Express server with no build step and a Content-Security-Policy of script-src 'self'. What transfers is the thinking -- which ARIA roles a menu or dialog actually needs, where focus goes when one closes, how a token scale stays readable in a dark-first interface. Those are reimplementable in the markup this product already emits.",
-    safetyBoundaries: [
-      "no npm runtime dependency added for this",
-      "no bundler introduced",
-      "Content-Security-Policy stays script-src 'self'",
-    ],
-    humanReviewRequired: true,
-  },
-  {
-    name: "free-for.dev",
-    slug: "free-for-dev-service-index",
-    category: ["free-tier service index", "cost sourcing", "reference list"],
-    useCase: ["finding services with a genuinely free tier for infrastructure the product depends on"],
-    productFit: ["Admin Command Center"],
-    license: "Not verified. The repository page did not surface a licence and LICENSE returned 404 at the paths checked.",
-    licenseRisk: "unknown",
-    reciprocalLicense: false,
-    commercialUseStatus: "blocked_until_review",
-    integrationStatus: "needs_license_review",
-    recommendedAction: [
-      "read it as a sourcing list only",
-      "do not reproduce its content in SONARA documentation or UI until the licence is confirmed",
-    ],
-    officialUrl: "https://free-for.dev",
-    repoUrl: "https://github.com/ripienaar/free-for-dev",
-    notes:
-      "A large curated list of services with free tiers for developers. Directly relevant to the requirement that everything cost nothing to the developer or the customer, and the one thing that is not settled about it is the licence. The repository page did not show one and the LICENSE path returned 404 on the checks run, so this is recorded as unverified rather than guessed at. Reading a public web page is not the constrained act; copying its content into this product would be, and that stays blocked until someone confirms the terms.",
-    safetyBoundaries: [
-      "no content reproduced into SONARA pages or docs before the licence is confirmed",
-      "no service adopted from it without its own review",
     ],
     humanReviewRequired: true,
   },
@@ -2253,29 +2126,6 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
-    name: "Vibe-Trading agent",
-    slug: "vibe-trading-agent",
-    category: ["automated trading", "financial agents"],
-    useCase: ["none approved for this product"],
-    productFit: [],
-    license: "MIT",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "blocked_until_review",
-    integrationStatus: "research_only",
-    recommendedAction: [
-      "do not integrate into any product surface",
-      "same reasoning as AutoHedge; the constraint is regulatory, not licensing",
-    ],
-    officialUrl: "https://github.com/HKUDS/Vibe-Trading",
-    repoUrl: "https://github.com/HKUDS/Vibe-Trading",
-    notes:
-      "An LLM-driven trading agent from HKUDS. MIT, verified from the LICENSE file. Blocked from product surfaces for the same reason as AutoHedge: trading and investment advice are regulated, this product is not a financial one, and the register exists to record that a permissive licence answers only the licence question.",
-    safetyBoundaries: ["no trading, order routing, or investment advice in any product surface"],
-    blockedUses: ["shipping any feature that places trades or advises on securities"],
-    humanReviewRequired: true,
-  },
-  {
     name: "Fincept Terminal",
     slug: "fincept-terminal",
     category: ["financial terminal", "market data", "reciprocal licence"],
@@ -2338,7 +2188,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
     repoUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
     notes:
-      "A directory of open generative AI projects. MIT, verified from the LICENSE file. A list is not a dependency: nothing here is integrated, and every project it names would need its own record in this register -- licence, cost and scope -- before any of it could be used. Recorded so the list itself is accounted for rather than treated as pre-approved.",
+      "A directory of open generative AI projects. MIT, verified from the LICENSE file. A list is not a dependency: nothing here is integrated, and every project it names would need its own record in this register -- licence, cost and scope -- before any of it could be used. Recorded so the list itself is accounted for rather than treated as pre-approved. Merged 9 September 2026 with a second record for this same repository. That record carried a finding worth keeping: the submitted description said it is free, has no subscription and runs entirely on your machine, while the README banner reads `Powered by MuAPI` and offers 400+ models across 14 studios -- a hosted API. That is a price rather than a licence, and the claim and the repository disagree.",
     safetyBoundaries: ["no project adopted from this list without its own register entry"],
     humanReviewRequired: true,
   },
@@ -3580,7 +3430,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://free-for.dev/",
     repoUrl: "https://github.com/ripienaar/free-for-dev",
     notes:
-      "132,144 stars and 13,871 forks -- the most-starred repository in this batch by a factor of three, and the one with the least permission attached to it. That combination is the entire reason this record exists. Popularity is not a licence, and a repository everyone has forked is still one nobody may copy from.\n\nIts subject is also a constraint this register already takes seriously: CLAUDE.md says cost is a constraint of the same weight as licence, and that a shipped feature resting on a vendor's free tier stops working when the tier changes, which is the vendor's decision and not this project's. A directory of free tiers is therefore a directory of things to be careful about, not a shopping list.",
+      "132,144 stars and 13,871 forks -- the most-starred repository in this batch by a factor of three, and the one with the least permission attached to it. That combination is the entire reason this record exists. Popularity is not a licence, and a repository everyone has forked is still one nobody may copy from.\n\nIts subject is also a constraint this register already takes seriously: CLAUDE.md says cost is a constraint of the same weight as licence, and that a shipped feature resting on a vendor's free tier stops working when the tier changes, which is the vendor's decision and not this project's. A directory of free tiers is therefore a directory of things to be careful about, not a shopping list. Merged 9 September 2026 with an earlier record for this same repository that left the licence open: it said the repository page did not surface a licence and that LICENSE returned 404 at the paths checked, and recorded the licence as `Not verified`. That is now settled rather than open, and settled the strict way -- the GitHub API returns no licence object at all -- so the unresolved record has been folded into this one rather than left beside it saying something weaker.",
     safetyBoundaries: [
       "no text from the list is reproduced in this repository or in any SONARA-facing copy",
       "a free tier is a price, not a licence, and never a basis for a shipped capability",
@@ -3775,7 +3625,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://opensaas.sh",
     repoUrl: "https://github.com/wasp-lang/open-saas",
     notes:
-      "15,506 stars, 1,853 forks, pushed 6 August 2026. Of the four SaaS boilerplates in this batch it is the one that has thought about the same problem this repository has: how an AI assistant picks up work on a codebase without being told everything twice. SONARA answers that with AGENTS.md as rules and docs/HANDOFF_PROMPT.md generated from the repository so it cannot drift; Open SaaS answers it with a shipped AGENTS.md and plugin. Both answers are worth having seen.\n\nWhat it does not change: this product already has auth, organizations, plans, Stripe checkout, entitlements and a billing portal, all built and tested. A boilerplate is valuable before that exists.",
+      "15,506 stars, 1,853 forks, pushed 6 August 2026. Of the four SaaS boilerplates in this batch it is the one that has thought about the same problem this repository has: how an AI assistant picks up work on a codebase without being told everything twice. SONARA answers that with AGENTS.md as rules and docs/HANDOFF_PROMPT.md generated from the repository so it cannot drift; Open SaaS answers it with a shipped AGENTS.md and plugin. Both answers are worth having seen.\n\nWhat it does not change: this product already has auth, organizations, plans, Stripe checkout, entitlements and a billing portal, all built and tested. A boilerplate is valuable before that exists. Merged 9 September 2026 with a second record for this same repository, which measured what it covers: auth, email, Stripe payments and an admin dashboard on the Wasp full-stack framework with React, Node and Prisma, MIT verified, reference-only for the same structural reason as the FastAPI boilerplates.",
     safetyBoundaries: [
       "no payment code is copied; card data and CVV are never stored here and payment success is shown only after provider confirmation",
       "reading a domain model needs no service running and no code taken",
@@ -3936,54 +3786,6 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
   },
   {
-    name: "AI Agents for Beginners (Microsoft)",
-    slug: "ai-agents-for-beginners",
-    category: ["course", "agent patterns", "submitted 2026-08-18"],
-    useCase: ["18 lessons on building AI agents"],
-    productFit: ["AI Code Assistant", "Research Lab"],
-    license:
-      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "reference_only",
-    recommendedAction: [
-      "course material: read it, take no dependency",
-      "MIT covers the code samples; the prose and images may carry Microsoft's separate documentation terms, so quote sparingly and attribute",
-    ],
-    officialUrl: "https://aka.ms/ai-agents-beginners",
-    repoUrl: "https://github.com/microsoft/ai-agents-for-beginners",
-    notes:
-      "72,558 stars and 24,016 forks -- the most-starred repository in this batch after free-for-dev, and unlike free-for-dev it carries a licence that permits use. Python notebooks against Azure and Semantic Kernel, so nothing here runs in an Express CommonJS deploy.\n\nThe part with real value for this repository is the design vocabulary: tool use, planning, reflection, multi-agent handoff, and how to evaluate whether an agent did the right thing. That last one is the gap SONARA has not closed -- lib/sonara-agent-action-log.cjs records that a run happened, and nothing scores whether it should have.",
-    safetyBoundaries: [
-      "patterns adopted still route through the Provider Gateway and still pass the approval gate",
-    ],
-  },
-  {
-    name: "500 AI Agents Projects",
-    slug: "500-ai-agents-projects",
-    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
-    useCase: ["an indexed collection of AI agent use cases by industry"],
-    productFit: ["Research Lab"],
-    license:
-      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "research_only",
-    recommendedAction: [
-      "an index, so its value is the destinations rather than the file -- and each destination is a separate licence question, not covered by this repository's MIT",
-      "worth contrasting with free-for-dev above, which is the same kind of artefact with no licence at all: the difference is not popularity, it is whether the author granted anything",
-    ],
-    officialUrl: "https://ashishpatel26.github.io/500-AI-Agents-Projects/",
-    repoUrl: "https://github.com/ashishpatel26/500-AI-Agents-Projects",
-    notes:
-      "36,663 stars, 6,541 forks, pushed 27 July 2026. Organised by industry -- healthcare, finance, education, retail -- which is the axis Business Builder cares about, so it is a reasonable place to look for what businesses in a sector actually want automated. Treat every entry it points at as unreviewed until it has its own record here.",
-    safetyBoundaries: [
-      "linking to a repository is not reviewing it; nothing is adopted from a destination without its own record in this register",
-    ],
-  },
-  {
     name: "async-labs/saas",
     slug: "async-labs-saas",
     category: ["SaaS boilerplate", "submitted 2026-08-18"],
@@ -4028,7 +3830,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://chakra-ui.com",
     repoUrl: "https://github.com/chakra-ui/chakra-ui",
     notes:
-      "40,579 stars, TypeScript, pushed 18 August 2026. Excellent and structurally incompatible, which is the same verdict this register has reached for every front-end framework submitted. The constraint is recorded once in docs/architecture/EXTERNAL-SERVICES.md and holds here: no bundler, no build step, HTML rendered server-side.",
+      "40,579 stars, TypeScript, pushed 18 August 2026. Excellent and structurally incompatible, which is the same verdict this register has reached for every front-end framework submitted. The constraint is recorded once in docs/architecture/EXTERNAL-SERVICES.md and holds here: no bundler, no build step, HTML rendered server-side. Merged 9 September 2026 with a second record for this same repository, which named what is actually worth reading here: strong accessibility defaults and a well-structured token scale. The constraint is unchanged -- SONARA serves plain HTML from an Express server with no build step, so it cannot be installed.",
     safetyBoundaries: [
       "AGENTS.md's UI rules hold regardless of what renders them: mobile layouts avoid overflow, tap targets stay large enough, and motion respects the reduced-motion setting",
     ],
@@ -4278,7 +4080,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://logto.io",
     repoUrl: "https://github.com/logto-io/logto",
     notes:
-      "14,383 stars and 1,174 forks, created June 2021, TypeScript, built on OIDC and OAuth 2.1. Advertises multi-tenancy, SSO and RBAC.\n\nRecorded as reference_only rather than blocked because the licence genuinely permits use and the refusal is about fit, not permission. Those are different answers and this register keeps them apart -- a record that says no should say which kind of no it is.",
+      "14,383 stars and 1,174 forks, created June 2021, TypeScript, built on OIDC and OAuth 2.1. Advertises multi-tenancy, SSO and RBAC.\n\nRecorded as reference_only rather than blocked because the licence genuinely permits use and the refusal is about fit, not permission. Those are different answers and this register keeps them apart -- a record that says no should say which kind of no it is. Merged 9 September 2026 with a second record for this same repository, whose licence reading is the part worth keeping: MPL-2.0 is reciprocal per file rather than per product -- a much narrower obligation than AGPL and a wider one than MIT -- which is why this is reference_only rather than blocked.",
     safetyBoundaries: [
       "no second authentication system runs beside Supabase Auth; two sources of truth about who somebody is, is worse than either",
       "any Logto file modified would be published under MPL-2.0, and nothing is modified today",
@@ -5592,49 +5394,6 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true
   },
   {
-    name: "Skills for Real Engineers",
-    slug: "mattpocock-engineering-skills-reference",
-    category: [
-      "agent skills",
-      "engineering guidance",
-      "developer workflow",
-      "submitted 2026-09-01"
-    ],
-    useCase: [
-      "reviewing concise engineering skill patterns",
-      "improving internal validation discipline"
-    ],
-    productFit: [
-      "Internal Development",
-      "AI Code Assistant"
-    ],
-    license: "MIT",
-    licenseRisk: "low",
-    reciprocalLicense: false,
-    commercialUseStatus: "allowed_after_review",
-    integrationStatus: "reference_only",
-    recommendedAction: [
-      "review each skill as executable policy before opt-in",
-      "keep SONARA repository contracts authoritative"
-    ],
-    officialUrl: "https://github.com/mattpocock/skills",
-    repoUrl: "https://github.com/mattpocock/skills",
-    notes: "Identified from the submitted reel. The skill repository was registered, not installed, and cannot override AGENTS.md or shared engineering contracts.",
-    safetyBoundaries: [
-      "per-skill review",
-      "no hidden prompt changes",
-      "no automatic installation",
-      "human approval for repository writes"
-    ],
-    blockedUses: [
-      "global silent installation",
-      "permission escalation",
-      "automatic push merge or deploy",
-      "production prompt mutation"
-    ],
-    humanReviewRequired: true
-  },
-  {
     name: "Plane",
     slug: "plane-project-management-reference",
     category: [
@@ -6530,7 +6289,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     licenseRisk: "low",
     reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
-    integrationStatus: "optional_adapter_after_review",
+    integrationStatus: "reference_only",
     recommendedAction: [
       "adapt individual skills into .claude/skills/, keeping the MIT notice",
       "check each against AGENTS.md before adopting -- a general engineering skill does not know this repository's pnpm-only rule or its owner-approval categories",
@@ -6538,8 +6297,20 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://github.com/mattpocock/skills",
     repoUrl: "https://github.com/mattpocock/skills",
     notes:
-      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2026 Matt Pocock. 163 files, 112 markdown, 37 SKILL.md. Its own README describes them as deliberately small and composable rather than a framework that owns the process, which is the right shape for adoption here -- this repository already keeps its skills in .claude/skills/ and would take one at a time. The star count in the submitted screenshot (201k) was not verified and is not a licence fact; it is recorded here only as something the screenshot claimed.",
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2026 Matt Pocock. 163 files, 112 markdown, 37 SKILL.md. Its own README describes them as deliberately small and composable rather than a framework that owns the process, which is the right shape for adoption here -- this repository already keeps its skills in .claude/skills/ and would take one at a time. The star count in the submitted screenshot (201k) was not verified and is not a licence fact; it is recorded here only as something the screenshot claimed. Merged 9 September 2026 with an earlier record for this same repository, identified from a submitted reel rather than a clone. Its caution is kept verbatim in substance: the skill repository was registered, not installed, and cannot override AGENTS.md or shared engineering contracts. Downgraded from `optional_adapter_after_review` to `reference_only` on 9 September 2026, and the reason is the merge above rather than anything new about the repository. lib/sonara-social-repository-intake.cjs records this repository in the 1 September batch as newly identified, and tests/social-repository-intake.test.js requires such repositories to stay out of adoption states until a decision moves them off that list. That rule was being satisfied by the other record while this one advanced past it -- which is exactly the harm a duplicate does: a governance constraint pointing at a record nobody was reading. The strictest of two verdicts wins here as it does in every other merge on this date. Moving it back is a decision somebody makes by taking the slug out of NEW_REPOSITORY_SLUGS, not by editing this field.",
     safetyBoundaries: ["MIT notice retained on anything copied", "no adopted skill may relax a check in the release chain"],
+    // Carried over from mattpocock-engineering-skills-reference, the second
+    // record for this repository, merged into this one on 9 September 2026.
+    // tests/social-repository-intake.test.js requires a boundary on every
+    // repository in the 1 September batch, and that requirement was being met
+    // by the record that no longer exists -- so the boundary moves here rather
+    // than disappearing with it.
+    blockedUses: [
+      "global silent installation",
+      "permission escalation",
+      "automatic push merge or deploy",
+      "production prompt mutation",
+    ],
   },
   {
     name: "Social Media Skills (Charlie Hills)",
@@ -6606,7 +6377,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://github.com/ashishpatel26/500-ai-agents-projects",
     repoUrl: "https://github.com/ashishpatel26/500-ai-agents-projects",
     notes:
-      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2025 ashishpatel26. 145 files, 30 markdown, 27 code files. It is a curated index of other people's projects organised by industry. The licence covers this repository's own text; it says nothing about the rights in the 500 projects it points at, which is the same boundary recorded for book-to-skill -- a permissive licence on an index is not permission for what the index lists.",
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2025 ashishpatel26. 145 files, 30 markdown, 27 code files. It is a curated index of other people's projects organised by industry. The licence covers this repository's own text; it says nothing about the rights in the 500 projects it points at, which is the same boundary recorded for book-to-skill -- a permissive licence on an index is not permission for what the index lists. Merged 9 September 2026 with a second record for this same repository, which noted the axis that makes it worth reading here: it is organised by industry -- healthcare, finance, education, retail -- which is the axis Business Builder cares about. Both records agree on the limit: every entry it points at is unreviewed until it has its own record.",
     safetyBoundaries: ["nothing linked from it may be adopted without its own licence review recorded here"],
   },
   {
@@ -6627,7 +6398,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     officialUrl: "https://github.com/microsoft/ai-agents-for-beginners",
     repoUrl: "https://github.com/microsoft/ai-agents-for-beginners",
     notes:
-      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) Microsoft Corporation. 10,226 files, the bulk being translated copies and images rather than 10,000 lessons. Eighteen lessons covering agentic frameworks, RAG, planning, tool use, memory, metacognition and production patterns. Two constraints the MIT badge does not show. First, its README carries an explicit Trademarks section: authorised use of Microsoft marks follows Microsoft's brand guidelines, so the licence on the code is not permission to use the name. Second, the examples are wired to Azure OpenAI, which is not how this application reaches a model -- AGENTS.md requires the Provider Gateway or an approved server-side adapter.",
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) Microsoft Corporation. 10,226 files, the bulk being translated copies and images rather than 10,000 lessons. Eighteen lessons covering agentic frameworks, RAG, planning, tool use, memory, metacognition and production patterns. Two constraints the MIT badge does not show. First, its README carries an explicit Trademarks section: authorised use of Microsoft marks follows Microsoft's brand guidelines, so the licence on the code is not permission to use the name. Second, the examples are wired to Azure OpenAI, which is not how this application reaches a model -- AGENTS.md requires the Provider Gateway or an approved server-side adapter. Merged 9 September 2026 with a second record for this same repository, which recorded its reach -- 72,558 stars and 24,016 forks -- and the practical limit: the notebooks run against Azure and Semantic Kernel, so nothing in them is a dependency this product could take.",
     safetyBoundaries: [
       "no Microsoft trademark or logo in SONARA material",
       "no direct provider SDK call copied out of it -- provider calls go through the Provider Gateway",
@@ -6902,6 +6673,33 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "no dependency taken on albumentationsx or any AGPL-licensed image library",
     ],
     humanReviewRequired: false,
+  },
+  {
+    name: "Sonora (nolight132)",
+    slug: "nolight132-sonora-name-collision",
+    category: ["music streaming client", "desktop application", "reciprocal licence", "brand collision"],
+    useCase: ["none -- and the reason to keep the record is the name rather than the code"],
+    productFit: ["Creator Studio", "Internal Development"],
+    license: "GPL-3.0-or-later",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "adopt nothing from it -- GPL-3.0-or-later is reciprocal, and nothing in a Rust desktop music player belongs in this product anyway",
+      "know that it exists, because it is called Sonora and this company is called SONARA: one letter apart, both software, both public on GitHub",
+      "do not describe SONARA and this project as related in any public copy, and do not use its screenshots or assets",
+    ],
+    officialUrl: "https://github.com/nolight132/sonora",
+    repoUrl: "https://github.com/nolight132/sonora",
+    notes:
+      "Cloned and measured 9 September 2026. COPYING read: GNU General Public License version 3, 29 June 2007, and Cargo.toml declares `license = \"GPL-3.0-or-later\"` -- checked in both places rather than taken from the badge. 597 files, 226 of them Rust, a native music streaming client built on GPUI that plays Spotify, YouTube Music and local files. It is real software with a real licence, not a list. One precision worth recording rather than repeating the general rule: CLAUDE.md says a reciprocal licence (AGPL, GPL, OSL) triggers on network use, and for the AGPL that is exactly right. Plain GPL-3.0 triggers on **conveying** -- distribution -- which is why the AGPL's section 13 had to be written separately. So GPL-3.0 code behind a hosted service is a different question from AGPL code behind one. It changes nothing here, because a desktop audio player has nothing this product would take, but a future record on GPL-3.0 code that somebody does want should be reasoned about on the distribution trigger rather than the network one. The reason this record exists at all is the name. `nolight132/sonora` is one letter from SONARA, is also software, is also on GitHub, and had 441 installs when the screenshot was taken. That is a fact worth having written down before somebody meets it in a search result or a trademark check, not a legal opinion -- nobody here can give one.",
+    safetyBoundaries: [
+      "no GPL-licensed code incorporated into this product",
+      "no asset, screenshot or copy taken from a similarly-named project",
+      "no public statement implying a relationship between SONARA Industries and this project",
+    ],
+    humanReviewRequired: true,
   },
 ];
 
