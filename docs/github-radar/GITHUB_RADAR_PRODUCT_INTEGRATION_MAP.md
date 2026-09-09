@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-228 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 228.
+234 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 234.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -74,7 +74,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-55 repositories.
+56 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -99,6 +99,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Ghost](https://github.com/TryGhost/Ghost) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | publishing |
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |
+| [Image Pipes (mrajaeim)](https://github.com/mrajaeim/image-pipes) | MIT | Read only | computer vision |
 | [LiveKit Agents](https://github.com/livekit/agents) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Research only | realtime voice |
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
 | [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
@@ -138,7 +139,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-38 repositories.
+39 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -146,6 +147,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [AI Content Studio (naqashafzal)](https://github.com/naqashafzal/AI-Content-Studio) | MIT | Adapt after review | content generation workflow |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
+| [Best APIs for Lead Gen (cporter202)](https://github.com/cporter202/best-apis-for-lead-gen) | None declared (all rights reserved) | Blocked | API directory |
 | [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | social media scheduling |
 | [Business Machine Learning (firmai)](https://github.com/firmai/business-machine-learning) | AGPL-3.0 | Read only | applied analytics index |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
@@ -185,7 +187,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-129 repositories.
+135 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -197,6 +199,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | course |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT | Read only | course material |
+| [Anthropic Agent Skills (anthropics/skills)](https://github.com/anthropics/skills) | None declared (all rights reserved) | Blocked | agent skills |
 | [Anthropic Cybersecurity Skills (community)](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) | Apache-2.0 | Research only | Claude Code skills |
 | [AnyCreature](https://github.com/ariescar/anycreature) | MIT | Read only | text-to-3D |
 | [Archify](https://github.com/tt-a1i/archify) | MIT | Read only | agent skill |
@@ -211,10 +214,12 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [Awesome SOC (cyb3rxp)](https://github.com/cyb3rxp/awesome-soc) | CC0-1.0 | Read only | security operations |
 | [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
+| [Best APIs for Lead Gen (cporter202)](https://github.com/cporter202/best-apis-for-lead-gen) | None declared (all rights reserved) | Blocked | API directory |
 | [Better Auth](https://github.com/better-auth/better-auth) | MIT | Research only | authentication library |
 | [Bolt Slides](https://github.com/stackblitz/bolt-slides) | MIT | Read only | interactive presentations |
 | [book-to-skill](https://github.com/virgiliojr94/book-to-skill) | MIT | Adapt after review | agent skill packaging |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
+| [BrowserCode (browser-use)](https://github.com/browser-use/browsercode) | MIT (upstream opencode copyright, retained by the fork) | Security review first | coding agent |
 | [camofox-browser](https://github.com/redf0x1/camofox-browser) | MIT | Blocked | browser automation |
 | [Casdoor](https://github.com/casdoor/casdoor) | Apache-2.0 | Research only | identity provider |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | component library |
@@ -255,6 +260,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Gortex](https://github.com/zzet/gortex) | Apache-2.0 | Read only | code intelligence |
 | [Gridex](https://github.com/gridex/gridex) | Apache-2.0 | Research only | database client |
 | [Hugging Face Transformers](https://github.com/huggingface/transformers) | Apache-2.0; every model and dataset licence remains separate | Read only | model framework |
+| [Image Pipes (mrajaeim)](https://github.com/mrajaeim/image-pipes) | MIT | Read only | computer vision |
 | [IONOS \](https://www.ionos.com) | All rights reserved. The document carries \ | Blocked | competitor marketing material |
 | [Job Data APIs and Scrapers](https://github.com/cporter202/job-data-apis-and-scrapers) | MIT | Blocked | API directory |
 | [Keycloak](https://github.com/keycloak/keycloak) | Apache-2.0 | Research only | identity provider |
@@ -278,6 +284,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenAI Agents SDK (Python)](https://github.com/openai/openai-agents-python) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
+| [opencode (anomalyco)](https://github.com/anomalyco/opencode) | MIT | Read only | coding agent |
 | [OpenCompany](https://github.com/zeenie-ai/opencompany) | MIT | Read only | agent workflows |
 | [OpenHuman](https://github.com/tinyhumansai/openhuman) | GPL-3.0 | Read only | personal AI |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
@@ -303,6 +310,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Skills for Real Engineers](https://github.com/mattpocock/skills) | MIT | Read only | agent skills |
 | [Skills for Real Engineers (Matt Pocock)](https://github.com/mattpocock/skills) | MIT | Adapt after review | agent skills |
+| [Stock Market Signal Automation (cporter202)](https://github.com/cporter202/stock-market-signal-automation) | MIT | Read only | webhook starter kit |
 | [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [TidyFactor Styler](https://github.com/TidyFactor/Styler) | Apache-2.0 | Read only | Claude Code skill |
