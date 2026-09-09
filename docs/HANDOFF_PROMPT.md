@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-229 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+230 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,64 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-09 - AI-SDLC Framework reviewed: the licence is real, the "open source" line is half the story
+
+A screenshot of the **AI-SDLC Framework** README arrived. Register record added
+(230 repositories), `reference_only`.
+
+**Identifying it first, because the screenshot showed no owner.** Searched
+rather than probed: `ai-sdlc-framework/ai-sdlc`, website `ai-sdlc.io`. That
+mattered -- `wico216/ai-sdlc` is an unrelated project with a near-identical name
+sitting one result away, and a guessed owner would have gone into a permanent
+record.
+
+**The licence checks out.** `LICENSE` is the Apache 2.0 text verbatim, no
+reciprocal or non-commercial terms; `package.json` says `Apache-2.0`,
+`private: true`. Two Apache-specific gaps recorded rather than assumed benign:
+**no NOTICE file**, and no copyright holder named outside the appendix template,
+so section 4 attribution has nothing in the repository to point at.
+
+**It is real code**, not a markdown collection -- 4,136 files: 1,505 `.ts`, 1,031
+`.md`, 163 `.py`, 96 `.go`, 81 `.tsx`; nine pnpm workspace packages, each with
+one to six production dependencies, lockfile resolving 561.
+
+**Two findings the post does not contain, and they are the decision.**
+
+*Cost.* `ANTHROPIC_API_KEY` appears 241 times, `OPENAI_API_KEY` 81, plus an
+`ANTHROPIC_API_KEY_SECONDARY`. The advertised "cross-harness reviewers verify
+the work in parallel" means paid model calls from two vendors on **every
+change** -- cost that scales with change volume, not a fixed licence fee. The
+project knows: `spec/schemas/subscription-plan.schema.json` exists to pace
+dispatch against `session-window`, `monthly-cap` and `pay-per-token` billing.
+
+*It is open core.* The screenshot closes "Open source. Apache 2.0." True of what
+was cloned, incomplete about the product. `enterprise.example.yaml`: *"Set your
+license key here or in AI_SDLC_LICENSE_KEY env var. Without a key, plugins run in
+trial mode (30 days)."* The gated plugins are **not in the repository** --
+`dogfood/src/` has `enterprise-config.ts` and an `enterprise-plugins.d.ts` of
+types only, so the implementation ships elsewhere under terms this repository
+never states. That is the standing rule intact: what a post claims and what a
+repository grants are different things.
+
+**Verdict: read it, do not take it.** Development-time only. SONARA ships one
+production dependency by design and runs serverless; a nine-package orchestrator
+cannot enter the served application. What is worth reading is the declarative
+model -- JSON Schema draft 2020-12 resources for `Pipeline`, `Decision`,
+`AgentRole`, `QualityGate`, `AutonomyPolicy`, `AdapterBinding` -- which covers
+the same ground as `lib/sonara-agent-authority.cjs` and its seven default-deny
+approval categories. Worth comparing ours against theirs for gaps.
+
+**Four statistics flagged, none checked.** The README's problem statement rests
+on METR 2025 (19% slower), GitClear 2024 (refactoring 25% to 10%), Google DORA
+2024 (7.2% stability drop per 25% adoption) and Stack Overflow 2025 (3% high
+trust). All second-hand. The register record says to trace each to its origin
+before repeating it and never to attribute one to this repository -- the same
+rule that governs the Databricks report.
+
+`verify-doc-counts` caught the stale 229 in `WHAT-IS-LEFT.md`, and `verify:gates`
+caught a stale `HANDOFF_PROMPT.md`. Both are derived counts catching a hand edit,
+which is the point of them.
 
 ### 2026-09-09 - Seven deploys each moved production's schema forward and shipped no code
 

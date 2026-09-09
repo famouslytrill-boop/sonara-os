@@ -6793,6 +6793,43 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "AI-SDLC Framework",
+    slug: "ai-sdlc-framework-declarative-agent-governance",
+    category: [
+      "AI coding agent orchestration",
+      "declarative governance",
+      "quality gates and autonomy policy",
+      "open core with a paid enterprise tier",
+      "development-time tooling",
+    ],
+    useCase: [
+      "read its JSON Schema resources as a design reference for SONARA's own agent authority model -- nothing shipped, nothing installed",
+    ],
+    productFit: ["Internal Development"],
+    license: "Apache License 2.0 for the code in the repository; the enterprise plugins are separately licensed and are not in it",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "take ideas from spec/schemas, not code -- SONARA ships one production dependency by design and this is a nine-package monorepo",
+      "do not describe it as simply 'open source, Apache 2.0': the core is, and the enterprise plugins are a licence-key product with a 30-day trial",
+      "price it before running it -- it spends Anthropic and OpenAI API budget on every change, and that cost scales with change volume rather than being fixed",
+      "if its four cited statistics are ever wanted, trace each to METR, GitClear, Google DORA and Stack Overflow directly; they are second-hand here and must never be attributed to this repository",
+    ],
+    officialUrl: "https://ai-sdlc.io/",
+    repoUrl: "https://github.com/ai-sdlc-framework/ai-sdlc",
+    notes:
+      "Arrived 9 September 2026 as a social-media screenshot that showed no owner, only the README and the ai-sdlc.io link; identified by search rather than by probing names, because a similarly named and unrelated repository (wico216/ai-sdlc, 'three phases, five gates') sits next to it in results. Shallow-cloned and read the same day. LICENSE is the Apache License 2.0 text verbatim, with no reciprocal or non-commercial terms; package.json declares license Apache-2.0 and private true, so the workspace root is not published. Two Apache-specific gaps worth recording rather than assuming benign: there is no NOTICE file, and the LICENSE names no copyright holder outside the appendix template, so section 4 attribution obligations have nothing in the repository to point at. Measured 4,136 files excluding .git -- 1,505 .ts, 1,031 .md, 733 .json, 163 .py, 150 .jsonl, 144 .mjs, 124 .yaml, 96 .go, 81 .tsx -- so this is real multi-language code and not a markdown collection; nine pnpm workspace packages, each declaring only one to six production dependencies, with the lockfile resolving 561 packages in total. The decisive fact for this project is cost rather than licence: ANTHROPIC_API_KEY appears 241 times across the source and docs, OPENAI_API_KEY 81, and there is an ANTHROPIC_API_KEY_SECONDARY, because the advertised 'cross-harness reviewers verify the work in parallel' means paid model calls from at least two vendors on every change. spec/schemas/subscription-plan.schema.json exists specifically to pace dispatch against session-window, monthly-cap and pay-per-token billing, which is the project's own acknowledgement that running it is metered. The screenshot's closing line, 'Open source. Apache 2.0.', is true of what was cloned and incomplete about the product: enterprise.example.yaml reads 'Set your license key here or in AI_SDLC_LICENSE_KEY env var. Without a key, plugins run in trial mode (30 days)', and the gated plugins are not present -- dogfood/src/ carries enterprise-config.ts plus an enterprise-plugins.d.ts of types only, so their implementation ships elsewhere under terms this repository does not state. What is genuinely useful here is the declarative model: JSON Schema draft 2020-12 resources for Pipeline, Decision, AgentRole, QualityGate, AutonomyPolicy and AdapterBinding cover the same ground as lib/sonara-agent-authority.cjs, which already encodes seven owner-approval categories and defaults to deny, so the schemas are worth reading against ours for gaps. The README's problem statement rests on four third-party figures -- METR 2025 on experienced developers being 19% slower, GitClear 2024 on refactoring falling from 25% to 10%, Google DORA 2024 on a 7.2% stability drop per 25% AI adoption, Stack Overflow 2025 on 3% high trust. None is this project's own research and none has been checked here.",
+    safetyBoundaries: [
+      "development-time only: nothing from this may enter the served application, which has one production dependency and a serverless runtime",
+      "any adoption is a recurring Anthropic and OpenAI bill, which is a cost decision for the owner and not an engineering one",
+      "the enterprise plugins are outside this licence review entirely -- their code was not in the repository and their terms are unread",
+      "an enterprise audit hook is configured to send every agent tool event to an external endpoint, so enabling one would route SONARA development activity off this project's infrastructure",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
