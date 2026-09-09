@@ -48,6 +48,7 @@
     "verify:orphan-tables": "node scripts/report-orphan-tables.mjs --check",
     "verify:filter-encoding": "node scripts/verify-postgrest-filter-encoding.mjs",
     "verify:shape-repair": "node scripts/generate-existing-table-shape-repair.cjs --check",
+    "report:deployed-commit": "node scripts/report-deployed-commit.mjs",
     "verify:tenant-queries": "node scripts/report-tenant-scoped-queries.mjs",
     "verify:selected-columns": "node scripts/report-unused-selected-columns.mjs --check",
     "report:selected-columns": "node scripts/report-unused-selected-columns.mjs",

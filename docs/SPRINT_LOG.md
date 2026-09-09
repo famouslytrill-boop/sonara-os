@@ -2,6 +2,55 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-09 - Production has been 44 commits behind all day, and no check said so
+
+Went looking at deployment and found the gap is not that production is stale --
+that is known and blocked on the owner's Stripe key -- but that **nothing
+reports it**.
+
+`production-connectivity` runs against the live site on every pull request and
+passes. `scripts/smoke-live-routes.mjs` can compare the deployed commit to an
+expected one, and its first line is `if (!expectedCommitSha) return;`. That value
+comes from the deployment workflow, so on a pull request it is empty and the
+comparison is skipped entirely. **The smoke check reports a healthy production
+without ever naming the version it reached.**
+
+Read from the application rather than a dashboard, which matters because I had
+been repeating the figure from a Vercel listing all day: `/api/health` says
+production serves `36c1b2a` on main, and `origin/main` is **44 commits ahead of
+it**. So every green production check today was green about a build that none of
+the day's work is in. The check is not wrong; it just answers a narrower question
+than it appears to.
+
+`scripts/report-deployed-commit.mjs` says it, and runs in the
+production-connectivity workflow with `if: always()` so it also reports when the
+smoke check failed -- which build failed is the first question.
+
+**What it fails on is deliberately narrow.** Staleness does not fail: deploying
+is the owner's step, and a pull request going red for something nobody in that
+pull request can fix is how a red build becomes noise everybody learns to ignore.
+What does fail is losing the ability to tell -- if `/api/health` stops carrying
+the deployment block, the post-deploy gate in `smoke-live-routes.mjs` silently
+stops verifying anything, because it reads exactly `payload.deployment.commitSha`.
+
+One honesty guard worth naming: `actions/checkout` is shallow by default, so a CI
+runner will not contain the deployed commit. Rather than report "0 behind" from a
+`git rev-list` that found nothing, the script says it could not work it out and
+why. A confident wrong answer is worse than an absent one.
+
+`tests/health-says-which-build-answered.test.js` holds the contract from the
+other side, including that the smoke check still reads that exact field -- two
+files, one fact, and a test asserting a contract nothing relies on is worth
+nothing.
+
+Falsified three ways: an `/api/health` stub with no deployment block fails; an
+unreachable site skips without `--require-live` and fails with it; and removing
+`deployment: getDeploymentInfo()` from the route fails the unit test by name.
+
+The environment gate then caught the new `SONARA_PRODUCTION_URL` and refused to
+pass until it was classified, which is that gate doing its job on me. 133
+variables now, 113 optional. 4,081 tests, lint, `verify:launch` exit 0.
+
 ### 2026-09-09 - The one log line every route error passes through printed the stack raw
 
 Swept every `console.*` in the runtime after the rate-limiter fix, on the
