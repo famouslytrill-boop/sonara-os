@@ -106,6 +106,111 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - Naming an organization and naming the right one
+
+The invite hole raised a question worth more than the fix: **could an existing
+check have caught it?** No, and the reason is instructive.
+
+`scripts/report-tenant-scoped-queries.mjs` checks that every query against a
+tenant-scoped table **names** an organization, because the service-role key
+bypasses row-level security and `organization_id=eq.` is the whole boundary.
+That is true and it is not enough. **Every query in the invite path named an
+organization.** It named the wrong one. Naming one and naming the right one are
+different properties, and only the first is visible in a query string — so that
+check is defect six for this bug: too weak for the thing it exists for.
+
+`scripts/verify-request-supplied-tenant-ids.mjs` is the missing half rather than
+a replacement. It asks a different question: **which code takes a tenant id from
+the caller, and why is that safe?**
+
+## Four sites, four reasons
+
+Measured rather than assumed, and all four turned out to be legitimate:
+
+- **`server.js`** — `getBusinessWorkspaceId` collects the workspace the request
+  *asks for* and hands it to `isBusinessManagerUser`, which filters
+  `workspace_id=eq.` against the caller's own memberships. The id narrows a
+  query over rows that are already theirs; a workspace they do not belong to
+  returns nothing.
+- **`lib/sonara-business-employee-invites.cjs`** — reads both ids only to
+  compare against the verified membership, refusing a mismatch.
+- **`routes/sonara-last9-routes.cjs`** — a development convenience, inert in
+  production three ways over. Its own comment records that gating on the
+  variable alone made one wrong dashboard value a cross-tenant write hole.
+- **`routes/sonara-service-lifecycle-routes.cjs`** — `POST /admin/deliverables`
+  behind `requireAdmin`, where naming an organization is the point of the form.
+
+So the register is not a list of problems. It is a list of the places where this
+class of bug can appear, each with the reason it has not. The invite bug was a
+**fifth site nobody had looked at**, and nothing would have flagged its arrival.
+
+**Two-sided**, because only one direction was the bug and the other is how the
+reasons rot: an unregistered read fails, and a registered file whose count moves
+fails in *either* direction — a rise is a new unreviewed read, a fall means the
+reason may now describe nothing. `report-orphan-tables.mjs` is the precedent.
+
+## What it does not do, written into the file
+
+It catches an unreviewed read **arriving**. It does not catch a registered read
+being **misused** — the invite module is allowed four reads and this would still
+pass if somebody rewrote what those four do. Nothing static can read intent, and
+the guarantee covering that is the invite test, which fails on the exact original
+line.
+
+That limitation is in the header because **a check whose stated guarantee is
+wider than what it does is the defect the whole skill is about**, and the version
+of that mistake available here was to call this "every tenant id is verified".
+
+## Two checks of this repository's own caught me while writing it
+
+Worth recording, because both are checks somebody wrote for exactly this.
+
+**`tests/a-line-comment-cannot-open-a-block-comment.test.js`.** The first draft
+kept its own `withoutComments`, stripping block comments and then line comments
+— the obvious order, and precisely the bug `lib/sonara-comment-stripping.cjs`
+exists for: a line comment mentioning a path contains `/*`, so the block pass
+reads it as an opener. Caught on the first full run, with the message "that is
+how the same bug shipped three times". Now using the shared module.
+
+**`verify-doc-counts`** failed the moment the chain grew: the command count is
+quoted in `docs/owner/WHAT-IS-LEFT.md` and is derived, 45 → 46.
+
+## And my own falsification harness produced a junk file
+
+A `break_file` helper copied the target aside before editing. Pointed at a file
+that did not exist, the `cp` failed silently, `aside.bak` kept the *previous*
+break's contents, and the restore then **created** `routes/sonara-telephony-routes.cjs`
+holding the invites module. The new check flagged it immediately as an
+unregistered reader — correctly, since it really was one.
+
+Two lessons, both applied: the harness now refuses a target that does not exist,
+and `git status` is checked after a falsification round. Also `echo "exit=$?"`
+after a pipe reports **`head`'s** status, not the command's, which made two
+breaks read as caught when their exit code was never seen.
+
+## Broken to prove it works
+
+Nine breaks, each hash-compared before and after:
+
+1. A new unregistered read in another route — named that file.
+2. A second read inside an already-registered file — count rise caught.
+3. A read removed from a registered file — count fall caught as a possibly
+   stale reason.
+4. A register entry for a file that reads none — stale entry caught.
+5. A reason replaced with "Reviewed." — refused for having no real reason.
+6. The pattern narrowed until it matched nothing — refused, because the four
+   known sites cannot have vanished.
+7. The register emptied — refused, because every read would then be a finding
+   and none reviewed.
+8. Comment stripping skipped — the invite module's count rose 4 → 5 on this
+   file's own explanatory prose. Two attempts: the first anchor did not match,
+   which the hash comparison caught, making it **six** no-op edits this branch.
+9. The scan pointed at a directory that does not exist — refused for seeing
+   fewer than forty runtime files.
+
+Verified: 4,376 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0 with the chain at 46 commands.
+
 ### 2026-09-10 - An invite could name somebody else's business
 
 An audit, not a feature. `pnpm run report:selected-columns` listed
