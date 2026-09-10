@@ -57,13 +57,24 @@ actually means:
 
   *Corrected 6 September 2026.* This named "$19, $39 or $79" as the plans on the
   page. Neither half was right: those are the **breadth** ladder's amounts, and
-  the breadth ladder is not on the page -- its price variables are unset, so
-  `/api/readiness` offers `free`, `starter_monthly`, `core_monthly`,
-  `pro_monthly` and the quoted package, which is Free / $7 / $19 / $39. And the
-  breadth amounts moved to **$29 / $59 / $109** on 6 September. A figure written
-  into prose beside a claim outlives the claim; the sentence is now true without
-  naming amounts, and `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries the numbers
-  where they are checked.
+  the breadth ladder was not then on the page -- its price variables were unset,
+  so `/api/readiness` offered `free`, `starter_monthly`, `core_monthly`,
+  `pro_monthly` and the quoted package. And the breadth amounts moved to
+  **$29 / $59 / $109** on 6 September. A figure written into prose beside a claim
+  outlives the claim; the sentence above is true without naming amounts, and
+  `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries the numbers where they are
+  checked.
+
+  *Corrected again 10 September 2026, and this half is the good news.* The
+  paragraph above was written in the present tense and has since stopped being
+  true: **the breadth ladder is now on the page and buyable.** Read from the live
+  site, not from this repository -- `/api/readiness` reports `checkout: enabled,
+  reason: configured` for all ten plan keys with `missing.stripe` and
+  `deferred.stripe` both empty, and `/pricing` serves $0 / $29 / $59 / $109
+  monthly alongside $290 / $590 / $1090 annual. What remains unbought is the
+  point of this section, and that is unchanged: **no plan on the page has ever
+  been paid for by anyone but the owner.** Being buyable and having been bought
+  are different facts, and only the first one moved.
 - **Net revenue is zero, and the balance is negative.** The one successful charge
   was refunded; the processing fee on it was not. The account balance is
   **-$0.67**.

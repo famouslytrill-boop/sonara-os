@@ -106,6 +106,46 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - Two launch documents had stopped being true, in our favour
+
+Writing a competitive synopsis meant reading the market and pricing documents
+against the live site rather than trusting either. Two of them were stale, and
+both in the direction nobody checks.
+
+`docs/pricing/2026-09-05-PRICING-STRATEGY.md` said `variable unset` against One
+workspace, All three and Team, and that the restructure was *"one owner step away
+from being live, and has been since 13 August."*
+`docs/SHIP_READINESS.md` said the breadth ladder *"is not on the page -- its
+price variables are unset"*.
+
+**Both had been overtaken.** Read from the live site: `/api/readiness` reports
+`checkout: enabled, reason: configured` for **all ten** plan keys, with
+`missing.stripe` and `deferred.stripe` empty, and `/pricing` serves
+**$0 / $29 / $59 / $109** monthly alongside **$290 / $590 / $1090** annual. The
+old $7 / $19 / $39 amounts are gone from it. `offeredPlanKeys` has swapped
+ladders, which is the one thing both documents were waiting on.
+
+Two things worth keeping separate, because conflating them is easy and the
+conclusions are opposite:
+
+- **Checkout works; verification does not.** Six `STRIPE_PRICE_*` variables are
+  marked Sensitive in Vercel, so `vercel env pull` writes `[SENSITIVE]` and the
+  deploy-time price check reads a placeholder. The *running application* is given
+  the real values, which is why customers are unaffected while the deploy is
+  blocked. Recorded in both documents so the next reader does not diagnose a
+  customer-facing outage that is not there.
+- **Buyable is not bought.** `SHIP_READINESS.md`'s subject is that no plan on the
+  page has ever been paid for by anyone but the owner, and that is unchanged. Only
+  the first half moved, and the correction says so rather than reading as though
+  the section were closed.
+
+The lesson is the one this repository keeps relearning from the other direction.
+A present-tense sentence in a dated document is a claim with nothing watching it:
+these two went stale for four days and eleven days respectively, and the only
+reason it surfaced is that a synopsis had to cite them and cited the live site
+instead. Neither figure is derivable, so neither can be gated -- what is
+available is the habit of reading the site before quoting the document.
+
 ### 2026-09-10 - An agent that keeps failing now loses the unattended list
 
 `lib/sonara-agent-authority.cjs` was entirely static. An action type is
