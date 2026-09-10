@@ -2,6 +2,114 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - An invite could name somebody else's business
+
+An audit, not a feature. `pnpm run report:selected-columns` listed
+`organization_id` as fetched by `isBusinessManagerUser` and read by nothing.
+Field names like that are worth following, and this one led to a cross-tenant
+hole.
+
+## What it was
+
+`POST /api/business-builder/employees/invite` read the tenant as
+`body.organizationId || body.organization_id || membership.organization_id` —
+**the verified membership was the fallback and the request body was the
+preference.**
+
+`requireBusinessManager` authorises the caller against `workspace_id` only;
+`getBusinessWorkspaceId` never looks at the organization at all. So a legitimate
+manager of their own workspace could post `organizationId` naming any other
+business and have it accepted.
+
+**It did not stop at a stray row.** `acceptBusinessEmployeeInvite` copies the
+invite's `organization_id` into an **active** `business_memberships` row, and
+`getCustomerPrimaryOrganization` returns that column straight back as the
+organization a signed-in customer belongs to. The service-role key bypasses
+row-level security, so `organization_id=eq.` *is* the tenant boundary, and that
+resolver is shared by eleven routes.
+
+The path, traced rather than assumed: a manager invites an address they control,
+accepts it, and the new account — having no `organization_memberships` row, so
+the resolver falls through to `business_memberships` — resolves into the named
+organization. A test walks the accept half and asserts the membership row really
+does carry the invite's organization verbatim, so **the severity is on the
+record** rather than in a commit message.
+
+**`organization_id` was in that select list the whole time.** Being selected is
+what made it look checked — defect three in
+`.claude/skills/checks-that-cannot-lie`, the same shape as the `consent_scope`
+case that report was written for.
+
+## What was NOT wrong, checked rather than assumed
+
+The workspace half looked like the same bug and is not. When a request names no
+workspace, `getBusinessWorkspaceId` returns `""`, the gate drops its
+`workspace_id` filter, and the caller's first membership is returned — but the
+invite then falls back to *that row's* `workspace_id`, so the invite lands on
+the workspace actually verified. Two files agreeing by having the same
+precedence is fragile, so both ids now come from the verified row, but the hole
+was the organization only and saying otherwise would overstate it.
+
+## The fix
+
+The verified membership is the only source for a manager. A body naming a
+different tenant is **refused** with `tenant_mismatch` rather than silently
+corrected: a client that believes it invited into one business and silently
+invited into another has been told something false. A caller with neither a
+verified membership nor platform-admin status gets `membership_unverified`
+instead of the old fallback.
+
+**A platform admin may still name a tenant**, because they administer all of
+them, and `requireBusinessManager` sets `sonaraAdmin` only after
+`isSupabaseAdminUser` passes. That branch is asserted, because a fix that
+quietly removed the owner's ability to invite anybody would be a different
+outage.
+
+## The form was the other half
+
+It asked a manager to type their own Workspace ID and Organization ID into
+**required free-text boxes** — which both created the vector and made the page
+unusable by anybody who does not know their business's UUID. Those fields are
+gone for a manager; the page states which business the invite joins, and the
+inputs appear only for the admin override, which has no membership to derive
+them from.
+
+## The ratchet did its job, and got tightened for it
+
+Fixing the form pushed `server.js` 16 lines **over** its 3884 ceiling. Rather
+than raise the number, `businessEmployeeInviteForm` moved into
+`lib/sonara-business-employee-invites.cjs` beside the invite lifecycle it
+belongs to — which is what that ratchet exists to provoke, and which made the
+form **directly testable**, so "a manager no longer types their own organization
+id" is an assertion rather than a claim.
+
+server.js is now **3868**, seventeen lines below where it was, so **the ceiling
+came down with it**. A one-sided ratchet that never lowers accumulates headroom
+for the next person to spend without a reason.
+
+## Broken to prove it works
+
+Eleven breaks, each by exact string edit with the file hash compared before and
+after.
+
+One of them, `1`, was **not caught, and was not a valid break**: swapping the
+final assignment back to body-first precedence changes no behaviour, because the
+mismatch refusal happens before it. Redone as the real thing — deleting the
+whole guard and reinstating the exact original two lines — which fails **six**
+assertions by name. Worth recording, because "the check did not fire" and "the
+edit did nothing" look identical in a test run and only one of them is a
+problem.
+
+The other ten: silently correcting a mismatch instead of refusing (5 failed);
+checking only the camelCase spelling (1); checking only the organization and
+leaving the workspace open (2); falling back to the body with no membership (1);
+treating everybody as a platform admin (7); refusing the admin override too (2);
+putting the tenant inputs back on the manager's form (2); hiding them from the
+admin as well (2); printing an id unescaped (1); dropping the email field (1).
+
+Verified: 4,376 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0. Recorded in `SECURITY_NOTES.md`.
+
 ### 2026-09-10 - A text saying stop must mean stop, and nothing else may
 
 The carrier comparison named SMS opt-out as **ours, not the owner's, and not

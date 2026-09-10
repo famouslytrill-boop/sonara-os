@@ -260,6 +260,64 @@ drives all eight cases.
 What this deliberately does **not** do: treat an unreachable audit as a pass. The
 outcome is identical to before. Only the message changed.
 
+## 10 September 2026 -- An Invite Could Name Somebody Else's Business
+
+Nothing was weakened here. A cross-tenant hole was closed, and it is recorded
+because the shape of it is the one this repository keeps finding rather than a
+one-off.
+
+`POST /api/business-builder/employees/invite` read the tenant like this:
+
+```js
+const organizationId = String(body.organizationId || body.organization_id || req.sonaraBusinessMembership?.organization_id || "").trim();
+```
+
+**The verified membership was the fallback, and the request body was the
+preference.** `requireBusinessManager` authorises the caller against
+`workspace_id` only -- `getBusinessWorkspaceId` never looks at the organization
+at all -- so a legitimate manager of their own workspace could post
+`organizationId` naming any other business and have it accepted.
+
+It did not stop at a stray row. `acceptBusinessEmployeeInvite` copies the
+invite's `organization_id` into an **active** `business_memberships` row, and
+`getCustomerPrimaryOrganization` returns that column straight back as the
+organization a signed-in customer belongs to. The service-role key bypasses
+row-level security, so `organization_id=eq.` *is* the tenant boundary, and that
+resolver is shared by eleven routes.
+
+The practical path: a manager invites an address they control, accepts it, and
+the new account -- having no `organization_memberships` row, so the resolver
+falls through to `business_memberships` -- resolves into the named organization.
+
+**How it was found.** `pnpm run report:selected-columns` listed
+`organization_id` as fetched by `isBusinessManagerUser` and read by nothing. It
+was in the select list the whole time, and **being selected is what made it look
+checked** -- defect three in `.claude/skills/checks-that-cannot-lie`, the same
+shape as the `consent_scope` case that report was written for.
+
+**The fix.** The verified membership is now the only source for a business
+manager, and a body naming a different tenant is **refused** with
+`tenant_mismatch` rather than silently corrected -- a client that believes it
+invited into one business and silently invited into another has been told
+something false. A caller with neither a verified membership nor platform-admin
+status is refused with `membership_unverified` instead of falling back to the
+body. A platform admin may still name a tenant, because they administer all of
+them, and that branch is asserted so the fix does not quietly remove the owner's
+ability to invite anybody.
+
+The form was the other half: it asked a manager to type their own Workspace ID
+and Organization ID into required free-text boxes, which both created the vector
+and made the page unusable by anyone who does not know their business's UUID.
+Those fields are gone for a manager; the page now states which business the
+invite joins, and the inputs appear only for the admin override, which has no
+membership to derive them from.
+
+Eleven deliberate breaks in
+`tests/an-employee-invite-is-a-credential.test.js`, including reinstating the
+exact original line, which fails six assertions by name.
+
+---
+
 ## Package Manager Boundary
 
 The repo uses pnpm only. `package-lock.json` files were removed, and CI installs from `pnpm-lock.yaml` with `pnpm install --frozen-lockfile`.

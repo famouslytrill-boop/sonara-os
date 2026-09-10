@@ -571,7 +571,19 @@ describe("the server.js split stays safe", () => {
       // comments to squeeze under the number applies: two of these six lines
       // are code and four are the reason, and the reason is the half that stops
       // somebody deleting the dependency as unused.
-      lines <= 3884,
+      //
+      // 3884 -> 3868 on 10 September 2026, and this one is a REDUCTION, so the
+      // ceiling comes down with it rather than leaving 16 lines of headroom for
+      // the next person to spend without saying why.
+      //
+      // What moved: `businessEmployeeInviteForm`, into
+      // lib/sonara-business-employee-invites.cjs beside the invite lifecycle it
+      // belongs to. It went there because fixing a cross-tenant hole in that
+      // form pushed this file 16 lines OVER the old ceiling, and this ratchet
+      // asking for a reason is what turned "raise the number" into "extract the
+      // function" -- which also made the form directly testable, so "a manager
+      // no longer types their own organization id" is now an assertion.
+      lines <= 3868,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

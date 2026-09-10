@@ -68,7 +68,11 @@ function build({
     createEmployeeAuthUser: async (email, password) => { calls.auth.push({ email, password }); return authResult; },
     splitList: (value) => String(value || "").split(",").map((part) => part.trim()).filter(Boolean),
     getReadiness: () => ({ services: { emailDelivery: emailEnabled ? "enabled" : "setup_required" } }),
-    getEnv: (name) => (name === "RESEND_API_KEY" ? "re_test" : "invites@sonara.example")
+    getEnv: (name) => (name === "RESEND_API_KEY" ? "re_test" : "invites@sonara.example"),
+    // The real escape, not a passthrough. An id rendered into the page is the
+    // only untrusted value the form prints, and a stub that returned its input
+    // would make the escaping assertion below vacuous.
+    escapeHtml: (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
   });
 
   return { invites, calls, restore: () => { global.fetch = saved; } };
@@ -78,7 +82,15 @@ const goodBody = {
   workspaceId: WORKSPACE, organizationId: ORG,
   email: "New.Person@Example.com", name: "New Person", role: "employee", permissions: "bookings,invoices"
 };
-const req = (body) => ({ body, sonaraUser: { id: OWNER } });
+// Every request here carries a verified membership, because the only route
+// that reaches this module sits behind `requireBusinessManager`, which sets one.
+// The tenant ids come from that row and not from the body -- see the
+// cross-tenant block at the end of this file for what happened when they did.
+const req = (body) => ({
+  body,
+  sonaraUser: { id: OWNER },
+  sonaraBusinessMembership: { organization_id: ORG, workspace_id: WORKSPACE }
+});
 
 describe("an employee invite is a credential", () => {
   it("declares every dependency it needs, and refuses to be built without one", () => {
@@ -329,11 +341,29 @@ describe("an employee invite is a credential", () => {
       }
     });
 
-    it("refuses without a workspace and an organization, rather than inviting into nothing", async () => {
+    it("refuses a caller with no verified membership, rather than trusting the body", async () => {
+      // This used to assert 400 on a request with no membership, because the
+      // ids were read from the body and an empty one failed validation. It is
+      // now 403: a caller whose tenant nobody confirmed is refused before the
+      // fields are even looked at, which is the point of the fix.
+      const { invites, calls, restore } = build();
+      try {
+        const result = await invites.createBusinessEmployeeInvite({ body: goodBody });
+        assert.equal(result.status, 403);
+        assert.equal(result.body.code, "membership_unverified");
+        assert.equal(calls.fetches.length, 0, "nothing may be written for a caller whose business is unconfirmed");
+      } finally { restore(); }
+    });
+
+    it("still refuses a platform admin who names neither, rather than inviting into nothing", async () => {
+      // The admin override is the one caller allowed to name a tenant, so for
+      // them the original validation is still the thing that has to hold.
       for (const body of [{ ...goodBody, workspaceId: "" }, { ...goodBody, organizationId: "" }]) {
         const { invites, restore } = build();
         try {
-          assert.equal((await invites.createBusinessEmployeeInvite({ body })).status, 400);
+          const result = await invites.createBusinessEmployeeInvite({ body, sonaraAdmin: { ok: true }, sonaraBusinessMembership: {} });
+          assert.equal(result.status, 400);
+          assert.equal(result.body.code, "validation_failed");
         } finally { restore(); }
       }
     });
@@ -347,4 +377,236 @@ describe("an employee invite is a credential", () => {
       } finally { restore(); }
     });
   });
+  // The invite named its own tenant, and the tenant is the security boundary.
+  //
+  // `organizationId` came from the request body with the verified membership as
+  // a fallback. `requireBusinessManager` verifies the caller against
+  // `workspace_id` ONLY -- `getBusinessWorkspaceId` never reads the
+  // organization -- so a legitimate manager of their own workspace could name
+  // somebody else's business and have it accepted.
+  //
+  // It does not stop at a stray row. `acceptBusinessEmployeeInvite` copies the
+  // invite's `organization_id` into an **active** `business_memberships` row,
+  // and `getCustomerPrimaryOrganization` returns that column straight back as
+  // the organization a signed-in customer belongs to.
+  //
+  // Found by `pnpm run report:selected-columns`: `organization_id` was in the
+  // membership query's select list and read by nothing, which is defect three
+  // in `.claude/skills/checks-that-cannot-lie` -- **being selected is what made
+  // it look checked**.
+  describe("the business an invite joins is the one that was verified", () => {
+    const OTHER_ORG = "e5e5e5e5-0000-4000-8000-00000000005e";
+    const OTHER_WORKSPACE = "f6f6f6f6-0000-4000-8000-00000000006f";
+
+    function inviteRowFrom(calls) {
+      const insert = calls.fetches.find((call) => call.href.includes("business_employee_invites") && call.method === "POST");
+      assert.ok(insert, "no invite was written, so there is no tenant to check");
+      return insert.body;
+    }
+
+    it("writes the verified organization, not the one the body asked for", async () => {
+      const { invites, calls, restore } = build();
+      try {
+        const result = await invites.createBusinessEmployeeInvite(req({ ...goodBody, organizationId: ORG }));
+        assert.equal(result.status, 200);
+        assert.equal(inviteRowFrom(calls).organization_id, ORG, "the matching case must still work, or the refusal below proves nothing");
+      } finally { restore(); }
+    });
+
+    it("refuses an invite that names another business", async () => {
+      const { invites, calls, restore } = build();
+      try {
+        const result = await invites.createBusinessEmployeeInvite(req({ ...goodBody, organizationId: OTHER_ORG }));
+        assert.equal(result.status, 403, "a manager naming another organization must be refused");
+        assert.equal(result.body.code, "tenant_mismatch");
+        assert.equal(calls.fetches.length, 0, "and nothing may be written, not even an invite that is never accepted");
+      } finally { restore(); }
+    });
+
+    it("refuses an invite that names another workspace", async () => {
+      const { invites, calls, restore } = build();
+      try {
+        const result = await invites.createBusinessEmployeeInvite(req({ ...goodBody, workspaceId: OTHER_WORKSPACE }));
+        assert.equal(result.status, 403);
+        assert.equal(result.body.code, "tenant_mismatch");
+        assert.equal(calls.fetches.length, 0);
+      } finally { restore(); }
+    });
+
+    it("refuses the snake_case spelling too, since both are read", async () => {
+      // The body is read as `organizationId || organization_id`. A check that
+      // only covered one spelling would leave the other open, and the original
+      // code accepted both.
+      for (const body of [
+        { ...goodBody, organizationId: undefined, organization_id: OTHER_ORG },
+        { ...goodBody, workspaceId: undefined, workspace_id: OTHER_WORKSPACE }
+      ]) {
+        const { invites, restore } = build();
+        try {
+          const result = await invites.createBusinessEmployeeInvite(req(body));
+          assert.equal(result.status, 403, `${JSON.stringify(body)} was accepted`);
+          assert.equal(result.body.code, "tenant_mismatch");
+        } finally { restore(); }
+      }
+    });
+
+    it("takes the tenant from the membership when the body names none at all", async () => {
+      // The legitimate form no longer submits either id, so this is now the
+      // ordinary path rather than an edge case.
+      const { invites, calls, restore } = build();
+      try {
+        const body = { ...goodBody };
+        delete body.workspaceId;
+        delete body.organizationId;
+        const result = await invites.createBusinessEmployeeInvite(req(body));
+        assert.equal(result.status, 200);
+        const written = inviteRowFrom(calls);
+        assert.equal(written.organization_id, ORG);
+        assert.equal(written.workspace_id, WORKSPACE);
+      } finally { restore(); }
+    });
+
+    it("lets a platform admin name a tenant, because they administer all of them", async () => {
+      const { invites, calls, restore } = build();
+      try {
+        const result = await invites.createBusinessEmployeeInvite({
+          body: { ...goodBody, organizationId: OTHER_ORG, workspaceId: OTHER_WORKSPACE },
+          sonaraUser: { id: OWNER },
+          sonaraAdmin: { ok: true },
+          sonaraBusinessMembership: {}
+        });
+        assert.equal(result.status, 200, "the admin override must keep working, or this fix breaks the owner");
+        const written = inviteRowFrom(calls);
+        assert.equal(written.organization_id, OTHER_ORG);
+        assert.equal(written.workspace_id, OTHER_WORKSPACE);
+      } finally { restore(); }
+    });
+
+    it("does not accept a claim of being an admin from anywhere but the middleware", async () => {
+      // `sonaraAdmin` is set by `requireBusinessManager` only after
+      // `isSupabaseAdminUser` passes, and it is a request property rather than
+      // body input -- but the check reads a truthy `ok`, so this pins that a
+      // body field cannot supply it.
+      const { invites, restore } = build();
+      try {
+        const result = await invites.createBusinessEmployeeInvite(req({
+          ...goodBody,
+          organizationId: OTHER_ORG,
+          sonaraAdmin: { ok: true },
+          admin: true
+        }));
+        assert.equal(result.status, 403, "an admin flag inside the body must not widen the tenant");
+        assert.equal(result.body.code, "tenant_mismatch");
+      } finally { restore(); }
+    });
+
+    it("carries the refused organization nowhere, including the audit event", async () => {
+      // A refusal that still records the attempted tenant would put another
+      // organization's id in this organization's audit trail.
+      const { invites, calls, restore } = build();
+      try {
+        await invites.createBusinessEmployeeInvite(req({ ...goodBody, organizationId: OTHER_ORG }));
+        assert.equal(calls.audits.length, 0, "nothing happened, so nothing is audited");
+        assert.equal(JSON.stringify(calls.fetches).includes(OTHER_ORG), false);
+      } finally { restore(); }
+    });
+
+    it("shows what an accepted invite would have granted, so the severity is on the record", async () => {
+      // Not a test of the fix -- a test of what the fix prevented, run through
+      // the accept path that copies the invite's organization into a membership.
+      // If this stops being true the comment above is stale.
+      const { invites, calls, restore } = build({
+        lookupRows: [{
+          id: "inv-2",
+          organization_id: OTHER_ORG,
+          workspace_id: WORKSPACE,
+          role: "manager",
+          status: "pending",
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+          invited_email: "new.person@example.com"
+        }]
+      });
+      try {
+        const result = await invites.acceptBusinessEmployeeInvite({
+          token: "any-token", email: "new.person@example.com", password: "correct horse battery"
+        });
+        assert.equal(result.status, 200);
+        const membership = calls.fetches.find((call) => call.href.includes("business_memberships") && call.method === "POST");
+        assert.ok(membership, "accepting an invite must write a membership, or this reasoning is wrong");
+        assert.equal(membership.body.organization_id, OTHER_ORG, "the invite's organization is copied verbatim into an active membership");
+        assert.equal(membership.body.status, "active");
+      } finally { restore(); }
+    });
+  });
+
+  // The form used to ask a manager to type both ids into required free-text
+  // boxes. Two faults in one control: a manager who does not know their own
+  // business's UUID could not use the page, and one who typed somebody else's
+  // had it accepted, because the module read the body before the membership.
+  //
+  // These assertions are possible at all because the fix pushed server.js past
+  // its line ceiling, and the ratchet asking for a reason turned "raise the
+  // number" into "move the function here".
+  describe("the invite form does not ask a manager which business they run", () => {
+    it("renders no tenant inputs for a verified membership", () => {
+      const { invites, restore } = build();
+      try {
+        const html = invites.businessEmployeeInviteForm({ organization_id: ORG, workspace_id: WORKSPACE });
+        assert.ok(!html.includes('name="organizationId"'), "the organization must not be typed in; it is known");
+        assert.ok(!html.includes('name="workspaceId"'), "nor the workspace");
+        assert.ok(html.includes(ORG), "and the page should say which business the invite joins");
+        assert.ok(html.includes(WORKSPACE));
+      } finally { restore(); }
+    });
+
+    it("still collects the rest of the invite, so the form is not simply broken", () => {
+      const { invites, restore } = build();
+      try {
+        const html = invites.businessEmployeeInviteForm({ organization_id: ORG, workspace_id: WORKSPACE });
+        for (const field of ['name="email"', 'name="name"', 'name="role"', 'name="permissions"']) {
+          assert.ok(html.includes(field), `${field} is missing; the form no longer works`);
+        }
+        assert.ok(html.includes('action="/api/business-builder/employees/invite"'));
+      } finally { restore(); }
+    });
+
+    it("offers the inputs to a caller with no membership, which is the admin override", () => {
+      // `requireBusinessManager` hands a platform admin an empty membership, and
+      // they legitimately administer every business -- so for them the fields
+      // are the only way to say which one. Without this branch the fix would
+      // have quietly removed the owner's ability to invite anybody.
+      const { invites, restore } = build();
+      try {
+        const html = invites.businessEmployeeInviteForm({});
+        assert.ok(html.includes('name="organizationId"'), "an admin has no membership to derive the tenant from");
+        assert.ok(html.includes('name="workspaceId"'));
+      } finally { restore(); }
+    });
+
+    it("treats a missing membership the same as an empty one", () => {
+      const { invites, restore } = build();
+      try {
+        for (const membership of [undefined, null, {}, { workspace_id: WORKSPACE }]) {
+          const html = invites.businessEmployeeInviteForm(membership);
+          assert.ok(html.includes('name="organizationId"'), `${JSON.stringify(membership)} has no organization, so it must be asked for`);
+        }
+      } finally { restore(); }
+    });
+
+    it("escapes an id rather than printing it into the page", () => {
+      // The ids come from the database, but they are printed into HTML and the
+      // membership row is written by the invite flow -- so this is the one place
+      // a stored value reaches a page unmediated.
+      const { invites, restore } = build();
+      try {
+        const html = invites.businessEmployeeInviteForm({
+          organization_id: '"><script>alert(1)</script>',
+          workspace_id: WORKSPACE
+        });
+        assert.ok(!html.includes("<script>"), "an id must not be able to open a tag");
+        assert.ok(html.includes("&lt;script&gt;"));
+      } finally { restore(); }
+    });
+  });
+
 });
