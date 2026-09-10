@@ -106,6 +106,102 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - An employee could email the whole customer list
+
+The send route carried a note saying what it could not do: tell an owner from
+another member. `getCustomerPrimaryOrganization` returned `{ ok, organizationId }`
+and no role, so **any active member of the workspace could approve a customer
+campaign** -- the one action AGENTS.md singles out by name.
+
+Writing that down was right and leaving it there was not. This closes it.
+
+**It was not hypothetical.** Two tables put somebody in a workspace and they
+have different defaults:
+
+- `organization_memberships.role` -- every path that creates one sets `owner`.
+  `sonara_bootstrap_customer_workspace` does
+  `values (v_organization_id, p_user_id, 'owner', 'active')` and
+  `insertSetupMembership` in server.js does the same. **Checked before the gate
+  was written**, because a role check that refused every self-serve customer
+  would be worse than no check at all.
+- `business_memberships.role` -- **defaults to `employee`**, and
+  `lib/sonara-business-employee-invites.cjs` invites staff as `manager` or
+  `employee`. The resolver falls back to that table, so an invited employee
+  arrived with the owner's authority.
+
+`mayApproveOwnerAction` lives in `lib/sonara-agent-authority.cjs` rather than in
+the route, and that placement is the point: CLAUDE.md calls that file "the
+AGENTS.md safety rule as code", and `scripts/verify-supabase-contract.mjs`
+checks it on every release, so weakening the rule fails the build rather than
+shipping quietly.
+
+**An allow-list, not a deny-list, because the role column is not a closed set.**
+Migration 010 declares `check (role in ('owner','admin','developer','support',
+'business_owner','creator','agency','member','viewer'))`, and two later
+migrations declare the same column as `role text not null default 'member'` with
+**no check constraint at all**. Which values are possible depends on which
+definition took effect, so a deny-list would silently admit anything nobody
+thought of. Default deny, the same reasoning `classifyAction` already uses.
+
+`manager` is deliberately **not** on the list. A manager is staff; AGENTS.md
+says owner. That is as much a product decision as a security one, so it is
+stated in the module rather than left to the shape of the list, and the owner
+can argue with it.
+
+**Three states, not two.** A role nobody could read is not a role that failed
+for being the wrong one: the first says try again (503), the second says ask
+somebody else (403). Telling a customer the wrong one sends them to the wrong
+place. The route also records `approved_by_role` alongside `approved_by`,
+because an audit trail with a user id and no role cannot say whether the
+approver was entitled.
+
+**A resolver eleven routes share, changed carefully.** `role` is added to the
+select, and a failed request **retries without it** rather than taking all
+eleven down -- if the column were ever absent from a deployment's schema,
+PostgREST answers 400, and the honest degrade is one gate reporting "could not
+confirm your role" instead of every workspace page breaking. The row then comes
+back with `role: null`, which the decision reports as its own state rather than
+as permission or as the wrong role.
+
+## Two checks disagreed with each other again, and both were right
+
+Passing the select through a variable made the column list computed at run time,
+and `report-unused-selected-columns.mjs` cannot read one -- so **both membership
+reads became invisible** to the check that hunts a column fetched into a
+decision and never used. Its ratchet caught the rise, 23 -> 24.
+
+Meanwhile `database-query-contract.test.js` requires both tables to share one
+query so they cannot drift apart on ordering, which rules out inlining the
+filters twice.
+
+Resolved rather than recorded: `ask` now takes the whole query, each call site
+spells its columns out as a literal, and the filters stay in one shared const.
+Computed selects back to **23**, and `lib/sonara-customer-organization.cjs`
+drops out of that list entirely. Raising the recorded count would have been the
+easy move and would have bought a permanent blind spot for two resolvable
+reads.
+
+## Falsification
+
+**Seven breaks, seven caught.** An absent role read as permission; the allow-list
+turned into a deny-list; `employee` added to the allow-list; the route no longer
+asking; the unreadable-role state collapsed into the wrong-role one; the
+resolver no longer carrying the role; and the audit trail losing it.
+
+**One assertion of mine could not express its own case.** The route test looped
+`[null, undefined, "", "   "]` and `undefined` selected the harness's default
+parameter -- so it asserted `role: "owner"` was refused, which is the opposite
+of the intent, and failed. The rule belongs to the authority module, so it is
+asserted there directly, with the harness limit written down rather than the
+case quietly dropped.
+
+**Verified:** 4,308 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice.
+Whether `manager` should be able to approve a campaign is the owner's call and
+is now a one-line change in a checked module.
+
 ### 2026-09-10 - A skip reason that could never be true, and a scoping fact I could not confirm
 
 `growth-studio-sender.cjs` has documented a `suppressed` skip reason since it was

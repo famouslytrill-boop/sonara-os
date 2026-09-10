@@ -6,6 +6,7 @@ const request = require("supertest");
 const registerRoutes = require("../routes/growth-studio-control-routes.cjs");
 const { quote } = require("../lib/sonara-paid-capabilities.cjs");
 const { MINIMUM_BILLABLE_EMAILS } = require("../lib/growth-studio-sender.cjs");
+const { OWNER_APPROVAL_ROLES, mayApproveOwnerAction } = require("../lib/sonara-agent-authority.cjs");
 
 // The route is the only one of the three send pieces that touches the database,
 // and that is where the interesting failures are. `growth-studio-sender.cjs` is
@@ -72,6 +73,11 @@ function harness({
   startingAllowanceMinor = null,
   suppressed = [],
   suppressionOk = true,
+  // The role the resolver reports. "owner" is what every path that creates an
+  // organization_memberships row actually sets, so it is the realistic default
+  // rather than a convenient one -- and the cases below turn it into the roles
+  // that must be refused.
+  role = "owner",
 } = {}) {
   const calls = { urls: [], sentTo: [], ledgerRows: [], events: [] };
 
@@ -133,7 +139,7 @@ function harness({
       req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
       return next();
     },
-    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID, role }),
     getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
     getReadiness: () => ({ services: { emailDelivery } }),
     getEnv: (name) => env[name],
@@ -665,6 +671,109 @@ describe("the send route reaches only the consented", () => {
       const broken = await send({ suppressionOk: false });
       assert.equal(clean.response.body.suppressedSkipped, broken.response.body.suppressedSkipped);
       assert.notEqual(clean.response.body.suppressionChecked, broken.response.body.suppressionChecked);
+    });
+  });
+
+
+  // Open until 10 September 2026 and recorded in the route as a thing it could
+  // not do: the resolver returned no role, so any active member of the
+  // workspace could approve a customer campaign.
+  //
+  // Not hypothetical. business_memberships.role defaults to `employee` and
+  // staff are invited as `manager` or `employee`, so an invited employee could
+  // email the whole customer list.
+  describe("only somebody entitled to approve can approve", () => {
+    it("lets the account owner send", async () => {
+      const { response, calls } = await send({ role: "owner" });
+      assert.equal(response.status, 200);
+      assert.deepEqual(calls.sentTo, ["one@example.com"]);
+    });
+
+    it("refuses an invited employee, before reading anything", async () => {
+      const { response, calls } = await send({ role: "employee" });
+      assert.equal(response.status, 403);
+      assert.equal(response.body.code, "owner_role_required");
+      assert.deepEqual(calls.urls, [], "an unentitled approver must not even reach the database");
+      assert.deepEqual(calls.sentTo, []);
+    });
+
+    it("refuses a manager, because AGENTS.md says owner and a manager is staff", async () => {
+      const { response, calls } = await send({ role: "manager" });
+      assert.equal(response.status, 403);
+      assert.equal(response.body.code, "owner_role_required");
+      assert.deepEqual(calls.sentTo, []);
+    });
+
+    it("refuses every role that is not on the allow-list", async () => {
+      // Default deny. The role column is not a closed set -- two migrations
+      // declare it with no check constraint at all -- so a deny-list would
+      // silently admit anything nobody thought of.
+      for (const role of ["member", "viewer", "support", "developer", "creator", "agency", "employee", "manager", "something_nobody_listed"]) {
+        const { response, calls } = await send({ role });
+        assert.equal(response.status, 403, `a ${role} must not approve a customer campaign`);
+        assert.deepEqual(calls.sentTo, []);
+      }
+    });
+
+    it("permits exactly the roles the authority module lists, and no more", async () => {
+      for (const role of OWNER_APPROVAL_ROLES) {
+        const { response } = await send({ role });
+        assert.equal(response.status, 200, `${role} is on the allow-list and must be able to approve`);
+      }
+      assert.ok(OWNER_APPROVAL_ROLES.length > 0, "an empty allow-list would make the loop above assert nothing");
+      assert.ok(!OWNER_APPROVAL_ROLES.includes("member"), "the workspace default must never be an approver");
+      assert.ok(!OWNER_APPROVAL_ROLES.includes("employee"), "business_memberships defaults to this");
+    });
+
+    it("tells an unreadable role apart from the wrong role", async () => {
+      // Different states with different actions: one says try again, the other
+      // says ask somebody else. Telling a customer the wrong one sends them to
+      // the wrong place.
+      const unknown = await send({ role: null });
+      assert.equal(unknown.response.status, 503);
+      assert.equal(unknown.response.body.code, "role_unknown");
+      assert.match(unknown.response.body.reason, /try again/i);
+
+      const wrong = await send({ role: "employee" });
+      assert.equal(wrong.response.body.code, "owner_role_required");
+      assert.match(wrong.response.body.reason, /account owner/i);
+      assert.notEqual(unknown.response.status, wrong.response.status);
+    });
+
+    it("does not read permission out of a blank role", async () => {
+      // `undefined` is deliberately not in this list and that is a harness
+      // limit rather than a gap: the option is a default parameter, so passing
+      // undefined selects the default "owner" and the case cannot be expressed
+      // here. It is asserted directly against the authority module below, which
+      // is where the decision actually lives.
+      for (const role of [null, "", "   "]) {
+        const { response, calls } = await send({ role });
+        assert.equal(response.body.code, "role_unknown", `a role of ${JSON.stringify(role)} must not be read as permission`);
+        assert.deepEqual(calls.sentTo, []);
+      }
+    });
+
+    it("reads no permission out of any absent role, asked of the decision itself", () => {
+      // The route cannot express `undefined` (see above), and the rule is the
+      // module's rather than the route's, so it is asserted where it lives.
+      for (const role of [null, undefined, "", "   ", false, 0]) {
+        const decision = mayApproveOwnerAction(role);
+        assert.equal(decision.allowed, false, `a role of ${JSON.stringify(role)} must not approve a customer campaign`);
+      }
+      assert.equal(mayApproveOwnerAction(undefined).code, "role_unknown");
+    });
+
+    it("records which role approved it, not only who", async () => {
+      const { calls } = await send({ role: "admin" });
+      const event = calls.events.find((entry) => entry.event_type === "campaign.sent");
+      assert.equal(event.details.approved_by, USER_ID);
+      assert.equal(event.details.approved_by_role, "admin", "an audit trail with a user id and no role cannot say whether the approver was entitled");
+    });
+
+    it("puts the refusal in the owner's words on the form path", async () => {
+      const page = await loadCampaignsPage({}, "?problem=owner_role_required");
+      assert.match(page.text, /Only the account owner/);
+      assert.ok(!/owner_role_required/.test(page.text), "a raw code is not an explanation");
     });
   });
 

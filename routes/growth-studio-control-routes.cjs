@@ -22,6 +22,7 @@ const {
   deriveSigningKey,
   verifyToken
 } = require("../lib/growth-studio-unsubscribe.cjs");
+const { mayApproveOwnerAction } = require("../lib/sonara-agent-authority.cjs");
 const {
   createBalanceReader,
   createLedgerAppender,
@@ -205,12 +206,18 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   // `/api/growth/content/:contentId/publish`. A person pressing a button they
   // can see is the person; this is not an agent acting unattended.
   //
-  // What this route CANNOT do is tell an owner from another member.
-  // `getCustomerPrimaryOrganization` returns `{ ok, organizationId }` and no
-  // role, so any active member of the workspace can approve a send. That is
-  // stated rather than implied by the absence of a check: closing it needs a
-  // role on the resolver, which is a change to a function eleven other routes
-  // share.
+  // **And the approver has to be entitled to approve.** This was open until
+  // 10 September 2026, recorded here as a thing the route could not do:
+  // `getCustomerPrimaryOrganization` returned no role, so any active member of
+  // the workspace could approve a send.
+  //
+  // That was not hypothetical. `business_memberships.role` defaults to
+  // `employee` and staff are invited as `manager` or `employee`, so an invited
+  // employee could email the whole customer list. The resolver now carries the
+  // role and `mayApproveOwnerAction` in lib/sonara-agent-authority.cjs decides
+  // -- in that module rather than here, because it is AGENTS.md's rule as code
+  // and scripts/verify-supabase-contract.mjs checks it on every release, so
+  // weakening it fails the build instead of shipping quietly.
   // Two entry points, one handler. The API caller names the campaign in the
   // path; the form on /growth-studio/your-campaigns cannot, because an HTML
   // `<select>` sets a field and not a path segment. Rather than two
@@ -241,6 +248,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         code: "explicit_campaign_approval_required",
         reason: "A customer campaign needs your explicit approval before it can be sent. Nothing was sent and nothing was charged."
       });
+    }
+
+    // Asked before the message is even read, and before any database work: an
+    // approval this person was not entitled to give is the end of the decision.
+    const entitled = mayApproveOwnerAction(context.role);
+    if (!entitled.allowed) {
+      return respond(entitled.code === "role_unknown" ? 503 : 403, { ok: false, code: entitled.code, reason: entitled.reason });
     }
 
     const subject = clean(req.body.subject, 300);
@@ -350,6 +364,10 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // afterwards -- and it is the field that makes the check falsifiable: a
       // route that took the approver from the request body would show it here.
       approved_by: context.userId,
+      // The role as well as the person. "Approved by a user id" does not tell
+      // an owner reading their own audit trail whether the approver was
+      // entitled to approve.
+      approved_by_role: context.role,
       code: sent.code,
       sent: sent.sent,
       failed: sent.failed.length,
@@ -1478,7 +1496,11 @@ async function resolveContext(req, deps) {
   if (typeof deps.getCustomerPrimaryOrganization !== "function") return { ok: false, status: 503, code: "organization_resolver_unavailable" };
   const organization = await deps.getCustomerPrimaryOrganization(user);
   if (!organization?.ok) return { ok: false, status: 409, code: organization?.code || "organization_setup_required" };
-  return { ok: true, organizationId: organization.organizationId, userId: user.id };
+  // The role rides along so the campaign send can ask whether this person may
+  // approve on the business's behalf. Null when the read could not tell us,
+  // which mayApproveOwnerAction reports as its own state rather than as a
+  // refusal for being the wrong role.
+  return { ok: true, organizationId: organization.organizationId, userId: user.id, role: organization.role ?? null };
 }
 
 function getConfig(deps) {
@@ -1714,6 +1736,8 @@ function campaignSendCard(rows, escape) {
 const SEND_PROBLEMS = Object.freeze({
   explicit_campaign_approval_required: "You need to tick the approval box before a campaign can be sent.",
   campaign_message_required: "A campaign needs both a subject and a message.",
+  owner_role_required: "Only the account owner can approve sending a campaign to your customers. Ask them to approve it.",
+  role_unknown: "We could not confirm your role in this workspace just now, so nothing was sent. Try again shortly.",
   invalid_campaign_id: "That campaign could not be identified. Choose one from the list and try again.",
   campaign_not_sendable: "That campaign is finished or put away. Reopen it before sending.",
   no_recipients: "No contacts are attached to that campaign. Attach some, or send to your whole contact list.",

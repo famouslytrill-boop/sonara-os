@@ -56,11 +56,19 @@ describe("database query contract", () => {
     // the resulting workspace flip is invisible until somebody's records appear
     // to vanish.
     const source = readRuntime();
+    // The order and limit moved into a `filters` template on 10 September 2026,
+    // when the query gained a `role` select it can retry without -- see the note
+    // in lib/sonara-customer-organization.cjs. The CONTRACT is unchanged and so
+    // is what this asserts; only where the string is assembled moved.
     assert.match(
       source,
-      /select=organization_id&user_id=eq\.\$\{encodeURIComponent\(userId\)\}&status=eq\.active&order=created_at\.asc\.nullslast,organization_id\.asc&limit=1/,
+      /&user_id=eq\.\$\{encodeURIComponent\(userId\)\}&status=eq\.active&order=created_at\.asc\.nullslast,organization_id\.asc&limit=1/,
       "the membership query lost its deterministic order or its limit"
     );
+    // Both selects go through the same filters, so neither can drift from the
+    // other. `role` is asked for first and the bare select is the retry.
+    assert.match(source, /select=organization_id,role\$\{filters\}/, "the membership read must ask for the role, or the campaign gate cannot tell an owner from an employee");
+    assert.match(source, /select=organization_id\$\{filters\}/, "and must be able to retry without it rather than taking eleven routes down");
     // Both tables must go through that one query rather than one of them
     // carrying a query of its own -- which is what the two separate assertions
     // here used to check, back when the strings were written out twice.
