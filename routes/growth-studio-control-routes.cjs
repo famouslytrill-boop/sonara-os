@@ -204,15 +204,32 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   // stated rather than implied by the absence of a check: closing it needs a
   // role on the resolver, which is a change to a function eleven other routes
   // share.
-  app.post("/api/growth/campaigns/:campaignId/send", access, async (req, res) => {
+  // Two entry points, one handler. The API caller names the campaign in the
+  // path; the form on /growth-studio/your-campaigns cannot, because an HTML
+  // `<select>` sets a field and not a path segment. Rather than two
+  // implementations that will diverge, the id is read from whichever place it
+  // came from and everything after that is the same code.
+  async function sendCampaign(req, res, campaignIdFrom) {
+    // A browser posting a form needs a page back. Handing it the JSON body
+    // shows the owner a wall of punctuation after pressing Send, which reads as
+    // a crash even when 460 emails went out.
+    const back = "/growth-studio/your-campaigns";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      const query = payload.ok
+        ? `sent=${encodeURIComponent(payload.sent)}&skipped=${encodeURIComponent((payload.skipped || []).length)}&failed=${encodeURIComponent((payload.failed || []).length)}`
+        : `problem=${encodeURIComponent(payload.code || "not_sent")}`;
+      return res.redirect(303, `${back}?${query}`);
+    };
+
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
-    if (!validUuid(req.params.campaignId)) return res.status(400).json({ ok: false, code: "invalid_campaign_id" });
+    if (!context.ok) return respond(context.status, { ok: false, code: context.code });
+    if (!validUuid(campaignIdFrom)) return respond(400, { ok: false, code: "invalid_campaign_id" });
 
     // Before anything is read, because an approval nobody gave is the end of the
     // decision and there is no reason to touch the database to find that out.
     if (!truthy(req.body.approved || req.body.approval_attested || req.body.approvalAttested)) {
-      return res.status(400).json({
+      return respond(400, {
         ok: false,
         code: "explicit_campaign_approval_required",
         reason: "A customer campaign needs your explicit approval before it can be sent. Nothing was sent and nothing was charged."
@@ -221,20 +238,20 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
 
     const subject = clean(req.body.subject, 300);
     const body = clean(req.body.body || req.body.message, 20000);
-    if (!subject || !body) return res.status(400).json({ ok: false, code: "campaign_message_required", reason: "A campaign needs a subject and a body." });
+    if (!subject || !body) return respond(400, { ok: false, code: "campaign_message_required", reason: "A campaign needs a subject and a body." });
 
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    if (!config.ok) return respond(503, { ok: false, code: "supabase_setup_required" });
 
-    const loaded = await loadOne(config, TABLES.campaigns, context, req.params.campaignId);
-    if (!loaded.ok) return res.status(loaded.status).json({ ok: false, code: loaded.code });
+    const loaded = await loadOne(config, TABLES.campaigns, context, campaignIdFrom);
+    if (!loaded.ok) return respond(loaded.status, { ok: false, code: loaded.code });
     const campaign = loaded.row;
 
     // `completed` and `archived` are the owner having said this campaign is
     // finished or put away. Sending from either is the kind of action whose
     // result cannot be undone once the mail has gone.
     if (campaign.status === "completed" || campaign.status === "archived") {
-      return res.status(409).json({ ok: false, code: "campaign_not_sendable", reason: `This campaign is ${display(campaign.status)}. Reopen it before sending.` });
+      return respond(409, { ok: false, code: "campaign_not_sendable", reason: `This campaign is ${display(campaign.status)}. Reopen it before sending.` });
     }
 
     // Default narrow. `growth_leads.campaign_id` is the only audience linkage the
@@ -251,7 +268,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // people who said no, and reporting it as one would tell the owner
       // something definite about their own contacts on the strength of a request
       // that failed.
-      return res.status(loadedRecipients.status).json({ ok: false, code: loadedRecipients.code, reason: loadedRecipients.reason });
+      return respond(loadedRecipients.status, { ok: false, code: loadedRecipients.code, reason: loadedRecipients.reason });
     }
 
     const readLedger = typeof deps.readUsageLedger === "function"
@@ -284,7 +301,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // buying credit fixes, and a blanket 402 would have an owner pay to be
       // refused again.
       const status = decision.code === "insufficient_credit" ? 402 : decision.code === "balance_unreadable" ? 503 : 409;
-      return res.status(status).json({ ok: false, code: decision.code, reason: decision.reason, skipped: decision.skipped });
+      return respond(status, { ok: false, code: decision.code, reason: decision.reason, skipped: decision.skipped });
     }
 
     const sent = await dispatchCampaign({
@@ -319,7 +336,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     // 200 when anything went out. A campaign where 459 of 460 landed is not a
     // failed campaign, and the counts below are what the owner reads -- a single
     // boolean cannot carry them.
-    return res.status(sent.ok ? 200 : sent.code === "email_not_configured" ? 503 : 502).json({
+    return respond(sent.ok ? 200 : sent.code === "email_not_configured" ? 503 : 502, {
       ok: sent.ok,
       code: sent.code,
       detail: sent.detail,
@@ -329,7 +346,15 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       charge: sent.charge,
       audience
     });
-  });
+  }
+
+  app.post("/api/growth/campaigns/:campaignId/send", access, (req, res) => sendCampaign(req, res, req.params.campaignId));
+
+  // The form's entry point. `send` cannot be mistaken for a campaign id -- the
+  // id-in-path route is three segments deep and this is two -- and the id it
+  // reads from the body goes through the same validUuid check.
+  app.post("/api/growth/campaigns/send", access, (req, res) =>
+    sendCampaign(req, res, String(req.body?.campaign_id || req.body?.campaignId || "")));
 
   app.get("/api/growth/campaigns/:campaignId", access, getOneHandler(TABLES.campaigns, "campaignId", deps, "campaign"));
   app.patch("/api/growth/campaigns/:campaignId", access, async (req, res) => {
@@ -836,7 +861,19 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const providers = getGrowthProviderCatalog();
     const sections = [
       ui.card("Growth operating system", "Plan your campaigns, leads, audience lists, permissions, content approvals, contacts, sales, experiments, numbers, and connected services from one place."),
-      ui.card("What this does and does not do", "Growth Studio is the layer above your email and SMS tools, not a replacement for them. It plans the campaign, scores and routes the lead, and records consent before anything is dispatched. The message itself goes out through the provider you connect below, on that provider's account, under that provider's bill."),
+      // Rewritten 10 September 2026, because the previous sentence -- "the
+      // message itself goes out through the provider you connect below" -- became
+      // false for email when lib/growth-studio-dispatch.cjs shipped. It stays
+      // true for text messages and calls, and that half is what
+      // scripts/check-growth-studio-copy.mjs now requires be said out loud: a
+      // page silent on who places them is how a carrier claim creeps back.
+      //
+      // This comment originally quoted such a claim as an example and the copy
+      // check flagged it -- correctly, since it scans the file rather than
+      // guessing which strings reach a customer. The comment was reworded rather
+      // than the check narrowed to skip comments: a checker that ignores whole
+      // regions of a file is a checker with a region nobody is watching.
+      ui.card("What this does and does not do", "Growth Studio sends your email campaigns itself, to the people who recorded consent, and charges you per email rather than through a separate subscription. Text messages and phone calls are not: those still go out through the provider you connect below, on that provider's account, under that provider's bill. It plans the campaign, scores and routes the lead, and records consent before anything is dispatched."),
       summaryTable(dashboard, ui.escape),
       ui.card("Approval boundary", "Public posts, campaign sends, ad changes, budget changes, and high-volume follow-up messaging require explicit human approval. Automation rules are created disabled and cannot contain arbitrary code."),
       ui.card("Attribution boundary", "Every conversion records an attribution model and confidence level. Provider sampling and data freshness are preserved instead of presenting estimates as exact causal truth."),
@@ -900,6 +937,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // reachable only by knowing its URL is the same as not having one.
       const createSpec = getGrowthCreateSpec(page.tableKey);
       if (!unavailable && createSpec) sections.push(createFormCard(createSpec, ui.escape));
+      // The outcome first, because after pressing Send that is the only thing
+      // the owner is looking for, and a redirect that lands on an unchanged
+      // page reads as nothing having happened.
+      if (page.sendForm) {
+        const outcome = sendOutcomeCard(req.query, ui.escape);
+        if (outcome) sections.unshift(outcome);
+        if (!unavailable) sections.push(campaignSendCard(rows, ui.escape));
+      }
 
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
@@ -1404,6 +1449,93 @@ async function loadOne(config, table, context, id) {
 async function controlEvent(config, context, type, status, details, campaignId = null, jobId = null) {
   return insert(config, TABLES.events, { organization_id: context.organizationId, user_id: context.userId, campaign_id: validUuid(campaignId) ? campaignId : null, job_id: validUuid(jobId) ? jobId : null, event_type: type, event_status: status, details: sanitizeProviderPayload(details) });
 }
+
+// What the last send did, read back off the redirect.
+//
+// The route answers a browser with a 303 rather than a body, so this is the
+// only place the counts are shown. All three are rendered even when two are
+// zero: "8 sent" alone lets an owner believe they reached everybody, and the
+// difference between the list and the send is the thing they most need to see.
+//
+// Returns null when there is nothing to report, so a first visit is not given a
+// card about a send that did not happen.
+function sendOutcomeCard(query, escape) {
+  const problem = clean(query?.problem, 120);
+  if (problem) {
+    return `<article class="card"><h2>Nothing was sent</h2><p>${escape(SEND_PROBLEMS[problem] || display(problem))}</p></article>`;
+  }
+
+  const sent = Number.parseInt(String(query?.sent ?? ""), 10);
+  if (!Number.isFinite(sent)) return null;
+
+  const skipped = Number.parseInt(String(query?.skipped ?? ""), 10) || 0;
+  const failed = Number.parseInt(String(query?.failed ?? ""), 10) || 0;
+  const parts = [`${sent} sent`];
+  if (skipped) parts.push(`${skipped} skipped because they had not agreed to hear from you`);
+  if (failed) parts.push(`${failed} could not be delivered`);
+  return `<article class="card"><h2>Your campaign went out</h2><p>${escape(`${parts.join(", ")}.`)}</p></article>`;
+}
+
+// Sending one of the campaigns above.
+//
+// The approval is a checkbox and it is deliberately not pre-ticked. AGENTS.md
+// requires the owner's approval for a customer campaign, and a box already
+// ticked when the page loads is not an approval anybody gave.
+function campaignSendCard(rows, escape) {
+  // Only the ones that can actually be sent. Offering a completed campaign in
+  // this list and refusing it on submit is a form that fails on a choice it
+  // presented as valid.
+  const sendable = (rows || []).filter((row) => row.status !== "completed" && row.status !== "archived");
+  if (sendable.length === 0) {
+    return `<article class="card"><h2>Send an email campaign</h2><p>${escape("None of your campaigns can be sent right now. Add one above, or reopen a finished one.")}</p></article>`;
+  }
+
+  const options = sendable
+    .map((row) => `<option value="${escape(row.id)}">${escape(clean(row.name, 120) || "Untitled campaign")}</option>`)
+    .join("");
+
+  // "email" is named rather than left as "a campaign", and not only for the
+  // copy check. The handler passes channel "email" to authoriseCampaign, so an
+  // unqualified "Send a campaign" would offer a choice the code does not have
+  // -- growth_campaigns carries a `channel` column, and a form that ignores it
+  // while saying "campaign" implies text messages work.
+  return `<article class="card"><h2>Send an email campaign</h2>` +
+    `<p>${escape("This goes by email only, and only to the people who recorded consent for it. Anyone who has not, or who withdrew, is left out and counted so you can see the difference.")}</p>` +
+    `<form method="post" action="/api/growth/campaigns/send">` +
+    `<label for="campaign_id">Which campaign</label><select id="campaign_id" name="campaign_id" required>${options}</select>` +
+    `<label for="subject">Subject</label><input id="subject" name="subject" type="text" maxlength="300" required>` +
+    `<label for="body">Message</label><textarea id="body" name="body" rows="6" maxlength="20000" required></textarea>` +
+    `<label for="audience">Who it goes to</label>` +
+    `<select id="audience" name="audience">` +
+    `<option value="campaign">The contacts attached to this campaign</option>` +
+    `<option value="organization">Everyone in your contact list</option>` +
+    `</select>` +
+    `<label for="approved"><input id="approved" name="approved" type="checkbox" value="true" required> I approve emailing this to my customers</label>` +
+    `<button type="submit">Send email campaign</button>` +
+    `</form></article>`;
+}
+
+// The refusal codes this page can be redirected back with, in the owner's
+// words. A code with no entry falls back to the code itself with its
+// underscores removed -- readable rather than blank, and it says the code so
+// they can quote it.
+const SEND_PROBLEMS = Object.freeze({
+  explicit_campaign_approval_required: "You need to tick the approval box before a campaign can be sent.",
+  campaign_message_required: "A campaign needs both a subject and a message.",
+  invalid_campaign_id: "That campaign could not be identified. Choose one from the list and try again.",
+  campaign_not_sendable: "That campaign is finished or put away. Reopen it before sending.",
+  no_recipients: "No contacts are attached to that campaign. Attach some, or send to your whole contact list.",
+  too_many_recipients: "That campaign reaches more contacts than one send can finish. Nothing was sent.",
+  no_consented_recipients: "Nobody on that list has agreed to hear from you by email. Nothing was sent and nothing was charged.",
+  insufficient_credit: "There is not enough credit to send this campaign. Nothing was sent.",
+  balance_unreadable: "We could not check your credit just now, so nothing was sent. Try again shortly.",
+  cannot_read_recipients: "We could not read your contact list just now, so nothing was sent.",
+  cannot_read_consent: "We could not read your consent records just now, so nothing was sent.",
+  consent_rows_unreadable: "There are too many consent records to read at once, and a partial read would leave out people who did agree. Nothing was sent.",
+  email_not_configured: "Email sending is not set up yet, so nothing was sent.",
+  supabase_setup_required: "Your account database is not connected yet, so nothing was sent.",
+  resource_not_found: "That campaign could not be found in your workspace.",
+});
 
 // The form for a spec, rendered onto the record page the customer already
 // reaches. Values are not carried back on a rejection here because this posts

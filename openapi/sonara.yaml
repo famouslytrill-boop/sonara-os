@@ -2063,6 +2063,26 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/growth/campaigns/send:
+    post:
+      operationId: sendGrowthCampaignFromForm
+      tags: [Growth Studio]
+      summary: The form entry point for a campaign send, naming the campaign in the body.
+      description: >-
+        Identical to POST /api/growth/campaigns/{campaignId}/send and served by the same
+        handler; the campaign is named as campaign_id in the body because the send form on
+        /growth-studio/your-campaigns chooses it with a select, which cannot set a path
+        segment. A browser posting a form is answered with a 303 back to that page carrying
+        the counts or the refusal code; a JSON caller gets the same body as the path form.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: Redirect back to the campaigns page with the send outcome. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "402": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/growth/campaigns/{campaignId}/send:
     parameters:
       - in: path

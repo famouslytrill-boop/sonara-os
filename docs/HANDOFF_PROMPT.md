@@ -106,6 +106,125 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - Somewhere to press Send, and a check whose reason had expired
+
+The send route existed and no page posted to it. In this repository that is a
+recognised defect rather than an omission -- the same one recorded for the quote
+step and the lead conversion: **an endpoint reachable only by an API client is
+not a feature a small business owner has.**
+
+**The form is on `/growth-studio/your-campaigns`**, where the owner already sees
+their campaigns, rather than on a new page needing a new registry entry. It
+picks a campaign, takes a subject and a message, chooses the audience, and has
+an approval checkbox that is deliberately **not pre-ticked** -- a box already
+ticked when the page loads is not an approval anybody gave.
+
+**Two entry points, one handler.** An HTML `<select>` sets a field, not a path
+segment, so the form cannot post to `/campaigns/:campaignId/send`. Rather than
+two implementations that will diverge, `POST /api/growth/campaigns/send` reads
+the id from the body and both routes call the same `sendCampaign`. Both serve
+both kinds of caller: a browser gets a 303 back to the page carrying the counts,
+a JSON client gets the body.
+
+**The counts are on the redirect, because the body is never shown.** All three
+are rendered even when two are zero: "8 sent" alone lets an owner believe they
+reached everybody, and the difference between the list and the send is the thing
+they most need to see. Refusals come back as a code and are rendered in the
+owner's words; an unmapped code is still readable rather than blank, and it says
+the code so they can quote it.
+
+## The check whose stated reason had expired
+
+`scripts/check-growth-studio-copy.mjs` failed on the new copy, and **it was
+right to and its premise was wrong.** Its own words:
+
+> There is no SMTP path, no SMS provider and no Twilio anywhere.
+
+That was true when written. Half of it is false now:
+`lib/growth-studio-dispatch.cjs` POSTs to `api.resend.com` on our own account
+and `lib/sonara-paid-capabilities.cjs` prices it per email.
+
+**This is defect five from `.claude/skills/checks-that-cannot-lie` -- an
+exemption whose reason has expired -- and a wrong reason inside a check is worse
+than no check, because it is what the next person reads instead of checking.**
+The tempting move was to relax the check so honest copy passes. That is how a
+check gets quietly weakened into nothing, so it was rewritten instead, and the
+rewrite is **stronger** than what it replaced:
+
+- **Email may be claimed, but only while the code that delivers it exists.**
+  `EMAIL_DELIVERY_EVIDENCE` reads three things out of the source: the dispatcher
+  exists, it posts to Resend, and a route calls it. Delete the sender and every
+  "send your campaign" sentence becomes a finding again immediately. The
+  permission is granted by the code, not by the script's opinion of it.
+- **SMS and voice may never be claimed**, and no neighbouring sentence excuses
+  it. `lib/sonara-telephony.cjs` decides and prices; it dials nothing, and no
+  runtime file reads `SONARA_TELEPHONY_PROVIDER_URL`. A carrier claim is exactly
+  what the original said of email: a promise the code cannot keep.
+- **The sentence that must survive changed sides.** It used to be the
+  control-plane sentence about email going out through a provider. Email
+  delivery is now guaranteed by code; what needs saying on a page is the
+  *carrier* boundary, because a page silent on who places a call is how that
+  claim creeps back.
+
+`replaces klaviyo` **stays banned**, deliberately. Sending an email is one of
+the things Klaviyo does; flows, segmentation, deliverability tooling and
+reputation management are the rest, and none is built. A capability that can
+send is not a replacement for a product that can send, and claiming otherwise
+fails on a customer's first real comparison. That is a positioning decision and
+it is the owner's to change, not this script's.
+
+**A canary now guards the patterns themselves**, and it earned its place on the
+first run: it found that `(sms|text) (are|is) (sent)` never matched **"SMS
+messages are sent"**, because the pattern required the channel word to sit
+against the verb. A real overclaim the check walked straight past. The canary
+exercises every carrier pattern and names the ones that stop matching, because
+clean copy and a dead regex look identical.
+
+The page sentence was rewritten to match: Growth Studio emails campaigns itself
+and charges per email; text messages and phone calls still go out through a
+connected provider.
+
+**My own comment tripped the check**, by quoting a forbidden claim as an
+example. The comment was reworded, not the check narrowed to skip comments -- a
+checker that ignores whole regions of a file is a checker with a region nobody
+is watching. Second time this session the same call came up and it went the same
+way.
+
+## Falsification
+
+**Ten breaks, nine caught first time.** Four against the rewritten copy check --
+the dispatcher stopping its Resend call, no route calling the dispatcher, a
+carrier claim appearing in brand copy, the carrier-boundary sentence deleted --
+each naming the right thing. Six against the form and page: the form answered
+with JSON, the approval box pre-ticked, completed campaigns offered in the
+select, the skipped count dropped from the redirect, a raw code shown instead of
+words, and the outcome card shown on a first visit.
+
+The one miss was **a sed pattern that did not match, caught by the hash
+comparison** rather than read as a passing break -- which is what that
+comparison was added for two entries ago. Redone with an exact string edit and
+caught.
+
+**And one assertion of mine was worthless before it was fixed:** "does not offer
+a campaign it would then refuse" matched `/None of your campaigns...|Send an
+email campaign/` -- an alternation satisfied whichever way the page rendered. It
+now asserts the empty branch specifically, with a companion test proving a
+sendable campaign *does* appear, so neither can pass on an empty page. A second
+one asserted `<option value="` anywhere on the page and caught the create form's
+status select instead; scoped to the campaign's own id.
+
+**The test harness's `layout` stub dropped `sections`**, so seven page
+assertions ran against `<html>Your campaigns</html>` and would have passed on a
+page with nothing on it. Fixed before the assertions were trusted.
+
+**Verified:** 4,239 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `verify-openapi-contract` again caught the new route before anything
+else did.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice, and
+Resend's suppression list -- nothing records unsubscribes or bounces yet, so the
+sender's `suppressed` flag has nothing true to put in it.
+
 ### 2026-09-10 - The send route, a price that was never charged, and a check that punished the right thing
 
 `POST /api/growth/campaigns/:campaignId/send` in

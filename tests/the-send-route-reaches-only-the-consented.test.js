@@ -104,7 +104,10 @@ function harness({
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
   registerRoutes(app, {
-    layout: (data) => `<html>${data.heading}</html>`,
+    // Renders the sections, because the cards ARE what these assertions are
+    // about. A stub that drops them would let every page assertion below pass
+    // against a page with nothing on it.
+    layout: (data) => `<html><h1>${data.heading}</h1><p>${data.body}</p>${(data.sections || []).join("")}</html>`,
     brandCard: (title, body) => `<article>${title}${body}</article>`,
     linkAction: (href, label) => `<a href="${href}">${label}</a>`,
     escapeHtml: (value) => String(value),
@@ -132,6 +135,35 @@ async function send(options = {}, body = MESSAGE) {
   try {
     const response = await request(app).post(options.path || SEND_PATH).send(body);
     return { response, calls };
+  } finally {
+    global.fetch = original;
+  }
+}
+
+// What a browser does: urlencoded to the id-less path, with the campaign chosen
+// by a field because a `<select>` cannot set a path segment.
+async function sendAsForm(options = {}, fields = { approved: "true", subject: "Spring service check", body: "Your annual service is due." }) {
+  const { app, calls, fetchImpl } = harness(options);
+  const original = global.fetch;
+  global.fetch = fetchImpl;
+  try {
+    const response = await request(app)
+      .post("/api/growth/campaigns/send")
+      .type("form")
+      .set("Accept", "text/html")
+      .send({ campaign_id: CAMPAIGN_ID, ...fields });
+    return { response, calls };
+  } finally {
+    global.fetch = original;
+  }
+}
+
+async function loadCampaignsPage(options = {}, query = "") {
+  const { app, fetchImpl } = harness(options);
+  const original = global.fetch;
+  global.fetch = fetchImpl;
+  try {
+    return await request(app).get(`/growth-studio/your-campaigns${query}`).set("Accept", "text/html");
   } finally {
     global.fetch = original;
   }
@@ -420,6 +452,132 @@ describe("the send route reaches only the consented", () => {
       assert.equal(response.status, 200, "the email has gone; reporting nothing was sent would be false");
       assert.deepEqual(calls.sentTo, ["one@example.com"]);
       assert.equal(response.body.charge.ok, false, "and the gap is reported rather than hidden");
+    });
+  });
+
+
+  // The route existed and no page posted to it, which in this repository is a
+  // recognised defect rather than an omission: an endpoint reachable only by an
+  // API client is not a feature a small business owner has.
+  describe("the form a customer actually uses", () => {
+    it("sends from the id-less path, taking the campaign from the field", async () => {
+      const { response, calls } = await sendAsForm();
+      assert.equal(response.status, 303, "a browser posting a form needs a page back, not a JSON body");
+      assert.deepEqual(calls.sentTo, ["one@example.com"]);
+    });
+
+    it("puts the counts on the redirect, because the body is not shown to anybody", async () => {
+      const { response } = await sendAsForm({
+        leads: [lead(ID(1), "one@example.com"), lead(ID(2), "two@example.com")],
+        consents: [consent(ID(1))]
+      });
+      const target = response.headers.location;
+      assert.match(target, /^\/growth-studio\/your-campaigns\?/);
+      assert.match(target, /sent=1/);
+      assert.match(target, /skipped=1/, "an owner told '1 sent' would believe they reached both");
+    });
+
+    it("redirects with the reason when nothing was sent", async () => {
+      const { response, calls } = await sendAsForm({}, { subject: "Hello", body: "Body" });
+      assert.equal(response.status, 303);
+      assert.match(response.headers.location, /problem=explicit_campaign_approval_required/);
+      assert.deepEqual(calls.sentTo, []);
+    });
+
+    it("validates a body-supplied campaign id the same way as a path one", async () => {
+      const { app, fetchImpl } = harness();
+      const original = global.fetch;
+      global.fetch = fetchImpl;
+      try {
+        const response = await request(app)
+          .post("/api/growth/campaigns/send")
+          .type("form")
+          .set("Accept", "text/html")
+          .send({ campaign_id: "not-a-uuid", approved: "true", subject: "s", body: "b" });
+        assert.equal(response.status, 303);
+        assert.match(response.headers.location, /problem=invalid_campaign_id/);
+      } finally {
+        global.fetch = original;
+      }
+    });
+
+    it("still answers a JSON caller with JSON on the same path", async () => {
+      // Both entry points serve both kinds of caller. A route that only spoke
+      // HTML would make the id-less path unusable from an API client.
+      const { app, fetchImpl } = harness();
+      const original = global.fetch;
+      global.fetch = fetchImpl;
+      try {
+        const response = await request(app).post("/api/growth/campaigns/send").send({ campaignId: CAMPAIGN_ID, ...MESSAGE });
+        assert.equal(response.status, 200);
+        assert.equal(response.body.sent, 1);
+      } finally {
+        global.fetch = original;
+      }
+    });
+  });
+
+  describe("the page the form lives on", () => {
+    it("offers the send form", async () => {
+      const page = await loadCampaignsPage();
+      assert.equal(page.status, 200);
+      assert.match(page.text, /action="\/api\/growth\/campaigns\/send"/, "the form must post somewhere the route serves");
+      assert.match(page.text, /name="campaign_id"/);
+      assert.match(page.text, /name="approved"/);
+    });
+
+    it("does not pre-tick the approval box", async () => {
+      // A box already ticked when the page loads is not an approval anybody
+      // gave, and AGENTS.md requires the owner's approval for a customer
+      // campaign.
+      const page = await loadCampaignsPage();
+      const box = page.text.slice(page.text.indexOf('name="approved"') - 80, page.text.indexOf('name="approved"') + 80);
+      assert.ok(!/checked/.test(box), `the approval box must start unticked: ${box}`);
+    });
+
+    it("does not offer a campaign it would then refuse", async () => {
+      // A completed campaign is refused on submit, so offering it is a form
+      // that fails on a choice it presented as valid.
+      //
+      // The first version of this asserted a regex matching EITHER branch, which
+      // is no assertion at all -- it passed whichever way the page rendered.
+      const page = await loadCampaignsPage({ campaign: { id: CAMPAIGN_ID, name: "Finished spring push", status: "completed" } });
+      assert.match(page.text, /None of your campaigns can be sent right now/);
+      // Scoped to an option carrying THIS campaign. The page also renders the
+      // create form, whose status field is a select of its own -- asserting on
+      // `<option` anywhere caught that instead and failed for the wrong reason.
+      assert.ok(!new RegExp(`<option value="${CAMPAIGN_ID}"`).test(page.text), "a finished campaign must not appear in the send select");
+      assert.ok(!/Finished spring push<\/option>/.test(page.text));
+    });
+
+    it("does offer a campaign that can be sent, so the check above is not passing on an empty page", async () => {
+      const page = await loadCampaignsPage({ campaign: { id: CAMPAIGN_ID, name: "Live spring push", status: "active" } });
+      assert.match(page.text, new RegExp(`<option value="${CAMPAIGN_ID}">Live spring push</option>`));
+      assert.ok(!/None of your campaigns can be sent right now/.test(page.text));
+    });
+
+    it("reports the outcome of a send it was redirected back from", async () => {
+      const page = await loadCampaignsPage({}, "?sent=8&skipped=2&failed=1");
+      assert.match(page.text, /8 sent/);
+      assert.match(page.text, /2 skipped/);
+      assert.match(page.text, /1 could not be delivered/);
+    });
+
+    it("says nothing about a send on a first visit", async () => {
+      const page = await loadCampaignsPage();
+      assert.ok(!/went out/.test(page.text), "a page nobody sent from must not report a send");
+    });
+
+    it("puts a refusal in the owner's words, not as a code", async () => {
+      const page = await loadCampaignsPage({}, "?problem=no_consented_recipients");
+      assert.match(page.text, /agreed to hear from you/);
+      assert.ok(!/no_consented_recipients/.test(page.text), "a raw code is not an explanation");
+    });
+
+    it("still explains an unrecognised code rather than rendering a blank card", async () => {
+      const page = await loadCampaignsPage({}, "?problem=something_nobody_listed");
+      assert.match(page.text, /Nothing was sent/);
+      assert.match(page.text, /something nobody listed/, "an unmapped code should be readable and quotable, not blank");
     });
   });
 
