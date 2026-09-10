@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 319 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 320 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,76 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - Generation is billed, and four completion paths were nearly three
+
+The first of the three capability gaps. The meter existed; nothing drew on it.
+
+**The honest problem, first, because it shapes everything else.** No provider
+here reports usage back. The route sends `duration_seconds` to ElevenLabs and
+Google Veo, but that is an *input*; the Open Media Worker contract returns
+`status`, `output_url` and `progress_percent` and no usage field. So there were
+three ways to bill and only one was honest: charge zero (giving GPU time away and
+calling it a feature), charge a number and present it as metered (the defect this
+codebase is named for), or **charge a documented estimate, record that it was an
+estimate, and take the measured figure the moment a provider reports one.**
+
+Every ledger row carries `metadata.usage_basis` — `metered` or `estimated` —
+because "we billed 96 GPU seconds" means two different things depending on which,
+and revenue cannot be reconciled against cost without knowing.
+
+**Three business decisions, stated rather than left implicit in where a call
+sits.** A failed job is **not** charged: it consumed real compute and we absorb
+that, because billing somebody for output they never received is the charge that
+loses them, and absorbing it is the right incentive to make failures rare. A
+ledger write failure does **not** fail the job: the asset is already stored, and
+withholding it over our own fault would punish the customer — it is reported
+loudly instead. And credit is gated **only** when `initialStatus === "queued"`:
+`review_required`, `setup_required` and `manual_required` call no provider, so
+refusing them for credit would charge a customer, in refusals, for work nobody
+was going to do.
+
+**Four things my own tests caught before any of it shipped.**
+
+*Four completion paths, not one.* This route marks a job completed in **four**
+places — ElevenLabs twice (JSON and binary), Google Veo once, and
+`completeFromProviderPayload` once for Suno and the worker. The first version
+wired only the last, so ElevenLabs and Google Veo would have produced assets a
+customer keeps and never been charged, **and every test would have passed**
+because the wired path worked. The structural assertion now counts completions
+against charges and fails when they differ, because the next provider added to
+this file has the same opportunity.
+
+*Six of twelve form capabilities had no cost estimate* — `sound_effects`,
+`video_extend`, `voice_clone`, `singing_voice`, `music_voice_profile`,
+`talking_avatar`. Under `gpuSecondsFor` each would have refused with a 500. A
+test walking `FORM_CAPABILITY_ORDER` found them; without it the route would have
+refused half its own form.
+
+*Zero margin below eight GPU seconds.* `quote()` rounds charge and cost both up
+to a whole minor unit, so at 4 GPU seconds the charge is 1 and the cost is also
+1 — a job run at exactly no margin. 8 is the smallest quantity where they
+separate (charge 2, cost 1), so that is the documented minimum billable job.
+
+*`deps` was out of scope at the charge site.* `node --check` passes on an
+undefined variable, so it took threading the parameter through ten functions to
+find. Three dispatch functions that submit without completing had it removed
+again rather than renamed to `_deps` — an argument nothing uses is noise.
+
+**The rollout hazard, and what was done about it.** Refusing every job with no
+credit is correct for margin and wrong as a deploy: generation worked yesterday
+and would stop today for every existing organization, whose only signal is a
+402. So there is a **derived** starting allowance of 500 minor units — $5.00,
+about 2,000 GPU seconds — added to the sum rather than granted as a row. It
+exhausts as draws accumulate, so it is a free tier and not a bypass; it cannot
+double-grant, because there is no row for two concurrent requests to insert; and
+every caller passes it in, so it appears in the decision rather than hiding
+inside a sum, and a test can set it to zero. **It is one number in one place
+until a per-plan entitlement replaces it, which is the owner's call.**
+
+**Broken and confirmed red three ways:** a provider completing without a charge,
+gating credit on jobs that never run, and charging a failed job. Each failed the
+right test by name.
 
 ### 2026-09-10 - The meter, so a metered capability can be charged for
 
