@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 322 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 323 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,66 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - The campaign dispatcher, and an assertion falsification found missing
+
+`lib/growth-studio-sender.cjs` decided; nothing sent. This is the other half,
+and it needs no vendor decision -- `RESEND_API_KEY` is already a required
+variable and already used for staff invitations, which is why email was the
+cheapest of the three gaps to finish.
+
+**The property the whole split exists for.** The dispatcher only ever reads
+`decision.eligible`. It never sees the original recipient list, so there is no
+path by which a recipient the consent check refused could be sent to. That is
+enforced by the signature rather than by care: the caller hands over a decision,
+not a list. A page that asked the gate and then did the work regardless of the
+answer is what `lib/sonara-agent-runner.cjs` was written to replace; this is the
+same shape one product along, so it is built the same way.
+
+**Three rules for a half-failed send**, each because the alternative is worse:
+
+- **Failures are counted and named.** An owner told "sent" when forty bounced
+  has been told something false. The address is kept, because they need to know
+  *who*, and the status is kept, because a 422 and a 429 need different actions.
+- **Charged for what was accepted, not attempted.** We pay Resend per accepted
+  message; billing for attempts would charge a customer for our own failed
+  requests.
+- **A ledger failure does not un-send the email.** It has gone. Failing the
+  dispatch would tell the owner nothing went out while messages are in flight,
+  so the gap is reported loudly instead.
+
+`ok` is true when *anything* was accepted -- a campaign where 459 of 460 landed
+is not a failed campaign -- and the counts carry the rest, because a single
+boolean cannot.
+
+**The finding, and it is the useful part of this entry.** Falsification ran four
+breaks. Two were caught. **Two were not, and they failed for different reasons
+worth telling apart:**
+
+*One was a genuinely weak assertion.* Deleting the `decision.allowed !== true`
+check left every test green, because the test feeding it a refusal used a
+decision whose `eligible` was empty -- so the emptiness check caught it and the
+`allowed` check was never exercised. That is defect six in
+`.claude/skills/checks-that-cannot-lie`: a check too weak to catch the bug it
+was written for. The missing case is a refusal that still *carries* recipients,
+which is the shape that matters, because a caller reading `eligible` while
+ignoring `allowed` would send to people the decision refused. Added, and it
+fails when the check is removed.
+
+*The other was my own tooling error.* The fourth break replaced a line with the
+wrong indentation, so the edit never applied and a no-op read as a passing
+break. Re-run with the correct indentation it trips four assertions. Worth
+recording because a falsification that silently does not modify the file is
+itself a check reporting success without being true -- the assertion count is
+the thing that gives it away, and comparing it is now part of doing this.
+
+**The default reporter goes through `redactSensitiveText`**, asserted by reading
+the source rather than trusting it. The route-error log leaked a service-role
+key once and the rate limiters twice; this is the fourth place that boundary has
+earned its keep.
+
+**Still not built:** the route that calls this, and the carrier adapter for
+gap three. Email is now end to end from decision to delivery.
 
 ### 2026-09-10 - Answering a call is not the same as making one
 
