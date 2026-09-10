@@ -157,13 +157,28 @@ jobs:
       # and that ordering is the whole point of them being here.
       #
       # They used to run after `supabase db push`. Between 8 and 9 September 2026
-      # seven consecutive deployments therefore did the same thing: applied every
-      # pending migration to the production database, then failed on the Stripe
-      # check and never deployed the code. Production Postgres reached migration
-      # 115 of 115 while the apex went on serving 36c1b2a, 44 commits behind --
-      # schema ahead of the application that runs against it, which is the one
-      # state a deploy pipeline exists to avoid. Each run's own summary said
-      # "Schema changes were already applied to production", and each was right.
+      # seven consecutive deployments therefore ran the push, failed the Stripe
+      # check, and never deployed the code.
+      #
+      # CORRECTED 10 September 2026, and the correction is the more useful half.
+      # This comment first said those runs had "applied every pending migration"
+      # and left production's schema ahead of its code. They had not. The
+      # migration set at the deployed commit 36c1b2a and at the tip of main are
+      # byte-identical -- 115 files, none added, removed or edited across those
+      # 44 commits -- so every one of those pushes was a no-op against a
+      # database already current. There was no schema-ahead-of-code gap.
+      #
+      # The claim came from the run summaries saying "Schema changes were
+      # already applied to production", which was written unconditionally
+      # whenever a checkpoint file existed and asserted something it never
+      # checked. That message is fixed below; this comment is corrected because
+      # a wrong reason inside an explanation is what the next person reads
+      # instead of checking.
+      #
+      # The reordering is still right, on its own merits rather than on that
+      # story: when a migration IS pending, failing after the push leaves
+      # production's schema ahead of the application running against it. This
+      # ordering makes that impossible rather than merely unlikely.
       #
       # Nothing in either step needs a migration to have run. The dry-run above
       # has already proved the migration set applies; these two read Vercel and
@@ -280,12 +295,53 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # Record whether this actually CHANGED anything, by asking the database
+      # rather than by asking whether a file exists.
+      #
+      # The rollback summary at the end of this job used to say "Schema changes
+      # were already applied to production" whenever rollback-checkpoint.txt was
+      # present -- and that file is written before the push, unconditionally. So
+      # the message announced a schema change on every run that got this far,
+      # true or not.
+      #
+      # On 9 September 2026 that misled a reader into recording, in a commit
+      # message, a sprint-log entry, a pull request body and a comment in this
+      # file, that seven failed deployments had each moved production's schema
+      # forward. They had not: the migration set at the deployed commit and at
+      # the tip of main were byte-identical, so every one of those pushes was a
+      # no-op against a database already at 115 of 115. A message asserting a
+      # thing it never checked is the defect CLAUDE.md names, and this one was
+      # believed and repeated, which is exactly the harm it does.
+      #
+      # Comparing dumps rather than parsing `supabase db push` output is
+      # deliberate. The push reports in prose whether the remote was already
+      # current, and a parser keyed to vendor wording silently stops matching
+      # when the vendor rewords it -- which fails green. Two schema dumps either
+      # differ or they do not, and that is a fact about the database.
+      #
+      # The test beside this asserts that wording never appears here, so this
+      # comment states the shape rather than quoting the string.
       - name: Apply production database migrations
         shell: bash
         run: |
           set -euo pipefail
           supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+
+          supabase db dump --linked --password "$SUPABASE_DB_PASSWORD" -f post-migration-schema.sql
+
+          # Guard against the comparison passing by measuring nothing: an empty
+          # or missing dump must not read as "no change".
+          test -s pre-migration-schema.sql
+          test -s post-migration-schema.sql
+
+          if cmp -s pre-migration-schema.sql post-migration-schema.sql; then
+            echo "schema_changed=no" > migration-effect.txt
+            echo "Production schema is byte-identical before and after the push: nothing was applied."
+          else
+            echo "schema_changed=yes" > migration-effect.txt
+            echo "Production schema changed. A rollback point is recorded in rollback-checkpoint.txt."
+          fi
 
       - name: Verify production catalog database boundary
         shell: bash
@@ -394,8 +450,24 @@ jobs:
           {
             echo "### Deployment failed -- rollback may be required"
             echo ""
-            if [ -f rollback-checkpoint.txt ]; then
-              echo "Schema changes were already applied to production. Checkpoint:"
+            # Three states, not two. The middle one is the one that was missing,
+            # and its absence is what made this summary misleading: a run that
+            # took a checkpoint and then applied nothing was reported in the
+            # same words as a run that rewrote the schema.
+            if [ -f rollback-checkpoint.txt ] && grep -q "schema_changed=yes" migration-effect.txt 2>/dev/null; then
+              echo "Schema changes WERE applied to production -- the schema dump differs before and after. Checkpoint:"
+              echo '```'
+              cat rollback-checkpoint.txt
+              echo '```'
+              echo "Follow docs/PRODUCTION_ROLLBACK_RUNBOOK.md."
+            elif [ -f rollback-checkpoint.txt ] && grep -q "schema_changed=no" migration-effect.txt 2>/dev/null; then
+              echo "No schema change was applied: the production schema dump is byte-identical before and after the push."
+              echo "A rollback checkpoint was still recorded, because it is taken before the push rather than after it."
+              echo "**No database rollback is needed.** Whatever failed, failed after a push that did nothing."
+            elif [ -f rollback-checkpoint.txt ]; then
+              echo "A rollback checkpoint exists, but whether the push changed anything was NOT determined --"
+              echo "migration-effect.txt is missing, so this run failed at or before the apply step."
+              echo "Do not assume either way. Compare the schema against the checkpoint before acting:"
               echo '```'
               cat rollback-checkpoint.txt
               echo '```'
@@ -413,6 +485,7 @@ jobs:
           name: controlled-production-diagnostics-${{ github.run_id }}
           path: |
             rollback-checkpoint.txt
+            migration-effect.txt
             release-validation.log
             vercel-deploy.log
             apex-health.json

@@ -2,6 +2,62 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - A rollback message that announced a schema change it never checked
+
+The deploy's failure summary decided whether production's schema had changed by
+asking **whether `rollback-checkpoint.txt` exists**. That file is written before
+the push, unconditionally. So every run that got that far printed:
+
+> Schema changes were already applied to production.
+
+true or not. It is the recurring defect sitting in the worst possible place: the
+sentence a person reads while deciding whether to perform a database rollback.
+
+**It was believed, and repeated, which is the harm.** On 9 September that line
+was read out of a run log and taken as evidence. It went into a commit message,
+a sprint-log entry, a comment in the workflow, a pull request body, and twice to
+the owner — all stating that seven failed deployments had moved production's
+schema forward and that the gap "might matter, not checked".
+
+Checking it took two commands. `git ls-tree` at the deployed commit `36c1b2a`
+and at `HEAD` lists **the same 115 migration files**, and `git diff` over
+`supabase/` across those 44 commits is empty. Not one migration was added,
+removed or edited. Every one of those pushes was a no-op against a database
+already current. **There was no gap and no rollback was ever owed.**
+
+**What replaced it.** The apply step now dumps the schema after the push and
+compares it to the dump already taken before, then writes `schema_changed=yes|no`
+to `migration-effect.txt`, which is uploaded with the failure diagnostics. The
+summary reports three states rather than two — applied, applied nothing, and
+*could not tell* — because a run that fails at the apply step itself knows
+neither, and defaulting to one answer is the original bug with a new default.
+
+Comparing dumps rather than parsing `supabase db push` output is deliberate: the
+CLI reports in prose, and a parser keyed to vendor wording fails green when the
+vendor rewords it. Two dumps either differ or they do not.
+
+`docs/PRODUCTION_ROLLBACK_RUNBOOK.md` routed the owner's incident decision off
+the old wording, so it now carries all four branches, including the instruction
+not to assume either way when the marker is absent.
+
+**Broken, and confirmed red, before committing.**
+`tests/the-rollback-summary-says-what-actually-happened.test.js`. Restoring the
+original checkpoint-only summary failed exactly three by name — *"no longer
+claims a schema change merely because a checkpoint file exists"*, *"reports the
+case that was missing"*, and *"says it could not tell, rather than guessing"* —
+while the other five stayed green. Restored by copying the file back.
+
+One of its assertions also caught a real thing on the first run: it forbids the
+CLI's wording appearing anywhere in the workflow, and it fired on the
+explanatory comment quoting that wording. The comment was reworded rather than
+the assertion loosened.
+
+**The lesson worth keeping.** The reordering committed on 9 September is still
+right, but its stated justification was a story rather than a measurement. A
+signal that reports success without being true is the documented defect here;
+this was the same defect one step out — a signal reporting *failure* without
+being true, which is just as false and reads as more urgent.
+
 ### 2026-09-09 - AI-SDLC Framework reviewed: the licence is real, the "open source" line is half the story
 
 A screenshot of the **AI-SDLC Framework** README arrived. Register record added
@@ -89,14 +145,20 @@ fix something already done. Two different things are blocking the deploy:
   fails on both -- and it is the reason six variables carry the flag. Withdrawn,
   with the evidence written in beside it.
 
-**The worse problem.** The Stripe check ran *after* `supabase db push`. So each
-of the seven consecutive failed deployments between 8 and 9 September applied
-every pending migration to the production database and then stopped without
-deploying any code. Production Postgres reached migration 115 of 115 while the
-apex went on serving `36c1b2a`, 44 commits behind -- schema ahead of the
-application running against it. Each run's summary said "Schema changes were
-already applied to production" and each was telling the truth; nothing was
-reading them.
+**A latent problem, and a claim about it that was wrong.** The Stripe check ran
+*after* `supabase db push`, so each of the seven consecutive failed deployments
+between 8 and 9 September ran that push, failed, and deployed no code.
+
+> **Corrected 10 September 2026.** This entry originally said those runs had
+> "applied every pending migration to the production database" and left
+> production's schema ahead of its code. **They had not.** The migration set at
+> the deployed commit `36c1b2a` and at the tip of `main` is byte-identical --
+> 115 files, none added, removed or edited across those 44 commits -- so every
+> push was a no-op against a database already current. There was no
+> schema-ahead-of-code gap, and no rollback was ever owed. The correction is
+> recorded rather than quietly edited because the wrong version was told to the
+> owner twice and shipped in a pull request body. See the entry below for how
+> the claim was arrived at.
 
 The environment pull and the price check now run **before** the migration apply.
 Nothing in either needs a migration to have run: the dry-run above them has

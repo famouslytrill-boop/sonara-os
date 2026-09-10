@@ -75,25 +75,30 @@ describe("the deploy proves the price before it ships it", () => {
     );
   });
 
-  // Added 9 September 2026, after the ordering this asserts had already cost
-  // something. The price check sat after `supabase db push`, so between 8 and 9
-  // September seven consecutive deployments applied every pending migration to
-  // the production database and then failed here without deploying any code.
-  // Production Postgres reached migration 115 of 115 while the apex served
-  // 36c1b2a, 44 commits behind it. Each run's summary said "Schema changes were
-  // already applied to production" and each was telling the truth.
+  // Added 9 September 2026, when the price check sat after `supabase db push`
+  // and seven consecutive deployments ran that push, failed here, and deployed
+  // no code.
   //
-  // Failing before the database is touched is the difference between a deploy
-  // that did nothing and a deploy that left production's schema ahead of the
-  // application running against it.
+  // CORRECTED 10 September 2026. This comment said those runs had each applied
+  // every pending migration and left production's schema ahead of its code. They
+  // had not: the migration set at the deployed commit and at the tip of main are
+  // byte-identical, so each push was a no-op. The belief came from the run
+  // summaries, which announced a schema change whenever a checkpoint file
+  // existed -- a claim keyed to something it never checked. See
+  // tests/the-rollback-summary-says-what-actually-happened.test.js.
+  //
+  // The ordering these two cases hold is right regardless, and on a plainer
+  // reason: when a migration IS pending, failing after the push leaves
+  // production's schema ahead of the application running against it. Running
+  // the check first makes that impossible rather than merely unlikely.
   it("runs before any migration is applied, so a failure leaves the database untouched", () => {
     const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
     const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
     assert.ok(applyAt > 0, "the migration apply step is missing, so this ordering cannot be checked");
     assert.ok(
       checkAt < applyAt,
-      "the price check must run before migrations are applied; after them, a failure here has already moved production's " +
-      "schema ahead of the code, which is what happened seven times between 8 and 9 September 2026"
+      "the price check must run before migrations are applied; after them, a failure here leaves production's schema " +
+      "ahead of the code whenever a migration was actually pending"
     );
   });
 
