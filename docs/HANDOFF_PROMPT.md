@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 326 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 327 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,121 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - A telephony floor nobody had sourced, and four copies of figures that would have gone stale
+
+`lib/sonara-paid-capabilities.cjs` priced `telephony` at 3.0 minor units per
+`message_or_minute` against a floor of **0.8**, and the whole justification in
+the comment was that "a carrier bills per message and per minute and there is no
+version of this that does not." That explains why a floor exists. It is not a
+source for 0.8.
+
+## What the real prices say
+
+Read 10 September 2026 from the vendors' own US pay-as-you-go pages. Full
+working, with every source URL, in
+`docs/architecture/2026-09-10-CARRIER-VENDOR-COMPARISON.md`.
+
+0.8 was **below the true cost on every vendor and every direction**. The
+specific thing it missed is **mandatory US carrier surcharges** — AT&T $0.0035,
+T-Mobile $0.0045, Verizon $0.0045 per message part, identical on Twilio and
+Telnyx because they belong to neither. A floor built from a base rate alone
+understates every single SMS.
+
+The floor is now **1.4**, Twilio's outbound voice minute, deliberately the worst
+plausible case on a local number rather than the likely one. The margin this
+codebase reports therefore drops from a claimed **3.75×** to an actual
+**2.14×** — 53% of price, which is still a business.
+
+**Toll-free inbound at 2.20 is outside that floor** and is named rather than
+averaged in; it leaves 27% margin at our price and needs its own price before a
+toll-free number is ever rented.
+
+**Two costs the per-unit model cannot express** are recorded so they are not met
+on an invoice: a number's **fixed monthly rent** ($1.15 local, $2.15 toll-free),
+which means a customer with a number costs money in a month they send nothing;
+and **A2P 10DLC registration**, which is a real fee and a real delay and gates
+outbound SMS entirely.
+
+**Recommendation: Telnyx on cost (2.1×–2.8× cheaper on every unit compared), but
+only after the answering architecture is settled.** A serverless function cannot
+hold a call, that constraint is identical on both vendors, and it is the actual
+work. If the owner prefers Twilio, nothing in the code changes — the floor is
+already Twilio's number.
+
+**Ours, not the owner's, and not built: SMS STOP/UNSTOP handling.** It is a legal
+obligation on any outbound text. Named in the comparison document and in
+`docs/SHIP_READINESS.md`.
+
+## The copies, which are the more general finding
+
+`floorMinor: 0.8` had been written as prose into `lib/sonara-telephony.cjs` and
+`lib/sonara-usage-meter.cjs`. Correcting the module left both files stating the
+old number, in places nobody would open when changing a price.
+
+So `tests/a-cost-floor-is-a-figure-somebody-checked.test.js` now forbids any
+runtime file outside the pricing module from quoting a price or floor figure at
+all. Writing that check **found two more copies nobody had looked for**:
+
+- `lib/creator-generation-billing.cjs` quoted media generation's floor twice
+  (0.0747) and its price (0.25).
+- `lib/growth-studio-sender.cjs` quoted `campaign_email`'s price and floor
+  (0.15 / 0.07).
+
+Four copies across three files, none of them wrong yet, all of them guaranteed to
+disagree with the module eventually.
+
+**And one of those comments was already false.** `creator-generation-billing.cjs`
+said eight GPU seconds was "the smallest quantity where the two separate". The
+real separation point on the current price list is **five**. Eight is a fine
+minimum — above the separation point is the safe direction — but the sentence
+explaining *why* read exactly like arithmetic somebody had run, and was not.
+
+That is now a check rather than a sentence: the test derives each separation
+point from `quote()` and fails if a billing minimum drops to or below it. Same
+for the free-allowance sentence in `sonara-usage-meter.cjs`, which claims $5.00
+buys "about two thousand GPU seconds" — true only at a particular price, so the
+test asserts the allowance still buys that order of magnitude.
+
+## The check that was too weak to catch its own bug
+
+The first version of the cross-file scan excluded a figure when the surrounding
+comment block explained a correction, because the excusing phrase and the figure
+sit on different lines in both real corrections. **That exemption swallowed
+anything added to such a block.** Appending
+`// telephony charges 3 minor units against a 1.4 floor` to the end of the
+correction comment in `sonara-telephony.cjs` went undetected — the exact bug the
+check exists to catch, in the exact file that motivated it.
+
+A figure is now excused only when the block explains a correction **and** the
+figure sits inside quotation marks, which is what a correction actually looks
+like (`This comment used to say "…"`). That break is kept as a test.
+
+Also kept as a test: the first pattern fired on
+`// Measured 19 August 2026 against a` in `sonara-route-registry.cjs` — a date
+and a preposition, nothing to do with pricing. A check that cries wolf gets
+switched off, so both halves are asserted: it catches all six real stale lines
+and none of four innocent ones.
+
+## Broken to prove it works
+
+Nine breaks, each redone by exact string edit after comparing the file hash
+before and after (a no-op `sed` reads exactly like a passing break, and that has
+already happened four times in this branch):
+
+1. An unquoted live figure appended to the telephony correction block — caught.
+2. The campaign figures copied back into `growth-studio-sender.cjs` — caught.
+3. The generation floor re-quoted in `creator-generation-billing.cjs` — caught.
+4. The GPU-second price re-quoted in the allowance comment — caught.
+5. `MINIMUM_BILLABLE_GPU_SECONDS` lowered to 4 — caught by name.
+6. `MINIMUM_BILLABLE_EMAILS` lowered to 6 — caught by name.
+7. `media_generation.priceMinor` moved to 1.0 — the allowance claim failed.
+8. The exclusion widened back to block-only — the appended-copy test failed.
+9. The pattern loosened to match a bare number before "against a" — the
+   innocent-prose test failed *and* the registry line reappeared as an offender.
+
+Verified: 4,339 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0, stale claims 17/17 with review dates.
 
 ### 2026-09-10 - Batching, and a cap whose arithmetic was measuring the wrong budget
 

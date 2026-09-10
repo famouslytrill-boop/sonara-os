@@ -450,6 +450,16 @@ reports these tables as used.
 
 ## Known and deliberate
 
+- **SMS opt-out (STOP/UNSTOP) is a legal obligation on any outbound text and
+  nothing here implements it.** This is ours, not the owner's, and it is not
+  vendor-dependent: `growth_contact_consents` and the unsubscribe path cover
+  email only. `lib/sonara-telephony.cjs` decides whether a text may be sent and
+  prices it; it dials nothing yet, so no message has been sent and nothing is
+  currently in breach. **It is code owed before the first text, not after the
+  carrier is chosen.** A2P 10DLC registration is the other gate on the same
+  path, and it is a fee and a delay rather than code —
+  `docs/architecture/2026-09-10-CARRIER-VENDOR-COMPARISON.md` has both, with the
+  vendor prices they were read from.
 - **Fourteen entries in `data/open-source-tools.ts` still carry a generic
   `https://github.com/` placeholder.** The gate warns about each on every run.
   They are resolved one at a time with the licence read from the project, not
