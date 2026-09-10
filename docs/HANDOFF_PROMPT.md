@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 321 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 322 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,76 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - Answering a call is not the same as making one
+
+Third of the three gaps, and the only one that genuinely needs a vendor.
+
+**The gap is narrower than "no phone", and that matters for scoping.**
+`docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md` records seven of eight
+capabilities already built at no marginal cost -- WebRTC calling from a customer
+record (27 August), Web Push, `.ics` calendar, GPS, scheduling, clock, and
+click-to-text from the owner's own handset. What was missing is **the public
+phone network**: a stranger dialling a number, and a text to somebody who has
+never opened our site.
+
+**The asymmetry that shapes the whole module.** Outbound and inbound are not the
+same decision, and treating them alike gets one of them wrong:
+
+- **Outbound** -- we contact them. Consent is the whole question, and it is
+  per-channel: `growth_contact_consents` records permission by channel, so an
+  email consent is not a permission to text and an SMS consent is not a
+  permission to ring. A bulk send is a customer campaign and AGENTS.md does not
+  permit automating one without the owner.
+- **Inbound** -- they ring us. **Consent does not apply.** They dialled;
+  demanding a consent record before answering would refuse exactly the customers
+  an inbound line exists to serve. What applies instead is *cost*, because the
+  carrier bills for the minutes whoever dialled, and *authority*, because what an
+  agent does on that call is a separate question from whether it is answered.
+
+Getting it backwards in either direction is a real fault, so both directions are
+asserted: requiring consent to answer makes the feature useless, and skipping it
+on outbound is the violation the rule exists to prevent.
+
+**A phone call is not an exemption from the approval rules.** `authoriseInbound`
+takes the actions an agent intends and classifies each through
+`sonara-agent-authority.cjs` -- so the call is answered while a refund, a payout
+change or a campaign still waits for the owner. They are returned named, so the
+owner can see what the agent could *not* do rather than the agent silently doing
+less than expected.
+
+**A decision for the owner, surfaced rather than taken.** `book_appointment` is
+not on the seven-action unattended list, so it arrives needing approval. That is
+the default-deny working as designed — but **Jobber's AI Receptionist books jobs
+autonomously**, so an approval-gated booking is a materially weaker product.
+Whether booking joins the unattended list is a product call, not this file's.
+
+**Two things the tests caught.**
+
+*`channel` was defaulted, so `undefined` became SMS.* A test asking whether an
+unnamed channel is guessed at found that a caller who forgot the argument would
+text somebody on the strength of a default. The default is gone from both entry
+points; the channel is what decides which consent counts, so it is the one
+argument that must be stated.
+
+*A zero-second connected call billed nothing.* `Math.ceil(0)` is 0, and a
+carrier charges for the connection. Now floored at one minute.
+
+**Ordering, and it is a choice:** an unnamed channel is reported *before* an
+unapproved campaign. A missing channel is a programming error no caller
+legitimately makes and should surface loudly; a missing approval is a legitimate
+user-facing state. So the bug is not masked by the refusal behind it.
+
+**Broken and confirmed red four ways:** requiring consent to answer a call,
+ignoring the channel on outbound, letting a call bypass the approval rules, and
+billing a zero-second call as nothing.
+
+**No vendor is chosen.** `lib/sonara-paid-capabilities.cjs` already requires
+`SONARA_TELEPHONY_PROVIDER_URL` -- a URL, not a named carrier -- the same adapter
+shape as the Open Media Worker. The decision core reads no environment variable,
+which is why `verify:env` needed no new classification; that comes with the
+adapter that actually places a call. **The dispatch and the carrier are the
+remaining work, and the vendor is the owner's decision.**
 
 ### 2026-09-10 - Growth Studio can decide to send, under three rules it may not relax
 
