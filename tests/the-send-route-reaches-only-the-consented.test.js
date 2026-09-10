@@ -387,10 +387,62 @@ describe("the send route reaches only the consented", () => {
 
     it("keeps the cap inside the function's own lifetime, with the arithmetic checkable", async () => {
       const { MAX_RECIPIENTS_PER_SEND } = require("../routes/growth-studio-control-routes.cjs");
-      // Vercel's documented default duration is 300s (read 10 September 2026),
-      // and vercel.json sets no maxDuration. At a pessimistic 500ms per send:
-      const pessimisticSeconds = MAX_RECIPIENTS_PER_SEND * 0.5;
-      assert.ok(pessimisticSeconds <= 200, `${MAX_RECIPIENTS_PER_SEND} recipients is ${pessimisticSeconds}s at 500ms each, with no headroom left in 300s`);
+      const { MAX_PER_REQUEST, MAX_FALLBACK_BATCHES } = require("../lib/growth-studio-dispatch.cjs");
+      const { MAX_PAGES } = require("../lib/growth-studio-suppression.cjs");
+
+      // REWRITTEN 10 September 2026. This used to be `cap * 0.5`, which was the
+      // right sum while every recipient was its own request and became wrong
+      // the moment batching landed -- so it failed on the raised cap, correctly,
+      // and is now the real worst case rather than a looser version of the old
+      // one. It counts three things the old sum did not.
+      //
+      // Vercel's documented default is 300s (read 10 September 2026) and
+      // vercel.json sets no maxDuration. Everything below is at a pessimistic
+      // 500ms per HTTP call.
+      const batchCalls = Math.ceil(MAX_RECIPIENTS_PER_SEND / MAX_PER_REQUEST);
+      // The expensive path: a batch that does not return one id per email is
+      // resent one recipient at a time, bounded by MAX_FALLBACK_BATCHES.
+      const fallbackCalls = MAX_FALLBACK_BATCHES * MAX_PER_REQUEST;
+      // And the screen that runs before any of it.
+      const suppressionCalls = MAX_PAGES;
+
+      const pessimisticSeconds = (batchCalls + fallbackCalls + suppressionCalls) * 0.5;
+      assert.ok(
+        pessimisticSeconds <= 200,
+        `worst case is ${pessimisticSeconds}s (${batchCalls} batches + ${fallbackCalls} fallback sends + ${suppressionCalls} suppression pages at 500ms each), leaving no headroom in 300s`
+      );
+
+      // And the guard that stops this passing by measuring nothing: if the
+      // fallback were unbounded the sum above would be meaningless.
+      assert.ok(MAX_FALLBACK_BATCHES >= 1, "a fallback nobody may use is a fallback that does not exist");
+      assert.ok(
+        fallbackCalls < MAX_RECIPIENTS_PER_SEND,
+        "the fallback must be bounded below the cap, or the worst case is every recipient sent individually"
+      );
+
+      // **The constraint the time sum misses, found by falsification.** Raising
+      // the cap to 5,000 left every assertion above green -- 50 batches plus a
+      // 200-call fallback plus the suppression read is 140s, comfortably inside
+      // 300. It was still wrong, because time is not the only budget: with 50
+      // batches and only 2 permitted fallbacks, a bad day reports 200 sent and
+      // 4,800 NOT ATTEMPTED. An owner who asked to mail 5,000 and reached 200
+      // has been failed by a cap that the arithmetic called safe.
+      //
+      // So the fallback has to be able to recover a meaningful share of the
+      // campaign, not merely fit in the time available.
+      const recoverableShare = (MAX_FALLBACK_BATCHES * MAX_PER_REQUEST) / MAX_RECIPIENTS_PER_SEND;
+      assert.ok(
+        recoverableShare >= 0.2,
+        `the fallback can recover only ${Math.round(recoverableShare * 100)}% of a full campaign; ` +
+        "raise MAX_FALLBACK_BATCHES or lower the cap, because the rest would be reported unattempted"
+      );
+    });
+
+    it("reaches further than it did before batching, which is the point of it", async () => {
+      const { MAX_RECIPIENTS_PER_SEND } = require("../routes/growth-studio-control-routes.cjs");
+      const { MAX_PER_REQUEST } = require("../lib/growth-studio-dispatch.cjs");
+      assert.ok(MAX_RECIPIENTS_PER_SEND > 400, "the pre-batching cap was 400; a change that did not raise it bought nothing");
+      assert.ok(MAX_PER_REQUEST > 1, "and it is only affordable because more than one recipient goes per request");
     });
   });
 

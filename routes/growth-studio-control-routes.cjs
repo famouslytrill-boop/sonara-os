@@ -31,24 +31,33 @@ const {
 
 // How many people one request may mail, and the arithmetic behind the number.
 //
-// `dispatchCampaign` makes one HTTP request per recipient, so a campaign's send
-// time is linear in the list and bounded by the function's own lifetime. Vercel's
-// duration limits, read from vercel.com/docs/functions/configuring-functions/duration
-// on 10 September 2026: with fluid compute (enabled by default) the DEFAULT is
-// 300 seconds on Hobby, Pro and Enterprise alike, and `vercel.json` sets no
-// `maxDuration`, so 300 seconds is what this actually gets.
+// RAISED 400 -> 1000 on 10 September 2026, when `dispatchCampaign` gained
+// batching. The number is derived from the same budget as before and the working
+// is here so it can be rechecked rather than trusted.
 //
-// At a deliberately pessimistic 500ms per Resend call -- not the ~150ms a healthy
-// call takes, because the cap has to hold on a bad day -- 400 recipients is 200
-// seconds, leaving 100 seconds for the two reads, the ledger write and the
-// response.
+// Vercel's duration limits, read from
+// vercel.com/docs/functions/configuring-functions/duration on 10 September
+// 2026: with fluid compute (enabled by default) the DEFAULT is 300 seconds on
+// Hobby, Pro and Enterprise alike, and `vercel.json` sets no `maxDuration`, so
+// 300 seconds is what this actually gets. Costs are figured at a deliberately
+// pessimistic 500ms per call -- not the ~150ms a healthy call takes, because a
+// cap has to hold on a bad day:
 //
-// **Above this the campaign is refused, never truncated.** Sending to the first
-// 400 of 900 and reporting "400 sent" is true and useless: the owner believes
-// the campaign went out. Resend's batch endpoint takes up to 100 per call, which
-// is the change that raises this ceiling -- at the cost of per-recipient failure
-// attribution, which is why `MAX_PER_REQUEST` is 1 today.
-const MAX_RECIPIENTS_PER_SEND = 400;
+//   * 1,000 recipients in batches of 100 is **10 calls, 5 seconds**.
+//   * The suppression read is at most 30 pages, **15 seconds**.
+//   * The worst case is the fallback: a batch that does not return one id per
+//     email is resent one recipient at a time, and `MAX_FALLBACK_BATCHES`
+//     bounds that at two batches -- **200 calls, 100 seconds**.
+//
+// 5 + 15 + 100 is 120 seconds against 300, so the cap holds even when the two
+// permitted fallbacks both fire. It is the fallback rather than the batching
+// that sets this ceiling, which is why raising MAX_FALLBACK_BATCHES is not free.
+//
+// **Above the cap the campaign is refused, never truncated.** Sending to the
+// first 1,000 of 3,000 and reporting "1,000 sent" is true and useless: the owner
+// believes the campaign went out. Reaching further than this needs sending
+// across more than one invocation, which is a queue and is not built.
+const MAX_RECIPIENTS_PER_SEND = 1000;
 
 // Consent rows are per channel AND purpose, so one contact can have several even
 // after filtering to email. A truncated consent read would make people who did

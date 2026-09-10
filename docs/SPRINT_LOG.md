@@ -2,6 +2,102 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - Batching, and a cap whose arithmetic was measuring the wrong budget
+
+A campaign could reach 400 people. It can now reach 1,000, and the reason it is
+safe to is the fallback rather than the batching.
+
+## The two documented facts, and the one silence that shaped the design
+
+resend.com/docs/api-reference/emails/send-batch-emails, read 10 September 2026:
+
+- A batch takes **"up to 100 batch emails at once"**.
+- The response is index-aligned: **"each entry in `data` corresponds to the
+  email at the same index in the batch payload (0-based)"**.
+- And it says **nothing at all** about partial failure or per-item errors.
+
+That silence is the important one. `MAX_PER_REQUEST` was 1 because `failed`
+carries an address and a status per recipient, and an owner told "100 sent" with
+no way to say which 3 did not has been told something false. Coding against an
+undocumented error shape would have traded that guarantee for throughput.
+
+**So nothing is guessed.** A batch counts as clean only when the request
+succeeded **and** `data` has exactly one entry per email. Anything else is
+**resent one recipient at a time** — the old path — so every outcome is
+attributed by address. The undocumented case is never interpreted; it is retried
+in a form that cannot be ambiguous.
+
+**The duplicate risk is real and accepted deliberately.** A batch that failed
+after accepting some of its emails will send those again. The alternative is
+telling an owner that 100 people may or may not have been mailed, and a
+duplicate email is a smaller harm than an unknown one. Recorded on the constant
+rather than left for somebody to discover.
+
+## A third state on the result
+
+`notAttempted` is separate from `failed`, because a failed send was **tried and
+refused** and an unattempted one was **never tried**. One is a bad address; the
+other is "send this again". Collapsing them loses the owner's next action, and
+the code word is `partly_sent` rather than `sent` whenever it is non-empty.
+
+It exists because the fallback is bounded: `MAX_FALLBACK_BATCHES` is 2, since
+1,000 recipients all falling back individually would be 500 seconds against a
+300-second function and would be killed mid-campaign — the one outcome worse
+than refusing.
+
+## The finding: my cap test was measuring the wrong budget
+
+The old assertion was `cap * 0.5 <= 200` — right while every recipient was its
+own request, wrong the moment batching landed. It failed on the raised cap,
+correctly, and was rewritten to the real worst case: batch calls plus the
+bounded fallback plus the suppression read.
+
+**Then falsification found it was still too weak.** Raising the cap to 5,000
+left every assertion green: 50 batches + a 200-call fallback + 30 suppression
+pages is 140 seconds, comfortably inside 300. **And it was still wrong**, because
+time is not the only budget. With 50 batches and 2 permitted fallbacks, a bad day
+reports **200 sent and 4,800 not attempted**. An owner who asked to mail 5,000
+and reached 200 has been failed by a cap the arithmetic called safe.
+
+So there is a second assertion: the fallback must be able to recover at least a
+fifth of a full campaign. At 1,000 it recovers 20%; at 5,000 it recovers 4% and
+the test says so with the percentage in the message. **The ratio, not the clock,
+is what actually bounds this cap.**
+
+## Two more things the tests found
+
+**A fixture that was testing a shape the product never produces.** The
+`authorised()` helper filled in lead ids as `${nextLeadId++ % 10}` in a single
+digit with a fixed suffix, so ids repeated every ten recipients — and since the
+unsubscribe token is derived from the lead id, **twenty recipients shared ten
+tokens**. Found by the new assertion asking for twenty distinct tokens in one
+batch. Lead ids are unique in the database, so several earlier tests had been
+running against duplicate ids.
+
+**The test harness now records both shapes.** `calls.messages` flattens every
+recipient's own message and `calls.wire` keeps the requests, because a helper
+that only flattened would have let the batching itself go unasserted.
+
+## Falsification
+
+**Eight breaks, seven caught first time.** A short `data` array trusted instead
+of falling back; the fallback resending nothing; the fallback budget removed;
+unattempted recipients reported as failures; batches exceeding the documented
+ceiling of 100; unattempted recipients billed for; a campaign with unattempted
+recipients called `sent`; and the cap raised past what the fallback can recover.
+
+The miss was the eighth, and it was **a weak assertion of mine rather than a sed
+error** — the recovery-ratio case described above. It fails by name on retry with
+the percentage in the message. One sed also came back as a no-op and was caught
+by the hash comparison, which is the fourth time that has earned its place.
+
+**Verified:** 4,319 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice.
+Reaching past 1,000 in one campaign needs sending across more than one
+invocation, which is a queue and is deliberately not built.
+
 ### 2026-09-10 - n8n, asked for again, and the answer the licence gives
 
 n8n arrived as a mobile screenshot of its GitHub page with the request to add it
