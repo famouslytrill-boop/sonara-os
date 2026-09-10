@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 317 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 318 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,71 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - An agent that keeps failing now loses the unattended list
+
+`lib/sonara-agent-authority.cjs` was entirely static. An action type is
+self-serve or it is not, and it stayed that way **however badly the agent
+performed it**. `agent_action_logs` recorded every outcome and nothing read one
+back into a decision — it was written for `/owner/agent-activity` to display and
+for nothing else. So an agent whose `draft_reply` runs had failed twenty times
+running kept `draft_reply`.
+
+**Where the idea came from, recorded rather than absorbed.** The AI-SDLC
+Framework review the day before (`ai-sdlc-framework/ai-sdlc`, Apache 2.0,
+registered `reference_only`) models autonomy as ordered levels with
+`promotionCriteria` and `demotionTriggers`. **Their levels are deliberately not
+adopted** — AGENTS.md is binary, and a graduated ladder would blur a rule whose
+whole value is that it is not negotiable. Their *demotion* half is what we
+lacked. No code was taken; this was written against our own module.
+
+**The property that makes it safe to add at all: it can escalate and never
+relax.** `evaluateAutonomyBreaker` returns the classification untouched whenever
+it already requires approval, so it is structurally incapable of turning a
+refund into something an agent may do. That is asserted across all seven
+sensitive categories plus the unnamed and unrecognised defaults, with a *clean*
+history — the strongest possible argument for relaxing — as the input.
+
+Three failures deliberately kept distinct, each one a shape this codebase has
+already been bitten by:
+
+- **`unavailable`** — the read failed. The base classification stands (blocking
+  every agent on a transient read is the worse outage, the same trade
+  `lib/sonara-rate-limit.cjs` makes) and it is **reported**, because three of
+  four rate limiters here failed open in silence for months.
+- **`insufficient_history`** — fewer runs than the window. Too little evidence
+  is *not* evidence of reliability, and calling it healthy would be a check
+  passing on a short list.
+- A **bare array** is rejected outright. `{ok:false}` and `{ok:true, rows:[]}`
+  are different facts — "the read failed" and "this agent has a clean sheet" —
+  and a bare `[]` collapses them into the more dangerous one.
+
+`unimplemented` is not counted as a failure: it means the gate approved
+something nothing implements, which is a gap in the catalogue rather than the
+agent behaving badly, and counting it would demote an agent for a missing
+feature.
+
+**Wired, not decorative.** `createActionHistoryReader` reads the log
+**organization-scoped and agent-scoped** — the service-role key bypasses RLS, so
+that filter is the tenant boundary, and without the `agent_key` filter one
+agent's failures would demote all of them. `createRunner` takes an optional
+`readHistory`; absent it, the breaker reports `unavailable` and every existing
+call site decides exactly as before, so this could not change a decision already
+being made.
+
+**Broken, and confirmed red, four ways before committing.** Letting the breaker
+relax an already-gated action, treating an unreadable history as healthy,
+reading a short history as clean, and — the important one — making the runner ask
+the breaker and then ignore its answer, which is the exact bug this repository
+already shipped once. Each failed the right test by name; the others stayed
+green. Restored by copying files back.
+
+**An existing gate caught a fresh instance of the recurring defect, mine.** The
+redaction-boundary test failed on the new degraded-report line: it printed the
+read failure's `reason` straight to the log, and a provider error carries the URL
+it failed on, and that URL carries the service-role key. Third time in this
+codebase — the route-error log, the rate limiters, and now this — and the
+boundary test is why it cost a minute rather than a breach.
 
 ### 2026-09-10 - A rollback message that announced a schema change it never checked
 
