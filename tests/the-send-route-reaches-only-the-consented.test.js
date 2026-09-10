@@ -70,6 +70,8 @@ function harness({
     SUPABASE_SERVICE_ROLE_KEY: "service-role-key-for-signing"
   },
   startingAllowanceMinor = null,
+  suppressed = [],
+  suppressionOk = true,
 } = {}) {
   const calls = { urls: [], sentTo: [], ledgerRows: [], events: [] };
 
@@ -78,6 +80,13 @@ function harness({
     const method = options.method || "GET";
     calls.urls.push(`${method} ${target}`);
 
+    if (target.startsWith("https://api.resend.com/suppressions")) {
+      if (!suppressionOk) return new Response("nope", { status: 500 });
+      return new Response(
+        JSON.stringify({ object: "list", data: suppressed.map((email) => ({ id: email, email, origin: "bounce" })), has_more: false }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
     if (target.startsWith("https://api.resend.com/emails")) {
       const payload = JSON.parse(options.body);
       calls.sentTo.push(...payload.to);
@@ -587,6 +596,75 @@ describe("the send route reaches only the consented", () => {
       const page = await loadCampaignsPage({}, "?problem=something_nobody_listed");
       assert.match(page.text, /Nothing was sent/);
       assert.match(page.text, /something nobody listed/, "an unmapped code should be readable and quotable, not blank");
+    });
+  });
+
+
+  // growth-studio-sender.cjs documented a `suppressed` skip reason and nothing
+  // set it, so the partition honoured a field that could never be true. This is
+  // that field firing, through the real route.
+  describe("an address the provider gave up on", () => {
+    it("is skipped and named, not mailed", async () => {
+      const { response, calls } = await send({
+        leads: [lead(ID(1), "one@example.com"), lead(ID(2), "two@example.com")],
+        consents: [consent(ID(1)), consent(ID(2))],
+        suppressed: ["two@example.com"]
+      });
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(calls.sentTo, ["one@example.com"]);
+      assert.equal(response.body.skipped.length, 1);
+      assert.equal(response.body.skipped[0].reason, "suppressed");
+      assert.equal(response.body.suppressedSkipped, 1);
+      assert.equal(response.body.suppressionChecked, true);
+    });
+
+    it("is not charged for", async () => {
+      // Billed on who is reached, and a suppressed address is not reached.
+      const { response, calls } = await send({
+        leads: [lead(ID(1), "one@example.com"), lead(ID(2), "two@example.com")],
+        consents: [consent(ID(1)), consent(ID(2))],
+        suppressed: ["two@example.com"]
+      });
+      assert.equal(response.body.sent, 1);
+      assert.equal(calls.ledgerRows.length, 1);
+      assert.equal(calls.ledgerRows[0].units, MINIMUM_BILLABLE_EMAILS, "one reached, billed at the documented minimum");
+    });
+
+    it("is asked about before the send, not after", async () => {
+      const { calls } = await send({ suppressed: [] });
+      const suppressionAt = calls.urls.findIndex((entry) => entry.includes("/suppressions"));
+      const firstSendAt = calls.urls.findIndex((entry) => entry.includes("/emails"));
+      assert.ok(suppressionAt >= 0, "the suppression list was never read");
+      assert.ok(firstSendAt >= 0, "nothing was sent, so the ordering below proves nothing");
+      assert.ok(suppressionAt < firstSendAt, "screening after the send would be a screen that changed nothing");
+    });
+
+    it("sends anyway when the list cannot be read, and says the screen did not run", async () => {
+      // A screen on top of the consent rules rather than one of them: refusing
+      // the owner's campaign because a third-party API blipped costs them the
+      // campaign. But never silently.
+      const { response, calls } = await send({ suppressionOk: false });
+      assert.equal(response.status, 200);
+      assert.deepEqual(calls.sentTo, ["one@example.com"], "an unreadable screen must not refuse the campaign");
+      assert.equal(response.body.suppressionChecked, false);
+      assert.ok(response.body.suppressionUnchecked, "an unscreened send that does not say so is the defect this repo is named for");
+      assert.match(response.body.suppressionUnchecked, /could not be read/);
+    });
+
+    it("records whether the screen ran on the event as well", async () => {
+      const { calls } = await send({ suppressionOk: false });
+      const event = calls.events.find((entry) => entry.event_type === "campaign.sent");
+      assert.equal(event.details.suppression_checked, false, "an owner reading back why a campaign bounced needs to know it was unscreened");
+    });
+
+    it("does not claim the screen ran when it did not, even with nobody suppressed", async () => {
+      // The trap: an empty suppression list and a failed read both mark nobody,
+      // so `suppressedSkipped: 0` cannot tell them apart. Only the flag can.
+      const clean = await send({ suppressed: [] });
+      const broken = await send({ suppressionOk: false });
+      assert.equal(clean.response.body.suppressedSkipped, broken.response.body.suppressedSkipped);
+      assert.notEqual(clean.response.body.suppressionChecked, broken.response.body.suppressionChecked);
     });
   });
 

@@ -2,6 +2,106 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - A skip reason that could never be true, and a scoping fact I could not confirm
+
+`growth-studio-sender.cjs` has documented a `suppressed` skip reason since it was
+written -- "They unsubscribed or a previous send bounced." -- and **nothing set
+it.** The partition honoured a field that could never be true. Not wrong; inert.
+A check that cannot fire, which is the quietest member of the family this
+repository keeps finding.
+
+`lib/growth-studio-suppression.cjs` reads the provider's suppression list and
+sets it, so a dead address is skipped with a named reason instead of mailed,
+failed, and charged for.
+
+## What it deliberately is not
+
+**A suppression is not a withdrawal of consent, and nothing here writes to the
+consent table.** `growth_contact_consents` records what a person agreed to. This
+records whether the address still works, and those are different questions: a
+contact can have given perfect consent to a mailbox deleted a year ago.
+
+A hard bounce is the mail server's decision, not the person's. Recording it as a
+withdrawal would put words in their mouth, and an owner who later fixed the
+address would find a refusal nobody made. **A test reads the module's own source
+and asserts it contains no `consent_status`, no `withdrawn`, and no write verb at
+all** -- with a non-empty guard so it cannot pass by reading nothing.
+
+## The fact I could not confirm, recorded as unconfirmed
+
+resend.com/docs/api-reference/suppressions/list-suppressions, read 10 September
+2026: a record carries `id`, `email`, `origin`, `source_id`, `created_at`, and
+`origin` is one of `bounce`, `complaint`, `manual`. Pagination is `limit` (max
+100) and `after`.
+
+**The documentation does not say whether the list is scoped per account or per
+sending domain.** The endpoint is a bare `/suppressions` with no domain
+parameter, which *suggests* per account — and suggesting is not knowing, so the
+module says so in those words rather than asserting it.
+
+It matters, because every customer's campaigns go out from this application's
+own Resend account. If the list is account-wide, one organization's hard bounce
+stops every organization mailing that address. That is defensible -- a dead
+mailbox is dead for everybody, and mailing it damages a sending reputation all
+customers share -- but it is a real cross-tenant effect, so it is written down
+rather than left to be discovered. What is not disclosed either way is *which*
+organization caused it.
+
+I also could not confirm what Resend does when you send to a suppressed address:
+its documented error list has no `suppressed_recipient` of any kind. So **the
+design does not depend on knowing.** Screening beforehand is right whether the
+provider drops the send silently (we would have charged for nothing) or rejects
+it (we would have reported a failure with no reason).
+
+## Why a failed read still sends, and why that is not silent
+
+The campaign is not refused because this list could not be fetched. Sending
+unscreened costs a little sending reputation; refusing the owner's campaign
+because a third-party API blipped costs them the campaign, and this is a screen
+on top of the consent rules rather than one of them.
+
+**But the response and the control event both carry whether the screen ran.**
+"460 sent" and "460 sent, unscreened" are different sentences and only one is
+true when this fails. A test covers the exact trap: an empty suppression list
+and a failed read both mark nobody, so `suppressedSkipped: 0` cannot tell them
+apart — only the flag can, and it is asserted to differ across those two cases.
+
+## Three states and a ceiling, both the usual shape
+
+`readSuppressions` distinguishes **not configured** from **could not read** --
+collapsing them would tell an owner their provider was misconfigured when it had
+merely timed out. An unparseable body is never an empty list. And past 30 pages
+(3,000 addresses) it **returns nothing rather than a partial list**, because a
+partial one would skip the addresses it happened to see, mail the rest, and
+report the screen as done.
+
+The ceiling is derived from time rather than picked: 30 pages at a pessimistic
+500ms is 15 seconds, against the 300-second function budget of which the
+400-recipient send cap already claims 200. A test holds that arithmetic.
+
+## Falsification
+
+**Eight breaks, eight caught.** A failed read returning an empty list as `ok`;
+an unparseable body read as nobody suppressed; the page ceiling returning a
+partial list; a failed screen marking people anyway; addresses matched
+case-sensitively; not-configured collapsed into unreadable; the screen running
+after the send instead of before; and the response hard-coding that the screen
+ran.
+
+The ordering one is worth noting: it asserts the suppression request appears
+before the first send request in the recorded call list, **and** that a send
+happened at all -- otherwise the ordering assertion would pass on a campaign
+that sent nothing.
+
+**Verified:** 4,298 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice.
+Also, now that the screen exists, Resend's batch endpoint (documented ceiling
+100 per call) is the change that would raise the 400-recipient send cap -- at
+the cost of the per-recipient failure attribution `MAX_PER_REQUEST = 1` exists
+to keep.
+
 ### 2026-09-10 - A way out of a campaign, and a consent system that was one-way
 
 `growth_contact_consents` could record a permission and honour a withdrawal, and

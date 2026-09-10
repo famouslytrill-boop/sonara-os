@@ -16,6 +16,7 @@ const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
 const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
 const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
+const { readSuppressions, markSuppressed } = require("../lib/growth-studio-suppression.cjs");
 const {
   UNSUBSCRIBE_PATH,
   deriveSigningKey,
@@ -277,6 +278,20 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       return respond(loadedRecipients.status, { ok: false, code: loadedRecipients.code, reason: loadedRecipients.reason });
     }
 
+    // The provider's suppression list, read before the decision so a dead
+    // address is skipped with a named reason rather than mailed and billed.
+    //
+    // This is a screen on top of the consent rules and not one of them, so a
+    // failed read does not refuse the campaign -- it sends unscreened and says
+    // so. Never silently: the response and the control event both carry whether
+    // the screen ran.
+    const suppression = await readSuppressions({
+      getEnv: typeof deps.getEnv === "function" ? deps.getEnv : undefined,
+      fetchImpl: typeof deps.fetchImpl === "function" ? deps.fetchImpl : undefined
+    }).catch((error) => ({ ok: false, code: "unreadable", addresses: new Set(), origins: new Map(), reason: String(error?.message || error) }));
+
+    const screened = markSuppressed(loadedRecipients.recipients, suppression);
+
     const readLedger = typeof deps.readUsageLedger === "function"
       ? deps.readUsageLedger
       : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
@@ -295,7 +310,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // request that could name its own approver is a request that approves
       // itself.
       approval: { status: "approved", approved_by: context.userId },
-      recipients: loadedRecipients.recipients,
+      recipients: screened.recipients,
       history,
       allowanceMinor,
       channel: "email"
@@ -340,7 +355,12 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       failed: sent.failed.length,
       skipped: (sent.skipped || []).length,
       charge: sent.charge?.code || null,
-      audience
+      audience,
+      // Whether the send was screened against the provider's suppression list,
+      // recorded on the event as well as returned. An owner reading back why a
+      // campaign bounced needs to know whether it was screened at all.
+      suppression_checked: screened.checked,
+      suppressed_skipped: screened.marked
     }, campaign.id);
 
     // 200 when anything went out. A campaign where 459 of 460 landed is not a
@@ -354,7 +374,12 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       failed: sent.failed,
       skipped: sent.skipped,
       charge: sent.charge,
-      audience
+      audience,
+      suppressionChecked: screened.checked,
+      suppressedSkipped: screened.marked,
+      // Present only when the screen did not run, and it names why. "460 sent"
+      // and "460 sent, unscreened" are different sentences and only one is true.
+      suppressionUnchecked: screened.checked ? undefined : suppression.reason
     });
   }
 
