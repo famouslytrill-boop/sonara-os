@@ -562,7 +562,16 @@ describe("the server.js split stays safe", () => {
       // of prose gone -- and the one line back is the require that replaced
       // them. The split got what it wanted; the line count is simply a coarser
       // measure than the thing it is standing in for.
-      lines <= 3877,
+      // 3877 -> 3884 on 10 September 2026, for the campaign send route: two
+      // dependencies (`getReadiness`, `getEnv`) and the four-line comment
+      // saying why they must be there. `dispatchCampaign` enforces AGENTS.md's
+      // "email alerts must be off by default" by asking getReadiness -- and
+      // passed nothing, that check silently does not run, which is the exact
+      // shape this repository keeps finding. The note above about trimming
+      // comments to squeeze under the number applies: two of these six lines
+      // are code and four are the reason, and the reason is the half that stops
+      // somebody deleting the dependency as unused.
+      lines <= 3884,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

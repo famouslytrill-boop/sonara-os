@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { dispatchCampaign, RESEND_ENDPOINT } = require("../lib/growth-studio-dispatch.cjs");
-const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
+const { authoriseCampaign, MINIMUM_BILLABLE_EMAILS } = require("../lib/growth-studio-sender.cjs");
 const { quote } = require("../lib/sonara-paid-capabilities.cjs");
 
 // The dispatcher is separate from the decision so the decision's refusals can be
@@ -196,14 +196,26 @@ describe("a campaign sends only to who was authorised", () => {
     it("charges for what was accepted, not for what was attempted", async () => {
       // We pay Resend per accepted message. Billing for attempts would charge
       // the customer for our own failed requests.
-      const decision = authorised([
-        { email: "a@example.com", consent: CONSENTED },
-        { email: "b@example.com", consent: CONSENTED },
-        { email: "c@example.com", consent: CONSENTED },
-      ]);
+      //
+      // CORRECTED 10 September 2026. This test used three recipients with one
+      // accepted and asserted `units === 1`, which encoded a real bug rather
+      // than catching it: the sender authorises credit against
+      // MINIMUM_BILLABLE_EMAILS and tells the customer "billed at the 10-email
+      // minimum", while the draw here used the raw accepted count. Both numbers
+      // sat below the minimum, so the test could not see the disagreement, and
+      // the charge went out at exactly the zero margin the minimum exists to
+      // prevent.
+      //
+      // Twenty-four recipients with four rejected puts BOTH counts clear of the
+      // minimum, so the assertion actually distinguishes accepted from
+      // attempted instead of collapsing them onto the floor.
+      const addresses = Array.from({ length: 24 }, (unused, index) => `bulk${index}@example.com`);
+      const rejected = new Set(["bulk0@example.com", "bulk3@example.com", "bulk7@example.com", "bulk9@example.com"]);
+      const decision = authorised(addresses.map((email) => ({ email, consent: CONSENTED })));
 
       const rows = [];
-      const fetchImpl = async (url, options) => (JSON.parse(options.body).to[0] === "a@example.com" ? { ok: true, status: 200 } : { ok: false, status: 500 });
+      const fetchImpl = async (url, options) =>
+        (rejected.has(JSON.parse(options.body).to[0]) ? { ok: false, status: 500 } : { ok: true, status: 200 });
 
       const result = await dispatchCampaign({
         ...SEND,
@@ -215,10 +227,37 @@ describe("a campaign sends only to who was authorised", () => {
         fetchImpl
       });
 
-      assert.equal(result.sent, 1);
+      assert.equal(result.sent, 20);
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].units, 1, "three attempted, one accepted, one charged");
-      assert.equal(rows[0].amount_minor, quote("campaign_email", 1).chargeMinor);
+      assert.equal(rows[0].units, 20, "twenty-four attempted, twenty accepted, twenty charged");
+      assert.equal(rows[0].amount_minor, quote("campaign_email", 20).chargeMinor);
+      assert.notEqual(rows[0].amount_minor, quote("campaign_email", 24).chargeMinor, "billing the attempts would charge for our own failures");
+    });
+
+    it("bills a small campaign at the minimum the sender authorised, not at the raw count", async () => {
+      // The other half of the same correction, asserted on purpose. Below ten
+      // recipients the two numbers separate: the sender reserves credit for ten
+      // and says so, and the draw has to agree with the sentence the customer
+      // was shown.
+      const decision = authorised([{ email: "a@example.com", consent: CONSENTED }]);
+      const rows = [];
+      const result = await dispatchCampaign({
+        ...SEND,
+        decision,
+        appendLedger: async (row) => {
+          rows.push(row);
+          return { ok: true };
+        },
+        fetchImpl: async () => ({ ok: true, status: 200 })
+      });
+
+      assert.equal(result.sent, 1);
+      assert.equal(rows[0].units, MINIMUM_BILLABLE_EMAILS);
+      assert.ok(
+        quote("campaign_email", MINIMUM_BILLABLE_EMAILS).marginMinor > 0,
+        "the minimum has to actually produce margin, or it is a rule with no purpose"
+      );
+      assert.equal(quote("campaign_email", 1).marginMinor, 0, "and one email at the raw count is the zero-margin case it prevents");
     });
 
     it("charges nothing when every send failed", async () => {

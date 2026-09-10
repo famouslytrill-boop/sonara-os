@@ -620,7 +620,14 @@ registerGrowthStudioControlRoutes(app, {
   requirePaidOrOwnerAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
-  supabaseHeaders
+  supabaseHeaders,
+  // Both for the campaign send. AGENTS.md requires email to be off unless
+  // configured, and `dispatchCampaign` enforces that by asking getReadiness --
+  // which, passed as null, is a check that never runs. A guard whose dependency
+  // was never wired is the shape this repository keeps finding, so it is wired
+  // here and a test asserts an unconfigured workspace sends nothing.
+  getReadiness,
+  getEnv
 });
 
 registerProductLifecycleRoutes(app, {

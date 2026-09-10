@@ -42,7 +42,23 @@ const SOURCE_FILES = ["server.js"];
 // 28 of 108: fifteen are `rest(config, table, ...)` inside a helper whose caller
 // supplies the table, and six are a `path` built at the call site. Those two
 // shapes are most of it.
-const RECORDED_UNRESOLVED = 28;
+//
+// 28 -> 27 on 10 September 2026, and the fall is worth more than the one line
+// suggests: the campaign send route ADDED two calls, so five became resolvable.
+// `tableNamesInScope` now follows a table map reached through a destructured
+// require, one level deep, and through the exported alias it is bound under --
+// `const { GROWTH_TABLES: TABLES } = require("./lib/sonara-growth-tables.cjs")`
+// resolves, so every `TABLES.leads` and `TABLES.consents` in the Growth Studio
+// routes is read rather than shrugged at.
+//
+// That module exists so fourteen table names have one definition, and its own
+// comment says a literal name at the call site "hides the table from the
+// member-policy scan". Until this change the two checks pulled in opposite
+// directions: doing the right thing for one made a call invisible to the other.
+//
+// Tenant-scoped-and-filtered rose 22 -> 25 in the same run, which is the number
+// that matters -- three calls that were unverifiable are now verified.
+const RECORDED_UNRESOLVED = 27;
 
 // How many of those unresolved calls carry a literal query with no
 // organization_id in it.
@@ -114,11 +130,15 @@ function filtersRows(args) {
   return method[1] !== "POST";
 }
 
-function tableNamesInScope(source) {
-  const direct = new Map();
-  for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*["'`]([a-z0-9_]+)["'`]/g)) {
-    direct.set(match[1], match[2]);
-  }
+// The object literals in one file, keyed by the name they are bound to.
+//
+// Split out of tableNamesInScope so it can be run against an IMPORTED module as
+// well as the file being read. lib/sonara-growth-tables.cjs exists precisely so
+// that fourteen table names have one definition, and reading `TABLES.consents`
+// as unresolvable punished the file for doing the right thing -- the comment in
+// that module says a literal name at the call site "hides the table from the
+// member-policy scan", so the two checks were pulling in opposite directions.
+function objectLiteralsIn(source) {
   const maps = new Map();
   for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:Object\.freeze\()?\{([\s\S]*?)\}/g)) {
     const entries = new Map();
@@ -126,6 +146,69 @@ function tableNamesInScope(source) {
       entries.set(entry[1].replace(/^["']|["']$/g, ""), entry[2]);
     }
     if (entries.size) maps.set(match[1], entries);
+  }
+  return maps;
+}
+
+// A table map reached through `const { EXPORTED: LOCAL } = require("./module")`.
+//
+// Followed one level only, and deliberately: a resolver that chased requires
+// recursively would be a module loader, and this has to stay something a reader
+// can check by eye. One level covers the shape actually used here -- a frozen
+// map of literal table names in lib/, destructured at the top of a route file.
+function importedTableMaps(source, file) {
+  const found = new Map();
+  const pattern = /(?:const|let)\s*\{([^}]*)\}\s*=\s*require\(\s*["'`](\.[^"'`]+)["'`]\s*\)/g;
+
+  for (const match of source.matchAll(pattern)) {
+    const target = path.resolve(path.dirname(file), match[2]);
+    const resolved = [target, `${target}.cjs`, `${target}.js`, `${target}.mjs`].find(
+      (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile()
+    );
+    if (!resolved) continue;
+
+    const moduleSource = fs.readFileSync(resolved, "utf8");
+    const literals = objectLiteralsIn(moduleSource);
+    if (!literals.size) continue;
+
+    // The exported NAME is usually not the local variable name. This module's
+    // whole reason for existing is one shared definition, so it reads
+    // `const TABLES = Object.freeze({...})` and then
+    // `module.exports = { GROWTH_TABLES: TABLES }` -- and looking up
+    // GROWTH_TABLES among the literals finds nothing. The first version of this
+    // function did exactly that and resolved zero maps while appearing to work,
+    // which is the shape this whole script is a ratchet against.
+    const exportedAs = new Map();
+    for (const block of moduleSource.matchAll(/module\.exports\s*=\s*\{([^}]*)\}/g)) {
+      for (const binding of block[1].split(",")) {
+        const [name, local] = binding.split(":").map((part) => part.trim());
+        if (name) exportedAs.set(name, local || name);
+      }
+    }
+    for (const single of moduleSource.matchAll(/(?:module\.)?exports\.([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*;/g)) {
+      exportedAs.set(single[1], single[2]);
+    }
+
+    for (const binding of match[1].split(",")) {
+      const [name, alias] = binding.split(":").map((part) => part.trim());
+      if (!name) continue;
+      const entries = literals.get(exportedAs.get(name) || name);
+      if (entries) found.set(alias || name, entries);
+    }
+  }
+  return found;
+}
+
+function tableNamesInScope(source, file) {
+  const direct = new Map();
+  for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*["'`]([a-z0-9_]+)["'`]/g)) {
+    direct.set(match[1], match[2]);
+  }
+  const maps = objectLiteralsIn(source);
+  // Imported maps do not overwrite a local literal of the same name: the file
+  // being read is the authority on its own bindings.
+  for (const [name, entries] of importedTableMaps(source, file)) {
+    if (!maps.has(name)) maps.set(name, entries);
   }
   for (const match of source.matchAll(/(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)/g)) {
     const resolved = maps.get(match[2])?.get(match[3]);
@@ -144,7 +227,7 @@ const unresolvedShapes = new Map();
 
 for (const file of files) {
   const source = fs.readFileSync(file, "utf8");
-  const { direct, maps } = tableNamesInScope(source);
+  const { direct, maps } = tableNamesInScope(source, file);
 
   for (const match of source.matchAll(/\brest\(/g)) {
     // `rest` is declared per route file, and `async function rest(config, table,

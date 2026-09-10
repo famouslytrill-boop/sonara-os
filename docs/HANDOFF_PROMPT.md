@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3877 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3884 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 323 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 324 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,137 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - The send route, a price that was never charged, and a check that punished the right thing
+
+`POST /api/growth/campaigns/:campaignId/send` in
+`routes/growth-studio-control-routes.cjs`. The sender decided and the dispatcher
+sent; this is the only one of the three that touches the database, and it is
+where the interesting failures were.
+
+**Growth Studio can now send.** That was the cheapest of the three gaps to
+finish and the last one still open on email: `RESEND_API_KEY` was already a
+required variable serving staff invitations, so nothing new had to be bought.
+
+**Three things the route decides, each stated rather than implied by where a
+call sits.**
+
+- **The audience defaults narrow.** `growth_leads.campaign_id` is the only
+  audience linkage the schema actually has -- `growth_audience_segments` holds a
+  definition and an `estimated_count` with no membership rows -- so the only
+  alternative is the whole lead list, and mailing an organization's entire list
+  because somebody pressed a button on one campaign is the wrong default.
+  `audience: "organization"` widens it in one explicit field.
+- **The approver is the authenticated caller, never a value from the body.** A
+  request that can name its own approver is a request that approves itself.
+- **`archived` contacts are excluded and `lost` ones are not.** Archived is the
+  owner having put a record away. A win-back campaign to lost leads is a real
+  thing an owner does, and consent is already enforced.
+
+**What this route cannot do, written down rather than left to the absence of a
+check:** it cannot tell an owner from another member.
+`getCustomerPrimaryOrganization` returns `{ ok, organizationId }` and no role,
+so any active member of the workspace can approve a send. Closing that needs a
+role on a resolver eleven other routes share.
+
+**A cap derived rather than guessed.** `dispatchCampaign` makes one HTTP request
+per recipient, so send time is linear and bounded by the function's lifetime.
+Vercel's documented default (read 10 September 2026) is 300 seconds on Hobby,
+Pro and Enterprise alike with fluid compute, and `vercel.json` sets no
+`maxDuration`. At a deliberately pessimistic 500ms per call, 400 recipients is
+200 seconds with 100 to spare. **Above the cap the campaign is refused, never
+truncated** -- sending the first 400 of 900 and reporting "400 sent" is true and
+useless, because the owner believes the campaign went out. A test holds the
+arithmetic, not the number.
+
+**A price list that priced nothing, found by a test asserting the documented
+figure instead of the produced one.** `authoriseCampaign` reserved credit
+against `MINIMUM_BILLABLE_EMAILS` and *told the customer so* -- "billed at the
+10-email minimum" -- while `dispatchCampaign` drew for the raw accepted count.
+So a campaign to one person authorised 2 minor units and charged 1, which is
+exactly the zero-margin case the minimum exists to prevent, and the number in
+the customer-facing sentence was not the number on the invoice. The rule is now
+one function, `billableEmailCount`, called at both sites.
+
+The existing dispatcher test could not have caught it: it used three recipients
+with one accepted, and **both counts sat below the minimum**, so they collapsed
+onto the same floor. It now uses twenty-four with four rejected, which puts both
+clear of it, plus a second case below it asserting the minimum applies and that
+one email at the raw count is genuinely the zero-margin case.
+
+**A wrong comment corrected, which is the more useful half.**
+`MAX_PER_REQUEST = 1` in the dispatcher said 1 was "Resend's own documented
+ceiling for a batch call". It is not: resend.com's batch reference, read
+10 September 2026, says "up to 100 batch emails at once". The number was right
+and the reason was invented. The real reason is attribution -- a 100-recipient
+batch that partly fails reports at the batch level, so an owner would be told
+100 went out with no way to say which 3 did not.
+
+**Consent across several rows.** `growth_contact_consents` has one row per
+channel *and purpose*, so a contact can hold a granted row for one purpose and a
+withdrawal for another. `consentState` now takes a list, and
+`CONSENT_PRECEDENCE` puts `consent_revoked` above `eligible`: a withdrawal is a
+positive instruction to stop, not the absence of one. That costs something real
+-- an owner whose contact withdrew from one purpose cannot mail them under
+another until purposes are recorded per campaign, which nothing does yet -- and
+refusing is the side to be wrong on.
+
+**Two checks that pulled in opposite directions, reconciled.**
+`scripts/report-tenant-scoped-queries.mjs` could not resolve `TABLES.consents`,
+so it counted every Growth Studio read as a blind spot -- while
+`lib/sonara-growth-tables.cjs` exists precisely so fourteen table names have one
+definition, and its own comment says a literal name at the call site "hides the
+table from the member-policy scan". Doing the right thing for one check made a
+call invisible to the other.
+
+`tableNamesInScope` now follows a table map through a destructured require, one
+level deep, **and through the exported alias it is bound under** -- the first
+version looked up `GROWTH_TABLES` among the module's literals, where only the
+local `TABLES` exists, and so resolved nothing while appearing to work. With it
+fixed: unresolved 28 -> 27 *while this change added two calls*, and
+tenant-scoped-and-filtered 22 -> 25. Three calls that were unverifiable are now
+verified. `hasActiveConsent` also had its query inlined: it was correctly
+filtered but held behind a `const`, which the reader cannot see through.
+
+**Falsification: eleven breaks, nine caught first time, two not -- and both of
+mine were weak assertions rather than sed errors.**
+
+*The approver check was worthless.* It read `ledgerRows[0].actor_user_id`, which
+comes from the dispatch's actor and not from the approval, so it reported the
+authenticated user however the approval was built. Pointing the route's approval
+at `req.body.approved_by` left it green. **The approver was not recorded
+anywhere**, so it could not be asserted -- the control event now carries
+`approved_by`, which both fixes the audit gap and makes the check falsifiable.
+
+*The readiness-wiring check matched my own prose.* It grepped the
+`registerGrowthStudioControlRoutes` block for `/getReadiness/` -- and the
+comment inside that block explains why `getReadiness` is needed, so deleting the
+dependency left the assertion matching the sentence about it. Comments are
+stripped first now, and the match is anchored to a property line. Both breaks
+fail by name on retry.
+
+The other nine: the consent query losing `channel=eq.email`; archived contacts
+included; an unreadable consent read treated as no consent; truncating instead
+of refusing over the cap; the audience default widened to the workspace; the
+draw ignoring the minimum; a finished campaign sendable again; and the resolver
+above broken two ways.
+
+**`server.js` ceiling 3877 -> 3884**, for two dependencies and the four lines
+saying why they must be there. The note already on that ratchet -- that trimming
+comments to squeeze under it is the ratchet deciding what gets documented, the
+wrong way round -- is the reason it was raised rather than worked around. Four
+of those six lines are the reason, and the reason is the half that stops
+somebody deleting the dependency as unused.
+
+**Verified:** 4,226 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `verify-openapi-contract` caught the route being undocumented before
+anything else did, which is the gate working.
+
+**Still open on this:** the carrier adapter for the third gap, which needs the
+owner's vendor choice; a page to send from, since the route is JSON-only today;
+and Resend's suppression list, because nothing records unsubscribes or bounces
+yet -- the sender honours a `suppressed` flag and the route has nothing true to
+put in it.
 
 ### 2026-09-10 - The campaign dispatcher, and an assertion falsification found missing
 

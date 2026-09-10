@@ -13,6 +13,41 @@ const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
+const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
+const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
+const {
+  createBalanceReader,
+  createLedgerAppender,
+  DEFAULT_STARTING_ALLOWANCE_MINOR
+} = require("../lib/sonara-usage-meter.cjs");
+
+// How many people one request may mail, and the arithmetic behind the number.
+//
+// `dispatchCampaign` makes one HTTP request per recipient, so a campaign's send
+// time is linear in the list and bounded by the function's own lifetime. Vercel's
+// duration limits, read from vercel.com/docs/functions/configuring-functions/duration
+// on 10 September 2026: with fluid compute (enabled by default) the DEFAULT is
+// 300 seconds on Hobby, Pro and Enterprise alike, and `vercel.json` sets no
+// `maxDuration`, so 300 seconds is what this actually gets.
+//
+// At a deliberately pessimistic 500ms per Resend call -- not the ~150ms a healthy
+// call takes, because the cap has to hold on a bad day -- 400 recipients is 200
+// seconds, leaving 100 seconds for the two reads, the ledger write and the
+// response.
+//
+// **Above this the campaign is refused, never truncated.** Sending to the first
+// 400 of 900 and reporting "400 sent" is true and useless: the owner believes
+// the campaign went out. Resend's batch endpoint takes up to 100 per call, which
+// is the change that raises this ceiling -- at the cost of per-recipient failure
+// attribution, which is why `MAX_PER_REQUEST` is 1 today.
+const MAX_RECIPIENTS_PER_SEND = 400;
+
+// Consent rows are per channel AND purpose, so one contact can have several even
+// after filtering to email. A truncated consent read would make people who did
+// consent look like people who did not -- safe in that it sends to fewer, but it
+// would report "skipped for consent" about contacts whose permission is on file,
+// which is a wrong reason shown to an owner. Refused instead.
+const CONSENT_ROW_LIMIT = 5000;
 
 const OUTBOUND_CHANNELS = new Set(["email", "sms", "push", "whatsapp"]);
 const AUTOMATION_TRIGGERS = new Set(["lead_created", "lead_qualified", "form_submitted", "campaign_started", "conversion_recorded", "consent_granted", "content_ready"]);
@@ -137,6 +172,163 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     });
     if (created.ok) await controlEvent(config, context, "campaign.created", "success", { campaign_id: created.rows[0]?.id, name });
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, campaign: created.rows[0], code: created.code });
+  });
+
+  // Actually send it.
+  //
+  // `lib/growth-studio-sender.cjs` decides and `lib/growth-studio-dispatch.cjs`
+  // sends; this is the only thing that reads the database, and it is deliberately
+  // the only one of the three that cannot be tested without stubs. Everything
+  // worth getting right lives in the two it calls.
+  //
+  // ## Why the meter is the only paywall here
+  //
+  // This uses `access` rather than `paidAccess`, and that is a choice. The meter
+  // already refuses with a 402 naming the reason, and stacking an entitlement
+  // gate in front of it means an organization with credit can still be turned
+  // away by the other one -- with whichever message that middleware happens to
+  // produce rather than the one written for this. One gate, and it is the one
+  // that can explain itself.
+  //
+  // ## The approval, and the limit of what this route can check
+  //
+  // AGENTS.md forbids automating a customer campaign without owner approval, so
+  // the request must carry an explicit attestation and the approver recorded is
+  // the authenticated person who posted it -- the same pattern as
+  // `/api/growth/content/:contentId/publish`. A person pressing a button they
+  // can see is the person; this is not an agent acting unattended.
+  //
+  // What this route CANNOT do is tell an owner from another member.
+  // `getCustomerPrimaryOrganization` returns `{ ok, organizationId }` and no
+  // role, so any active member of the workspace can approve a send. That is
+  // stated rather than implied by the absence of a check: closing it needs a
+  // role on the resolver, which is a change to a function eleven other routes
+  // share.
+  app.post("/api/growth/campaigns/:campaignId/send", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    if (!validUuid(req.params.campaignId)) return res.status(400).json({ ok: false, code: "invalid_campaign_id" });
+
+    // Before anything is read, because an approval nobody gave is the end of the
+    // decision and there is no reason to touch the database to find that out.
+    if (!truthy(req.body.approved || req.body.approval_attested || req.body.approvalAttested)) {
+      return res.status(400).json({
+        ok: false,
+        code: "explicit_campaign_approval_required",
+        reason: "A customer campaign needs your explicit approval before it can be sent. Nothing was sent and nothing was charged."
+      });
+    }
+
+    const subject = clean(req.body.subject, 300);
+    const body = clean(req.body.body || req.body.message, 20000);
+    if (!subject || !body) return res.status(400).json({ ok: false, code: "campaign_message_required", reason: "A campaign needs a subject and a body." });
+
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+
+    const loaded = await loadOne(config, TABLES.campaigns, context, req.params.campaignId);
+    if (!loaded.ok) return res.status(loaded.status).json({ ok: false, code: loaded.code });
+    const campaign = loaded.row;
+
+    // `completed` and `archived` are the owner having said this campaign is
+    // finished or put away. Sending from either is the kind of action whose
+    // result cannot be undone once the mail has gone.
+    if (campaign.status === "completed" || campaign.status === "archived") {
+      return res.status(409).json({ ok: false, code: "campaign_not_sendable", reason: `This campaign is ${display(campaign.status)}. Reopen it before sending.` });
+    }
+
+    // Default narrow. `growth_leads.campaign_id` is the only audience linkage the
+    // schema actually has -- `growth_audience_segments` holds a definition and an
+    // estimated count, with no membership rows -- so "the whole lead list" is the
+    // only alternative, and mailing an organization's entire list because
+    // somebody pressed a button on one campaign is the wrong thing to do by
+    // default. Widening it is one explicit field.
+    const audience = oneOf(req.body.audience, ["campaign", "organization"], "campaign");
+
+    const loadedRecipients = await loadCampaignRecipients(config, context, { campaignId: campaign.id, audience });
+    if (!loadedRecipients.ok) {
+      // Never "nobody consented". A read that did not answer is not a list of
+      // people who said no, and reporting it as one would tell the owner
+      // something definite about their own contacts on the strength of a request
+      // that failed.
+      return res.status(loadedRecipients.status).json({ ok: false, code: loadedRecipients.code, reason: loadedRecipients.reason });
+    }
+
+    const readLedger = typeof deps.readUsageLedger === "function"
+      ? deps.readUsageLedger
+      : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
+    const history = await readLedger({ organizationId: context.organizationId }).catch((error) => ({
+      ok: false,
+      rows: [],
+      reason: String(error?.message || error)
+    }));
+
+    const allowanceMinor = typeof deps.campaignStartingAllowanceMinor === "number"
+      ? deps.campaignStartingAllowanceMinor
+      : DEFAULT_STARTING_ALLOWANCE_MINOR;
+
+    const decision = authoriseCampaign({
+      // The approver is the authenticated caller, never a value from the body. A
+      // request that could name its own approver is a request that approves
+      // itself.
+      approval: { status: "approved", approved_by: context.userId },
+      recipients: loadedRecipients.recipients,
+      history,
+      allowanceMinor,
+      channel: "email"
+    });
+
+    if (!decision.allowed) {
+  await controlEvent(config, context, "campaign.send_refused", "refused", { campaign_id: campaign.id, code: decision.code, skipped: decision.skipped.length, approved_by: context.userId }, campaign.id);
+      // 402 only for credit. "Nobody on your list consented" is not something
+      // buying credit fixes, and a blanket 402 would have an owner pay to be
+      // refused again.
+      const status = decision.code === "insufficient_credit" ? 402 : decision.code === "balance_unreadable" ? 503 : 409;
+      return res.status(status).json({ ok: false, code: decision.code, reason: decision.reason, skipped: decision.skipped });
+    }
+
+    const sent = await dispatchCampaign({
+      decision,
+      subject,
+      body,
+      organizationId: context.organizationId,
+      actorUserId: context.userId,
+      campaignId: campaign.id,
+      getEnv: typeof deps.getEnv === "function" ? deps.getEnv : (name) => process.env[name],
+      getReadiness: typeof deps.getReadiness === "function" ? deps.getReadiness : null,
+      appendLedger: typeof deps.appendUsageLedger === "function"
+        ? deps.appendUsageLedger
+        : createLedgerAppender({ getSupabaseServerConfig: () => config })
+    });
+
+    await controlEvent(config, context, "campaign.sent", sent.ok ? "success" : "failed", {
+      campaign_id: campaign.id,
+      // Who approved it, recorded rather than only checked. An owner-approval
+      // requirement with no trace of who gave it is a rule nobody can audit
+      // afterwards -- and it is the field that makes the check falsifiable: a
+      // route that took the approver from the request body would show it here.
+      approved_by: context.userId,
+      code: sent.code,
+      sent: sent.sent,
+      failed: sent.failed.length,
+      skipped: (sent.skipped || []).length,
+      charge: sent.charge?.code || null,
+      audience
+    }, campaign.id);
+
+    // 200 when anything went out. A campaign where 459 of 460 landed is not a
+    // failed campaign, and the counts below are what the owner reads -- a single
+    // boolean cannot carry them.
+    return res.status(sent.ok ? 200 : sent.code === "email_not_configured" ? 503 : 502).json({
+      ok: sent.ok,
+      code: sent.code,
+      detail: sent.detail,
+      sent: sent.sent,
+      failed: sent.failed,
+      skipped: sent.skipped,
+      charge: sent.charge,
+      audience
+    });
   });
 
   app.get("/api/growth/campaigns/:campaignId", access, getOneHandler(TABLES.campaigns, "campaignId", deps, "campaign"));
@@ -1024,8 +1216,16 @@ async function failProviderJob(config, context, job, code, message, status = 502
 }
 
 async function hasActiveConsent(config, context, leadId, channel, purpose) {
-  const query = `select=id,consent_status,expires_at,withdrawn_at,purpose&organization_id=eq.${encodeURIComponent(context.organizationId)}&lead_id=eq.${encodeURIComponent(leadId)}&channel=eq.${encodeURIComponent(channel)}&consent_status=eq.granted&order=created_at.desc&limit=10`;
-  const result = await rest(config, TABLES.consents, query);
+  // The query is inlined rather than held in a `query` const, and that is for a
+  // reader rather than for style: scripts/report-tenant-scoped-queries.mjs can
+  // only tell whether a tenant-scoped query names the organization when the
+  // query string is a literal at the call site. Behind a variable this call was
+  // a blind spot -- correctly filtered, but unverifiably so.
+  const result = await rest(
+    config,
+    TABLES.consents,
+    `select=id,consent_status,expires_at,withdrawn_at,purpose&organization_id=eq.${encodeURIComponent(context.organizationId)}&lead_id=eq.${encodeURIComponent(leadId)}&channel=eq.${encodeURIComponent(channel)}&consent_status=eq.granted&order=created_at.desc&limit=10`
+  );
   return result.ok && result.rows.some((row) => !row.withdrawn_at && (!row.expires_at || Date.parse(row.expires_at) > Date.now()) && row.purpose === purpose);
 }
 
@@ -1049,6 +1249,90 @@ function getOneHandler(table, paramName, deps, key) {
     const config = getConfig(deps);
     const loaded = await loadOne(config, table, context, id);
     return res.status(loaded.ok ? 200 : loaded.status).json(loaded.ok ? { ok: true, [key]: loaded.row } : loaded);
+  };
+}
+
+// Who a campaign would go to, with each contact's own consent rows attached.
+//
+// Two reads and a join in JavaScript rather than one PostgREST embed. The embed
+// (`growth_leads?select=*,growth_contact_consents(*)`) would work -- the foreign
+// key is there -- but it puts the tenant filter on the outer table only and
+// relies on PostgREST's relationship detection to scope the inner one. Two
+// explicitly organization-filtered reads make the boundary visible in both
+// queries, and with the service-role key bypassing RLS that filter IS the
+// boundary.
+//
+// Every failure path returns `ok: false` with a reason. Nothing here may turn "we
+// could not ask" into "there is nobody" -- the caller would report a definite
+// fact about the owner's contacts on the strength of a request that failed.
+async function loadCampaignRecipients(config, context, { campaignId, audience }) {
+  const scope = audience === "organization" ? "" : `&campaign_id=eq.${encodeURIComponent(campaignId)}`;
+
+  // `archived` is the owner having put a record away. Mailing somebody they
+  // retired is the one clearly wrong reading of that. `lost` is deliberately
+  // still included: a win-back campaign to lost leads is a real thing an owner
+  // does, and it is theirs to decide with consent already enforced.
+  const leads = await rest(
+    config,
+    TABLES.leads,
+    `select=id,name,email,status,campaign_id&organization_id=eq.${encodeURIComponent(context.organizationId)}${scope}` +
+      `&status=neq.archived&order=created_at.asc&limit=${MAX_RECIPIENTS_PER_SEND + 1}`
+  );
+  if (!leads.ok) return { ok: false, status: 503, code: "cannot_read_recipients", reason: "The contact list could not be read, so nothing was sent." };
+
+  if (leads.rows.length === 0) {
+    return {
+      ok: false,
+      status: 409,
+      code: "no_recipients",
+      reason:
+        audience === "organization"
+          ? "There are no contacts on this workspace to send to."
+          : "No contacts are attached to this campaign. Attach some, or send to the whole contact list explicitly."
+    };
+  }
+
+  if (leads.rows.length > MAX_RECIPIENTS_PER_SEND) {
+    return {
+      ok: false,
+      status: 413,
+      code: "too_many_recipients",
+      reason: `This campaign reaches more than ${MAX_RECIPIENTS_PER_SEND} contacts, which is more than one send can finish. Nothing was sent.`
+    };
+  }
+
+  const ids = leads.rows.map((row) => row.id).filter(Boolean);
+  const consents = await rest(
+    config,
+    TABLES.consents,
+    `select=lead_id,channel,consent_status,purpose,withdrawn_at,expires_at` +
+      `&organization_id=eq.${encodeURIComponent(context.organizationId)}` +
+      `&channel=eq.email&lead_id=in.(${ids.map((id) => encodeURIComponent(id)).join(",")})` +
+      `&limit=${CONSENT_ROW_LIMIT + 1}`
+  );
+  if (!consents.ok) return { ok: false, status: 503, code: "cannot_read_consent", reason: "Consent records could not be read, so nothing was sent." };
+  if (consents.rows.length > CONSENT_ROW_LIMIT) {
+    return { ok: false, status: 503, code: "consent_rows_unreadable", reason: `There are more than ${CONSENT_ROW_LIMIT} email consent records for these contacts; a partial read would skip people who did consent. Nothing was sent.` };
+  }
+
+  const byLead = new Map();
+  for (const row of consents.rows) {
+    if (!row?.lead_id) continue;
+    if (!byLead.has(row.lead_id)) byLead.set(row.lead_id, []);
+    byLead.get(row.lead_id).push(row);
+  }
+
+  return {
+    ok: true,
+    // `consents` plural, which is the shape consentState reads as a list. A
+    // contact with no rows gets `[]` and is skipped as no_consent -- correct
+    // here, because the read above succeeded and genuinely found none for them.
+    //
+    // `suppressed` is deliberately never set: nothing records unsubscribes or
+    // bounces yet, so there is no suppression list to read. The sender honours
+    // the field if a caller sets it, and this caller has nothing true to put
+    // there. Wiring Resend's suppression list is the next piece.
+    recipients: leads.rows.map((lead) => ({ ...lead, consents: byLead.get(lead.id) || [] }))
   };
 }
 
@@ -1201,3 +1485,8 @@ function acceptsHtml(req) {
   return String(req.get?.("accept") || "").includes("text/html")
     || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
 }
+
+// Named on the export so a test can assert the cap's arithmetic against Vercel's
+// documented duration rather than re-typing the number and agreeing with itself.
+module.exports.MAX_RECIPIENTS_PER_SEND = MAX_RECIPIENTS_PER_SEND;
+module.exports.CONSENT_ROW_LIMIT = CONSENT_ROW_LIMIT;
