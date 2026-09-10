@@ -40,7 +40,7 @@ Create, launch, run and manage a business.
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
 | [Lunar (headless e-commerce for Laravel)](https://github.com/lunarphp/lunar) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Read only | e-commerce |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
-| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
+| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License v1.0 -- source-available, NOT an open-so | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
@@ -162,7 +162,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Hi.Events (event management and ticket selling)](https://github.com/HiEventsDev/Hi.Events) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | events |
 | [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
-| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
+| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License v1.0 -- source-available, NOT an open-so | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
 | [NotFair](https://github.com/nowork-studio/NotFair) | MIT | Read only | marketing automation |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |

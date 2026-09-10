@@ -106,6 +106,81 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - n8n, asked for again, and the answer the licence gives
+
+n8n arrived as a mobile screenshot of its GitHub page with the request to add it
+to the application if possible. **It is already in the register**, reviewed
+12 August 2026 and deliberately left unresolved -- and
+`verify-open-source-registry.mjs` caught the second record before it was
+committed: *"A repository with two verdicts has none, because which one is read
+is an accident of scrolling."* A working gate. The finding was folded into the
+existing record instead.
+
+**The request is answerable and the answer is no.** The repository page says
+"Fair-code workflow automation platform", and fair-code is a marketing term for
+source-available rather than a synonym for open source -- the exact gap
+`reviewing-an-outside-repository` exists to close. The 204k stars in the
+screenshot say nothing about what the licence permits.
+
+Shallow-cloned and `LICENSE.md` read directly. Sustainable Use License v1.0,
+Limitations, verbatim:
+
+> You may use or modify the software only for your own internal business
+> purposes or for non-commercial or personal use. You may distribute the
+> software or provide it to others only if you do so free of charge for
+> non-commercial purposes.
+
+SONARA One is sold on plans from $29 to $1090 a month, so embedding n8n in it is
+both "providing it to others" and not free of charge for non-commercial
+purposes. **Two independent clauses each forbid it.**
+
+**The distinction that matters, and it is easy to blur.** The August record left
+three questions open -- whether the SUL addresses hosting arrangements, a
+company self-hosting for internal automations and calling it from separate
+software, and whether that changes when the calling product is commercial SaaS
+whose customers never touch n8n. Those remain readings for counsel. **Embedding
+is not one of them.** It is a different arrangement and the text is not silent
+about it. Conflating the two would turn a clear prohibition into an open
+question, which is the more expensive mistake.
+
+**Three restrictions the August record did not carry**, each a fact rather than a
+reading, and together why `licenseRisk` went from high to critical:
+
+- Files with `.ee.` in the filename or `.ee` in the dirname are **explicitly not
+  under the SUL** and need a paid Enterprise licence. **1,197 counted** in the
+  clone. The old record said "separate enterprise terms" without the mechanism
+  or the scale.
+- *"Content of branches other than the main branch (i.e. master) are not
+  licensed."* So a feature branch carries **no grant at all** — even reading one
+  for ideas has nothing behind it. This review was against master.
+- `CONTRIBUTOR_LICENSE_AGREEMENT.md` assigns contributions outright: *"I give
+  n8n permission to license my contributions on any terms they like."*
+  Upstreaming is not a route to reusable rights.
+
+**Measured rather than described:** 28,495 files excluding `.git` across 10 pnpm
+workspace packages at version 2.39.0. Its `package.json` declares **no `license`
+field at all**, which is why `LICENSE.md` rather than package metadata is the
+authority — and why the "Fair-code" label on the page is not one.
+
+**Two technical facts make it a poor fit even setting the licence aside.** It
+declares `engines node >=24.0.0` while this project runs Node 22 and declares
+`>=22`. And this application ships exactly **one** production dependency on a
+serverless runtime with a read-only filesystem and no long-lived process,
+whereas n8n is a stateful long-running server with its own queue and database.
+
+**What is left open, and it is the owner's.** Self-hosting an instance for
+SONARA's own back-office automation is plausibly "own internal business
+purposes" — that is the August question and it still needs counsel, not an
+engineer. Even granted, `docs/architecture/EXTERNAL-SERVICES.md` applies: a
+serverless function cannot reach a machine the owner runs without a hosted
+adapter and a URL, so it is an infrastructure cost with an adapter to write.
+If the capability is wanted **in the product**, the routes are to build it or to
+buy a vendor that licenses it for resale.
+
+**Verified:** 4,308 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `verify-open-source-registry`, `generate-product-integration-map`
+and `verify-doc-counts` all re-run. The clone was deleted.
+
 ### 2026-09-10 - An employee could email the whole customer list
 
 The send route carried a note saying what it could not do: tell an owner from
