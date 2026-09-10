@@ -6,6 +6,7 @@ const path = require("node:path");
 const { dispatchCampaign, RESEND_ENDPOINT } = require("../lib/growth-studio-dispatch.cjs");
 const { authoriseCampaign, MINIMUM_BILLABLE_EMAILS } = require("../lib/growth-studio-sender.cjs");
 const { quote } = require("../lib/sonara-paid-capabilities.cjs");
+const { UNSUBSCRIBE_PATH, deriveSigningKey, verifyToken } = require("../lib/growth-studio-unsubscribe.cjs");
 
 // The dispatcher is separate from the decision so the decision's refusals can be
 // tested without a mail server. That split is only worth something if the
@@ -17,7 +18,17 @@ const { quote } = require("../lib/sonara-paid-capabilities.cjs");
 // shape one product along.
 const CONSENTED = Object.freeze({ channel: "email", consent_status: "granted" });
 const APPROVED = Object.freeze({ status: "approved", approved_by: "owner-1" });
-const ENV = { RESEND_API_KEY: "re_test", RESEND_FROM_EMAIL: "hello@example.com" };
+// SUPABASE_SERVICE_ROLE_KEY is here because the unsubscribe signing key is
+// derived from it when SONARA_UNSUBSCRIBE_SECRET is unset, and dispatchCampaign
+// refuses to send a campaign it cannot supply a way out of. Without it every
+// test in this file refuses -- which is the guard working, and is why it is
+// stated here rather than quietly added.
+const ENV = {
+  RESEND_API_KEY: "re_test",
+  RESEND_FROM_EMAIL: "hello@example.com",
+  SUPABASE_SERVICE_ROLE_KEY: "service-role-key-for-signing"
+};
+const ORIGIN = "https://app.example.com";
 const READY = () => ({ services: { emailDelivery: "enabled" } });
 const ledger = (rows) => ({ ok: true, rows });
 
@@ -28,10 +39,17 @@ function okFetch(calls) {
   };
 }
 
+let nextLeadId = 0;
+// A lead id is filled in when a case does not name one, because the unsubscribe
+// token is signed per recipient and needs one. The route always supplies it --
+// it selects `id` from growth_leads -- so a fixture without one would be
+// testing a shape the product never produces. The one case that deliberately
+// omits it asserts the refusal instead.
 function authorised(recipients) {
   return authoriseCampaign({
     approval: APPROVED,
-    recipients,
+    recipients: recipients.map((recipient) =>
+      "id" in recipient ? recipient : { ...recipient, id: `4444444${nextLeadId++ % 10}-4444-4444-8444-444444444401` }),
     history: ledger([{ entry_kind: "grant", amount_minor: 1000000 }]),
   });
 }
@@ -39,8 +57,9 @@ function authorised(recipients) {
 const SEND = {
   subject: "A subject",
   body: "A body long enough to be real.",
-  organizationId: "org-1",
+  organizationId: "11111111-1111-4111-8111-111111111111",
   campaignId: "camp-1",
+  origin: ORIGIN,
   getEnv: (name) => ENV[name],
   getReadiness: READY,
 };
@@ -290,6 +309,151 @@ describe("a campaign sends only to who was authorised", () => {
       });
       assert.equal(result.sent, 0);
       assert.equal(result.failed.length, 1);
+    });
+  });
+
+
+  // A campaign nobody can stop is the one refusal here that is not about cost
+  // or consent, and it fails closed. The alternative cannot be taken back: the
+  // mail is in somebody's inbox with no way to stop the next one, and this
+  // product's own /legal/can-spam page told the owner a working unsubscribe was
+  // one of the basics.
+  describe("every campaign carries a way to stop it", () => {
+    it("puts both RFC 8058 headers on every message", async () => {
+      const calls = [];
+      await dispatchCampaign({
+        ...SEND,
+        decision: authorised([{ email: "a@example.com", consent: CONSENTED }]),
+        appendLedger: async () => ({ ok: true }),
+        fetchImpl: okFetch(calls)
+      });
+
+      assert.equal(calls.length, 1);
+      const headers = calls[0].body.headers;
+      assert.ok(headers, "no custom headers were sent, so no mail client can offer one-click unsubscribe");
+      // RFC 8058: the List-Unsubscribe field MUST contain one HTTPS URI, and
+      // List-Unsubscribe-Post MUST contain exactly this pair.
+      assert.equal(headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
+      assert.match(headers["List-Unsubscribe"], /^<https:\/\/[^>]+>$/, "the URI must be https and angle-bracketed");
+      assert.ok(headers["List-Unsubscribe"].includes(UNSUBSCRIBE_PATH));
+    });
+
+    it("also puts a link in the body, for clients that ignore the headers", async () => {
+      const calls = [];
+      await dispatchCampaign({
+        ...SEND,
+        decision: authorised([{ email: "a@example.com", consent: CONSENTED }]),
+        appendLedger: async () => ({ ok: true }),
+        fetchImpl: okFetch(calls)
+      });
+      assert.match(calls[0].body.text, /To stop receiving these emails/);
+      assert.match(calls[0].body.text, new RegExp(UNSUBSCRIBE_PATH.replace("/", "\\/")));
+      assert.match(calls[0].body.text, /A body long enough to be real\./, "the owner's own message must survive");
+    });
+
+    it("signs a different token for each recipient", async () => {
+      // One shared link would let any recipient unsubscribe every other, and
+      // would make a forwarded email a way to remove somebody else.
+      const calls = [];
+      await dispatchCampaign({
+        ...SEND,
+        decision: authorised([
+          { email: "a@example.com", consent: CONSENTED },
+          { email: "b@example.com", consent: CONSENTED }
+        ]),
+        appendLedger: async () => ({ ok: true }),
+        fetchImpl: okFetch(calls)
+      });
+
+      const tokens = calls.map((call) => new URL(call.body.headers["List-Unsubscribe"].slice(1, -1)).searchParams.get("t"));
+      assert.equal(tokens.length, 2);
+      assert.notEqual(tokens[0], tokens[1], "two recipients must not share an unsubscribe token");
+      for (const token of tokens) {
+        assert.equal(verifyToken(token, deriveSigningKey((name) => ENV[name])).ok, true, "our own token must verify");
+      }
+    });
+
+    it("issues a token that names the organization it was sent for", async () => {
+      const calls = [];
+      await dispatchCampaign({
+        ...SEND,
+        decision: authorised([{ email: "a@example.com", consent: CONSENTED }]),
+        appendLedger: async () => ({ ok: true }),
+        fetchImpl: okFetch(calls)
+      });
+      const token = new URL(calls[0].body.headers["List-Unsubscribe"].slice(1, -1)).searchParams.get("t");
+      const verified = verifyToken(token, deriveSigningKey((name) => ENV[name]));
+      assert.equal(verified.organizationId, SEND.organizationId, "the withdrawal it authorises is organization-scoped");
+      assert.equal(verified.channel, "email");
+    });
+
+    it("sends nothing at all when there is no signing key", async () => {
+      const calls = [];
+      const result = await dispatchCampaign({
+        ...SEND,
+        getEnv: (name) => ({ RESEND_API_KEY: "re_test", RESEND_FROM_EMAIL: "hello@example.com" })[name],
+        decision: authorised([{ email: "a@example.com", consent: CONSENTED }]),
+        appendLedger: async () => ({ ok: true }),
+        fetchImpl: okFetch(calls)
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "unsubscribe_not_configured");
+      assert.deepEqual(calls, [], "sending without a way out is the one thing that cannot be undone");
+    });
+
+    it("sends nothing when this site's https address is unknown", async () => {
+      for (const origin of ["", null, undefined, "http://app.example.com"]) {
+        const calls = [];
+        const result = await dispatchCampaign({
+          ...SEND,
+          origin,
+          decision: authorised([{ email: "a@example.com", consent: CONSENTED }]),
+          appendLedger: async () => ({ ok: true }),
+          fetchImpl: okFetch(calls)
+        });
+        assert.equal(result.ok, false, `an origin of ${JSON.stringify(origin)} must not produce a send`);
+        assert.equal(result.code, "unsubscribe_origin_required");
+        assert.deepEqual(calls, [], "an http unsubscribe link is a downgrade RFC 8058 forbids, not a fallback");
+      }
+    });
+
+    it("does not email a recipient it cannot give a link to, and names why", async () => {
+      const calls = [];
+      const result = await dispatchCampaign({
+        ...SEND,
+        decision: authorised([
+          { email: "a@example.com", consent: CONSENTED, id: null },
+          { email: "b@example.com", consent: CONSENTED }
+        ]),
+        appendLedger: async () => ({ ok: true }),
+        fetchImpl: okFetch(calls)
+      });
+
+      assert.equal(result.sent, 1);
+      assert.deepEqual(calls.map((call) => call.body.to[0]), ["b@example.com"]);
+      assert.equal(result.failed.length, 1);
+      assert.equal(result.failed[0].email, "a@example.com");
+      assert.equal(result.failed[0].reason, "no_unsubscribe_link", "counted and named, never skipped quietly");
+    });
+
+    it("charges only for what it actually emailed", async () => {
+      // The recipient with no link was never emailed, so billing for them would
+      // charge for a send that did not happen.
+      const rows = [];
+      const ids = Array.from({ length: 24 }, (unused, index) => `4444444${index % 10}-4444-4444-8444-4444444444${String(index).padStart(2, "0")}`);
+      const result = await dispatchCampaign({
+        ...SEND,
+        decision: authorised(ids.map((id, index) => ({ email: `bulk${index}@example.com`, consent: CONSENTED, id: index < 4 ? null : id }))),
+        appendLedger: async (row) => {
+          rows.push(row);
+          return { ok: true };
+        },
+        fetchImpl: okFetch([])
+      });
+
+      assert.equal(result.sent, 20);
+      assert.equal(rows[0].units, 20);
+      assert.notEqual(rows[0].amount_minor, quote("campaign_email", 24).chargeMinor);
     });
   });
 

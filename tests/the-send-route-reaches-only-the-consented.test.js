@@ -59,7 +59,16 @@ function harness({
   ledgerOk = true,
   resendStatus = () => 200,
   emailDelivery = "enabled",
-  env = { RESEND_API_KEY: "re_test", RESEND_FROM_EMAIL: "growth@sonara.test" },
+  // NEXT_PUBLIC_SITE_URL is what siteOrigin reads, and it must be https:
+  // dispatchCampaign refuses to send without an https origin, because the
+  // unsubscribe link is built from it. SUPABASE_SERVICE_ROLE_KEY is what the
+  // unsubscribe token is signed from when no dedicated secret is set.
+  env = {
+    RESEND_API_KEY: "re_test",
+    RESEND_FROM_EMAIL: "growth@sonara.test",
+    NEXT_PUBLIC_SITE_URL: "https://app.sonara.test",
+    SUPABASE_SERVICE_ROLE_KEY: "service-role-key-for-signing"
+  },
   startingAllowanceMinor = null,
 } = {}) {
   const calls = { urls: [], sentTo: [], ledgerRows: [], events: [] };

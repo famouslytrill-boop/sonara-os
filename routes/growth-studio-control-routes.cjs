@@ -15,6 +15,12 @@ const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
 const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
+const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
+const {
+  UNSUBSCRIBE_PATH,
+  deriveSigningKey,
+  verifyToken
+} = require("../lib/growth-studio-unsubscribe.cjs");
 const {
   createBalanceReader,
   createLedgerAppender,
@@ -311,6 +317,10 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       organizationId: context.organizationId,
       actorUserId: context.userId,
       campaignId: campaign.id,
+      // Derived from this request rather than configured here. The dispatcher
+      // refuses to send without an https origin, because the unsubscribe link
+      // is built from it.
+      origin: siteOrigin(req, typeof deps.getEnv === "function" ? deps.getEnv : undefined),
       getEnv: typeof deps.getEnv === "function" ? deps.getEnv : (name) => process.env[name],
       getReadiness: typeof deps.getReadiness === "function" ? deps.getReadiness : null,
       appendLedger: typeof deps.appendUsageLedger === "function"
@@ -355,6 +365,62 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   // reads from the body goes through the same validUuid check.
   app.post("/api/growth/campaigns/send", access, (req, res) =>
     sendCampaign(req, res, String(req.body?.campaign_id || req.body?.campaignId || "")));
+
+  // Honouring an unsubscribe. Public, unauthenticated, and it has to be:
+  // RFC 8058 says the POST "MUST NOT include cookies, HTTP authorization, or
+  // any other context information", so the token in the URL is the whole
+  // credential. `verifyToken` is what makes that safe.
+  //
+  // Two verbs and they do different things on purpose.
+  //
+  // **GET only asks.** Mail security scanners and inbox proxies prefetch links,
+  // so a GET that withdrew consent on load would unsubscribe people who never
+  // clicked -- and the owner would watch contacts drop out of every campaign
+  // with no explanation. It renders a button that posts.
+  //
+  // **POST does it**, whether that POST comes from the button or from a mail
+  // client acting on somebody pressing Unsubscribe in their inbox.
+  app.get(UNSUBSCRIBE_PATH, async (req, res) => {
+    const key = deriveSigningKey(typeof deps.getEnv === "function" ? deps.getEnv : undefined);
+    const verified = verifyToken(req.query?.t, key);
+
+    // 200 with the "this link does not work" page, not a 400, and the split
+    // between the verbs is deliberate.
+    //
+    // This response is read by a person, and the status code is invisible to
+    // them -- what they need is a readable page telling them to reply and ask.
+    // The POST below is the opposite: its status IS the answer, because a mail
+    // client showing "Unsubscribed" to its user is reading the status, so a 200
+    // there on a token that verified against nothing would report a withdrawal
+    // that never happened.
+    if (!verified.ok) return res.status(200).type("html").send(unsubscribePage(ui, { state: "invalid" }));
+    return res.status(200).type("html").send(unsubscribePage(ui, { state: "confirm", token: String(req.query.t) }));
+  });
+
+  app.post(UNSUBSCRIBE_PATH, async (req, res) => {
+    // The token can arrive in the query (the button's form action) or the body.
+    // A mail client making the RFC 8058 request sends `List-Unsubscribe=One-Click`
+    // as the body and nothing else, so the query is where it has to be for that
+    // case -- which is why the header URI carries it there.
+    const key = deriveSigningKey(typeof deps.getEnv === "function" ? deps.getEnv : undefined);
+    const verified = verifyToken(req.query?.t || req.body?.t, key);
+
+    // Deliberately the same reply for every refusal, and it does not say whether
+    // the contact exists. This endpoint is open to anyone, so a reply that told
+    // a bad signature apart from an unknown lead would answer questions about
+    // somebody else's contact list.
+    if (!verified.ok) return res.status(400).type("html").send(unsubscribePage(ui, { state: "invalid" }));
+
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).type("html").send(unsubscribePage(ui, { state: "unavailable" }));
+
+    const recorded = await recordWithdrawal(config, verified);
+    if (!recorded.ok) return res.status(recorded.status).type("html").send(unsubscribePage(ui, { state: "unavailable" }));
+
+    // No redirect, because RFC 8058 forbids one: "The mail sender MUST NOT
+    // return an HTTPS redirect."
+    return res.status(200).type("html").send(unsubscribePage(ui, { state: "done" }));
+  });
 
   app.get("/api/growth/campaigns/:campaignId", access, getOneHandler(TABLES.campaigns, "campaignId", deps, "campaign"));
   app.patch("/api/growth/campaigns/:campaignId", access, async (req, res) => {
@@ -1448,6 +1514,107 @@ async function loadOne(config, table, context, id) {
 }
 async function controlEvent(config, context, type, status, details, campaignId = null, jobId = null) {
   return insert(config, TABLES.events, { organization_id: context.organizationId, user_id: context.userId, campaign_id: validUuid(campaignId) ? campaignId : null, job_id: validUuid(jobId) ? jobId : null, event_type: type, event_status: status, details: sanitizeProviderPayload(details) });
+}
+
+// Writing the withdrawal, on the organization's own consent row.
+//
+// Two shapes, because both are real states and only one of them is an update.
+// A contact who was emailed always has a granted row -- the sender refuses
+// anybody without one -- but a row can also have been deleted between the send
+// and the click, months later. Inserting in that case records the withdrawal
+// rather than reporting success over a write that changed nothing.
+//
+// `withdrawn` and `withdrawn_at` are both set. `growth-studio-sender.cjs` reads
+// either as a refusal, and setting both means the two columns agree instead of
+// leaving the disagreement its "safe reading" rule exists to survive.
+async function recordWithdrawal(config, { organizationId, leadId, channel }) {
+  const now = new Date().toISOString();
+
+  // Organization AND lead, always. The service-role key bypasses row-level
+  // security, so these filters are the tenant boundary -- and this is an
+  // unauthenticated endpoint, which is exactly where a missing one would matter
+  // most.
+  const scope =
+    `organization_id=eq.${encodeURIComponent(organizationId)}` +
+    `&lead_id=eq.${encodeURIComponent(leadId)}` +
+    `&channel=eq.${encodeURIComponent(channel)}`;
+
+  const updated = await rest(config, TABLES.consents, scope, {
+    method: "PATCH",
+    prefer: "return=representation",
+    body: { consent_status: "withdrawn", withdrawn_at: now, updated_at: now }
+  });
+
+  // A failed write is never reported as done. Somebody who pressed Unsubscribe
+  // and was told it worked, when it did not, will receive the next campaign --
+  // and this is the one place in the product where that is not a bug report but
+  // a complaint to a regulator.
+  if (!updated.ok) return { ok: false, status: 502 };
+  if (updated.rows.length > 0) return { ok: true, rows: updated.rows.length, action: "withdrawn" };
+
+  // Nothing to update. Recorded as a new row so the withdrawal exists even
+  // where the original permission no longer does.
+  const inserted = await insert(config, TABLES.consents, {
+    organization_id: organizationId,
+    lead_id: leadId,
+    channel,
+    purpose: "campaign_email",
+    consent_status: "withdrawn",
+    source: "recipient_unsubscribe_link",
+    withdrawn_at: now,
+    metadata: { recorded_by: "unsubscribe_link" }
+  });
+  if (!inserted.ok) return { ok: false, status: 502 };
+  return { ok: true, rows: 1, action: "recorded" };
+}
+
+// What a recipient sees. Four states, and each says only what is true.
+//
+// Nothing here names the organization, the campaign or the address. The page is
+// reachable by anybody holding the link -- including whoever an email was
+// forwarded to -- so it confirms an action and discloses nothing about who the
+// contact is or which business mailed them.
+function unsubscribePage(ui, { state, token }) {
+  const pages = {
+    confirm: {
+      title: "Stop these emails",
+      heading: "Stop receiving these emails",
+      body: "Press the button and you will not be sent any more marketing email from this sender.",
+      // The form is what actually withdraws it. A GET could be a link a mail
+      // scanner opened rather than a person.
+      section: `<form method="post" action="${ui.escape(UNSUBSCRIBE_PATH)}?t=${encodeURIComponent(String(token || ""))}"><button type="submit">Stop these emails</button></form>`
+    },
+    done: {
+      title: "You are unsubscribed",
+      heading: "Done",
+      body: "You will not be sent any more marketing email from this sender. Nothing else about you was changed.",
+      section: ""
+    },
+    invalid: {
+      title: "This link does not work",
+      heading: "This link does not work",
+      body: "It may have been broken by the email program that displayed it, or it may have expired. Reply to the email you received and ask to be removed, and that request has to be honoured.",
+      section: ""
+    },
+    unavailable: {
+      title: "We could not do that just now",
+      heading: "We could not do that just now",
+      // Never "you are unsubscribed" over a write that failed. The honest
+      // reading of a failed write is that it did not happen.
+      body: "Your request was not recorded, so please try the link again shortly. If it keeps failing, reply to the email you received and ask to be removed.",
+      section: ""
+    }
+  };
+
+  const page = pages[state] || pages.invalid;
+  return ui.layout({
+    title: page.title,
+    eyebrow: "Email preferences",
+    heading: page.heading,
+    body: page.body,
+    sections: page.section ? [page.section] : [],
+    actions: []
+  });
 }
 
 // What the last send did, read back off the redirect.

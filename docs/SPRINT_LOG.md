@@ -2,6 +2,143 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - A way out of a campaign, and a consent system that was one-way
+
+`growth_contact_consents` could record a permission and honour a withdrawal, and
+**nothing could set the withdrawal.** An owner could, from a form. The person who
+received the email could not, and they are the only one whose decision it is.
+
+So the sender was elaborate about consent in one direction. It refused anybody
+whose row said `withdrawn`, checked the channel, treated `unknown` as not
+consent, let a withdrawal outrank a grant — and shipped with **no unsubscribe of
+any kind**: `{ from, to, subject, text }` and nothing else. This product's own
+`/legal/can-spam` page tells a customer that "a working unsubscribe" is one of
+the basics, which made it the application stating a rule and handing them a tool
+that could not keep it.
+
+**The refusal that makes it real: `dispatchCampaign` will not send a campaign it
+cannot supply a way out of.** No signing key, or no https origin, and nothing
+goes out at all. That is the one refusal in that file which is not about cost or
+consent, and it fails closed because the alternative cannot be taken back — the
+mail is in somebody's inbox, they have no way to stop the next one.
+
+Twenty-three existing tests started failing the moment it landed, all of them
+because they supplied no key and no origin. That is the guard working, and each
+harness now says so in a comment rather than quietly gaining a variable.
+
+## The standard, read rather than remembered
+
+RFC 8058, read 10 September 2026, quoted in the module: one `List-Unsubscribe`
+header with **one HTTPS URI**, one `List-Unsubscribe-Post` containing exactly
+`List-Unsubscribe=One-Click`, the client POSTs that pair as the body, and "the
+mail sender MUST NOT return an HTTPS redirect".
+
+The clause that shaped the design: "The POST request MUST NOT include cookies,
+HTTP authorization, or any other context information." **The URI is the whole
+credential**, so it carries a signed token and nothing else can.
+
+One requirement is **not ours and is recorded as not ours**: the message "MUST
+have a valid DKIM signature that covers at least the List-Unsubscribe and
+List-Unsubscribe-Post headers." Resend signs for a verified sending domain, so
+compliance holds while `RESEND_FROM_EMAIL` is on one. Nothing in this codebase
+can check that, and a comment asserting it would be a reason nobody verified.
+
+## Why a GET does not unsubscribe anybody
+
+The in-body link renders a confirmation with a button. That extra step is not
+politeness: **mail security scanners and inbox proxies prefetch links.** A GET
+that withdrew consent on load would remove people who never clicked, and the
+owner would watch contacts drop out of every campaign with no explanation.
+
+The RFC 8058 POST is honoured immediately, because a mail client making it is
+acting on a person pressing Unsubscribe in their inbox.
+
+**The status codes differ by verb, deliberately.** A bad token on the GET renders
+200 with a readable "this link does not work" page — a person reads it and the
+status is invisible to them. On the POST it is a 400, because **a mail client
+shows its user "Unsubscribed" from the status**, so a 200 there on a token that
+verified against nothing would report a withdrawal that never happened.
+
+## The only unauthenticated write in Growth Studio
+
+Which makes the token the whole security story:
+
+- Signed, so holding your own link and swapping the lead id does not unsubscribe
+  somebody else. Both swaps are asserted.
+- Names the **organization** as well as the lead, because the service-role key
+  bypasses row-level security and a withdrawal that did not name the
+  organization would be a write with no tenant boundary.
+- Names no channel, and cannot: a token that could would let a link from an
+  email withdraw somebody's SMS permission.
+- Constant-time compare, length-checked first, because `timingSafeEqual` throws
+  on a length mismatch — the same correction `lib/sonara-billing.cjs` carries.
+- **Every refusal reads identically.** A reply that told a forged token from an
+  unknown contact would answer questions about somebody else's contact list.
+
+The page discloses nothing either: no address, no business, no campaign.
+
+## The signing key, and the cost of how it is obtained
+
+`SONARA_UNSUBSCRIBE_SECRET` when set; otherwise derived from
+`SUPABASE_SERVICE_ROLE_KEY`, which is already required and present anywhere this
+runs. That is why sending works on deploy with no owner step — necessary,
+because a campaign is not sent without a way out.
+
+**The cost, stated rather than buried: rotating the service role key invalidates
+every unsubscribe link already in an inbox.** They live there for months. That
+is now written in `docs/owner/OWNER-STEPS.md` as a note before that rotation,
+with the order to do it in — and it is written there because the code comment
+claims it is, which would otherwise be a reason nobody made true.
+
+## Two findings from the tests
+
+**The two key sources derived the same key.** Both used one domain separator, so
+the same string in either variable produced an identical key: separated from
+other schemes and not from each other. Found by a test asking whether they
+differ. Two contexts now — and the consequence is recorded, because setting the
+dedicated secret for the first time is itself a key change that invalidates
+links signed before it. There is no ordering that preserves old links; the only
+choice is when to take the cut-over, and earliest is cheapest.
+
+**One assertion of mine was wrong rather than the code.** It demanded the
+confirmation page contain neither the organization nor the lead id, and failed —
+the token contains both, and the form has to carry the token to post it back.
+Whoever holds the link already received those ids in their own email, so the
+page discloses nothing new. Replaced with the assertion that is actually true
+and stronger: **every identifier on the page must appear in the token the
+recipient holds**, with a non-empty check so it cannot pass by finding none.
+
+## Falsification
+
+**Twelve breaks, twelve caught.** The signature never checked; both key sources
+sharing a context again; an http origin accepted; the dispatcher sending with no
+key; the headers dropped from the message; one shared token for every recipient;
+a GET unsubscribing on load; the POST answering 200 on an unverified token; the
+write dropping its organization filter; a failed write reported as done; an
+update matching no rows reported as a withdrawal; and the refusals
+distinguishing a forged token from an unknown contact.
+
+One sed did not match and **the hash comparison caught it as a no-op** rather
+than letting it read as a passing break — the third time that comparison has
+earned its place since it was added.
+
+## Also
+
+`/growth/unsubscribe` returning 200 rather than 400 on a bad token resolved two
+crawl tests as a side effect: the signed-in crawl's skipped-route count went back
+to 103 and the workspace-page crawl stopped listing it as failing. Worth noting
+because the reverse would have been a page that stopped rendering.
+
+**Verified:** 4,275 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `SONARA_UNSUBSCRIBE_SECRET` is classified optional in
+`lib/sonara-environment-classification.cjs`, which is what makes "unset" a
+supported state rather than a misconfiguration.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice, and
+Resend's suppression list — a withdrawal is now recordable by the recipient, but
+nothing captures a hard bounce, and repeatedly mailing a dead address damages
+sending reputation.
+
 ### 2026-09-10 - Somewhere to press Send, and a check whose reason had expired
 
 The send route existed and no page posted to it. In this repository that is a
