@@ -2,6 +2,86 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-10 - The meter, so a metered capability can be charged for
+
+The owner's instruction was to close the three structural weak points against
+competitors: no inbound phone, generation that cannot be billed, and Growth
+Studio that cannot send. All three are the same shape -- **a metered outbound
+channel with a per-use vendor bill.** Added without a meter, each is a cost
+centre on a product whose entire advantage is zero marginal cost, and the free
+tier pays for strangers' phone calls. So the meter was built first.
+
+**Two corrections found while researching, both in our favour.**
+
+*Calling already exists.* `docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md`
+records a zero-margin strategy with seven of eight capabilities built: calendar,
+clock, scheduling, GPS, Web Push messaging and **WebRTC calling from a customer
+record** (27 August). WebRTC audio is peer-to-peer, so it costs nothing for the
+80-85% of connections that do not need a TURN relay. The synopsis written an
+hour earlier said "no phone, nothing answers a call", which was too broad. The
+real gap is narrower: nothing answers an **inbound** call from the public phone
+network.
+
+*The two-importer claim held.* A first grep suggested
+`lib/sonara-web-push.cjs` had started requiring
+`lib/sonara-paid-capabilities.cjs`, which would have made the "required by
+exactly two files" line stale. It matched a comment, not a `require`. Checked
+again for real `require()`/`import` and it is still its own release check and its
+own test.
+
+**What was built.** `lib/sonara-usage-meter.cjs` is the decision half of the
+price list. Nothing in it invents a number -- `quote()` remains the only source
+of a price -- and `quote()` already returns `marginMinor`, so every metered
+channel becomes a margin line rather than a bill. Telephony prices at 3 minor
+units against a 0.8 floor.
+
+**It fails CLOSED, which is the opposite of the agent breaker, deliberately.**
+The breaker fails open on an unreadable history because blocking every agent on
+a transient error is the worse outage. Here the trade reverses: a refused
+generation is retryable, and a GPU second or carrier minute spent is money gone
+that cannot honestly be billed afterwards. One direction loses a retry, the
+other loses cash. Both reasons are written where the code makes the choice.
+
+**The ledger is append-only and there is deliberately no `balance` column.** Two
+serverless functions reading a balance, subtracting and writing it back will lose
+one of the two writes under any concurrency, and the symptom is *free usage*
+rather than an error, so nothing reports it. Rows that are only inserted cannot
+race.
+
+**The unique index is what actually prevents a double charge.** The module
+refuses to build a draw without an idempotency key, but that is a JavaScript
+guard on one path; a retried request or duplicated queue message would insert a
+second row and charge a customer twice for one video with no way to see it.
+`usage_credit_ledger_draw_idempotency` is partial, covering draws only -- grants
+and refunds are legitimately repeatable.
+
+**A bug of mine, caught by my own test on the first run.** `balanceFrom` used
+`Number.isFinite` alone, and `Number(null)` is `0` and finite -- so a missing
+amount summed as a zero-value entry instead of being rejected. That is defect
+four in `.claude/skills/checks-that-cannot-lie`, and the same shape that once
+made unpriced services read as free across twenty-three columns here. Now guarded
+the way `finiteNumber` does it: reject null, undefined and empty string *before*
+coercing.
+
+**Broken and confirmed red three ways.** Failing open on an unreadable balance
+(4 tests red), skipping a ledger row it cannot read (1), and allowing a draw with
+no idempotency key (1). Each by name; restored by copying the file back.
+
+**Five gates caught what a new table owes.** The migration replay's decided
+closed-table set (25 to 26), the applied-migration checksum pin, the tenant-table
+generator, the Supabase contract's canonical count and its runtime-assertion
+list, and seven derived doc counts. The 22 July contract migration is frozen, so
+the ledger carries its own `raise exception` assertions and is named in the
+verifier -- the pattern the reference-intelligence extension established.
+
+**What this unblocks, and what is still not built.** Charging for generation is
+now possible; the meter is the thing that was missing, not the price. Inbound
+carrier voice and carrier SMS are still unbuilt and still need a vendor
+credential -- but they are now safe to add, because usage draws against credit
+instead of against margin. Email sending is the cheapest of the three to reach,
+because `RESEND_API_KEY` is already a required variable and already used for
+staff invitations.
+
 ### 2026-09-10 - Two launch documents had stopped being true, in our favour
 
 Writing a competitive synopsis meant reading the market and pricing documents

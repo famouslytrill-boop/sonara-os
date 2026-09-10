@@ -546,7 +546,7 @@ function main() {
           and not exists (
             select 1 from pg_policies p
             where p.schemaname = 'public' and p.tablename = c.relname);
-    `, ["closed_count_25", "closed_set_audit_log,business_payment_accounts,call_sessions,call_signals,consent_records,db_health_snapshots,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,user_auth_factors,user_recovery_codes"]);
+    `, ["closed_count_26", "closed_set_audit_log,business_payment_accounts,call_sessions,call_signals,consent_records,db_health_snapshots,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
 
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text

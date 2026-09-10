@@ -15,12 +15,19 @@ const referenceContractExtensionPath = path.join(root, "supabase", "migrations",
 const productLifecycleMigrationPath = path.join(root, "supabase", "migrations", "20260723193000_product_lifecycle_system.sql");
 const marketIntelligenceMigrationPath = path.join(root, "supabase", "migrations", "20260725120000_market_intelligence_system.sql");
 const promptLibraryMigrationPath = path.join(root, "supabase", "migrations", "20260726163000_sonara_prompt_library.sql");
+// Added 10 September 2026. The 22 July contract migration is frozen -- its
+// checksum is pinned -- so a table introduced after it carries its own runtime
+// assertions and is listed here, the pattern the reference-intelligence
+// extension established.
+const usageLedgerMigrationPath = path.join(root, "supabase", "migrations", "20260910020000_usage_credit_ledger.sql");
 const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migrations", "20260722183000_fix_organization_delete_audit.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 145);
+    // 146 since 10 September 2026: usage_credit_ledger, which lets the six priced
+    // metered capabilities actually be charged for.
+    assert.equal(DATABASE_TABLES.length, 146);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -73,7 +80,7 @@ describe("Supabase database contract", () => {
   });
 
   it("keeps the readiness RPC service-only and verifies table RLS", () => {
-    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath]
+    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, usageLedgerMigrationPath]
       .map((filePath) => fs.readFileSync(filePath, "utf8"))
       .join("\n")
       .toLowerCase();
