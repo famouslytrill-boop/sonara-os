@@ -32,8 +32,27 @@ migration the failure fell on:
 
 - *"Failure occurred before any schema change was applied"* → the database is
   untouched. **No database rollback.** Skip to Step 3.
-- *"Schema changes were already applied to production"* → continue to Step 2.
-  The summary also carries the checkpoint values.
+- *"No schema change was applied: the production schema dump is byte-identical
+  before and after the push"* → the push ran and did nothing. **No database
+  rollback.** Skip to Step 3. A checkpoint will still be attached, because it is
+  taken before the push rather than after it; its presence is not evidence that
+  anything changed.
+- *"Schema changes WERE applied to production"* → continue to Step 2. The
+  summary also carries the checkpoint values.
+- *"whether the push changed anything was NOT determined"* → the run failed at
+  or before the apply step and the marker is missing. **Do not assume either
+  way.** Compare the current schema against `pre-migration-schema.sql` from the
+  artifact before deciding, then follow whichever branch that comparison puts
+  you in.
+
+> **Why the middle two exist.** Until 10 September 2026 this summary announced
+> *"Schema changes were already applied to production"* whenever a checkpoint
+> file was present — and that file is written **before** the push,
+> unconditionally. So it said the schema had changed on every run that got that
+> far, whether or not a single migration applied. Seven runs said it while
+> applying nothing, and the claim was believed and repeated. The summary now
+> compares a schema dump taken either side of the push, which is a fact about
+> the database rather than an inference from a file's existence.
 
 Download the `rollback-checkpoint-<run_id>` artifact. It contains:
 

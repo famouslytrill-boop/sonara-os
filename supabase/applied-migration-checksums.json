@@ -110,5 +110,6 @@
   "20260812120000_retire_removed_catalog_products.sql": "3fe9ddd4103be01a88b49532ceab0699c2053e5c65aba93542cd7d074cc3f5c1",
   "20260827100000_published_catalog_is_complete.sql": "78f762b6751b29c8c74db218b7d7c09b71f98090e389c6648a148c23b577d8a7",
   "20260907120000_declare_service_role_data_api_surface.sql": "0309c8aa443c89bd85d91c7a7954792354ce3147364878d6df31e49969c2e477",
-  "20260908000000_repair_missing_reviews_table.sql": "a8c59aec67548065459fc033a3bab416ee15f9e7681dd7d6c3dc61d1580343e6"
+  "20260908000000_repair_missing_reviews_table.sql": "a8c59aec67548065459fc033a3bab416ee15f9e7681dd7d6c3dc61d1580343e6",
+  "20260910020000_usage_credit_ledger.sql": "4ebda0f40fdb9a194dde4d5b08c61f74fcd1f5d7bfe4e1835ae8a0533a67618d"
 }

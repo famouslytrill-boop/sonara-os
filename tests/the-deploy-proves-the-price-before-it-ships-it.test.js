@@ -75,6 +75,44 @@ describe("the deploy proves the price before it ships it", () => {
     );
   });
 
+  // Added 9 September 2026, when the price check sat after `supabase db push`
+  // and seven consecutive deployments ran that push, failed here, and deployed
+  // no code.
+  //
+  // CORRECTED 10 September 2026. This comment said those runs had each applied
+  // every pending migration and left production's schema ahead of its code. They
+  // had not: the migration set at the deployed commit and at the tip of main are
+  // byte-identical, so each push was a no-op. The belief came from the run
+  // summaries, which announced a schema change whenever a checkpoint file
+  // existed -- a claim keyed to something it never checked. See
+  // tests/the-rollback-summary-says-what-actually-happened.test.js.
+  //
+  // The ordering these two cases hold is right regardless, and on a plainer
+  // reason: when a migration IS pending, failing after the push leaves
+  // production's schema ahead of the application running against it. Running
+  // the check first makes that impossible rather than merely unlikely.
+  it("runs before any migration is applied, so a failure leaves the database untouched", () => {
+    const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
+    const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
+    assert.ok(applyAt > 0, "the migration apply step is missing, so this ordering cannot be checked");
+    assert.ok(
+      checkAt < applyAt,
+      "the price check must run before migrations are applied; after them, a failure here leaves production's schema " +
+      "ahead of the code whenever a migration was actually pending"
+    );
+  });
+
+  it("pulls the production environment before any migration is applied, since the check depends on it", () => {
+    const pullAt = WORKFLOW.indexOf("- name: Pull production environment");
+    const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
+    assert.ok(pullAt > 0, "the environment pull step is missing");
+    assert.ok(
+      pullAt < applyAt,
+      "the price check reads the pulled environment, so moving the check ahead of the migrations without the pull " +
+      "would leave it reading a file that does not exist yet"
+    );
+  });
+
   it("runs before the pulled environment is deleted, or it would have no price ids to read", () => {
     const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
     const cleanupAt = WORKFLOW.indexOf("Remove temporary production environment material");

@@ -62,3 +62,18 @@ jobs:
           BASE_URL: https://sonaraindustries.com
           REQUEST_TIMEOUT_MS: "20000"
         run: pnpm run smoke:live
+
+      # Says which build the step above just tested, next to the step above.
+      #
+      # On a pull request `EXPECTED_COMMIT_SHA` is unset, so smoke-live-routes
+      # returns from waitForExpectedDeployment on its first line and never names
+      # the version it reached. A green result there is therefore evidence about
+      # whatever production happens to be serving, which on 9 September 2026 was
+      # 44 commits behind main because deploys were blocked on a credential.
+      #
+      # `if: always()` so it still reports when the smoke check failed -- knowing
+      # which build failed is the first question -- and it does not fail on
+      # staleness, only on production having stopped saying which build it is.
+      - name: Report which build production is serving
+        if: always()
+        run: pnpm run report:deployed-commit

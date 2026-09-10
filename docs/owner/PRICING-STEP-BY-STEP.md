@@ -55,8 +55,47 @@ STRIPE_PRICE_ALL_THREE_ANNUAL = price_1UDdUv0dKtlEU3lArDuldBWw
 STRIPE_PRICE_TEAM_ANNUAL      = price_1UDdV30dKtlEU3lA9OltiqYX
 ```
 
-Mark them **Sensitive** if you like; the deploy check knows the difference
-between a variable that is set-but-redacted and one that is absent.
+**Do not mark these Sensitive.** This file used to say "mark them Sensitive if
+you like; the deploy check knows the difference between a variable that is
+set-but-redacted and one that is absent." That sentence was true and useless,
+and it is withdrawn on evidence.
+
+The check does distinguish the two — it prints a different message for each —
+but it **fails on both**. `vercel env pull` cannot return a sensitive value, so
+it writes the literal string `[SENSITIVE]` in its place, and a deployment that
+reads the pulled environment gets a placeholder where a price id should be.
+
+That is not hypothetical. It is what happened: on the 9 September deploy run,
+`vercel env pull` reported *"65 Secret values cannot be pulled from the
+`production` Environment"*, and the price check failed on six variables at once
+— all three annual ids above plus `STRIPE_PRICE_WORKSPACE_MONTHLY`,
+`STRIPE_PRICE_ALL_THREE_MONTHLY` and `STRIPE_PRICE_TEAM_MONTHLY` — each with:
+
+> `STRIPE_PRICE_… is set but does not hold a Stripe price id.`
+
+The three older ids (`STARTER`, `CORE`, `PRO`) were not marked Sensitive and
+came through fine, which is the clearest evidence that the flag is the cause.
+
+**A Stripe price id is not a secret.** It is served to every visitor of the
+pricing page, in the checkout call. Marking it Sensitive protects nothing and
+breaks the one check that compares what you advertise against what Stripe would
+charge.
+
+To fix one that is already Sensitive, the surest route is to replace it:
+
+```
+vercel env rm  STRIPE_PRICE_WORKSPACE_ANNUAL production --yes
+vercel env add STRIPE_PRICE_WORKSPACE_ANNUAL production --no-sensitive
+```
+
+`--no-sensitive` is documented as opting out of the default sensitive behaviour.
+There is also a REST `PATCH /v9/projects/{idOrName}/env/{id}` that takes
+`"type": "plain"`, if you would rather change it in place. Whether the dashboard
+offers the same toggle is not recorded here, because it has not been checked —
+the two commands above have documentation behind them.
+
+Then **redeploy**, as below. Confirm with the run itself: `vercel env pull`
+should no longer count these among the "Secret values cannot be pulled".
 
 ### Redeploy, because a variable alone changes nothing
 

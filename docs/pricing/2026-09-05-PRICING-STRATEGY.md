@@ -83,15 +83,38 @@ written, the comparison is still stronger than it was.
 | Plan | Monthly | State |
 | --- | --- | --- |
 | Free | $0 | Live |
-| One workspace | **$29** | 13 Aug price is $19 and immutable — **a new one is needed**; variable unset |
-| All three | **$59** | 13 Aug price is $39 and immutable — **a new one is needed**; variable unset |
-| Team | **$109** | 13 Aug price is $79 and immutable — **a new one is needed**; variable unset |
+| One workspace | **$29** | **Live** — see the box below |
+| All three | **$59** | **Live** |
+| Team | **$109** | **Live** |
 
-The old Starter $7 / Core $19 / Pro $39 ladder is still what a visitor sees,
-because `offeredPlanKeys` will not swap ladders until the replacements can
-actually be bought. That is the design working, not a bug — but it does mean
-**the restructure is one owner step away from being live, and has been since
-13 August.** The Stripe prices already exist; three Vercel variables do not.
+> ### Closed, verified 10 September 2026
+>
+> This table said `variable unset` against all three, and the paragraph below it
+> said the restructure was *"one owner step away from being live, and has been
+> since 13 August."* **Both were out of date, and in our favour.**
+>
+> Read from the live site rather than from this repository:
+>
+> - `/api/readiness` reports `checkout: enabled, reason: configured` for **all
+>   ten** plan keys — `free`, the three depth plans, the three breadth plans and
+>   all three annual plans. `missing.stripe` and `deferred.stripe` are both empty.
+> - `/pricing` serves **$0 / $29 / $59 / $109** monthly and **$290 / $590 /
+>   $1090** annual. The old $7 / $19 / $39 amounts no longer appear on it.
+>
+> So `offeredPlanKeys` has swapped ladders, which is what that paragraph was
+> waiting on. The breadth restructure decided on 11 August and applied on 19
+> August is **live to customers**.
+>
+> One caveat worth keeping, because it is the opposite failure and easy to
+> conflate: six `STRIPE_PRICE_*` variables are marked **Sensitive** in Vercel, so
+> `vercel env pull` writes `[SENSITIVE]` and the deploy-time price check reads a
+> placeholder rather than a price id. That blocks *verification*, not *checkout*
+> — the running application is given the real values.
+> `docs/owner/PRICING-STEP-BY-STEP.md` carries the two commands that fix it.
+
+The depth ladder's Starter $7 / Core $19 / Pro $39 keys remain purchasable rather
+than withdrawn, so nobody already on one loses it; `offeredPlanKeys` decides what
+a new visitor is shown, and it now shows the breadth ladder.
 
 ---
 
@@ -236,8 +259,9 @@ three is not the price — it is the three Vercel variables that name it.
 
 So the work is asymmetric, and it matters which is which:
 
-- **One workspace / All three / Team, monthly** — price exists, variable unset.
-  One step, and the restructure goes live the moment it is taken.
+- **One workspace / All three / Team, monthly** — as written: price exists,
+  variable unset, one step from live. **That step was taken; verified live
+  10 September 2026.** See the box in section 2.
 - **The three annual plans** — price does not exist. Two steps: create a yearly
   recurring price at $290, $590 and $1090, then set the variables.
 

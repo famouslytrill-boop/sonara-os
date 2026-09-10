@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3877 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 314 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 319 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-228 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+230 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,612 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - The meter, so a metered capability can be charged for
+
+The owner's instruction was to close the three structural weak points against
+competitors: no inbound phone, generation that cannot be billed, and Growth
+Studio that cannot send. All three are the same shape -- **a metered outbound
+channel with a per-use vendor bill.** Added without a meter, each is a cost
+centre on a product whose entire advantage is zero marginal cost, and the free
+tier pays for strangers' phone calls. So the meter was built first.
+
+**Two corrections found while researching, both in our favour.**
+
+*Calling already exists.* `docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md`
+records a zero-margin strategy with seven of eight capabilities built: calendar,
+clock, scheduling, GPS, Web Push messaging and **WebRTC calling from a customer
+record** (27 August). WebRTC audio is peer-to-peer, so it costs nothing for the
+80-85% of connections that do not need a TURN relay. The synopsis written an
+hour earlier said "no phone, nothing answers a call", which was too broad. The
+real gap is narrower: nothing answers an **inbound** call from the public phone
+network.
+
+*The two-importer claim held.* A first grep suggested
+`lib/sonara-web-push.cjs` had started requiring
+`lib/sonara-paid-capabilities.cjs`, which would have made the "required by
+exactly two files" line stale. It matched a comment, not a `require`. Checked
+again for real `require()`/`import` and it is still its own release check and its
+own test.
+
+**What was built.** `lib/sonara-usage-meter.cjs` is the decision half of the
+price list. Nothing in it invents a number -- `quote()` remains the only source
+of a price -- and `quote()` already returns `marginMinor`, so every metered
+channel becomes a margin line rather than a bill. Telephony prices at 3 minor
+units against a 0.8 floor.
+
+**It fails CLOSED, which is the opposite of the agent breaker, deliberately.**
+The breaker fails open on an unreadable history because blocking every agent on
+a transient error is the worse outage. Here the trade reverses: a refused
+generation is retryable, and a GPU second or carrier minute spent is money gone
+that cannot honestly be billed afterwards. One direction loses a retry, the
+other loses cash. Both reasons are written where the code makes the choice.
+
+**The ledger is append-only and there is deliberately no `balance` column.** Two
+serverless functions reading a balance, subtracting and writing it back will lose
+one of the two writes under any concurrency, and the symptom is *free usage*
+rather than an error, so nothing reports it. Rows that are only inserted cannot
+race.
+
+**The unique index is what actually prevents a double charge.** The module
+refuses to build a draw without an idempotency key, but that is a JavaScript
+guard on one path; a retried request or duplicated queue message would insert a
+second row and charge a customer twice for one video with no way to see it.
+`usage_credit_ledger_draw_idempotency` is partial, covering draws only -- grants
+and refunds are legitimately repeatable.
+
+**A bug of mine, caught by my own test on the first run.** `balanceFrom` used
+`Number.isFinite` alone, and `Number(null)` is `0` and finite -- so a missing
+amount summed as a zero-value entry instead of being rejected. That is defect
+four in `.claude/skills/checks-that-cannot-lie`, and the same shape that once
+made unpriced services read as free across twenty-three columns here. Now guarded
+the way `finiteNumber` does it: reject null, undefined and empty string *before*
+coercing.
+
+**Broken and confirmed red three ways.** Failing open on an unreadable balance
+(4 tests red), skipping a ledger row it cannot read (1), and allowing a draw with
+no idempotency key (1). Each by name; restored by copying the file back.
+
+**Five gates caught what a new table owes.** The migration replay's decided
+closed-table set (25 to 26), the applied-migration checksum pin, the tenant-table
+generator, the Supabase contract's canonical count and its runtime-assertion
+list, and seven derived doc counts. The 22 July contract migration is frozen, so
+the ledger carries its own `raise exception` assertions and is named in the
+verifier -- the pattern the reference-intelligence extension established.
+
+**What this unblocks, and what is still not built.** Charging for generation is
+now possible; the meter is the thing that was missing, not the price. Inbound
+carrier voice and carrier SMS are still unbuilt and still need a vendor
+credential -- but they are now safe to add, because usage draws against credit
+instead of against margin. Email sending is the cheapest of the three to reach,
+because `RESEND_API_KEY` is already a required variable and already used for
+staff invitations.
+
+### 2026-09-10 - Two launch documents had stopped being true, in our favour
+
+Writing a competitive synopsis meant reading the market and pricing documents
+against the live site rather than trusting either. Two of them were stale, and
+both in the direction nobody checks.
+
+`docs/pricing/2026-09-05-PRICING-STRATEGY.md` said `variable unset` against One
+workspace, All three and Team, and that the restructure was *"one owner step away
+from being live, and has been since 13 August."*
+`docs/SHIP_READINESS.md` said the breadth ladder *"is not on the page -- its
+price variables are unset"*.
+
+**Both had been overtaken.** Read from the live site: `/api/readiness` reports
+`checkout: enabled, reason: configured` for **all ten** plan keys, with
+`missing.stripe` and `deferred.stripe` empty, and `/pricing` serves
+**$0 / $29 / $59 / $109** monthly alongside **$290 / $590 / $1090** annual. The
+old $7 / $19 / $39 amounts are gone from it. `offeredPlanKeys` has swapped
+ladders, which is the one thing both documents were waiting on.
+
+Two things worth keeping separate, because conflating them is easy and the
+conclusions are opposite:
+
+- **Checkout works; verification does not.** Six `STRIPE_PRICE_*` variables are
+  marked Sensitive in Vercel, so `vercel env pull` writes `[SENSITIVE]` and the
+  deploy-time price check reads a placeholder. The *running application* is given
+  the real values, which is why customers are unaffected while the deploy is
+  blocked. Recorded in both documents so the next reader does not diagnose a
+  customer-facing outage that is not there.
+- **Buyable is not bought.** `SHIP_READINESS.md`'s subject is that no plan on the
+  page has ever been paid for by anyone but the owner, and that is unchanged. Only
+  the first half moved, and the correction says so rather than reading as though
+  the section were closed.
+
+The lesson is the one this repository keeps relearning from the other direction.
+A present-tense sentence in a dated document is a claim with nothing watching it:
+these two went stale for four days and eleven days respectively, and the only
+reason it surfaced is that a synopsis had to cite them and cited the live site
+instead. Neither figure is derivable, so neither can be gated -- what is
+available is the habit of reading the site before quoting the document.
+
+### 2026-09-10 - An agent that keeps failing now loses the unattended list
+
+`lib/sonara-agent-authority.cjs` was entirely static. An action type is
+self-serve or it is not, and it stayed that way **however badly the agent
+performed it**. `agent_action_logs` recorded every outcome and nothing read one
+back into a decision — it was written for `/owner/agent-activity` to display and
+for nothing else. So an agent whose `draft_reply` runs had failed twenty times
+running kept `draft_reply`.
+
+**Where the idea came from, recorded rather than absorbed.** The AI-SDLC
+Framework review the day before (`ai-sdlc-framework/ai-sdlc`, Apache 2.0,
+registered `reference_only`) models autonomy as ordered levels with
+`promotionCriteria` and `demotionTriggers`. **Their levels are deliberately not
+adopted** — AGENTS.md is binary, and a graduated ladder would blur a rule whose
+whole value is that it is not negotiable. Their *demotion* half is what we
+lacked. No code was taken; this was written against our own module.
+
+**The property that makes it safe to add at all: it can escalate and never
+relax.** `evaluateAutonomyBreaker` returns the classification untouched whenever
+it already requires approval, so it is structurally incapable of turning a
+refund into something an agent may do. That is asserted across all seven
+sensitive categories plus the unnamed and unrecognised defaults, with a *clean*
+history — the strongest possible argument for relaxing — as the input.
+
+Three failures deliberately kept distinct, each one a shape this codebase has
+already been bitten by:
+
+- **`unavailable`** — the read failed. The base classification stands (blocking
+  every agent on a transient read is the worse outage, the same trade
+  `lib/sonara-rate-limit.cjs` makes) and it is **reported**, because three of
+  four rate limiters here failed open in silence for months.
+- **`insufficient_history`** — fewer runs than the window. Too little evidence
+  is *not* evidence of reliability, and calling it healthy would be a check
+  passing on a short list.
+- A **bare array** is rejected outright. `{ok:false}` and `{ok:true, rows:[]}`
+  are different facts — "the read failed" and "this agent has a clean sheet" —
+  and a bare `[]` collapses them into the more dangerous one.
+
+`unimplemented` is not counted as a failure: it means the gate approved
+something nothing implements, which is a gap in the catalogue rather than the
+agent behaving badly, and counting it would demote an agent for a missing
+feature.
+
+**Wired, not decorative.** `createActionHistoryReader` reads the log
+**organization-scoped and agent-scoped** — the service-role key bypasses RLS, so
+that filter is the tenant boundary, and without the `agent_key` filter one
+agent's failures would demote all of them. `createRunner` takes an optional
+`readHistory`; absent it, the breaker reports `unavailable` and every existing
+call site decides exactly as before, so this could not change a decision already
+being made.
+
+**Broken, and confirmed red, four ways before committing.** Letting the breaker
+relax an already-gated action, treating an unreadable history as healthy,
+reading a short history as clean, and — the important one — making the runner ask
+the breaker and then ignore its answer, which is the exact bug this repository
+already shipped once. Each failed the right test by name; the others stayed
+green. Restored by copying files back.
+
+**An existing gate caught a fresh instance of the recurring defect, mine.** The
+redaction-boundary test failed on the new degraded-report line: it printed the
+read failure's `reason` straight to the log, and a provider error carries the URL
+it failed on, and that URL carries the service-role key. Third time in this
+codebase — the route-error log, the rate limiters, and now this — and the
+boundary test is why it cost a minute rather than a breach.
+
+### 2026-09-10 - A rollback message that announced a schema change it never checked
+
+The deploy's failure summary decided whether production's schema had changed by
+asking **whether `rollback-checkpoint.txt` exists**. That file is written before
+the push, unconditionally. So every run that got that far printed:
+
+> Schema changes were already applied to production.
+
+true or not. It is the recurring defect sitting in the worst possible place: the
+sentence a person reads while deciding whether to perform a database rollback.
+
+**It was believed, and repeated, which is the harm.** On 9 September that line
+was read out of a run log and taken as evidence. It went into a commit message,
+a sprint-log entry, a comment in the workflow, a pull request body, and twice to
+the owner — all stating that seven failed deployments had moved production's
+schema forward and that the gap "might matter, not checked".
+
+Checking it took two commands. `git ls-tree` at the deployed commit `36c1b2a`
+and at `HEAD` lists **the same 115 migration files**, and `git diff` over
+`supabase/` across those 44 commits is empty. Not one migration was added,
+removed or edited. Every one of those pushes was a no-op against a database
+already current. **There was no gap and no rollback was ever owed.**
+
+**What replaced it.** The apply step now dumps the schema after the push and
+compares it to the dump already taken before, then writes `schema_changed=yes|no`
+to `migration-effect.txt`, which is uploaded with the failure diagnostics. The
+summary reports three states rather than two — applied, applied nothing, and
+*could not tell* — because a run that fails at the apply step itself knows
+neither, and defaulting to one answer is the original bug with a new default.
+
+Comparing dumps rather than parsing `supabase db push` output is deliberate: the
+CLI reports in prose, and a parser keyed to vendor wording fails green when the
+vendor rewords it. Two dumps either differ or they do not.
+
+`docs/PRODUCTION_ROLLBACK_RUNBOOK.md` routed the owner's incident decision off
+the old wording, so it now carries all four branches, including the instruction
+not to assume either way when the marker is absent.
+
+**Broken, and confirmed red, before committing.**
+`tests/the-rollback-summary-says-what-actually-happened.test.js`. Restoring the
+original checkpoint-only summary failed exactly three by name — *"no longer
+claims a schema change merely because a checkpoint file exists"*, *"reports the
+case that was missing"*, and *"says it could not tell, rather than guessing"* —
+while the other five stayed green. Restored by copying the file back.
+
+One of its assertions also caught a real thing on the first run: it forbids the
+CLI's wording appearing anywhere in the workflow, and it fired on the
+explanatory comment quoting that wording. The comment was reworded rather than
+the assertion loosened.
+
+**The lesson worth keeping.** The reordering committed on 9 September is still
+right, but its stated justification was a story rather than a measurement. A
+signal that reports success without being true is the documented defect here;
+this was the same defect one step out — a signal reporting *failure* without
+being true, which is just as false and reads as more urgent.
+
+### 2026-09-09 - AI-SDLC Framework reviewed: the licence is real, the "open source" line is half the story
+
+A screenshot of the **AI-SDLC Framework** README arrived. Register record added
+(230 repositories), `reference_only`.
+
+**Identifying it first, because the screenshot showed no owner.** Searched
+rather than probed: `ai-sdlc-framework/ai-sdlc`, website `ai-sdlc.io`. That
+mattered -- `wico216/ai-sdlc` is an unrelated project with a near-identical name
+sitting one result away, and a guessed owner would have gone into a permanent
+record.
+
+**The licence checks out.** `LICENSE` is the Apache 2.0 text verbatim, no
+reciprocal or non-commercial terms; `package.json` says `Apache-2.0`,
+`private: true`. Two Apache-specific gaps recorded rather than assumed benign:
+**no NOTICE file**, and no copyright holder named outside the appendix template,
+so section 4 attribution has nothing in the repository to point at.
+
+**It is real code**, not a markdown collection -- 4,136 files: 1,505 `.ts`, 1,031
+`.md`, 163 `.py`, 96 `.go`, 81 `.tsx`; nine pnpm workspace packages, each with
+one to six production dependencies, lockfile resolving 561.
+
+**Two findings the post does not contain, and they are the decision.**
+
+*Cost.* `ANTHROPIC_API_KEY` appears 241 times, `OPENAI_API_KEY` 81, plus an
+`ANTHROPIC_API_KEY_SECONDARY`. The advertised "cross-harness reviewers verify
+the work in parallel" means paid model calls from two vendors on **every
+change** -- cost that scales with change volume, not a fixed licence fee. The
+project knows: `spec/schemas/subscription-plan.schema.json` exists to pace
+dispatch against `session-window`, `monthly-cap` and `pay-per-token` billing.
+
+*It is open core.* The screenshot closes "Open source. Apache 2.0." True of what
+was cloned, incomplete about the product. `enterprise.example.yaml`: *"Set your
+license key here or in AI_SDLC_LICENSE_KEY env var. Without a key, plugins run in
+trial mode (30 days)."* The gated plugins are **not in the repository** --
+`dogfood/src/` has `enterprise-config.ts` and an `enterprise-plugins.d.ts` of
+types only, so the implementation ships elsewhere under terms this repository
+never states. That is the standing rule intact: what a post claims and what a
+repository grants are different things.
+
+**Verdict: read it, do not take it.** Development-time only. SONARA ships one
+production dependency by design and runs serverless; a nine-package orchestrator
+cannot enter the served application. What is worth reading is the declarative
+model -- JSON Schema draft 2020-12 resources for `Pipeline`, `Decision`,
+`AgentRole`, `QualityGate`, `AutonomyPolicy`, `AdapterBinding` -- which covers
+the same ground as `lib/sonara-agent-authority.cjs` and its seven default-deny
+approval categories. Worth comparing ours against theirs for gaps.
+
+**Four statistics flagged, none checked.** The README's problem statement rests
+on METR 2025 (19% slower), GitClear 2024 (refactoring 25% to 10%), Google DORA
+2024 (7.2% stability drop per 25% adoption) and Stack Overflow 2025 (3% high
+trust). All second-hand. The register record says to trace each to its origin
+before repeating it and never to attribute one to this repository -- the same
+rule that governs the Databricks report.
+
+`verify-doc-counts` caught the stale 229 in `WHAT-IS-LEFT.md`, and `verify:gates`
+caught a stale `HANDOFF_PROMPT.md`. Both are derived counts catching a hand edit,
+which is the point of them.
+
+### 2026-09-09 - Seven deploys each moved production's schema forward and shipped no code
+
+Reading the log of deployment run 34381505461 answered a question I had been
+carrying wrongly, and turned up a worse problem underneath it.
+
+**The correction first.** The owner checklist said `STRIPE_SECRET_KEY` was
+missing from the GitHub `production` environment and that installing it was the
+one blocking step. It is installed -- the run's own step env shows
+`STRIPE_SECRET_KEY: ***`. Anyone following that instruction would have gone to
+fix something already done. Two different things are blocking the deploy:
+
+- **Three 403s.** `starter_monthly`, `core_monthly` and `pro_monthly` fail with
+  `Stripe returned 403`. A 403 on a restricted key is a permissions answer, not
+  a bad price id. `docs/owner/INSTALL-ALL-KEYS.md` told the owner to grant
+  *"exactly one permission: Prices -> Read. Nothing else."* That instruction is
+  wrong and this is very likely the cause: the check fetches
+  `/v1/prices/{id}?expand[]=product`, and an expand needs read permission on the
+  thing being expanded. The key needs Prices:read **and** Products:read.
+- **Six redacted price ids.** `vercel env pull` reported *"65 Secret values
+  cannot be pulled"* and wrote `[SENSITIVE]`. Six `STRIPE_PRICE_*` variables are
+  marked Sensitive in Vercel, so the check receives a placeholder. The three
+  older ids are not marked and came through fine, which is what identifies the
+  flag as the cause. `PRICING-STEP-BY-STEP.md` had told the owner *"mark them
+  Sensitive if you like; the deploy check knows the difference between a
+  variable that is set-but-redacted and one that is absent."* That sentence was
+  true and useless -- the check does print a different message for each, and
+  fails on both -- and it is the reason six variables carry the flag. Withdrawn,
+  with the evidence written in beside it.
+
+**A latent problem, and a claim about it that was wrong.** The Stripe check ran
+*after* `supabase db push`, so each of the seven consecutive failed deployments
+between 8 and 9 September ran that push, failed, and deployed no code.
+
+> **Corrected 10 September 2026.** This entry originally said those runs had
+> "applied every pending migration to the production database" and left
+> production's schema ahead of its code. **They had not.** The migration set at
+> the deployed commit `36c1b2a` and at the tip of `main` is byte-identical --
+> 115 files, none added, removed or edited across those 44 commits -- so every
+> push was a no-op against a database already current. There was no
+> schema-ahead-of-code gap, and no rollback was ever owed. The correction is
+> recorded rather than quietly edited because the wrong version was told to the
+> owner twice and shipped in a pull request body. See the entry below for how
+> the claim was arrived at.
+
+The environment pull and the price check now run **before** the migration apply.
+Nothing in either needs a migration to have run: the dry-run above them has
+already proved the migration set applies, and these two read Vercel and Stripe.
+The failure becomes "abort having changed nothing".
+
+**Broken, and confirmed red, before committing.** Two new cases in
+`tests/the-deploy-proves-the-price-before-it-ships-it.test.js`. Restoring the old
+step order failed both by name -- *"the price check must run before migrations
+are applied"* and *"the price check reads the pulled environment"* -- while the
+other seven stayed green. Restored by copying the file back, not `git checkout`.
+
+**One thing the suite caught that I had missed.** Renaming the pull step to
+"...for configuration verification" broke
+`scripts/verify-agent-development-sync.mjs`, which asserts that step by name. Its
+uncaught assertion produced no parseable output, so five unrelated `gateWith`
+tests in `a-shared-baseline-that-is-behind-must-say-so.test.js` failed at once
+with confusing messages. The gate was right and the rename was real; the
+assertion now names the new step, with the reason beside it.
+
+Also: `verify-stripe-env.mjs` printed a bare `Stripe returned 403` and discarded
+Stripe's error body -- the one fact that resolves the failure was being fetched
+and thrown away. It now prints Stripe's own message, and names what a 403 and a
+404 each mean. Verified against the live API with an invalid key: the body
+surfaces, and Stripe redacts the key inside its own message.
+
+Still owner-only, and both are needed -- fixing one alone will not turn it green.
+
+### 2026-09-09 - A new high advisory turned CI red, and the fix had a precedent
+
+`frontend-dependencies` failed on this branch. It is the audit gate: the job runs
+`pnpm audit --audit-level moderate`, and a later step whose whole body is
+`exit 1` fires when that step's outcome is failure.
+
+**GHSA-7w5x-hrqm-74c2** -- `smol-toml` at or below 1.7.0, denial of service via
+malformed TOML documents, patched in 1.7.1. It reaches this repository
+transitively: `. > @vercel/node > @vercel/build-utils > @vercel/python-analysis >
+smol-toml`, and `@vercel/node` is a development dependency, so nothing in the
+served application loads it.
+
+**Not caused by this branch**, and worth saying why that was checked rather than
+assumed: the commit before it touched `package.json` only to add two script
+entries, and the advisory is against a package neither the commit nor the branch
+introduced. It fails `main` identically. A new advisory landing against an
+existing tree is the audit gate doing exactly what it is for.
+
+The fix had a precedent sitting in the same file. `pnpm-workspace.yaml` carries
+an `overrides` block of advisory pins -- `path-to-regexp`, `undici`, `ajv`,
+`minimatch`, `js-yaml`, `serialize-javascript`, `postcss` -- and **`smol-toml`
+was already among them**, pinned `<1.6.1` to `1.6.1` for an earlier advisory
+against the same package. So this is the established move, made again: the pin
+becomes `<1.7.1` to `1.7.1`.
+
+Nothing was weakened to get green, which is the rule that matters here.
+`pnpm audit --audit-level moderate` now reports no known vulnerabilities on its
+own terms rather than on a relaxed threshold, no advisory was excluded, and the
+gate is untouched. `pnpm install --frozen-lockfile` still resolves, so the
+lockfile and the override agree.
+
+4,081 tests, lint, `verify:launch` exit 0.
+
+### 2026-09-09 - Production has been 44 commits behind all day, and no check said so
+
+Went looking at deployment and found the gap is not that production is stale --
+that is known and blocked on the owner's Stripe key -- but that **nothing
+reports it**.
+
+`production-connectivity` runs against the live site on every pull request and
+passes. `scripts/smoke-live-routes.mjs` can compare the deployed commit to an
+expected one, and its first line is `if (!expectedCommitSha) return;`. That value
+comes from the deployment workflow, so on a pull request it is empty and the
+comparison is skipped entirely. **The smoke check reports a healthy production
+without ever naming the version it reached.**
+
+Read from the application rather than a dashboard, which matters because I had
+been repeating the figure from a Vercel listing all day: `/api/health` says
+production serves `36c1b2a` on main, and `origin/main` is **44 commits ahead of
+it**. So every green production check today was green about a build that none of
+the day's work is in. The check is not wrong; it just answers a narrower question
+than it appears to.
+
+`scripts/report-deployed-commit.mjs` says it, and runs in the
+production-connectivity workflow with `if: always()` so it also reports when the
+smoke check failed -- which build failed is the first question.
+
+**What it fails on is deliberately narrow.** Staleness does not fail: deploying
+is the owner's step, and a pull request going red for something nobody in that
+pull request can fix is how a red build becomes noise everybody learns to ignore.
+What does fail is losing the ability to tell -- if `/api/health` stops carrying
+the deployment block, the post-deploy gate in `smoke-live-routes.mjs` silently
+stops verifying anything, because it reads exactly `payload.deployment.commitSha`.
+
+One honesty guard worth naming: `actions/checkout` is shallow by default, so a CI
+runner will not contain the deployed commit. Rather than report "0 behind" from a
+`git rev-list` that found nothing, the script says it could not work it out and
+why. A confident wrong answer is worse than an absent one.
+
+`tests/health-says-which-build-answered.test.js` holds the contract from the
+other side, including that the smoke check still reads that exact field -- two
+files, one fact, and a test asserting a contract nothing relies on is worth
+nothing.
+
+Falsified three ways: an `/api/health` stub with no deployment block fails; an
+unreachable site skips without `--require-live` and fails with it; and removing
+`deployment: getDeploymentInfo()` from the route fails the unit test by name.
+
+The environment gate then caught the new `SONARA_PRODUCTION_URL` and refused to
+pass until it was classified, which is that gate doing its job on me. 133
+variables now, 113 optional. 4,081 tests, lint, `verify:launch` exit 0.
+
+### 2026-09-09 - The one log line every route error passes through printed the stack raw
+
+Swept every `console.*` in the runtime after the rate-limiter fix, on the
+principle that finding one unredacted sink means looking for the others. Eight
+in `server.js`, `lib/`, `routes/` and `api/`. Six were fine. One was the global
+route error handler, and it is the worst possible place for this.
+
+`lib/sonara-async-route-safety.cjs` ended with:
+
+    log(`[route-error] ${req.method} ${req.originalUrl || req.url} -> ${error && error.stack ? error.stack : error}`);
+
+**Every unhandled error in the application arrives on that line**, and it
+interpolated `error.stack` raw.
+
+What makes it worth a long entry is that the fix already existed and was written
+for exactly this. `lib/sonara-redaction.cjs` says so in its own header: "a
+Supabase failure carries a URL with an apikey query parameter or an Authorization
+header echo; a service-role key is a JWT ... redactError() exists because an
+Error is the usual carrier and `String(error)` drops the stack while
+`error.stack` keeps the URL that failed." The redactor existed, the hazard was
+documented in the redactor's own comment, its first pattern is named
+`supabase_or_jwt_key` and calls the service-role key "the single worst thing in
+this deployment to print" -- and the one sink every route error passes through
+did not call it.
+
+A failed PostgREST request would have printed the service-role key, on the path
+taken when something is already going wrong, which is also the path most likely
+to be pasted into a chat while somebody asks for help.
+
+The request line is scrubbed separately, and not as an afterthought: a URL can
+carry a token in its query string, and a shared-result link does, so
+`req.originalUrl` is a credential carrier of its own.
+
+`tests/the-route-error-log-does-not-print-the-key.test.js` holds it, and asserts
+in both directions -- the key must not appear, and the method, path and error
+message must still appear, because a redactor that removes everything is as
+useless as one that removes nothing and only the second failure is obvious.
+
+Falsified: restoring the original line fails three assertions by name, including
+"the service-role key reached the log". 4,077 tests, lint, `verify:launch`
+exit 0.
+
+This is the third sink in one day where a credential could reach a log --
+`server.js` had already found and fixed it for the rate limiter, and that fix is
+what prompted the sweep. Widening `redactError` is not the lesson; calling it
+from every sink is, and a sink nothing requires to call it is one somebody will
+forget again.
+
+### 2026-09-09 - Nothing was checking the tenant boundary, and my first attempt at checking it did not work
+
+`organization_id=eq.` in a PostgREST query string **is** the tenant boundary. The
+service-role key bypasses row-level security, so there is no second thing behind
+that filter: a query that forgets it returns every organization's rows, and the
+page renders them.
+
+Nothing was checking it. `verify-supabase-contract.mjs` scans the runtime, but
+for whether a referenced table is *in the contract* -- not whether the query
+naming it names an organization. So
+`scripts/report-tenant-scoped-queries.mjs` now does, and it is in `verify:gates`.
+
+**The audit found no violation.** 108 `rest()` calls across 200 runtime files:
+22 tenant-scoped and correctly filtered, 58 on tables carrying no organization,
+28 whose table cannot be resolved statically, 0 unfiltered.
+
+**Getting there took four corrections, and they are the point of the entry.**
+
+*A matcher that saw a third of the population.* The first version resolved table
+names from string literals only, found **one** call, and would have reported a
+clean audit over it. Table names here are constants and object-map lookups
+(`JOB_TABLE`, `TABLES[key]`), so resolution had to handle those, and argument
+extraction had to balance parentheses -- a template-literal query contains
+commas, parentheses and backticks, and splitting on the first comma reads the
+wrong argument.
+
+*Counting declarations as calls.* `rest` is declared per route file, and
+`async function rest(config, table, query = "", options = {})` matches `rest(`
+as readily as a call does. Fourteen declarations were being audited as call
+sites. That is measuring a different population from the one claimed.
+
+*Flagging inserts as holes.* A POST carries the organization in its body, so
+`rest(config, table, "", { method: "POST", body })` is correct. The check
+reported five of those as unfiltered before it learned to read the method. The
+same distinction matters far more in the other direction: an unfiltered **PATCH
+or DELETE** on a tenant table would rewrite or remove every organization's rows,
+not merely read them, and the check now treats those as strictly as reads.
+
+*And the one that mattered.* **Falsification found the check could not catch the
+bug it exists to catch.** Deleting `organization_id=eq.` from a real query in
+`market-intelligence-routes.cjs` left the run green -- because that call's table
+is a parameter, so it landed in the unresolvable bucket and was never examined.
+A check blind to the single edit it was written for is worse than no check, and
+that version was two minutes from being committed as passing.
+
+The fix was to judge the half of the call that *is* readable: when the table
+cannot be resolved but the query is a literal, whether that literal names an
+organization is still knowable, and it is now counted and ratcheted at zero.
+Both cases are caught now -- the deleted filter, and an unfiltered DELETE on a
+resolvable table, which fails by name.
+
+The 28 unresolvable calls are a described blind spot rather than an audited one,
+ratcheted so it cannot grow quietly, with a fall reported too -- a fall nobody
+records looks exactly like a matcher that stopped matching. 45 chain commands
+now; 4,072 tests, lint, `verify:launch` exit 0.
+
+### 2026-09-09 - A CIO report whose numbers predate its own subject
+
+A Databricks link to "The great acceleration: CIO perspectives on generative AI"
+was submitted. Downloaded and read in full -- 24 pages, MIT Technology Review
+Insights, **sponsored by Databricks**, back matter reading "Copyright MIT
+Technology Review Insights, 2023. All rights reserved."
+
+**The preface is the most important part of it.** Seven interviews conducted
+April and May 2023, plus a global survey of **600 senior data and technology
+executives conducted May and June 2022**. Every percentage in the report comes
+from that survey, so the quantitative backbone was collected before the subject
+existed as a boardroom concern -- the report says so itself, describing the
+period as "before the business applications of generative AI became apparent in
+late 2022". It is now September 2026, so the report is three years old and its
+survey over four.
+
+Recorded because two separate things would make a figure from it wrong in our
+copy, and both are the failure the comparison rules exist to stop: it is stale,
+and its population is **enterprise CIOs**, not the founders, creators and small
+teams this product sells to.
+
+A third: **the largest numbers in it are borrowed rather than found.** McKinsey's
+$2.6-4.4 trillion and 60-70 per cent of worker time, Accenture's 40 per cent of
+working hours, Goldman Sachs's 7 per cent of global GDP are all citations.
+Attributing any of them to this report would be wrong, and the register record
+says to trace each to its original source before repeating it.
+
+Its own findings, for the record: 94 per cent of organizations using AI in some
+way, 14 per cent aiming for enterprise-wide AI by 2025, 8 per cent saying AI was
+critical to three or more business functions, nearly 70 per cent viewing a
+unified data platform as crucial, security and risk management at 31 per cent as
+the top tangible benefit. **One chart was deliberately not recorded**: Figure 5
+carries three statements and three percentages, and the text extraction does not
+reliably show which belongs to which, so guessing the mapping would have put an
+unverified number into a document about unverified numbers.
+
+Where the sponsorship shows is named rather than implied: the most emphasised
+conclusion is that a unified data platform is crucial, which is what the sponsor
+sells; Databricks' own Dolly model gets a passage; and two of the seven
+interviewees are Databricks' CTO and a founding advisor to MosaicML, which
+Databricks acquired. The report calls itself editorially independent, and that
+claim is recorded rather than assessed.
+
+Blocked in the register on the same reading as the IONOS guide -- free to view,
+all rights reserved, grants nothing -- with `blockedUses` naming the figure ban
+explicitly. The one thing carried forward is a shape and not a number: before
+generative AI, almost nobody had joined AI up across a business, which is the
+condition "one record, not three" addresses. That is useful while building and is
+not a marketing claim. 229 repositories on the register.
 
 ### 2026-09-09 - Three of four rate limiters failed open in silence
 

@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-228 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 228.
+230 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 230.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -185,7 +185,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-132 repositories.
+134 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -195,6 +195,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Agent Room](https://github.com/steviebuilds/agent-room) | MIT | Read only | developer tooling |
 | [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT | Read only | course material |
+| [AI-SDLC Framework](https://github.com/ai-sdlc-framework/ai-sdlc) | Apache License 2.0 for the code in the repository; the enterpris | Read only | AI coding agent orchestration |
 | [Anthropic Agent Skills (anthropics/skills)](https://github.com/anthropics/skills) | None declared (all rights reserved) | Blocked | agent skills |
 | [Anthropic Cybersecurity Skills (community)](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) | Apache-2.0 | Research only | Claude Code skills |
 | [AnyCreature](https://github.com/ariescar/anycreature) | MIT | Read only | text-to-3D |
@@ -268,6 +269,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Lovable for Beginners](https://github.com/cporter202/lovable-for-beginners) | None declared (all rights reserved) | Blocked | course material |
 | [Metabigor](https://github.com/j3ssie/metabigor) | MIT | Blocked | OSINT |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
+| [MIT Technology Review Insights \](https://www.technologyreview.com) | All rights reserved. The back matter reads \ | Blocked | industry research |
 | [Next.js](https://github.com/vercel/next.js) | MIT | Research only | web framework |
 | [NodeGraphQt](https://github.com/jchanvfx/NodeGraphQt) | MIT | Read only | node editor |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |

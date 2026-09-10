@@ -9,7 +9,7 @@ overrides:
   undici@<6.28.0: 6.28.0
   ajv@>=7.0.0-alpha.0 <8.18.0: 8.18.0
   minimatch@>=10.0.0 <10.2.3: 10.2.5
-  smol-toml@<1.6.1: 1.6.1
+  smol-toml@<1.7.1: 1.7.1
   js-yaml@<4.3.2: 4.3.2
   serialize-javascript@<7.0.5: 7.0.5
   postcss@<8.5.10: 8.5.10
@@ -1252,8 +1252,8 @@ packages:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
 
-  smol-toml@1.6.1:
-    resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
+  smol-toml@1.7.1:
+    resolution: {integrity: sha512-PPlsspAZ4jbMBu5DMFhfUGDQLu/vrL4SyBROVS37x8ynnVmFIs1VPBz1Co8Xks3TvpIaZXmU85y4DrQ+UyVFoQ==}
     engines: {node: '>= 18'}
 
   statuses@2.0.2:
@@ -1696,7 +1696,7 @@ snapshots:
       fs-extra: 11.1.1
       js-yaml: 4.3.2
       minimatch: 10.2.5
-      smol-toml: 1.6.1
+      smol-toml: 1.7.1
       zod: 3.22.4
 
   '@vercel/static-config@3.4.0':
@@ -2617,7 +2617,7 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
-  smol-toml@1.6.1: {}
+  smol-toml@1.7.1: {}
 
   statuses@2.0.2: {}
 

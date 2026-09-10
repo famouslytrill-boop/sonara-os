@@ -57,13 +57,24 @@ actually means:
 
   *Corrected 6 September 2026.* This named "$19, $39 or $79" as the plans on the
   page. Neither half was right: those are the **breadth** ladder's amounts, and
-  the breadth ladder is not on the page -- its price variables are unset, so
-  `/api/readiness` offers `free`, `starter_monthly`, `core_monthly`,
-  `pro_monthly` and the quoted package, which is Free / $7 / $19 / $39. And the
-  breadth amounts moved to **$29 / $59 / $109** on 6 September. A figure written
-  into prose beside a claim outlives the claim; the sentence is now true without
-  naming amounts, and `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries the numbers
-  where they are checked.
+  the breadth ladder was not then on the page -- its price variables were unset,
+  so `/api/readiness` offered `free`, `starter_monthly`, `core_monthly`,
+  `pro_monthly` and the quoted package. And the breadth amounts moved to
+  **$29 / $59 / $109** on 6 September. A figure written into prose beside a claim
+  outlives the claim; the sentence above is true without naming amounts, and
+  `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries the numbers where they are
+  checked.
+
+  *Corrected again 10 September 2026, and this half is the good news.* The
+  paragraph above was written in the present tense and has since stopped being
+  true: **the breadth ladder is now on the page and buyable.** Read from the live
+  site, not from this repository -- `/api/readiness` reports `checkout: enabled,
+  reason: configured` for all ten plan keys with `missing.stripe` and
+  `deferred.stripe` both empty, and `/pricing` serves $0 / $29 / $59 / $109
+  monthly alongside $290 / $590 / $1090 annual. What remains unbought is the
+  point of this section, and that is unchanged: **no plan on the page has ever
+  been paid for by anyone but the owner.** Being buyable and having been bought
+  are different facts, and only the first one moved.
 - **Net revenue is zero, and the balance is negative.** The one successful charge
   was refunded; the processing fee on it was not. The account balance is
   **-$0.67**.
@@ -204,7 +215,7 @@ branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 115 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 116 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
@@ -485,7 +496,7 @@ reports these tables as used.
   two-sided register meanwhile, and would fail the day a *second* route module
   is written and never wired.
 
-- **25 tables have RLS enabled with no explicit policy**, which closes
+- **26 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever
   reads with the service-role key that is the posture you want — it is what
   stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
@@ -498,7 +509,7 @@ reports these tables as used.
   succeeded since 5 August. So it had reported nothing for a month while the set
   nearly doubled.
 
-  Measured against the replay (all 115 migrations on an empty database, so this
+  Measured against the replay (all 116 migrations on an empty database, so this
   is the migrations' intended end state, not production's): **25 of 307 tables
   with RLS enabled.**
 

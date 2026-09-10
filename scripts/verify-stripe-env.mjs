@@ -180,7 +180,33 @@ if (!isPlaceholder(secret) && !looksLikeStripeKey) {
         headers: { authorization: `Bearer ${secret}` }
       });
       if (!response.ok) {
-        fail(`${plan}: Stripe returned ${response.status} for its configured price`);
+        // Print what Stripe said, not just the number it said it with.
+        //
+        // On 9 September 2026 three plans failed here with a bare "Stripe
+        // returned 403". A 403 on a restricted key is a permission answer and
+        // Stripe's body names the permission it wanted -- so the one fact that
+        // resolves the failure was being fetched and thrown away, which is this
+        // repository's recurring defect pointed at an error path.
+        //
+        // 403 is worth calling out by name because the obvious reading is wrong:
+        // it does not mean the price id is bad. Note also that this request
+        // expands the product, so a key granted Prices:read alone is not enough
+        // -- the expand needs Products:read as well.
+        let detail = "";
+        try {
+          const body = await response.json();
+          if (body?.error?.message) detail = ` -- Stripe said: ${body.error.message}`;
+        } catch {
+          // A non-JSON error body is not worth failing differently over; the
+          // status still gets reported below.
+        }
+        const hint = response.status === 403
+          ? " A 403 is a permissions answer, not a missing price: the key is valid but is not allowed to read this. " +
+            "This request expands the product, so the restricted key needs BOTH Prices:read and Products:read."
+          : response.status === 404
+            ? " A 404 means no price with that id exists on the account this key belongs to -- check the id, and check live against test mode."
+            : "";
+        fail(`${plan}: Stripe returned ${response.status} for its configured price${detail}.${hint}`);
         continue;
       }
       price = await response.json();
