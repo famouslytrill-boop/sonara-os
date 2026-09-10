@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 320 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 321 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,80 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - Growth Studio can decide to send, under three rules it may not relax
+
+Second of the three gaps. Growth Studio created campaigns through HubSpot's API
+and pushed events to Klaviyo, and no sending credential exists in the
+environment except the one serving staff invites -- so a customer on Growth
+Studio still paid Klaviyo.
+
+**A correction to our own architecture note, first.**
+`docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md` says email *"costs nothing
+extra and is already wired"*. True of the handful of staff invites it was written
+about; **false of a campaign**, which is the volume that crosses Resend's free
+tier of 3,000 a month. `CLAUDE.md`'s rule that a free tier is a price rather than
+a licence applies exactly here.
+
+So email is now a priced capability. The floor is Resend's most expensive **paid**
+rate, read from resend.com/pricing on 10 September 2026: Scale at $350/mo for
+500,000 emails is $0.70 per thousand, so **0.07 minor units per email**. Their
+larger tiers are cheaper per email ($0.65 at 1M, $0.46 at 2.5M) and taking the
+cheapest would set a floor that only holds at volumes we do not have. Priced at
+**0.15** -- $1.50 per thousand against Brevo Starter's effective $1.80, so
+cheaper than the competitor whose figure is in `docs/pricing/`, at a 2.1x margin.
+
+**Three rules that were not this code's to relax**, quoted from AGENTS.md rather
+than paraphrased: owner approval for customer campaigns, consent enforced, and
+nothing on by default. `lib/sonara-agent-authority.cjs` already classifies every
+campaign-shaped name under `customer_campaigns` — and `send_email` falls to
+`unrecognised`, which is also refused, so the default-deny holds. The sender does
+not re-derive that judgement; it requires the approval and refuses without one.
+A test asserts the two modules agree, because if they ever disagree one of them
+is a hole.
+
+**A skipped recipient is counted, never dropped.** A campaign to 500 where 40
+lack consent sends to 460 **and says so**. Refusing the whole campaign punishes
+the owner for data they may not control; silently sending to 500 is the violation
+the rule prevents; and silently sending to 460 is the worst of the three, because
+the owner believes they reached 500 and the difference is invisible. Six skip
+reasons, each named separately, because the owner does something different about
+each.
+
+**Billed on who is actually sent to, never on list length.** Charging for 500
+would be charging for the sends the consent rule prevented.
+
+**The finding that changed the design.** The first draft expected
+`{ consent_attested, revoked_at }` — which is the **creator** consent shape from
+`creator_voice_consents`. The Growth Studio table is different and better:
+`public.growth_contact_consents` carries `channel` in
+(email|sms|push|whatsapp|phone|personalization|analytics), `consent_status` in
+(granted|denied|withdrawn|expired|unknown), plus `withdrawn_at`. A decision core
+that cannot be wired to the actual table is one that gets quietly bypassed, so it
+reads that one. Two consequences fall out: **a permission to text somebody is not
+a permission to email them**, and `unknown` — the status whose whole purpose is
+to record that nobody knows — must never read as consent. A withdrawal timestamp
+also outranks a status still saying granted, because two columns disagreeing is a
+real state and the safe reading is the one that does not send.
+
+**Rounding again.** 0.15 against a 0.07 floor means a five-email campaign charges
+1 and costs 1. Seven is where they separate; ten is the documented minimum, and a
+customer billed for ten when they sent three is **told why** on the decision.
+
+**One assertion of mine was wrong rather than the code.** It demanded that
+`"granted "` be refused. The column carries a CHECK constraint limiting it to
+five exact values, so a padded one cannot come from the database, and a trailing
+space is the same permission with a typo — refusing it would block a real consent
+to guard against nothing. Case is still refused, because `"GRANTED"` is not a
+value the constraint allows either.
+
+**Broken and confirmed red four ways:** sending without approval, ignoring
+consent status, billing the whole list, and treating a wrong-channel permission
+as consent. Each failed the right test by name.
+
+**What is not built:** the dispatch itself, and the route that calls this. This
+is the decision half deliberately — a function that both decides and sends cannot
+have its refusals tested without a mail server.
 
 ### 2026-09-10 - Generation is billed, and four completion paths were nearly three
 
