@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 327 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 328 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,123 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-10 - A text saying stop must mean stop, and nothing else may
+
+The carrier comparison named SMS opt-out as **ours, not the owner's, and not
+built**. Half of that was wrong, and finding out which half is the useful part.
+
+## What already worked, stated accurately
+
+A `growth_contact_consents` row carrying `withdrawn_at` makes `consentState`
+return `consent_revoked`, and `authoriseOutbound` in `lib/sonara-telephony.cjs`
+refuses on that code **before anything is spent**. So a recorded opt-out already
+blocked every outbound text.
+
+The entry I had written in `docs/SHIP_READINESS.md` an hour earlier said
+"nothing here implements it". That was a reason reasoned to rather than checked —
+the exact thing `CLAUDE.md` warns about, written by somebody who had just
+finished writing a document about it. Corrected in place, and the test now
+asserts the enforcement half **and** that it still allows a granted consent, so
+a refusal that starts refusing everything fails too.
+
+## What was actually missing
+
+Nothing could turn the word "STOP" into that row. An owner could withdraw a
+consent from a form; the person holding the phone could not, and they are the
+only one whose decision it is. Same gap the email unsubscribe path closed, one
+channel over.
+
+`lib/sonara-sms-keywords.cjs` is the half of that which needs no vendor: reply
+text in, intent out, writing nothing.
+
+## The keyword list is a union, and the reason matters
+
+Read 10 September 2026 from each vendor's own page:
+
+- **Twilio** (twilio.com/docs/messaging/tutorials/advanced-opt-out): "By
+  default, Twilio handles standard English-language reply messages — STOP,
+  UNSUBSCRIBE, END, QUIT, STOPALL, REVOKE, OPTOUT, and CANCEL — for long code
+  numbers". A later send to an opted-out number "will fail with Error Code 21610
+  asynchronously".
+- **Telnyx** (support.telnyx.com/en/articles/1270091): stop words are "stop,
+  stopall, stop all, unsubscribe, cancel, end, quit", and an identified stop
+  word means "you will no longer be able to send messages to that number."
+
+**The two lists differ.** `REVOKE` and `OPTOUT` are Twilio's and not Telnyx's;
+`stop all` with a space is Telnyx's and not Twilio's. So the module honours the
+**union**: the set a customer's contacts can rely on must not narrow the day the
+owner changes carrier, and a keyword one vendor honours is a keyword somebody has
+been told works. A test holds both vendors' lists as literals and asserts the
+one-vendor-only keywords still work, so it fails if the union is quietly trimmed
+back to one vendor's list.
+
+That the carrier also enforces it does not make our record redundant, for two
+different reasons: **a carrier's opt-out list does not survive the carrier**
+(porting is the hardest-to-reverse decision in the comparison document), and
+**the carrier refuses after we have paid** — Twilio's block is a 21610 on a
+message already submitted, where `authoriseOutbound` refuses before the call.
+
+## Two findings that change how it must be built
+
+**`YES` is recognised and deliberately refused.** Twilio, verbatim: "Only the
+keywords START and UNSTOP can fully undo the blocking. Twilio's supported
+keyword 'YES' will not work to opt-in a previously unsubscribed user." Honouring
+it would write a granted row while the network still blocked the number — our
+record saying reachable, the carrier saying no, and the visible symptom an owner
+watching texts silently not arrive. Listed as recognised-and-refused rather than
+left out, so the next person meets the reason instead of the omission.
+
+**Whether we owe a confirmation text is a carrier setting, and is returned as
+one.** Both vendors reply automatically by default; Telnyx "will detect this and
+automatically send out a generic unsubscribed message from the number that
+received the opt out message." One of ours on top of that is two texts about
+stopping texts; none when the default has been turned off is an unmet
+obligation. `confirmationOwedBy` returns **three states** — owed, not owed, and
+nobody has recorded the setting — because guessing either way writes a wrong
+reason into the one place somebody would read instead of checking.
+
+## Matching whole messages, not substrings
+
+Substring matching is the obvious implementation and it is wrong in the
+expensive direction. "Please stop by at four" is not an opt-out, and reading it
+as one stops a business texting a customer who never asked — silently, because
+the owner's next message just never arrives and the refusal is a code in a log.
+
+So: NFKC, strip zero-width characters, drop surrounding punctuation and quotes,
+collapse inner whitespace, lower case, then compare **whole strings**. "STOP.",
+" stop ", "Stop" and "STOP   ALL" all match; "stop by" does not.
+
+Twelve ordinary replies are asserted to be read as messages rather than
+commands — and a companion assertion checks that **nine of the twelve actually
+contain a keyword**, because a substring test whose fixtures contain no keywords
+proves nothing, and one where every fixture contains one never tests the plain
+case.
+
+## Broken to prove it works
+
+Eight breaks, each by exact string edit with the file hash compared before and
+after. One anchor turned out to be a no-op because the escape sequence differed
+through the shell; redone directly, which is the fifth time that comparison has
+caught one.
+
+1. Match keywords as substrings — the ordinary-replies test failed by name.
+2. Drop the Twilio-only keywords — both the Twilio-list and union tests failed.
+3. Drop the Telnyx-only spaced keyword — three tests failed.
+4. Honour `YES` as an opt-in — three failed, including the ordinary reply "yes".
+5. Read an unrecorded carrier setting as handled — the three-state test failed.
+6. Stop stripping invisible characters — the zero-width test failed.
+7. Make matching case-sensitive — five tests failed.
+8. Add a `fetch` to the decision core — the writes-nothing test failed.
+
+## What is still owed, and why it waits
+
+**The inbound webhook that writes the withdrawal.** That one genuinely needs the
+vendor, because verifying a webhook signature is the one part of this that
+differs between them. Everything above it does not, which is why it is built.
+
+Verified: 4,361 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0.
 
 ### 2026-09-10 - A telephony floor nobody had sourced, and four copies of figures that would have gone stale
 

@@ -185,5 +185,28 @@ Not decided here, and each is the owner's:
    which makes an AI receptionist weaker than Jobber's, and it is a one-line
    change in a module the release chain checks.
 
-Not decided and **ours, not the owner's**: SMS STOP/UNSTOP handling, which is a
-legal obligation on any outbound text and is not built.
+Not decided and **ours, not the owner's**: SMS STOP/UNSTOP handling.
+
+Since this document was written, the two halves of it that do not need a vendor
+have been built. Enforcement was already there — a withdrawn consent makes
+`authoriseOutbound` refuse before anything is spent. Recognition is now
+`lib/sonara-sms-keywords.cjs`, which reads a reply against the **union** of both
+vendors' documented keyword lists, because the set a contact can rely on must
+not narrow the day the carrier changes: `REVOKE` and `OPTOUT` are Twilio's and
+not Telnyx's, and `stop all` with a space is Telnyx's and not Twilio's.
+
+**What is still owed is the inbound webhook that writes the withdrawal**, and
+that one genuinely waits on the vendor, because verifying a webhook signature is
+the one part of this that differs between them.
+
+Two things learned from their pages that change how it must be built:
+
+- Twilio: `YES` "will not work to opt-in a previously unsubscribed user."
+  Recording it as permission would put "reachable" in our record while the
+  network still refused the number.
+- Both carriers reply to an opt-out automatically by default, and Telnyx sends
+  "a generic unsubscribed message from the number that received the opt out
+  message." So **a confirmation from us on top of that is two texts about
+  stopping texts**, and a confirmation from nobody is an unmet obligation. It
+  depends on a setting in an account nobody has opened, so it is reported as
+  unknown rather than defaulted.
