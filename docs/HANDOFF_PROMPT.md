@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 116 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 328 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 329 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,107 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-11 - A green light over the only unauthenticated write in the product
+
+`verify:tenant-queries` records that 27 of 111 database calls have a table it
+cannot resolve, and ratchets that number so the blind spot cannot grow quietly.
+Good. It also printed, in the same line and with no gate at all, **"1 whose
+query is not a literal"** — and that one was the dangerous one.
+
+## Why that bucket was worse than the one next to it
+
+The script classifies each `rest()` call. If the table cannot be resolved it
+counts that, checks the literal query for `organization_id=` anyway, and moves
+on — and a rise in that count fails the build.
+
+But when the table **resolves to a known tenant-scoped table** and the query is
+a variable rather than a literal, the old code was:
+
+```js
+if (!/^["'`]/.test(query)) { counts.unresolvedQuery += 1; continue; }
+```
+
+Counted. Printed. **Never gated, and never classified.**
+
+That is worse than the unresolved-table bucket, and the difference matters: with
+an unknown table the tenancy is genuinely unknowable, so recording the count is
+the honest limit. Here **the table is known to carry an organization** and only
+the filter is out of view — the one combination that must never be waved past.
+
+## Where the one call was
+
+`recordWithdrawal` in `routes/growth-studio-control-routes.cjs`, against
+`growth_contact_consents`, reached from **the public unsubscribe endpoint — the
+only unauthenticated write in the product.**
+
+It was correct. Its `scope` opens with `organization_id=eq.`, and the comment
+above it even says those filters are the tenant boundary "and this is an
+unauthenticated endpoint, which is exactly where a missing one would matter
+most". **Nothing had ever confirmed that.** The check that exists to see it was
+skipping it.
+
+**Verified rather than claimed:** with the pre-change script restored and that
+filter deleted, the audit prints **"0 tenant-scoped and NOT filtered" and exits
+0.** A green light over a cross-tenant write on an endpoint anybody can reach.
+
+## Resolved rather than recorded
+
+The query variable is now resolved from its **nearest preceding declaration**,
+so the call is actually classified: tenant-filtered rose 25 → 26 and the blind
+bucket went 1 → 0, ratcheted there.
+
+The first version resolved by name across the file and refused any name declared
+twice. That refusal mattered: **`scope` is declared twice in that file**, and one
+of the two declarations is `audience === "organization" ? "" : ...`, which
+carries no organization filter at all. Matching by name would have credited one
+query's filter to the other — a false alarm in one direction and a false clean in
+the other. Nearest-preceding-declaration removes the ambiguity instead of
+surrendering to it, which is the same correction
+`report-unused-selected-columns.mjs` took when its file-wide version hid the bug
+it was written for.
+
+## A limitation found by a test that would not fail
+
+Chasing the last assertion turned up something real. The resolution is
+**textual** — it reads whether `organization_id=` is written in the declaration.
+That is the right question for a concatenation and the wrong one for a ternary:
+`flag ? \`organization_id=eq.…\` : ""` contains the filter and emits it only
+sometimes, and reading it as filtered reports a guarantee that holds on one
+branch.
+
+So a resolved declaration carrying both a `?` and the filter is now **refused**
+rather than trusted. No declaration in the runtime looks like that today, so the
+rule costs nothing now and fails closed later.
+
+## A test harness that was passing for the wrong reason
+
+The first version of
+`tests/the-tenant-query-audit-can-see-a-variable.test.js` built a four-file
+synthetic fixture. Every run hit the script's own blind-scan floor — it refuses
+to report a clean result on fewer than 90 calls — so **every case failed on the
+floor, which made the negative cases "pass" for entirely the wrong reason.**
+
+The floor was right and the fixture was wrong. The tests now copy the whole
+runtime and perturb one file in it, which is slower and tests the real thing.
+
+## Broken to prove it works
+
+Five perturbations, all applied to a copy of the real tree and all caught by
+name:
+
+1. The unsubscribe write's `organization_id=eq.` deleted — fails, naming the
+   file, the table and the query. **This is the one the old script passed.**
+2. The same script reverted to its pre-change form with that filter deleted —
+   exits 0, which is the finding rather than a break.
+3. The query passed as a function call, which genuinely cannot be followed —
+   fails rather than incrementing an ungated count.
+4. The filter moved inside a ternary — fails as conditional.
+5. Two correctly-filtered calls in one file, both resolved — passes, so the
+   refusals above are not a resolver that refuses everything.
+
+Verified: 4,383 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0.
 
 ### 2026-09-11 - Where a call is answered, and the price that cannot cover it
 

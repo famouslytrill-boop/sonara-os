@@ -60,6 +60,27 @@ const SOURCE_FILES = ["server.js"];
 // that matters -- three calls that were unverifiable are now verified.
 const RECORDED_UNRESOLVED = 27;
 
+// Calls whose table is KNOWN to be tenant-scoped and whose query this reader
+// cannot resolve. Zero, and it must stay zero.
+//
+// This bucket used to be a silent count. It was incremented, printed, and never
+// gated -- so the single call in it could have been reading every organization's
+// rows and a clean run would have said so. It was worse than the
+// unresolved-TABLE bucket next to it, because there the table is unknown and the
+// tenancy is genuinely unknowable, while here the table is known to be
+// tenant-scoped and only the filter is out of view.
+//
+// The one call was `recordWithdrawal` against `growth_contact_consents` -- the
+// only unauthenticated write in the product, and so the worst place in the
+// codebase for a tenant filter to be invisible to the check that exists to see
+// it. It was correct. Nothing had confirmed that.
+//
+// It is now resolved rather than recorded, which is why this is 0 rather than 1.
+// A rise means a new query shape this reader cannot follow, on a table it knows
+// carries an organization: either write the filter at the call site or teach
+// queryStringsInScope the shape. Raising this number is not the fix.
+const RECORDED_UNRESOLVED_QUERY = 0;
+
 // How many of those unresolved calls carry a literal query with no
 // organization_id in it.
 //
@@ -214,20 +235,73 @@ function tableNamesInScope(source, file) {
     const resolved = maps.get(match[2])?.get(match[3]);
     if (resolved) direct.set(match[1], resolved);
   }
-  return { direct, maps };
+  return { direct, maps, queries: queryStringsInScope(source) };
+}
+
+// A query passed as a variable rather than written at the call site.
+//
+// This existed as a silent bucket. A call whose TABLE is known to be
+// tenant-scoped but whose QUERY is a variable was counted as "query is not a
+// literal" and then skipped -- not classified, and, unlike the unresolved-table
+// bucket, **not ratcheted**. So the one call in it could have been reading every
+// organization's rows and this script would have printed the count and passed.
+//
+// The one call was `recordWithdrawal` in routes/growth-studio-control-routes.cjs
+// against `growth_contact_consents`, and it is correct -- its `scope` opens with
+// `organization_id=eq.`. But it is **the only unauthenticated write in the
+// product**, which makes it the worst possible place for the filter to be
+// invisible to the check that exists to see it.
+//
+// So it is resolved rather than recorded. The text of the declaration is what
+// gets tested for `organization_id=`, which is exactly the question being asked
+// -- this is not trying to evaluate the expression, only to read whether the
+// filter is written in it.
+//
+// **Resolution is by nearest preceding declaration, not by name across the
+// file.** The first version of this matched declarations file-wide and refused
+// any name declared twice -- and `scope` in
+// routes/growth-studio-control-routes.cjs is declared twice, so it stayed
+// unresolved. That refusal was right: of those two declarations, one is
+// `audience === "organization" ? "" : ...` and carries no organization filter at
+// all, so picking either one at random would report a filter belonging to a
+// different query -- in one direction a false alarm, in the other a false clean.
+//
+// Taking the last declaration at or before the call's own offset is how the
+// binding actually resolves for this code shape, and it removes the ambiguity
+// instead of surrendering to it. Same correction as
+// report-unused-selected-columns.mjs, which was rewritten per-function after its
+// file-wide version hid the bug it was written for.
+function queryStringsInScope(source) {
+  const declarations = [];
+  const pattern = /(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*((?:`[^`]*`|"[^"]*"|'[^']*'|[^;])*);/g;
+  for (const match of source.matchAll(pattern)) {
+    declarations.push({ name: match[1], offset: match.index, text: match[2] });
+  }
+  return {
+    resolve(name, offset) {
+      let best;
+      for (const declaration of declarations) {
+        if (declaration.name !== name) continue;
+        if (declaration.offset > offset) break;
+        best = declaration;
+      }
+      return best?.text;
+    }
+  };
 }
 
 const files = [...SOURCE_FILES.map((name) => path.join(root, name)), ...SOURCE_DIRS.flatMap((dir) => walk(path.join(root, dir)))]
   .filter((file) => fs.existsSync(file));
 
-const counts = { total: 0, tenantFiltered: 0, tenantUnfiltered: 0, notTenantScoped: 0, unresolvedTable: 0, unresolvedTableNoFilter: 0, unresolvedQuery: 0 };
+const counts = { total: 0, tenantFiltered: 0, tenantUnfiltered: 0, notTenantScoped: 0, unresolvedTable: 0, unresolvedTableNoFilter: 0, unresolvedQuery: 0, resolvedQueryVariable: 0 };
 const unfiltered = [];
 const unresolvedNoFilter = [];
+const unresolvedQueries = [];
 const unresolvedShapes = new Map();
 
 for (const file of files) {
   const source = fs.readFileSync(file, "utf8");
-  const { direct, maps } = tableNamesInScope(source, file);
+  const { direct, maps, queries } = tableNamesInScope(source, file);
 
   for (const match of source.matchAll(/\brest\(/g)) {
     // `rest` is declared per route file, and `async function rest(config, table,
@@ -279,8 +353,40 @@ for (const file of files) {
       continue;
     }
 
-    const query = (args[2] || "").trim();
-    if (!/^["'`]/.test(query)) { counts.unresolvedQuery += 1; continue; }
+    let query = (args[2] || "").trim();
+    if (!/^["'`]/.test(query)) {
+      // A query handed in as a variable. Resolve it from its declaration rather
+      // than skipping the call -- see queryStringsInScope for why this bucket
+      // was the most dangerous one in this script.
+      const declared = queries.resolve(query, match.index);
+      // A filter inside a conditional is not a filter that is always sent.
+      //
+      // The resolution here is textual -- it reads whether `organization_id=` is
+      // WRITTEN in the declaration, which is the right question for a
+      // concatenation and the wrong one for a ternary: `flag ? \`organization_id=eq.
+      // ...\` : ""` contains the filter and emits it only sometimes. Reading that
+      // as filtered would be a check reporting a guarantee that holds on one
+      // branch.
+      //
+      // There is no such declaration today, so this costs nothing now and fails
+      // closed later. Writing the filter outside the conditional resolves it.
+      if (declared !== undefined && /\?/.test(declared) && /organization_id=/.test(declared)) {
+        counts.unresolvedQuery += 1;
+        unresolvedQueries.push({
+          file: path.relative(root, file),
+          table,
+          expression: `${query} -- the filter is inside a conditional, so it is not always sent`
+        });
+        continue;
+      }
+      if (declared === undefined) {
+        counts.unresolvedQuery += 1;
+        unresolvedQueries.push({ file: path.relative(root, file), table, expression: query.slice(0, 40) });
+        continue;
+      }
+      counts.resolvedQueryVariable += 1;
+      query = declared;
+    }
 
     if (/organization_id=/.test(query)) counts.tenantFiltered += 1;
     else if (!filtersRows(args)) counts.notTenantScoped += 1;
@@ -324,6 +430,22 @@ if (counts.unresolvedTableNoFilter > RECORDED_UNRESOLVED_NO_FILTER) {
   }
 }
 
+if (counts.unresolvedQuery > RECORDED_UNRESOLVED_QUERY) {
+  for (const entry of unresolvedQueries) {
+    failures.push(
+      `${entry.file} queries the tenant-scoped table ${entry.table} with a query this reader cannot resolve (${entry.expression}). ` +
+      "The table is known to carry an organization and the filter is out of view, which is the one combination this script must never " +
+      "wave past. Write the filter at the call site, or teach queryStringsInScope the shape."
+    );
+  }
+  if (unresolvedQueries.length === 0) {
+    failures.push(
+      `${counts.unresolvedQuery} unresolvable queries were counted and none were recorded, so this cannot say which. ` +
+      "That is a bug in this script rather than in the runtime."
+    );
+  }
+}
+
 if (counts.unresolvedTable > RECORDED_UNRESOLVED) {
   failures.push(
     `${counts.unresolvedTable} rest() calls have a table this reader cannot resolve, up from the recorded ${RECORDED_UNRESOLVED}. ` +
@@ -339,7 +461,7 @@ console.log(
   `${counts.tenantFiltered} tenant-scoped and filtered by organization_id, ${counts.tenantUnfiltered} tenant-scoped and NOT filtered, ` +
   `${counts.notTenantScoped} on tables that carry no organization, ${counts.unresolvedTable} whose table cannot be resolved statically ` +
   `(${shapes || "none"}), of which ${counts.unresolvedTableNoFilter} carry a literal query naming no organization, ` +
-  `${counts.unresolvedQuery} whose query is not a literal.`
+  `${counts.unresolvedQuery} whose query is not a literal. Query variables resolved from their nearest preceding declaration: ${counts.resolvedQueryVariable}.`
 );
 
 if (counts.unresolvedTable < RECORDED_UNRESOLVED) {
