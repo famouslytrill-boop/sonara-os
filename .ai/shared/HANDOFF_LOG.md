@@ -95,6 +95,15 @@
 
 ## Outstanding launch gates
 
+## 2026-09-11 - Competitor-informed homepage pathways merged; Stripe provider gate remains
+
+- Reconciled the public homepage against the internal competitor/reference research set (Jobber, Housecall Pro, ServiceTitan, Podia, Kajabi, Gumroad, Teachable, SamCart, Higgsfield, Brevo, Klaviyo, HubSpot, Stripe, Spotify/media-library patterns, GOV.UK plain language, and the governed external-repository registry).
+- Added an honest homepage workspace preview and a visible quickstart pathway for Business Builder intake, Creator Studio assets, Growth Studio campaigns, and shared setup review. Added responsive styling with mobile-safe two-column and single-column breakpoints, focus states, and real routes.
+- PR #233 merged into `main` at `498e4e92fca481c0de68d968e012e6c9285ceb51`; public-language correction PR #234 merged at `985b8341c75ba344187c9a42c487bb80143d8905`.
+- Local build, lint, diff check, and focused customer-language/conversion/pricing tests pass. Controlled release run `34558599155` passed install, audit, build, release tests, secret scan, lint, route/config contracts, OpenAPI, open-source controls, production identity, and migration preview.
+- Production promotion stopped at the live Stripe verification gate. The configured restricted key lacks `Prices:read` and `Products:read`, and several Vercel price variables are marked sensitive/redacted even though the verifier must read their non-secret `price_...` IDs. No secrets were printed, changed, or added, and the deployment was not bypassed.
+- Owner action: use a Stripe key with the minimum read permissions required by the verifier (Prices:read and Products:read, plus existing checkout/webhook permissions), ensure each production `STRIPE_PRICE_*` variable contains its real `price_...` ID and is not stored as an unreadable/redacted secret, then rerun the controlled release. Recheck live checkout and webhook events after promotion.
+
 - Confirm the protected production service-role secret exists without exposing it.
 - Deploy current `main` through the controlled workflow and verify exact-SHA production aliases.
 - Verify the two catalog migrations and exactly 34 production software-product records.
