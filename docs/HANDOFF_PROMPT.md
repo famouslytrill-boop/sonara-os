@@ -106,6 +106,101 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-11 - Where a call is answered, and the price that cannot cover it
+
+The carrier comparison said to decide the answering architecture **before** the
+vendor, and put it on the owner's list. Laying out the options is not the
+owner's job, so
+`docs/architecture/2026-09-11-WHERE-A-CALL-IS-ANSWERED.md` is the research.
+Every architectural claim is a quote; every figure is dated.
+
+## The constraint, and four answers — one of which is not one
+
+A Vercel function ends (300s documented) and cannot hold a socket. So the
+question is **who holds the call for its duration**.
+
+**A — a fully hosted agent over a SIP trunk.** ElevenLabs Agents: "Calls from
+your SIP trunk are routed to the ElevenLabs platform using your configured SIP
+INVITE address." Nothing of ours holds anything. Two details matter beyond the
+mechanism: their compatible-provider list **includes Telnyx as well as Twilio**,
+so this does not constrain the carrier choice; and "SIP trunking allows you to
+connect your existing phone numbers directly to ElevenLabs' ElevenAgents
+**without porting them**", which directly answers the lock-in worry the carrier
+comparison called the hardest to reverse. We already call ElevenLabs from
+`routes/creator-generation-routes.cjs`, so this is a new product on an existing
+relationship.
+
+**B — Twilio ConversationRelay, which is not a hosted answer.** Its own
+documentation connects with `url: 'wss://mywebsocketserver.com/websocket'` and
+says "Your application uses AI to analyze the text and generate a response."
+**That server is ours.** Twilio does the speech; we hold the socket for the
+length of the call, which a serverless function cannot. So B is not a third
+option — it collapses into C, and it is listed only because its marketing does
+not read that way.
+
+**C — a long-running process somewhere else.** The EXTERNAL-SERVICES pattern.
+That document's warning bites harder here than where it was written: a tunnel
+from a laptop is fine for trying Ollama and is not a place to answer a small
+business's phone. In practice C is a second deployment somebody operates, and it
+is right only for a reason A cannot serve.
+
+**D — forward the call. No AI, no server, no new vendor.** The option no vendor
+page lists, because none of them sells it. One inbound minute plus one outbound,
+both already sourced: **0.82 on Telnyx and 2.25 on Twilio against our 3.0
+price** — 73% margin against 25%. It needs only the carrier adapter, which is
+already the named gap, and "your business gets a number, and it rings you" is a
+true sentence that disappoints nobody.
+
+## The finding that reaches the code
+
+`telephony` is 3.0 minor units against a sourced floor of 1.4 — and **that floor
+is for carrying the call, not answering it.**
+
+An AI-answered minute is a second per-minute bill on top: ElevenLabs is $0.08
+per agent minute at base and $0.160 at burst (read 11 September 2026), so the
+real cost is **8.32 against Telnyx or 8.85 against Twilio — about three times
+this capability's entire price, and six at burst.**
+
+**`verifyMargins()` would have stayed green the whole time**, because the floor
+is correct for what it was measured against. The failure available here is not a
+wrong number; it is a new product billed through an old capability — the same
+shape as the toll-free case one document over, with a far bigger gap. So the
+exclusion is written next to the figure and
+`tests/a-cost-floor-is-a-figure-somebody-checked.test.js` asserts it is there,
+falsified by deleting it.
+
+An AI receptionist needs its own capability and its own sourced floor. Nothing
+offers one today, so nothing is mispriced today.
+
+## Recommendation
+
+Ship **D**, then **A** as a separately priced capability; **not B**; **C** only
+on cause. The arguable step is the first: it deliberately ships the smaller
+thing, because the bigger one needs a price the owner has not set and a
+concurrency limit nobody has confirmed.
+
+## Three uncertainties recorded rather than filled in
+
+- **What triggers ElevenLabs' burst rate** is not stated on the pricing page and
+  I did not confirm it. Both figures are carried.
+- **Concurrency is a product ceiling, not a line item.** As printed, 40
+  concurrent calls on the $990 plan — and the account would be ours, so every
+  customer shares it. Whether the limit is per account or per agent is not
+  stated. Worth asking before selling, not after.
+- **Who bears the carrier charge** is not addressed on the SIP trunking page.
+
+## A flake fixed rather than re-run
+
+The cross-file price-figure scan timed out at mocha's default 2000ms on a loaded
+machine, at a moment when the same scan measured 42ms. That is a flake, not a
+finding — and **a check that fails at random is a check people learn to re-run
+instead of read**, which is this repository's whole concern wearing different
+clothes. The block now sets an explicit 10s timeout with the reason, far above
+the measured cost and far below "hung".
+
+Verified: 4,377 tests passing, lint clean, `verify:launch` and `verify:gates`
+both exit 0.
+
 ### 2026-09-10 - Naming an organization and naming the right one
 
 The invite hole raised a question worth more than the fix: **could an existing

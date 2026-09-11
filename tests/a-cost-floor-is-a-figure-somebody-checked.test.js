@@ -222,6 +222,30 @@ describe("a cost floor is a figure somebody checked", () => {
       assert.match(block, /toll-free/i, "toll-free inbound costs more than this floor and must be named rather than averaged away");
       assert.match(block, /monthly|month/i, "a number's fixed monthly rent has no place in a per-unit model and must be recorded as a gap");
     });
+
+    it("says the floor covers carrying a call and not answering it", () => {
+      // The largest exclusion, and the one most likely to be billed through
+      // this capability by mistake. A hosted voice agent is a SECOND per-minute
+      // bill: $0.08 a minute at base rate, which is nearly three times this
+      // capability's whole price, so an AI-answered minute sold as `telephony`
+      // goes out at about a third of cost.
+      //
+      // `verifyMargins()` cannot catch that. The floor is correct for what it
+      // was measured against -- the carrier minute -- so the failure is not a
+      // wrong number, it is a new product billed through an old capability. The
+      // only defence is that the exclusion is written next to the figure.
+      const block = source.slice(source.indexOf("telephony: Object.freeze"), source.indexOf("campaign_email: Object.freeze"));
+      assert.match(
+        block,
+        /answer(ing|ed)?\b/i,
+        "the telephony floor covers carrying a call, not answering one; an AI receptionist is a second per-minute bill and the comment must say so"
+      );
+      assert.match(
+        block,
+        /\b\d{1,2} September 2026\b/,
+        "and the agent figure needs its own date, the same as every other figure here"
+      );
+    });
   });
 
 
@@ -240,7 +264,16 @@ describe("a cost floor is a figure somebody checked", () => {
   // A copied figure is a figure that will disagree with its source eventually.
   // So no runtime file outside the pricing module may quote a floor or price
   // figure for a capability at all.
-  describe("no other file quotes a price figure", () => {
+  describe("no other file quotes a price figure", function () {
+    // This block reads every runtime file from disk, and mocha's default 2000ms
+    // is not a budget anybody measured -- it is the default. It timed out once on
+    // a loaded machine at a point where the same scan measured 42ms, which is a
+    // flake rather than a finding, and a check that fails at random is a check
+    // people learn to re-run instead of read.
+    //
+    // Ten seconds is far above the measured cost and still far below "hung".
+    this.timeout(10000);
+
     const RUNTIME_DIRS = ["lib", "routes"];
     const files = [];
     for (const dir of RUNTIME_DIRS) {

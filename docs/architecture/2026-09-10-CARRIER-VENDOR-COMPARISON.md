@@ -177,7 +177,17 @@ call, and now a sourced floor.
 Not decided here, and each is the owner's:
 
 1. **The vendor**, per the recommendation above.
-2. **Where an inbound call is answered**, which should be decided first.
+2. **Where an inbound call is answered**, which should be decided first. The
+   research is now written:
+   `docs/architecture/2026-09-11-WHERE-A-CALL-IS-ANSWERED.md`. Two findings from
+   it land back here. **Twilio's own ConversationRelay does not solve it** — its
+   documentation has the developer supply `wss://mywebsocketserver.com/websocket`,
+   so Twilio does the speech and we host the socket, which a serverless function
+   cannot. And **forwarding the call to the owner's own mobile needs no
+   answering architecture at all**: one inbound plus one outbound minute is 0.82
+   on Telnyx against our 3.0 price and 2.25 on Twilio, so it fits comfortably on
+   one carrier and thinly on the other. A third place where these two decisions
+   interact, and another point for Telnyx.
 3. **Whether toll-free is offered**, which needs its own floor or price.
 4. **How a number's monthly rent is charged**, since the per-unit model has no
    place for it.
