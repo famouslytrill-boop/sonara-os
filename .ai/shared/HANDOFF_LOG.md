@@ -1,5 +1,12 @@
 # Handoff Log
 
+## 2026-09-10 UTC - Homepage visual reconciliation
+
+- Audited the current Express-rendered frame against the shared design and frontend contracts. The homepage had the two-column hero grid available in CSS but rendered only the copy column, so its production presentation was flatter than the intended SONARA One interface.
+- Added a real homepage workspace preview in `lib/sonara-page-frame.cjs` with honest readiness language and a direct readiness link. It does not claim provider, billing, or database success.
+- Added responsive styling in `public/sonara-application-ui.css`; the preview remains visible on mobile, fits within the viewport, keeps status text readable, and preserves the existing reduced-motion and touch-target rules.
+- Verification: `pnpm run build`, focused brand-route/motion tests (6 passing), `git diff --check`, and `pnpm run lint` passed. Full suite remains the previously verified 4,377 passing / 6 pending at the reconciled main baseline; no provider secrets were read.
+
 ## 2026-09-09 - Usage-bounded reconciliation and photo intake
 
 - Synchronized reconciliation branch with main ddac658e and Claude's registry/dependency repairs; original dirty checkout untouched.
