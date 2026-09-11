@@ -58,7 +58,8 @@ describe("premium public conversion experience", () => {
     assert.match(styles, /\.sonara-launch-boundary/);
     assert.match(styles, /\.sonara-outcome-grid/);
     assert.match(styles, /\.sonara-lifecycle-grid/);
-    assert.match(styles, /@media\(max-width:680px\)[\s\S]*\.sonara-home-v3 \.sonara-hero-scene\{display:none\}/);
+    assert.doesNotMatch(styles, /@media\(max-width:680px\)[\s\S]*\.sonara-home-v3 \.sonara-hero-scene\{display:none\}/);
+    assert.match(styles, /\.sonara-interface-preview/);
     assert.match(styles, /min-height:48px/);
     assert.match(styles, /grid-template-columns:1fr/);
   });
