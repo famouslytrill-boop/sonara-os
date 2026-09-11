@@ -2,6 +2,1675 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-11 - A green light over the only unauthenticated write in the product
+
+`verify:tenant-queries` records that 27 of 111 database calls have a table it
+cannot resolve, and ratchets that number so the blind spot cannot grow quietly.
+Good. It also printed, in the same line and with no gate at all, **"1 whose
+query is not a literal"** — and that one was the dangerous one.
+
+## Why that bucket was worse than the one next to it
+
+The script classifies each `rest()` call. If the table cannot be resolved it
+counts that, checks the literal query for `organization_id=` anyway, and moves
+on — and a rise in that count fails the build.
+
+But when the table **resolves to a known tenant-scoped table** and the query is
+a variable rather than a literal, the old code was:
+
+```js
+if (!/^["'`]/.test(query)) { counts.unresolvedQuery += 1; continue; }
+```
+
+Counted. Printed. **Never gated, and never classified.**
+
+That is worse than the unresolved-table bucket, and the difference matters: with
+an unknown table the tenancy is genuinely unknowable, so recording the count is
+the honest limit. Here **the table is known to carry an organization** and only
+the filter is out of view — the one combination that must never be waved past.
+
+## Where the one call was
+
+`recordWithdrawal` in `routes/growth-studio-control-routes.cjs`, against
+`growth_contact_consents`, reached from **the public unsubscribe endpoint — the
+only unauthenticated write in the product.**
+
+It was correct. Its `scope` opens with `organization_id=eq.`, and the comment
+above it even says those filters are the tenant boundary "and this is an
+unauthenticated endpoint, which is exactly where a missing one would matter
+most". **Nothing had ever confirmed that.** The check that exists to see it was
+skipping it.
+
+**Verified rather than claimed:** with the pre-change script restored and that
+filter deleted, the audit prints **"0 tenant-scoped and NOT filtered" and exits
+0.** A green light over a cross-tenant write on an endpoint anybody can reach.
+
+## Resolved rather than recorded
+
+The query variable is now resolved from its **nearest preceding declaration**,
+so the call is actually classified: tenant-filtered rose 25 → 26 and the blind
+bucket went 1 → 0, ratcheted there.
+
+The first version resolved by name across the file and refused any name declared
+twice. That refusal mattered: **`scope` is declared twice in that file**, and one
+of the two declarations is `audience === "organization" ? "" : ...`, which
+carries no organization filter at all. Matching by name would have credited one
+query's filter to the other — a false alarm in one direction and a false clean in
+the other. Nearest-preceding-declaration removes the ambiguity instead of
+surrendering to it, which is the same correction
+`report-unused-selected-columns.mjs` took when its file-wide version hid the bug
+it was written for.
+
+## A limitation found by a test that would not fail
+
+Chasing the last assertion turned up something real. The resolution is
+**textual** — it reads whether `organization_id=` is written in the declaration.
+That is the right question for a concatenation and the wrong one for a ternary:
+`flag ? \`organization_id=eq.…\` : ""` contains the filter and emits it only
+sometimes, and reading it as filtered reports a guarantee that holds on one
+branch.
+
+So a resolved declaration carrying both a `?` and the filter is now **refused**
+rather than trusted. No declaration in the runtime looks like that today, so the
+rule costs nothing now and fails closed later.
+
+## A test harness that was passing for the wrong reason
+
+The first version of
+`tests/the-tenant-query-audit-can-see-a-variable.test.js` built a four-file
+synthetic fixture. Every run hit the script's own blind-scan floor — it refuses
+to report a clean result on fewer than 90 calls — so **every case failed on the
+floor, which made the negative cases "pass" for entirely the wrong reason.**
+
+The floor was right and the fixture was wrong. The tests now copy the whole
+runtime and perturb one file in it, which is slower and tests the real thing.
+
+## Broken to prove it works
+
+Five perturbations, all applied to a copy of the real tree and all caught by
+name:
+
+1. The unsubscribe write's `organization_id=eq.` deleted — fails, naming the
+   file, the table and the query. **This is the one the old script passed.**
+2. The same script reverted to its pre-change form with that filter deleted —
+   exits 0, which is the finding rather than a break.
+3. The query passed as a function call, which genuinely cannot be followed —
+   fails rather than incrementing an ungated count.
+4. The filter moved inside a ternary — fails as conditional.
+5. Two correctly-filtered calls in one file, both resolved — passes, so the
+   refusals above are not a resolver that refuses everything.
+
+Verified: 4,383 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0.
+
+### 2026-09-11 - Where a call is answered, and the price that cannot cover it
+
+The carrier comparison said to decide the answering architecture **before** the
+vendor, and put it on the owner's list. Laying out the options is not the
+owner's job, so
+`docs/architecture/2026-09-11-WHERE-A-CALL-IS-ANSWERED.md` is the research.
+Every architectural claim is a quote; every figure is dated.
+
+## The constraint, and four answers — one of which is not one
+
+A Vercel function ends (300s documented) and cannot hold a socket. So the
+question is **who holds the call for its duration**.
+
+**A — a fully hosted agent over a SIP trunk.** ElevenLabs Agents: "Calls from
+your SIP trunk are routed to the ElevenLabs platform using your configured SIP
+INVITE address." Nothing of ours holds anything. Two details matter beyond the
+mechanism: their compatible-provider list **includes Telnyx as well as Twilio**,
+so this does not constrain the carrier choice; and "SIP trunking allows you to
+connect your existing phone numbers directly to ElevenLabs' ElevenAgents
+**without porting them**", which directly answers the lock-in worry the carrier
+comparison called the hardest to reverse. We already call ElevenLabs from
+`routes/creator-generation-routes.cjs`, so this is a new product on an existing
+relationship.
+
+**B — Twilio ConversationRelay, which is not a hosted answer.** Its own
+documentation connects with `url: 'wss://mywebsocketserver.com/websocket'` and
+says "Your application uses AI to analyze the text and generate a response."
+**That server is ours.** Twilio does the speech; we hold the socket for the
+length of the call, which a serverless function cannot. So B is not a third
+option — it collapses into C, and it is listed only because its marketing does
+not read that way.
+
+**C — a long-running process somewhere else.** The EXTERNAL-SERVICES pattern.
+That document's warning bites harder here than where it was written: a tunnel
+from a laptop is fine for trying Ollama and is not a place to answer a small
+business's phone. In practice C is a second deployment somebody operates, and it
+is right only for a reason A cannot serve.
+
+**D — forward the call. No AI, no server, no new vendor.** The option no vendor
+page lists, because none of them sells it. One inbound minute plus one outbound,
+both already sourced: **0.82 on Telnyx and 2.25 on Twilio against our 3.0
+price** — 73% margin against 25%. It needs only the carrier adapter, which is
+already the named gap, and "your business gets a number, and it rings you" is a
+true sentence that disappoints nobody.
+
+## The finding that reaches the code
+
+`telephony` is 3.0 minor units against a sourced floor of 1.4 — and **that floor
+is for carrying the call, not answering it.**
+
+An AI-answered minute is a second per-minute bill on top: ElevenLabs is $0.08
+per agent minute at base and $0.160 at burst (read 11 September 2026), so the
+real cost is **8.32 against Telnyx or 8.85 against Twilio — about three times
+this capability's entire price, and six at burst.**
+
+**`verifyMargins()` would have stayed green the whole time**, because the floor
+is correct for what it was measured against. The failure available here is not a
+wrong number; it is a new product billed through an old capability — the same
+shape as the toll-free case one document over, with a far bigger gap. So the
+exclusion is written next to the figure and
+`tests/a-cost-floor-is-a-figure-somebody-checked.test.js` asserts it is there,
+falsified by deleting it.
+
+An AI receptionist needs its own capability and its own sourced floor. Nothing
+offers one today, so nothing is mispriced today.
+
+## Recommendation
+
+Ship **D**, then **A** as a separately priced capability; **not B**; **C** only
+on cause. The arguable step is the first: it deliberately ships the smaller
+thing, because the bigger one needs a price the owner has not set and a
+concurrency limit nobody has confirmed.
+
+## Three uncertainties recorded rather than filled in
+
+- **What triggers ElevenLabs' burst rate** is not stated on the pricing page and
+  I did not confirm it. Both figures are carried.
+- **Concurrency is a product ceiling, not a line item.** As printed, 40
+  concurrent calls on the $990 plan — and the account would be ours, so every
+  customer shares it. Whether the limit is per account or per agent is not
+  stated. Worth asking before selling, not after.
+- **Who bears the carrier charge** is not addressed on the SIP trunking page.
+
+## A flake fixed rather than re-run
+
+The cross-file price-figure scan timed out at mocha's default 2000ms on a loaded
+machine, at a moment when the same scan measured 42ms. That is a flake, not a
+finding — and **a check that fails at random is a check people learn to re-run
+instead of read**, which is this repository's whole concern wearing different
+clothes. The block now sets an explicit 10s timeout with the reason, far above
+the measured cost and far below "hung".
+
+Verified: 4,377 tests passing, lint clean, `verify:launch` and `verify:gates`
+both exit 0.
+
+### 2026-09-10 - Naming an organization and naming the right one
+
+The invite hole raised a question worth more than the fix: **could an existing
+check have caught it?** No, and the reason is instructive.
+
+`scripts/report-tenant-scoped-queries.mjs` checks that every query against a
+tenant-scoped table **names** an organization, because the service-role key
+bypasses row-level security and `organization_id=eq.` is the whole boundary.
+That is true and it is not enough. **Every query in the invite path named an
+organization.** It named the wrong one. Naming one and naming the right one are
+different properties, and only the first is visible in a query string — so that
+check is defect six for this bug: too weak for the thing it exists for.
+
+`scripts/verify-request-supplied-tenant-ids.mjs` is the missing half rather than
+a replacement. It asks a different question: **which code takes a tenant id from
+the caller, and why is that safe?**
+
+## Four sites, four reasons
+
+Measured rather than assumed, and all four turned out to be legitimate:
+
+- **`server.js`** — `getBusinessWorkspaceId` collects the workspace the request
+  *asks for* and hands it to `isBusinessManagerUser`, which filters
+  `workspace_id=eq.` against the caller's own memberships. The id narrows a
+  query over rows that are already theirs; a workspace they do not belong to
+  returns nothing.
+- **`lib/sonara-business-employee-invites.cjs`** — reads both ids only to
+  compare against the verified membership, refusing a mismatch.
+- **`routes/sonara-last9-routes.cjs`** — a development convenience, inert in
+  production three ways over. Its own comment records that gating on the
+  variable alone made one wrong dashboard value a cross-tenant write hole.
+- **`routes/sonara-service-lifecycle-routes.cjs`** — `POST /admin/deliverables`
+  behind `requireAdmin`, where naming an organization is the point of the form.
+
+So the register is not a list of problems. It is a list of the places where this
+class of bug can appear, each with the reason it has not. The invite bug was a
+**fifth site nobody had looked at**, and nothing would have flagged its arrival.
+
+**Two-sided**, because only one direction was the bug and the other is how the
+reasons rot: an unregistered read fails, and a registered file whose count moves
+fails in *either* direction — a rise is a new unreviewed read, a fall means the
+reason may now describe nothing. `report-orphan-tables.mjs` is the precedent.
+
+## What it does not do, written into the file
+
+It catches an unreviewed read **arriving**. It does not catch a registered read
+being **misused** — the invite module is allowed four reads and this would still
+pass if somebody rewrote what those four do. Nothing static can read intent, and
+the guarantee covering that is the invite test, which fails on the exact original
+line.
+
+That limitation is in the header because **a check whose stated guarantee is
+wider than what it does is the defect the whole skill is about**, and the version
+of that mistake available here was to call this "every tenant id is verified".
+
+## Two checks of this repository's own caught me while writing it
+
+Worth recording, because both are checks somebody wrote for exactly this.
+
+**`tests/a-line-comment-cannot-open-a-block-comment.test.js`.** The first draft
+kept its own `withoutComments`, stripping block comments and then line comments
+— the obvious order, and precisely the bug `lib/sonara-comment-stripping.cjs`
+exists for: a line comment mentioning a path contains `/*`, so the block pass
+reads it as an opener. Caught on the first full run, with the message "that is
+how the same bug shipped three times". Now using the shared module.
+
+**`verify-doc-counts`** failed the moment the chain grew: the command count is
+quoted in `docs/owner/WHAT-IS-LEFT.md` and is derived, 45 → 46.
+
+## And my own falsification harness produced a junk file
+
+A `break_file` helper copied the target aside before editing. Pointed at a file
+that did not exist, the `cp` failed silently, `aside.bak` kept the *previous*
+break's contents, and the restore then **created** `routes/sonara-telephony-routes.cjs`
+holding the invites module. The new check flagged it immediately as an
+unregistered reader — correctly, since it really was one.
+
+Two lessons, both applied: the harness now refuses a target that does not exist,
+and `git status` is checked after a falsification round. Also `echo "exit=$?"`
+after a pipe reports **`head`'s** status, not the command's, which made two
+breaks read as caught when their exit code was never seen.
+
+## Broken to prove it works
+
+Nine breaks, each hash-compared before and after:
+
+1. A new unregistered read in another route — named that file.
+2. A second read inside an already-registered file — count rise caught.
+3. A read removed from a registered file — count fall caught as a possibly
+   stale reason.
+4. A register entry for a file that reads none — stale entry caught.
+5. A reason replaced with "Reviewed." — refused for having no real reason.
+6. The pattern narrowed until it matched nothing — refused, because the four
+   known sites cannot have vanished.
+7. The register emptied — refused, because every read would then be a finding
+   and none reviewed.
+8. Comment stripping skipped — the invite module's count rose 4 → 5 on this
+   file's own explanatory prose. Two attempts: the first anchor did not match,
+   which the hash comparison caught, making it **six** no-op edits this branch.
+9. The scan pointed at a directory that does not exist — refused for seeing
+   fewer than forty runtime files.
+
+Verified: 4,376 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0 with the chain at 46 commands.
+
+### 2026-09-10 - An invite could name somebody else's business
+
+An audit, not a feature. `pnpm run report:selected-columns` listed
+`organization_id` as fetched by `isBusinessManagerUser` and read by nothing.
+Field names like that are worth following, and this one led to a cross-tenant
+hole.
+
+## What it was
+
+`POST /api/business-builder/employees/invite` read the tenant as
+`body.organizationId || body.organization_id || membership.organization_id` —
+**the verified membership was the fallback and the request body was the
+preference.**
+
+`requireBusinessManager` authorises the caller against `workspace_id` only;
+`getBusinessWorkspaceId` never looks at the organization at all. So a legitimate
+manager of their own workspace could post `organizationId` naming any other
+business and have it accepted.
+
+**It did not stop at a stray row.** `acceptBusinessEmployeeInvite` copies the
+invite's `organization_id` into an **active** `business_memberships` row, and
+`getCustomerPrimaryOrganization` returns that column straight back as the
+organization a signed-in customer belongs to. The service-role key bypasses
+row-level security, so `organization_id=eq.` *is* the tenant boundary, and that
+resolver is shared by eleven routes.
+
+The path, traced rather than assumed: a manager invites an address they control,
+accepts it, and the new account — having no `organization_memberships` row, so
+the resolver falls through to `business_memberships` — resolves into the named
+organization. A test walks the accept half and asserts the membership row really
+does carry the invite's organization verbatim, so **the severity is on the
+record** rather than in a commit message.
+
+**`organization_id` was in that select list the whole time.** Being selected is
+what made it look checked — defect three in
+`.claude/skills/checks-that-cannot-lie`, the same shape as the `consent_scope`
+case that report was written for.
+
+## What was NOT wrong, checked rather than assumed
+
+The workspace half looked like the same bug and is not. When a request names no
+workspace, `getBusinessWorkspaceId` returns `""`, the gate drops its
+`workspace_id` filter, and the caller's first membership is returned — but the
+invite then falls back to *that row's* `workspace_id`, so the invite lands on
+the workspace actually verified. Two files agreeing by having the same
+precedence is fragile, so both ids now come from the verified row, but the hole
+was the organization only and saying otherwise would overstate it.
+
+## The fix
+
+The verified membership is the only source for a manager. A body naming a
+different tenant is **refused** with `tenant_mismatch` rather than silently
+corrected: a client that believes it invited into one business and silently
+invited into another has been told something false. A caller with neither a
+verified membership nor platform-admin status gets `membership_unverified`
+instead of the old fallback.
+
+**A platform admin may still name a tenant**, because they administer all of
+them, and `requireBusinessManager` sets `sonaraAdmin` only after
+`isSupabaseAdminUser` passes. That branch is asserted, because a fix that
+quietly removed the owner's ability to invite anybody would be a different
+outage.
+
+## The form was the other half
+
+It asked a manager to type their own Workspace ID and Organization ID into
+**required free-text boxes** — which both created the vector and made the page
+unusable by anybody who does not know their business's UUID. Those fields are
+gone for a manager; the page states which business the invite joins, and the
+inputs appear only for the admin override, which has no membership to derive
+them from.
+
+## The ratchet did its job, and got tightened for it
+
+Fixing the form pushed `server.js` 16 lines **over** its 3884 ceiling. Rather
+than raise the number, `businessEmployeeInviteForm` moved into
+`lib/sonara-business-employee-invites.cjs` beside the invite lifecycle it
+belongs to — which is what that ratchet exists to provoke, and which made the
+form **directly testable**, so "a manager no longer types their own organization
+id" is an assertion rather than a claim.
+
+server.js is now **3868**, seventeen lines below where it was, so **the ceiling
+came down with it**. A one-sided ratchet that never lowers accumulates headroom
+for the next person to spend without a reason.
+
+## Broken to prove it works
+
+Eleven breaks, each by exact string edit with the file hash compared before and
+after.
+
+One of them, `1`, was **not caught, and was not a valid break**: swapping the
+final assignment back to body-first precedence changes no behaviour, because the
+mismatch refusal happens before it. Redone as the real thing — deleting the
+whole guard and reinstating the exact original two lines — which fails **six**
+assertions by name. Worth recording, because "the check did not fire" and "the
+edit did nothing" look identical in a test run and only one of them is a
+problem.
+
+The other ten: silently correcting a mismatch instead of refusing (5 failed);
+checking only the camelCase spelling (1); checking only the organization and
+leaving the workspace open (2); falling back to the body with no membership (1);
+treating everybody as a platform admin (7); refusing the admin override too (2);
+putting the tenant inputs back on the manager's form (2); hiding them from the
+admin as well (2); printing an id unescaped (1); dropping the email field (1).
+
+Verified: 4,376 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0. Recorded in `SECURITY_NOTES.md`.
+
+### 2026-09-10 - A text saying stop must mean stop, and nothing else may
+
+The carrier comparison named SMS opt-out as **ours, not the owner's, and not
+built**. Half of that was wrong, and finding out which half is the useful part.
+
+## What already worked, stated accurately
+
+A `growth_contact_consents` row carrying `withdrawn_at` makes `consentState`
+return `consent_revoked`, and `authoriseOutbound` in `lib/sonara-telephony.cjs`
+refuses on that code **before anything is spent**. So a recorded opt-out already
+blocked every outbound text.
+
+The entry I had written in `docs/SHIP_READINESS.md` an hour earlier said
+"nothing here implements it". That was a reason reasoned to rather than checked —
+the exact thing `CLAUDE.md` warns about, written by somebody who had just
+finished writing a document about it. Corrected in place, and the test now
+asserts the enforcement half **and** that it still allows a granted consent, so
+a refusal that starts refusing everything fails too.
+
+## What was actually missing
+
+Nothing could turn the word "STOP" into that row. An owner could withdraw a
+consent from a form; the person holding the phone could not, and they are the
+only one whose decision it is. Same gap the email unsubscribe path closed, one
+channel over.
+
+`lib/sonara-sms-keywords.cjs` is the half of that which needs no vendor: reply
+text in, intent out, writing nothing.
+
+## The keyword list is a union, and the reason matters
+
+Read 10 September 2026 from each vendor's own page:
+
+- **Twilio** (twilio.com/docs/messaging/tutorials/advanced-opt-out): "By
+  default, Twilio handles standard English-language reply messages — STOP,
+  UNSUBSCRIBE, END, QUIT, STOPALL, REVOKE, OPTOUT, and CANCEL — for long code
+  numbers". A later send to an opted-out number "will fail with Error Code 21610
+  asynchronously".
+- **Telnyx** (support.telnyx.com/en/articles/1270091): stop words are "stop,
+  stopall, stop all, unsubscribe, cancel, end, quit", and an identified stop
+  word means "you will no longer be able to send messages to that number."
+
+**The two lists differ.** `REVOKE` and `OPTOUT` are Twilio's and not Telnyx's;
+`stop all` with a space is Telnyx's and not Twilio's. So the module honours the
+**union**: the set a customer's contacts can rely on must not narrow the day the
+owner changes carrier, and a keyword one vendor honours is a keyword somebody has
+been told works. A test holds both vendors' lists as literals and asserts the
+one-vendor-only keywords still work, so it fails if the union is quietly trimmed
+back to one vendor's list.
+
+That the carrier also enforces it does not make our record redundant, for two
+different reasons: **a carrier's opt-out list does not survive the carrier**
+(porting is the hardest-to-reverse decision in the comparison document), and
+**the carrier refuses after we have paid** — Twilio's block is a 21610 on a
+message already submitted, where `authoriseOutbound` refuses before the call.
+
+## Two findings that change how it must be built
+
+**`YES` is recognised and deliberately refused.** Twilio, verbatim: "Only the
+keywords START and UNSTOP can fully undo the blocking. Twilio's supported
+keyword 'YES' will not work to opt-in a previously unsubscribed user." Honouring
+it would write a granted row while the network still blocked the number — our
+record saying reachable, the carrier saying no, and the visible symptom an owner
+watching texts silently not arrive. Listed as recognised-and-refused rather than
+left out, so the next person meets the reason instead of the omission.
+
+**Whether we owe a confirmation text is a carrier setting, and is returned as
+one.** Both vendors reply automatically by default; Telnyx "will detect this and
+automatically send out a generic unsubscribed message from the number that
+received the opt out message." One of ours on top of that is two texts about
+stopping texts; none when the default has been turned off is an unmet
+obligation. `confirmationOwedBy` returns **three states** — owed, not owed, and
+nobody has recorded the setting — because guessing either way writes a wrong
+reason into the one place somebody would read instead of checking.
+
+## Matching whole messages, not substrings
+
+Substring matching is the obvious implementation and it is wrong in the
+expensive direction. "Please stop by at four" is not an opt-out, and reading it
+as one stops a business texting a customer who never asked — silently, because
+the owner's next message just never arrives and the refusal is a code in a log.
+
+So: NFKC, strip zero-width characters, drop surrounding punctuation and quotes,
+collapse inner whitespace, lower case, then compare **whole strings**. "STOP.",
+" stop ", "Stop" and "STOP   ALL" all match; "stop by" does not.
+
+Twelve ordinary replies are asserted to be read as messages rather than
+commands — and a companion assertion checks that **nine of the twelve actually
+contain a keyword**, because a substring test whose fixtures contain no keywords
+proves nothing, and one where every fixture contains one never tests the plain
+case.
+
+## Broken to prove it works
+
+Eight breaks, each by exact string edit with the file hash compared before and
+after. One anchor turned out to be a no-op because the escape sequence differed
+through the shell; redone directly, which is the fifth time that comparison has
+caught one.
+
+1. Match keywords as substrings — the ordinary-replies test failed by name.
+2. Drop the Twilio-only keywords — both the Twilio-list and union tests failed.
+3. Drop the Telnyx-only spaced keyword — three tests failed.
+4. Honour `YES` as an opt-in — three failed, including the ordinary reply "yes".
+5. Read an unrecorded carrier setting as handled — the three-state test failed.
+6. Stop stripping invisible characters — the zero-width test failed.
+7. Make matching case-sensitive — five tests failed.
+8. Add a `fetch` to the decision core — the writes-nothing test failed.
+
+## What is still owed, and why it waits
+
+**The inbound webhook that writes the withdrawal.** That one genuinely needs the
+vendor, because verifying a webhook signature is the one part of this that
+differs between them. Everything above it does not, which is why it is built.
+
+Verified: 4,361 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0.
+
+### 2026-09-10 - A telephony floor nobody had sourced, and four copies of figures that would have gone stale
+
+`lib/sonara-paid-capabilities.cjs` priced `telephony` at 3.0 minor units per
+`message_or_minute` against a floor of **0.8**, and the whole justification in
+the comment was that "a carrier bills per message and per minute and there is no
+version of this that does not." That explains why a floor exists. It is not a
+source for 0.8.
+
+## What the real prices say
+
+Read 10 September 2026 from the vendors' own US pay-as-you-go pages. Full
+working, with every source URL, in
+`docs/architecture/2026-09-10-CARRIER-VENDOR-COMPARISON.md`.
+
+0.8 was **below the true cost on every vendor and every direction**. The
+specific thing it missed is **mandatory US carrier surcharges** — AT&T $0.0035,
+T-Mobile $0.0045, Verizon $0.0045 per message part, identical on Twilio and
+Telnyx because they belong to neither. A floor built from a base rate alone
+understates every single SMS.
+
+The floor is now **1.4**, Twilio's outbound voice minute, deliberately the worst
+plausible case on a local number rather than the likely one. The margin this
+codebase reports therefore drops from a claimed **3.75×** to an actual
+**2.14×** — 53% of price, which is still a business.
+
+**Toll-free inbound at 2.20 is outside that floor** and is named rather than
+averaged in; it leaves 27% margin at our price and needs its own price before a
+toll-free number is ever rented.
+
+**Two costs the per-unit model cannot express** are recorded so they are not met
+on an invoice: a number's **fixed monthly rent** ($1.15 local, $2.15 toll-free),
+which means a customer with a number costs money in a month they send nothing;
+and **A2P 10DLC registration**, which is a real fee and a real delay and gates
+outbound SMS entirely.
+
+**Recommendation: Telnyx on cost (2.1×–2.8× cheaper on every unit compared), but
+only after the answering architecture is settled.** A serverless function cannot
+hold a call, that constraint is identical on both vendors, and it is the actual
+work. If the owner prefers Twilio, nothing in the code changes — the floor is
+already Twilio's number.
+
+**Ours, not the owner's, and not built: SMS STOP/UNSTOP handling.** It is a legal
+obligation on any outbound text. Named in the comparison document and in
+`docs/SHIP_READINESS.md`.
+
+## The copies, which are the more general finding
+
+`floorMinor: 0.8` had been written as prose into `lib/sonara-telephony.cjs` and
+`lib/sonara-usage-meter.cjs`. Correcting the module left both files stating the
+old number, in places nobody would open when changing a price.
+
+So `tests/a-cost-floor-is-a-figure-somebody-checked.test.js` now forbids any
+runtime file outside the pricing module from quoting a price or floor figure at
+all. Writing that check **found two more copies nobody had looked for**:
+
+- `lib/creator-generation-billing.cjs` quoted media generation's floor twice
+  (0.0747) and its price (0.25).
+- `lib/growth-studio-sender.cjs` quoted `campaign_email`'s price and floor
+  (0.15 / 0.07).
+
+Four copies across three files, none of them wrong yet, all of them guaranteed to
+disagree with the module eventually.
+
+**And one of those comments was already false.** `creator-generation-billing.cjs`
+said eight GPU seconds was "the smallest quantity where the two separate". The
+real separation point on the current price list is **five**. Eight is a fine
+minimum — above the separation point is the safe direction — but the sentence
+explaining *why* read exactly like arithmetic somebody had run, and was not.
+
+That is now a check rather than a sentence: the test derives each separation
+point from `quote()` and fails if a billing minimum drops to or below it. Same
+for the free-allowance sentence in `sonara-usage-meter.cjs`, which claims $5.00
+buys "about two thousand GPU seconds" — true only at a particular price, so the
+test asserts the allowance still buys that order of magnitude.
+
+## The check that was too weak to catch its own bug
+
+The first version of the cross-file scan excluded a figure when the surrounding
+comment block explained a correction, because the excusing phrase and the figure
+sit on different lines in both real corrections. **That exemption swallowed
+anything added to such a block.** Appending
+`// telephony charges 3 minor units against a 1.4 floor` to the end of the
+correction comment in `sonara-telephony.cjs` went undetected — the exact bug the
+check exists to catch, in the exact file that motivated it.
+
+A figure is now excused only when the block explains a correction **and** the
+figure sits inside quotation marks, which is what a correction actually looks
+like (`This comment used to say "…"`). That break is kept as a test.
+
+Also kept as a test: the first pattern fired on
+`// Measured 19 August 2026 against a` in `sonara-route-registry.cjs` — a date
+and a preposition, nothing to do with pricing. A check that cries wolf gets
+switched off, so both halves are asserted: it catches all six real stale lines
+and none of four innocent ones.
+
+## Broken to prove it works
+
+Nine breaks, each redone by exact string edit after comparing the file hash
+before and after (a no-op `sed` reads exactly like a passing break, and that has
+already happened four times in this branch):
+
+1. An unquoted live figure appended to the telephony correction block — caught.
+2. The campaign figures copied back into `growth-studio-sender.cjs` — caught.
+3. The generation floor re-quoted in `creator-generation-billing.cjs` — caught.
+4. The GPU-second price re-quoted in the allowance comment — caught.
+5. `MINIMUM_BILLABLE_GPU_SECONDS` lowered to 4 — caught by name.
+6. `MINIMUM_BILLABLE_EMAILS` lowered to 6 — caught by name.
+7. `media_generation.priceMinor` moved to 1.0 — the allowance claim failed.
+8. The exclusion widened back to block-only — the appended-copy test failed.
+9. The pattern loosened to match a bare number before "against a" — the
+   innocent-prose test failed *and* the registry line reappeared as an offender.
+
+Verified: 4,339 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0, stale claims 17/17 with review dates.
+
+### 2026-09-10 - Batching, and a cap whose arithmetic was measuring the wrong budget
+
+A campaign could reach 400 people. It can now reach 1,000, and the reason it is
+safe to is the fallback rather than the batching.
+
+## The two documented facts, and the one silence that shaped the design
+
+resend.com/docs/api-reference/emails/send-batch-emails, read 10 September 2026:
+
+- A batch takes **"up to 100 batch emails at once"**.
+- The response is index-aligned: **"each entry in `data` corresponds to the
+  email at the same index in the batch payload (0-based)"**.
+- And it says **nothing at all** about partial failure or per-item errors.
+
+That silence is the important one. `MAX_PER_REQUEST` was 1 because `failed`
+carries an address and a status per recipient, and an owner told "100 sent" with
+no way to say which 3 did not has been told something false. Coding against an
+undocumented error shape would have traded that guarantee for throughput.
+
+**So nothing is guessed.** A batch counts as clean only when the request
+succeeded **and** `data` has exactly one entry per email. Anything else is
+**resent one recipient at a time** — the old path — so every outcome is
+attributed by address. The undocumented case is never interpreted; it is retried
+in a form that cannot be ambiguous.
+
+**The duplicate risk is real and accepted deliberately.** A batch that failed
+after accepting some of its emails will send those again. The alternative is
+telling an owner that 100 people may or may not have been mailed, and a
+duplicate email is a smaller harm than an unknown one. Recorded on the constant
+rather than left for somebody to discover.
+
+## A third state on the result
+
+`notAttempted` is separate from `failed`, because a failed send was **tried and
+refused** and an unattempted one was **never tried**. One is a bad address; the
+other is "send this again". Collapsing them loses the owner's next action, and
+the code word is `partly_sent` rather than `sent` whenever it is non-empty.
+
+It exists because the fallback is bounded: `MAX_FALLBACK_BATCHES` is 2, since
+1,000 recipients all falling back individually would be 500 seconds against a
+300-second function and would be killed mid-campaign — the one outcome worse
+than refusing.
+
+## The finding: my cap test was measuring the wrong budget
+
+The old assertion was `cap * 0.5 <= 200` — right while every recipient was its
+own request, wrong the moment batching landed. It failed on the raised cap,
+correctly, and was rewritten to the real worst case: batch calls plus the
+bounded fallback plus the suppression read.
+
+**Then falsification found it was still too weak.** Raising the cap to 5,000
+left every assertion green: 50 batches + a 200-call fallback + 30 suppression
+pages is 140 seconds, comfortably inside 300. **And it was still wrong**, because
+time is not the only budget. With 50 batches and 2 permitted fallbacks, a bad day
+reports **200 sent and 4,800 not attempted**. An owner who asked to mail 5,000
+and reached 200 has been failed by a cap the arithmetic called safe.
+
+So there is a second assertion: the fallback must be able to recover at least a
+fifth of a full campaign. At 1,000 it recovers 20%; at 5,000 it recovers 4% and
+the test says so with the percentage in the message. **The ratio, not the clock,
+is what actually bounds this cap.**
+
+## Two more things the tests found
+
+**A fixture that was testing a shape the product never produces.** The
+`authorised()` helper filled in lead ids as `${nextLeadId++ % 10}` in a single
+digit with a fixed suffix, so ids repeated every ten recipients — and since the
+unsubscribe token is derived from the lead id, **twenty recipients shared ten
+tokens**. Found by the new assertion asking for twenty distinct tokens in one
+batch. Lead ids are unique in the database, so several earlier tests had been
+running against duplicate ids.
+
+**The test harness now records both shapes.** `calls.messages` flattens every
+recipient's own message and `calls.wire` keeps the requests, because a helper
+that only flattened would have let the batching itself go unasserted.
+
+## Falsification
+
+**Eight breaks, seven caught first time.** A short `data` array trusted instead
+of falling back; the fallback resending nothing; the fallback budget removed;
+unattempted recipients reported as failures; batches exceeding the documented
+ceiling of 100; unattempted recipients billed for; a campaign with unattempted
+recipients called `sent`; and the cap raised past what the fallback can recover.
+
+The miss was the eighth, and it was **a weak assertion of mine rather than a sed
+error** — the recovery-ratio case described above. It fails by name on retry with
+the percentage in the message. One sed also came back as a no-op and was caught
+by the hash comparison, which is the fourth time that has earned its place.
+
+**Verified:** 4,319 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice.
+Reaching past 1,000 in one campaign needs sending across more than one
+invocation, which is a queue and is deliberately not built.
+
+### 2026-09-10 - n8n, asked for again, and the answer the licence gives
+
+n8n arrived as a mobile screenshot of its GitHub page with the request to add it
+to the application if possible. **It is already in the register**, reviewed
+12 August 2026 and deliberately left unresolved -- and
+`verify-open-source-registry.mjs` caught the second record before it was
+committed: *"A repository with two verdicts has none, because which one is read
+is an accident of scrolling."* A working gate. The finding was folded into the
+existing record instead.
+
+**The request is answerable and the answer is no.** The repository page says
+"Fair-code workflow automation platform", and fair-code is a marketing term for
+source-available rather than a synonym for open source -- the exact gap
+`reviewing-an-outside-repository` exists to close. The 204k stars in the
+screenshot say nothing about what the licence permits.
+
+Shallow-cloned and `LICENSE.md` read directly. Sustainable Use License v1.0,
+Limitations, verbatim:
+
+> You may use or modify the software only for your own internal business
+> purposes or for non-commercial or personal use. You may distribute the
+> software or provide it to others only if you do so free of charge for
+> non-commercial purposes.
+
+SONARA One is sold on plans from $29 to $1090 a month, so embedding n8n in it is
+both "providing it to others" and not free of charge for non-commercial
+purposes. **Two independent clauses each forbid it.**
+
+**The distinction that matters, and it is easy to blur.** The August record left
+three questions open -- whether the SUL addresses hosting arrangements, a
+company self-hosting for internal automations and calling it from separate
+software, and whether that changes when the calling product is commercial SaaS
+whose customers never touch n8n. Those remain readings for counsel. **Embedding
+is not one of them.** It is a different arrangement and the text is not silent
+about it. Conflating the two would turn a clear prohibition into an open
+question, which is the more expensive mistake.
+
+**Three restrictions the August record did not carry**, each a fact rather than a
+reading, and together why `licenseRisk` went from high to critical:
+
+- Files with `.ee.` in the filename or `.ee` in the dirname are **explicitly not
+  under the SUL** and need a paid Enterprise licence. **1,197 counted** in the
+  clone. The old record said "separate enterprise terms" without the mechanism
+  or the scale.
+- *"Content of branches other than the main branch (i.e. master) are not
+  licensed."* So a feature branch carries **no grant at all** — even reading one
+  for ideas has nothing behind it. This review was against master.
+- `CONTRIBUTOR_LICENSE_AGREEMENT.md` assigns contributions outright: *"I give
+  n8n permission to license my contributions on any terms they like."*
+  Upstreaming is not a route to reusable rights.
+
+**Measured rather than described:** 28,495 files excluding `.git` across 10 pnpm
+workspace packages at version 2.39.0. Its `package.json` declares **no `license`
+field at all**, which is why `LICENSE.md` rather than package metadata is the
+authority — and why the "Fair-code" label on the page is not one.
+
+**Two technical facts make it a poor fit even setting the licence aside.** It
+declares `engines node >=24.0.0` while this project runs Node 22 and declares
+`>=22`. And this application ships exactly **one** production dependency on a
+serverless runtime with a read-only filesystem and no long-lived process,
+whereas n8n is a stateful long-running server with its own queue and database.
+
+**What is left open, and it is the owner's.** Self-hosting an instance for
+SONARA's own back-office automation is plausibly "own internal business
+purposes" — that is the August question and it still needs counsel, not an
+engineer. Even granted, `docs/architecture/EXTERNAL-SERVICES.md` applies: a
+serverless function cannot reach a machine the owner runs without a hosted
+adapter and a URL, so it is an infrastructure cost with an adapter to write.
+If the capability is wanted **in the product**, the routes are to build it or to
+buy a vendor that licenses it for resale.
+
+**Verified:** 4,308 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `verify-open-source-registry`, `generate-product-integration-map`
+and `verify-doc-counts` all re-run. The clone was deleted.
+
+### 2026-09-10 - An employee could email the whole customer list
+
+The send route carried a note saying what it could not do: tell an owner from
+another member. `getCustomerPrimaryOrganization` returned `{ ok, organizationId }`
+and no role, so **any active member of the workspace could approve a customer
+campaign** -- the one action AGENTS.md singles out by name.
+
+Writing that down was right and leaving it there was not. This closes it.
+
+**It was not hypothetical.** Two tables put somebody in a workspace and they
+have different defaults:
+
+- `organization_memberships.role` -- every path that creates one sets `owner`.
+  `sonara_bootstrap_customer_workspace` does
+  `values (v_organization_id, p_user_id, 'owner', 'active')` and
+  `insertSetupMembership` in server.js does the same. **Checked before the gate
+  was written**, because a role check that refused every self-serve customer
+  would be worse than no check at all.
+- `business_memberships.role` -- **defaults to `employee`**, and
+  `lib/sonara-business-employee-invites.cjs` invites staff as `manager` or
+  `employee`. The resolver falls back to that table, so an invited employee
+  arrived with the owner's authority.
+
+`mayApproveOwnerAction` lives in `lib/sonara-agent-authority.cjs` rather than in
+the route, and that placement is the point: CLAUDE.md calls that file "the
+AGENTS.md safety rule as code", and `scripts/verify-supabase-contract.mjs`
+checks it on every release, so weakening the rule fails the build rather than
+shipping quietly.
+
+**An allow-list, not a deny-list, because the role column is not a closed set.**
+Migration 010 declares `check (role in ('owner','admin','developer','support',
+'business_owner','creator','agency','member','viewer'))`, and two later
+migrations declare the same column as `role text not null default 'member'` with
+**no check constraint at all**. Which values are possible depends on which
+definition took effect, so a deny-list would silently admit anything nobody
+thought of. Default deny, the same reasoning `classifyAction` already uses.
+
+`manager` is deliberately **not** on the list. A manager is staff; AGENTS.md
+says owner. That is as much a product decision as a security one, so it is
+stated in the module rather than left to the shape of the list, and the owner
+can argue with it.
+
+**Three states, not two.** A role nobody could read is not a role that failed
+for being the wrong one: the first says try again (503), the second says ask
+somebody else (403). Telling a customer the wrong one sends them to the wrong
+place. The route also records `approved_by_role` alongside `approved_by`,
+because an audit trail with a user id and no role cannot say whether the
+approver was entitled.
+
+**A resolver eleven routes share, changed carefully.** `role` is added to the
+select, and a failed request **retries without it** rather than taking all
+eleven down -- if the column were ever absent from a deployment's schema,
+PostgREST answers 400, and the honest degrade is one gate reporting "could not
+confirm your role" instead of every workspace page breaking. The row then comes
+back with `role: null`, which the decision reports as its own state rather than
+as permission or as the wrong role.
+
+## Two checks disagreed with each other again, and both were right
+
+Passing the select through a variable made the column list computed at run time,
+and `report-unused-selected-columns.mjs` cannot read one -- so **both membership
+reads became invisible** to the check that hunts a column fetched into a
+decision and never used. Its ratchet caught the rise, 23 -> 24.
+
+Meanwhile `database-query-contract.test.js` requires both tables to share one
+query so they cannot drift apart on ordering, which rules out inlining the
+filters twice.
+
+Resolved rather than recorded: `ask` now takes the whole query, each call site
+spells its columns out as a literal, and the filters stay in one shared const.
+Computed selects back to **23**, and `lib/sonara-customer-organization.cjs`
+drops out of that list entirely. Raising the recorded count would have been the
+easy move and would have bought a permanent blind spot for two resolvable
+reads.
+
+## Falsification
+
+**Seven breaks, seven caught.** An absent role read as permission; the allow-list
+turned into a deny-list; `employee` added to the allow-list; the route no longer
+asking; the unreadable-role state collapsed into the wrong-role one; the
+resolver no longer carrying the role; and the audit trail losing it.
+
+**One assertion of mine could not express its own case.** The route test looped
+`[null, undefined, "", "   "]` and `undefined` selected the harness's default
+parameter -- so it asserted `role: "owner"` was refused, which is the opposite
+of the intent, and failed. The rule belongs to the authority module, so it is
+asserted there directly, with the harness limit written down rather than the
+case quietly dropped.
+
+**Verified:** 4,308 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice.
+Whether `manager` should be able to approve a campaign is the owner's call and
+is now a one-line change in a checked module.
+
+### 2026-09-10 - A skip reason that could never be true, and a scoping fact I could not confirm
+
+`growth-studio-sender.cjs` has documented a `suppressed` skip reason since it was
+written -- "They unsubscribed or a previous send bounced." -- and **nothing set
+it.** The partition honoured a field that could never be true. Not wrong; inert.
+A check that cannot fire, which is the quietest member of the family this
+repository keeps finding.
+
+`lib/growth-studio-suppression.cjs` reads the provider's suppression list and
+sets it, so a dead address is skipped with a named reason instead of mailed,
+failed, and charged for.
+
+## What it deliberately is not
+
+**A suppression is not a withdrawal of consent, and nothing here writes to the
+consent table.** `growth_contact_consents` records what a person agreed to. This
+records whether the address still works, and those are different questions: a
+contact can have given perfect consent to a mailbox deleted a year ago.
+
+A hard bounce is the mail server's decision, not the person's. Recording it as a
+withdrawal would put words in their mouth, and an owner who later fixed the
+address would find a refusal nobody made. **A test reads the module's own source
+and asserts it contains no `consent_status`, no `withdrawn`, and no write verb at
+all** -- with a non-empty guard so it cannot pass by reading nothing.
+
+## The fact I could not confirm, recorded as unconfirmed
+
+resend.com/docs/api-reference/suppressions/list-suppressions, read 10 September
+2026: a record carries `id`, `email`, `origin`, `source_id`, `created_at`, and
+`origin` is one of `bounce`, `complaint`, `manual`. Pagination is `limit` (max
+100) and `after`.
+
+**The documentation does not say whether the list is scoped per account or per
+sending domain.** The endpoint is a bare `/suppressions` with no domain
+parameter, which *suggests* per account — and suggesting is not knowing, so the
+module says so in those words rather than asserting it.
+
+It matters, because every customer's campaigns go out from this application's
+own Resend account. If the list is account-wide, one organization's hard bounce
+stops every organization mailing that address. That is defensible -- a dead
+mailbox is dead for everybody, and mailing it damages a sending reputation all
+customers share -- but it is a real cross-tenant effect, so it is written down
+rather than left to be discovered. What is not disclosed either way is *which*
+organization caused it.
+
+I also could not confirm what Resend does when you send to a suppressed address:
+its documented error list has no `suppressed_recipient` of any kind. So **the
+design does not depend on knowing.** Screening beforehand is right whether the
+provider drops the send silently (we would have charged for nothing) or rejects
+it (we would have reported a failure with no reason).
+
+## Why a failed read still sends, and why that is not silent
+
+The campaign is not refused because this list could not be fetched. Sending
+unscreened costs a little sending reputation; refusing the owner's campaign
+because a third-party API blipped costs them the campaign, and this is a screen
+on top of the consent rules rather than one of them.
+
+**But the response and the control event both carry whether the screen ran.**
+"460 sent" and "460 sent, unscreened" are different sentences and only one is
+true when this fails. A test covers the exact trap: an empty suppression list
+and a failed read both mark nobody, so `suppressedSkipped: 0` cannot tell them
+apart — only the flag can, and it is asserted to differ across those two cases.
+
+## Three states and a ceiling, both the usual shape
+
+`readSuppressions` distinguishes **not configured** from **could not read** --
+collapsing them would tell an owner their provider was misconfigured when it had
+merely timed out. An unparseable body is never an empty list. And past 30 pages
+(3,000 addresses) it **returns nothing rather than a partial list**, because a
+partial one would skip the addresses it happened to see, mail the rest, and
+report the screen as done.
+
+The ceiling is derived from time rather than picked: 30 pages at a pessimistic
+500ms is 15 seconds, against the 300-second function budget of which the
+400-recipient send cap already claims 200. A test holds that arithmetic.
+
+## Falsification
+
+**Eight breaks, eight caught.** A failed read returning an empty list as `ok`;
+an unparseable body read as nobody suppressed; the page ceiling returning a
+partial list; a failed screen marking people anyway; addresses matched
+case-sensitively; not-configured collapsed into unreadable; the screen running
+after the send instead of before; and the response hard-coding that the screen
+ran.
+
+The ordering one is worth noting: it asserts the suppression request appears
+before the first send request in the recorded call list, **and** that a send
+happened at all -- otherwise the ordering assertion would pass on a campaign
+that sent nothing.
+
+**Verified:** 4,298 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice.
+Also, now that the screen exists, Resend's batch endpoint (documented ceiling
+100 per call) is the change that would raise the 400-recipient send cap -- at
+the cost of the per-recipient failure attribution `MAX_PER_REQUEST = 1` exists
+to keep.
+
+### 2026-09-10 - A way out of a campaign, and a consent system that was one-way
+
+`growth_contact_consents` could record a permission and honour a withdrawal, and
+**nothing could set the withdrawal.** An owner could, from a form. The person who
+received the email could not, and they are the only one whose decision it is.
+
+So the sender was elaborate about consent in one direction. It refused anybody
+whose row said `withdrawn`, checked the channel, treated `unknown` as not
+consent, let a withdrawal outrank a grant — and shipped with **no unsubscribe of
+any kind**: `{ from, to, subject, text }` and nothing else. This product's own
+`/legal/can-spam` page tells a customer that "a working unsubscribe" is one of
+the basics, which made it the application stating a rule and handing them a tool
+that could not keep it.
+
+**The refusal that makes it real: `dispatchCampaign` will not send a campaign it
+cannot supply a way out of.** No signing key, or no https origin, and nothing
+goes out at all. That is the one refusal in that file which is not about cost or
+consent, and it fails closed because the alternative cannot be taken back — the
+mail is in somebody's inbox, they have no way to stop the next one.
+
+Twenty-three existing tests started failing the moment it landed, all of them
+because they supplied no key and no origin. That is the guard working, and each
+harness now says so in a comment rather than quietly gaining a variable.
+
+## The standard, read rather than remembered
+
+RFC 8058, read 10 September 2026, quoted in the module: one `List-Unsubscribe`
+header with **one HTTPS URI**, one `List-Unsubscribe-Post` containing exactly
+`List-Unsubscribe=One-Click`, the client POSTs that pair as the body, and "the
+mail sender MUST NOT return an HTTPS redirect".
+
+The clause that shaped the design: "The POST request MUST NOT include cookies,
+HTTP authorization, or any other context information." **The URI is the whole
+credential**, so it carries a signed token and nothing else can.
+
+One requirement is **not ours and is recorded as not ours**: the message "MUST
+have a valid DKIM signature that covers at least the List-Unsubscribe and
+List-Unsubscribe-Post headers." Resend signs for a verified sending domain, so
+compliance holds while `RESEND_FROM_EMAIL` is on one. Nothing in this codebase
+can check that, and a comment asserting it would be a reason nobody verified.
+
+## Why a GET does not unsubscribe anybody
+
+The in-body link renders a confirmation with a button. That extra step is not
+politeness: **mail security scanners and inbox proxies prefetch links.** A GET
+that withdrew consent on load would remove people who never clicked, and the
+owner would watch contacts drop out of every campaign with no explanation.
+
+The RFC 8058 POST is honoured immediately, because a mail client making it is
+acting on a person pressing Unsubscribe in their inbox.
+
+**The status codes differ by verb, deliberately.** A bad token on the GET renders
+200 with a readable "this link does not work" page — a person reads it and the
+status is invisible to them. On the POST it is a 400, because **a mail client
+shows its user "Unsubscribed" from the status**, so a 200 there on a token that
+verified against nothing would report a withdrawal that never happened.
+
+## The only unauthenticated write in Growth Studio
+
+Which makes the token the whole security story:
+
+- Signed, so holding your own link and swapping the lead id does not unsubscribe
+  somebody else. Both swaps are asserted.
+- Names the **organization** as well as the lead, because the service-role key
+  bypasses row-level security and a withdrawal that did not name the
+  organization would be a write with no tenant boundary.
+- Names no channel, and cannot: a token that could would let a link from an
+  email withdraw somebody's SMS permission.
+- Constant-time compare, length-checked first, because `timingSafeEqual` throws
+  on a length mismatch — the same correction `lib/sonara-billing.cjs` carries.
+- **Every refusal reads identically.** A reply that told a forged token from an
+  unknown contact would answer questions about somebody else's contact list.
+
+The page discloses nothing either: no address, no business, no campaign.
+
+## The signing key, and the cost of how it is obtained
+
+`SONARA_UNSUBSCRIBE_SECRET` when set; otherwise derived from
+`SUPABASE_SERVICE_ROLE_KEY`, which is already required and present anywhere this
+runs. That is why sending works on deploy with no owner step — necessary,
+because a campaign is not sent without a way out.
+
+**The cost, stated rather than buried: rotating the service role key invalidates
+every unsubscribe link already in an inbox.** They live there for months. That
+is now written in `docs/owner/OWNER-STEPS.md` as a note before that rotation,
+with the order to do it in — and it is written there because the code comment
+claims it is, which would otherwise be a reason nobody made true.
+
+## Two findings from the tests
+
+**The two key sources derived the same key.** Both used one domain separator, so
+the same string in either variable produced an identical key: separated from
+other schemes and not from each other. Found by a test asking whether they
+differ. Two contexts now — and the consequence is recorded, because setting the
+dedicated secret for the first time is itself a key change that invalidates
+links signed before it. There is no ordering that preserves old links; the only
+choice is when to take the cut-over, and earliest is cheapest.
+
+**One assertion of mine was wrong rather than the code.** It demanded the
+confirmation page contain neither the organization nor the lead id, and failed —
+the token contains both, and the form has to carry the token to post it back.
+Whoever holds the link already received those ids in their own email, so the
+page discloses nothing new. Replaced with the assertion that is actually true
+and stronger: **every identifier on the page must appear in the token the
+recipient holds**, with a non-empty check so it cannot pass by finding none.
+
+## Falsification
+
+**Twelve breaks, twelve caught.** The signature never checked; both key sources
+sharing a context again; an http origin accepted; the dispatcher sending with no
+key; the headers dropped from the message; one shared token for every recipient;
+a GET unsubscribing on load; the POST answering 200 on an unverified token; the
+write dropping its organization filter; a failed write reported as done; an
+update matching no rows reported as a withdrawal; and the refusals
+distinguishing a forged token from an unknown contact.
+
+One sed did not match and **the hash comparison caught it as a no-op** rather
+than letting it read as a passing break — the third time that comparison has
+earned its place since it was added.
+
+## Also
+
+`/growth/unsubscribe` returning 200 rather than 400 on a bad token resolved two
+crawl tests as a side effect: the signed-in crawl's skipped-route count went back
+to 103 and the workspace-page crawl stopped listing it as failing. Worth noting
+because the reverse would have been a page that stopped rendering.
+
+**Verified:** 4,275 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `SONARA_UNSUBSCRIBE_SECRET` is classified optional in
+`lib/sonara-environment-classification.cjs`, which is what makes "unset" a
+supported state rather than a misconfiguration.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice, and
+Resend's suppression list — a withdrawal is now recordable by the recipient, but
+nothing captures a hard bounce, and repeatedly mailing a dead address damages
+sending reputation.
+
+### 2026-09-10 - Somewhere to press Send, and a check whose reason had expired
+
+The send route existed and no page posted to it. In this repository that is a
+recognised defect rather than an omission -- the same one recorded for the quote
+step and the lead conversion: **an endpoint reachable only by an API client is
+not a feature a small business owner has.**
+
+**The form is on `/growth-studio/your-campaigns`**, where the owner already sees
+their campaigns, rather than on a new page needing a new registry entry. It
+picks a campaign, takes a subject and a message, chooses the audience, and has
+an approval checkbox that is deliberately **not pre-ticked** -- a box already
+ticked when the page loads is not an approval anybody gave.
+
+**Two entry points, one handler.** An HTML `<select>` sets a field, not a path
+segment, so the form cannot post to `/campaigns/:campaignId/send`. Rather than
+two implementations that will diverge, `POST /api/growth/campaigns/send` reads
+the id from the body and both routes call the same `sendCampaign`. Both serve
+both kinds of caller: a browser gets a 303 back to the page carrying the counts,
+a JSON client gets the body.
+
+**The counts are on the redirect, because the body is never shown.** All three
+are rendered even when two are zero: "8 sent" alone lets an owner believe they
+reached everybody, and the difference between the list and the send is the thing
+they most need to see. Refusals come back as a code and are rendered in the
+owner's words; an unmapped code is still readable rather than blank, and it says
+the code so they can quote it.
+
+## The check whose stated reason had expired
+
+`scripts/check-growth-studio-copy.mjs` failed on the new copy, and **it was
+right to and its premise was wrong.** Its own words:
+
+> There is no SMTP path, no SMS provider and no Twilio anywhere.
+
+That was true when written. Half of it is false now:
+`lib/growth-studio-dispatch.cjs` POSTs to `api.resend.com` on our own account
+and `lib/sonara-paid-capabilities.cjs` prices it per email.
+
+**This is defect five from `.claude/skills/checks-that-cannot-lie` -- an
+exemption whose reason has expired -- and a wrong reason inside a check is worse
+than no check, because it is what the next person reads instead of checking.**
+The tempting move was to relax the check so honest copy passes. That is how a
+check gets quietly weakened into nothing, so it was rewritten instead, and the
+rewrite is **stronger** than what it replaced:
+
+- **Email may be claimed, but only while the code that delivers it exists.**
+  `EMAIL_DELIVERY_EVIDENCE` reads three things out of the source: the dispatcher
+  exists, it posts to Resend, and a route calls it. Delete the sender and every
+  "send your campaign" sentence becomes a finding again immediately. The
+  permission is granted by the code, not by the script's opinion of it.
+- **SMS and voice may never be claimed**, and no neighbouring sentence excuses
+  it. `lib/sonara-telephony.cjs` decides and prices; it dials nothing, and no
+  runtime file reads `SONARA_TELEPHONY_PROVIDER_URL`. A carrier claim is exactly
+  what the original said of email: a promise the code cannot keep.
+- **The sentence that must survive changed sides.** It used to be the
+  control-plane sentence about email going out through a provider. Email
+  delivery is now guaranteed by code; what needs saying on a page is the
+  *carrier* boundary, because a page silent on who places a call is how that
+  claim creeps back.
+
+`replaces klaviyo` **stays banned**, deliberately. Sending an email is one of
+the things Klaviyo does; flows, segmentation, deliverability tooling and
+reputation management are the rest, and none is built. A capability that can
+send is not a replacement for a product that can send, and claiming otherwise
+fails on a customer's first real comparison. That is a positioning decision and
+it is the owner's to change, not this script's.
+
+**A canary now guards the patterns themselves**, and it earned its place on the
+first run: it found that `(sms|text) (are|is) (sent)` never matched **"SMS
+messages are sent"**, because the pattern required the channel word to sit
+against the verb. A real overclaim the check walked straight past. The canary
+exercises every carrier pattern and names the ones that stop matching, because
+clean copy and a dead regex look identical.
+
+The page sentence was rewritten to match: Growth Studio emails campaigns itself
+and charges per email; text messages and phone calls still go out through a
+connected provider.
+
+**My own comment tripped the check**, by quoting a forbidden claim as an
+example. The comment was reworded, not the check narrowed to skip comments -- a
+checker that ignores whole regions of a file is a checker with a region nobody
+is watching. Second time this session the same call came up and it went the same
+way.
+
+## Falsification
+
+**Ten breaks, nine caught first time.** Four against the rewritten copy check --
+the dispatcher stopping its Resend call, no route calling the dispatcher, a
+carrier claim appearing in brand copy, the carrier-boundary sentence deleted --
+each naming the right thing. Six against the form and page: the form answered
+with JSON, the approval box pre-ticked, completed campaigns offered in the
+select, the skipped count dropped from the redirect, a raw code shown instead of
+words, and the outcome card shown on a first visit.
+
+The one miss was **a sed pattern that did not match, caught by the hash
+comparison** rather than read as a passing break -- which is what that
+comparison was added for two entries ago. Redone with an exact string edit and
+caught.
+
+**And one assertion of mine was worthless before it was fixed:** "does not offer
+a campaign it would then refuse" matched `/None of your campaigns...|Send an
+email campaign/` -- an alternation satisfied whichever way the page rendered. It
+now asserts the empty branch specifically, with a companion test proving a
+sendable campaign *does* appear, so neither can pass on an empty page. A second
+one asserted `<option value="` anywhere on the page and caught the create form's
+status select instead; scoped to the campaign's own id.
+
+**The test harness's `layout` stub dropped `sections`**, so seven page
+assertions ran against `<html>Your campaigns</html>` and would have passed on a
+page with nothing on it. Fixed before the assertions were trusted.
+
+**Verified:** 4,239 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `verify-openapi-contract` again caught the new route before anything
+else did.
+
+**Still open:** the carrier adapter, which needs the owner's vendor choice, and
+Resend's suppression list -- nothing records unsubscribes or bounces yet, so the
+sender's `suppressed` flag has nothing true to put in it.
+
+### 2026-09-10 - The send route, a price that was never charged, and a check that punished the right thing
+
+`POST /api/growth/campaigns/:campaignId/send` in
+`routes/growth-studio-control-routes.cjs`. The sender decided and the dispatcher
+sent; this is the only one of the three that touches the database, and it is
+where the interesting failures were.
+
+**Growth Studio can now send.** That was the cheapest of the three gaps to
+finish and the last one still open on email: `RESEND_API_KEY` was already a
+required variable serving staff invitations, so nothing new had to be bought.
+
+**Three things the route decides, each stated rather than implied by where a
+call sits.**
+
+- **The audience defaults narrow.** `growth_leads.campaign_id` is the only
+  audience linkage the schema actually has -- `growth_audience_segments` holds a
+  definition and an `estimated_count` with no membership rows -- so the only
+  alternative is the whole lead list, and mailing an organization's entire list
+  because somebody pressed a button on one campaign is the wrong default.
+  `audience: "organization"` widens it in one explicit field.
+- **The approver is the authenticated caller, never a value from the body.** A
+  request that can name its own approver is a request that approves itself.
+- **`archived` contacts are excluded and `lost` ones are not.** Archived is the
+  owner having put a record away. A win-back campaign to lost leads is a real
+  thing an owner does, and consent is already enforced.
+
+**What this route cannot do, written down rather than left to the absence of a
+check:** it cannot tell an owner from another member.
+`getCustomerPrimaryOrganization` returns `{ ok, organizationId }` and no role,
+so any active member of the workspace can approve a send. Closing that needs a
+role on a resolver eleven other routes share.
+
+**A cap derived rather than guessed.** `dispatchCampaign` makes one HTTP request
+per recipient, so send time is linear and bounded by the function's lifetime.
+Vercel's documented default (read 10 September 2026) is 300 seconds on Hobby,
+Pro and Enterprise alike with fluid compute, and `vercel.json` sets no
+`maxDuration`. At a deliberately pessimistic 500ms per call, 400 recipients is
+200 seconds with 100 to spare. **Above the cap the campaign is refused, never
+truncated** -- sending the first 400 of 900 and reporting "400 sent" is true and
+useless, because the owner believes the campaign went out. A test holds the
+arithmetic, not the number.
+
+**A price list that priced nothing, found by a test asserting the documented
+figure instead of the produced one.** `authoriseCampaign` reserved credit
+against `MINIMUM_BILLABLE_EMAILS` and *told the customer so* -- "billed at the
+10-email minimum" -- while `dispatchCampaign` drew for the raw accepted count.
+So a campaign to one person authorised 2 minor units and charged 1, which is
+exactly the zero-margin case the minimum exists to prevent, and the number in
+the customer-facing sentence was not the number on the invoice. The rule is now
+one function, `billableEmailCount`, called at both sites.
+
+The existing dispatcher test could not have caught it: it used three recipients
+with one accepted, and **both counts sat below the minimum**, so they collapsed
+onto the same floor. It now uses twenty-four with four rejected, which puts both
+clear of it, plus a second case below it asserting the minimum applies and that
+one email at the raw count is genuinely the zero-margin case.
+
+**A wrong comment corrected, which is the more useful half.**
+`MAX_PER_REQUEST = 1` in the dispatcher said 1 was "Resend's own documented
+ceiling for a batch call". It is not: resend.com's batch reference, read
+10 September 2026, says "up to 100 batch emails at once". The number was right
+and the reason was invented. The real reason is attribution -- a 100-recipient
+batch that partly fails reports at the batch level, so an owner would be told
+100 went out with no way to say which 3 did not.
+
+**Consent across several rows.** `growth_contact_consents` has one row per
+channel *and purpose*, so a contact can hold a granted row for one purpose and a
+withdrawal for another. `consentState` now takes a list, and
+`CONSENT_PRECEDENCE` puts `consent_revoked` above `eligible`: a withdrawal is a
+positive instruction to stop, not the absence of one. That costs something real
+-- an owner whose contact withdrew from one purpose cannot mail them under
+another until purposes are recorded per campaign, which nothing does yet -- and
+refusing is the side to be wrong on.
+
+**Two checks that pulled in opposite directions, reconciled.**
+`scripts/report-tenant-scoped-queries.mjs` could not resolve `TABLES.consents`,
+so it counted every Growth Studio read as a blind spot -- while
+`lib/sonara-growth-tables.cjs` exists precisely so fourteen table names have one
+definition, and its own comment says a literal name at the call site "hides the
+table from the member-policy scan". Doing the right thing for one check made a
+call invisible to the other.
+
+`tableNamesInScope` now follows a table map through a destructured require, one
+level deep, **and through the exported alias it is bound under** -- the first
+version looked up `GROWTH_TABLES` among the module's literals, where only the
+local `TABLES` exists, and so resolved nothing while appearing to work. With it
+fixed: unresolved 28 -> 27 *while this change added two calls*, and
+tenant-scoped-and-filtered 22 -> 25. Three calls that were unverifiable are now
+verified. `hasActiveConsent` also had its query inlined: it was correctly
+filtered but held behind a `const`, which the reader cannot see through.
+
+**Falsification: eleven breaks, nine caught first time, two not -- and both of
+mine were weak assertions rather than sed errors.**
+
+*The approver check was worthless.* It read `ledgerRows[0].actor_user_id`, which
+comes from the dispatch's actor and not from the approval, so it reported the
+authenticated user however the approval was built. Pointing the route's approval
+at `req.body.approved_by` left it green. **The approver was not recorded
+anywhere**, so it could not be asserted -- the control event now carries
+`approved_by`, which both fixes the audit gap and makes the check falsifiable.
+
+*The readiness-wiring check matched my own prose.* It grepped the
+`registerGrowthStudioControlRoutes` block for `/getReadiness/` -- and the
+comment inside that block explains why `getReadiness` is needed, so deleting the
+dependency left the assertion matching the sentence about it. Comments are
+stripped first now, and the match is anchored to a property line. Both breaks
+fail by name on retry.
+
+The other nine: the consent query losing `channel=eq.email`; archived contacts
+included; an unreadable consent read treated as no consent; truncating instead
+of refusing over the cap; the audience default widened to the workspace; the
+draw ignoring the minimum; a finished campaign sendable again; and the resolver
+above broken two ways.
+
+**`server.js` ceiling 3877 -> 3884**, for two dependencies and the four lines
+saying why they must be there. The note already on that ratchet -- that trimming
+comments to squeeze under it is the ratchet deciding what gets documented, the
+wrong way round -- is the reason it was raised rather than worked around. Four
+of those six lines are the reason, and the reason is the half that stops
+somebody deleting the dependency as unused.
+
+**Verified:** 4,226 tests, lint, typecheck, `verify:launch` and `verify:gates`
+all exit 0. `verify-openapi-contract` caught the route being undocumented before
+anything else did, which is the gate working.
+
+**Still open on this:** the carrier adapter for the third gap, which needs the
+owner's vendor choice; a page to send from, since the route is JSON-only today;
+and Resend's suppression list, because nothing records unsubscribes or bounces
+yet -- the sender honours a `suppressed` flag and the route has nothing true to
+put in it.
+
+### 2026-09-10 - The campaign dispatcher, and an assertion falsification found missing
+
+`lib/growth-studio-sender.cjs` decided; nothing sent. This is the other half,
+and it needs no vendor decision -- `RESEND_API_KEY` is already a required
+variable and already used for staff invitations, which is why email was the
+cheapest of the three gaps to finish.
+
+**The property the whole split exists for.** The dispatcher only ever reads
+`decision.eligible`. It never sees the original recipient list, so there is no
+path by which a recipient the consent check refused could be sent to. That is
+enforced by the signature rather than by care: the caller hands over a decision,
+not a list. A page that asked the gate and then did the work regardless of the
+answer is what `lib/sonara-agent-runner.cjs` was written to replace; this is the
+same shape one product along, so it is built the same way.
+
+**Three rules for a half-failed send**, each because the alternative is worse:
+
+- **Failures are counted and named.** An owner told "sent" when forty bounced
+  has been told something false. The address is kept, because they need to know
+  *who*, and the status is kept, because a 422 and a 429 need different actions.
+- **Charged for what was accepted, not attempted.** We pay Resend per accepted
+  message; billing for attempts would charge a customer for our own failed
+  requests.
+- **A ledger failure does not un-send the email.** It has gone. Failing the
+  dispatch would tell the owner nothing went out while messages are in flight,
+  so the gap is reported loudly instead.
+
+`ok` is true when *anything* was accepted -- a campaign where 459 of 460 landed
+is not a failed campaign -- and the counts carry the rest, because a single
+boolean cannot.
+
+**The finding, and it is the useful part of this entry.** Falsification ran four
+breaks. Two were caught. **Two were not, and they failed for different reasons
+worth telling apart:**
+
+*One was a genuinely weak assertion.* Deleting the `decision.allowed !== true`
+check left every test green, because the test feeding it a refusal used a
+decision whose `eligible` was empty -- so the emptiness check caught it and the
+`allowed` check was never exercised. That is defect six in
+`.claude/skills/checks-that-cannot-lie`: a check too weak to catch the bug it
+was written for. The missing case is a refusal that still *carries* recipients,
+which is the shape that matters, because a caller reading `eligible` while
+ignoring `allowed` would send to people the decision refused. Added, and it
+fails when the check is removed.
+
+*The other was my own tooling error.* The fourth break replaced a line with the
+wrong indentation, so the edit never applied and a no-op read as a passing
+break. Re-run with the correct indentation it trips four assertions. Worth
+recording because a falsification that silently does not modify the file is
+itself a check reporting success without being true -- the assertion count is
+the thing that gives it away, and comparing it is now part of doing this.
+
+**The default reporter goes through `redactSensitiveText`**, asserted by reading
+the source rather than trusting it. The route-error log leaked a service-role
+key once and the rate limiters twice; this is the fourth place that boundary has
+earned its keep.
+
+**Still not built:** the route that calls this, and the carrier adapter for
+gap three. Email is now end to end from decision to delivery.
+
+### 2026-09-10 - Answering a call is not the same as making one
+
+Third of the three gaps, and the only one that genuinely needs a vendor.
+
+**The gap is narrower than "no phone", and that matters for scoping.**
+`docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md` records seven of eight
+capabilities already built at no marginal cost -- WebRTC calling from a customer
+record (27 August), Web Push, `.ics` calendar, GPS, scheduling, clock, and
+click-to-text from the owner's own handset. What was missing is **the public
+phone network**: a stranger dialling a number, and a text to somebody who has
+never opened our site.
+
+**The asymmetry that shapes the whole module.** Outbound and inbound are not the
+same decision, and treating them alike gets one of them wrong:
+
+- **Outbound** -- we contact them. Consent is the whole question, and it is
+  per-channel: `growth_contact_consents` records permission by channel, so an
+  email consent is not a permission to text and an SMS consent is not a
+  permission to ring. A bulk send is a customer campaign and AGENTS.md does not
+  permit automating one without the owner.
+- **Inbound** -- they ring us. **Consent does not apply.** They dialled;
+  demanding a consent record before answering would refuse exactly the customers
+  an inbound line exists to serve. What applies instead is *cost*, because the
+  carrier bills for the minutes whoever dialled, and *authority*, because what an
+  agent does on that call is a separate question from whether it is answered.
+
+Getting it backwards in either direction is a real fault, so both directions are
+asserted: requiring consent to answer makes the feature useless, and skipping it
+on outbound is the violation the rule exists to prevent.
+
+**A phone call is not an exemption from the approval rules.** `authoriseInbound`
+takes the actions an agent intends and classifies each through
+`sonara-agent-authority.cjs` -- so the call is answered while a refund, a payout
+change or a campaign still waits for the owner. They are returned named, so the
+owner can see what the agent could *not* do rather than the agent silently doing
+less than expected.
+
+**A decision for the owner, surfaced rather than taken.** `book_appointment` is
+not on the seven-action unattended list, so it arrives needing approval. That is
+the default-deny working as designed — but **Jobber's AI Receptionist books jobs
+autonomously**, so an approval-gated booking is a materially weaker product.
+Whether booking joins the unattended list is a product call, not this file's.
+
+**Two things the tests caught.**
+
+*`channel` was defaulted, so `undefined` became SMS.* A test asking whether an
+unnamed channel is guessed at found that a caller who forgot the argument would
+text somebody on the strength of a default. The default is gone from both entry
+points; the channel is what decides which consent counts, so it is the one
+argument that must be stated.
+
+*A zero-second connected call billed nothing.* `Math.ceil(0)` is 0, and a
+carrier charges for the connection. Now floored at one minute.
+
+**Ordering, and it is a choice:** an unnamed channel is reported *before* an
+unapproved campaign. A missing channel is a programming error no caller
+legitimately makes and should surface loudly; a missing approval is a legitimate
+user-facing state. So the bug is not masked by the refusal behind it.
+
+**Broken and confirmed red four ways:** requiring consent to answer a call,
+ignoring the channel on outbound, letting a call bypass the approval rules, and
+billing a zero-second call as nothing.
+
+**No vendor is chosen.** `lib/sonara-paid-capabilities.cjs` already requires
+`SONARA_TELEPHONY_PROVIDER_URL` -- a URL, not a named carrier -- the same adapter
+shape as the Open Media Worker. The decision core reads no environment variable,
+which is why `verify:env` needed no new classification; that comes with the
+adapter that actually places a call. **The dispatch and the carrier are the
+remaining work, and the vendor is the owner's decision.**
+
+### 2026-09-10 - Growth Studio can decide to send, under three rules it may not relax
+
+Second of the three gaps. Growth Studio created campaigns through HubSpot's API
+and pushed events to Klaviyo, and no sending credential exists in the
+environment except the one serving staff invites -- so a customer on Growth
+Studio still paid Klaviyo.
+
+**A correction to our own architecture note, first.**
+`docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md` says email *"costs nothing
+extra and is already wired"*. True of the handful of staff invites it was written
+about; **false of a campaign**, which is the volume that crosses Resend's free
+tier of 3,000 a month. `CLAUDE.md`'s rule that a free tier is a price rather than
+a licence applies exactly here.
+
+So email is now a priced capability. The floor is Resend's most expensive **paid**
+rate, read from resend.com/pricing on 10 September 2026: Scale at $350/mo for
+500,000 emails is $0.70 per thousand, so **0.07 minor units per email**. Their
+larger tiers are cheaper per email ($0.65 at 1M, $0.46 at 2.5M) and taking the
+cheapest would set a floor that only holds at volumes we do not have. Priced at
+**0.15** -- $1.50 per thousand against Brevo Starter's effective $1.80, so
+cheaper than the competitor whose figure is in `docs/pricing/`, at a 2.1x margin.
+
+**Three rules that were not this code's to relax**, quoted from AGENTS.md rather
+than paraphrased: owner approval for customer campaigns, consent enforced, and
+nothing on by default. `lib/sonara-agent-authority.cjs` already classifies every
+campaign-shaped name under `customer_campaigns` — and `send_email` falls to
+`unrecognised`, which is also refused, so the default-deny holds. The sender does
+not re-derive that judgement; it requires the approval and refuses without one.
+A test asserts the two modules agree, because if they ever disagree one of them
+is a hole.
+
+**A skipped recipient is counted, never dropped.** A campaign to 500 where 40
+lack consent sends to 460 **and says so**. Refusing the whole campaign punishes
+the owner for data they may not control; silently sending to 500 is the violation
+the rule prevents; and silently sending to 460 is the worst of the three, because
+the owner believes they reached 500 and the difference is invisible. Six skip
+reasons, each named separately, because the owner does something different about
+each.
+
+**Billed on who is actually sent to, never on list length.** Charging for 500
+would be charging for the sends the consent rule prevented.
+
+**The finding that changed the design.** The first draft expected
+`{ consent_attested, revoked_at }` — which is the **creator** consent shape from
+`creator_voice_consents`. The Growth Studio table is different and better:
+`public.growth_contact_consents` carries `channel` in
+(email|sms|push|whatsapp|phone|personalization|analytics), `consent_status` in
+(granted|denied|withdrawn|expired|unknown), plus `withdrawn_at`. A decision core
+that cannot be wired to the actual table is one that gets quietly bypassed, so it
+reads that one. Two consequences fall out: **a permission to text somebody is not
+a permission to email them**, and `unknown` — the status whose whole purpose is
+to record that nobody knows — must never read as consent. A withdrawal timestamp
+also outranks a status still saying granted, because two columns disagreeing is a
+real state and the safe reading is the one that does not send.
+
+**Rounding again.** 0.15 against a 0.07 floor means a five-email campaign charges
+1 and costs 1. Seven is where they separate; ten is the documented minimum, and a
+customer billed for ten when they sent three is **told why** on the decision.
+
+**One assertion of mine was wrong rather than the code.** It demanded that
+`"granted "` be refused. The column carries a CHECK constraint limiting it to
+five exact values, so a padded one cannot come from the database, and a trailing
+space is the same permission with a typo — refusing it would block a real consent
+to guard against nothing. Case is still refused, because `"GRANTED"` is not a
+value the constraint allows either.
+
+**Broken and confirmed red four ways:** sending without approval, ignoring
+consent status, billing the whole list, and treating a wrong-channel permission
+as consent. Each failed the right test by name.
+
+**What is not built:** the dispatch itself, and the route that calls this. This
+is the decision half deliberately — a function that both decides and sends cannot
+have its refusals tested without a mail server.
+
+### 2026-09-10 - Generation is billed, and four completion paths were nearly three
+
+The first of the three capability gaps. The meter existed; nothing drew on it.
+
+**The honest problem, first, because it shapes everything else.** No provider
+here reports usage back. The route sends `duration_seconds` to ElevenLabs and
+Google Veo, but that is an *input*; the Open Media Worker contract returns
+`status`, `output_url` and `progress_percent` and no usage field. So there were
+three ways to bill and only one was honest: charge zero (giving GPU time away and
+calling it a feature), charge a number and present it as metered (the defect this
+codebase is named for), or **charge a documented estimate, record that it was an
+estimate, and take the measured figure the moment a provider reports one.**
+
+Every ledger row carries `metadata.usage_basis` — `metered` or `estimated` —
+because "we billed 96 GPU seconds" means two different things depending on which,
+and revenue cannot be reconciled against cost without knowing.
+
+**Three business decisions, stated rather than left implicit in where a call
+sits.** A failed job is **not** charged: it consumed real compute and we absorb
+that, because billing somebody for output they never received is the charge that
+loses them, and absorbing it is the right incentive to make failures rare. A
+ledger write failure does **not** fail the job: the asset is already stored, and
+withholding it over our own fault would punish the customer — it is reported
+loudly instead. And credit is gated **only** when `initialStatus === "queued"`:
+`review_required`, `setup_required` and `manual_required` call no provider, so
+refusing them for credit would charge a customer, in refusals, for work nobody
+was going to do.
+
+**Four things my own tests caught before any of it shipped.**
+
+*Four completion paths, not one.* This route marks a job completed in **four**
+places — ElevenLabs twice (JSON and binary), Google Veo once, and
+`completeFromProviderPayload` once for Suno and the worker. The first version
+wired only the last, so ElevenLabs and Google Veo would have produced assets a
+customer keeps and never been charged, **and every test would have passed**
+because the wired path worked. The structural assertion now counts completions
+against charges and fails when they differ, because the next provider added to
+this file has the same opportunity.
+
+*Six of twelve form capabilities had no cost estimate* — `sound_effects`,
+`video_extend`, `voice_clone`, `singing_voice`, `music_voice_profile`,
+`talking_avatar`. Under `gpuSecondsFor` each would have refused with a 500. A
+test walking `FORM_CAPABILITY_ORDER` found them; without it the route would have
+refused half its own form.
+
+*Zero margin below eight GPU seconds.* `quote()` rounds charge and cost both up
+to a whole minor unit, so at 4 GPU seconds the charge is 1 and the cost is also
+1 — a job run at exactly no margin. 8 is the smallest quantity where they
+separate (charge 2, cost 1), so that is the documented minimum billable job.
+
+*`deps` was out of scope at the charge site.* `node --check` passes on an
+undefined variable, so it took threading the parameter through ten functions to
+find. Three dispatch functions that submit without completing had it removed
+again rather than renamed to `_deps` — an argument nothing uses is noise.
+
+**The rollout hazard, and what was done about it.** Refusing every job with no
+credit is correct for margin and wrong as a deploy: generation worked yesterday
+and would stop today for every existing organization, whose only signal is a
+402. So there is a **derived** starting allowance of 500 minor units — $5.00,
+about 2,000 GPU seconds — added to the sum rather than granted as a row. It
+exhausts as draws accumulate, so it is a free tier and not a bypass; it cannot
+double-grant, because there is no row for two concurrent requests to insert; and
+every caller passes it in, so it appears in the decision rather than hiding
+inside a sum, and a test can set it to zero. **It is one number in one place
+until a per-plan entitlement replaces it, which is the owner's call.**
+
+**Broken and confirmed red three ways:** a provider completing without a charge,
+gating credit on jobs that never run, and charging a failed job. Each failed the
+right test by name.
+
 ### 2026-09-10 - The meter, so a metered capability can be charged for
 
 The owner's instruction was to close the three structural weak points against

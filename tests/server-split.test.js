@@ -562,7 +562,28 @@ describe("the server.js split stays safe", () => {
       // of prose gone -- and the one line back is the require that replaced
       // them. The split got what it wanted; the line count is simply a coarser
       // measure than the thing it is standing in for.
-      lines <= 3877,
+      // 3877 -> 3884 on 10 September 2026, for the campaign send route: two
+      // dependencies (`getReadiness`, `getEnv`) and the four-line comment
+      // saying why they must be there. `dispatchCampaign` enforces AGENTS.md's
+      // "email alerts must be off by default" by asking getReadiness -- and
+      // passed nothing, that check silently does not run, which is the exact
+      // shape this repository keeps finding. The note above about trimming
+      // comments to squeeze under the number applies: two of these six lines
+      // are code and four are the reason, and the reason is the half that stops
+      // somebody deleting the dependency as unused.
+      //
+      // 3884 -> 3868 on 10 September 2026, and this one is a REDUCTION, so the
+      // ceiling comes down with it rather than leaving 16 lines of headroom for
+      // the next person to spend without saying why.
+      //
+      // What moved: `businessEmployeeInviteForm`, into
+      // lib/sonara-business-employee-invites.cjs beside the invite lifecycle it
+      // belongs to. It went there because fixing a cross-tenant hole in that
+      // form pushed this file 16 lines OVER the old ceiling, and this ratchet
+      // asking for a reason is what turned "raise the number" into "extract the
+      // function" -- which also made the form directly testable, so "a manager
+      // no longer types their own organization id" is now an assertion.
+      lines <= 3868,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

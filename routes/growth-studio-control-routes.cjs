@@ -13,6 +13,58 @@ const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
+const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
+const { dispatchCampaign } = require("../lib/growth-studio-dispatch.cjs");
+const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
+const { readSuppressions, markSuppressed } = require("../lib/growth-studio-suppression.cjs");
+const {
+  UNSUBSCRIBE_PATH,
+  deriveSigningKey,
+  verifyToken
+} = require("../lib/growth-studio-unsubscribe.cjs");
+const { mayApproveOwnerAction } = require("../lib/sonara-agent-authority.cjs");
+const {
+  createBalanceReader,
+  createLedgerAppender,
+  DEFAULT_STARTING_ALLOWANCE_MINOR
+} = require("../lib/sonara-usage-meter.cjs");
+
+// How many people one request may mail, and the arithmetic behind the number.
+//
+// RAISED 400 -> 1000 on 10 September 2026, when `dispatchCampaign` gained
+// batching. The number is derived from the same budget as before and the working
+// is here so it can be rechecked rather than trusted.
+//
+// Vercel's duration limits, read from
+// vercel.com/docs/functions/configuring-functions/duration on 10 September
+// 2026: with fluid compute (enabled by default) the DEFAULT is 300 seconds on
+// Hobby, Pro and Enterprise alike, and `vercel.json` sets no `maxDuration`, so
+// 300 seconds is what this actually gets. Costs are figured at a deliberately
+// pessimistic 500ms per call -- not the ~150ms a healthy call takes, because a
+// cap has to hold on a bad day:
+//
+//   * 1,000 recipients in batches of 100 is **10 calls, 5 seconds**.
+//   * The suppression read is at most 30 pages, **15 seconds**.
+//   * The worst case is the fallback: a batch that does not return one id per
+//     email is resent one recipient at a time, and `MAX_FALLBACK_BATCHES`
+//     bounds that at two batches -- **200 calls, 100 seconds**.
+//
+// 5 + 15 + 100 is 120 seconds against 300, so the cap holds even when the two
+// permitted fallbacks both fire. It is the fallback rather than the batching
+// that sets this ceiling, which is why raising MAX_FALLBACK_BATCHES is not free.
+//
+// **Above the cap the campaign is refused, never truncated.** Sending to the
+// first 1,000 of 3,000 and reporting "1,000 sent" is true and useless: the owner
+// believes the campaign went out. Reaching further than this needs sending
+// across more than one invocation, which is a queue and is not built.
+const MAX_RECIPIENTS_PER_SEND = 1000;
+
+// Consent rows are per channel AND purpose, so one contact can have several even
+// after filtering to email. A truncated consent read would make people who did
+// consent look like people who did not -- safe in that it sends to fewer, but it
+// would report "skipped for consent" about contacts whose permission is on file,
+// which is a wrong reason shown to an owner. Refused instead.
+const CONSENT_ROW_LIMIT = 5000;
 
 const OUTBOUND_CHANNELS = new Set(["email", "sms", "push", "whatsapp"]);
 const AUTOMATION_TRIGGERS = new Set(["lead_created", "lead_qualified", "form_submitted", "campaign_started", "conversion_recorded", "consent_granted", "content_ready"]);
@@ -137,6 +189,289 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     });
     if (created.ok) await controlEvent(config, context, "campaign.created", "success", { campaign_id: created.rows[0]?.id, name });
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, campaign: created.rows[0], code: created.code });
+  });
+
+  // Actually send it.
+  //
+  // `lib/growth-studio-sender.cjs` decides and `lib/growth-studio-dispatch.cjs`
+  // sends; this is the only thing that reads the database, and it is deliberately
+  // the only one of the three that cannot be tested without stubs. Everything
+  // worth getting right lives in the two it calls.
+  //
+  // ## Why the meter is the only paywall here
+  //
+  // This uses `access` rather than `paidAccess`, and that is a choice. The meter
+  // already refuses with a 402 naming the reason, and stacking an entitlement
+  // gate in front of it means an organization with credit can still be turned
+  // away by the other one -- with whichever message that middleware happens to
+  // produce rather than the one written for this. One gate, and it is the one
+  // that can explain itself.
+  //
+  // ## The approval, and the limit of what this route can check
+  //
+  // AGENTS.md forbids automating a customer campaign without owner approval, so
+  // the request must carry an explicit attestation and the approver recorded is
+  // the authenticated person who posted it -- the same pattern as
+  // `/api/growth/content/:contentId/publish`. A person pressing a button they
+  // can see is the person; this is not an agent acting unattended.
+  //
+  // **And the approver has to be entitled to approve.** This was open until
+  // 10 September 2026, recorded here as a thing the route could not do:
+  // `getCustomerPrimaryOrganization` returned no role, so any active member of
+  // the workspace could approve a send.
+  //
+  // That was not hypothetical. `business_memberships.role` defaults to
+  // `employee` and staff are invited as `manager` or `employee`, so an invited
+  // employee could email the whole customer list. The resolver now carries the
+  // role and `mayApproveOwnerAction` in lib/sonara-agent-authority.cjs decides
+  // -- in that module rather than here, because it is AGENTS.md's rule as code
+  // and scripts/verify-supabase-contract.mjs checks it on every release, so
+  // weakening it fails the build instead of shipping quietly.
+  // Two entry points, one handler. The API caller names the campaign in the
+  // path; the form on /growth-studio/your-campaigns cannot, because an HTML
+  // `<select>` sets a field and not a path segment. Rather than two
+  // implementations that will diverge, the id is read from whichever place it
+  // came from and everything after that is the same code.
+  async function sendCampaign(req, res, campaignIdFrom) {
+    // A browser posting a form needs a page back. Handing it the JSON body
+    // shows the owner a wall of punctuation after pressing Send, which reads as
+    // a crash even when 460 emails went out.
+    const back = "/growth-studio/your-campaigns";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      const query = payload.ok
+        ? `sent=${encodeURIComponent(payload.sent)}&skipped=${encodeURIComponent((payload.skipped || []).length)}&failed=${encodeURIComponent((payload.failed || []).length)}`
+        : `problem=${encodeURIComponent(payload.code || "not_sent")}`;
+      return res.redirect(303, `${back}?${query}`);
+    };
+
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return respond(context.status, { ok: false, code: context.code });
+    if (!validUuid(campaignIdFrom)) return respond(400, { ok: false, code: "invalid_campaign_id" });
+
+    // Before anything is read, because an approval nobody gave is the end of the
+    // decision and there is no reason to touch the database to find that out.
+    if (!truthy(req.body.approved || req.body.approval_attested || req.body.approvalAttested)) {
+      return respond(400, {
+        ok: false,
+        code: "explicit_campaign_approval_required",
+        reason: "A customer campaign needs your explicit approval before it can be sent. Nothing was sent and nothing was charged."
+      });
+    }
+
+    // Asked before the message is even read, and before any database work: an
+    // approval this person was not entitled to give is the end of the decision.
+    const entitled = mayApproveOwnerAction(context.role);
+    if (!entitled.allowed) {
+      return respond(entitled.code === "role_unknown" ? 503 : 403, { ok: false, code: entitled.code, reason: entitled.reason });
+    }
+
+    const subject = clean(req.body.subject, 300);
+    const body = clean(req.body.body || req.body.message, 20000);
+    if (!subject || !body) return respond(400, { ok: false, code: "campaign_message_required", reason: "A campaign needs a subject and a body." });
+
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "supabase_setup_required" });
+
+    const loaded = await loadOne(config, TABLES.campaigns, context, campaignIdFrom);
+    if (!loaded.ok) return respond(loaded.status, { ok: false, code: loaded.code });
+    const campaign = loaded.row;
+
+    // `completed` and `archived` are the owner having said this campaign is
+    // finished or put away. Sending from either is the kind of action whose
+    // result cannot be undone once the mail has gone.
+    if (campaign.status === "completed" || campaign.status === "archived") {
+      return respond(409, { ok: false, code: "campaign_not_sendable", reason: `This campaign is ${display(campaign.status)}. Reopen it before sending.` });
+    }
+
+    // Default narrow. `growth_leads.campaign_id` is the only audience linkage the
+    // schema actually has -- `growth_audience_segments` holds a definition and an
+    // estimated count, with no membership rows -- so "the whole lead list" is the
+    // only alternative, and mailing an organization's entire list because
+    // somebody pressed a button on one campaign is the wrong thing to do by
+    // default. Widening it is one explicit field.
+    const audience = oneOf(req.body.audience, ["campaign", "organization"], "campaign");
+
+    const loadedRecipients = await loadCampaignRecipients(config, context, { campaignId: campaign.id, audience });
+    if (!loadedRecipients.ok) {
+      // Never "nobody consented". A read that did not answer is not a list of
+      // people who said no, and reporting it as one would tell the owner
+      // something definite about their own contacts on the strength of a request
+      // that failed.
+      return respond(loadedRecipients.status, { ok: false, code: loadedRecipients.code, reason: loadedRecipients.reason });
+    }
+
+    // The provider's suppression list, read before the decision so a dead
+    // address is skipped with a named reason rather than mailed and billed.
+    //
+    // This is a screen on top of the consent rules and not one of them, so a
+    // failed read does not refuse the campaign -- it sends unscreened and says
+    // so. Never silently: the response and the control event both carry whether
+    // the screen ran.
+    const suppression = await readSuppressions({
+      getEnv: typeof deps.getEnv === "function" ? deps.getEnv : undefined,
+      fetchImpl: typeof deps.fetchImpl === "function" ? deps.fetchImpl : undefined
+    }).catch((error) => ({ ok: false, code: "unreadable", addresses: new Set(), origins: new Map(), reason: String(error?.message || error) }));
+
+    const screened = markSuppressed(loadedRecipients.recipients, suppression);
+
+    const readLedger = typeof deps.readUsageLedger === "function"
+      ? deps.readUsageLedger
+      : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
+    const history = await readLedger({ organizationId: context.organizationId }).catch((error) => ({
+      ok: false,
+      rows: [],
+      reason: String(error?.message || error)
+    }));
+
+    const allowanceMinor = typeof deps.campaignStartingAllowanceMinor === "number"
+      ? deps.campaignStartingAllowanceMinor
+      : DEFAULT_STARTING_ALLOWANCE_MINOR;
+
+    const decision = authoriseCampaign({
+      // The approver is the authenticated caller, never a value from the body. A
+      // request that could name its own approver is a request that approves
+      // itself.
+      approval: { status: "approved", approved_by: context.userId },
+      recipients: screened.recipients,
+      history,
+      allowanceMinor,
+      channel: "email"
+    });
+
+    if (!decision.allowed) {
+  await controlEvent(config, context, "campaign.send_refused", "refused", { campaign_id: campaign.id, code: decision.code, skipped: decision.skipped.length, approved_by: context.userId }, campaign.id);
+      // 402 only for credit. "Nobody on your list consented" is not something
+      // buying credit fixes, and a blanket 402 would have an owner pay to be
+      // refused again.
+      const status = decision.code === "insufficient_credit" ? 402 : decision.code === "balance_unreadable" ? 503 : 409;
+      return respond(status, { ok: false, code: decision.code, reason: decision.reason, skipped: decision.skipped });
+    }
+
+    const sent = await dispatchCampaign({
+      decision,
+      subject,
+      body,
+      organizationId: context.organizationId,
+      actorUserId: context.userId,
+      campaignId: campaign.id,
+      // Derived from this request rather than configured here. The dispatcher
+      // refuses to send without an https origin, because the unsubscribe link
+      // is built from it.
+      origin: siteOrigin(req, typeof deps.getEnv === "function" ? deps.getEnv : undefined),
+      getEnv: typeof deps.getEnv === "function" ? deps.getEnv : (name) => process.env[name],
+      getReadiness: typeof deps.getReadiness === "function" ? deps.getReadiness : null,
+      appendLedger: typeof deps.appendUsageLedger === "function"
+        ? deps.appendUsageLedger
+        : createLedgerAppender({ getSupabaseServerConfig: () => config })
+    });
+
+    await controlEvent(config, context, "campaign.sent", sent.ok ? "success" : "failed", {
+      campaign_id: campaign.id,
+      // Who approved it, recorded rather than only checked. An owner-approval
+      // requirement with no trace of who gave it is a rule nobody can audit
+      // afterwards -- and it is the field that makes the check falsifiable: a
+      // route that took the approver from the request body would show it here.
+      approved_by: context.userId,
+      // The role as well as the person. "Approved by a user id" does not tell
+      // an owner reading their own audit trail whether the approver was
+      // entitled to approve.
+      approved_by_role: context.role,
+      code: sent.code,
+      sent: sent.sent,
+      failed: sent.failed.length,
+      skipped: (sent.skipped || []).length,
+      charge: sent.charge?.code || null,
+      audience,
+      // Whether the send was screened against the provider's suppression list,
+      // recorded on the event as well as returned. An owner reading back why a
+      // campaign bounced needs to know whether it was screened at all.
+      suppression_checked: screened.checked,
+      suppressed_skipped: screened.marked
+    }, campaign.id);
+
+    // 200 when anything went out. A campaign where 459 of 460 landed is not a
+    // failed campaign, and the counts below are what the owner reads -- a single
+    // boolean cannot carry them.
+    return respond(sent.ok ? 200 : sent.code === "email_not_configured" ? 503 : 502, {
+      ok: sent.ok,
+      code: sent.code,
+      detail: sent.detail,
+      sent: sent.sent,
+      failed: sent.failed,
+      skipped: sent.skipped,
+      charge: sent.charge,
+      audience,
+      suppressionChecked: screened.checked,
+      suppressedSkipped: screened.marked,
+      // Present only when the screen did not run, and it names why. "460 sent"
+      // and "460 sent, unscreened" are different sentences and only one is true.
+      suppressionUnchecked: screened.checked ? undefined : suppression.reason
+    });
+  }
+
+  app.post("/api/growth/campaigns/:campaignId/send", access, (req, res) => sendCampaign(req, res, req.params.campaignId));
+
+  // The form's entry point. `send` cannot be mistaken for a campaign id -- the
+  // id-in-path route is three segments deep and this is two -- and the id it
+  // reads from the body goes through the same validUuid check.
+  app.post("/api/growth/campaigns/send", access, (req, res) =>
+    sendCampaign(req, res, String(req.body?.campaign_id || req.body?.campaignId || "")));
+
+  // Honouring an unsubscribe. Public, unauthenticated, and it has to be:
+  // RFC 8058 says the POST "MUST NOT include cookies, HTTP authorization, or
+  // any other context information", so the token in the URL is the whole
+  // credential. `verifyToken` is what makes that safe.
+  //
+  // Two verbs and they do different things on purpose.
+  //
+  // **GET only asks.** Mail security scanners and inbox proxies prefetch links,
+  // so a GET that withdrew consent on load would unsubscribe people who never
+  // clicked -- and the owner would watch contacts drop out of every campaign
+  // with no explanation. It renders a button that posts.
+  //
+  // **POST does it**, whether that POST comes from the button or from a mail
+  // client acting on somebody pressing Unsubscribe in their inbox.
+  app.get(UNSUBSCRIBE_PATH, async (req, res) => {
+    const key = deriveSigningKey(typeof deps.getEnv === "function" ? deps.getEnv : undefined);
+    const verified = verifyToken(req.query?.t, key);
+
+    // 200 with the "this link does not work" page, not a 400, and the split
+    // between the verbs is deliberate.
+    //
+    // This response is read by a person, and the status code is invisible to
+    // them -- what they need is a readable page telling them to reply and ask.
+    // The POST below is the opposite: its status IS the answer, because a mail
+    // client showing "Unsubscribed" to its user is reading the status, so a 200
+    // there on a token that verified against nothing would report a withdrawal
+    // that never happened.
+    if (!verified.ok) return res.status(200).type("html").send(unsubscribePage(ui, { state: "invalid" }));
+    return res.status(200).type("html").send(unsubscribePage(ui, { state: "confirm", token: String(req.query.t) }));
+  });
+
+  app.post(UNSUBSCRIBE_PATH, async (req, res) => {
+    // The token can arrive in the query (the button's form action) or the body.
+    // A mail client making the RFC 8058 request sends `List-Unsubscribe=One-Click`
+    // as the body and nothing else, so the query is where it has to be for that
+    // case -- which is why the header URI carries it there.
+    const key = deriveSigningKey(typeof deps.getEnv === "function" ? deps.getEnv : undefined);
+    const verified = verifyToken(req.query?.t || req.body?.t, key);
+
+    // Deliberately the same reply for every refusal, and it does not say whether
+    // the contact exists. This endpoint is open to anyone, so a reply that told
+    // a bad signature apart from an unknown lead would answer questions about
+    // somebody else's contact list.
+    if (!verified.ok) return res.status(400).type("html").send(unsubscribePage(ui, { state: "invalid" }));
+
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).type("html").send(unsubscribePage(ui, { state: "unavailable" }));
+
+    const recorded = await recordWithdrawal(config, verified);
+    if (!recorded.ok) return res.status(recorded.status).type("html").send(unsubscribePage(ui, { state: "unavailable" }));
+
+    // No redirect, because RFC 8058 forbids one: "The mail sender MUST NOT
+    // return an HTTPS redirect."
+    return res.status(200).type("html").send(unsubscribePage(ui, { state: "done" }));
   });
 
   app.get("/api/growth/campaigns/:campaignId", access, getOneHandler(TABLES.campaigns, "campaignId", deps, "campaign"));
@@ -644,7 +979,19 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const providers = getGrowthProviderCatalog();
     const sections = [
       ui.card("Growth operating system", "Plan your campaigns, leads, audience lists, permissions, content approvals, contacts, sales, experiments, numbers, and connected services from one place."),
-      ui.card("What this does and does not do", "Growth Studio is the layer above your email and SMS tools, not a replacement for them. It plans the campaign, scores and routes the lead, and records consent before anything is dispatched. The message itself goes out through the provider you connect below, on that provider's account, under that provider's bill."),
+      // Rewritten 10 September 2026, because the previous sentence -- "the
+      // message itself goes out through the provider you connect below" -- became
+      // false for email when lib/growth-studio-dispatch.cjs shipped. It stays
+      // true for text messages and calls, and that half is what
+      // scripts/check-growth-studio-copy.mjs now requires be said out loud: a
+      // page silent on who places them is how a carrier claim creeps back.
+      //
+      // This comment originally quoted such a claim as an example and the copy
+      // check flagged it -- correctly, since it scans the file rather than
+      // guessing which strings reach a customer. The comment was reworded rather
+      // than the check narrowed to skip comments: a checker that ignores whole
+      // regions of a file is a checker with a region nobody is watching.
+      ui.card("What this does and does not do", "Growth Studio sends your email campaigns itself, to the people who recorded consent, and charges you per email rather than through a separate subscription. Text messages and phone calls are not: those still go out through the provider you connect below, on that provider's account, under that provider's bill. It plans the campaign, scores and routes the lead, and records consent before anything is dispatched."),
       summaryTable(dashboard, ui.escape),
       ui.card("Approval boundary", "Public posts, campaign sends, ad changes, budget changes, and high-volume follow-up messaging require explicit human approval. Automation rules are created disabled and cannot contain arbitrary code."),
       ui.card("Attribution boundary", "Every conversion records an attribution model and confidence level. Provider sampling and data freshness are preserved instead of presenting estimates as exact causal truth."),
@@ -708,6 +1055,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // reachable only by knowing its URL is the same as not having one.
       const createSpec = getGrowthCreateSpec(page.tableKey);
       if (!unavailable && createSpec) sections.push(createFormCard(createSpec, ui.escape));
+      // The outcome first, because after pressing Send that is the only thing
+      // the owner is looking for, and a redirect that lands on an unchanged
+      // page reads as nothing having happened.
+      if (page.sendForm) {
+        const outcome = sendOutcomeCard(req.query, ui.escape);
+        if (outcome) sections.unshift(outcome);
+        if (!unavailable) sections.push(campaignSendCard(rows, ui.escape));
+      }
 
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
@@ -1024,8 +1379,16 @@ async function failProviderJob(config, context, job, code, message, status = 502
 }
 
 async function hasActiveConsent(config, context, leadId, channel, purpose) {
-  const query = `select=id,consent_status,expires_at,withdrawn_at,purpose&organization_id=eq.${encodeURIComponent(context.organizationId)}&lead_id=eq.${encodeURIComponent(leadId)}&channel=eq.${encodeURIComponent(channel)}&consent_status=eq.granted&order=created_at.desc&limit=10`;
-  const result = await rest(config, TABLES.consents, query);
+  // The query is inlined rather than held in a `query` const, and that is for a
+  // reader rather than for style: scripts/report-tenant-scoped-queries.mjs can
+  // only tell whether a tenant-scoped query names the organization when the
+  // query string is a literal at the call site. Behind a variable this call was
+  // a blind spot -- correctly filtered, but unverifiably so.
+  const result = await rest(
+    config,
+    TABLES.consents,
+    `select=id,consent_status,expires_at,withdrawn_at,purpose&organization_id=eq.${encodeURIComponent(context.organizationId)}&lead_id=eq.${encodeURIComponent(leadId)}&channel=eq.${encodeURIComponent(channel)}&consent_status=eq.granted&order=created_at.desc&limit=10`
+  );
   return result.ok && result.rows.some((row) => !row.withdrawn_at && (!row.expires_at || Date.parse(row.expires_at) > Date.now()) && row.purpose === purpose);
 }
 
@@ -1052,13 +1415,101 @@ function getOneHandler(table, paramName, deps, key) {
   };
 }
 
+// Who a campaign would go to, with each contact's own consent rows attached.
+//
+// Two reads and a join in JavaScript rather than one PostgREST embed. The embed
+// (`growth_leads?select=*,growth_contact_consents(*)`) would work -- the foreign
+// key is there -- but it puts the tenant filter on the outer table only and
+// relies on PostgREST's relationship detection to scope the inner one. Two
+// explicitly organization-filtered reads make the boundary visible in both
+// queries, and with the service-role key bypassing RLS that filter IS the
+// boundary.
+//
+// Every failure path returns `ok: false` with a reason. Nothing here may turn "we
+// could not ask" into "there is nobody" -- the caller would report a definite
+// fact about the owner's contacts on the strength of a request that failed.
+async function loadCampaignRecipients(config, context, { campaignId, audience }) {
+  const scope = audience === "organization" ? "" : `&campaign_id=eq.${encodeURIComponent(campaignId)}`;
+
+  // `archived` is the owner having put a record away. Mailing somebody they
+  // retired is the one clearly wrong reading of that. `lost` is deliberately
+  // still included: a win-back campaign to lost leads is a real thing an owner
+  // does, and it is theirs to decide with consent already enforced.
+  const leads = await rest(
+    config,
+    TABLES.leads,
+    `select=id,name,email,status,campaign_id&organization_id=eq.${encodeURIComponent(context.organizationId)}${scope}` +
+      `&status=neq.archived&order=created_at.asc&limit=${MAX_RECIPIENTS_PER_SEND + 1}`
+  );
+  if (!leads.ok) return { ok: false, status: 503, code: "cannot_read_recipients", reason: "The contact list could not be read, so nothing was sent." };
+
+  if (leads.rows.length === 0) {
+    return {
+      ok: false,
+      status: 409,
+      code: "no_recipients",
+      reason:
+        audience === "organization"
+          ? "There are no contacts on this workspace to send to."
+          : "No contacts are attached to this campaign. Attach some, or send to the whole contact list explicitly."
+    };
+  }
+
+  if (leads.rows.length > MAX_RECIPIENTS_PER_SEND) {
+    return {
+      ok: false,
+      status: 413,
+      code: "too_many_recipients",
+      reason: `This campaign reaches more than ${MAX_RECIPIENTS_PER_SEND} contacts, which is more than one send can finish. Nothing was sent.`
+    };
+  }
+
+  const ids = leads.rows.map((row) => row.id).filter(Boolean);
+  const consents = await rest(
+    config,
+    TABLES.consents,
+    `select=lead_id,channel,consent_status,purpose,withdrawn_at,expires_at` +
+      `&organization_id=eq.${encodeURIComponent(context.organizationId)}` +
+      `&channel=eq.email&lead_id=in.(${ids.map((id) => encodeURIComponent(id)).join(",")})` +
+      `&limit=${CONSENT_ROW_LIMIT + 1}`
+  );
+  if (!consents.ok) return { ok: false, status: 503, code: "cannot_read_consent", reason: "Consent records could not be read, so nothing was sent." };
+  if (consents.rows.length > CONSENT_ROW_LIMIT) {
+    return { ok: false, status: 503, code: "consent_rows_unreadable", reason: `There are more than ${CONSENT_ROW_LIMIT} email consent records for these contacts; a partial read would skip people who did consent. Nothing was sent.` };
+  }
+
+  const byLead = new Map();
+  for (const row of consents.rows) {
+    if (!row?.lead_id) continue;
+    if (!byLead.has(row.lead_id)) byLead.set(row.lead_id, []);
+    byLead.get(row.lead_id).push(row);
+  }
+
+  return {
+    ok: true,
+    // `consents` plural, which is the shape consentState reads as a list. A
+    // contact with no rows gets `[]` and is skipped as no_consent -- correct
+    // here, because the read above succeeded and genuinely found none for them.
+    //
+    // `suppressed` is deliberately never set: nothing records unsubscribes or
+    // bounces yet, so there is no suppression list to read. The sender honours
+    // the field if a caller sets it, and this caller has nothing true to put
+    // there. Wiring Resend's suppression list is the next piece.
+    recipients: leads.rows.map((lead) => ({ ...lead, consents: byLead.get(lead.id) || [] }))
+  };
+}
+
 async function resolveContext(req, deps) {
   const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user || null;
   if (!user?.id) return { ok: false, status: 401, code: "growth_auth_required" };
   if (typeof deps.getCustomerPrimaryOrganization !== "function") return { ok: false, status: 503, code: "organization_resolver_unavailable" };
   const organization = await deps.getCustomerPrimaryOrganization(user);
   if (!organization?.ok) return { ok: false, status: 409, code: organization?.code || "organization_setup_required" };
-  return { ok: true, organizationId: organization.organizationId, userId: user.id };
+  // The role rides along so the campaign send can ask whether this person may
+  // approve on the business's behalf. Null when the read could not tell us,
+  // which mayApproveOwnerAction reports as its own state rather than as a
+  // refusal for being the wrong role.
+  return { ok: true, organizationId: organization.organizationId, userId: user.id, role: organization.role ?? null };
 }
 
 function getConfig(deps) {
@@ -1120,6 +1571,196 @@ async function loadOne(config, table, context, id) {
 async function controlEvent(config, context, type, status, details, campaignId = null, jobId = null) {
   return insert(config, TABLES.events, { organization_id: context.organizationId, user_id: context.userId, campaign_id: validUuid(campaignId) ? campaignId : null, job_id: validUuid(jobId) ? jobId : null, event_type: type, event_status: status, details: sanitizeProviderPayload(details) });
 }
+
+// Writing the withdrawal, on the organization's own consent row.
+//
+// Two shapes, because both are real states and only one of them is an update.
+// A contact who was emailed always has a granted row -- the sender refuses
+// anybody without one -- but a row can also have been deleted between the send
+// and the click, months later. Inserting in that case records the withdrawal
+// rather than reporting success over a write that changed nothing.
+//
+// `withdrawn` and `withdrawn_at` are both set. `growth-studio-sender.cjs` reads
+// either as a refusal, and setting both means the two columns agree instead of
+// leaving the disagreement its "safe reading" rule exists to survive.
+async function recordWithdrawal(config, { organizationId, leadId, channel }) {
+  const now = new Date().toISOString();
+
+  // Organization AND lead, always. The service-role key bypasses row-level
+  // security, so these filters are the tenant boundary -- and this is an
+  // unauthenticated endpoint, which is exactly where a missing one would matter
+  // most.
+  const scope =
+    `organization_id=eq.${encodeURIComponent(organizationId)}` +
+    `&lead_id=eq.${encodeURIComponent(leadId)}` +
+    `&channel=eq.${encodeURIComponent(channel)}`;
+
+  const updated = await rest(config, TABLES.consents, scope, {
+    method: "PATCH",
+    prefer: "return=representation",
+    body: { consent_status: "withdrawn", withdrawn_at: now, updated_at: now }
+  });
+
+  // A failed write is never reported as done. Somebody who pressed Unsubscribe
+  // and was told it worked, when it did not, will receive the next campaign --
+  // and this is the one place in the product where that is not a bug report but
+  // a complaint to a regulator.
+  if (!updated.ok) return { ok: false, status: 502 };
+  if (updated.rows.length > 0) return { ok: true, rows: updated.rows.length, action: "withdrawn" };
+
+  // Nothing to update. Recorded as a new row so the withdrawal exists even
+  // where the original permission no longer does.
+  const inserted = await insert(config, TABLES.consents, {
+    organization_id: organizationId,
+    lead_id: leadId,
+    channel,
+    purpose: "campaign_email",
+    consent_status: "withdrawn",
+    source: "recipient_unsubscribe_link",
+    withdrawn_at: now,
+    metadata: { recorded_by: "unsubscribe_link" }
+  });
+  if (!inserted.ok) return { ok: false, status: 502 };
+  return { ok: true, rows: 1, action: "recorded" };
+}
+
+// What a recipient sees. Four states, and each says only what is true.
+//
+// Nothing here names the organization, the campaign or the address. The page is
+// reachable by anybody holding the link -- including whoever an email was
+// forwarded to -- so it confirms an action and discloses nothing about who the
+// contact is or which business mailed them.
+function unsubscribePage(ui, { state, token }) {
+  const pages = {
+    confirm: {
+      title: "Stop these emails",
+      heading: "Stop receiving these emails",
+      body: "Press the button and you will not be sent any more marketing email from this sender.",
+      // The form is what actually withdraws it. A GET could be a link a mail
+      // scanner opened rather than a person.
+      section: `<form method="post" action="${ui.escape(UNSUBSCRIBE_PATH)}?t=${encodeURIComponent(String(token || ""))}"><button type="submit">Stop these emails</button></form>`
+    },
+    done: {
+      title: "You are unsubscribed",
+      heading: "Done",
+      body: "You will not be sent any more marketing email from this sender. Nothing else about you was changed.",
+      section: ""
+    },
+    invalid: {
+      title: "This link does not work",
+      heading: "This link does not work",
+      body: "It may have been broken by the email program that displayed it, or it may have expired. Reply to the email you received and ask to be removed, and that request has to be honoured.",
+      section: ""
+    },
+    unavailable: {
+      title: "We could not do that just now",
+      heading: "We could not do that just now",
+      // Never "you are unsubscribed" over a write that failed. The honest
+      // reading of a failed write is that it did not happen.
+      body: "Your request was not recorded, so please try the link again shortly. If it keeps failing, reply to the email you received and ask to be removed.",
+      section: ""
+    }
+  };
+
+  const page = pages[state] || pages.invalid;
+  return ui.layout({
+    title: page.title,
+    eyebrow: "Email preferences",
+    heading: page.heading,
+    body: page.body,
+    sections: page.section ? [page.section] : [],
+    actions: []
+  });
+}
+
+// What the last send did, read back off the redirect.
+//
+// The route answers a browser with a 303 rather than a body, so this is the
+// only place the counts are shown. All three are rendered even when two are
+// zero: "8 sent" alone lets an owner believe they reached everybody, and the
+// difference between the list and the send is the thing they most need to see.
+//
+// Returns null when there is nothing to report, so a first visit is not given a
+// card about a send that did not happen.
+function sendOutcomeCard(query, escape) {
+  const problem = clean(query?.problem, 120);
+  if (problem) {
+    return `<article class="card"><h2>Nothing was sent</h2><p>${escape(SEND_PROBLEMS[problem] || display(problem))}</p></article>`;
+  }
+
+  const sent = Number.parseInt(String(query?.sent ?? ""), 10);
+  if (!Number.isFinite(sent)) return null;
+
+  const skipped = Number.parseInt(String(query?.skipped ?? ""), 10) || 0;
+  const failed = Number.parseInt(String(query?.failed ?? ""), 10) || 0;
+  const parts = [`${sent} sent`];
+  if (skipped) parts.push(`${skipped} skipped because they had not agreed to hear from you`);
+  if (failed) parts.push(`${failed} could not be delivered`);
+  return `<article class="card"><h2>Your campaign went out</h2><p>${escape(`${parts.join(", ")}.`)}</p></article>`;
+}
+
+// Sending one of the campaigns above.
+//
+// The approval is a checkbox and it is deliberately not pre-ticked. AGENTS.md
+// requires the owner's approval for a customer campaign, and a box already
+// ticked when the page loads is not an approval anybody gave.
+function campaignSendCard(rows, escape) {
+  // Only the ones that can actually be sent. Offering a completed campaign in
+  // this list and refusing it on submit is a form that fails on a choice it
+  // presented as valid.
+  const sendable = (rows || []).filter((row) => row.status !== "completed" && row.status !== "archived");
+  if (sendable.length === 0) {
+    return `<article class="card"><h2>Send an email campaign</h2><p>${escape("None of your campaigns can be sent right now. Add one above, or reopen a finished one.")}</p></article>`;
+  }
+
+  const options = sendable
+    .map((row) => `<option value="${escape(row.id)}">${escape(clean(row.name, 120) || "Untitled campaign")}</option>`)
+    .join("");
+
+  // "email" is named rather than left as "a campaign", and not only for the
+  // copy check. The handler passes channel "email" to authoriseCampaign, so an
+  // unqualified "Send a campaign" would offer a choice the code does not have
+  // -- growth_campaigns carries a `channel` column, and a form that ignores it
+  // while saying "campaign" implies text messages work.
+  return `<article class="card"><h2>Send an email campaign</h2>` +
+    `<p>${escape("This goes by email only, and only to the people who recorded consent for it. Anyone who has not, or who withdrew, is left out and counted so you can see the difference.")}</p>` +
+    `<form method="post" action="/api/growth/campaigns/send">` +
+    `<label for="campaign_id">Which campaign</label><select id="campaign_id" name="campaign_id" required>${options}</select>` +
+    `<label for="subject">Subject</label><input id="subject" name="subject" type="text" maxlength="300" required>` +
+    `<label for="body">Message</label><textarea id="body" name="body" rows="6" maxlength="20000" required></textarea>` +
+    `<label for="audience">Who it goes to</label>` +
+    `<select id="audience" name="audience">` +
+    `<option value="campaign">The contacts attached to this campaign</option>` +
+    `<option value="organization">Everyone in your contact list</option>` +
+    `</select>` +
+    `<label for="approved"><input id="approved" name="approved" type="checkbox" value="true" required> I approve emailing this to my customers</label>` +
+    `<button type="submit">Send email campaign</button>` +
+    `</form></article>`;
+}
+
+// The refusal codes this page can be redirected back with, in the owner's
+// words. A code with no entry falls back to the code itself with its
+// underscores removed -- readable rather than blank, and it says the code so
+// they can quote it.
+const SEND_PROBLEMS = Object.freeze({
+  explicit_campaign_approval_required: "You need to tick the approval box before a campaign can be sent.",
+  campaign_message_required: "A campaign needs both a subject and a message.",
+  owner_role_required: "Only the account owner can approve sending a campaign to your customers. Ask them to approve it.",
+  role_unknown: "We could not confirm your role in this workspace just now, so nothing was sent. Try again shortly.",
+  invalid_campaign_id: "That campaign could not be identified. Choose one from the list and try again.",
+  campaign_not_sendable: "That campaign is finished or put away. Reopen it before sending.",
+  no_recipients: "No contacts are attached to that campaign. Attach some, or send to your whole contact list.",
+  too_many_recipients: "That campaign reaches more contacts than one send can finish. Nothing was sent.",
+  no_consented_recipients: "Nobody on that list has agreed to hear from you by email. Nothing was sent and nothing was charged.",
+  insufficient_credit: "There is not enough credit to send this campaign. Nothing was sent.",
+  balance_unreadable: "We could not check your credit just now, so nothing was sent. Try again shortly.",
+  cannot_read_recipients: "We could not read your contact list just now, so nothing was sent.",
+  cannot_read_consent: "We could not read your consent records just now, so nothing was sent.",
+  consent_rows_unreadable: "There are too many consent records to read at once, and a partial read would leave out people who did agree. Nothing was sent.",
+  email_not_configured: "Email sending is not set up yet, so nothing was sent.",
+  supabase_setup_required: "Your account database is not connected yet, so nothing was sent.",
+  resource_not_found: "That campaign could not be found in your workspace.",
+});
 
 // The form for a spec, rendered onto the record page the customer already
 // reaches. Values are not carried back on a rejection here because this posts
@@ -1201,3 +1842,8 @@ function acceptsHtml(req) {
   return String(req.get?.("accept") || "").includes("text/html")
     || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
 }
+
+// Named on the export so a test can assert the cap's arithmetic against Vercel's
+// documented duration rather than re-typing the number and agreeing with itself.
+module.exports.MAX_RECIPIENTS_PER_SEND = MAX_RECIPIENTS_PER_SEND;
+module.exports.CONSENT_ROW_LIMIT = CONSENT_ROW_LIMIT;

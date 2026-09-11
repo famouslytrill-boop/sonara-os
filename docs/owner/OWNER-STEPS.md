@@ -750,6 +750,60 @@ customer cannot be served without, the one that must never be on in production,
 and the one that turns the leaked-password warning into a gate. `pnpm run
 verify:env` checks that classification on every release.
 
+## Not a step, but read it before you rotate the Supabase service role key
+
+**Rotating `SUPABASE_SERVICE_ROLE_KEY` will break every unsubscribe link already
+sitting in a customer's inbox — unless you set `SONARA_UNSUBSCRIBE_SECRET` first.**
+
+Nothing here needs doing today. This is the one consequence of that rotation
+that is not obvious, and it is written down because the alternative is
+discovering it from a complaint.
+
+### Why the link depends on that key at all
+
+A Growth Studio campaign carries a per-recipient unsubscribe link, and
+`lib/growth-studio-dispatch.cjs` **refuses to send a campaign it cannot build
+one for.** The link is signed, so a stranger holding one cannot use it against
+anybody else.
+
+Signing needs a secret. Rather than making the whole sending feature wait on you
+setting one, `lib/growth-studio-unsubscribe.cjs` derives its signing key from
+`SUPABASE_SERVICE_ROLE_KEY` — already required, already server-only, present
+wherever this application runs at all. So campaigns work on deploy with nothing
+for you to do.
+
+The cost is that the signature is tied to that key's value. Rotate the key and
+links signed under the old one stop verifying. Somebody who presses Unsubscribe
+in an email from last month gets "this link does not work" and a note telling
+them to reply and ask — honest, and worse than the link simply working.
+
+### If you ever do rotate it
+
+1. Generate a long random value and set it as `SONARA_UNSUBSCRIBE_SECRET` in
+   Vercel, for Production, Preview and Development:
+
+   ```
+   vercel env add SONARA_UNSUBSCRIBE_SECRET production --no-sensitive
+   ```
+
+   Use `--no-sensitive` for the same reason the `STRIPE_PRICE_*` variables need
+   it: a Sensitive variable pulls through as `[SENSITIVE]` and cannot be read
+   back for verification.
+
+2. Deploy, and send one campaign. Links from then on are signed with the new
+   secret and survive any future service-role rotation.
+
+3. Then rotate `SUPABASE_SERVICE_ROLE_KEY`.
+
+**Setting `SONARA_UNSUBSCRIBE_SECRET` is itself a key change**, so doing it
+invalidates the links signed before it, in exactly the same way. There is no
+order that preserves old links; the choice is only about which cut-over you take
+and when. Earliest is cheapest, because the number of links in the wild is
+smallest.
+
+`pnpm run verify:env` classifies the variable as optional, which is what makes
+"unset" a supported state rather than a misconfiguration.
+
 ## What is not on this list, and why
 
 **Pricing.** It moved onto the list as item 5 on 19 August 2026, when you chose

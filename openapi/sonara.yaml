@@ -2063,6 +2063,51 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/growth/campaigns/send:
+    post:
+      operationId: sendGrowthCampaignFromForm
+      tags: [Growth Studio]
+      summary: The form entry point for a campaign send, naming the campaign in the body.
+      description: >-
+        Identical to POST /api/growth/campaigns/{campaignId}/send and served by the same
+        handler; the campaign is named as campaign_id in the body because the send form on
+        /growth-studio/your-campaigns chooses it with a select, which cannot set a path
+        segment. A browser posting a form is answered with a 303 back to that page carrying
+        the counts or the refusal code; a JSON caller gets the same body as the path form.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: Redirect back to the campaigns page with the send outcome. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "402": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth/campaigns/{campaignId}/send:
+    parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: sendGrowthCampaign
+      tags: [Growth Studio]
+      summary: Send an approved campaign to the consented contacts only, and charge for what was accepted.
+      description: >-
+        Requires an explicit owner approval in the request; the approver recorded is the
+        authenticated caller. Every recipient is checked against growth_contact_consents on
+        the email channel, and contacts without usable consent are reported as skipped rather
+        than dropped. 402 means no credit, 409 means nobody on the list can be sent to, 413
+        means the list is larger than one request can finish, and 503 means email delivery is
+        not configured or a required read did not answer.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "402": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/growth/leads:
     get:
       operationId: listGrowthLeads

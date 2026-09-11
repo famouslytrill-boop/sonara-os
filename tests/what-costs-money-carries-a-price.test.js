@@ -4,12 +4,18 @@ const assert = require("node:assert/strict");
 const paid = require("../lib/sonara-paid-capabilities.cjs");
 
 describe("the capabilities that cost money", () => {
-  it("prices all six of them", () => {
-    // The population, asserted rather than assumed. docs/products/ lists six
-    // capabilities with a marginal cost; a file that priced four of them would
-    // leave two shipping at no price and nothing would say so.
+  it("prices all seven of them", () => {
+    // The population, asserted rather than assumed. A file that priced four of
+    // them would leave the rest shipping at no price and nothing would say so.
+    //
+    // Seven since 10 September 2026: campaign_email joined when Growth Studio
+    // gained the ability to send. Its floor is Resend's most expensive PAID
+    // rate ($350/mo for 500,000, so $0.70 per thousand) rather than their free
+    // tier, because a floor of zero makes every margin check here meaningless
+    // and a free tier is a price the vendor can change.
     const names = Object.keys(paid.CAPABILITIES).sort();
     assert.deepEqual(names, [
+      "campaign_email",
       "game_engine_export",
       "live_streaming",
       "media_generation",

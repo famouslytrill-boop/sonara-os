@@ -450,6 +450,36 @@ reports these tables as used.
 
 ## Known and deliberate
 
+- **SMS opt-out (STOP/UNSTOP): two halves, and one of them is still open.**
+  This is ours, not the owner's, and neither half depends on the vendor.
+
+  **Enforcement is built and tested.** A `growth_contact_consents` row carrying
+  `withdrawn_at` makes `consentState` return `consent_revoked`, and
+  `authoriseOutbound` in `lib/sonara-telephony.cjs` refuses on that code
+  *before* anything is spent —
+  `tests/a-text-saying-stop-must-mean-stop.test.js` asserts both directions, so
+  a refusal that starts refusing everything fails too.
+
+  **Recognition is built; recording is not.** `lib/sonara-sms-keywords.cjs`
+  turns a reply into an intent, from the union of Twilio's and Telnyx's own
+  documented keyword lists (read 10 September 2026, both named in the module).
+  It writes nothing: the inbound webhook that would write the withdrawal needs
+  the vendor's signature scheme, so **that route is the piece genuinely waiting
+  on the carrier decision** — everything above it is not.
+
+  Two findings worth not rediscovering. Twilio states that `YES` "will not work
+  to opt-in a previously unsubscribed user", so honouring it would write a
+  permission the network still blocks — recognised and refused, with the reason
+  in the module. And both carriers reply to an opt-out automatically by default,
+  so **whether we owe a confirmation text depends on a carrier setting**;
+  `confirmationOwedBy` returns three states rather than guessing, because
+  guessing sends either two texts or none.
+
+  Nothing is currently in breach: `sonara-telephony.cjs` dials nothing, so no
+  message has been sent. A2P 10DLC registration is the other gate on the same
+  path, and it is a fee and a delay rather than code —
+  `docs/architecture/2026-09-10-CARRIER-VENDOR-COMPARISON.md` has both, with the
+  vendor prices they were read from.
 - **Fourteen entries in `data/open-source-tools.ts` still carry a generic
   `https://github.com/` placeholder.** The gate warns about each on every run.
   They are resolved one at a time with the licence read from the project, not

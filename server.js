@@ -270,10 +270,10 @@ const {
 // destructures above -- unlike the hoisted helpers, they do not exist until
 // this line runs, and the factory checks every dependency is a function when
 // it is called rather than when one is first used.
-const { createBusinessEmployeeInvite, acceptBusinessEmployeeInvite } = createBusinessEmployeeInvites({
+const { createBusinessEmployeeInvite, acceptBusinessEmployeeInvite, businessEmployeeInviteForm } = createBusinessEmployeeInvites({
   getSupabaseAdminClient, supabaseHeaders, hashInviteToken,
   getPublicAppUrl, recordAdminAuditEvent, isSupabaseConfigured,
-  createEmployeeAuthUser, splitList, getReadiness, getEnv
+  createEmployeeAuthUser, splitList, getReadiness, getEnv, escapeHtml
 });
 
 // Every dependency here is a hoisted function declaration, so this could sit
@@ -620,7 +620,14 @@ registerGrowthStudioControlRoutes(app, {
   requirePaidOrOwnerAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
-  supabaseHeaders
+  supabaseHeaders,
+  // Both for the campaign send. AGENTS.md requires email to be off unless
+  // configured, and `dispatchCampaign` enforces that by asking getReadiness --
+  // which, passed as null, is a check that never runs. A guard whose dependency
+  // was never wired is the shape this repository keeps finding, so it is wired
+  // here and a test asserts an unconfigured workspace sends nothing.
+  getReadiness,
+  getEnv
 });
 
 registerProductLifecycleRoutes(app, {
@@ -1356,7 +1363,7 @@ app.get("/business-builder/employees", requireBusinessManager, async (req, res) 
       heading: "Employee access",
       body: "Owner and manager workspace for employee invitations. Employees set their own password through the invite flow.",
       sections: [
-        businessEmployeeInviteForm(),
+        businessEmployeeInviteForm(req.sonaraBusinessMembership),
         brandCard("Memberships", summary.memberships),
         brandCard("Pending invites", summary.invites),
         brandCard("Password policy", "Invite records store token hashes only. Raw employee passwords are never accepted from owners.")
@@ -2380,22 +2387,6 @@ async function getCommandCenterSummary(req) {
   return { workspaceCard, requestsSummary, deliverablesSummary, billingSummary, supportSummary, blockersCard, nextBestAction, adminCard };
 }
 
-
-function businessEmployeeInviteForm() {
-  return `<article class="card">
-    <h2>Create employee invite</h2>
-    <form method="post" action="/api/business-builder/employees/invite">
-      <label>Workspace ID<input name="workspaceId" type="text" required></label>
-      <label>Organization ID<input name="organizationId" type="text" required></label>
-      <label>Employee name<input name="name" type="text" required></label>
-      <label>Employee email<input name="email" type="email" required></label>
-      <label>Role<select name="role" required><option value="employee">Employee</option><option value="manager">Manager</option></select></label>
-      <label>Permissions<input name="permissions" type="text" aria-label="Permissions such as intake, records, readiness"></label>
-      <p class="fine">Do not enter an employee password. Employees set their own password through the invite flow.</p>
-      <button type="submit">Create invite</button>
-    </form>
-  </article>`;
-}
 
 function businessEmployeeAcceptForm() {
   const inputId = "business-employee-password";

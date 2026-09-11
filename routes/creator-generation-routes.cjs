@@ -23,6 +23,19 @@ const {
 const JOB_TABLE = "creator_generation_jobs";
 const ASSET_TABLE = "creator_generation_assets";
 const provenanceOf = require("../lib/sonara-generation-provenance.cjs");
+const {
+  preflight: generationPreflight,
+  gpuSecondsFor: generationGpuSecondsFor,
+  BILLED_CAPABILITY: BILLED_GENERATION_CAPABILITY
+} = require("../lib/creator-generation-billing.cjs");
+const {
+  authoriseUsage,
+  drawEntry,
+  createBalanceReader,
+  createLedgerAppender,
+  DEFAULT_STARTING_ALLOWANCE_MINOR
+} = require("../lib/sonara-usage-meter.cjs");
+const { redactSensitiveText } = require("../lib/sonara-redaction.cjs");
 const CONSENT_TABLE = "creator_voice_consents";
 const ANALYSIS_TABLE = "creator_reference_analyses";
 const EVENT_TABLE = "creator_generation_events";
@@ -204,6 +217,30 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
           ? "manual_required"
           : "setup_required";
 
+    // Credit, checked before a provider is called and only for jobs that will
+    // actually consume compute.
+    //
+    // `initialStatus === "queued"` is the whole condition. A job that lands
+    // `review_required`, `setup_required` or `manual_required` calls no provider
+    // and burns no GPU second, so refusing it for credit would charge a customer
+    // -- in refusals -- for work nobody was going to do. The three statuses that
+    // do nothing are the three that must not be gated.
+    //
+    // Refused BEFORE the row is written, not after. A job row that exists in
+    // `insufficient_credit` is a customer looking at a failure they cannot
+    // clear, and the `/creator-studio/generation` list would fill with them.
+    if (initialStatus === "queued") {
+      const authorised = await authoriseGenerationCredit({ config, context, capability, parameters, deps });
+      if (!authorised.allowed) {
+        return send(req, res, {
+          ok: false,
+          status: authorised.httpStatus,
+          code: authorised.code,
+          reasons: [authorised.reason]
+        }, "/creator-studio/generation");
+      }
+    }
+
     const created = await insert(config, JOB_TABLE, {
       organization_id: context.organizationId,
       user_id: context.userId,
@@ -229,7 +266,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     await event(config, context, job.id, "generation.job_created", "recorded", { capability, provider_key: selected.provider.key, policy_status: policy.status });
 
     if (job.status === "queued") {
-      const dispatched = await dispatchJob(config, context, job, selected.provider);
+      const dispatched = await dispatchJob(config, context, job, selected.provider, deps);
       job = dispatched.job || job;
     }
 
@@ -245,7 +282,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!loaded.ok) return res.status(loaded.status).json(loaded);
     const provider = getProvider(loaded.job.provider_key);
     if (!provider) return res.status(409).json({ ok: false, code: "provider_not_found" });
-    const refreshed = await refreshJob(config, context, loaded.job, provider);
+    const refreshed = await refreshJob(config, context, loaded.job, provider, deps);
     return send(req, res, { ...refreshed, status: refreshed.ok ? 200 : refreshed.status || 502 }, jobPath(loaded.job.id));
   });
 
@@ -584,13 +621,13 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   }
 };
 
-async function dispatchJob(config, context, job, provider) {
+async function dispatchJob(config, context, job, provider, deps) {
   const readiness = getProviderReadiness(provider);
   if (!readiness.configured) return { ok: false, job };
   await updateJob(config, context, job.id, { status: "submitted", submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() });
   await event(config, context, job.id, "generation.dispatch_started", "recorded", { provider_key: provider.key, capability: job.capability });
   try {
-    if (provider.key === "elevenlabs") return await dispatchElevenLabs(config, context, job, provider);
+    if (provider.key === "elevenlabs") return await dispatchElevenLabs(config, context, job, provider, deps);
     if (provider.key === "google_veo") return await dispatchGoogleVeo(config, context, job, provider);
     if (provider.key === "suno") return await dispatchSuno(config, context, job, provider);
     if (provider.key === "open_source_media_worker") return await dispatchWorker(config, context, job, provider);
@@ -602,7 +639,7 @@ async function dispatchJob(config, context, job, provider) {
   }
 }
 
-async function dispatchElevenLabs(config, context, job, provider) {
+async function dispatchElevenLabs(config, context, job, provider, deps) {
   const base = String(process.env[provider.baseUrlEnv] || provider.defaultBaseUrl).replace(/\/$/, "");
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const headers = { "xi-api-key": apiKey, Accept: "application/json" };
@@ -639,7 +676,11 @@ async function dispatchElevenLabs(config, context, job, provider) {
     const payload = await response.json().catch(() => ({}));
     const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: sanitizeProviderPayload(payload), completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     await event(config, context, job.id, "generation.completed", "success", { provider_key: provider.key, output: "json" });
-    return { ok: true, job: completed.rows[0] };
+    // Charged even though no asset was stored: the provider ran and billed us
+    // for it. "Produced a file" and "consumed compute" are different things,
+    // and the meter follows the second.
+    const charge = await chargeCompletedGeneration({ config, context, job, payload, deps });
+    return { ok: true, job: completed.rows[0], charge };
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());
@@ -648,7 +689,8 @@ async function dispatchElevenLabs(config, context, job, provider) {
   if (!stored.ok) return failJobResult(config, context, job, "output_storage_failed", stored.code);
   const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: { asset_id: stored.asset.id, mime_type: mime, byte_size: bytes.length }, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
   await event(config, context, job.id, "generation.completed", "success", { provider_key: provider.key, asset_id: stored.asset.id });
-  return { ok: true, job: completed.rows[0], asset: stored.asset };
+  const charge = await chargeCompletedGeneration({ config, context, job, payload: null, deps });
+  return { ok: true, job: completed.rows[0], asset: stored.asset, charge };
 }
 
 async function dispatchGoogleVeo(config, context, job, provider) {
@@ -710,12 +752,12 @@ async function dispatchWorker(config, context, job, _provider) {
   return { ok: true, job: updated.rows[0] };
 }
 
-async function refreshJob(config, context, job, provider) {
+async function refreshJob(config, context, job, provider, deps) {
   if (["completed", "failed", "cancelled", "review_required", "manual_required", "setup_required"].includes(job.status)) return { ok: true, job, unchanged: true };
   try {
-    if (provider.key === "google_veo") return refreshGoogleVeo(config, context, job, provider);
-    if (provider.key === "suno") return refreshSuno(config, context, job);
-    if (provider.key === "open_source_media_worker") return refreshWorker(config, context, job);
+    if (provider.key === "google_veo") return refreshGoogleVeo(config, context, job, provider, deps);
+    if (provider.key === "suno") return refreshSuno(config, context, job, deps);
+    if (provider.key === "open_source_media_worker") return refreshWorker(config, context, job, deps);
     return { ok: true, job, unchanged: true };
   } catch (error) {
     const failed = await failJob(config, context, job.id, "provider_refresh_failed", safeError(error));
@@ -723,7 +765,7 @@ async function refreshJob(config, context, job, provider) {
   }
 }
 
-async function refreshGoogleVeo(config, context, job, provider) {
+async function refreshGoogleVeo(config, context, job, provider, deps) {
   if (!job.provider_job_id) return { ok: false, status: 409, code: "provider_job_id_missing" };
   const base = String(process.env[provider.baseUrlEnv] || provider.defaultBaseUrl).replace(/\/$/, "");
   const response = await fetch(`${base}/${String(job.provider_job_id).replace(/^\//, "")}`, { headers: { "x-goog-api-key": process.env.GEMINI_API_KEY, Accept: "application/json" } });
@@ -744,29 +786,30 @@ async function refreshGoogleVeo(config, context, job, provider) {
   if (!stored.ok) return failJobResult(config, context, job, "output_storage_failed", stored.code);
   const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: { operation: sanitizeProviderPayload(payload), asset_id: stored.asset.id }, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
   await event(config, context, job.id, "generation.completed", "success", { provider_key: provider.key, asset_id: stored.asset.id });
-  return { ok: true, job: completed.rows[0], asset: stored.asset };
+  const charge = await chargeCompletedGeneration({ config, context, job, payload, deps });
+  return { ok: true, job: completed.rows[0], asset: stored.asset, charge };
 }
 
-async function refreshSuno(config, context, job) {
+async function refreshSuno(config, context, job, deps) {
   if (!job.provider_job_id) return { ok: false, status: 409, code: "provider_job_id_missing" };
   const base = String(process.env.SUNO_API_BASE_URL || "").replace(/\/$/, "");
   const path = normalizePath(String(process.env.SUNO_STATUS_PATH_TEMPLATE || "").replace("{id}", encodeURIComponent(job.provider_job_id)));
   const response = await fetch(`${base}${path}`, { headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}`, Accept: "application/json" } });
   if (!response.ok) return failProviderResponse(config, context, job, response, "suno_refresh_failed");
   const payload = await response.json().catch(() => ({}));
-  return completeFromProviderPayload(config, context, job, payload, "suno");
+  return completeFromProviderPayload(config, context, job, payload, "suno", deps);
 }
 
-async function refreshWorker(config, context, job) {
+async function refreshWorker(config, context, job, deps) {
   if (!job.provider_job_id) return { ok: false, status: 409, code: "provider_job_id_missing" };
   const base = String(process.env.CREATOR_MEDIA_WORKER_URL || "").replace(/\/$/, "");
   const response = await fetch(`${base}/v1/jobs/${encodeURIComponent(job.provider_job_id)}`, { headers: { Authorization: `Bearer ${process.env.CREATOR_MEDIA_WORKER_TOKEN}`, Accept: "application/json" } });
   if (!response.ok) return failProviderResponse(config, context, job, response, "media_worker_refresh_failed");
   const payload = await response.json().catch(() => ({}));
-  return completeFromProviderPayload(config, context, job, payload, "open_source_media_worker");
+  return completeFromProviderPayload(config, context, job, payload, "open_source_media_worker", deps);
 }
 
-async function completeFromProviderPayload(config, context, job, payload, providerKey) {
+async function completeFromProviderPayload(config, context, job, payload, providerKey, deps) {
   const providerStatus = String(payload.status || "").toLowerCase();
   if (["failed", "error"].includes(providerStatus)) return failJobResult(config, context, job, `${providerKey}_generation_failed`, clean(payload.error || payload.message, 2000));
   const outputUrl = findOutputUrl(payload);
@@ -776,10 +819,121 @@ async function completeFromProviderPayload(config, context, job, payload, provid
     const stored = await storeOutput(config, context, job, downloaded.bytes, downloaded.mime, providerKey);
     if (!stored.ok) return failJobResult(config, context, job, "output_storage_failed", stored.code);
     const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: { payload: sanitizeProviderPayload(payload), asset_id: stored.asset.id }, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
-    return { ok: true, job: completed.rows[0], asset: stored.asset };
+    // Charged after the asset is stored and the job is marked complete, so a
+    // ledger failure cannot cost the customer their output. See
+    // chargeCompletedGeneration for why a failed charge is reported rather than
+    // raised, and why a failed job is never charged at all.
+    const charge = await chargeCompletedGeneration({ config, context, job, payload, deps });
+    return { ok: true, job: completed.rows[0], asset: stored.asset, charge };
   }
   const updated = await updateJob(config, context, job.id, { status: "running", progress_percent: clamp(payload.progress_percent, 1, 99, Math.max(Number(job.progress_percent || 1), 5)), provider_response: sanitizeProviderPayload(payload), updated_at: new Date().toISOString() });
   return { ok: true, job: updated.rows[0] };
+}
+
+// Is there credit to run this, and what would it cost?
+//
+// Wired through `deps` so a test can inject a ledger rather than reach for a
+// database, and so this file keeps no opinion about pricing --
+// lib/creator-generation-billing.cjs decides the units and
+// lib/sonara-usage-meter.cjs decides whether they are affordable.
+async function authoriseGenerationCredit({ config, context, capability, parameters, deps }) {
+  const basis = generationPreflight({ capability, parameters });
+  if (!basis.ok) {
+    // A capability with no cost estimate is refused rather than run free. This
+    // is reachable only by adding a capability and not costing it, which is
+    // exactly when a default of "free" would be silently expensive.
+    return { allowed: false, httpStatus: 500, code: basis.code, reason: basis.detail };
+  }
+
+  const readLedger = typeof deps.readUsageLedger === "function"
+    ? deps.readUsageLedger
+    : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
+
+  const history = await readLedger({ organizationId: context.organizationId }).catch((error) => ({
+    ok: false,
+    rows: [],
+    reason: String(error?.message || error)
+  }));
+
+  // The starting allowance keeps generation working for an organization that has
+  // never bought credit, which is every organization on the day this deploys.
+  // It exhausts as draws accumulate, so it is a free tier rather than a bypass.
+  // Overridable through deps so a test can set it to zero and see the refusal.
+  const allowanceMinor = typeof deps.generationStartingAllowanceMinor === "number"
+    ? deps.generationStartingAllowanceMinor
+    : DEFAULT_STARTING_ALLOWANCE_MINOR;
+
+  const decision = authoriseUsage({ capability: basis.capability, units: basis.units, history, allowanceMinor });
+  if (decision.allowed) return { allowed: true, decision, basis };
+
+  // 402 for "no credit" and 503 for "we could not check" -- different things,
+  // and a customer does something different about each. A blanket 402 would
+  // have somebody buy credit to fix a database blip.
+  const httpStatus = decision.code === "insufficient_credit" ? 402 : 503;
+  return { allowed: false, httpStatus, code: decision.code, reason: decision.reason, decision, basis };
+}
+
+// Charge for the work, once it has actually produced something.
+//
+// Called only from the completed branch: **a failed job is not charged.** It
+// consumed real GPU time and we absorb that deliberately -- billing somebody
+// for output they never received is the kind of charge that loses a customer
+// permanently, and absorbing it is the right incentive to make failures rare.
+// The decision is a business one and is recorded here rather than left implicit
+// in where the call happens to sit.
+//
+// A failure to record the charge does NOT fail the job. The customer's asset is
+// already stored; refusing to hand it over because our own ledger write failed
+// would punish them for our fault. It is reported instead, loudly, because a
+// meter that silently stops charging is the defect this repository is named for.
+async function chargeCompletedGeneration({ config, context, job, payload, deps }) {
+  const cost = generationGpuSecondsFor({ capability: job.capability, parameters: job.parameters, payload });
+  if (!cost.ok) {
+    (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: cost.code, detail: cost.detail });
+    return { ok: false, code: cost.code };
+  }
+
+  const entry = drawEntry({
+    capability: BILLED_GENERATION_CAPABILITY,
+    units: cost.gpuSeconds,
+    organizationId: context.organizationId,
+    actorUserId: context.userId,
+    // The job id is the idempotency key. A job is charged once however many
+    // times a poll, a retry or a duplicated webhook reaches this line, and the
+    // partial unique index on the ledger enforces it in the database rather
+    // than only here.
+    idempotencyKey: `generation:${job.id}`
+  });
+  if (!entry.ok) {
+    (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: entry.code, detail: entry.detail });
+    return { ok: false, code: entry.code };
+  }
+
+  const append = typeof deps.appendUsageLedger === "function"
+    ? deps.appendUsageLedger
+    : createLedgerAppender({ getSupabaseServerConfig: () => config });
+
+  // usage_basis is on the row rather than in a comment: "we billed 96 GPU
+  // seconds" means two different things depending on whether that was measured
+  // or estimated, and revenue cannot be reconciled against cost without knowing
+  // which.
+  const written = await append({
+    ...entry.row,
+    metadata: { usage_basis: cost.basis, usage_detail: cost.detail, job_id: job.id, capability: job.capability }
+  }).catch((error) => ({ ok: false, code: "ledger_write_threw", detail: String(error?.message || error) }));
+
+  if (!written.ok) {
+    (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: written.code, detail: `charge of ${entry.row.amount_minor} was not recorded` });
+    return { ok: false, code: written.code };
+  }
+
+  return { ok: true, duplicate: Boolean(written.duplicate), amountMinor: entry.row.amount_minor, basis: cost.basis };
+}
+
+function defaultBillingGapReport({ jobId, code, detail }) {
+  // Redacted for the same reason every other log line here is: a failure detail
+  // can carry a provider URL, and a provider URL can carry a key.
+  console.error(`[generation-billing] job ${redactSensitiveText(String(jobId || "unknown"))} produced output that was not charged: ${redactSensitiveText(String(code))} ${redactSensitiveText(String(detail || ""))}`);
 }
 
 async function evaluatePolicy({ config, context, capability, prompt, rightsAttested, consentAttested, voiceConsentId }) {
