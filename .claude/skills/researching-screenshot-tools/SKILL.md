@@ -12,9 +12,13 @@ Read these first:
 - `AGENTS.md`
 - `CLAUDE.md`
 - `.ai/shared/EXTERNAL_TOOL_RESEARCH_SKILL.md`
+- `.ai/shared/SOURCE_GROUNDED_RESEARCH_SKILL.md` when the decision depends on external factual evidence
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md`
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH2.md`
 - `lib/sonara-screenshot-tool-radar.cjs`
+- `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
+- `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 
 ## Workflow
 
@@ -49,19 +53,23 @@ Prefer the smallest boundary that fits:
 - `isolated_documentation_worker`
 - `isolated_browser_worker`
 - `isolated_media_worker`
+- `isolated_media_pipeline`
 - `authorized_security_reference`
+- `infrastructure_observability_reference`
 - `optional_adapter_after_review`
 - `blocked`
 
-Desktop apps, CLIs, Chromium automation, FFmpeg renderers, nmap/security utilities, and package managers do not belong inside the Vercel request process.
+Desktop apps, CLIs, Chromium automation, FFmpeg renderers, nmap/security utilities, Kubernetes optimizers, and package managers do not belong inside the Vercel request process.
 
 ### 5. Preserve SONARA authority
 
 External agent frameworks and coding cockpits never bypass `lib/sonara-agent-authority.cjs` or `lib/sonara-agent-runner.cjs`. Unknown consequential actions still fail closed to owner review. Provider Gateway remains the model/provider boundary unless an explicit architecture change is approved.
 
+Infrastructure recommendation tools are advisory by default. A recommendation to alter compute requests, limits, autoscaling, deployment state, or provider configuration does not authorize the mutation.
+
 ### 6. Write the research record
 
-For screenshot-led research, add a record to `lib/sonara-screenshot-tool-radar.cjs`. Required information:
+For screenshot-led research, add verified records to the current screenshot radar module and keep ambiguous items as explicit visual leads rather than invented repositories. Required information for a verified repository:
 
 - exact upstream repository
 - verified license
@@ -86,11 +94,15 @@ Tests should prove at least:
 - production execution count remains zero;
 - security tools are limited to authorized targets;
 - package-manager research cannot replace pnpm silently;
+- infrastructure optimizers cannot mutate production from research state;
+- ambiguous screenshots remain source-unverified rather than receiving guessed metadata;
 - any product-specific boundary that matters is explicit.
 
 A green test that cannot fail on the bad case is not evidence.
 
 ## Current 2026-09-13 decisions
+
+### Batch 1
 
 - **Browser Use Pi** (`browser-use/browser-use-pi`, MIT): optional isolated browser-worker prototype; user-authorized destinations only.
 - **QuickLiquid** (`amarnath3003/quickLiquid`, MIT): design reference first; progressive enhancement only.
@@ -102,6 +114,13 @@ A green test that cannot fail on the bad case is not evidence.
 - **Litho/deepwiki-rs** (`sopaco/deepwiki-rs`, MIT): documentation research; compare with the existing generated handoff/docs pipeline and its Terrain successor.
 - **OFFPack** (`Assemou007/OFFPack`, MIT): research the offline-cache idea only; SONARA remains pnpm-only.
 
+### Batch 2
+
+- **Image Pipes** (`mrajaeim/image-pipes`, MIT): optional Creator Studio media-pipeline adapter after benchmark/security review; no arbitrary plugin execution.
+- **Feynman** (`advaitpaliwal/feynman`, MIT): research-method reference; use SONARA's source-grounded research skills rather than importing its runtime or remote install path.
+- **KubeOpt** (`kubeopt/kubeopt`, MIT): future Kubernetes operations reference only; advisory until SONARA has real Kubernetes workloads and a separately approved mutation policy.
+- Three additional visual concepts remain `unverified_visual_lead` records because their upstream identity and license cannot be established confidently from the supplied pixels.
+
 ## What not to do
 
-Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, or copy a visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
+Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure recommendations to mutate production automatically, or copy a visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
