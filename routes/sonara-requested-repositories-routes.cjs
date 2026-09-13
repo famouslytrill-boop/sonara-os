@@ -4,6 +4,10 @@ const {
   getPublicRequestedRepositoryCatalog,
   getRequestedRepositoryReadiness
 } = require("../lib/sonara-requested-repository-registry.cjs");
+const {
+  getPublicScreenshotToolCatalog,
+  getScreenshotToolReadiness
+} = require("../lib/sonara-screenshot-tool-radar.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -15,23 +19,26 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     : async () => undefined;
 
   app.get("/api/ecosystem/requested-repositories", (req, res) => {
-    const repositories = getPublicRequestedRepositoryCatalog();
+    const repositories = getCombinedPublicCatalog();
     res.status(200).json({
       ok: true,
       status: "governed_catalog",
       repositoryCount: repositories.length,
       verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
       blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
+      screenshotResearchCount: getPublicScreenshotToolCatalog().length,
       repositories
     });
   });
 
   app.get("/research-lab/requested-repositories", (req, res) => {
-    const repositories = getPublicRequestedRepositoryCatalog();
+    const repositories = getCombinedPublicCatalog();
     const verified = repositories.filter((item) => item.repositoryVerified).length;
     const blocked = repositories.filter((item) => item.integrationStatus === "blocked").length;
+    const screenshotResearchCount = getPublicScreenshotToolCatalog().length;
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
+      brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
       brandCard("Production boundary", "No third-party repository is cloned, installed, executed, or enabled in the production web process by this catalog."),
       ...repositories.map((item) => brandCard(
@@ -56,16 +63,17 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
 
   app.get("/api/admin/requested-repositories/readiness", requireAdmin, async (req, res) => {
     await recordAdminAuditEvent(req, "admin.requested_repositories.probe", { path: req.path });
-    res.status(200).json(getRequestedRepositoryReadiness());
+    res.status(200).json(getCombinedReadiness());
   });
 
   app.get("/admin/requested-repositories", requireAdmin, async (req, res) => {
     await recordAdminAuditEvent(req, "admin.requested_repositories.view", { path: req.path });
-    const readiness = getRequestedRepositoryReadiness();
+    const readiness = getCombinedReadiness();
     const sections = [
       brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
+      brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
-      brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, and security tools require isolated workers or development environments—not the Vercel request process."),
+      brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, media renderers, browser agents, and security tools require isolated workers or development environments—not the Vercel request process."),
       ...readiness.repositories.map((item) => brandCard(
         `${item.label}: ${display(item.configurationStatus)}`,
         adminSummary(item)
@@ -87,6 +95,29 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     }));
   });
 };
+
+function getCombinedPublicCatalog() {
+  return [
+    ...getPublicRequestedRepositoryCatalog(),
+    ...getPublicScreenshotToolCatalog()
+  ];
+}
+
+function getCombinedReadiness() {
+  const requested = getRequestedRepositoryReadiness();
+  const screenshot = getScreenshotToolReadiness();
+  const repositories = [...requested.repositories, ...screenshot.repositories];
+  return {
+    ok: true,
+    mode: "static_governed_catalog",
+    repositoryCount: repositories.length,
+    verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
+    blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
+    screenshotResearchCount: screenshot.repositoryCount,
+    productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,
+    repositories
+  };
+}
 
 function publicSummary(item) {
   const source = item.repositoryVerified
