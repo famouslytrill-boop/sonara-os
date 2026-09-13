@@ -19,6 +19,8 @@ Turn an external-tool lead into a verified SONARA decision without importing unk
 9. **Update durable context.** Add the dated research note and, when the repository reaches full adoption review, promote it into the formal open-source register and generated integration map.
 10. **Use a branch and PR.** External-tool research should not silently land on `main`. Keep research/catalog changes separate from production enablement.
 
+For evidence-sensitive research beyond repository intake, also use `.ai/shared/SOURCE_GROUNDED_RESEARCH_SKILL.md` so claims are backed by an evidence matrix, contradiction search, citation validation, and an independent verification step.
+
 ## Mandatory SONARA rules
 
 - No third-party code executes just because a screenshot was supplied.
@@ -32,9 +34,9 @@ Turn an external-tool lead into a verified SONARA decision without importing unk
 
 ## Current screenshot radar
 
-The 2026-09-13 verified batch is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md` and represented in `lib/sonara-screenshot-tool-radar.cjs`.
+The first 2026-09-13 verified batch is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md` and represented in `lib/sonara-screenshot-tool-radar.cjs`.
 
-The current decisions are intentionally mixed:
+The first-batch decisions are intentionally mixed:
 
 - Browser Use Pi: optional isolated browser-worker prototype.
 - QuickLiquid: design reference first.
@@ -45,6 +47,13 @@ The current decisions are intentionally mixed:
 - LangChain: pattern/reference first.
 - Litho/deepwiki-rs: developer documentation research.
 - OFFPack: offline-cache concept only; never replace pnpm without an explicit architecture decision.
+
+The second 2026-09-13 batch is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH2.md` and represented in `lib/sonara-screenshot-tool-radar-batch2.cjs`.
+
+- Image Pipes: optional Creator Studio media-pipeline adapter after benchmark/security review.
+- Feynman: research-method reference; use SONARA's own source-grounded research skill instead of importing the runtime.
+- KubeOpt: future Kubernetes observability/optimization reference only; not relevant to the current Vercel/Supabase production path unless SONARA later operates Kubernetes workloads.
+- Three additional screenshot concepts remain `unverified_visual_lead` records until an exact upstream identity is supplied or independently resolved.
 
 ## Output format for future intakes
 
