@@ -50,13 +50,18 @@ const SCREENSHOT_KEYS = [
 const SCREENSHOT_BATCH2_KEYS = [
   "image_pipes",
   "feynman",
-  "kubeopt"
+  "kubeopt",
+  "edgepilot",
+  "phi_cookbook",
+  "davinci_resolve_mcp",
+  "sceneflow",
+  "lead_gen_api_stack"
 ];
 
 const UNVERIFIED_BATCH2_KEYS = [
   "coding_agent_merge_button_lead",
-  "desktop_pill_tracker_lead",
-  "anatomy_3d_lead"
+  "anatomy_3d_lead",
+  "sceneai_service_reference"
 ];
 
 const CORRECTED_REPOSITORIES = {
@@ -153,22 +158,33 @@ describe("screenshot tool research radar", () => {
 });
 
 describe("second screenshot tool research batch", () => {
-  it("records only the repositories whose upstream identity and license were verified", () => {
+  it("records only repositories whose upstream identity and adoption posture were verified", () => {
     assert.deepEqual(SCREENSHOT_TOOL_RADAR_BATCH2.map((item) => item.key), SCREENSHOT_BATCH2_KEYS);
     assert.deepEqual(
       SCREENSHOT_TOOL_RADAR_BATCH2.map((item) => item.repository),
-      ["mrajaeim/image-pipes", "advaitpaliwal/feynman", "kubeopt/kubeopt"]
+      [
+        "mrajaeim/image-pipes",
+        "advaitpaliwal/feynman",
+        "kubeopt/kubeopt",
+        "pricootz/edgepilot",
+        "microsoft/PhiCookBook",
+        "samuelgursky/davinci-resolve-mcp",
+        "taruma/SceneFlow",
+        "cporter202/lead-gen-api-stack"
+      ]
     );
     assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.repositoryVerified));
     assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.enabledInProduction === false));
     assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.humanReviewRequired));
   });
 
-  it("preserves ambiguous screenshots as visual leads instead of inventing repositories", () => {
+  it("preserves ambiguous or non-repository screenshots without inventing repositories", () => {
     assert.deepEqual(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
-    assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => item.status === "unverified_visual_lead"));
     assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => !Object.hasOwn(item, "repository")));
     assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => !Object.hasOwn(item, "license")));
+    const sceneAi = UNVERIFIED_SCREENSHOT_LEADS_BATCH2.find((item) => item.key === "sceneai_service_reference");
+    assert.equal(sceneAi.status, "verified_hosted_service_reference");
+    assert.match(sceneAi.reason, /no authoritative public source repository/i);
   });
 
   it("keeps KubeOpt advisory and unable to mutate production from research state", () => {
@@ -192,11 +208,48 @@ describe("second screenshot tool research batch", () => {
     assert.match(item.placement, /Creator Studio/i);
   });
 
+  it("uses EdgePilot as a local desktop interaction reference without telemetry creep", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "edgepilot");
+    assert.equal(item.integrationStatus, "curated_reference");
+    assert.match(item.blockedUses.join(" "), /silent workstation telemetry upload/i);
+    assert.match(item.placement, /Founder desktop/i);
+  });
+
+  it("keeps Phi cookbook code and model licensing as separate decisions", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "phi_cookbook");
+    assert.equal(item.license, "MIT");
+    assert.match(item.blockedUses.join(" "), /assuming all Phi model weights share the cookbook license/i);
+    assert.match(item.safety.join(" "), /Provider Gateway/i);
+  });
+
+  it("blocks DaVinci control adoption behind the current security review", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "davinci_resolve_mcp");
+    assert.equal(item.integrationStatus, "research_only");
+    assert.equal(item.licenseRisk, "high");
+    assert.match(item.blockedUses.join(" "), /project deletion without explicit confirmation/i);
+    assert.match(item.safety.join(" "), /September 2026 security advisories/i);
+  });
+
+  it("keeps SceneFlow as evidence-oriented Creator Studio research", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "sceneflow");
+    assert.equal(item.integrationStatus, "curated_reference");
+    assert.match(item.capabilities.join(" "), /prompt-adherence review/i);
+    assert.match(item.blockedUses.join(" "), /automatic quality verdicts/i);
+  });
+
+  it("does not treat the unlicensed lead-gen directory as adoptable source code", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "lead_gen_api_stack");
+    assert.equal(item.license, "NONE DECLARED");
+    assert.equal(item.integrationStatus, "reference_only_no_license");
+    assert.match(item.blockedUses.join(" "), /automated unsolicited bulk outreach/i);
+    assert.match(item.safety.join(" "), /affiliate/i);
+  });
+
   it("publishes no executable second-batch state", () => {
     const catalog = getPublicScreenshotToolCatalogBatch2();
     const readiness = getScreenshotToolReadinessBatch2();
-    assert.equal(catalog.length, 3);
-    assert.equal(readiness.repositoryCount, 3);
+    assert.equal(catalog.length, 8);
+    assert.equal(readiness.repositoryCount, 8);
     assert.equal(readiness.unresolvedVisualLeadCount, 3);
     assert.equal(readiness.productionExecutionCount, 0);
     assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
@@ -212,10 +265,10 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 22);
-    assert.equal(response.body.verifiedCount, 20);
+    assert.equal(response.body.repositoryCount, 27);
+    assert.equal(response.body.verifiedCount, 25);
     assert.equal(response.body.blockedCount, 2);
-    assert.equal(response.body.screenshotResearchCount, 12);
+    assert.equal(response.body.screenshotResearchCount, 17);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
@@ -228,7 +281,7 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /12 additional developer, design, media, security, research, infrastructure, and agent tools/);
+    assert.match(response.text, /17 additional developer, design, media, security, research, infrastructure, and agent tools/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
