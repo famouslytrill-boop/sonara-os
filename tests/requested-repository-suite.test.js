@@ -15,6 +15,12 @@ const {
   getPublicScreenshotToolCatalog,
   getScreenshotToolReadiness
 } = require("../lib/sonara-screenshot-tool-radar.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH2,
+  UNVERIFIED_SCREENSHOT_LEADS_BATCH2,
+  getPublicScreenshotToolCatalogBatch2,
+  getScreenshotToolReadinessBatch2
+} = require("../lib/sonara-screenshot-tool-radar-batch2.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -39,6 +45,18 @@ const SCREENSHOT_KEYS = [
   "langchain",
   "deepwiki_rs",
   "offpack"
+];
+
+const SCREENSHOT_BATCH2_KEYS = [
+  "image_pipes",
+  "feynman",
+  "kubeopt"
+];
+
+const UNVERIFIED_BATCH2_KEYS = [
+  "coding_agent_merge_button_lead",
+  "desktop_pill_tracker_lead",
+  "anatomy_3d_lead"
 ];
 
 const CORRECTED_REPOSITORIES = {
@@ -134,6 +152,58 @@ describe("screenshot tool research radar", () => {
   });
 });
 
+describe("second screenshot tool research batch", () => {
+  it("records only the repositories whose upstream identity and license were verified", () => {
+    assert.deepEqual(SCREENSHOT_TOOL_RADAR_BATCH2.map((item) => item.key), SCREENSHOT_BATCH2_KEYS);
+    assert.deepEqual(
+      SCREENSHOT_TOOL_RADAR_BATCH2.map((item) => item.repository),
+      ["mrajaeim/image-pipes", "advaitpaliwal/feynman", "kubeopt/kubeopt"]
+    );
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.repositoryVerified));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.enabledInProduction === false));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.humanReviewRequired));
+  });
+
+  it("preserves ambiguous screenshots as visual leads instead of inventing repositories", () => {
+    assert.deepEqual(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
+    assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => item.status === "unverified_visual_lead"));
+    assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => !Object.hasOwn(item, "repository")));
+    assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => !Object.hasOwn(item, "license")));
+  });
+
+  it("keeps KubeOpt advisory and unable to mutate production from research state", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "kubeopt");
+    assert.equal(item.integrationStatus, "research_only");
+    assert.match(item.blockedUses.join(" "), /automatic production cluster mutation/i);
+    assert.match(item.nextStep, /only if SONARA begins operating Kubernetes workloads/i);
+  });
+
+  it("uses Feynman as a research-method pattern rather than an executable agent", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "feynman");
+    assert.equal(item.integrationMode, "source_grounded_research_pattern");
+    assert.match(item.blockedUses.join(" "), /remote install scripts/i);
+    assert.match(item.nextStep, /source-grounded research skill/i);
+  });
+
+  it("keeps Image Pipes bounded to reviewed media processing", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "image_pipes");
+    assert.equal(item.integrationStatus, "optional_adapter_after_review");
+    assert.match(item.blockedUses.join(" "), /arbitrary plugin loading/i);
+    assert.match(item.placement, /Creator Studio/i);
+  });
+
+  it("publishes no executable second-batch state", () => {
+    const catalog = getPublicScreenshotToolCatalogBatch2();
+    const readiness = getScreenshotToolReadinessBatch2();
+    assert.equal(catalog.length, 3);
+    assert.equal(readiness.repositoryCount, 3);
+    assert.equal(readiness.unresolvedVisualLeadCount, 3);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+});
+
 describe("requested repository runtime surfaces", () => {
   it("publishes the governed public repository catalog", async () => {
     const response = await request(app)
@@ -142,18 +212,24 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 19);
-    assert.equal(response.body.verifiedCount, 17);
+    assert.equal(response.body.repositoryCount, 22);
+    assert.equal(response.body.verifiedCount, 20);
     assert.equal(response.body.blockedCount, 2);
-    assert.equal(response.body.screenshotResearchCount, 9);
-    assert.deepEqual(response.body.repositories.map((item) => item.key), [...EXPECTED_KEYS, ...SCREENSHOT_KEYS]);
+    assert.equal(response.body.screenshotResearchCount, 12);
+    assert.equal(response.body.unresolvedVisualLeadCount, 3);
+    assert.deepEqual(
+      response.body.repositories.map((item) => item.key),
+      [...EXPECTED_KEYS, ...SCREENSHOT_KEYS, ...SCREENSHOT_BATCH2_KEYS]
+    );
+    assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
   });
 
   it("renders a public research page without executing external tools", async () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /9 additional developer, design, media, security, and agent tools/);
+    assert.match(response.text, /12 additional developer, design, media, security, research, infrastructure, and agent tools/);
+    assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
 
