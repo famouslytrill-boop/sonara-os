@@ -10,6 +10,11 @@ const {
   getPublicRequestedRepositoryCatalog,
   getRequestedRepositoryReadiness
 } = require("../lib/sonara-requested-repository-registry.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR,
+  getPublicScreenshotToolCatalog,
+  getScreenshotToolReadiness
+} = require("../lib/sonara-screenshot-tool-radar.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -22,6 +27,18 @@ const EXPECTED_KEYS = [
   "strix",
   "asi",
   "awesome_design_md"
+];
+
+const SCREENSHOT_KEYS = [
+  "browser_use_pi",
+  "quickliquid",
+  "l0p4map",
+  "hyperframes",
+  "iris",
+  "viberaven",
+  "langchain",
+  "deepwiki_rs",
+  "offpack"
 ];
 
 const CORRECTED_REPOSITORIES = {
@@ -83,6 +100,40 @@ describe("requested repository integration registry", () => {
   });
 });
 
+describe("screenshot tool research radar", () => {
+  it("records every verified screenshot source as non-executing research", () => {
+    assert.deepEqual(SCREENSHOT_TOOL_RADAR.map((item) => item.key), SCREENSHOT_KEYS);
+    assert.ok(SCREENSHOT_TOOL_RADAR.every((item) => item.repositoryVerified));
+    assert.ok(SCREENSHOT_TOOL_RADAR.every((item) => item.enabledInProduction === false));
+    assert.ok(SCREENSHOT_TOOL_RADAR.every((item) => item.humanReviewRequired));
+    assert.ok(SCREENSHOT_TOOL_RADAR.every((item) => item.safety.length > 0));
+    assert.ok(SCREENSHOT_TOOL_RADAR.every((item) => item.nextStep));
+  });
+
+  it("keeps the security scanner restricted to authorized staging use", () => {
+    const item = SCREENSHOT_TOOL_RADAR.find((candidate) => candidate.key === "l0p4map");
+    assert.equal(item.license, "GPL-3.0");
+    assert.equal(item.integrationStatus, "staging_only");
+    assert.match(item.blockedUses.join(" "), /third-party scanning/i);
+  });
+
+  it("keeps OFFPack from replacing the repository's pnpm contract", () => {
+    const item = SCREENSHOT_TOOL_RADAR.find((candidate) => candidate.key === "offpack");
+    assert.equal(item.integrationStatus, "research_only");
+    assert.match(item.blockedUses.join(" "), /replacing pnpm/i);
+  });
+
+  it("publishes no executable screenshot tool state", () => {
+    const catalog = getPublicScreenshotToolCatalog();
+    const readiness = getScreenshotToolReadiness();
+    assert.equal(catalog.length, 9);
+    assert.equal(readiness.repositoryCount, 9);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+});
+
 describe("requested repository runtime surfaces", () => {
   it("publishes the governed public repository catalog", async () => {
     const response = await request(app)
@@ -91,16 +142,18 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 10);
-    assert.equal(response.body.verifiedCount, 8);
+    assert.equal(response.body.repositoryCount, 19);
+    assert.equal(response.body.verifiedCount, 17);
     assert.equal(response.body.blockedCount, 2);
-    assert.deepEqual(response.body.repositories.map((item) => item.key), EXPECTED_KEYS);
+    assert.equal(response.body.screenshotResearchCount, 9);
+    assert.deepEqual(response.body.repositories.map((item) => item.key), [...EXPECTED_KEYS, ...SCREENSHOT_KEYS]);
   });
 
   it("renders a public research page without executing external tools", async () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
+    assert.match(response.text, /9 additional developer, design, media, security, and agent tools/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
 

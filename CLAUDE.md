@@ -20,6 +20,12 @@ away from what the code actually does.
 - **`docs/architecture/EXTERNAL-SERVICES.md`** — how this application reaches
   services the owner runs, why a serverless function cannot see their laptop,
   and the four rules an adapter must follow. Read it before adding one.
+- **`docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md`** — verified
+  screenshot-sourced developer, agent, UI, media, documentation, package, and
+  security-tool research plus SONARA placement decisions. When a new tool
+  arrives as a screenshot, GitHub link, or social post, use
+  `.claude/skills/researching-screenshot-tools/SKILL.md`; the post is a lead,
+  not technical authority, and a research record is not production enablement.
 - **`docs/owner/`** — `WHAT-IS-LEFT.md` is the derived count of remaining work,
   and `OWNER-STEPS.md` is the seven things only the owner can do, each written to
   be run rather than interpreted. Update both when one is closed.
@@ -70,12 +76,21 @@ reviewed — licence, risk, how far integration may go, and what is forbidden.
 `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product
 each one is for, generated from that register.
 
+Screenshot and social-post intakes begin one stage earlier in
+`lib/sonara-screenshot-tool-radar.cjs`. Those records are deliberately disabled
+research decisions surfaced in the Research Lab and founder control plane. Use
+`.claude/skills/researching-screenshot-tools/SKILL.md` to establish the real
+upstream, licence, runtime placement, safety boundaries, and next experiment.
+Promote a tool into the formal open-source register only after the deeper
+adoption review; never turn a screenshot into an installed dependency by
+assumption.
+
 Check the record before adapting anything. Two facts come up repeatedly and are
 worth stating plainly: a repository with **no licence declared is all rights
 reserved** — the absence of a licence is not permission, and nobody here can
-grant what its author has not. And a **reciprocal licence (AGPL, GPL, OSL)
-triggers on network use**, so incorporating one into this hosted product obliges
-releasing this product's source under the same terms.
+grant what its author has not. And a **reciprocal licence requires review of its
+actual conditions and proposed use**, so incorporating one into a hosted product
+must not happen by assumption.
 
 Cost is a constraint of the same weight as licence. A hosted service with a free
 tier is a price, not a licence, and a shipped feature resting on one stops

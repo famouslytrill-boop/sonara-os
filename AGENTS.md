@@ -35,6 +35,20 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Mobile layouts must avoid overflow and use large enough tap targets.
 - Sounds, voice announcements, haptics, SMS, push, and email alerts must be off or explicitly user-controlled by default.
 
+## External Tool Research Intake
+
+When the owner supplies screenshots, GitHub links, social posts, packages, agent skills, design libraries, or developer tools and asks to add, use, integrate, install, or learn from them:
+
+- Read `.ai/shared/EXTERNAL_TOOL_RESEARCH_SKILL.md` before changing architecture or dependencies.
+- Use `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md` and `lib/sonara-screenshot-tool-radar.cjs` as the current governed screenshot-sourced intake.
+- Verify the exact upstream repository and actual license before adoption. Social copy, badges, star counts, and screenshots are discovery signals, not technical authority.
+- Keep screenshot-sourced records non-executing until a separate implementation review explicitly promotes them. `researched`, `adapter built`, and `enabled in production` are different states.
+- Never guess a repository owner, license, package, or URL from unreadable pixels. Leave it unverified until the source can be established.
+- Browser automation may operate only on user-authorized destinations and must not defeat access controls or bot protections.
+- Security tooling may target only systems SONARA owns or has explicit authorization to assess.
+- External package managers, agent frameworks, and coding cockpits do not replace SONARA's pnpm, Provider Gateway, agent-authority, or controlled-deployment contracts without an explicit architecture decision.
+- Claude should also use `.claude/skills/researching-screenshot-tools/SKILL.md`.
+
 ## Build And CI Guardrails
 
 - Use pnpm only.
