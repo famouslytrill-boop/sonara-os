@@ -4,19 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "17 */6 * * *"
-  pull_request:
-    branches: [main]
-    paths:
-      - "server.js"
-      - "api/**"
-      - "routes/**"
-      - "lib/**"
-      - "public/**"
-      - "scripts/smoke-live-routes.mjs"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/production-connectivity.yml"
-      - ".github/workflows/sonara-industries-ci.yml"
   workflow_run:
     workflows: ["SONARA Industries CI"]
     types: [completed]
@@ -26,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-connectivity-${{ github.event.pull_request.number || github.run_id }}
+  group: production-connectivity-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -64,17 +51,19 @@ jobs:
           REQUEST_TIMEOUT_MS: "20000"
         run: pnpm run smoke:live
 
-      # Says which build the step above just tested, next to the step above.
+      # Always say which build was tested next to the live smoke result.
       #
-      # On a pull request `EXPECTED_COMMIT_SHA` is unset, so smoke-live-routes
-      # returns from waitForExpectedDeployment on its first line and never names
-      # the version it reached. A green result there is therefore evidence about
-      # whatever production happens to be serving, which on 9 September 2026 was
-      # 44 commits behind main because deploys were blocked on a credential.
+      # workflow_run supplies EXPECTED_COMMIT_SHA above, so that path waits for
+      # the exact main build before it tests it. Scheduled and manual runs do not
+      # name an expected SHA; they intentionally inspect whatever production is
+      # currently serving and then report that SHA here.
       #
-      # `if: always()` so it still reports when the smoke check failed -- knowing
-      # which build failed is the first question -- and it does not fail on
-      # staleness, only on production having stopped saying which build it is.
+      # This workflow no longer runs on pull_request. A PR cannot change the
+      # already-deployed site, so making a PR fail because production is stale or
+      # has an external-provider problem conflates branch validation with an
+      # operational production alarm. PR correctness remains covered by SONARA
+      # Industries CI and SONARA One Validation; this job is now only a live
+      # production monitor.
       - name: Report which build production is serving
         if: always()
         run: pnpm run report:deployed-commit
