@@ -2,94 +2,97 @@
 
 ## Intake rule
 
-The second screenshot batch was handled under the same rule as the first: social posts and screenshots are discovery inputs, not authority. The exact upstream repository and license must be established before SONARA records a repository as verified, adds a package, or builds an adapter.
+Screenshots and social posts are discovery inputs, not technical authority. SONARA records a repository as verified only after resolving the exact upstream, checking the actual license posture, and separating research value from production enablement.
 
-Three upstream repositories were identifiable with enough confidence to verify. Three additional visual concepts remain deliberately unresolved rather than being assigned guessed repository owners, URLs, or licenses.
+This batch now contains eight verified repositories. Two screenshot concepts remain genuinely unresolved, and SceneAI is retained as a verified hosted-service reference because no authoritative public source repository or open-source code license was established. HyperFrames and Browser Use Pi appeared again in the latest screenshots and were deliberately deduplicated because they already exist in the first radar.
+
+Nothing in this batch is installed, imported, executed, or enabled in production by the research catalog.
 
 ## Verified repositories
 
-| Project | Verified repository | License | SONARA decision | Best fit |
+| Project | Verified repository | License posture | SONARA decision | Best fit |
 | --- | --- | --- | --- | --- |
-| Image Pipes | `mrajaeim/image-pipes` | MIT | Optional media-pipeline adapter after benchmark/security review | Creator Studio, asset processing |
-| Feynman | `advaitpaliwal/feynman` | MIT | Research-method reference; build original SONARA source-grounded research skills instead of importing the runtime | Research Lab, founder research, ChatGPT/Codex, Claude |
-| KubeOpt | `kubeopt/kubeopt` | MIT | Future infrastructure reference only; not a current production dependency | Founder operations, Admin Command Center, future Kubernetes cost optimization |
+| Image Pipes | `mrajaeim/image-pipes` | MIT | Optional bounded media-pipeline adapter after benchmark/security review | Creator Studio, asset processing |
+| Feynman | `advaitpaliwal/feynman` | MIT | Research-method reference; use SONARA-owned source-grounded research skills | Research Lab, founder research |
+| KubeOpt | `kubeopt/kubeopt` | MIT | Future infrastructure reference only | Founder operations, future Kubernetes cost work |
+| EdgePilot | `pricootz/edgepilot` | MIT | Desktop interaction/ambient-signal reference first | Founder desktop, Admin Command Center |
+| Microsoft Phi Cookbook | `microsoft/PhiCookBook` | MIT for cookbook code; model/service licenses separate | Local/edge SLM recipe reference behind Provider Gateway | Provider Gateway, local-agent research |
+| DaVinci Resolve MCP | `samuelgursky/davinci-resolve-mcp` | MIT | Research only until current security posture and pinned release are reviewed | Creator Studio, owner post-production |
+| SceneFlow | `taruma/SceneFlow` | MIT | Creator Studio script-to-render evaluation reference | Creator Studio, prompt-adherence review |
+| Lead Generation API Stack | `cporter202/lead-gen-api-stack` | **No license declared** | Reference-only directory; no code/content adoption | Business Builder, Growth Studio market research |
 
-All three remain `enabledInProduction: false` and `not_executed` in the application research catalog.
+All eight remain `enabledInProduction: false`, `humanReviewRequired: true`, and `not_executed` in readiness output.
 
-## Product and business integration decisions
+## Latest intake decisions
 
-### Creator Studio — deterministic image workflows
+### EdgePilot — useful interaction pattern, not a web dependency
 
-Image Pipes is useful because its architecture separates the pipeline from image-processing engines and plugins. That maps well to Creator Studio: customers need repeatable resize/convert/compose/optimize workflows without tying the product to one image vendor.
+EdgePilot is a local-first Windows/Linux system monitor built around a compact screen-edge pill. The useful SONARA idea is ambient, low-friction status: important machine or operational signals can surface briefly without forcing the owner into another dashboard.
 
-The useful SONARA direction is a bounded media job contract:
+SONARA should copy the product principle, not the runtime by default. Hostnames, disk labels, paths, and machine telemetry remain local unless a deliberate telemetry policy exists. Any future desktop companion needs signed builds, least-privilege OS access, explicit diagnostics consent, and an update strategy.
 
-1. validate file type, dimensions, decompression ratio, and transform count;
-2. store an immutable job recipe;
-3. process in an isolated worker, not the synchronous Vercel request path;
-4. allow only reviewed/pinned plugins or SONARA-owned transforms;
-5. record output hash, dimensions, format, duration, and errors;
-6. retain the original only according to customer retention settings.
+### Phi Cookbook — local/edge model research behind the existing provider boundary
 
-Do not add arbitrary plugin execution to a customer request. A plugin system is an extensibility boundary and therefore a supply-chain boundary.
+Microsoft's Phi Cookbook contains examples for running Phi-family small and multimodal models locally, at the edge, and through hosted services. The cookbook repository is MIT, but model weights, datasets, services, and example dependencies can have separate terms.
 
-### Research Lab — source-grounded research rather than “AI says”
+The architecture decision is therefore narrow: use the cookbook as a recipe/reference source. Provider Gateway remains SONARA's provider authority. A local Phi adapter is justified only by measured privacy, latency, cost, offline, or device-capability benefits and must be benchmarked against the current provider path.
 
-Feynman's strongest idea for SONARA is methodological: research is not complete when a model produces prose. A useful research workflow separates question, evidence, contradiction, verification, and conclusion.
+### DaVinci Resolve MCP — strong Creator Studio fit, security-gated
 
-SONARA now treats that as an assistant skill rather than importing Feynman's runtime. The original workflow in `.ai/shared/SOURCE_GROUNDED_RESEARCH_SKILL.md` and `.claude/skills/source-grounded-research/SKILL.md` requires:
+The verified upstream exposes DaVinci Resolve Studio through its official scripting API and supports editing, media-pool organization, rendering, grading, Fusion/Fairlight workflows, review markers, and media analysis.
 
-- a precise research question;
-- primary-source preference;
-- an evidence matrix;
-- contradiction/adversarial search;
-- citation and claim validation;
-- uncertainty and unresolved questions;
-- reproducibility or an independent verification step;
-- explicit separation of fact, inference, recommendation, and unknown.
+It is **not** production-enabled. The latest social post's claim about a particular frontier model driving Resolve is not accepted as evidence of an upstream-supported provider path. More importantly, the upstream security page disclosed September 2026 advisories involving safe-mode enforcement and an optional network transport. SONARA therefore keeps this at `research_only` until a pinned patched release is reviewed.
 
-That applies to market research, technical architecture, competitor analysis, security research, pricing, legal-source gathering, and scientific/engineering questions. High-stakes conclusions still need the appropriate qualified human review.
+A future experiment must use a disposable Resolve project, local stdio transport, backups, dry-run/plan-review-confirm behavior, user-owned media, and a non-destructive first action. Networked control, project deletion, plugin/script execution that bypasses safety gates, and autonomous publishing remain blocked.
 
-The upstream README advertises remote shell installation examples. SONARA does not execute those commands as part of this intake.
+### SceneFlow — evidence-oriented video iteration
 
-### Founder operations — optimize the infrastructure SONARA actually runs
+SceneFlow synchronizes script segments with video timestamps and helps reviewers compare generated footage against screenplay/prompt intent. That is a useful Creator Studio pattern because it makes prompt adherence inspectable instead of reducing review to a vague pass/fail score.
 
-KubeOpt is an interesting Kubernetes resource-observation and recommendation project. Its architecture includes a cluster agent, server/dashboard, historical usage storage, recommendations, and an optional resource-mutating path.
+SONARA should start with its own small cue/project schema and a comparison view rather than importing the full app. Remote project URLs and media require validation, and cue highlighting must not be presented as an objective quality verdict.
 
-That is not a reason to introduce Kubernetes. SONARA's current production constraints are Vercel, Supabase, Stripe, email/provider configuration, and isolated workers. The near-term business value is the principle—measure actual resource usage before recommending cost changes—not the Kubernetes dependency.
+### Lead Generation API Stack — discovery only, no license and high compliance risk
 
-If SONARA later runs Kubernetes workloads, any optimizer must start read-only and advisory. Production request/limit changes require namespace allowlists, dry-run evidence, rollback, audit logs, and explicit change-control authority. Model recommendations are suggestions, not capacity truth.
+The repository is a one-file curated directory of third-party lead/prospecting APIs and contains affiliate links. GitHub currently exposes no declared repository license. That means SONARA can use it as a discovery lead, but should not treat the repository text or code snippets as adoptable open-source material.
 
-## Unresolved visual leads
+Every candidate provider must be independently reviewed for terms, data provenance, privacy, consent, suppression/opt-out behavior, pricing, rate limits, and platform rules. Growth Studio must not turn a marketing list into indiscriminate scraping or unsolicited bulk outreach.
 
-The screenshots also contained concepts that could be described but whose exact upstream repository could not be established confidently from the available pixels:
+### SceneAI — hosted design-market reference, not an open-source dependency
 
-- an AI coding workflow emphasizing that a human keeps the merge button;
-- a compact desktop “pill” activity/status tracker;
-- an interactive browser-based 3D anatomy/visual-learning experience.
+`sceneai.art` is a commercial prompt/design library for landing-page sections, backgrounds, and related web visuals. The service itself is verifiable, but this intake did not establish an authoritative public source repository or open-source code license.
 
-These are represented as `unverified_visual_lead` records, not fake repository records. The Research Lab and founder control plane show the unresolved count and next verification step. No owner name, license, or URL is invented.
+It remains outside the executable repository catalog. SONARA may study market positioning, prompt-library organization, and design categories, but any premium prompt or asset use requires the service's license terms, and SONARA should build its own visual identity rather than copy layouts wholesale.
+
+## Previously verified in this branch
+
+Image Pipes remains an optional isolated image-processing experiment. Feynman remains a methodology reference that informed SONARA's source-grounded research skills instead of becoming a runtime dependency. KubeOpt remains dormant unless SONARA actually operates Kubernetes workloads; production today should be optimized around the infrastructure SONARA really uses.
+
+## Deduplicated screenshots
+
+HyperFrames and Browser Use Pi were shown again. They are already governed in `lib/sonara-screenshot-tool-radar.cjs` and are not duplicated here. HyperFrames remains a candidate isolated Creator Studio rendering worker; Browser Use Pi remains an authorization-bounded isolated browser-worker experiment.
+
+## Remaining unresolved/non-repository leads
+
+- **Coding-agent / keep-the-merge-button concept:** exact upstream repository still unresolved; SONARA already preserves human merge/deploy authority.
+- **Interactive 3D anatomy concept:** exact upstream and content licensing remain unresolved.
+- **SceneAI:** website verified, but retained as a hosted-service reference because no authoritative public source repository/license was established.
+
+The former “desktop pill” unresolved lead is now resolved as `pricootz/edgepilot` and has been promoted into the verified catalog.
 
 ## Cross-batch business map
 
-The two screenshot batches now form a useful technology radar rather than a pile of repositories:
-
-- **Creator Studio:** HyperFrames for isolated video-rendering research; Image Pipes for deterministic image-processing architecture.
-- **Research Lab:** Feynman-inspired source-grounded research; Litho/deepwiki-rs for codebase documentation; LangChain as an agent-pattern reference.
-- **Founder/Admin operations:** VibeRaven as a comparison cockpit; Iris as a visual-QA camera; KubeOpt as a future infrastructure-optimization reference.
-- **Business Builder/internal browser work:** Browser Use Pi as a possible isolated, authorization-bounded browser worker.
-- **Design system/public website:** QuickLiquid as selective visual-effect research, not a site-wide dependency.
-- **Security lab:** L0p4Map as authorized-lab reference only.
-- **Build resilience:** OFFPack as an offline-cache concept while pnpm remains the repository authority.
-
-The shared rule is unchanged: research value does not equal production enablement.
+- **Creator Studio:** HyperFrames for isolated rendering research; Image Pipes for image-processing architecture; SceneFlow for prompt-adherence review; DaVinci Resolve MCP for owner-workstation editing research.
+- **Research Lab:** Feynman-inspired source-grounded research; Litho/deepwiki-rs for codebase documentation; LangChain as a pattern reference.
+- **Founder/Admin operations:** EdgePilot interaction patterns, VibeRaven comparison cockpit, Iris visual-QA camera, and KubeOpt only if Kubernetes becomes real infrastructure.
+- **Business Builder / Growth Studio:** Lead Gen API Stack is provider-discovery input only, with independent compliance/terms review before any adapter.
+- **Provider Gateway/local agents:** Phi Cookbook is recipe/reference material for optional local inference experiments; it does not bypass Provider Gateway.
+- **Business Builder/internal browser work:** Browser Use Pi remains an isolated, authorization-bounded candidate.
+- **Design system/public website:** QuickLiquid and SceneAI are design research inputs, not visual identities to copy.
+- **Security lab:** L0p4Map remains authorized-lab reference only.
+- **Build resilience:** OFFPack remains an offline-cache concept while pnpm stays authoritative.
 
 ## Next implementation experiments
 
-The highest-value implementation experiments are intentionally narrow:
+The next experiments should remain narrow: benchmark one bounded Creator Studio image recipe; prototype one SONARA-owned script-to-render comparison view; evaluate a local Phi use case against Provider Gateway; inspect the current patched DaVinci MCP release in a disposable local project before any adapter work; and turn the lead-generation directory into a compliance-first provider matrix rather than an outreach bot.
 
-1. build the source-grounded research skills and use them on a real SONARA market/architecture question;
-2. benchmark a single Creator Studio image transformation recipe before adding an image-processing dependency;
-3. keep KubeOpt dormant until Kubernetes is a real operational surface;
-4. resolve the three unverified visual leads only from a direct link or readable upstream identity;
-5. do not let this research distract from the current controlled-production Stripe gate, which remains a separate launch blocker.
+None of this research should bypass the separate controlled-production Stripe gate or be represented as production enablement.
