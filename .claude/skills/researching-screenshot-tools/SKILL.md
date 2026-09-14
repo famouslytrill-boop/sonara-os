@@ -16,9 +16,11 @@ Read these first:
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH2.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH3.md`
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-14_BATCH4.md`
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
+- `lib/sonara-screenshot-tool-radar-batch4.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 
@@ -65,7 +67,7 @@ Prefer the smallest boundary that fits:
 - `optional_adapter_after_review`
 - `blocked`
 
-Desktop apps, CLIs, Chromium automation, FFmpeg renderers, OCR/document binaries, nmap/security utilities, Kubernetes optimizers, media-editor control bridges, model-routing proxies, and package managers do not belong inside the Vercel request process.
+Desktop apps, CLIs, Chromium automation, FFmpeg renderers, OCR/document binaries, nmap/security utilities, Kubernetes optimizers, media-editor control bridges, model-routing proxies, GPU runtimes, AI workspace shells, and package managers do not belong inside the Vercel request process by default.
 
 ### 5. Preserve SONARA authority
 
@@ -111,11 +113,14 @@ Tests should prove at least:
 - lead/prospecting research cannot silently become scraping or unsolicited outreach;
 - ambiguous screenshots remain source-unverified rather than receiving guessed metadata;
 - hosted/service references remain outside the executable repository catalog;
+- browser GPU features retain a non-GPU fallback and do not assume server GPU availability;
+- personal-agent memory does not silently grant identity/authority;
+- custom branding or reciprocal-license terms are not flattened into a generic open-source label;
 - any product-specific boundary that matters is explicit.
 
 A green test that cannot fail on the bad case is not evidence.
 
-## Current 2026-09-13 decisions
+## Current 2026-09-13 and 2026-09-14 decisions
 
 ### Batch 1
 
@@ -154,6 +159,16 @@ A green test that cannot fail on the bad case is not evidence.
 - **NVIDIA NeMo Switchyard** (`NVIDIA-NeMo/Switchyard`, Apache-2.0): pre-1.0 model-routing research behind Provider Gateway; standalone demo server is evaluation-only.
 - **BreachLab**, **Google Trends**, and **HackProduct**: verified hosted/service/learning references, not executable repository records.
 
+### Batch 4
+
+- **vGPU** (`vercel-labs/vgpu`, MIT): optional client-side WebGPU experiment; keep fallback, device/resource limits, accessibility, mobile performance, and no assumption of server GPU availability.
+- **Open WebUI** (`open-webui/open-webui`, custom Open WebUI License): AI-workspace benchmark only until its branding restriction and tenant/security implications are deliberately reviewed; not a casual SONARA white-label dependency.
+- **OpenShot** (`OpenShot/openshot-qt`, GPL-3.0-or-later): Creator Studio video workflow reference; no GPL source mixing without a deliberate architecture/license decision.
+- **Agent-Me** (`jzjzzzzzzz/agent-me`, MIT): personal-agent provenance/evidence reference; do not silently impersonate users, widen authority, or mix model inference with verified facts.
+- **Quarkdown** (`iamgio/quarkdown`, GPL-3.0; CLI/LSP AGPL-3.0): document/typesetting benchmark; runtime adoption is reciprocal-license gated.
+- **Generative AI Arbitrage** (`cporter202/generative-ai-arbitrage`, no declared license): provider/pricing lead directory only; independently verify provider identity, terms, model provenance, cost, retention, rights, reliability, and quality.
+- **Archify** and **three.ws** are repeated screenshot leads and remain deduplicated in Batch 3. **BreachLab** remains a hosted-service reference rather than an executable repository record.
+
 ## What not to do
 
-Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure or model-routing recommendations to mutate production automatically, let media-editor bridges perform destructive work without review, treat cookbook licenses as model licenses, mix copyleft source into proprietary production paths without review, process unbounded OCR uploads in the request process, let social automation publish without explicit authority, copy unlicensed repository material into product code, turn lead directories into indiscriminate scraping/outreach, expose local research dashboards publicly without review, or copy another product's visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
+Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure or model-routing recommendations to mutate production automatically, let media-editor bridges perform destructive work without review, treat cookbook licenses as model licenses, mix copyleft source into proprietary production paths without review, process unbounded OCR uploads in the request process, let social automation publish without explicit authority, copy unlicensed repository material into product code, turn lead directories into indiscriminate scraping/outreach, expose local research dashboards publicly without review, make WebGPU mandatory for core workflows, white-label custom-licensed software contrary to its license, let personal-agent memory imply permission to act, or copy another product's visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
