@@ -49,12 +49,13 @@
     { "kind": "security-group", "label": "Release engineering boundary", "wraps": ["github_actions", "archify", "security_gates", "release_evidence"] }
   ],
   "connections": [
-    { "from": "customer", "to": "vercel_edge", "label": "HTTPS", "variant": "emphasis" },
-    { "from": "vercel_edge", "to": "express_runtime", "label": "request", "variant": "emphasis" },
-    { "from": "express_runtime", "to": "supabase_auth", "label": "verify session", "variant": "security" },
-    { "from": "express_runtime", "to": "postgres", "label": "PostgREST / SQL", "variant": "security" },
-    { "from": "express_runtime", "to": "storage", "label": "signed/scoped file access" },
+    { "id": "customer_to_vercel_edge", "from": "customer", "to": "vercel_edge", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "vercel_edge_to_express_runtime", "from": "vercel_edge", "to": "express_runtime", "label": "request", "variant": "emphasis" },
+    { "id": "express_runtime_to_supabase_auth", "from": "express_runtime", "to": "supabase_auth", "label": "verify session", "variant": "security" },
+    { "id": "express_runtime_to_postgres", "from": "express_runtime", "to": "postgres", "label": "PostgREST / SQL", "variant": "security" },
+    { "id": "express_runtime_to_storage", "from": "express_runtime", "to": "storage", "label": "signed/scoped file access" },
     {
+      "id": "express_runtime_to_stripe",
       "from": "express_runtime",
       "to": "stripe",
       "label": "checkout API",
@@ -64,6 +65,7 @@
       "labelAt": [700, 198]
     },
     {
+      "id": "stripe_to_express_runtime",
       "from": "stripe",
       "to": "express_runtime",
       "label": "signed webhook",
@@ -74,6 +76,7 @@
       "labelAt": [820, 236]
     },
     {
+      "id": "express_runtime_to_resend",
       "from": "express_runtime",
       "to": "resend",
       "label": "approved email",
@@ -83,6 +86,7 @@
       "labelAt": [750, 362]
     },
     {
+      "id": "express_runtime_to_agent_authority",
       "from": "express_runtime",
       "to": "agent_authority",
       "label": "classify action",
@@ -93,6 +97,7 @@
       "labelAt": [850, 512]
     },
     {
+      "id": "agent_authority_to_provider_gateway",
       "from": "agent_authority",
       "to": "provider_gateway",
       "label": "approved tool/model call",
@@ -102,12 +107,14 @@
       "labelAt": [1085, 470]
     },
     {
+      "id": "github_actions_to_archify",
       "from": "github_actions",
       "to": "archify",
       "label": "validate + render",
       "labelAt": [615, 570]
     },
     {
+      "id": "github_actions_to_security_gates",
       "from": "github_actions",
       "to": "security_gates",
       "label": "run checks",
@@ -118,6 +125,7 @@
       "labelAt": [725, 525]
     },
     {
+      "id": "archify_to_release_evidence",
       "from": "archify",
       "to": "release_evidence",
       "label": "map + delta receipts",
@@ -128,6 +136,7 @@
       "labelAt": [945, 717]
     },
     {
+      "id": "security_gates_to_release_evidence",
       "from": "security_gates",
       "to": "release_evidence",
       "label": "security receipts",
@@ -135,6 +144,7 @@
       "labelAt": [1060, 570]
     },
     {
+      "id": "release_evidence_to_vercel_edge",
       "from": "release_evidence",
       "to": "vercel_edge",
       "label": "deploy gate",

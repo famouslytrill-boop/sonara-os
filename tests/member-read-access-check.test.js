@@ -58,6 +58,20 @@ describe("the member read access check", () => {
     assert.match(result.output, /Missing required environment/);
   });
 
+  it("stays out of the repository-only database gate", () => {
+    // USER_SCOPED_READS documents why this proof cannot run in ordinary CI: it
+    // needs a real production database plus a real customer's one-hour JWT.
+    // Keeping it inside verify:db made every normal CI and controlled deploy
+    // fail before the repository-only contract checks could finish.
+    const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    assert.match(packageJson.scripts["verify:db"], /verify-production-schema/);
+    assert.match(packageJson.scripts["verify:db"], /verify:supabase-contract/);
+    assert.match(packageJson.scripts["verify:db"], /verify:tenant-queries/);
+    assert.match(packageJson.scripts["verify:db"], /verify:request-tenant-ids/);
+    assert.doesNotMatch(packageJson.scripts["verify:db"], /verify:member-read-access/);
+    assert.equal(packageJson.scripts["verify:member-read-access"], "node scripts/verify-member-read-access.mjs");
+  });
+
   it("refuses a service-role key handed in as the user token", () => {
     // This is the mistake that would make every table look ready, because
     // service_role bypasses RLS entirely. It is an easy mistake: both are long

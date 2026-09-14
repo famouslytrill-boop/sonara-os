@@ -65,5 +65,4 @@ Nothing in this batch is installed or enabled by cataloging it. The production d
 - `lib/sonara-screenshot-tool-radar-batch5.cjs`
 - `lib/sonara-screenshot-tool-radar-batch6.cjs`
 - `infra/research/screenshot-tool-runtime-boundaries-2026-09-14.json`
-- `tests/screenshot-tool-radar-batch6.test.js`
 - `routes/sonara-requested-repositories-routes.cjs` exposes the latest screenshot intake through the existing Research Lab route module without changing the legacy aggregate catalog contract.
