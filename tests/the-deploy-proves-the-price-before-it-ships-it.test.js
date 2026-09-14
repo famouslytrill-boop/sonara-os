@@ -122,4 +122,27 @@ describe("the deploy proves the price before it ships it", () => {
       "the price check reads .env.production.catalog-verification, so it must run before that file is removed"
     );
   });
+
+  it("copies the already-proven production key into Vercel before database mutation and deploy", () => {
+    const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
+    const syncAt = WORKFLOW.indexOf("Synchronize verified Stripe secret to Vercel production");
+    const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
+    const deployAt = WORKFLOW.indexOf("Deploy validated source to Vercel production");
+    assert.ok(syncAt > checkAt, "Vercel must not receive the key before the live Stripe verifier proves it works");
+    assert.ok(syncAt < applyAt, "a Stripe configuration failure must happen before production database mutation");
+    assert.ok(syncAt < deployAt, "the deployment must be built after Vercel receives the verified runtime key");
+  });
+
+  it("stores the Vercel Stripe key as a sensitive production variable without printing it", () => {
+    const syncBlock = WORKFLOW.slice(
+      WORKFLOW.indexOf("Synchronize verified Stripe secret to Vercel production"),
+      WORKFLOW.indexOf("- name: Record pre-migration rollback checkpoint")
+    );
+    assert.match(syncBlock, /env add STRIPE_SECRET_KEY production/);
+    assert.match(syncBlock, /--force/);
+    assert.match(syncBlock, /--sensitive/);
+    assert.match(syncBlock, /printf '%s' "\$STRIPE_SECRET_KEY" \|/);
+    assert.doesNotMatch(syncBlock, /echo\s+"?\$STRIPE_SECRET_KEY/);
+    assert.doesNotMatch(syncBlock, /GITHUB_ENV/);
+  });
 });
