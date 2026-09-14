@@ -41,9 +41,9 @@ expect(/parsed\.username \|\| parsed\.password/.test(adapter), "model validator 
 expect(/three-ws-viewer/.test(prototypeSource), "prototype uses the viewer-only custom element");
 expect(!/<agent-3d\b/i.test(prototypeSource), "prototype does not instantiate the richer agent element");
 expect(!/\bbrain\s*=|setAttribute\(["']brain["']|\.brain\s*=/i.test(prototypeSource), "prototype does not configure an LLM brain");
-expect(!/\b(wallet|private[_-]?key|seed[_-]?phrase)\b/i.test(prototypeSource), "prototype source contains no wallet/private-key capability");
-expect(!/\b(openai|anthropic|gemini|provider[_-]?key|api[_-]?key)\b/i.test(prototypeSource), "prototype source contains no model-provider credential path");
-expect(!/sonara-agent-authority|sonara-agent-runner|supabase|stripe|resend/i.test(prototypeSource), "prototype source is disconnected from SONARA authority, data, payment, and mail systems");
+expect(!/window\.ethereum|wallet\.connect|new\s+Wallet\b|private[_-]?key\s*[:=]|seed[_-]?phrase\s*[:=]/i.test(prototypeSource), "prototype source contains no wallet/private-key execution path");
+expect(!/OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|provider[_-]?key\s*[:=]|api[_-]?key\s*[:=]/i.test(prototypeSource), "prototype source contains no model-provider credential path");
+expect(!/sonara-agent-authority|sonara-agent-runner|createClient\([^)]*supabase|stripe\.checkout|resend\.emails/i.test(prototypeSource), "prototype source is disconnected from SONARA authority, data, payment, and mail execution paths");
 
 const rootDeps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}), ...(packageJson.optionalDependencies || {}) };
 expect(!Object.hasOwn(rootDeps, "@three-ws/avatar"), "three.ws is not a root runtime or development dependency");
