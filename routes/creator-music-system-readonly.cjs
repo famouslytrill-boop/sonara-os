@@ -7,6 +7,8 @@ const {
   CREATOR_MUSIC_REQUIRED_FIELDS,
   CREATOR_MUSIC_SAFETY_RULES
 } = require("../lib/creator-music-system-config.cjs");
+const { workflowTemplates, planMediaWorkflow, buildGenerationJobs } = require("../lib/sonara-creator-media-workflows.cjs");
+const { templates: automationTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
 
 module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
@@ -16,19 +18,26 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
   const linkAction = deps.linkAction || link;
 
   app.get(CREATOR_MUSIC_ROUTES.home, access, (req, res) => {
+    const mediaTemplates = workflowTemplates();
     res.type("html").send(layout({
       title: "Music Creation System",
       eyebrow: "Creator Studio",
       heading: "Music Creation System",
-      body: "Build original music systems, song blueprints, production notes, instruction packs, release packages, quality checks, and export packages.",
+      body: "Build original music systems, song blueprints, production notes, instruction packs, release packages, quality checks, export packages, and approval-aware audio/video production workflows.",
       actions: [
         linkAction(CREATOR_MUSIC_ROUTES.createSystem, "Create system"),
         linkAction(CREATOR_MUSIC_ROUTES.songBlueprint, "Song blueprint"),
-        linkAction(CREATOR_MUSIC_ROUTES.promptPacks, "Instruction packs")
+        linkAction(CREATOR_MUSIC_ROUTES.promptPacks, "Instruction packs"),
+        linkAction("/creator-studio/generation/music", "Music generation"),
+        linkAction("/creator-studio/generation/video", "Video generation")
       ],
       sections: [
         brandCard("Original system only", "This area builds reusable original music systems without private artist-name seeds."),
         brandCard("Required music fields", CREATOR_MUSIC_REQUIRED_FIELDS.join(", ")),
+        brandCard(
+          "Production workflows",
+          `${mediaTemplates.length} provider-neutral audio/video workflow templates are available through /api/creator/workflows/templates. Planning a workflow never pretends a render happened; worker/provider steps stay marked setup required until a real adapter is configured.`
+        ),
         ...CREATOR_MUSIC_SYSTEM_TABLES.map((table) => brandCard(CREATOR_MUSIC_PUBLIC_LABELS[table] || table, "Ready for saved records."))
       ]
     }));
@@ -68,7 +77,41 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
   });
 
   app.get(CREATOR_MUSIC_ROUTES.readiness, access, (req, res) => {
-    res.json({ ok: true, tables: CREATOR_MUSIC_SYSTEM_TABLES, requiredFields: CREATOR_MUSIC_REQUIRED_FIELDS });
+    res.json({
+      ok: true,
+      tables: CREATOR_MUSIC_SYSTEM_TABLES,
+      requiredFields: CREATOR_MUSIC_REQUIRED_FIELDS,
+      mediaWorkflowTemplates: workflowTemplates().map((item) => item.key),
+      automationTemplates: automationTemplates().filter((item) => item.product === "creator_studio").map((item) => item.key)
+    });
+  });
+
+  app.get("/api/creator/workflows/templates", access, (req, res) => {
+    res.status(200).json({
+      ok: true,
+      media: workflowTemplates(),
+      automations: automationTemplates().filter((item) => item.product === "creator_studio"),
+      safeguards: {
+        arbitraryCodeAllowed: false,
+        automaticPublishing: false,
+        paidGenerationRequiresApproval: true,
+        configuredWorkerOrProviderRequiredForExecution: true
+      }
+    });
+  });
+
+  app.post("/api/creator/workflows/plan", access, (req, res) => {
+    const planned = planMediaWorkflow(req.body || {});
+    if (!planned.ok) return res.status(400).json(planned);
+    return res.status(200).json({
+      ...planned,
+      generationJobIntents: buildGenerationJobs(planned.plan)
+    });
+  });
+
+  app.post("/api/creator/automations/validate", access, (req, res) => {
+    const validated = validateWorkflow(req.body || {});
+    return res.status(validated.ok ? 200 : 400).json(validated);
   });
 };
 
