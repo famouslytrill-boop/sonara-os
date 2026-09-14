@@ -1197,7 +1197,7 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         actionCard("Business Builder", "Your offers, enquiries, customers, and payments.", [
           linkAction("/business-builder/dashboard", "Dashboard"),
           linkAction("/business-builder/tools", "Tools"),
-          linkAction("/business-builder/intake", "Intake"),
+          linkAction("/business-builder/launch-readiness", "Launch checklist"),
           linkAction("/business-builder/billing", "Billing"),
           linkAction("/business-builder/product-lifecycle", "Roadmap"),
           linkAction("/business-builder/market-intelligence", "Market intelligence")
@@ -1986,7 +1986,7 @@ function registerProduct(slug, config) {
         body: "Your company area for real setup work. Some tools unlock after setup or payment.",
         sections: [
           accessCard(req.sonaraAccess),
-          brandCard("Free tools", `Logged-in users can open: ${routes.free.map((page) => page.label).join(", ")}.`),
+          brandCard("Free tools", `Logged-in users can open: ${routes.free.filter((page) => page.visible !== false).map((page) => page.label).join(", ")}.`),
           brandCard("Paid tools", `Upgrade to use: ${routes.paid.map((page) => page.label).join(", ")}.`),
           workspaceRecordsCard(dashboard),
           workspaceActivityCard(dashboard),
@@ -2013,6 +2013,13 @@ function registerProduct(slug, config) {
   });
 
   for (const page of routes.free) {
+    if (page.redirectTo) {
+      app.get(page.path, requireWorkspaceAccess(productKey), (req, res) => {
+        const destination = `${page.redirectTo}?from=${encodeURIComponent(page.path)}`;
+        return res.redirect(303, destination);
+      });
+      continue;
+    }
     app.get(page.path, requireWorkspaceAccess(productKey), async (req, res) => {
       const records = await workspaceRecordCards(req, page, config);
       res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: false, records }));
@@ -2070,7 +2077,8 @@ function workspaceIndexCard(productKey) {
       entry.method === "GET" &&
       entry.productOwner === productKey &&
       !entry.route.includes(":") &&
-      !entry.route.startsWith("/api/")
+      !entry.route.startsWith("/api/") &&
+      entry.route !== "/business-builder/intake"
   );
   if (pages.length === 0) return brandCard("Everything in this workspace", "No pages are registered for this workspace yet.");
   const items = pages

@@ -171,3 +171,21 @@
   commercial terms, security, deliverability, consent, or operational review.
 - This is documentation and architecture guidance only; it does not claim any
   provider is configured or customer-facing.
+
+## 2026-09-14 - Direct workspace entry replaces intake in the primary path
+
+- Updated the public homepage, shared dashboard, quickstart card, Business
+  Builder landing actions, workspace actions, and workspace index so customers
+  sign up, enter a workspace, use free tools, and compare real plans without
+  being funnelled into an intake form.
+- Kept `POST /api/business-builder/intake` and its database-backed behavior for
+  compatibility with existing integrations. The authenticated GET path remains
+  reachable but redirects to the Business Builder launch checklist.
+- Added regression coverage for the direct `Start working` CTA, hidden intake
+  navigation, and the authenticated compatibility redirect.
+- Verification: build, lint, client-secret scan, route smoke, and the full test
+  suite pass (`4438 passing, 6 pending`). The integrated launch verifier reached
+  its expected protected Supabase proof boundary and stopped because this
+  checkout has no `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `SONARA_VERIFY_USER_JWT`; no deployment or
+  migration was bypassed.

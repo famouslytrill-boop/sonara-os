@@ -587,7 +587,10 @@ describe("the server.js split stays safe", () => {
       // and its dependency wiring are part of the production route surface.
       // Keep the ceiling tight and documented rather than hiding the route in
       // an untracked string patch.
-      lines <= 3874,
+      // 3874 -> 3882 on 14 September 2026: the legacy Business Builder
+      // request path now redirects to the workspace checklist, with an
+      // explicit compatibility branch and an explanatory comment.
+      lines <= 3882,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
