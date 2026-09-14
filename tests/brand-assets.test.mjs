@@ -30,8 +30,9 @@ for (const icon of manifest.icons ?? []) {
   assert.equal(existsSync(iconPath), true, `manifest icon ${icon.src} must exist`);
 }
 
+const allowedShortcutRoutes = new Set(["/business-builder", "/creator-studio", "/growth-studio", "/staff"]);
 for (const shortcut of manifest.shortcuts ?? []) {
-  assert.match(shortcut.url, /^\/(business-builder|creator-studio|growth-studio)$/);
+  assert.equal(allowedShortcutRoutes.has(shortcut.url), true, `manifest shortcut ${shortcut.url} must be an approved application route`);
   for (const icon of shortcut.icons ?? []) {
     const iconPath = join(root, "public", icon.src.replace(/^\//, ""));
     assert.equal(existsSync(iconPath), true, `shortcut icon ${icon.src} must exist`);

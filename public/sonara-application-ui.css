@@ -1483,3 +1483,101 @@ body > header .sonara-brand-copy strong {
   height: auto;
   border-radius: 6px;
 }
+
+/* Free Launch Stack ----------------------------------------------------
+ * The directory works as plain HTML first. This layout only improves scanning
+ * and keeps the controls usable when the optional filter script is unavailable. */
+.sonara-launch-stack {
+  display: grid;
+  gap: 24px;
+}
+.sonara-launch-stack__intro {
+  display: grid;
+  gap: 14px;
+  max-width: 76rem;
+}
+.sonara-launch-stack__intro h2,
+.sonara-launch-stack__intro p {
+  margin: 0;
+}
+.sonara-launch-stack__search {
+  display: grid;
+  gap: 8px;
+  max-width: 34rem;
+  color: var(--nx-text);
+  font-weight: 650;
+}
+.sonara-launch-stack__search input {
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--nx-line-strong);
+  border-radius: 6px;
+  background: var(--nx-surface);
+  color: var(--nx-ink);
+  font: inherit;
+  padding: 10px 12px;
+}
+.sonara-launch-stack__search input:focus-visible,
+.sonara-launch-stack [data-launch-stack-filter]:focus-visible {
+  outline: 3px solid var(--nx-focus);
+  outline-offset: 2px;
+}
+.sonara-launch-stack [data-launch-stack-filter][aria-pressed="true"] {
+  border-color: var(--nx-focus);
+  color: var(--nx-ink);
+}
+.sonara-launch-stack__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.sonara-launch-stack__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sonara-launch-stack__card h3,
+.sonara-launch-stack__card p {
+  margin: 0;
+}
+.sonara-launch-stack__status {
+  align-self: flex-start;
+  border: 1px solid var(--nx-line-strong);
+  border-radius: 999px;
+  color: var(--nx-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+.sonara-launch-stack__details {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.sonara-launch-stack__details div {
+  display: grid;
+  gap: 3px;
+}
+.sonara-launch-stack__details dt {
+  color: var(--nx-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.sonara-launch-stack__details dd {
+  margin: 0;
+}
+.sonara-launch-stack__card .card-actions {
+  margin-top: auto;
+}
+.sonara-launch-stack__empty {
+  margin: 0;
+  color: var(--nx-muted);
+}
+@media (max-width: 900px) {
+  .sonara-launch-stack__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .sonara-launch-stack__grid { grid-template-columns: minmax(0, 1fr); }
+  .sonara-launch-stack .card-actions { gap: 8px; }
+}

@@ -1,5 +1,22 @@
 # Current State
 
+## 2026-09-13 deterministic operations reconciliation
+
+- Latest `origin/main` baseline `f5f57ab3` and the operations/media branch were
+  reconciled into `codex/launch-reconciliation-20260906`.
+- Business Builder now has deterministic analytics, reservation-resource and
+  waitlist APIs, consent-aware location summaries, an employee PWA shortcut,
+  and approval-gated workflow planning.
+- Creator Studio now exposes truthful music/video workflow templates and plans;
+  external processing remains setup-required until a reviewed worker/provider
+  exists.
+- Provider activation now validates commercial terms, rate limits, server-only
+  secrets, organization scope, operator control, and optional-only AI.
+- A new append-only procurement migration adds owner approval and atomic audit
+  evidence. It is repository-verified but not yet claimed as applied remotely.
+- Static OpenAPI and Supabase contracts pass at 300 operations/221 paths, 118
+  migrations, 146 canonical tables, and seven private buckets.
+
 ## 2026-09-05 latest-branch release reconciliation
 
 - PR #216 merged to `main` as `7aa68a06235bfe44a1c9d5950caf34f5f0f0289c`. Its controlled deployment stopped at migration `20260819030000_member_read_policies_research_sources.sql` because the hosted legacy `customers` table has no `organization_id`; the transaction failed before Vercel deployment.

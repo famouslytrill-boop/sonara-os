@@ -145,7 +145,10 @@ const found = new Map();
 for (const relative of files) {
   const source = withoutComments(fs.readFileSync(path.join(root, relative), "utf8"));
   const matches = source.match(REQUEST_TENANT_READ);
-  if (matches && matches.length > 0) found.set(relative, matches.length);
+  // `sourceFiles()` uses the host separator for filesystem access, while the
+  // reviewed register is intentionally portable and uses POSIX separators.
+  const logicalPath = relative.replaceAll("\\", "/");
+  if (matches && matches.length > 0) found.set(logicalPath, matches.length);
 }
 
 if (found.size === 0) {

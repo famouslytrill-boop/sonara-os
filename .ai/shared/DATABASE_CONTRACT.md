@@ -2,15 +2,15 @@
 
 Owner: Codex (Agent A)
 Status: accepted repository and production baseline
-Last verified: 2026-07-18 guarded linked production migration and lint
+Last verified: 2026-09-13 repository contract; production application pending
 
 ## Canonical migration rules
 
 - `supabase/migrations/**` is append-only history. Never edit or replay a migration after it is recorded in the hosted ledger.
 - Create future migrations with the Supabase CLI, review the generated version, test locally, dry-run against the linked project, and require explicit production approval.
-- `lib/sonara-database-contract.cjs` is the canonical application inventory: three schemas, 71 tables across ten bounded groups, 10 functions, eight evidence-backed operational indexes, and seven private buckets.
+- `lib/sonara-database-contract.cjs` is the canonical application inventory: three schemas, 146 tables, 11 functions, eight evidence-backed operational indexes, and seven private buckets. Reviewed extension inventories cover Business Builder, Creator Studio, Growth Studio, calls, payments, push, lifecycle, prompts, and research tables.
 - `pnpm run verify:db` and `pnpm run verify:supabase-contract` enforce the repository contract.
-- Production now confirms all 42 repository migration versions applied. The guarded workflow verified migrations `20260718064853`, `20260718071148`, and `20260718193000` in both local and remote ledger columns and passed linked schema linting.
+- The repository contains 118 append-only migrations. The latest procurement and generated member-policy migrations have not been claimed as applied to production; a controlled migration run and hosted-ledger proof remain required.
 - Hosted project reference: `yqncsonkxgwhcxedgevk`. Credentials remain outside repository files, reports, public clients, and chat.
 
 ## Tenancy and authorization
@@ -23,6 +23,7 @@ Last verified: 2026-07-18 guarded linked production migration and lint
 - Public-schema Data API exposure is explicit and least-privileged. RLS remains enabled; anonymous helper RPC execution is prohibited.
 - `sonara_database_contract_snapshot()` is metadata-only and service-role-only.
 - Agent and automation tables remain approval-gated; schema availability does not authorize autonomous execution.
+- Migration `20260913190000_purchase_order_approval_controls.sql` adds a separate approval state to existing purchase orders and a service-only atomic transition function. It does not replace fulfillment status or grant browser execution.
 
 ## Billing-subscription compatibility
 

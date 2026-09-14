@@ -1,5 +1,17 @@
 # Test Matrix
 
+## 2026-09-13 deterministic operations and governance - passed locally
+
+- Focused tests cover analytics math, invalid periods, privacy-reduced mapping,
+  allowlisted automation, approval-required actions, truthful Creator media
+  plans, provider activation governance, procurement roles, tenant resolution,
+  atomic RPC use, migration permissions, and status-edit bypass prevention.
+- `pnpm run verify:api` passes with 300 operations across 221 paths.
+- `pnpm run verify:db` passes with 118 repository migrations, 146 canonical
+  tables, eight operational indexes, and seven private buckets.
+- Hosted migration application, authenticated cross-tenant checks, media worker
+  execution, and outbound provider actions remain production evidence gates.
+
 Updated: 2026-07-19 by Codex (Agent A)
 
 ## Production connectivity hardening — passed

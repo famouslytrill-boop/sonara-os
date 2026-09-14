@@ -107,6 +107,11 @@ const NO_FORM_NEEDED = {
   // default status is manual_required rather than queued for the same reason --
   // a row that says "queued" claims a worker this system does not have.
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
+  "/api/business/reservation-resources": "Resource creation is intentionally a JSON workflow for an authenticated Business Builder manager surface; the reservation page consumes the saved resource rows.",
+  "/api/business/waitlist": "Waitlist creation is intentionally a JSON workflow for an authenticated reservation interface; a generic public form would create requests without a business context.",
+  "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
+  "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
+  "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
   // Examined. This one creates nothing at all -- it fetches the text of a page
   // so it does not have to be pasted, and returns it. The create-shaped scan
   // matches it on the POST, which is the right default and the wrong answer

@@ -1,18 +1,5 @@
 "use strict";
 
-// `routes/free-launch-stack-routes.cjs` is a complete page that nobody can reach.
-//
-// It registers `GET /free-launch-stack`, it is 34 lines of finished markup, and
-// requesting that path from the real Express app returns **404**. It has never
-// been mounted in `server.js` on this branch's history, no test names it, and no
-// document or registry claims it works.
-//
-// So nothing here is lying about it -- and that is the whole problem. Nothing
-// would have noticed. What exists instead is
-// `scripts/wire-free-launch-stack-local.cjs`, a script that string-replaces
-// `server.js` to add the mount: a manual wiring step somebody wrote down and
-// nobody ran.
-//
 // This is the general form of shape 8 in `.claude/skills/checks-that-cannot-lie`
 // -- registering something with a system that is not the one in use produces no
 // error and no effect. There it was a test file registering with a runner that
@@ -30,17 +17,6 @@
 // exactly as a module that becomes unreachable without an entry fails. So being
 // listed here cannot be what makes a module look accounted for.
 //
-// ## Why this does not simply mount it
-//
-// Mounting adds a public page to a product whose public surface is a decision
-// the owner makes, not a decision a passing check makes. `AGENTS.md` is explicit
-// about what public screens have to be. The honest move is to make the choice
-// visible rather than to take it.
-//
-// Broken and confirmed red before committing: an orphan removed from the
-// register; a register entry pointed at a module that *is* mounted; and the
-// module list emptied.
-
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -49,15 +25,8 @@ const request = require("supertest");
 const root = path.join(__dirname, "..");
 const app = require("../server.js");
 
-// A route module the application deliberately does not mount, and why.
-const NOT_MOUNTED = new Map([
-  [
-    "free-launch-stack-routes.cjs",
-    "A free-tools directory page. Never mounted on this branch's history, no test names it, " +
-      "and nothing claims it works. Mounting it publishes a public page, which is the owner's " +
-      "call; scripts/wire-free-launch-stack-local.cjs patches server.js to do it."
-  ]
-]);
+// Every route module is deliberately mounted in the production application.
+const NOT_MOUNTED = new Map();
 
 /** `require("./routes/x.cjs")` and `require("./x.cjs")`, from one file's source. */
 function requiredModules(file) {
@@ -132,5 +101,12 @@ describe("a route module nobody mounts serves nobody", () => {
         );
       }
     }
+  });
+
+  it("serves the approved Free Launch Stack", async () => {
+    const response = await request(app).get("/free-launch-stack");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /Build a useful business system/);
+    assert.match(response.text, /data-launch-stack/);
   });
 });
