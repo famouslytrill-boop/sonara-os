@@ -10,10 +10,10 @@ Turn an external-tool lead into a verified SONARA decision without importing unk
 
 1. **Identify the real upstream.** Resolve the exact `owner/repository`. Do not guess from a screenshot. If identity is uncertain, stop at `unverified` rather than manufacturing a URL.
 2. **Verify current facts.** Read repository metadata, README, license, release/activity state, runtime/language, security/advisory state when relevant, and the smallest relevant source/config files. Social copy is not evidence.
-3. **Classify the capability.** Choose the narrowest placement: reference only, local developer tool, documentation worker, browser worker, media worker, security lab, optional adapter, or blocked.
-4. **Check legal and commercial boundaries.** Verify the actual license file, not a badge. Separate code license from model weights, templates, media, datasets, fonts, API/service terms, and affiliate/vendor claims. A public repository without a license is not automatically open source.
-5. **Check security boundaries.** List secrets, filesystem access, network egress, shell execution, browser control, telemetry, customer-data access, tenant isolation, destructive actions, and current security advisories.
-6. **Compare against what SONARA already has.** Do not add a framework, package manager, agent cockpit, desktop runtime, or UI dependency merely because it is popular. State the measured gap it would close.
+3. **Classify the capability.** Choose the narrowest placement: reference only, local developer tool, documentation worker, browser worker, media worker, document worker, security lab, provider-routing experiment, optional adapter, or blocked.
+4. **Check legal and commercial boundaries.** Verify the actual license file, not a badge. Separate code license from model weights, templates, media, generated assets, datasets, fonts, API/service terms, social-platform terms, and affiliate/vendor claims. A public repository without a license is not automatically open source.
+5. **Check security boundaries.** List secrets, filesystem access, network egress, shell execution, browser control, telemetry, customer-data access, tenant isolation, destructive actions, resource exhaustion, and current security advisories.
+6. **Compare against what SONARA already has.** Do not add a framework, package manager, agent cockpit, desktop runtime, social suite, model router, or UI dependency merely because it is popular. State the measured gap it would close.
 7. **Write the decision into the product.** Add or update the governed research catalog used by `/research-lab/requested-repositories` and the founder readiness page. Keep `enabledInProduction: false` until a separate implementation review is complete.
 8. **Create tests that cannot lie.** Assert non-execution, authorization boundaries, and any important incompatibility. A check must be proven capable of failing on bad input before its green state is trusted.
 9. **Update durable context.** Add the dated research note and, when the repository reaches full adoption review, promote it into the formal open-source register and generated integration map.
@@ -27,9 +27,11 @@ For evidence-sensitive research beyond repository intake, also use `.ai/shared/S
 - No secrets are copied into source, prompts, screenshots, issue bodies, or research notes.
 - Browser automation is limited to user-authorized destinations and must not defeat access controls or bot protections.
 - Security tooling is limited to systems SONARA owns or has explicit authorization to assess.
-- Media workers receive only user-owned/licensed content and run with resource and egress limits.
+- Media and document workers receive only user-owned/licensed content and run with file, resource, time, and egress limits.
 - Lead/prospecting tools require independent terms, privacy, provenance, consent, suppression/opt-out, and anti-abuse review before any provider adapter or campaign automation.
+- Social publishing requires per-provider credential isolation, platform-term review, user authorization, and explicit approval for customer-impacting actions.
 - Public source with no declared license remains reference-only unless the owner grants suitable rights.
+- Copyleft licenses are architecture decisions, not small implementation details; do not mix covered source into SONARA without explicit review.
 - `pnpm` remains the package-manager authority for this repository.
 - Provider Gateway remains the AI-provider boundary unless an explicit architecture change is approved.
 - Refunds, payouts, legal/policy publishing, customer campaigns, review/proof publishing, security-setting changes, and destructive data actions still require owner approval through the agent authority system.
@@ -63,6 +65,17 @@ The expanded second 2026-09-13 batch is documented in `docs/research/SCREENSHOT_
 - SceneAI: verified hosted design/prompt service reference, not an open-source repository record.
 - HyperFrames and Browser Use Pi appeared again and are deliberately deduplicated rather than counted twice.
 - The coding-agent merge-button concept and interactive 3D anatomy concept remain unresolved visual leads until an exact upstream is established.
+
+The third 2026-09-13 batch is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH3.md` and represented in `lib/sonara-screenshot-tool-radar-batch3.cjs`.
+
+- OCRmyPDF: promising isolated document-OCR worker; MPL-2.0 and untrusted-file/resource boundaries require review.
+- Archify: development-only source-grounded architecture/diagram skill candidate.
+- three.ws: Creator Studio 3D reference; repository license is separate from generated-asset, provider, dataset, wallet, and on-chain rights.
+- OpenPost: strong Growth/Creator feature benchmark, but AGPL-3.0 makes code adoption a deliberate architecture/license decision.
+- Uiverse Galaxy: selective MIT design-component reference; never bulk-import the community archive.
+- OpenResearch: local research-harness candidate; parallel agents do not replace evidence verification.
+- NVIDIA NeMo Switchyard: pre-1.0 model-routing research behind Provider Gateway; standalone demo server is not production-ready.
+- BreachLab, Google Trends, and HackProduct are hosted/service/learning references rather than executable repository records.
 
 ## Output format for future intakes
 
