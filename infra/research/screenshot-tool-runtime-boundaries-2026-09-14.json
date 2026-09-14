@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-14",
+  "purpose": "Infrastructure placement and default-deny runtime policy for screenshot-led external-tool research batches 5 and 6.",
+  "defaultPolicy": {
+    "enabledInProduction": false,
+    "productionSecretsAllowed": false,
+    "customerDataAllowed": false,
+    "automaticExternalActionsAllowed": false,
+    "ownerApprovalRequiredForAdoption": true
+  },
+  "runtimeBoundaries": {
+    "hosted_request_process": {
+      "allowed": [],
+      "rule": "No screenshot-led third-party desktop app, CLI, agent framework, media renderer, proxy client, OSINT tool, or recovery toolkit executes in the Vercel request process."
+    },
+    "browser_progressive_enhancement": {
+      "candidates": ["diagram_design"],
+      "rule": "Only sanitized, bounded, feature-detected rendering may reach the browser; secrets and cross-tenant data are prohibited."
+    },
+    "desktop_companion": {
+      "candidates": ["recordly", "android_mic", "clash_verge_rev"],
+      "rule": "Requires explicit local user control, signed builds, permission indicators, update policy, rollback, and no silent telemetry or capture."
+    },
+    "isolated_worker": {
+      "candidates": ["anything2explainer", "recordly"],
+      "rule": "Media/browser/subprocess workloads require bounded CPU, memory, disk, network, input validation, tenant isolation, and job-level audit logs."
+    },
+    "developer_workstation_or_ci": {
+      "candidates": ["terrain", "aio_usb_drive"],
+      "rule": "Developer/recovery tooling stays outside customer runtime; dry-run or operator confirmation is required before workstation mutation."
+    },
+    "research_only": {
+      "candidates": ["social_analyzer", "maybe_finance", "clash_verge_rev", "trading_agents", "revealer_us_service_reference", "openai_agents_platform_reference"],
+      "rule": "Architecture, UX, vendor, or orchestration reference only until a separate approved implementation changes status."
+    },
+    "presentation_preference": {
+      "candidates": ["i_have_adhd"],
+      "rule": "May influence response formatting only after review; cannot diagnose, infer, or store a medical condition."
+    },
+    "growth_control_plane": {
+      "candidates": ["claude_ads"],
+      "rule": "Read-only audits first. Platform writes require explicit account authorization, before/after diff, blast-radius review, owner approval, idempotency, audit logging, rollback, and verification."
+    }
+  },
+  "legalAndSafetyGates": {
+    "reciprocalOrRestrictiveLicense": [
+      "social_analyzer",
+      "maybe_finance",
+      "recordly",
+      "android_mic",
+      "clash_verge_rev",
+      "anything2explainer"
+    ],
+    "privacyOrOsintRestricted": ["social_analyzer", "revealer_us_service_reference"],
+    "regulatedFinancialScopeRestricted": ["trading_agents", "maybe_finance"],
+    "captureConsentRequired": ["recordly", "android_mic"],
+    "networkAbuseBoundary": ["clash_verge_rev"],
+    "healthInferenceProhibited": ["i_have_adhd"]
+  },
+  "productRouting": {
+    "Business Builder": ["maybe_finance", "aio_usb_drive", "diagram_design"],
+    "Creator Studio": ["recordly", "android_mic", "diagram_design", "anything2explainer"],
+    "Growth Studio": ["social_analyzer", "claude_ads"],
+    "SONARA One / Shared Platform": ["i_have_adhd", "terrain", "trading_agents", "openai_agents_platform_reference"],
+    "Secure Compute / Internal Development": ["clash_verge_rev"],
+    "Research Lab vendor references": ["revealer_us_service_reference"]
+  }
+}
