@@ -8,7 +8,9 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const output = resolveOutput(process.argv.slice(2));
+const args = process.argv.slice(2);
+const output = resolveOutput(args);
+const context = resolveContext(args);
 
 const EVIDENCE = [
   {
@@ -71,7 +73,7 @@ const EVIDENCE = [
 ];
 
 const trackedFiles = gitLines(["ls-files"]);
-const changedFiles = resolveChangedFiles();
+const changedFiles = resolveChangedFiles(context.baseBranch);
 const evidence = EVIDENCE.map((entry) => ({
   ...entry,
   files: entry.paths.map((relativePath) => inspectPath(relativePath)),
@@ -87,10 +89,10 @@ const report = {
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
   repository: {
-    name: process.env.GITHUB_REPOSITORY || "famouslytrill-boop/sonara-os",
-    commitSha: process.env.GITHUB_SHA || gitOne(["rev-parse", "HEAD"]),
-    branch: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || gitOne(["rev-parse", "--abbrev-ref", "HEAD"]),
-    baseBranch: process.env.GITHUB_BASE_REF || null,
+    name: context.repository,
+    commitSha: context.commitSha,
+    branch: context.branch,
+    baseBranch: context.baseBranch,
     trackedFileCount: trackedFiles.length,
     changedFileCount: changedFiles.length,
     changedFiles
@@ -113,34 +115,51 @@ fs.mkdirSync(path.dirname(output), { recursive: true });
 fs.writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({ ok: true, output: path.relative(root, output), trackedFiles: trackedFiles.length, changedFiles: changedFiles.length }));
 
-function resolveOutput(args) {
-  const inline = args.find((arg) => arg.startsWith("--output="));
-  const index = args.indexOf("--output");
-  const value = inline?.slice("--output=".length) || (index >= 0 ? args[index + 1] : "artifacts/engineering/repository-analysis.json");
+function readArg(name, fallback = null) {
+  const prefix = name + "=";
+  const inline = args.find((arg) => arg.startsWith(prefix));
+  if (inline) return inline.slice(prefix.length);
+  const index = args.indexOf(name);
+  return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
+}
+
+function resolveOutput(cliArgs) {
+  const inline = cliArgs.find((arg) => arg.startsWith("--output="));
+  const index = cliArgs.indexOf("--output");
+  const value = inline?.slice("--output=".length) || (index >= 0 ? cliArgs[index + 1] : "artifacts/engineering/repository-analysis.json");
   return path.resolve(root, value);
 }
 
-function gitOne(args) {
+function resolveContext() {
+  return {
+    repository: readArg("--repository", "famouslytrill-boop/sonara-os"),
+    commitSha: readArg("--commit-sha", gitOne(["rev-parse", "HEAD"])),
+    branch: readArg("--branch", gitOne(["rev-parse", "--abbrev-ref", "HEAD"])),
+    baseBranch: readArg("--base-branch", null)
+  };
+}
+
+function gitOne(gitArgs) {
   try {
-    return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return execFileSync("git", gitArgs, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   } catch {
     return null;
   }
 }
 
-function gitLines(args) {
-  const value = gitOne(args);
+function gitLines(gitArgs) {
+  const value = gitOne(gitArgs);
   return value ? value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
 }
 
-function resolveChangedFiles() {
-  const base = String(process.env.GITHUB_BASE_REF || "").trim();
+function resolveChangedFiles(baseBranch) {
+  const base = String(baseBranch || "").trim();
   if (base) {
-    const mergeBase = gitOne(["merge-base", `origin/${base}`, "HEAD"]);
-    if (mergeBase) return gitLines(["diff", "--name-only", `${mergeBase}...HEAD"]);
+    const mergeBase = gitOne(["merge-base", "origin/" + base, "HEAD"]);
+    if (mergeBase) return gitLines(["diff", "--name-only", mergeBase + "...HEAD"]);
   }
   const parent = gitOne(["rev-parse", "HEAD^"]);
-  return parent ? gitLines(["diff", "--name-only", `${parent}...HEAD`]) : [];
+  return parent ? gitLines(["diff", "--name-only", parent + "...HEAD"]) : [];
 }
 
 function inspectPath(relativePath) {

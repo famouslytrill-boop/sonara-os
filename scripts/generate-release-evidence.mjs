@@ -18,22 +18,22 @@ const sourceRoot = path.resolve(root, readArg("--source", "artifacts"));
 const outputRoot = path.resolve(root, readArg("--output-dir", "artifacts/release-evidence"));
 
 const checks = [
-  check("codeql", "CodeQL SAST", process.env.SONARA_CODEQL_STATUS, []),
-  check("build", "Server build", process.env.SONARA_BUILD_STATUS, ["engineering/build.log"]),
-  check("lint", "Static lint", process.env.SONARA_LINT_STATUS, ["engineering/lint.log"]),
-  check("architecture", "Archify map + architecture delta", process.env.SONARA_ARCHITECTURE_STATUS, [
+  check("codeql", "CodeQL SAST", readArg("--codeql-status"), []),
+  check("build", "Server build", readArg("--build-status"), ["engineering/build.log"]),
+  check("lint", "Static lint", readArg("--lint-status"), ["engineering/lint.log"]),
+  check("architecture", "Archify map + architecture delta", readArg("--architecture-status"), [
     "engineering/repository-analysis.json",
     "engineering/archify-validate.json",
     "engineering/architecture-delta.json",
     "engineering/sonara-platform.html",
     "engineering/architecture-delta.html"
   ]),
-  check("tenant_adversarial", "Tenant isolation + adversarial application tests", process.env.SONARA_TENANT_STATUS, [
+  check("tenant_adversarial", "Tenant isolation + adversarial application tests", readArg("--tenant-status"), [
     "security/tenant-adversarial.json"
   ]),
-  check("rls", "RLS and tenant query contracts", process.env.SONARA_RLS_STATUS, ["security/rls-contract.log"]),
-  check("dependencies", "Dependency vulnerability audit", process.env.SONARA_DEPENDENCY_STATUS, ["security/dependency-audit.json"]),
-  check("secrets", "Client secret exposure scan", process.env.SONARA_SECRET_STATUS, ["security/secret-scan.log"])
+  check("rls", "RLS contract + tenant query verification", readArg("--rls-status"), ["security/rls-contract.log"]),
+  check("dependencies", "Dependency vulnerability audit", readArg("--dependency-status"), ["security/dependency-audit.json"]),
+  check("secrets", "Client secret exposure scan", readArg("--secret-status"), ["security/secret-scan.log"])
 ];
 
 const artifactPaths = [...new Set(checks.flatMap((entry) => entry.artifacts))];
@@ -45,12 +45,12 @@ const overall = failedChecks.length === 0 && missingArtifacts.length === 0 ? "pa
 const manifest = {
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
-  repository: process.env.GITHUB_REPOSITORY || "famouslytrill-boop/sonara-os",
-  commitSha: process.env.GITHUB_SHA || null,
-  ref: process.env.GITHUB_REF || null,
-  eventName: process.env.GITHUB_EVENT_NAME || null,
-  runId: process.env.GITHUB_RUN_ID || null,
-  runAttempt: process.env.GITHUB_RUN_ATTEMPT || null,
+  repository: readArg("--repository", "famouslytrill-boop/sonara-os"),
+  commitSha: readArg("--commit-sha"),
+  ref: readArg("--ref"),
+  eventName: readArg("--event-name"),
+  runId: readArg("--run-id"),
+  runAttempt: readArg("--run-attempt"),
   overall,
   checks,
   failedChecks,
@@ -66,9 +66,10 @@ fs.writeFileSync(jsonPath, `${JSON.stringify(manifest, null, 2)}\n`);
 fs.writeFileSync(markdownPath, renderMarkdown(manifest));
 console.log(JSON.stringify({ ok: overall === "pass", overall, manifest: path.relative(root, jsonPath), evidenceDigest: manifest.evidenceDigest }));
 
-function readArg(name, fallback) {
-  const inline = args.find((arg) => arg.startsWith(`${name}=`));
-  if (inline) return inline.slice(name.length + 1);
+function readArg(name, fallback = null) {
+  const prefix = name + "=";
+  const inline = args.find((arg) => arg.startsWith(prefix));
+  if (inline) return inline.slice(prefix.length);
   const index = args.indexOf(name);
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 }

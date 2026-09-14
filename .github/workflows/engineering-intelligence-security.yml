@@ -85,7 +85,15 @@ jobs:
       - name: Analyze repository evidence
         id: repository_analysis
         continue-on-error: true
-        run: node scripts/generate-engineering-intelligence.mjs --output artifacts/engineering/repository-analysis.json
+        shell: bash
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          node scripts/generate-engineering-intelligence.mjs \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --branch "${branch}" \
+            --base-branch "${GITHUB_BASE_REF:-}" \
+            --output artifacts/engineering/repository-analysis.json
 
       # Archify is not installed into the product. CI reads one exact upstream
       # revision and runs it with update checks disabled, keeping it a developer
@@ -112,22 +120,36 @@ jobs:
           cli=.tools/archify/archify/bin/archify.mjs
           test -f "$cli"
 
-          node "$cli" validate architecture architecture/sonara-platform.architecture.json --json \
-            > artifacts/engineering/archify-validate.json
+          # Release CI uses Archify's standard composition gate. The authored
+          # diagram can retain showcase quality for visual-polish work without
+          # turning cosmetic routing constraints into a release blocker.
+          node "$cli" validate architecture architecture/sonara-platform.architecture.json \
+            --quality standard --json > artifacts/engineering/archify-validate.json
           node "$cli" render architecture architecture/sonara-platform.architecture.json \
-            artifacts/engineering/sonara-platform.html
+            artifacts/engineering/sonara-platform.html --quality standard
 
-          base_ref="${GITHUB_BASE_REF:-main}"
-          if ! git show "origin/${base_ref}:architecture/sonara-platform.architecture.json" \
+          # A PR compares against its actual merge base. A push to main compares
+          # against the previous commit rather than origin/main (which already
+          # points at the pushed commit and would create a meaningless zero delta).
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" && -n "${GITHUB_BASE_REF:-}" ]]; then
+            base_revision="$(git merge-base "origin/${GITHUB_BASE_REF}" HEAD)"
+          else
+            base_revision="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+
+          if ! git show "${base_revision}:architecture/sonara-platform.architecture.json" \
             > /tmp/sonara-platform.base.architecture.json 2>/dev/null; then
             cp architecture/sonara-platform.architecture.json /tmp/sonara-platform.base.architecture.json
           fi
 
+          # Archify owns both outputs explicitly: the positional output is the
+          # HTML delta and --receipt is the machine-readable JSON receipt.
           node "$cli" compare architecture \
             /tmp/sonara-platform.base.architecture.json \
             architecture/sonara-platform.architecture.json \
-            artifacts/engineering/architecture-delta.html --json \
-            > artifacts/engineering/architecture-delta.json
+            artifacts/engineering/architecture-delta.html \
+            --quality standard \
+            --receipt artifacts/engineering/architecture-delta.json
 
       - name: Run tenant-isolation and adversarial application tests
         id: tenant
@@ -139,7 +161,7 @@ jobs:
           pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
             > artifacts/security/tenant-adversarial.json
 
-      - name: Verify RLS and tenant query contracts
+      - name: Verify RLS contracts and tenant query safety
         id: rls
         continue-on-error: true
         shell: bash
@@ -147,9 +169,11 @@ jobs:
           mkdir -p artifacts/security
           set -o pipefail
           {
-            pnpm run verify:member-read-access
+            pnpm run verify:member-policies
+            pnpm run verify:tenant-tables
             pnpm run verify:tenant-queries
             pnpm run verify:request-tenant-ids
+            pnpm exec mocha tests/member-read-access-check.test.js --reporter spec
           } 2>&1 | tee artifacts/security/rls-contract.log
 
       - name: Audit dependency vulnerabilities
@@ -181,20 +205,31 @@ jobs:
           pnpm run scan:client-secrets 2>&1 | tee artifacts/security/secret-scan.log
 
       # This runs even after a failed gate so a red build still produces an
-      # inspectable receipt instead of only an exit code.
+      # inspectable receipt instead of only an exit code. GitHub context and
+      # step outcomes are explicit inputs rather than application environment
+      # variables, so the production env-classification gate remains honest.
       - name: Generate release evidence manifest
         id: release_evidence
         if: always()
-        env:
-          SONARA_CODEQL_STATUS: ${{ steps.codeql_analyze.outcome }}
-          SONARA_BUILD_STATUS: ${{ steps.build.outcome }}
-          SONARA_LINT_STATUS: ${{ steps.lint.outcome }}
-          SONARA_ARCHITECTURE_STATUS: ${{ steps.architecture.outcome }}
-          SONARA_TENANT_STATUS: ${{ steps.tenant.outcome }}
-          SONARA_RLS_STATUS: ${{ steps.rls.outcome }}
-          SONARA_DEPENDENCY_STATUS: ${{ steps.dependencies.outcome }}
-          SONARA_SECRET_STATUS: ${{ steps.secrets.outcome }}
-        run: node scripts/generate-release-evidence.mjs --source artifacts --output-dir artifacts/release-evidence
+        shell: bash
+        run: |
+          node scripts/generate-release-evidence.mjs \
+            --source artifacts \
+            --output-dir artifacts/release-evidence \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --ref "${GITHUB_REF}" \
+            --event-name "${GITHUB_EVENT_NAME}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --codeql-status "${{ steps.codeql_analyze.outcome }}" \
+            --build-status "${{ steps.build.outcome }}" \
+            --lint-status "${{ steps.lint.outcome }}" \
+            --architecture-status "${{ steps.architecture.outcome }}" \
+            --tenant-status "${{ steps.tenant.outcome }}" \
+            --rls-status "${{ steps.rls.outcome }}" \
+            --dependency-status "${{ steps.dependencies.outcome }}" \
+            --secret-status "${{ steps.secrets.outcome }}"
 
       - name: Upload release evidence
         if: always()
