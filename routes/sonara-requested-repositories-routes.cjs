@@ -22,6 +22,15 @@ const {
   getPublicScreenshotToolCatalogBatch4,
   getScreenshotToolReadinessBatch4
 } = require("../lib/sonara-screenshot-tool-radar-batch4.cjs");
+const {
+  getPublicScreenshotToolCatalogBatch5,
+  getScreenshotToolReadinessBatch5
+} = require("../lib/sonara-screenshot-tool-radar-batch5.cjs");
+const {
+  getPublicScreenshotToolCatalogBatch6,
+  getScreenshotToolReadinessBatch6,
+  getNonRepositoryReferencesBatch6
+} = require("../lib/sonara-screenshot-tool-radar-batch6.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -61,6 +70,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
+      brandCard("Latest screenshot intake", "The 2026-09-14 Batch 5 and Batch 6 research is available on a dedicated governed page so new evidence can be reviewed without silently changing the legacy aggregate API contract."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items were verified as hosted services or learning references and intentionally kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -86,7 +96,39 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       body: "Verified repository identities, intended SONARA placement, license posture, safety boundaries, staged next actions, hosted-service references, and explicitly unresolved screenshot leads.",
       sections,
       actions: [
+        linkAction("/research-lab/latest-screenshot-intake", "Latest screenshot intake"),
         linkAction("/api/ecosystem/requested-repositories", "Catalog JSON"),
+        linkAction("/research-lab/open-source", "Open-source research"),
+        linkAction("/", "SONARA home")
+      ]
+    }));
+  });
+
+  app.get("/research-lab/latest-screenshot-intake", (req, res) => {
+    const latest = getLatestScreenshotIntake();
+    const sections = [
+      brandCard("Verified repository records", `${latest.repositories.length} Batch 5 and Batch 6 repositories are classified for product fit, license risk, runtime boundary, and staged next action.`),
+      brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
+      brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were already represented in earlier governed records and were not duplicated.`),
+      brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging is not installation, deployment, or permission to send customer data."),
+      ...latest.nonRepositoryReferences.map((item) => brandCard(
+        `${item.label}: reference only`,
+        `${item.observedTheme || item.status}. ${item.reason || item.correction || "Hosted/platform reference only."} Next: ${item.nextStep}`
+      )),
+      ...latest.repositories.map((item) => brandCard(
+        `${item.label}: ${display(item.integrationStatus)}`,
+        publicSummary(item)
+      ))
+    ];
+
+    res.status(200).type("html").send(layout({
+      title: "Latest screenshot research",
+      eyebrow: "Research Lab",
+      heading: "2026-09-14 governed screenshot intake",
+      body: "Batch 5 and Batch 6 preserve useful product and infrastructure ideas while keeping reciprocal licenses, privacy-sensitive OSINT, financial trading, capture permissions, desktop-only runtimes, and hosted services behind explicit review boundaries.",
+      sections,
+      actions: [
+        linkAction("/research-lab/requested-repositories", "Repository intake"),
         linkAction("/research-lab/open-source", "Open-source research"),
         linkAction("/", "SONARA home")
       ]
@@ -104,6 +146,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
+      brandCard("Latest screenshot intake", "Batch 5 and Batch 6 have a separate founder review surface so their current disabled state and newer safety boundaries are visible without changing the legacy aggregate readiness contract."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license are verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
@@ -129,6 +172,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       body: "Static readiness and governance state. This page never executes external code or reveals credentials.",
       sections,
       actions: [
+        linkAction("/admin/latest-screenshot-intake", "Latest screenshot readiness"),
         linkAction("/api/admin/requested-repositories/readiness", "Readiness JSON"),
         linkAction("/api/ecosystem/requested-repositories", "Public catalog JSON"),
         linkAction("/admin/ai-integrations", "AI integrations"),
@@ -136,7 +180,51 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       ]
     }));
   });
+
+  app.get("/admin/latest-screenshot-intake", requireAdmin, async (req, res) => {
+    await recordAdminAuditEvent(req, "admin.latest_screenshot_intake.view", { path: req.path });
+    const latest = getLatestScreenshotIntake();
+    const sections = [
+      brandCard("Latest governed intake", `${latest.repositories.length} repositories and ${latest.nonRepositoryReferences.length} hosted/platform references are represented across Batch 5 and Batch 6.`),
+      brandCard("Production execution", "0 enabled. Every latest-intake repository remains cataloged-disabled and requires human review before implementation."),
+      brandCard("Runtime boundaries", "Desktop capture/audio/networking stays on reviewed local companions; media rendering stays in isolated workers; OSINT and financial-trading projects stay research-only; diagram rendering must sanitize structured inputs."),
+      ...latest.repositories.map((item) => brandCard(
+        `${item.label}: ${display(item.configurationStatus)}`,
+        adminSummary(item)
+      )),
+      ...latest.nonRepositoryReferences.map((item) => brandCard(
+        `${item.label}: reference only`,
+        `${item.reason || item.correction || item.observedTheme}. Next: ${item.nextStep}`
+      ))
+    ];
+
+    res.status(200).type("html").send(layout({
+      title: "Latest screenshot readiness",
+      eyebrow: "Founder operations",
+      heading: "2026-09-14 external-tool review",
+      body: "Founder-facing readiness for the newest screenshot research. This surface is informational and never executes third-party code.",
+      sections,
+      actions: [
+        linkAction("/research-lab/latest-screenshot-intake", "Public research view"),
+        linkAction("/admin/requested-repositories", "All repository readiness"),
+        linkAction("/admin/ecosystem", "Ecosystem")
+      ]
+    }));
+  });
 };
+
+function getLatestScreenshotIntake() {
+  const batch5 = getScreenshotToolReadinessBatch5();
+  const batch6 = getScreenshotToolReadinessBatch6();
+  return {
+    repositories: [...batch5.repositories, ...batch6.repositories],
+    nonRepositoryReferences: [
+      ...(batch5.nonRepositoryReferences || []),
+      ...getNonRepositoryReferencesBatch6()
+    ],
+    deduplicatedReferences: batch5.deduplicatedReferences || []
+  };
+}
 
 function getCombinedPublicCatalog() {
   return [
