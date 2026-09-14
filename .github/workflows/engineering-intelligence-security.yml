@@ -1,0 +1,212 @@
+name: Engineering Intelligence and Security Evidence
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: engineering-intelligence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evidence:
+    name: Architecture, SAST, tenant isolation, and release evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout SONARA with history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # setup-node can cache pnpm only after the pnpm executable exists on PATH.
+      # This mirrors the order used by the established SONARA workflows.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      # GitHub CodeQL is the SAST layer. It is intentionally a release signal,
+      # not an agent permission source: findings can block a release but can
+      # never grant an agent more authority.
+      - name: Initialize CodeQL
+        id: codeql_init
+        continue-on-error: true
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Build server for CodeQL and release evidence
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/engineering
+          set -o pipefail
+          pnpm run build 2>&1 | tee artifacts/engineering/build.log
+
+      - name: Analyze JavaScript with CodeQL
+        id: codeql_analyze
+        continue-on-error: true
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
+
+      - name: Run static lint
+        id: lint
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/engineering
+          set -o pipefail
+          pnpm run lint 2>&1 | tee artifacts/engineering/lint.log
+
+      - name: Analyze repository evidence
+        id: repository_analysis
+        continue-on-error: true
+        run: node scripts/generate-engineering-intelligence.mjs --output artifacts/engineering/repository-analysis.json
+
+      # Archify is not installed into the product. CI reads one exact upstream
+      # revision and runs it with update checks disabled, keeping it a developer
+      # tool rather than a production/runtime dependency.
+      - name: Checkout pinned Archify tool
+        id: archify_checkout
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          repository: tt-a1i/archify
+          ref: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
+          path: .tools/archify
+          fetch-depth: 1
+
+      - name: Validate system map and architecture delta
+        id: architecture
+        continue-on-error: true
+        shell: bash
+        env:
+          ARCHIFY_UPDATE_CHECK_DISABLED: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/engineering
+          cli=.tools/archify/archify/bin/archify.mjs
+          test -f "$cli"
+
+          node "$cli" validate architecture architecture/sonara-platform.architecture.json --json \
+            > artifacts/engineering/archify-validate.json
+          node "$cli" render architecture architecture/sonara-platform.architecture.json \
+            artifacts/engineering/sonara-platform.html
+
+          base_ref="${GITHUB_BASE_REF:-main}"
+          if ! git show "origin/${base_ref}:architecture/sonara-platform.architecture.json" \
+            > /tmp/sonara-platform.base.architecture.json 2>/dev/null; then
+            cp architecture/sonara-platform.architecture.json /tmp/sonara-platform.base.architecture.json
+          fi
+
+          node "$cli" compare architecture \
+            /tmp/sonara-platform.base.architecture.json \
+            architecture/sonara-platform.architecture.json \
+            artifacts/engineering/architecture-delta.html --json \
+            > artifacts/engineering/architecture-delta.json
+
+      - name: Run tenant-isolation and adversarial application tests
+        id: tenant
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set -o pipefail
+          pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
+            > artifacts/security/tenant-adversarial.json
+
+      - name: Verify RLS and tenant query contracts
+        id: rls
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set -o pipefail
+          {
+            pnpm run verify:member-read-access
+            pnpm run verify:tenant-queries
+            pnpm run verify:request-tenant-ids
+          } 2>&1 | tee artifacts/security/rls-contract.log
+
+      - name: Audit dependency vulnerabilities
+        id: dependencies
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set +e
+          node scripts/audit-dependencies.mjs > artifacts/security/dependency-audit.log 2>&1
+          status=$?
+          set -e
+          cat artifacts/security/dependency-audit.log
+          if [ -f pnpm-audit.json ]; then
+            cp pnpm-audit.json artifacts/security/dependency-audit.json
+          else
+            printf '{"error":"dependency audit did not produce pnpm-audit.json"}\n' \
+              > artifacts/security/dependency-audit.json
+          fi
+          exit "$status"
+
+      - name: Scan for client-exposed secrets
+        id: secrets
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set -o pipefail
+          pnpm run scan:client-secrets 2>&1 | tee artifacts/security/secret-scan.log
+
+      # This runs even after a failed gate so a red build still produces an
+      # inspectable receipt instead of only an exit code.
+      - name: Generate release evidence manifest
+        id: release_evidence
+        if: always()
+        env:
+          SONARA_CODEQL_STATUS: ${{ steps.codeql_analyze.outcome }}
+          SONARA_BUILD_STATUS: ${{ steps.build.outcome }}
+          SONARA_LINT_STATUS: ${{ steps.lint.outcome }}
+          SONARA_ARCHITECTURE_STATUS: ${{ steps.architecture.outcome }}
+          SONARA_TENANT_STATUS: ${{ steps.tenant.outcome }}
+          SONARA_RLS_STATUS: ${{ steps.rls.outcome }}
+          SONARA_DEPENDENCY_STATUS: ${{ steps.dependencies.outcome }}
+          SONARA_SECRET_STATUS: ${{ steps.secrets.outcome }}
+        run: node scripts/generate-release-evidence.mjs --source artifacts --output-dir artifacts/release-evidence
+
+      - name: Upload release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonara-release-evidence-${{ github.run_id }}
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 30
+
+      # Enforce only after uploading the artifact. Failures therefore stay
+      # inspectable and cannot be converted into unexplained red lights.
+      - name: Enforce release evidence gate
+        if: always()
+        run: node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json

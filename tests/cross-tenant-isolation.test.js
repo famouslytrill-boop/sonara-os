@@ -260,4 +260,70 @@ describe("the organization a request runs as comes from the session", () => {
     assert.doesNotMatch(response.text || "", /BETA-/, "a caller-supplied organization id must not change whose records are read");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Adversarial metadata is input, never authority
+// ---------------------------------------------------------------------------
+
+describe("adversarial request metadata cannot widen authority", () => {
+  it("ignores tenant identifiers forged in headers", async () => {
+    fake.reset();
+    const response = await request(app)
+      .get("/requests")
+      .set("accept", "text/html")
+      .set("Authorization", "Bearer token-a")
+      .set("x-organization-id", ORG_B)
+      .set("x-org-id", ORG_B)
+      .set("x-tenant-id", ORG_B);
+
+    assert.doesNotMatch(response.text || "", /BETA-/, "forged tenant headers must not expose another organization");
+    const tenantQueries = fake.queries.filter((query) => TENANT_SCOPED_TABLES.has(query.table));
+    for (const query of tenantQueries) {
+      const organizationFilter = query.filters.find((filter) => filter.column === "organization_id");
+      if (organizationFilter) {
+        assert.equal(organizationFilter.value.includes(ORG_B), false, `${query.table} trusted a forged organization header`);
+      }
+    }
+  });
+
+  it("ignores user and organization identifiers forged in the query string", async () => {
+    fake.reset();
+    const response = await request(app)
+      .get(`/requests?user_id=${USER_B}&userId=${USER_B}&organization_id=${ORG_B}&organizationId=${ORG_B}`)
+      .set("accept", "text/html")
+      .set("Authorization", "Bearer token-a");
+
+    assert.doesNotMatch(response.text || "", /BETA-/, "forged query identifiers must not expose another organization");
+    const membershipQuery = fake.queries.find((query) => query.table === "organization_memberships");
+    assert.ok(membershipQuery, "the application must still resolve membership from the authenticated session");
+    const userFilter = membershipQuery.filters.find((filter) => filter.column === "user_id");
+    assert.equal(userFilter?.value, USER_A, "the session user must remain authoritative");
+  });
+
+  it("does not accept forged admin or founder headers", async () => {
+    fake.reset();
+    const response = await request(app)
+      .get("/api/admin/requested-repositories/readiness")
+      .set("accept", "application/json")
+      .set("Authorization", "Bearer token-a")
+      .set("x-admin", "true")
+      .set("x-role", "founder")
+      .set("x-user-role", "owner");
+
+    assert.notEqual(response.status, 200, "caller-controlled role headers must not unlock an admin route");
+    assert.doesNotMatch(JSON.stringify(response.body || {}), /ALPHA-|BETA-/, "an auth failure must not include tenant records");
+  });
+
+  it("treats an unknown bearer token as unauthenticated", async () => {
+    fake.reset();
+    const response = await request(app)
+      .get("/requests")
+      .set("accept", "text/html")
+      .set("Authorization", "Bearer definitely-not-a-real-session");
+
+    assert.doesNotMatch(response.text || "", /ALPHA-|BETA-/, "an invalid token must never disclose tenant data");
+    const privateQueries = fake.queries.filter((query) => TENANT_SCOPED_TABLES.has(query.table) && query.table !== "organization_memberships");
+    assert.deepEqual(privateQueries, [], "an invalid token must not trigger tenant data queries");
+  });
+});
 });
