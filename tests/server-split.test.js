@@ -590,7 +590,12 @@ describe("the server.js split stays safe", () => {
       // 3874 -> 3882 on 14 September 2026: the legacy Business Builder
       // request path now redirects to the workspace checklist, with an
       // explicit compatibility branch and an explanatory comment.
-      lines <= 3882,
+      // 3882 -> 3901 on 14 September 2026: the protected admin command center
+      // now exposes a non-secret agent control-plane summary, and its route is
+      // registered through routes/sonara-admin-agent-routes.cjs. The route
+      // module keeps the new page out of this file; the remaining lines are
+      // the three real table counts and the admin registration contract.
+      lines <= 3901,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

@@ -189,3 +189,18 @@
   checkout has no `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `SONARA_VERIFY_USER_JWT`; no deployment or
   migration was bypassed.
+
+## 2026-09-14 - Admin agent control-plane visibility
+
+- Added protected `/admin/agent-activity` read-only operations view and linked it
+  from the admin command center and generated admin navigation.
+- The page reports only non-secret counts for recorded agent runs, waiting
+  approvals, and schedules. It does not execute work, expose prompts or
+  payloads, or widen the existing organization, approval, or audit boundaries.
+- Missing Supabase access or agent tables renders setup-required instead of a
+  false healthy state. The existing customer-facing `/owner/agent-activity`
+  queue and approval flow remain unchanged.
+- Verification: focused admin and route tests pass (18 passing); build, lint,
+  route registry, agent sync, customer-ready checks, and the prior full suite
+  remain green. No secrets, migrations, providers, or deployment settings were
+  changed.

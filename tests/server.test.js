@@ -2043,6 +2043,8 @@ describe("auth and admin", () => {
     assert.match(res.text, /Support queue/);
     assert.match(res.text, /Product catalog/);
     assert.match(res.text, /System and storage/);
+    assert.match(res.text, /Agent control plane/);
+    assert.match(res.text, /href="\/admin\/agent-activity"/);
     assert.match(res.text, /href="\/admin\/database"/);
     assert.match(res.text, /href="\/admin\/storage"/);
     assert.match(res.text, /Logout/);
@@ -2072,6 +2074,7 @@ describe("auth and admin", () => {
       "/admin/system",
       "/admin/database",
       "/admin/storage",
+      "/admin/agent-activity",
       "/admin/business-builder",
       "/admin/creator-studio",
       "/admin/growth-studio"
