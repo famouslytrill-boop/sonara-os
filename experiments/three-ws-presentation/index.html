@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>SONARA three.ws Presentation Prototype</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #0c0d10; color: #f5f7fa; display: grid; place-items: center; padding: 24px; }
+    main { width: min(960px, 100%); display: grid; gap: 18px; }
+    .card { background: #15171c; border: 1px solid #30343b; border-radius: 18px; padding: 22px; }
+    h1, p { margin-top: 0; }
+    form { display: grid; gap: 12px; }
+    label { font-weight: 700; }
+    input { width: 100%; border: 1px solid #4a4f59; border-radius: 10px; padding: 12px 14px; background: #0f1115; color: inherit; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    button { border: 0; border-radius: 999px; padding: 11px 16px; font-weight: 800; cursor: pointer; }
+    button[type="submit"] { background: #f2f4f7; color: #0b0c0f; }
+    button[type="button"] { background: #2a2e36; color: #f5f7fa; }
+    #viewer { min-height: 420px; display: grid; place-items: center; overflow: hidden; }
+    three-ws-viewer { display: block; width: 100%; min-height: 420px; }
+    .viewer-fallback { color: #c4cad4; text-align: center; max-width: 580px; }
+    .status { font-size: 0.95rem; color: #c4cad4; }
+    .status[data-state="ready"] { color: #b9f6ca; }
+    .status[data-state="fallback"] { color: #ffd8a8; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>SONARA optional 3D presentation adapter</h1>
+      <p>This is an isolated developer prototype. It does not connect three.ws to authentication, billing, memory, tools, model providers, or agent authority.</p>
+      <form id="prototype-form">
+        <label for="model-url">Licensed GLB/glTF HTTPS URL</label>
+        <input id="model-url" name="model-url" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com/your-licensed-avatar.glb" required>
+        <div class="actions">
+          <button type="submit">Enable experimental 3D</button>
+          <button id="disable-3d" type="button">Disable 3D</button>
+        </div>
+      </form>
+      <p id="status" class="status" data-state="disabled">3D presentation disabled.</p>
+    </section>
+
+    <section id="viewer" class="card" aria-live="polite">
+      <div class="viewer-fallback">3D presentation is off. SONARA's normal text and voice experience remains available.</div>
+    </section>
+
+    <section class="card">
+      <h2>Prototype boundary</h2>
+      <p>The browser imports one pinned <code>@three-ws/avatar</code> version only after the user presses Enable. No <code>brain</code> attribute is used, so this prototype is a silent viewer rather than an autonomous 3D agent.</p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createThreeWsPresentationAdapter } from "./presentation-adapter.js";
+
+    const form = document.querySelector("#prototype-form");
+    const viewer = document.querySelector("#viewer");
+    const status = document.querySelector("#status");
+    const disableButton = document.querySelector("#disable-3d");
+    const adapter = createThreeWsPresentationAdapter({ target: viewer, statusTarget: status });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const modelUrl = new FormData(form).get("model-url");
+      try {
+        await adapter.mount({ modelUrl });
+      } catch (error) {
+        console.error("Optional three.ws presentation failed to load:", error instanceof Error ? error.message : "unknown error");
+      }
+    });
+
+    disableButton.addEventListener("click", () => adapter.unmount());
+  </script>
+</body>
+</html>
