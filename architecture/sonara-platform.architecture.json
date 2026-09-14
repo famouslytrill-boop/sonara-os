@@ -60,7 +60,7 @@
       "label": "checkout API",
       "fromSide": "top",
       "toSide": "left",
-      "via": [[515, 210], [860, 210], [860, 156]],
+      "via": [[515, 210], [875, 210], [875, 156]],
       "labelAt": [700, 198]
     },
     {
@@ -70,7 +70,7 @@
       "variant": "security",
       "fromSide": "bottom",
       "toSide": "top",
-      "via": [[964, 225], [535, 225]],
+      "via": [[964, 225], [515, 225]],
       "labelAt": [820, 236]
     },
     {
@@ -79,7 +79,7 @@
       "label": "approved email",
       "fromSide": "bottom",
       "toSide": "left",
-      "via": [[515, 350], [860, 350], [860, 281]],
+      "via": [[515, 350], [875, 350], [875, 281]],
       "labelAt": [750, 362]
     },
     {
@@ -124,7 +124,7 @@
       "variant": "dashed",
       "fromSide": "bottom",
       "toSide": "bottom",
-      "via": [[725, 705], [1168, 705]],
+      "via": [[725, 705], [1167.5, 705]],
       "labelAt": [945, 717]
     },
     {
@@ -141,7 +141,7 @@
       "variant": "emphasis",
       "fromSide": "bottom",
       "toSide": "bottom",
-      "via": [[1168, 760], [300, 760]],
+      "via": [[1167.5, 760], [300, 760]],
       "labelAt": [730, 772]
     }
   ],
