@@ -205,31 +205,49 @@ jobs:
 
       - name: Verify live Stripe prices match what the pricing page advertises
         shell: bash
-        # The one check that compares every advertised amount against the price
-        # Stripe would actually charge, and until 8 September 2026 it had never
-        # run anywhere with a key.
-        #
-        # It skips without STRIPE_SECRET_KEY and used to exit 0 while skipping,
-        # so two owner runbooks compensated in prose: "read the last line rather
-        # than the exit code". That was followed, and the thing it guards
-        # against happened anyway -- the pricing page advertised $29/$59/$109
-        # while the configured prices charged $19/$39/$79, every headline plan
-        # refused checkout, and nothing reported a problem. --require-live turns
-        # every reason for not comparing into a failure.
-        #
-        # The price ids come from the pulled production environment, so this
-        # checks what production is actually configured with rather than what
-        # the repository hopes. The secret key cannot come from there: Vercel
-        # does not return sensitive variables as plaintext, which is the same
-        # reason the two steps above inject the service-role key from the
-        # protected GitHub environment. Verified on Node 22 that a variable
-        # already set in the environment beats one in --env-file, so a redacted
-        # key in the pulled file cannot shadow the injected one.
+        # The protected STRIPE_SECRET_KEY is intentionally a read-only verifier
+        # credential. It needs only Prices/Products read access and must never be
+        # promoted into the customer-facing runtime.
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
+
+      # Production runtime billing creates Stripe customers and Checkout
+      # Sessions, so a read-only rk_live_ verifier cannot be used here. Prefer a
+      # separate protected STRIPE_RUNTIME_SECRET_KEY. For existing installations
+      # that already keep a full sk_live_ key under STRIPE_SECRET_KEY, that value
+      # is accepted as a compatibility fallback. A restricted rk_live_ key is
+      # always rejected from runtime synchronization.
+      #
+      # Validate the selected runtime key against the same live configured prices
+      # before changing Vercel. The secret is piped over stdin to Vercel and is
+      # never written to the repository, diagnostics, step summary, or GITHUB_ENV.
+      - name: Synchronize verified Stripe runtime secret to Vercel production
+        shell: bash
+        env:
+          STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
+          STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          runtime_key="${STRIPE_RUNTIME_SECRET_KEY:-${STRIPE_VERIFIER_SECRET_KEY:-}}"
+          case "$runtime_key" in
+            sk_live_*) ;;
+            *)
+              echo "A full live Stripe runtime key is required. Configure the protected STRIPE_RUNTIME_SECRET_KEY secret with an sk_live_ key; the read-only verifier key will not be promoted."
+              exit 1
+              ;;
+          esac
+          STRIPE_SECRET_KEY="$runtime_key" \
+            node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          printf '%s' "$runtime_key" | pnpm dlx vercel@latest env add STRIPE_SECRET_KEY production \
+            --force \
+            --sensitive \
+            --token="$VERCEL_TOKEN"
+          unset runtime_key
 
       # Capture a rollback checkpoint BEFORE any schema change lands. Migrations
       # are applied ahead of the deployment, so without this there is no recorded

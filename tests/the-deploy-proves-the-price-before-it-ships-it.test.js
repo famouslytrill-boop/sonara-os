@@ -45,14 +45,11 @@ describe("the deploy proves the price before it ships it", () => {
     );
   });
 
-  it("gives it the secret key, which cannot come from the pulled environment", () => {
-    // Vercel does not return sensitive variables as plaintext -- the workflow
-    // says so itself, which is why the service-role key is injected the same
-    // way for the two Supabase steps.
+  it("gives the price verifier its protected read-only key", () => {
     assert.match(
       WORKFLOW,
       /STRIPE_SECRET_KEY:\s*\$\{\{\s*secrets\.STRIPE_SECRET_KEY\s*\}\}/,
-      "the step must inject STRIPE_SECRET_KEY from the protected GitHub environment, or --require-live fails for want of a key"
+      "the price verifier must inject the protected STRIPE_SECRET_KEY or --require-live cannot prove live prices"
     );
   });
 
@@ -121,5 +118,32 @@ describe("the deploy proves the price before it ships it", () => {
       checkAt < cleanupAt,
       "the price check reads .env.production.catalog-verification, so it must run before that file is removed"
     );
+  });
+
+  it("syncs a separate runtime key only after live price verification and before database mutation", () => {
+    const checkAt = WORKFLOW.indexOf("scripts/verify-stripe-env.mjs");
+    const syncAt = WORKFLOW.indexOf("Synchronize verified Stripe runtime secret to Vercel production");
+    const applyAt = WORKFLOW.indexOf("- name: Apply production database migrations");
+    const deployAt = WORKFLOW.indexOf("Deploy validated source to Vercel production");
+    assert.ok(syncAt > checkAt, "runtime synchronization must follow the live price proof");
+    assert.ok(syncAt < applyAt, "a Stripe runtime configuration failure must happen before production database mutation");
+    assert.ok(syncAt < deployAt, "the deployment must be built after Vercel receives the runtime key");
+  });
+
+  it("never promotes the read-only verifier credential into the runtime", () => {
+    const syncBlock = WORKFLOW.slice(
+      WORKFLOW.indexOf("Synchronize verified Stripe runtime secret to Vercel production"),
+      WORKFLOW.indexOf("- name: Record pre-migration rollback checkpoint")
+    );
+    assert.match(syncBlock, /STRIPE_RUNTIME_SECRET_KEY:\s*\$\{\{\s*secrets\.STRIPE_RUNTIME_SECRET_KEY\s*\}\}/);
+    assert.match(syncBlock, /sk_live_\*/);
+    assert.doesNotMatch(syncBlock, /rk_live_\*/);
+    assert.match(syncBlock, /env add STRIPE_SECRET_KEY production/);
+    assert.match(syncBlock, /--force/);
+    assert.match(syncBlock, /--sensitive/);
+    assert.match(syncBlock, /printf '%s' "\$runtime_key" \|/);
+    assert.doesNotMatch(syncBlock, /printf '%s' "\$STRIPE_SECRET_KEY" \|/);
+    assert.doesNotMatch(syncBlock, /echo\s+"?\$(?:STRIPE_SECRET_KEY|STRIPE_RUNTIME_SECRET_KEY|runtime_key)/);
+    assert.doesNotMatch(syncBlock, /GITHUB_ENV/);
   });
 });
