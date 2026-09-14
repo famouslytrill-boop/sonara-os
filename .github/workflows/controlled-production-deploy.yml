@@ -231,6 +231,31 @@ jobs:
           set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
 
+      # The live Stripe verifier above proves the protected GitHub key can read
+      # every configured price. Production itself must run with that same proven
+      # key. On 14 September 2026 Vercel still held a malformed STRIPE_SECRET_KEY:
+      # /api/readiness reported paymentConnection=invalid and invalid_prefix even
+      # though the live verifier passed because it used the GitHub environment.
+      # Synchronize only after the live proof succeeds, before any database
+      # mutation, and keep the value sensitive. The secret is piped over stdin;
+      # it is never written to the repository, a diagnostic artifact, or stdout.
+      - name: Synchronize verified Stripe secret to Vercel production
+        shell: bash
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          case "$STRIPE_SECRET_KEY" in
+            sk_live_*|rk_live_*) ;;
+            *) echo "Protected STRIPE_SECRET_KEY is not a production Stripe API key."; exit 1 ;;
+          esac
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          printf '%s' "$STRIPE_SECRET_KEY" | pnpm dlx vercel@latest env add STRIPE_SECRET_KEY production \
+            --force \
+            --sensitive \
+            --token="$VERCEL_TOKEN"
+
       # Capture a rollback checkpoint BEFORE any schema change lands. Migrations
       # are applied ahead of the deployment, so without this there is no recorded
       # point to return to if a later step fails.
@@ -477,7 +502,6 @@ jobs:
               echo "Production database is untouched; no database rollback is needed."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Upload deployment diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
