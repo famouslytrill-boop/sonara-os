@@ -21,6 +21,12 @@ const {
   getPublicScreenshotToolCatalogBatch2,
   getScreenshotToolReadinessBatch2
 } = require("../lib/sonara-screenshot-tool-radar-batch2.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH3,
+  NON_REPOSITORY_REFERENCES_BATCH3,
+  getPublicScreenshotToolCatalogBatch3,
+  getScreenshotToolReadinessBatch3
+} = require("../lib/sonara-screenshot-tool-radar-batch3.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -62,6 +68,22 @@ const UNVERIFIED_BATCH2_KEYS = [
   "coding_agent_merge_button_lead",
   "anatomy_3d_lead",
   "sceneai_service_reference"
+];
+
+const SCREENSHOT_BATCH3_KEYS = [
+  "ocrmypdf",
+  "archify",
+  "three_ws",
+  "openpost",
+  "uiverse_galaxy",
+  "openresearch",
+  "nvidia_switchyard"
+];
+
+const NON_REPOSITORY_BATCH3_KEYS = [
+  "breachlab_service_reference",
+  "google_trends_service_reference",
+  "hackproduct_learning_reference"
 ];
 
 const CORRECTED_REPOSITORIES = {
@@ -257,6 +279,90 @@ describe("second screenshot tool research batch", () => {
   });
 });
 
+describe("third screenshot tool research batch", () => {
+  it("records the newly verified repositories without enabling execution", () => {
+    assert.deepEqual(SCREENSHOT_TOOL_RADAR_BATCH3.map((item) => item.key), SCREENSHOT_BATCH3_KEYS);
+    assert.deepEqual(
+      SCREENSHOT_TOOL_RADAR_BATCH3.map((item) => item.repository),
+      [
+        "ocrmypdf/OCRmyPDF",
+        "tt-a1i/archify",
+        "nirholas/three.ws",
+        "getopenpost/openpost",
+        "uiverse-io/galaxy",
+        "alphaXiv/OpenResearch",
+        "NVIDIA-NeMo/Switchyard"
+      ]
+    );
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.repositoryVerified));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.enabledInProduction === false));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.humanReviewRequired));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.safety.length > 0));
+  });
+
+  it("keeps non-repository references outside the executable catalog", () => {
+    assert.deepEqual(NON_REPOSITORY_REFERENCES_BATCH3.map((item) => item.key), NON_REPOSITORY_BATCH3_KEYS);
+    assert.ok(NON_REPOSITORY_REFERENCES_BATCH3.every((item) => !Object.hasOwn(item, "repository")));
+    assert.ok(NON_REPOSITORY_REFERENCES_BATCH3.every((item) => !Object.hasOwn(item, "license")));
+  });
+
+  it("keeps OCRmyPDF in an isolated document worker with MPL review", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "ocrmypdf");
+    assert.equal(item.license, "MPL-2.0");
+    assert.equal(item.integrationMode, "isolated_document_worker");
+    assert.match(item.blockedUses.join(" "), /synchronous OCR inside the Vercel request process/i);
+    assert.match(item.safety.join(" "), /Tesseract and Ghostscript/i);
+  });
+
+  it("keeps OpenPost as a high-risk license-gated workflow reference", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "openpost");
+    assert.equal(item.license, "AGPL-3.0");
+    assert.equal(item.licenseRisk, "high");
+    assert.equal(item.integrationStatus, "research_only_license_gated");
+    assert.match(item.blockedUses.join(" "), /automatic publishing without user approval/i);
+  });
+
+  it("keeps Switchyard behind Provider Gateway and pre-1.0 evaluation boundaries", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "nvidia_switchyard");
+    assert.equal(item.license, "Apache-2.0");
+    assert.equal(item.integrationStatus, "research_only_pre1");
+    assert.match(item.blockedUses.join(" "), /replacing Provider Gateway without an ADR/i);
+    assert.match(item.safety.join(" "), /pre-1.0/i);
+  });
+
+  it("keeps three.ws generation rights and on-chain features separate from repository licensing", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "three_ws");
+    assert.equal(item.license, "Apache-2.0");
+    assert.match(item.blockedUses.join(" "), /unreviewed on-chain registration/i);
+    assert.match(item.safety.join(" "), /generated assets/i);
+  });
+
+  it("treats Uiverse as selective design research rather than a bulk dependency", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "uiverse_galaxy");
+    assert.equal(item.license, "MIT");
+    assert.match(item.blockedUses.join(" "), /bulk importing the archive/i);
+    assert.match(item.nextStep, /at most three interaction patterns/i);
+  });
+
+  it("keeps OpenResearch local and evidence-governed", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "openresearch");
+    assert.equal(item.license, "MIT");
+    assert.match(item.blockedUses.join(" "), /publicly exposing an unauthenticated local research service/i);
+    assert.match(item.safety.join(" "), /source-grounded evidence standards/i);
+  });
+
+  it("publishes no executable third-batch state", () => {
+    const catalog = getPublicScreenshotToolCatalogBatch3();
+    const readiness = getScreenshotToolReadinessBatch3();
+    assert.equal(catalog.length, 7);
+    assert.equal(readiness.repositoryCount, 7);
+    assert.equal(readiness.nonRepositoryReferenceCount, 3);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+});
+
 describe("requested repository runtime surfaces", () => {
   it("publishes the governed public repository catalog", async () => {
     const response = await request(app)
@@ -265,23 +371,26 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 27);
-    assert.equal(response.body.verifiedCount, 25);
+    assert.equal(response.body.repositoryCount, 34);
+    assert.equal(response.body.verifiedCount, 32);
     assert.equal(response.body.blockedCount, 2);
-    assert.equal(response.body.screenshotResearchCount, 17);
+    assert.equal(response.body.screenshotResearchCount, 24);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
+    assert.equal(response.body.nonRepositoryReferenceCount, 3);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
-      [...EXPECTED_KEYS, ...SCREENSHOT_KEYS, ...SCREENSHOT_BATCH2_KEYS]
+      [...EXPECTED_KEYS, ...SCREENSHOT_KEYS, ...SCREENSHOT_BATCH2_KEYS, ...SCREENSHOT_BATCH3_KEYS]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
+    assert.deepEqual(response.body.nonRepositoryReferences.map((item) => item.key), NON_REPOSITORY_BATCH3_KEYS);
   });
 
   it("renders a public research page without executing external tools", async () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /17 additional developer, design, media, security, research, infrastructure, and agent tools/);
+    assert.match(response.text, /24 additional developer, design, media, security, research, infrastructure, document, social, 3D, and agent tools/);
+    assert.match(response.text, /3 screenshot items were verified as hosted services or learning references/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
