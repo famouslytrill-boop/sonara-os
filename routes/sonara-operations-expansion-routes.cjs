@@ -12,6 +12,7 @@ const TABLES = Object.freeze({
   payments: "payments",
   locations: "location_events"
 });
+const BUSINESS_ASSET_TYPES = new Set(["equipment", "vehicle", "trailer", "appliance", "tool", "device", "furniture", "other"]);
 
 function registerOperationsExpansionRoutes(app, deps = {}) {
   const {
@@ -69,8 +70,8 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     const org = scope.organizationId;
     const [bookings, time, inventory, payments, locations] = await Promise.all([
       list(scope.config, TABLES.bookings, org, "id,status,starts_at,ends_at,created_at", `&or=(starts_at.gte.${floor},created_at.gte.${floor})`),
-      list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,total_minutes,created_at", `&clock_in_at=gte.${floor}`),
-      list(scope.config, TABLES.inventory, org, "id,quantity,cost_cents,reorder_level,reorder_point,status"),
+      list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,created_at", `&clock_in_at=gte.${floor}`),
+      list(scope.config, TABLES.inventory, org, "id,quantity,cost_cents,reorder_level,status"),
       list(scope.config, TABLES.payments, org, "id,status,amount_cents,created_at", `&created_at=gte.${floor}`),
       list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${floor}`)
     ]);
@@ -101,7 +102,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     const rows = await list(scope.config, TABLES.assets, scope.organizationId,
       "id,location_id,name,asset_type,status,metadata,created_at,updated_at", "&status=eq.active", 1000);
     if (!rows.ok) return res.status(503).json({ ok: false, code: rows.code });
-    const resources = rows.rows.filter((row) => row?.metadata?.bookable === true || ["station", "chair", "equipment"].includes(row?.asset_type));
+    const resources = rows.rows.filter((row) => row?.metadata?.bookable === true);
     return res.status(200).json({ ok: true, resources });
   });
 
@@ -111,7 +112,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     const name = clean(req.body?.name, 160);
     if (!name) return res.status(400).json({ ok: false, code: "resource_name_required" });
     const requestedType = clean(req.body?.resource_type || req.body?.resourceType || req.body?.asset_type, 40) || "equipment";
-    const assetType = ["station", "chair", "equipment"].includes(requestedType) ? requestedType : "other";
+    const assetType = BUSINESS_ASSET_TYPES.has(requestedType) ? requestedType : "other";
     const capacity = Math.min(1000, Math.max(1, Number(req.body?.capacity) || 1));
     const created = await request(scope.config, TABLES.assets, "", {
       method: "POST",
