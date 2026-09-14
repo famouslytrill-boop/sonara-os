@@ -204,3 +204,13 @@
   route registry, agent sync, customer-ready checks, and the prior full suite
   remain green. No secrets, migrations, providers, or deployment settings were
   changed.
+
+## 2026-09-14 - Public readiness preview uses the shared contract
+
+- Updated the public SONARA One interface preview to derive database, checkout,
+  support, and operator states from the existing readiness contract.
+- The preview defaults to setup-required language when readiness is unavailable
+  and never presents a static "Available" claim. It remains environment-only,
+  exposes no credentials, and keeps the public route synchronous and safe.
+- Added a page-frame regression test for configured and missing service states.
+- Focused verification passed: build, lint, and 58 route/frame/auth tests.

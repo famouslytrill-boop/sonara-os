@@ -671,6 +671,18 @@ describe("the page frame stands on its own", () => {
     assert.match(html, /<meta name="viewport"/i);
   });
 
+  it("derives the public interface status preview from readiness", () => {
+    const html = createPageFrame({
+      ...deps,
+      getReadiness: () => ({ services: { accountDatabase: "configured", checkout: "enabled", emailDelivery: "missing", adminProtection: "configured" } })
+    }).layout({ title: "Home", heading: "H", body: "B", sections: [], actions: [], variant: "home", surface: "marketing" });
+    assert.match(html, /Setup review/);
+    assert.match(html, /Checkout ready/);
+    assert.match(html, /Support.*Setup required/);
+    assert.match(html, /Operations.*Protected/);
+    assert.doesNotMatch(html, />Available<\/strong>/);
+  });
+
   it("escapes the title and heading it is given", () => {
     // These come from route handlers, and some carry customer-supplied text.
     const html = createPageFrame(deps).layout({ title: '<script>x</script>', heading: '"&<>', body: "", sections: [], actions: [] });

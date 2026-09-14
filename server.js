@@ -148,7 +148,7 @@ const {
   adminRowsPage,
   layout,
   responsePage
-} = createPageFrame({ legalPages, readinessStatusClass, safeListTable });
+} = createPageFrame({ legalPages, readinessStatusClass, safeListTable, getReadiness: () => getReadiness() });
 
 // Customer sessions moved to lib/sonara-customer-auth.cjs, and took the
 // customer cookie names and lifetimes with them -- that module is what decides
