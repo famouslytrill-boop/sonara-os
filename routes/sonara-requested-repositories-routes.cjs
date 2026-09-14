@@ -23,11 +23,9 @@ const {
   getScreenshotToolReadinessBatch4
 } = require("../lib/sonara-screenshot-tool-radar-batch4.cjs");
 const {
-  getPublicScreenshotToolCatalogBatch5,
   getScreenshotToolReadinessBatch5
 } = require("../lib/sonara-screenshot-tool-radar-batch5.cjs");
 const {
-  getPublicScreenshotToolCatalogBatch6,
   getScreenshotToolReadinessBatch6,
   getNonRepositoryReferencesBatch6
 } = require("../lib/sonara-screenshot-tool-radar-batch6.cjs");
@@ -148,7 +146,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
       brandCard("Latest screenshot intake", "Batch 5 and Batch 6 have a separate founder review surface so their current disabled state and newer safety boundaries are visible without changing the legacy aggregate readiness contract."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
-      brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license are verified.`),
+      brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
       brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, media renderers, browser agents, GPU libraries, AI workspaces, infrastructure optimizers, model routers, social suites, and security tools require isolated workers, progressive client enhancement, or development environments—not the Vercel request process by default."),
       ...readiness.nonRepositoryReferences.map((item) => brandCard(
