@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SONARA Platform Runtime and Release Boundaries",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "customer-request",
+        "label": "Customer request path",
+        "focus": ["customer", "vercel_edge", "express_runtime", "supabase_auth", "postgres"],
+        "note": "Public traffic reaches the Express runtime through Vercel and resolves identity before tenant-scoped state is read."
+      },
+      {
+        "id": "paid-action",
+        "label": "Paid and outbound actions",
+        "focus": ["express_runtime", "stripe", "resend", "agent_authority", "provider_gateway"],
+        "note": "Money, outbound communications, and agent actions remain behind explicit server-side policy and provider boundaries."
+      },
+      {
+        "id": "release-evidence",
+        "label": "Engineering intelligence and release evidence",
+        "focus": ["github_actions", "archify", "security_gates", "release_evidence", "vercel_edge"],
+        "note": "CI analyzes the repository, validates architecture, runs security gates, emits evidence, and only then permits deployment."
+      }
+    ]
+  },
+  "components": [
+    { "id": "customer", "type": "external", "label": "Customer Browser / PWA", "sublabel": "public + authenticated UI", "pos": [30, 250], "size": [150, 64] },
+    { "id": "vercel_edge", "type": "cloud", "label": "Vercel", "sublabel": "edge + Node function", "pos": [230, 250], "size": [140, 64], "tag": "hosting" },
+    { "id": "express_runtime", "type": "backend", "label": "SONARA Express Runtime", "sublabel": "routes + domain policy", "pos": [430, 250], "size": [170, 70], "tag": "SONARA" },
+    { "id": "supabase_auth", "type": "security", "label": "Supabase Auth", "sublabel": "session identity", "pos": [680, 110], "size": [140, 64], "tag": "identity" },
+    { "id": "postgres", "type": "database", "label": "Supabase Postgres", "sublabel": "tenant state + RLS", "pos": [680, 250], "size": [150, 68], "tag": "data" },
+    { "id": "storage", "type": "cloud", "label": "Supabase Storage", "sublabel": "private-by-default files", "pos": [680, 390], "size": [150, 64], "tag": "data" },
+    { "id": "stripe", "type": "external", "label": "Stripe", "sublabel": "checkout + webhooks", "pos": [900, 125], "size": [128, 62], "tag": "payments" },
+    { "id": "resend", "type": "external", "label": "Resend", "sublabel": "transactional email", "pos": [900, 250], "size": [128, 62], "tag": "email" },
+    { "id": "provider_gateway", "type": "backend", "label": "Provider Gateway", "sublabel": "approved model/provider boundary", "pos": [900, 390], "size": [160, 66], "tag": "AI providers" },
+    { "id": "agent_authority", "type": "security", "label": "Agent Authority", "sublabel": "approval + tool permissions", "pos": [1110, 390], "size": [150, 66], "tag": "policy" },
+    { "id": "github_actions", "type": "cloud", "label": "GitHub Actions", "sublabel": "CI + release orchestration", "pos": [430, 590], "size": [150, 64], "tag": "engineering" },
+    { "id": "archify", "type": "external", "label": "Archify", "sublabel": "pinned CI architecture renderer", "pos": [650, 590], "size": [150, 64], "tag": "engineering" },
+    { "id": "security_gates", "type": "security", "label": "Security Gates", "sublabel": "SAST + dependency + tenant tests", "pos": [870, 590], "size": [160, 64], "tag": "security" },
+    { "id": "release_evidence", "type": "cloud", "label": "Release Evidence", "sublabel": "receipts + hashes + artifacts", "pos": [1090, 590], "size": [155, 64], "tag": "release" }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Public request boundary", "wraps": ["vercel_edge", "express_runtime"] },
+    { "kind": "security-group", "label": "Tenant data boundary", "wraps": ["supabase_auth", "postgres", "storage"] },
+    { "kind": "security-group", "label": "Agent permission boundary", "wraps": ["provider_gateway", "agent_authority"] },
+    { "kind": "security-group", "label": "Release engineering boundary", "wraps": ["github_actions", "archify", "security_gates", "release_evidence"] }
+  ],
+  "connections": [
+    { "from": "customer", "to": "vercel_edge", "label": "HTTPS", "variant": "emphasis" },
+    { "from": "vercel_edge", "to": "express_runtime", "label": "request", "variant": "emphasis" },
+    { "from": "express_runtime", "to": "supabase_auth", "label": "verify session", "variant": "security" },
+    { "from": "express_runtime", "to": "postgres", "label": "PostgREST / SQL", "variant": "security" },
+    { "from": "express_runtime", "to": "storage", "label": "signed/scoped file access" },
+    { "from": "express_runtime", "to": "stripe", "label": "checkout API" },
+    { "from": "stripe", "to": "express_runtime", "label": "signed webhook", "variant": "security" },
+    { "from": "express_runtime", "to": "resend", "label": "approved email" },
+    { "from": "express_runtime", "to": "agent_authority", "label": "classify action", "variant": "security" },
+    { "from": "agent_authority", "to": "provider_gateway", "label": "approved tool/model call", "variant": "security" },
+    { "from": "github_actions", "to": "archify", "label": "validate + render" },
+    { "from": "github_actions", "to": "security_gates", "label": "run checks", "variant": "security" },
+    { "from": "archify", "to": "release_evidence", "label": "map + delta receipts", "variant": "dashed" },
+    { "from": "security_gates", "to": "release_evidence", "label": "security receipts", "variant": "dashed" },
+    { "from": "release_evidence", "to": "vercel_edge", "label": "deploy gate", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Authority",
+      "items": [
+        "The browser never owns tenant or administrative authority.",
+        "Agent memory, emotion, and presentation layers cannot widen tool permissions.",
+        "Provider Gateway remains the model/provider boundary."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Tenant isolation",
+      "items": [
+        "Session-derived organization context drives tenant-scoped queries.",
+        "RLS remains a second database boundary.",
+        "Caller-supplied organization or role hints are adversarial input, not authority."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Release evidence",
+      "items": [
+        "Architecture validation is deterministic and pinned in CI.",
+        "Security tests produce machine-readable receipts.",
+        "Deployment is downstream of the evidence gate, not the source of truth for it."
+      ]
+    }
+  ]
+}
