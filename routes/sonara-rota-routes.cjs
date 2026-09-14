@@ -20,6 +20,7 @@
 // screen otherwise, and one of them is a promise.
 
 const { layOutWeek, weekStartFor, shiftWeek, hoursAndMinutes, isoDayParts } = require("../lib/sonara-rota-week.cjs");
+const registerOperationsExpansionRoutes = require("./sonara-operations-expansion-routes.cjs");
 
 const SCHEDULES_TABLE = "employee_schedules";
 const STAFF_TABLE = "business_employee_profiles";
@@ -40,6 +41,11 @@ function registerRotaRoutes(app, deps = {}) {
     requireBusinessManager, getCustomerPrimaryOrganization,
     getSupabaseServerConfig, supabaseHeaders
   } = deps;
+
+  // Keep the operational APIs beside the business-manager boundary already used
+  // by rota management. This avoids a second, subtly different authorization
+  // path for analytics, reservations, mapping, and automations.
+  registerOperationsExpansionRoutes(app, deps);
 
   const enc = encodeURIComponent;
   const PAGE = "/business-builder/owner/schedules/week";
