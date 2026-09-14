@@ -54,16 +54,96 @@
     { "from": "express_runtime", "to": "supabase_auth", "label": "verify session", "variant": "security" },
     { "from": "express_runtime", "to": "postgres", "label": "PostgREST / SQL", "variant": "security" },
     { "from": "express_runtime", "to": "storage", "label": "signed/scoped file access" },
-    { "from": "express_runtime", "to": "stripe", "label": "checkout API" },
-    { "from": "stripe", "to": "express_runtime", "label": "signed webhook", "variant": "security" },
-    { "from": "express_runtime", "to": "resend", "label": "approved email" },
-    { "from": "express_runtime", "to": "agent_authority", "label": "classify action", "variant": "security" },
-    { "from": "agent_authority", "to": "provider_gateway", "label": "approved tool/model call", "variant": "security" },
-    { "from": "github_actions", "to": "archify", "label": "validate + render" },
-    { "from": "github_actions", "to": "security_gates", "label": "run checks", "variant": "security" },
-    { "from": "archify", "to": "release_evidence", "label": "map + delta receipts", "variant": "dashed" },
-    { "from": "security_gates", "to": "release_evidence", "label": "security receipts", "variant": "dashed" },
-    { "from": "release_evidence", "to": "vercel_edge", "label": "deploy gate", "variant": "emphasis" }
+    {
+      "from": "express_runtime",
+      "to": "stripe",
+      "label": "checkout API",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [[515, 210], [860, 210], [860, 156]],
+      "labelAt": [700, 198]
+    },
+    {
+      "from": "stripe",
+      "to": "express_runtime",
+      "label": "signed webhook",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [[964, 225], [535, 225]],
+      "labelAt": [820, 236]
+    },
+    {
+      "from": "express_runtime",
+      "to": "resend",
+      "label": "approved email",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [[515, 350], [860, 350], [860, 281]],
+      "labelAt": [750, 362]
+    },
+    {
+      "from": "express_runtime",
+      "to": "agent_authority",
+      "label": "classify action",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [[515, 500], [1070, 500], [1070, 423]],
+      "labelAt": [850, 512]
+    },
+    {
+      "from": "agent_authority",
+      "to": "provider_gateway",
+      "label": "approved tool/model call",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right",
+      "labelAt": [1085, 470]
+    },
+    {
+      "from": "github_actions",
+      "to": "archify",
+      "label": "validate + render",
+      "labelAt": [615, 570]
+    },
+    {
+      "from": "github_actions",
+      "to": "security_gates",
+      "label": "run checks",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [[505, 535], [950, 535]],
+      "labelAt": [725, 525]
+    },
+    {
+      "from": "archify",
+      "to": "release_evidence",
+      "label": "map + delta receipts",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [[725, 705], [1168, 705]],
+      "labelAt": [945, 717]
+    },
+    {
+      "from": "security_gates",
+      "to": "release_evidence",
+      "label": "security receipts",
+      "variant": "dashed",
+      "labelAt": [1060, 570]
+    },
+    {
+      "from": "release_evidence",
+      "to": "vercel_edge",
+      "label": "deploy gate",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [[1168, 760], [300, 760]],
+      "labelAt": [730, 772]
+    }
   ],
   "cards": [
     {
