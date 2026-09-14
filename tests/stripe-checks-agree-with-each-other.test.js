@@ -4,27 +4,13 @@
 //
 // Whether a plan can actually be sold is asked in two places:
 //
-//   lib/sonara-billing.cjs      at checkout, where the key is always present
-//   scripts/verify-stripe-env.mjs  in the release chain, where it usually is not
+//   lib/sonara-billing.cjs         at checkout, where the key is always present
+//   scripts/verify-stripe-env.mjs in the release chain
 //
-// The runtime guard expands the Stripe product and refuses
-// `price_product_archived`, because archiving a product does not clear its
-// prices' active flag -- so `price.active` alone reads true and only the product
-// says otherwise. The release check read `price.active` and stopped, which meant
-// it would pass a configuration the running server rejects. The release output
-// is the line people read, so the more optimistic of the two was the one on
-// display.
-//
-// The second defect was in the summary. The last line read "Stripe
-// configuration verified against the deployed server" whether or not the live
-// comparison ran -- and it never runs in CI, because STRIPE_SECRET_KEY is not
-// there. The [SKIP] line said the amounts had not been compared and the summary
-// two lines later said the configuration was verified. The skip was honest and
-// the summary overwrote it.
-//
-// These are source assertions rather than behavioural ones because the online
-// half cannot run here: it needs a live secret, and a test that supplies one
-// would either be a secret in the repository or a network call in the suite.
+// The release check must agree with the runtime on live Stripe object health,
+// and it must agree with the pricing ladder about which missing prices are
+// actually release blockers. A superseded plan that the page intentionally
+// hides is not the same thing as an offered plan whose price is missing.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -33,10 +19,14 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const releaseCheck = fs.readFileSync(path.join(root, "scripts", "verify-stripe-env.mjs"), "utf8");
 const runtimeGuard = fs.readFileSync(path.join(root, "lib", "sonara-billing.cjs"), "utf8");
+const ladder = fs.readFileSync(path.join(root, "lib", "sonara-stripe-plans.cjs"), "utf8");
 
 describe("the two Stripe checks ask the same question", () => {
-  it("is reading both files", () => {
-    assert.ok(releaseCheck.length > 500 && runtimeGuard.length > 500, "a source file came back empty; this check has gone blind");
+  it("is reading all three source files", () => {
+    assert.ok(
+      releaseCheck.length > 500 && runtimeGuard.length > 500 && ladder.length > 500,
+      "a source file came back empty; this check has gone blind"
+    );
   });
 
   it("both expand the product rather than trusting price.active", () => {
@@ -60,14 +50,7 @@ describe("the two Stripe checks ask the same question", () => {
   });
 
   it("does not claim the live prices were checked when they were not", () => {
-    // The property that broke. A summary printed unconditionally cannot be
-    // telling the truth in both branches, because one of them skipped the work.
     const summaries = [...releaseCheck.matchAll(/console\.log\(\s*\n?\s*"\\nStripe configuration verified[^"]*"/g)];
-    // The script has two summary branches -- one for the run that compared live
-    // prices and one for the run that could not. Without this the loop below
-    // asserts nothing the moment somebody rewords the sentence it matches on,
-    // and the check goes green over exactly the defect it was written for: a
-    // summary printed unconditionally that claims work which was skipped.
     assert.ok(
       summaries.length >= 2,
       `only ${summaries.length} summary lines parsed from scripts/verify-stripe-env.mjs; this check has gone blind`
@@ -87,15 +70,31 @@ describe("the two Stripe checks ask the same question", () => {
   });
 
   it("only reports live prices as compared after a price actually matched", () => {
-    // Setting the flag early -- when the key is found, say -- would restore the
-    // original lie in a new place. It has to be set on the success path, after
-    // every refusal has had its chance.
     const flagAt = releaseCheck.indexOf("comparedLivePrices = true");
     const successAt = releaseCheck.indexOf("Stripe charges exactly what the pricing page advertises");
     assert.ok(flagAt > 0 && successAt > 0, "could not find the success path");
     assert.ok(
       flagAt < successAt && successAt - flagAt < 200,
       "comparedLivePrices is not set on the success path, so it can report a comparison that did not conclude"
+    );
+  });
+
+  it("uses the pricing page's ladder decision before failing a missing price under --require-live", () => {
+    assert.match(ladder, /function offeredPlanKeys\(/, "the pricing ladder no longer exposes its offer decision");
+    assert.match(
+      releaseCheck,
+      /offeredPlanKeys\(/,
+      "the release check no longer asks the pricing ladder which plans are actually offered"
+    );
+    assert.match(
+      releaseCheck,
+      /requireLive && offeredPlans\.has\(plan\)/,
+      "--require-live still treats every non-hidden plan as mandatory instead of only plans the pricing page offers"
+    );
+    assert.doesNotMatch(
+      releaseCheck,
+      /requireLive && !config\.hiddenUntilBuyable/,
+      "the old missing-price rule is back; superseded Starter/Core/Pro would block deployment after the new ladder is live"
     );
   });
 });
