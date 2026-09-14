@@ -55,6 +55,13 @@
       "icons": [{ "src": "/brand/business-builder-mark-v3.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
+      "name": "Employee Portal",
+      "short_name": "Staff",
+      "description": "Open the employee sub-application for schedule, time, tasks, announcements, and consented location check-ins.",
+      "url": "/staff",
+      "icons": [{ "src": "/brand/business-builder-mark-v3.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
       "name": "Creator Studio",
       "short_name": "Creator",
       "description": "Open Creator Studio assets, releases, and creator tools.",
