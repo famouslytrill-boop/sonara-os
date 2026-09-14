@@ -1,0 +1,247 @@
+name: Engineering Intelligence and Security Evidence
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: engineering-intelligence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evidence:
+    name: Architecture, SAST, tenant isolation, and release evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout SONARA with history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # setup-node can cache pnpm only after the pnpm executable exists on PATH.
+      # This mirrors the order used by the established SONARA workflows.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      # GitHub CodeQL is the SAST layer. It is intentionally a release signal,
+      # not an agent permission source: findings can block a release but can
+      # never grant an agent more authority.
+      - name: Initialize CodeQL
+        id: codeql_init
+        continue-on-error: true
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Build server for CodeQL and release evidence
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/engineering
+          set -o pipefail
+          pnpm run build 2>&1 | tee artifacts/engineering/build.log
+
+      - name: Analyze JavaScript with CodeQL
+        id: codeql_analyze
+        continue-on-error: true
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
+
+      - name: Run static lint
+        id: lint
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/engineering
+          set -o pipefail
+          pnpm run lint 2>&1 | tee artifacts/engineering/lint.log
+
+      - name: Analyze repository evidence
+        id: repository_analysis
+        continue-on-error: true
+        shell: bash
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          node scripts/generate-engineering-intelligence.mjs \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --branch "${branch}" \
+            --base-branch "${GITHUB_BASE_REF:-}" \
+            --output artifacts/engineering/repository-analysis.json
+
+      # Archify is not installed into the product. CI reads one exact upstream
+      # revision and runs it with update checks disabled, keeping it a developer
+      # tool rather than a production/runtime dependency.
+      - name: Checkout pinned Archify tool
+        id: archify_checkout
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          repository: tt-a1i/archify
+          ref: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
+          path: .tools/archify
+          fetch-depth: 1
+
+      - name: Validate system map and architecture delta
+        id: architecture
+        continue-on-error: true
+        shell: bash
+        env:
+          ARCHIFY_UPDATE_CHECK_DISABLED: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/engineering
+          cli=.tools/archify/archify/bin/archify.mjs
+          test -f "$cli"
+
+          # Release CI uses Archify's standard composition gate. The authored
+          # diagram can retain showcase quality for visual-polish work without
+          # turning cosmetic routing constraints into a release blocker.
+          node "$cli" validate architecture architecture/sonara-platform.architecture.json \
+            --quality standard --json > artifacts/engineering/archify-validate.json
+          node "$cli" render architecture architecture/sonara-platform.architecture.json \
+            artifacts/engineering/sonara-platform.html --quality standard
+
+          # A PR compares against its actual merge base. A push to main compares
+          # against the previous commit rather than origin/main (which already
+          # points at the pushed commit and would create a meaningless zero delta).
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" && -n "${GITHUB_BASE_REF:-}" ]]; then
+            base_revision="$(git merge-base "origin/${GITHUB_BASE_REF}" HEAD)"
+          else
+            base_revision="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+
+          if ! git show "${base_revision}:architecture/sonara-platform.architecture.json" \
+            > /tmp/sonara-platform.base.architecture.json 2>/dev/null; then
+            cp architecture/sonara-platform.architecture.json /tmp/sonara-platform.base.architecture.json
+          fi
+
+          # Archify owns both outputs explicitly: the positional output is the
+          # HTML delta and --receipt is the machine-readable JSON receipt.
+          node "$cli" compare architecture \
+            /tmp/sonara-platform.base.architecture.json \
+            architecture/sonara-platform.architecture.json \
+            artifacts/engineering/architecture-delta.html \
+            --quality standard \
+            --receipt artifacts/engineering/architecture-delta.json
+
+      - name: Run tenant-isolation and adversarial application tests
+        id: tenant
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set -o pipefail
+          pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
+            > artifacts/security/tenant-adversarial.json
+
+      - name: Verify RLS contracts and tenant query safety
+        id: rls
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set -o pipefail
+          {
+            pnpm run verify:member-policies
+            pnpm run verify:tenant-tables
+            pnpm run verify:tenant-queries
+            pnpm run verify:request-tenant-ids
+            pnpm exec mocha tests/member-read-access-check.test.js --reporter spec
+          } 2>&1 | tee artifacts/security/rls-contract.log
+
+      - name: Audit dependency vulnerabilities
+        id: dependencies
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set +e
+          node scripts/audit-dependencies.mjs > artifacts/security/dependency-audit.log 2>&1
+          status=$?
+          set -e
+          cat artifacts/security/dependency-audit.log
+          if [ -f pnpm-audit.json ]; then
+            cp pnpm-audit.json artifacts/security/dependency-audit.json
+          else
+            printf '{"error":"dependency audit did not produce pnpm-audit.json"}\n' \
+              > artifacts/security/dependency-audit.json
+          fi
+          exit "$status"
+
+      - name: Scan for client-exposed secrets
+        id: secrets
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          set -o pipefail
+          pnpm run scan:client-secrets 2>&1 | tee artifacts/security/secret-scan.log
+
+      # This runs even after a failed gate so a red build still produces an
+      # inspectable receipt instead of only an exit code. GitHub context and
+      # step outcomes are explicit inputs rather than application environment
+      # variables, so the production env-classification gate remains honest.
+      - name: Generate release evidence manifest
+        id: release_evidence
+        if: always()
+        shell: bash
+        run: |
+          node scripts/generate-release-evidence.mjs \
+            --source artifacts \
+            --output-dir artifacts/release-evidence \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --ref "${GITHUB_REF}" \
+            --event-name "${GITHUB_EVENT_NAME}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --codeql-status "${{ steps.codeql_analyze.outcome }}" \
+            --build-status "${{ steps.build.outcome }}" \
+            --lint-status "${{ steps.lint.outcome }}" \
+            --architecture-status "${{ steps.architecture.outcome }}" \
+            --tenant-status "${{ steps.tenant.outcome }}" \
+            --rls-status "${{ steps.rls.outcome }}" \
+            --dependency-status "${{ steps.dependencies.outcome }}" \
+            --secret-status "${{ steps.secrets.outcome }}"
+
+      - name: Upload release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonara-release-evidence-${{ github.run_id }}
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 30
+
+      # Enforce only after uploading the artifact. Failures therefore stay
+      # inspectable and cannot be converted into unexplained red lights.
+      - name: Enforce release evidence gate
+        if: always()
+        run: node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json

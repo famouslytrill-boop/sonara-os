@@ -15,6 +15,23 @@ const {
   getPublicScreenshotToolCatalog,
   getScreenshotToolReadiness
 } = require("../lib/sonara-screenshot-tool-radar.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH2,
+  UNVERIFIED_SCREENSHOT_LEADS_BATCH2,
+  getPublicScreenshotToolCatalogBatch2,
+  getScreenshotToolReadinessBatch2
+} = require("../lib/sonara-screenshot-tool-radar-batch2.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH3,
+  NON_REPOSITORY_REFERENCES_BATCH3,
+  getPublicScreenshotToolCatalogBatch3,
+  getScreenshotToolReadinessBatch3
+} = require("../lib/sonara-screenshot-tool-radar-batch3.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH4,
+  getPublicScreenshotToolCatalogBatch4,
+  getScreenshotToolReadinessBatch4
+} = require("../lib/sonara-screenshot-tool-radar-batch4.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -39,6 +56,48 @@ const SCREENSHOT_KEYS = [
   "langchain",
   "deepwiki_rs",
   "offpack"
+];
+
+const SCREENSHOT_BATCH2_KEYS = [
+  "image_pipes",
+  "feynman",
+  "kubeopt",
+  "edgepilot",
+  "phi_cookbook",
+  "davinci_resolve_mcp",
+  "sceneflow",
+  "lead_gen_api_stack"
+];
+
+const UNVERIFIED_BATCH2_KEYS = [
+  "coding_agent_merge_button_lead",
+  "anatomy_3d_lead",
+  "sceneai_service_reference"
+];
+
+const SCREENSHOT_BATCH3_KEYS = [
+  "ocrmypdf",
+  "archify",
+  "three_ws",
+  "openpost",
+  "uiverse_galaxy",
+  "openresearch",
+  "nvidia_switchyard"
+];
+
+const NON_REPOSITORY_BATCH3_KEYS = [
+  "breachlab_service_reference",
+  "google_trends_service_reference",
+  "hackproduct_learning_reference"
+];
+
+const SCREENSHOT_BATCH4_KEYS = [
+  "vercel_vgpu",
+  "open_webui",
+  "openshot_qt",
+  "agent_me",
+  "quarkdown",
+  "generative_ai_arbitrage"
 ];
 
 const CORRECTED_REPOSITORIES = {
@@ -134,6 +193,256 @@ describe("screenshot tool research radar", () => {
   });
 });
 
+describe("second screenshot tool research batch", () => {
+  it("records only repositories whose upstream identity and adoption posture were verified", () => {
+    assert.deepEqual(SCREENSHOT_TOOL_RADAR_BATCH2.map((item) => item.key), SCREENSHOT_BATCH2_KEYS);
+    assert.deepEqual(
+      SCREENSHOT_TOOL_RADAR_BATCH2.map((item) => item.repository),
+      [
+        "mrajaeim/image-pipes",
+        "advaitpaliwal/feynman",
+        "kubeopt/kubeopt",
+        "pricootz/edgepilot",
+        "microsoft/PhiCookBook",
+        "samuelgursky/davinci-resolve-mcp",
+        "taruma/SceneFlow",
+        "cporter202/lead-gen-api-stack"
+      ]
+    );
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.repositoryVerified));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.enabledInProduction === false));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH2.every((item) => item.humanReviewRequired));
+  });
+
+  it("preserves ambiguous or non-repository screenshots without inventing repositories", () => {
+    assert.deepEqual(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
+    assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => !Object.hasOwn(item, "repository")));
+    assert.ok(UNVERIFIED_SCREENSHOT_LEADS_BATCH2.every((item) => !Object.hasOwn(item, "license")));
+    const sceneAi = UNVERIFIED_SCREENSHOT_LEADS_BATCH2.find((item) => item.key === "sceneai_service_reference");
+    assert.equal(sceneAi.status, "verified_hosted_service_reference");
+    assert.match(sceneAi.reason, /no authoritative public source repository/i);
+  });
+
+  it("keeps KubeOpt advisory and unable to mutate production from research state", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "kubeopt");
+    assert.equal(item.integrationStatus, "research_only");
+    assert.match(item.blockedUses.join(" "), /automatic production cluster mutation/i);
+    assert.match(item.nextStep, /only if SONARA begins operating Kubernetes workloads/i);
+  });
+
+  it("uses Feynman as a research-method pattern rather than an executable agent", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "feynman");
+    assert.equal(item.integrationMode, "source_grounded_research_pattern");
+    assert.match(item.blockedUses.join(" "), /remote install scripts/i);
+    assert.match(item.nextStep, /source-grounded research skill/i);
+  });
+
+  it("keeps Image Pipes bounded to reviewed media processing", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "image_pipes");
+    assert.equal(item.integrationStatus, "optional_adapter_after_review");
+    assert.match(item.blockedUses.join(" "), /arbitrary plugin loading/i);
+    assert.match(item.placement, /Creator Studio/i);
+  });
+
+  it("uses EdgePilot as a local desktop interaction reference without telemetry creep", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "edgepilot");
+    assert.equal(item.integrationStatus, "curated_reference");
+    assert.match(item.blockedUses.join(" "), /silent workstation telemetry upload/i);
+    assert.match(item.placement, /Founder desktop/i);
+  });
+
+  it("keeps Phi cookbook code and model licensing as separate decisions", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "phi_cookbook");
+    assert.equal(item.license, "MIT");
+    assert.match(item.blockedUses.join(" "), /assuming all Phi model weights share the cookbook license/i);
+    assert.match(item.safety.join(" "), /Provider Gateway/i);
+  });
+
+  it("blocks DaVinci control adoption behind the current security review", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "davinci_resolve_mcp");
+    assert.equal(item.integrationStatus, "research_only");
+    assert.equal(item.licenseRisk, "high");
+    assert.match(item.blockedUses.join(" "), /project deletion without explicit confirmation/i);
+    assert.match(item.safety.join(" "), /September 2026 security advisories/i);
+  });
+
+  it("keeps SceneFlow as evidence-oriented Creator Studio research", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "sceneflow");
+    assert.equal(item.integrationStatus, "curated_reference");
+    assert.match(item.capabilities.join(" "), /prompt-adherence review/i);
+    assert.match(item.blockedUses.join(" "), /automatic quality verdicts/i);
+  });
+
+  it("does not treat the unlicensed lead-gen directory as adoptable source code", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH2.find((candidate) => candidate.key === "lead_gen_api_stack");
+    assert.equal(item.license, "NONE DECLARED");
+    assert.equal(item.integrationStatus, "reference_only_no_license");
+    assert.match(item.blockedUses.join(" "), /automated unsolicited bulk outreach/i);
+    assert.match(item.safety.join(" "), /affiliate/i);
+  });
+
+  it("publishes no executable second-batch state", () => {
+    const catalog = getPublicScreenshotToolCatalogBatch2();
+    const readiness = getScreenshotToolReadinessBatch2();
+    assert.equal(catalog.length, 8);
+    assert.equal(readiness.repositoryCount, 8);
+    assert.equal(readiness.unresolvedVisualLeadCount, 3);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+});
+
+describe("third screenshot tool research batch", () => {
+  it("records the newly verified repositories without enabling execution", () => {
+    assert.deepEqual(SCREENSHOT_TOOL_RADAR_BATCH3.map((item) => item.key), SCREENSHOT_BATCH3_KEYS);
+    assert.deepEqual(
+      SCREENSHOT_TOOL_RADAR_BATCH3.map((item) => item.repository),
+      [
+        "ocrmypdf/OCRmyPDF",
+        "tt-a1i/archify",
+        "nirholas/three.ws",
+        "getopenpost/openpost",
+        "uiverse-io/galaxy",
+        "alphaXiv/OpenResearch",
+        "NVIDIA-NeMo/Switchyard"
+      ]
+    );
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.repositoryVerified));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.enabledInProduction === false));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.humanReviewRequired));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH3.every((item) => item.safety.length > 0));
+  });
+
+  it("keeps non-repository references outside the executable catalog", () => {
+    assert.deepEqual(NON_REPOSITORY_REFERENCES_BATCH3.map((item) => item.key), NON_REPOSITORY_BATCH3_KEYS);
+    assert.ok(NON_REPOSITORY_REFERENCES_BATCH3.every((item) => !Object.hasOwn(item, "repository")));
+    assert.ok(NON_REPOSITORY_REFERENCES_BATCH3.every((item) => !Object.hasOwn(item, "license")));
+  });
+
+  it("keeps OCRmyPDF in an isolated document worker with MPL review", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "ocrmypdf");
+    assert.equal(item.license, "MPL-2.0");
+    assert.equal(item.integrationMode, "isolated_document_worker");
+    assert.match(item.blockedUses.join(" "), /synchronous OCR inside the Vercel request process/i);
+    assert.match(item.safety.join(" "), /Tesseract and Ghostscript/i);
+  });
+
+  it("keeps OpenPost as a high-risk license-gated workflow reference", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "openpost");
+    assert.equal(item.license, "AGPL-3.0");
+    assert.equal(item.licenseRisk, "high");
+    assert.equal(item.integrationStatus, "research_only_license_gated");
+    assert.match(item.blockedUses.join(" "), /automatic publishing without user approval/i);
+  });
+
+  it("keeps Switchyard behind Provider Gateway and pre-1.0 evaluation boundaries", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "nvidia_switchyard");
+    assert.equal(item.license, "Apache-2.0");
+    assert.equal(item.integrationStatus, "research_only_pre1");
+    assert.match(item.blockedUses.join(" "), /replacing Provider Gateway without an ADR/i);
+    assert.match(item.safety.join(" "), /pre-1.0/i);
+  });
+
+  it("keeps three.ws generation rights and on-chain features separate from repository licensing", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "three_ws");
+    assert.equal(item.license, "Apache-2.0");
+    assert.match(item.blockedUses.join(" "), /unreviewed on-chain registration/i);
+    assert.match(item.safety.join(" "), /generated assets/i);
+  });
+
+  it("treats Uiverse as selective design research rather than a bulk dependency", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "uiverse_galaxy");
+    assert.equal(item.license, "MIT");
+    assert.match(item.blockedUses.join(" "), /bulk importing the archive/i);
+    assert.match(item.nextStep, /at most three interaction patterns/i);
+  });
+
+  it("keeps OpenResearch local and evidence-governed", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH3.find((candidate) => candidate.key === "openresearch");
+    assert.equal(item.license, "MIT");
+    assert.match(item.blockedUses.join(" "), /publicly exposing an unauthenticated local research service/i);
+    assert.match(item.safety.join(" "), /source-grounded evidence standards/i);
+  });
+
+  it("publishes no executable third-batch state", () => {
+    const catalog = getPublicScreenshotToolCatalogBatch3();
+    const readiness = getScreenshotToolReadinessBatch3();
+    assert.equal(catalog.length, 7);
+    assert.equal(readiness.repositoryCount, 7);
+    assert.equal(readiness.nonRepositoryReferenceCount, 3);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+});
+
+describe("fourth screenshot tool research batch", () => {
+  it("adds only the six newly verified repositories and keeps duplicates in prior batches", () => {
+    assert.deepEqual(SCREENSHOT_TOOL_RADAR_BATCH4.map((item) => item.key), SCREENSHOT_BATCH4_KEYS);
+    assert.deepEqual(
+      SCREENSHOT_TOOL_RADAR_BATCH4.map((item) => item.repository),
+      [
+        "vercel-labs/vgpu",
+        "open-webui/open-webui",
+        "OpenShot/openshot-qt",
+        "jzjzzzzzzz/agent-me",
+        "iamgio/quarkdown",
+        "cporter202/generative-ai-arbitrage"
+      ]
+    );
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH4.every((item) => item.repositoryVerified));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH4.every((item) => item.enabledInProduction === false));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH4.every((item) => item.humanReviewRequired));
+    assert.ok(SCREENSHOT_TOOL_RADAR_BATCH4.every((item) => item.safety.length > 0));
+    assert.ok(!SCREENSHOT_TOOL_RADAR_BATCH4.some((item) => ["tt-a1i/archify", "nirholas/three.ws"].includes(item.repository)));
+  });
+
+  it("keeps Open WebUI license-gated instead of treating it as a white-label dependency", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH4.find((candidate) => candidate.key === "open_webui");
+    assert.equal(item.licenseRisk, "high");
+    assert.equal(item.integrationStatus, "research_only_license_gated");
+    assert.match(item.license, /custom; branding restriction/i);
+    assert.match(item.blockedUses.join(" "), /rebranding Open WebUI as SONARA/i);
+  });
+
+  it("keeps reciprocal desktop and document tools out of proprietary production paths", () => {
+    const openShot = SCREENSHOT_TOOL_RADAR_BATCH4.find((candidate) => candidate.key === "openshot_qt");
+    const quarkdown = SCREENSHOT_TOOL_RADAR_BATCH4.find((candidate) => candidate.key === "quarkdown");
+    assert.equal(openShot.license, "GPL-3.0-or-later");
+    assert.match(openShot.blockedUses.join(" "), /copying GPL UI\/editor code/i);
+    assert.match(quarkdown.license, /CLI\/LSP modules AGPL-3.0/i);
+    assert.match(quarkdown.blockedUses.join(" "), /AGPL-derived network service/i);
+  });
+
+  it("treats the unlicensed model-cost directory only as a vendor research lead", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH4.find((candidate) => candidate.key === "generative_ai_arbitrage");
+    assert.equal(item.license, "NONE DECLARED");
+    assert.equal(item.integrationStatus, "reference_only_no_license");
+    assert.match(item.blockedUses.join(" "), /automatic provider onboarding/i);
+    assert.match(item.safety.join(" "), /Treat savings percentages and 'same model' claims as leads/i);
+  });
+
+  it("keeps vGPU optional and Agent-Me authority-bounded", () => {
+    const vgpu = SCREENSHOT_TOOL_RADAR_BATCH4.find((candidate) => candidate.key === "vercel_vgpu");
+    const agentMe = SCREENSHOT_TOOL_RADAR_BATCH4.find((candidate) => candidate.key === "agent_me");
+    assert.equal(vgpu.license, "MIT");
+    assert.match(vgpu.blockedUses.join(" "), /making WebGPU mandatory/i);
+    assert.match(agentMe.blockedUses.join(" "), /silent identity impersonation/i);
+    assert.match(agentMe.safety.join(" "), /approval gates/i);
+  });
+
+  it("publishes no executable fourth-batch state", () => {
+    const catalog = getPublicScreenshotToolCatalogBatch4();
+    const readiness = getScreenshotToolReadinessBatch4();
+    assert.equal(catalog.length, 6);
+    assert.equal(readiness.repositoryCount, 6);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+});
+
 describe("requested repository runtime surfaces", () => {
   it("publishes the governed public repository catalog", async () => {
     const response = await request(app)
@@ -142,18 +451,27 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 19);
-    assert.equal(response.body.verifiedCount, 17);
+    assert.equal(response.body.repositoryCount, 40);
+    assert.equal(response.body.verifiedCount, 38);
     assert.equal(response.body.blockedCount, 2);
-    assert.equal(response.body.screenshotResearchCount, 9);
-    assert.deepEqual(response.body.repositories.map((item) => item.key), [...EXPECTED_KEYS, ...SCREENSHOT_KEYS]);
+    assert.equal(response.body.screenshotResearchCount, 30);
+    assert.equal(response.body.unresolvedVisualLeadCount, 3);
+    assert.equal(response.body.nonRepositoryReferenceCount, 3);
+    assert.deepEqual(
+      response.body.repositories.map((item) => item.key),
+      [...EXPECTED_KEYS, ...SCREENSHOT_KEYS, ...SCREENSHOT_BATCH2_KEYS, ...SCREENSHOT_BATCH3_KEYS, ...SCREENSHOT_BATCH4_KEYS]
+    );
+    assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
+    assert.deepEqual(response.body.nonRepositoryReferences.map((item) => item.key), NON_REPOSITORY_BATCH3_KEYS);
   });
 
   it("renders a public research page without executing external tools", async () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /9 additional developer, design, media, security, and agent tools/);
+    assert.match(response.text, /30 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /3 screenshot items were verified as hosted services or learning references/);
+    assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
 

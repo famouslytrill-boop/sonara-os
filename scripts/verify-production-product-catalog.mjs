@@ -18,6 +18,7 @@ const {
   catalogRowBoundaryViolations
 } = require("../lib/sonara-catalog-boundary.cjs");
 const { PAID_ACCESS_RUNTIME_MARKERS } = require("../lib/sonara-paid-access.cjs");
+const { STRIPE_PLANS, offeredPlanKeys } = require("../lib/sonara-stripe-plans.cjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -237,9 +238,24 @@ async function verifyProductionPages(database) {
   assert.equal(readiness.services?.stripe, "configured", "Production Stripe must be configured");
   assert.equal(readiness.services?.stripeWebhook, "configured", "Production Stripe webhook must be configured");
   assert.equal(readiness.services?.checkout, "enabled", "Production checkout must be enabled");
-  for (const plan of ["starter_monthly", "core_monthly", "pro_monthly"]) {
-    assert.equal(readiness.checkoutPlans?.[plan]?.checkout, "enabled", `${plan} checkout must be configured`);
-  }
+
+  // Follow the same cutover policy the pricing page uses. The old gate named
+  // starter/core/pro forever, so the moment their configured breadth-ladder
+  // replacements opened and the legacy price variables were intentionally
+  // removed, a successful cutover could never pass deployment verification.
+  // Legacy predecessor keys retained here only as regression vocabulary:
+  // starter_monthly, core_monthly, pro_monthly.
+  const offeredPlans = offeredPlanKeys((plan) => readiness.checkoutPlans?.[plan]?.checkout);
+  const offeredPaidPlans = offeredPlans.filter((plan) => plan !== "free" && !STRIPE_PLANS[plan]?.quoted);
+  const enabledPaidPlans = offeredPaidPlans.filter(
+    (plan) => readiness.checkoutPlans?.[plan]?.checkout === "enabled"
+  );
+  assert.ok(offeredPaidPlans.length > 0, "Production pricing must offer at least one paid self-serve plan");
+  assert.ok(
+    enabledPaidPlans.length > 0,
+    `Production pricing offers ${offeredPaidPlans.join(", ")} but none has enabled checkout`
+  );
+
   // The setup package is quoted rather than sold self-serve -- it is
   // done-for-you work whose scope varies, and it previously carried a Stripe
   // price while the page advertised no amount. Asserting the state rather than
@@ -315,7 +331,8 @@ async function verifyProductionPages(database) {
       supabase: readiness.services?.supabase,
       stripe: readiness.services?.stripe,
       stripeWebhook: readiness.services?.stripeWebhook,
-      checkout: readiness.services?.checkout
+      checkout: readiness.services?.checkout,
+      offeredPaidCheckoutPlans: enabledPaidPlans
     }
   };
 }
