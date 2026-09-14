@@ -15,8 +15,10 @@ Read these first:
 - `.ai/shared/SOURCE_GROUNDED_RESEARCH_SKILL.md` when the decision depends on external factual evidence
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH2.md`
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH3.md`
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
+- `lib/sonara-screenshot-tool-radar-batch3.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 
@@ -51,26 +53,29 @@ Prefer the smallest boundary that fits:
 - `research_only`
 - `reference_only_no_license`
 - `developer_only`
+- `developer_tool_candidate`
 - `isolated_documentation_worker`
+- `isolated_document_worker`
 - `isolated_browser_worker`
 - `isolated_media_worker`
 - `isolated_media_pipeline`
 - `authorized_security_reference`
 - `infrastructure_observability_reference`
+- `provider_gateway_routing_reference`
 - `optional_adapter_after_review`
 - `blocked`
 
-Desktop apps, CLIs, Chromium automation, FFmpeg renderers, nmap/security utilities, Kubernetes optimizers, media-editor control bridges, and package managers do not belong inside the Vercel request process.
+Desktop apps, CLIs, Chromium automation, FFmpeg renderers, OCR/document binaries, nmap/security utilities, Kubernetes optimizers, media-editor control bridges, model-routing proxies, and package managers do not belong inside the Vercel request process.
 
 ### 5. Preserve SONARA authority
 
 External agent frameworks and coding cockpits never bypass `lib/sonara-agent-authority.cjs` or `lib/sonara-agent-runner.cjs`. Unknown consequential actions still fail closed to owner review. Provider Gateway remains the model/provider boundary unless an explicit architecture change is approved.
 
-Infrastructure recommendation tools are advisory by default. A recommendation to alter compute requests, limits, autoscaling, deployment state, or provider configuration does not authorize mutation. Media-control bridges start read-only or non-destructive and require explicit review for destructive edits, publishing, scripts/plugins, or network transports.
+Infrastructure recommendation tools are advisory by default. A recommendation to alter compute requests, limits, autoscaling, deployment state, provider configuration, or model routing does not authorize mutation. Media-control bridges start read-only or non-destructive and require explicit review for destructive edits, publishing, scripts/plugins, or network transports. Social tooling never gains implicit authority to publish, message, or launch campaigns.
 
 ### 6. Write the research record
 
-For screenshot-led research, add verified records to the current screenshot radar module and keep ambiguous/non-repository items as explicit leads rather than invented repositories. Required information for a verified repository:
+For screenshot-led research, add verified records to the current screenshot radar module and keep ambiguous/non-repository items as explicit leads or service references rather than invented repositories. Required information for a verified repository:
 
 - exact upstream repository
 - verified license posture, including `NONE DECLARED` where applicable
@@ -99,9 +104,13 @@ Tests should prove at least:
 - infrastructure optimizers cannot mutate production from research state;
 - media-editor control stays security-gated and non-destructive by default;
 - model cookbook licensing is not mistaken for model-weight licensing;
+- copyleft source is not casually mixed into SONARA's hosted runtime;
+- document/OCR workers cannot consume unbounded uploads in the request process;
+- social publishing cannot silently become customer-impacting automation;
 - unlicensed source is not treated as adoptable open source;
 - lead/prospecting research cannot silently become scraping or unsolicited outreach;
 - ambiguous screenshots remain source-unverified rather than receiving guessed metadata;
+- hosted/service references remain outside the executable repository catalog;
 - any product-specific boundary that matters is explicit.
 
 A green test that cannot fail on the bad case is not evidence.
@@ -134,6 +143,17 @@ A green test that cannot fail on the bad case is not evidence.
 - **HyperFrames** and **Browser Use Pi** appeared again and are deduplicated rather than re-recorded.
 - The coding-agent merge-button concept and interactive 3D anatomy concept remain unresolved visual leads.
 
+### Batch 3
+
+- **OCRmyPDF** (`ocrmypdf/OCRmyPDF`, MPL-2.0): isolated document-worker candidate; external binaries, untrusted-file limits, and MPL covered-file obligations must be reviewed.
+- **Archify** (`tt-a1i/archify`, MIT): development-only source-grounded architecture/diagram skill candidate; generated topology must stay evidence-backed.
+- **three.ws** (`nirholas/three.ws`, Apache-2.0): Creator Studio 3D reference; generated-asset/provider/dataset/on-chain rights are separate from repository licensing.
+- **OpenPost** (`getopenpost/openpost`, AGPL-3.0): strong Growth/Creator workflow benchmark; no casual source mixing into SONARA's hosted runtime.
+- **Uiverse Galaxy** (`uiverse-io/galaxy`, MIT): selective design-system reference; adopt only normalized, accessible components that solve a measured UX gap.
+- **OpenResearch** (`alphaXiv/OpenResearch`, MIT): local research-harness candidate; keep local trust boundaries and SONARA's evidence rules.
+- **NVIDIA NeMo Switchyard** (`NVIDIA-NeMo/Switchyard`, Apache-2.0): pre-1.0 model-routing research behind Provider Gateway; standalone demo server is evaluation-only.
+- **BreachLab**, **Google Trends**, and **HackProduct**: verified hosted/service/learning references, not executable repository records.
+
 ## What not to do
 
-Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure recommendations to mutate production automatically, let media-editor bridges perform destructive work without review, treat cookbook licenses as model licenses, copy unlicensed repository material into product code, turn lead directories into indiscriminate scraping/outreach, or copy another product's visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
+Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure or model-routing recommendations to mutate production automatically, let media-editor bridges perform destructive work without review, treat cookbook licenses as model licenses, mix copyleft source into proprietary production paths without review, process unbounded OCR uploads in the request process, let social automation publish without explicit authority, copy unlicensed repository material into product code, turn lead directories into indiscriminate scraping/outreach, expose local research dashboards publicly without review, or copy another product's visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
