@@ -1,5 +1,28 @@
 # Handoff Log
 
+## 2026-09-14 UTC - Operations reconciliation merged; deployment held by live proof gate
+
+- Merged current `origin/main` (`d83785fc`) into the reconciliation branch,
+  committed as `74a9927f`, and merged PR #252 into `main` as `7e456965`.
+- Post-merge local evidence: `pnpm test` passed 4,438 tests with 6 pending;
+  build, lint, client-secret scan, route smoke, API contract, repository schema,
+  OpenAPI, and governance gates passed. The repository contains 118 migrations,
+  146 canonical tables, 8 operational indexes, and 7 private buckets.
+- Fixed two gate findings during final verification: encoded analytics date
+  filters at the PostgREST boundary, and made the request-tenant verifier
+  portable across Windows and POSIX path separators. Updated migration counts
+  in shared and owner documentation.
+- Controlled production run `34815661993` started from merged main and passed
+  protected credentials, dependencies, build, tests, secret scan, and lint. It
+  stopped before migration or Vercel deployment at live member-read proof
+  because `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SONARA_VERIFY_USER_JWT` were not present
+  in the protected workflow environment. No secrets were added or printed.
+- Remaining owner-controlled proof: provide the protected Supabase verification
+  values, apply the two new append-only migrations through the controlled
+  workflow, then rerun the Stripe live-price, catalog, storage, and production
+  alias checks. Media providers/workers remain setup-required by design.
+
 ## 2026-09-13 UTC - Deterministic operations, media planning, and governance
 
 - Rebased the launch reconciliation branch onto `origin/main` at `f5f57ab3`
