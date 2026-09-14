@@ -18,6 +18,10 @@ const {
   getScreenshotToolReadinessBatch3,
   getNonRepositoryReferencesBatch3
 } = require("../lib/sonara-screenshot-tool-radar-batch3.cjs");
+const {
+  getPublicScreenshotToolCatalogBatch4,
+  getScreenshotToolReadinessBatch4
+} = require("../lib/sonara-screenshot-tool-radar-batch4.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -56,7 +60,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const screenshotResearchCount = getScreenshotResearchCount();
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
-      brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
+      brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items were verified as hosted services or learning references and intentionally kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -103,7 +107,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license are verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
-      brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, media renderers, browser agents, infrastructure optimizers, model routers, social suites, and security tools require isolated workers or development environments—not the Vercel request process."),
+      brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, media renderers, browser agents, GPU libraries, AI workspaces, infrastructure optimizers, model routers, social suites, and security tools require isolated workers, progressive client enhancement, or development environments—not the Vercel request process by default."),
       ...readiness.nonRepositoryReferences.map((item) => brandCard(
         `${item.label}: reference only`,
         `${item.reason} Next: ${item.nextStep}`
@@ -139,14 +143,16 @@ function getCombinedPublicCatalog() {
     ...getPublicRequestedRepositoryCatalog(),
     ...getPublicScreenshotToolCatalog(),
     ...getPublicScreenshotToolCatalogBatch2(),
-    ...getPublicScreenshotToolCatalogBatch3()
+    ...getPublicScreenshotToolCatalogBatch3(),
+    ...getPublicScreenshotToolCatalogBatch4()
   ];
 }
 
 function getScreenshotResearchCount() {
   return getPublicScreenshotToolCatalog().length
     + getPublicScreenshotToolCatalogBatch2().length
-    + getPublicScreenshotToolCatalogBatch3().length;
+    + getPublicScreenshotToolCatalogBatch3().length
+    + getPublicScreenshotToolCatalogBatch4().length;
 }
 
 function getCombinedReadiness() {
@@ -154,13 +160,15 @@ function getCombinedReadiness() {
   const screenshot = getScreenshotToolReadiness();
   const screenshotBatch2 = getScreenshotToolReadinessBatch2();
   const screenshotBatch3 = getScreenshotToolReadinessBatch3();
+  const screenshotBatch4 = getScreenshotToolReadinessBatch4();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
   const nonRepositoryReferences = getNonRepositoryReferencesBatch3();
   const repositories = [
     ...requested.repositories,
     ...screenshot.repositories,
     ...screenshotBatch2.repositories,
-    ...screenshotBatch3.repositories
+    ...screenshotBatch3.repositories,
+    ...screenshotBatch4.repositories
   ];
   return {
     ok: true,
@@ -168,7 +176,7 @@ function getCombinedReadiness() {
     repositoryCount: repositories.length,
     verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
     blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
-    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount,
+    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount,
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
     productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,
