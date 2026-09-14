@@ -208,7 +208,10 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // document rather than the column. Including it "to be safe" would have put back
 // a column nothing reads, which is the thing this report exists to find.
 const STAR_SELECT_COUNT = 26;
-const COMPUTED_SELECT_COUNT = 23;
+// 23 -> 25 on 13 September 2026. The operations expansion and integration
+// control routes add two helper queries whose select list is passed through a
+// shared request builder at runtime.
+const COMPUTED_SELECT_COUNT = 25;
 
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.

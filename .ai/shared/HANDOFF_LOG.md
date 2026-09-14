@@ -1,5 +1,25 @@
 # Handoff Log
 
+## 2026-09-13 UTC - Deterministic operations, media planning, and governance
+
+- Rebased the launch reconciliation branch onto `origin/main` at `f5f57ab3`
+  and merged the complete operations/media branch without removing current
+  catalog or launch work.
+- Added organization-scoped business analytics, reservation resources,
+  waitlists, consent-aware mapping, employee PWA access, allowlisted automation,
+  and truthful Creator Studio music/video workflow planning.
+- Added a commercial integration activation policy covering terms review, rate
+  limits, organization scope, server-only secrets, operator approval, and
+  optional-only AI. Invalid connections remain disconnected.
+- Added deterministic purchase-order approval, owner/manager role separation,
+  fulfillment blocking, rate limiting, and a service-only atomic audited RPC in
+  append-only migration `20260913190000_purchase_order_approval_controls.sql`.
+- Updated OpenAPI and shared contracts. Focused tests, the 300-operation API
+  contract, and the 118-migration/146-table repository database contract pass.
+- Remaining proof: complete launch gate, pull-request checks, protected
+  production migration application, authenticated tenant/role smoke tests,
+  configured media worker/provider execution, and controlled deployment.
+
 ## 2026-09-10 UTC - Homepage visual reconciliation
 
 - Audited the current Express-rendered frame against the shared design and frontend contracts. The homepage had the two-column hero grid available in CSS but rendered only the copy column, so its production presentation was flatter than the intended SONARA One interface.
@@ -116,3 +136,15 @@
 - Google sign-in configuration when an approved redirect URI is available.
 - Qualified legal review.
 - PWA/browser and physical-device evidence.
+
+## 2026-09-11 - Free-first integration substitution pathways documented
+
+- Added `docs/INTEGRATION_SUBSTITUTION_PATHWAYS.md` with free/open-source
+  candidates, adapter boundaries, license and operating-cost caveats, product
+  pathways, rollout order, and integration acceptance criteria.
+- Preserved the existing Supabase/Postgres, pgvector, Meilisearch, Stripe, and
+  Resend contracts. No external repository was installed or copied.
+- Open-Meteo, maps, worker media tooling, and self-hosted email remain gated by
+  commercial terms, security, deliverability, consent, or operational review.
+- This is documentation and architecture guidance only; it does not claim any
+  provider is configured or customer-facing.

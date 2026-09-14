@@ -29,6 +29,7 @@ const recordEdit = require("../lib/sonara-record-edit.cjs");
 const changeLog = require("../lib/sonara-record-change-log.cjs");
 const recordFilter = require("../lib/sonara-record-filter.cjs");
 const recordArchive = require("../lib/sonara-record-archive.cjs");
+const procurement = require("../lib/sonara-procurement-workflow.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -199,6 +200,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
   const requireBusinessManager = deps.requireBusinessManager || requireCustomer;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
+  const procurementMutationLimiter = typeof deps.createRateLimiter === "function"
+    ? deps.createRateLimiter({
+        name: "business.procurement_mutation",
+        windowSeconds: 60,
+        maxAttempts: 30,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig: deps.getSupabaseServerConfig
+      })
+    : passthrough;
 
   registerVerticalTemplates(app, deps, ui);
 
@@ -826,14 +837,21 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         // from another business would be changed. Reading also gives the
         // previous value, which is what makes the confirmation say what
         // actually happened rather than only what was asked for.
+        const needsApproval = page.table === "purchase_orders"
+          && ["sent", "partially_received", "received"].includes(wanted.status);
         const found = await supabaseList(
           config,
           page.table,
-          `?select=id,status&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+          `?select=${needsApproval ? "id,status,approval_status" : "id,status"}&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
         );
+        if (!found.ok && needsApproval) return refuse(503, "procurement_schema_required", "Purchase-order approvals are not installed yet, so this order cannot be sent.");
         if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
         const before = found.rows[0];
         if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+        if (needsApproval && before.approval_status !== undefined) {
+          const approval = procurement.mayAdvanceOrderStatus(before.approval_status, wanted.status);
+          if (!approval.allowed) return refuse(409, approval.code, approval.reason);
+        }
 
         // Scoped by organization on the write as well as on the read above.
         // The read already proved this record belongs to the business, so the
@@ -868,6 +886,62 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         return res.redirect(303, `${back}?status_done=${encodeURIComponent(said)}`);
       });
     }
+  });
+
+  // Purchase-order approval is separate from fulfillment status. Managers may
+  // prepare and submit an order; only an owner may approve or reject it. The
+  // database RPC changes state and writes business_control_audit_events in the
+  // same transaction. This route therefore never creates an unaudited approval.
+  app.post("/api/business/purchase-orders/:recordId/approval", requireBusinessManager, procurementMutationLimiter, async (req, res) => {
+    const recordId = String(req.params.recordId || "");
+    const back = `/business-builder/owner/purchase-orders/${encodeURIComponent(recordId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?procurement_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(recordId)) return refuse(400, "record_required", "That purchase order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+    const found = await supabaseList(
+      config,
+      "purchase_orders",
+      `?select=id,approval_status&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return refuse(503, "procurement_schema_required", "Purchase-order approvals are not installed yet. Apply the current database migration first.");
+    const before = found.rows[0];
+    if (!before) return refuse(404, "not_yours", "That purchase order is not in your business, or it has been removed.");
+
+    const actorRole = org.role || req.sonaraBusinessMembership?.role || req.sonaraAccess?.roles?.[0] || null;
+    const decision = procurement.decideApprovalTransition({
+      currentState: before.approval_status,
+      action: req.body?.action,
+      actorRole,
+      ownerOverride: Boolean(req.sonaraAccess?.ownerOverride)
+    });
+    if (!decision.allowed) return refuse(403, decision.code, decision.reason || "Your role cannot make that procurement change.");
+
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_transition_purchase_order_approval`, {
+      method: "POST",
+      headers: headers(config),
+      body: JSON.stringify({
+        p_organization_id: org.organizationId,
+        p_purchase_order_id: recordId,
+        p_actor_user_id: org.userId,
+        p_actor_role: decision.actorRole,
+        p_action: decision.action,
+        p_notes: sanitizeText(req.body?.notes) || null
+      })
+    }).catch(() => undefined);
+    if (!response?.ok) return refuse(409, "procurement_transition_not_saved", "The order changed before this action completed, or the approval migration is not installed. Nothing was reported as approved.");
+    const rows = await response.json().catch(() => []);
+    const order = Array.isArray(rows) ? rows[0] : rows;
+    const detail = `Approval moved from ${decision.currentState} to ${decision.nextState}.`;
+    if (!acceptsHtml(req)) return res.status(200).json({ ok: true, order, action: decision.action, detail, audited: true });
+    return res.redirect(303, `${back}?procurement_done=${encodeURIComponent(detail)}`);
   });
 
   // The four pages whose records have line items: purchase orders, stock
@@ -977,6 +1051,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
+            ...(page.table === "purchase_orders" && parent ? [procurementCard(parent, org, req, ui, req.query.procurement_problem, req.query.procurement_done)] : []),
             ...(recordStatus.hasStatus(page) && parent ? [statusCard(page, parent, ui, req.query.status_problem, req.query.status_done)] : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
@@ -1798,6 +1873,15 @@ function registerRestResource(app, path, resource, deps, middleware) {
     const submitted = dropBlanks(req.body);
     delete submitted.user_id;
     delete submitted.organization_id;
+    if (resource.table === "purchase_orders") {
+      // Approval and fulfillment are decisions made after the order exists.
+      // A client cannot create an already-sent or already-approved order by
+      // naming those columns in the request body.
+      submitted.status = "draft";
+      for (const key of Object.keys(submitted)) {
+        if (key.startsWith("approval_")) delete submitted[key];
+      }
+    }
     const payload = sanitizeObject({ ...resource.defaults, ...submitted, ...person, organization_id: org.organizationId });
     const saved = await supabaseInsert(config, resource.table, payload);
     return respond(saved?.ok === false ? 502 : 200, saved);
@@ -2487,6 +2571,42 @@ function statusCard(page, row, ui, problem, done) {
   ].join("");
 }
 
+function procurementCard(row, org, req, ui, problem, done) {
+  if (row?.approval_status === undefined) {
+    return ui.card(
+      "Procurement approval setup required",
+      "Apply the current Supabase migration before purchase orders can be submitted, approved, or sent. Existing orders remain visible and no approval is assumed."
+    );
+  }
+
+  const current = String(row.approval_status || "draft");
+  const role = org?.role || req.sonaraBusinessMembership?.role || req.sonaraAccess?.roles?.[0] || null;
+  const ownerOverride = Boolean(req.sonaraAccess?.ownerOverride);
+  const choices = procurement.ACTIONS
+    .map((action) => procurement.decideApprovalTransition({ currentState: current, action, actorRole: role, ownerOverride }))
+    .filter((decision) => decision.allowed)
+    .map((decision) => `<option value="${ui.escape(decision.action)}">${ui.escape(readableStatus(decision.action))}</option>`)
+    .join("");
+  const outcome = statusOutcome(ui, problem, done);
+  const times = [
+    row.approval_requested_at ? `Submitted ${String(row.approval_requested_at).slice(0, 16).replace("T", " ")}.` : "",
+    row.approval_decided_at ? `Decided ${String(row.approval_decided_at).slice(0, 16).replace("T", " ")}.` : ""
+  ].filter(Boolean).join(" ");
+  const control = choices
+    ? `<form method="post" action="/api/business/purchase-orders/${encodeURIComponent(String(row.id || ""))}/approval"><label>Next approval action<select name="action">${choices}</select></label><label>Decision note<textarea name="notes" maxlength="2000" rows="3"></textarea></label><button class="action" type="submit">Record action</button></form>`
+    : '<p class="fine">There is no approval action available for your role at this stage.</p>';
+
+  return [
+    '<article class="card">',
+    '<h2>Procurement approval</h2>',
+    `<p>This order is <strong>${ui.escape(readableStatus(current))}</strong>. ${ui.escape(times)}</p>`,
+    '<p class="fine">Managers can prepare and submit. An account owner must approve before the order can be sent or received. Every decision is recorded.</p>',
+    outcome,
+    control,
+    '</article>'
+  ].join("");
+}
+
 function linesCard(spec, listed, ui) {
   const loaded = listed?.ok === true;
   const rows = listed?.rows || [];
@@ -2602,7 +2722,7 @@ function isUuid(value) {
 }
 
 function formCard(page, references, ui) {
-  const fields = page.form.fields.map((field) => formField(field, references, ui)).join("");
+  const fields = page.form.fields.filter((field) => field.create !== false).map((field) => formField(field, references, ui)).join("");
   // Most forms create a record at the page's own endpoint. A few do something
   // to the page's records instead -- clocking in is not "create a time entry",
   // it is "start one now" -- so the form may name its own action and its own
@@ -2724,7 +2844,7 @@ async function resolveOrganization(req, deps) {
   const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user || null;
   if (typeof deps.getCustomerPrimaryOrganization === "function" && user) {
     const org = await deps.getCustomerPrimaryOrganization(user);
-    if (org?.ok) return { ok: true, organizationId: org.organizationId, userId: user.id };
+    if (org?.ok) return { ok: true, organizationId: org.organizationId, userId: user.id, role: org.role ?? null };
   }
   // A development escape hatch, and it must stay one.
   //

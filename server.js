@@ -5,6 +5,7 @@ const { URL, URLSearchParams } = require("node:url");
 const registerSonaraInfrastructureRoutes = require("./routes/sonara-infrastructure-routes.cjs");
 const registerSonaraEcosystemRoutes = require("./routes/sonara-ecosystem-routes.cjs");
 const registerSonaraAIIntegrationRoutes = require("./routes/sonara-ai-integrations-routes.cjs");
+const registerFreeLaunchStackRoutes = require("./routes/free-launch-stack-routes.cjs");
 const registerSonaraRequestedRepositoryRoutes = require("./routes/sonara-requested-repositories-routes.cjs");
 const registerSonaraHuggingFaceRoutes = require("./routes/sonara-huggingface-routes.cjs");
 const registerSonaraOpenSourceRoutes = require("./routes/sonara-open-source-routes.cjs");
@@ -449,6 +450,12 @@ const inviteAcceptRateLimiter = createAuthRateLimiter("auth.invite_accept", {
 
 registerCustomerReadyExperience(app);
 
+registerFreeLaunchStackRoutes(app, {
+  layout,
+  linkAction,
+  escapeHtml
+});
+
 registerSonaraInfrastructureRoutes(app, {
   layout,
   brandCard,
@@ -681,7 +688,7 @@ registerLastNineHoursRoutes(app, {
   requireWorkspaceAccess, requirePaidOrOwnerAccess, // staff portal is what Team sells; see STAFF_PAGES
   getCustomerPrimaryOrganization,
   getCustomerPaidEntitlement, // location limits need the plan; see lib/sonara-plan-limits.cjs
-  getSupabaseServerConfig, getEnv // getEnv: the VAPID keys, for the invoice-paid notification
+  getSupabaseServerConfig, getEnv, createRateLimiter // getEnv: the VAPID keys, for the invoice-paid notification
 });
 
 registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization });
@@ -1002,7 +1009,7 @@ app.get("/help", (req, res) => {
         brandCard("Getting started", "Use the free planning tools and short tutorials to get a real result before choosing a plan."),
         brandCard("Account & billing", "Manage your plan and billing from your account, and cancel anytime.")
       ],
-      actions: [linkAction("/contact", "Contact"), linkAction("/tutorials", "Tutorials"), linkAction("/free-tools", "Free tools")]
+      actions: [linkAction("/contact", "Contact"), linkAction("/tutorials", "Tutorials"), linkAction("/free-tools", "Free tools"), linkAction("/free-launch-stack", "Free Launch Stack")]
     })
   );
 });
@@ -3864,4 +3871,3 @@ function supabaseHeaders(config, options = {}) {
   if (options.prefer) headers.Prefer = options.prefer;
   return headers;
 }
-

@@ -1,8 +1,15 @@
 # Shared Task Board
 
-Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
+Updated: 2026-09-13 UTC after deterministic operations reconciliation.
 
 ## In progress
+
+- Review, merge, and run the controlled production deployment for deterministic
+  operations, Free Launch Stack, provider governance, and procurement approval.
+- Apply `20260913190000_purchase_order_approval_controls.sql` through the
+  protected migration workflow and verify manager/owner/cross-tenant behavior.
+- Configure and prove an isolated media worker before enabling Creator Studio
+  music or video processing; workflow planning alone is not execution.
 
 - Merge the hosted-schema compatibility repair and rerun the controlled production deployment from the resulting `main` commit.
 - Confirm exact-SHA production aliases and post-deploy health after the compatibility repair completes the controlled workflow.
@@ -27,6 +34,16 @@ Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
 - Complete PWA/browser and physical-device verification.
 
 ## Done
+
+- Reconciled the latest main baseline with deterministic reservations, employee
+  access, analytics, privacy-aware mapping, automation planning, and Creator
+  music/video workflow work.
+- Added fail-closed commercial terms, rate-limit, organization, operator, and
+  optional-AI validation before provider connections can become active.
+- Added role-separated purchase-order approval with a service-only atomic RPC,
+  audit event, and fulfillment gate.
+- Updated OpenAPI to 300 verified operations across 221 paths and passed the
+  repository Supabase contract at 118 migrations and 146 canonical tables.
 
 - Merged PR #216 as `7aa68a06`; every PR check passed. The automatic controlled deployment stopped safely before Vercel deployment when the hosted legacy `customers` table lacked the generated policy's `organization_id` column.
 - Added a generator-level required-column guard so a legacy-shaped table is not altered and cannot abort the remaining production migration sequence.

@@ -111,5 +111,7 @@
   "20260827100000_published_catalog_is_complete.sql": "78f762b6751b29c8c74db218b7d7c09b71f98090e389c6648a148c23b577d8a7",
   "20260907120000_declare_service_role_data_api_surface.sql": "0309c8aa443c89bd85d91c7a7954792354ce3147364878d6df31e49969c2e477",
   "20260908000000_repair_missing_reviews_table.sql": "a8c59aec67548065459fc033a3bab416ee15f9e7681dd7d6c3dc61d1580343e6",
-  "20260910020000_usage_credit_ledger.sql": "4ebda0f40fdb9a194dde4d5b08c61f74fcd1f5d7bfe4e1835ae8a0533a67618d"
+  "20260910020000_usage_credit_ledger.sql": "4ebda0f40fdb9a194dde4d5b08c61f74fcd1f5d7bfe4e1835ae8a0533a67618d",
+  "20260913190000_purchase_order_approval_controls.sql": "c7f09075103364a78f1f538811276614fd131feb06fc643561165289f5b02d49",
+  "20260819030000_member_read_policies_research_sources.sql": "652933e372933c217bbfcc2d9faa47e19dfa45949a6b2225a1bdb2e4c42cf091"
 }

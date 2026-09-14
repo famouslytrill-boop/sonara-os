@@ -2,14 +2,25 @@
 
 Owner: Codex (Agent A)
 Status: accepted baseline
-Last verified: 2026-07-19
+Last verified: 2026-09-13
 
 ## Canonical sources
 
 - Runtime implementation: `server.js` plus registered modules under `routes/**`.
 - Machine-readable contract: `openapi/sonara.yaml` (OpenAPI 3.1.0).
 - Drift gate: `pnpm run verify:api` compares every registered `/api/*` method/path with the OpenAPI document in both directions and rejects duplicate operation IDs.
-- Current verified inventory: 85 operations across 62 distinct paths.
+- Current verified inventory: 300 operations across 221 distinct paths.
+
+## Deterministic operations additions
+
+- Business Builder exposes authenticated, organization-scoped analytics,
+  reservation-resource, waitlist, privacy-reduced map snapshot, and workflow
+  validation APIs.
+- Purchase-order approval transitions use a server-resolved tenant and the
+  service-only atomic approval function. Fulfillment remains blocked until an
+  approval is persisted.
+- Creator Studio exposes workflow templates, media planning, and automation
+  validation. Planning responses do not claim provider execution.
 
 ## Compatibility rules
 

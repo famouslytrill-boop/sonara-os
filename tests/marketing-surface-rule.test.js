@@ -27,7 +27,7 @@ const { PUBLIC_ROUTES, CUSTOMER_ROUTES, ADMIN_ROUTES } = require("../lib/sonara-
 
 // Public pages that exist to attract and orient someone who has not signed up.
 const CINEMATIC = new Set([
-  "/", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/pricing",
+  "/", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/free-launch-stack", "/pricing",
   "/how-it-works", "/tutorials", "/tutorials/getting-started", "/tutorials/business-builder",
   "/tutorials/creator-studio", "/tutorials/growth-studio", "/contact", "/security",
   "/business-builder", "/creator-studio", "/growth-studio", "/help", "/prompt-library",

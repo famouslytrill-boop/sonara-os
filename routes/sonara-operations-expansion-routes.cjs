@@ -66,14 +66,14 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     const days = Math.min(366, Math.max(1, Number(req.query.days) || 30));
     const end = new Date();
     const start = new Date(end.getTime() - days * 86400000);
-    const floor = enc(start.toISOString());
+    const floor = start.toISOString();
     const org = scope.organizationId;
     const [bookings, time, inventory, payments, locations] = await Promise.all([
-      list(scope.config, TABLES.bookings, org, "id,status,starts_at,ends_at,created_at", `&or=(starts_at.gte.${floor},created_at.gte.${floor})`),
-      list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,created_at", `&clock_in_at=gte.${floor}`),
+      list(scope.config, TABLES.bookings, org, "id,status,starts_at,ends_at,created_at", `&or=(starts_at.gte.${encodeURIComponent(floor)},created_at.gte.${encodeURIComponent(floor)})`),
+      list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,created_at", `&clock_in_at=gte.${encodeURIComponent(floor)}`),
       list(scope.config, TABLES.inventory, org, "id,quantity,cost_cents,reorder_level,status"),
-      list(scope.config, TABLES.payments, org, "id,status,amount_cents,created_at", `&created_at=gte.${floor}`),
-      list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${floor}`)
+      list(scope.config, TABLES.payments, org, "id,status,amount_cents,created_at", `&created_at=gte.${encodeURIComponent(floor)}`),
+      list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${encodeURIComponent(floor)}`)
     ]);
 
     const unreadableSources = Object.entries({ bookings, time, inventory, payments, locations })

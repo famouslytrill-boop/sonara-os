@@ -583,7 +583,11 @@ describe("the server.js split stays safe", () => {
       // asking for a reason is what turned "raise the number" into "extract the
       // function" -- which also made the form directly testable, so "a manager
       // no longer types their own organization id" is now an assertion.
-      lines <= 3868,
+      // 3868 -> 3874 on 13 September 2026: the live Free Launch Stack mount
+      // and its dependency wiring are part of the production route surface.
+      // Keep the ceiling tight and documented rather than hiding the route in
+      // an untracked string patch.
+      lines <= 3874,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

@@ -2,6 +2,10 @@
 
 const { ROUTE_REGISTRY, plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const {
+  evaluateIntegrationActivation,
+  requiresActivationReview
+} = require("../lib/sonara-integration-activation-policy.cjs");
 
 const { randomUUID } = require("node:crypto");
 
@@ -572,6 +576,13 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     const normalized = normalizeFields(req.body, definition.fields, false, acceptsHtml(req));
     if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
+    if (req.params.resource === "integrations" && requiresActivationReview(normalized.value.connection_status)) {
+      const policy = evaluateIntegrationActivation({ settings: normalized.value.settings });
+      if (!policy.allowed) {
+        await audit(ctx, loaded.business.id, "integrations.activation_denied", "integrations", null, "denied", { reasons: policy.reasons });
+        return send(req, res, { ok: false, status: 409, code: policy.code, reasons: policy.reasons }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
+      }
+    }
     const record = { organization_id: ctx.organizationId, business_id: loaded.business.id, ...normalized.value };
     if (definition.actorColumn) record[definition.actorColumn] = ctx.userId;
     const result = await rest(definition.table, "", { method: "POST", prefer: "return=representation", body: record });
@@ -593,9 +604,35 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!loaded.ok) return send(req, res, loaded, "/business-builder/control-center");
     const allowed = await permission(req, ctx, loaded.business.id, `${req.params.resource}.${action}`, definition.ownerOnly);
     if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
-    const patch = action === "archive"
-      ? { ...(definition.archivePatch || { status: "archived" }) }
-      : normalizeFields(req.body, definition.fields, true, acceptsHtml(req)).value;
+    const normalized = action === "archive"
+      ? { ok: true, value: { ...(definition.archivePatch || { status: "archived" }) } }
+      : normalizeFields(req.body, definition.fields, true, acceptsHtml(req));
+    if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
+    const patch = normalized.value;
+
+    // A provider connection starts in setup_required and can be useful there:
+    // it records what the owner intends to connect without claiming it is
+    // active. Moving it to connected is different. The current row is loaded
+    // inside the same tenant and business filters used by the write, then the
+    // merged settings are checked. This also stops a later patch from removing
+    // governance metadata while leaving an already-connected record green.
+    if (req.params.resource === "integrations" && action !== "archive") {
+      const existing = await rest(
+        definition.table,
+        `select=id,connection_status,settings&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
+      );
+      if (!existing.ok) return send(req, res, { ok: false, status: 502, code: "integration_governance_unreadable" }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
+      if (!existing.rows[0]) return send(req, res, { ok: false, status: 404, code: "resource_not_found" }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
+      const connectionStatus = patch.connection_status ?? existing.rows[0].connection_status;
+      const settings = patch.settings ?? existing.rows[0].settings;
+      if (requiresActivationReview(connectionStatus)) {
+        const policy = evaluateIntegrationActivation({ settings });
+        if (!policy.allowed) {
+          await audit(ctx, loaded.business.id, "integrations.activation_denied", "integrations", req.params.id, "denied", { reasons: policy.reasons });
+          return send(req, res, { ok: false, status: 409, code: policy.code, reasons: policy.reasons }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
+        }
+      }
+    }
     patch.updated_at = new Date().toISOString();
     const result = await rest(definition.table, `id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}`, { method: "PATCH", prefer: "return=representation", body: patch });
     await audit(ctx, loaded.business.id, `${req.params.resource}.${action}d`, req.params.resource, req.params.id, result.ok ? "success" : "failed", { fields: Object.keys(patch) });

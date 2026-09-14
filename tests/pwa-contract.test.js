@@ -81,7 +81,7 @@ describe("canonical PWA contract", () => {
     }
 
     for (const shortcut of manifest.shortcuts || []) {
-      assert.match(shortcut.url, /^\/(business-builder|creator-studio|growth-studio)$/);
+      assert.match(shortcut.url, /^\/(business-builder|creator-studio|growth-studio|staff)$/);
       for (const icon of shortcut.icons || []) {
         const iconResponse = await request(app).get(icon.src);
         assert.equal(iconResponse.status, 200, `${icon.src} should exist`);

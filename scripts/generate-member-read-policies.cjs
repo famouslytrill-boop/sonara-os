@@ -94,6 +94,9 @@ const ORGANIZATION_READ_TABLES = [
   // member-scoped read policy rather than the service-role escape hatch, which
   // is for privilege and audit tables.
   "business_bookings",
+  // Purchase orders are organization-scoped operations data. Approval is
+  // separately role-gated by the service RPC, but members need a read path.
+  "purchase_orders",
   "customer_records",
   // Accounts receivable and the quotes that feed it. Read by
   // /business-builder/owner/receivables, /quotes, /money-due and two record
@@ -272,7 +275,7 @@ const APPLIED_MIGRATIONS = Object.freeze([
 // 20260729220000 -- consent records and location zones, applied
 // 20260729233000 -- staff schedules, tasks and announcements, applied
 // 20260819030000 -- research sources, for the crawl permission gate
-const migrationName = "20260819030000_member_read_policies_research_sources.sql";
+const migrationName = "20260913193000_member_read_policies_purchase_orders.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 

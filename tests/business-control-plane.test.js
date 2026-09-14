@@ -114,6 +114,52 @@ describe("Business Builder control plane", () => {
     assert.ok(calls.some((call) => call.url.includes("business_control_audit_events")));
   });
 
+  it("keeps provider connections setup-required until commercial and operator governance passes", async () => {
+    const calls = [];
+    global.fetch = async (url, options = {}) => {
+      const call = { url: String(url), method: options.method || "GET", body: options.body ? JSON.parse(options.body) : undefined };
+      calls.push(call);
+      if (call.url.includes("/rest/v1/business_workspaces") && call.method === "GET") return response(200, [businessRecord()]);
+      if (call.url.includes("/rest/v1/business_integration_connections") && call.method === "POST") {
+        return response(201, [{ id: "44444444-4444-4444-8444-444444444444", ...call.body }]);
+      }
+      if (call.url.includes("/rest/v1/business_control_audit_events")) return response(201, []);
+      return response(200, []);
+    };
+
+    const refused = await request(buildApp())
+      .post(`/api/business-builder/businesses/${BUSINESS_ID}/integrations`)
+      .set("Accept", "application/json")
+      .send({ provider_key: "calendar", connection_status: "connected" });
+    assert.equal(refused.status, 409);
+    assert.equal(refused.body.code, "integration_governance_required");
+    assert.equal(calls.some((call) => call.url.includes("business_integration_connections") && call.method === "POST"), false);
+
+    const accepted = await request(buildApp())
+      .post(`/api/business-builder/businesses/${BUSINESS_ID}/integrations`)
+      .set("Accept", "application/json")
+      .send({
+        provider_key: "calendar",
+        connection_status: "connected",
+        settings: {
+          governance: {
+            organizationScoped: true,
+            secrets: "server_only",
+            commercial: { status: "approved", termsUrl: "https://provider.example/terms", reviewedAt: "2026-09-13T12:00:00Z" },
+            rateLimit: { mode: "provider_headers", honorsRetryAfter: true },
+            operator: { mode: "human_approval", externalActionsAllowed: false },
+            ai: { mode: "disabled", required: false }
+          }
+        }
+      });
+    assert.equal(accepted.status, 201);
+    assert.equal(accepted.body.ok, true);
+    const inserted = calls.find((call) => call.url.includes("business_integration_connections") && call.method === "POST");
+    assert.equal(inserted.body.organization_id, ORGANIZATION_ID);
+    assert.equal(inserted.body.connection_status, "connected");
+    assert.equal(inserted.body.settings.governance.secrets, "server_only");
+  });
+
   it("uses resource-specific lifecycle transitions for integrations and permissions", async () => {
     const scenarios = [
       {

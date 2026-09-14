@@ -68,6 +68,13 @@ paths:
       summary: Return the public route registry used by verification.
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/free-launch-stack:
+    get:
+      operationId: getFreeLaunchStack
+      tags: [Platform]
+      summary: Return the non-secret free-first technology directory.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
   /api/checkout/session:
     get:
       operationId: getCheckoutSessionMethodNotice
@@ -1809,6 +1816,107 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/operations/analytics:
+    get:
+      operationId: getBusinessOperationsAnalytics
+      tags: [Operations]
+      summary: Calculate organization-scoped operating analytics from saved rows without AI.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/reservation-resources:
+    get:
+      operationId: listBusinessReservationResources
+      tags: [Operations]
+      summary: List organization-scoped assets explicitly marked as bookable.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessReservationResource
+      tags: [Operations]
+      summary: Create a bookable business resource with validated capacity and tenant scope.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/waitlist:
+    get:
+      operationId: listBusinessWaitlist
+      tags: [Operations]
+      summary: List waiting reservation requests for the authenticated organization.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessWaitlistEntry
+      tags: [Operations]
+      summary: Add a validated reservation request to the organization waitlist.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/waitlist/{bookingId}/offer:
+    post:
+      operationId: prepareBusinessWaitlistOffer
+      tags: [Operations]
+      summary: Mark an organization-scoped waitlist entry as offered without sending a customer message.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: bookingId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/map/snapshot:
+    get:
+      operationId: getBusinessLocationSnapshot
+      tags: [Operations]
+      summary: Summarize consented stored location events without increasing coordinate precision.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/automations/templates:
+    get:
+      operationId: listBusinessAutomationTemplates
+      tags: [Operations]
+      summary: List allowlisted deterministic workflow templates and their approval requirements.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/business/automations/validate:
+    post:
+      operationId: validateBusinessAutomation
+      tags: [Operations]
+      summary: Validate an allowlisted workflow plan without executing arbitrary code or provider actions.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/business/purchase-orders/{recordId}/approval:
+    post:
+      operationId: transitionPurchaseOrderApproval
+      tags: [Operations]
+      summary: Submit, approve, reject, revise, or cancel an organization-scoped purchase-order approval.
+      description: The service-only database function updates approval state and writes an operator audit event atomically. Fulfillment cannot advance to sent or received until approved.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: recordId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "409": { $ref: "#/components/responses/Conflict" }, "429": { $ref: "#/components/responses/TooManyRequests" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/workflows/templates:
+    get:
+      operationId: listCreatorWorkflowTemplates
+      tags: [Creator]
+      summary: List deterministic media workflow templates and execution safeguards.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/creator/workflows/plan:
+    post:
+      operationId: planCreatorMediaWorkflow
+      tags: [Creator]
+      summary: Produce a validated music or video workflow plan without executing a provider job.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/creator/automations/validate:
+    post:
+      operationId: validateCreatorAutomation
+      tags: [Creator]
+      summary: Validate an allowlisted Creator Studio automation without executing arbitrary code.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
   /api/sensory/profiles:
     get:
       operationId: listSensoryProfiles
