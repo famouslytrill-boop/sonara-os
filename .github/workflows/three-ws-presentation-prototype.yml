@@ -1,0 +1,49 @@
+name: three.ws Presentation Prototype
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "experiments/three-ws-presentation/**"
+      - "scripts/verify-three-ws-prototype.mjs"
+      - "docs/agents/THREE_WS_PRESENTATION_ADAPTER.md"
+      - ".github/workflows/three-ws-presentation-prototype.yml"
+  push:
+    branches: [main]
+    paths:
+      - "experiments/three-ws-presentation/**"
+      - "scripts/verify-three-ws-prototype.mjs"
+      - "docs/agents/THREE_WS_PRESENTATION_ADAPTER.md"
+      - ".github/workflows/three-ws-presentation-prototype.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boundary:
+    name: Verify presentation-only isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout SONARA
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify prototype boundary
+        run: node scripts/verify-three-ws-prototype.mjs
+
+      - name: Syntax-check adapter
+        run: node --check experiments/three-ws-presentation/presentation-adapter.js
+
+      - name: Confirm production runtime remains disconnected
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R --line-number --fixed-string "three-ws-presentation" server.js vercel.json package.json
+          ! grep -R --line-number --fixed-string "@three-ws/avatar" server.js vercel.json package.json
