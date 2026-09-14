@@ -77,6 +77,16 @@ The third 2026-09-13 batch is documented in `docs/research/SCREENSHOT_TOOL_RADAR
 - NVIDIA NeMo Switchyard: pre-1.0 model-routing research behind Provider Gateway; standalone demo server is not production-ready.
 - BreachLab, Google Trends, and HackProduct are hosted/service/learning references rather than executable repository records.
 
+The fourth 2026-09-14 batch is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-14_BATCH4.md` and represented in `lib/sonara-screenshot-tool-radar-batch4.cjs`.
+
+- vGPU: optional client-side WebGPU experiment with explicit fallback, mobile/GPU-budget testing, and no assumption of server-side GPU availability.
+- Open WebUI: AI-workspace architecture reference only until its custom branding-restricted license and tenant/security implications are deliberately reviewed.
+- OpenShot: Creator Studio feature/workflow benchmark; GPL-3.0-or-later makes source reuse a deliberate architecture decision.
+- Agent-Me: inspectable personal-agent memory/provenance reference; never use it to silently impersonate a user or widen agent authority.
+- Quarkdown: document/typesetting benchmark; GPL-3.0 by default with AGPL-3.0 CLI/LSP modules, so runtime adoption is license-gated.
+- Generative AI Arbitrage: unlicensed provider/pricing directory; use only as a vendor-research lead and independently verify every provider and savings/model-equivalence claim.
+- Archify and three.ws were repeated screenshots and remain deduplicated in Batch 3. BreachLab remains a hosted-service reference rather than an executable repository record.
+
 ## Output format for future intakes
 
 For each tool, return: verified upstream, license posture, what it actually does, product fit, runtime placement, security/advisory state where relevant, safety boundaries, blocked uses, implementation status, next experiment, and whether any code was actually adopted. Distinguish `researched`, `adapter built`, and `enabled in production`; those are not synonyms.
