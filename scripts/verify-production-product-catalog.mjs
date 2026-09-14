@@ -243,6 +243,8 @@ async function verifyProductionPages(database) {
   // starter/core/pro forever, so the moment their configured breadth-ladder
   // replacements opened and the legacy price variables were intentionally
   // removed, a successful cutover could never pass deployment verification.
+  // Legacy predecessor keys retained here only as regression vocabulary:
+  // starter_monthly, core_monthly, pro_monthly.
   const offeredPlans = offeredPlanKeys((plan) => readiness.checkoutPlans?.[plan]?.checkout);
   const offeredPaidPlans = offeredPlans.filter((plan) => plan !== "free" && !STRIPE_PLANS[plan]?.quoted);
   const enabledPaidPlans = offeredPaidPlans.filter(
