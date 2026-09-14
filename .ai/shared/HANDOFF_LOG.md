@@ -214,3 +214,20 @@
   exposes no credentials, and keeps the public route synchronous and safe.
 - Added a page-frame regression test for configured and missing service states.
 - Focused verification passed: build, lint, and 58 route/frame/auth tests.
+
+## 2026-09-14 - Visual palette recalibration
+
+- Rebalanced the working palette around evergreen operations, cobalt navigation,
+  coral creative cues, and amber growth signals while retaining the existing
+  SONARA logo gradients.
+- Updated light, dark, and no-JavaScript fallback token blocks together,
+  including Business Builder, Creator Studio, Growth Studio, and admin accents.
+- Shifted ambient gradients, startup visuals, and Business Builder fallback
+  colors without adding third-party assets, runtime dependencies, or route
+  behavior changes.
+- Bumped the shared immutable asset token to `sonara-ui-20260914-v12-palette`
+  across the page frame, fonts, server-worker precache, and server cache note so
+  existing browsers cannot pin the previous visual bundle.
+- Verification: contrast, theme agreement, customer-ready checks, build, and
+  lint pass. The palette remains reversible and no provider, secret, migration,
+  or payment wiring changed.
