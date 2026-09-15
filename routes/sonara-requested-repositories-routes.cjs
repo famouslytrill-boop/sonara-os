@@ -34,6 +34,9 @@ const {
   getScreenshotToolReadinessBatch7,
   getNonRepositoryReferencesBatch7
 } = require("../lib/sonara-screenshot-tool-radar-batch7.cjs");
+const {
+  getCapabilityDesignReadiness
+} = require("../lib/sonara-capability-design-batches.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -67,17 +70,28 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const repositories = getCombinedPublicCatalog();
     const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
     const nonRepositoryReferences = getAllNonRepositoryReferences();
+    const convergence = getCapabilityDesignReadiness();
     const verified = repositories.filter((item) => item.repositoryVerified).length;
     const blocked = repositories.filter((item) => item.integrationStatus === "blocked").length;
     const screenshotResearchCount = getScreenshotResearchCount();
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
-      brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
-      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 appear in this catalog as non-executing research records, and each batch also has its own review page."),
-      brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items were verified as hosted services or learning references and intentionally kept outside the executable repository catalog.`),
+      brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots are cataloged as non-executing research records; verification state remains explicit per record.`),
+      brandCard("Capability convergence — Batch 8", `${convergence.batch8Count} truth records describe actual SONARA One, Business Builder, Creator Studio, Growth Studio, Claude, ChatGPT/Codex, and cross-agent delivery capability without enabling anything from the research surface.`),
+      brandCard("Design and correctness — Batch 9", `${convergence.batch9Count} current design/correctness records preserve the v3 SONARA One identity, Balanced Precision interaction system, truthful loading/state language, cross-agent authority, and named repair/review work.`),
+      brandCard("Latest screenshot intake", "The Batch 5 through Batch 7 repository research remains included in this complete governed catalog; Batches 8 and 9 add internal capability/design convergence rather than inventing more external repositories."),
+      brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items are kept as hosted services, learning references, or unresolved non-repository leads outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
       brandCard("Production boundary", "No third-party repository is cloned, installed, executed, or enabled in the production web process by this catalog."),
+      ...convergence.capabilities.map((item) => brandCard(
+        `${item.label}: ${display(item.capabilityStatus)}`,
+        `${item.capabilities.join("; ")}. Boundary: ${item.boundaries.join(" ")}`
+      )),
+      ...convergence.designs.map((item) => brandCard(
+        `${item.label}: ${display(item.status)}`,
+        item.rule
+      )),
       ...nonRepositoryReferences.map((item) => brandCard(
         `${item.label}: reference only`,
         `${item.observedTheme}. ${item.reason} Next: ${item.nextStep}`
@@ -96,7 +110,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       title: "Requested repository integrations",
       eyebrow: "Research Lab",
       heading: "Governed external repository intake",
-      body: "Verified repository identities, intended SONARA placement, license posture, safety boundaries, staged next actions, hosted-service references, and explicitly unresolved screenshot leads.",
+      body: "Verified repository identities, intended SONARA placement, license posture, safety boundaries, staged next actions, hosted-service references, explicitly unresolved screenshot leads, and non-executing capability/design convergence records.",
       sections,
       actions: [
         linkAction("/research-lab/latest-screenshot-intake", "Latest screenshot intake"),
@@ -109,11 +123,22 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
 
   app.get("/research-lab/latest-screenshot-intake", (req, res) => {
     const latest = getLatestScreenshotIntake();
+    const convergence = getCapabilityDesignReadiness();
     const sections = [
-      brandCard("Verified repository records", `${latest.repositories.length} Batch 5 through Batch 7 repositories are classified for product fit, license risk, runtime boundary, and staged next action.`),
+      brandCard("Repository records", `${latest.repositories.length} Batch 5 through Batch 7 repositories are classified for product fit, verification state, license risk, runtime boundary, and staged next action.`),
+      brandCard("Batch 8 capability truth", `${convergence.batch8Count} internal records separate available, setup-gated, development-compatible, and research-ready capability states across SONARA and its agent workflows.`),
+      brandCard("Batch 9 design/correctness", `${convergence.batch9Count} records define the current v3 design authority and the repair/review items that must not be marketed as complete.`),
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were already represented in earlier governed records and were not duplicated.`),
-      brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging is not installation, deployment, or permission to send customer data."),
+      brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging and capability/design documentation are not installation, deployment, or permission to send customer data."),
+      ...convergence.capabilities.map((item) => brandCard(
+        `${item.label}: ${display(item.capabilityStatus)}`,
+        `${item.capabilities.join("; ")}. ${item.boundaries.join(" ")}`
+      )),
+      ...convergence.designs.map((item) => brandCard(
+        `${item.label}: ${display(item.status)}`,
+        item.rule
+      )),
       ...latest.nonRepositoryReferences.map((item) => brandCard(
         `${item.label}: reference only`,
         `${item.observedTheme || item.status}. ${item.reason || item.correction || "Hosted/platform reference only."} Next: ${item.nextStep}`
@@ -127,8 +152,8 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     res.status(200).type("html").send(layout({
       title: "Latest screenshot research",
       eyebrow: "Research Lab",
-      heading: "2026-09-15 governed screenshot intake",
-      body: "Batch 5 through Batch 7 preserve useful product and infrastructure ideas while keeping reciprocal licenses, privacy-sensitive OSINT, financial trading, capture permissions, desktop-only runtimes, and hosted services behind explicit review boundaries.",
+      heading: "2026-09-15 governed intake and convergence",
+      body: "Batch 5 through Batch 7 preserve external research leads. Batch 8 records actual product and agent-workflow capabilities. Batch 9 records the latest SONARA One v3 design authority and correctness work. None of these records widens runtime authority by itself.",
       sections,
       actions: [
         linkAction("/research-lab/requested-repositories", "Repository intake"),
@@ -149,11 +174,21 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
-      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 are counted in the readiness figures above and remain listed on a focused founder review surface."),
-      brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
+      brandCard("Batch 8 capability truth", `${readiness.capabilityBatch8.length} internal capability records distinguish actual runtime capability from setup-gated or research-only agent integration.`),
+      brandCard("Batch 9 design/correctness", `${readiness.designBatch9.length} design and correctness records define current visual authority and unresolved repair/review work.`),
+      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 are included in the aggregate repository readiness contract; Batches 8 and 9 are separate internal convergence records."),
+      brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
-      brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
+      brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current repository-research records remain non-executing and human-reviewed.`),
       brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, media renderers, browser agents, GPU libraries, AI workspaces, infrastructure optimizers, model routers, social suites, and security tools require isolated workers, progressive client enhancement, or development environments—not the Vercel request process by default."),
+      ...readiness.capabilityBatch8.map((item) => brandCard(
+        `${item.label}: ${display(item.capabilityStatus)}`,
+        `Evidence: ${item.evidence.join(", ")}. Boundaries: ${item.boundaries.join(" ")}`
+      )),
+      ...readiness.designBatch9.map((item) => brandCard(
+        `${item.label}: ${display(item.status)}`,
+        `${item.rule} Evidence: ${item.evidence.join(", ")}.`
+      )),
       ...readiness.nonRepositoryReferences.map((item) => brandCard(
         `${item.label}: reference only`,
         `${item.reason} Next: ${item.nextStep}`
@@ -172,7 +207,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       title: "Requested repository readiness",
       eyebrow: "Founder operations",
       heading: "External repository integration control plane",
-      body: "Static readiness and governance state. This page never executes external code or reveals credentials.",
+      body: "Static readiness and governance state plus internal capability/design convergence. This page never executes external code or reveals credentials.",
       sections,
       actions: [
         linkAction("/admin/latest-screenshot-intake", "Latest screenshot readiness"),
@@ -187,10 +222,21 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   app.get("/admin/latest-screenshot-intake", requireAdmin, async (req, res) => {
     await recordAdminAuditEvent(req, "admin.latest_screenshot_intake.view", { path: req.path });
     const latest = getLatestScreenshotIntake();
+    const convergence = getCapabilityDesignReadiness();
     const sections = [
       brandCard("Latest governed intake", `${latest.repositories.length} repositories and ${latest.nonRepositoryReferences.length} hosted/platform references are represented across Batch 5 through Batch 7.`),
-      brandCard("Production execution", "0 enabled. Every latest-intake repository remains cataloged-disabled and requires human review before implementation."),
+      brandCard("Batch 8 capability truth", `${convergence.batch8Count} non-executing truth records map current SONARA/product/agent workflow capability.`),
+      brandCard("Batch 9 design/correctness", `${convergence.batch9Count} non-executing design and correctness records define the current visual authority and unresolved work.`),
+      brandCard("Production execution", "0 enabled by the research/convergence records. Every latest-intake repository remains cataloged-disabled and requires human review before implementation."),
       brandCard("Runtime boundaries", "Desktop capture/audio/networking stays on reviewed local companions; media rendering stays in isolated workers; OSINT and financial-trading projects stay research-only; diagram rendering must sanitize structured inputs."),
+      ...convergence.capabilities.map((item) => brandCard(
+        `${item.label}: ${display(item.capabilityStatus)}`,
+        `Evidence: ${item.evidence.join(", ")}. ${item.boundaries.join(" ")}`
+      )),
+      ...convergence.designs.map((item) => brandCard(
+        `${item.label}: ${display(item.status)}`,
+        `${item.rule} Evidence: ${item.evidence.join(", ")}.`
+      )),
       ...latest.repositories.map((item) => brandCard(
         `${item.label}: ${display(item.configurationStatus)}`,
         adminSummary(item)
@@ -204,8 +250,8 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     res.status(200).type("html").send(layout({
       title: "Latest screenshot readiness",
       eyebrow: "Founder operations",
-      heading: "2026-09-15 external-tool review",
-      body: "Founder-facing readiness for the newest screenshot research. This surface is informational and never executes third-party code.",
+      heading: "2026-09-15 external-tool and capability review",
+      body: "Founder-facing readiness for the newest repository research plus Batch 8 capability truth and Batch 9 design/correctness convergence. This surface is informational and never executes third-party code.",
       sections,
       actions: [
         linkAction("/research-lab/latest-screenshot-intake", "Public research view"),
@@ -273,6 +319,7 @@ function getCombinedReadiness() {
   const screenshotBatch5 = getScreenshotToolReadinessBatch5();
   const screenshotBatch6 = getScreenshotToolReadinessBatch6();
   const screenshotBatch7 = getScreenshotToolReadinessBatch7();
+  const convergence = getCapabilityDesignReadiness();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
   const nonRepositoryReferences = getAllNonRepositoryReferences();
   const repositories = [
@@ -287,7 +334,7 @@ function getCombinedReadiness() {
   ];
   return {
     ok: true,
-    mode: "static_governed_catalog",
+    mode: "static_governed_catalog_with_capability_design_convergence",
     repositoryCount: repositories.length,
     verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
     blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
@@ -295,6 +342,9 @@ function getCombinedReadiness() {
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
     productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,
+    capabilityBatch8: convergence.capabilities,
+    designBatch9: convergence.designs,
+    convergenceProductionExecutionAdded: convergence.productionExecutionAdded,
     repositories,
     unresolvedVisualLeads,
     nonRepositoryReferences
