@@ -201,3 +201,5 @@ describe("founder business drafting surface", () => {
     assert.match(response.text, /OPENAI_API_KEY is not configured/);
   });
 });
+
+require("./runtime-capability-planner.cjs");
