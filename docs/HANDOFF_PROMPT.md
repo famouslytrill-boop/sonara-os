@@ -188,6 +188,28 @@ remainder read tables that exist in no migration**, so creating them would fail
 on deploy. "Recorded is not defined" is the report's own phrase, and it means
 transcription alone cannot close that gap.
 
+## And then I found I had duplicated somebody else's work
+
+Merging `main` afterwards surfaced **PR #257**, merged hours earlier:
+`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`. It documents the same blocker
+properly — a credential-boundary table, the exact owner steps, and the point my
+version missed entirely:
+
+> A verifier restricted to Prices/Products read access **can make the price audit
+> pass while every customer/Checkout Session write fails.**
+
+Which means the price gate going green is *not* evidence that billing works —
+the opposite of what a reader might take from "the blocker moved one step
+later".
+
+So the re-verification now **defers** to that document instead of restating it,
+keeping only what is genuinely its own: that the price step passes, that the
+failure is at the runtime-secret sync, and that the migration apply and deploy
+are skipped. A second description of one blocker in a second document is how the
+two drift apart, which is the failure that file exists to catch. I wrote it
+before the merge showed me the better one; leaving both would have been the
+"repository with two verdicts" problem, self-inflicted.
+
 ## What was not done
 
 The review date moved **after** the measurements, not before. That ordering is

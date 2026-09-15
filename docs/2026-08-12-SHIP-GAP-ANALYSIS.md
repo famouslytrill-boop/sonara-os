@@ -285,25 +285,27 @@ hand once.
 
 The production deployment still fails, and it is no longer the price check. It
 fails one step later, at **`Synchronize verified Stripe runtime secret to Vercel
-production`**, and the step says exactly why:
+production`**, and everything after it is **skipped** — the rollback checkpoint,
+the migration apply, and the Vercel deploy. Production is untouched and still
+serves its previous build. A red workflow instead of a half-migrated database is
+the gate working.
 
-> A full live Stripe runtime key is required. Configure the protected
-> `STRIPE_RUNTIME_SECRET_KEY` secret with an `sk_live_` key; the read-only
-> verifier key will not be promoted.
+**`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md` is the authoritative account and
+this defers to it.** It arrived in PR #257 a few hours before this
+re-verification, with the credential-boundary table and the owner steps, and it
+makes the point that matters most and is easy to miss: a `rk_live_` verifier
+restricted to reading Prices and Products *"can make the price audit pass while
+every customer/Checkout Session write fails"*. So the price gate going green is
+not evidence that billing works.
 
-That is **deliberate, not broken.** PR #256 separated the read-only verifier
-credential from the runtime secret, so a restricted key that is sufficient for
-reading prices cannot be promoted into the production runtime. The step refuses
-because the key available to it does not begin with `sk_live_`.
-
-Everything after it is **skipped** — the rollback checkpoint, the migration
-apply, and the Vercel deploy. Production is untouched and still serves its
-previous build. A red workflow instead of a half-migrated database is the gate
-working.
+Nothing further is written here. A second description of one blocker in a second
+document is how the two drift apart, which is the failure this whole file exists
+to catch — and the first draft of this section did exactly that before the merge
+surfaced the other document.
 
 **So the single remaining deploy blocker is one named repository secret**, and it
 is owner-only: nothing in this repository can set it, and it must never be pasted
-into a conversation or a commit.
+into a conversation, a commit, an issue or a log.
 
 ### Item 4: the middle claim moved
 
@@ -324,8 +326,9 @@ command in `docs/owner/OWNER-STEPS.md`
 ### The corrected order
 
 1. **Set `STRIPE_RUNTIME_SECRET_KEY`** to a full `sk_live_` key as a protected
-   repository secret. This is the only thing standing between `main` and a
-   deployed build, and it is the owner's alone.
+   environment secret, following `docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`
+   rather than any summary of it. This is the only thing standing between `main`
+   and a deployed build, and it is the owner's alone.
 2. **Run the paid signup** once deployed — still the one thing no check can
    prove, and now across nine plans rather than three.
 3. **The two security steps**: the leaked-password toggle, and the four
