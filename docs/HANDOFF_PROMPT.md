@@ -106,6 +106,98 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - Re-verifying a ship-gap document, and the blocker that moved
+
+`report-stale-claims.mjs` flagged `docs/2026-08-12-SHIP-GAP-ANALYSIS.md` three
+days past its review date. Main had moved **132 commits** since it was written.
+Four of its figures were stale and its central piece of evidence no longer
+exists in the codebase.
+
+## Its own numbers contradicted each other
+
+The opening section says **23 products, all 23 execution-enabled**. Item 3 says
+**"all 13 executable products"**. Both cannot be right — the 13 was a leftover
+the same-day update missed, and it sat there for a month.
+
+Both are stale anyway: **42 products, 42 active, 42 open, 0 restricted.** Which
+also kills its line "The remaining 21 catalog products are disclosed as
+unavailable" — there are none.
+
+## The evidence for "the gate is green" had been deleted
+
+The document's proof was that *"entitlement integration is verified for all of
+them"*. **That field no longer exists as catalog data.** It survives only as a
+comment in `lib/sonara-paid-access.cjs` recording why it went:
+
+> `const entitlementIntegrationVerified = planFloor === "free";`
+> which defines "verified" as "free".
+
+So the sentence the document leaned on was reporting a field **false by
+construction for every paid product** — this codebase's signature defect, quoted
+as a green light. The comment records what production showed at the time:
+`executionEnabled 3, executionRestricted 31`.
+
+It is better now and differently shaped: an explicit map both billing and the
+catalog read, with `withAnnualTwins` so a plan's annual form cannot drift from
+its monthly form by omission. The honest claim today is about that map, not a
+boolean — and the document now says so instead of repeating the old sentence.
+
+## The prices grew from three to nine, and nobody wrote it down
+
+The three it names (700/1900/3900) are still configured. But there are **11
+plans now: 9 through checkout, 1 quoted**, and six arrived after the
+hand-verification of 12 August that the document cites — workspace $29/mo,
+all_three $59/mo, team $109/mo, and their annual forms at $290, $590 and $1090.
+
+**None of the six was covered by that verification.** A note claiming the paid
+path had one unknown, while six prices were added silently, is exactly the drift
+it existed to prevent.
+
+They are covered better now: in the production pipeline the step *Verify live
+Stripe prices match what the pricing page advertises* **passes** — nine plans
+compared against what Stripe would actually charge, on every deploy, rather than
+three compared by hand once.
+
+## The deploy blocker moved, and narrowed to one secret
+
+This is the useful finding. **The Stripe price gate that blocked PR #232 now
+passes.** The deployment fails one step later, at *Synchronize verified Stripe
+runtime secret to Vercel production*, which says:
+
+> A full live Stripe runtime key is required. Configure the protected
+> `STRIPE_RUNTIME_SECRET_KEY` secret with an `sk_live_` key; the read-only
+> verifier key will not be promoted.
+
+**Deliberate, not broken.** PR #256 separated the read-only verifier credential
+from the runtime secret so a restricted key sufficient for reading prices cannot
+be promoted into production. The step refuses because the key it can see does
+not begin with `sk_live_`.
+
+Everything after it is **skipped** — rollback checkpoint, migration apply, Vercel
+deploy. Production is untouched. A red workflow instead of a half-migrated
+database is the gate working.
+
+So the remaining deploy blocker is **one named repository secret**, owner-only.
+
+## Item 4 moved too
+
+The document says "four authorization primitives exist in production and in no
+version control". `report-security-definer-exposure.mjs` now reports **8 of 12**
+defined here — and a wrinkle the document could not have known: **two of the
+remainder read tables that exist in no migration**, so creating them would fail
+on deploy. "Recorded is not defined" is the report's own phrase, and it means
+transcription alone cannot close that gap.
+
+## What was not done
+
+The review date moved **after** the measurements, not before. That ordering is
+the whole point of the check's split: `--check` fails on a missing review date
+and only reports an expired one, because — in its own words — "moving the date
+without looking is the one thing this cannot catch."
+
+Verified: 4,472 tests passing, lint clean, `verify:launch` and `verify:gates`
+both exit 0, stale claims 17/17 with nothing past its date.
+
 ### 2026-09-15 - Two curated API directories, measured
 
 Nine repositories arrived as social-media screenshots. The useful output is one

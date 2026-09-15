@@ -1,6 +1,6 @@
 # What is actually left before this can ship
 
-Review by: 2026-09-12
+Review by: 2026-12-15
 
 Analysis date: 2026-08-12, at `be0e28a`. Measured against the running
 application rather than against the earlier planning documents, because two of
@@ -206,3 +206,131 @@ amount Stripe holds" fails if the mismatch guard goes, the security page's
 "fails the build" fails if the client-secret scan leaves the release chain, and
 the accessibility page's reduced-motion promise fails if the stylesheet stops
 honouring it.
+
+---
+
+## Re-verified 2026-09-15, at `85f1db3`. Four of its figures were stale and its central evidence no longer exists.
+
+`report-stale-claims.mjs` flagged this document three days past its review date.
+The rule that follows is the script's own: *"Re-verify the claim, then move the
+date. Moving the date without looking is the one thing this cannot catch."* So
+everything below was measured today, and the date above moved only after.
+
+**The engineering gate is still green.** `pnpm run verify:launch` and
+`pnpm run verify:gates` both exit 0, with the chain at 46 commands.
+
+### The catalog figures were wrong twice over
+
+This document says **23 products, all 23 execution-enabled** in its opening
+section and **"all 13 executable products"** in item 3. Those cannot both be
+right; the 13 is a leftover the same-day update did not catch, and it sat here
+for a month.
+
+Both are now stale anyway. Measured today: **42 products, 42 active, 42 open, 0
+restricted.**
+
+That also kills a line under *What not to spend effort on*: **"The remaining 21
+catalog products are disclosed as unavailable"** describes nothing. There are no
+restricted products left.
+
+### The evidence for "the engineering gate is green" has been removed from the codebase
+
+This document offered, as its proof, that *"entitlement integration is verified
+for all of them"*. **That field no longer exists as catalog data.** It survives
+only as a comment in `lib/sonara-paid-access.cjs`, which records why it went:
+
+> `const entitlementIntegrationVerified = planFloor === "free";`
+>
+> which defines "verified" as "free".
+
+So the sentence this document leaned on was reporting a field that was false by
+construction for every paid product — the defect this codebase is named for,
+quoted here as a green light. The comment records what production showed:
+`executionEnabled 3, executionRestricted 31`.
+
+It is better now, and differently shaped. Paid access is an explicit map in
+`lib/sonara-paid-access.cjs` that billing and the catalog both read, and
+`withAnnualTwins` expands it so **a plan's annual form opens exactly what its
+monthly form opens and cannot drift by omission.** Adding a key to that map is a
+statement that the server checks a real entitlement. The right claim today is
+about that map, not about a boolean.
+
+### Item 3: the prices are no longer three, and the pipeline now checks them
+
+The three this document names — 700, 1900, 3900 — are still configured, as
+`starter_monthly`, `core_monthly` and `pro_monthly`. But there are now **11
+plans: 9 sold through checkout and 1 quoted**, and six of the nine arrived after
+the read-only verification of 2026-08-12 that this document cites:
+
+| Plan | Advertised | Configured |
+|---|---|---|
+| `workspace_monthly` | $29/mo | 2900 |
+| `all_three_monthly` | $59/mo | 5900 |
+| `team_monthly` | $109/mo | 10900 |
+| `workspace_annual` | $290/yr | 29000 |
+| `all_three_annual` | $590/yr | 59000 |
+| `team_annual` | $1090/yr | 109000 |
+
+**None of those six is covered by the hand-verification this document records.**
+A note saying the paid path has one unknown, while six prices were added and
+never mentioned, is the kind of quiet drift this file exists to prevent.
+
+They are covered by something better now. In the production pipeline the step
+*Verify live Stripe prices match what the pricing page advertises* **passes** —
+confirmed on run 171 at `3061e20`. Nine plans compared against what Stripe would
+actually charge, by the pipeline, on every deploy, rather than three compared by
+hand once.
+
+### What is actually blocking the deploy, which is narrower than this document implies
+
+The production deployment still fails, and it is no longer the price check. It
+fails one step later, at **`Synchronize verified Stripe runtime secret to Vercel
+production`**, and the step says exactly why:
+
+> A full live Stripe runtime key is required. Configure the protected
+> `STRIPE_RUNTIME_SECRET_KEY` secret with an `sk_live_` key; the read-only
+> verifier key will not be promoted.
+
+That is **deliberate, not broken.** PR #256 separated the read-only verifier
+credential from the runtime secret, so a restricted key that is sufficient for
+reading prices cannot be promoted into the production runtime. The step refuses
+because the key available to it does not begin with `sk_live_`.
+
+Everything after it is **skipped** — the rollback checkpoint, the migration
+apply, and the Vercel deploy. Production is untouched and still serves its
+previous build. A red workflow instead of a half-migrated database is the gate
+working.
+
+**So the single remaining deploy blocker is one named repository secret**, and it
+is owner-only: nothing in this repository can set it, and it must never be pasted
+into a conversation or a commit.
+
+### Item 4: the middle claim moved
+
+This document says *"four authorization primitives exist in production and in no
+version control."* Measured today,
+`scripts/report-security-definer-exposure.mjs` reports **8 of 12** advisor-named
+functions are now defined in this repository as `SECURITY DEFINER`.
+
+The remainder carries a wrinkle this document could not have known: the report
+notes that **two of them read tables that exist in no migration, so creating
+those functions would fail on deploy.** "Recorded is not defined" is the
+report's phrase, and it means the gap cannot be closed by transcription alone.
+
+The leaked-password item is unchanged and still owner-only, with a runnable
+command in `docs/owner/OWNER-STEPS.md`
+(`pnpm run enable:leaked-password -- --enable`).
+
+### The corrected order
+
+1. **Set `STRIPE_RUNTIME_SECRET_KEY`** to a full `sk_live_` key as a protected
+   repository secret. This is the only thing standing between `main` and a
+   deployed build, and it is the owner's alone.
+2. **Run the paid signup** once deployed — still the one thing no check can
+   prove, and now across nine plans rather than three.
+3. **The two security steps**: the leaked-password toggle, and the four
+   authorization functions still undefined here — two of which need their
+   missing tables designed before they can be written down at all.
+
+Items 1 and 2 of the original list (legal pages, data rights) remain done and
+remain bound to `tests/data-rights.test.js`.
