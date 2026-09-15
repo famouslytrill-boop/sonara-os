@@ -4,7 +4,7 @@ Updated: 2026-09-15T12:30:00-04:00
 
 ## In progress
 
-- [Codex] Notification subscription foundation, signup confirmation state, palette alignment, and launch documentation. Implementation complete; metadata lock release pending.
+- [Codex] Notification subscription foundation, signup confirmation state, palette alignment, and launch documentation. Complete; lock released.
 
 ## Blocked
 

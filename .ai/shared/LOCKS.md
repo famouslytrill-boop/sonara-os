@@ -2,14 +2,13 @@
 
 ## Active
 
+## Released
+
 LOCK: `.ai/shared/LOCKS.md`, `.ai/shared/TASK_BOARD.md`, `.ai/shared/HANDOFF_LOG.md`, `.ai/shared/CHANGELOG_AI.md`, `.ai/shared/CURRENT_STATE.md`, `packages/web/src/lib/notifications/**`, `packages/web/src/app/settings/notifications/**`, `packages/web/src/app.ts`, `packages/web/src/routes/route-manifest.ts`, `scripts/build-package.mjs`, `supabase/migrations/20260915120000_push_notification_subscriptions.sql`, `api/notifications/**`, `.env.example`, `packages/web/src/styles.css`
 OWNER: Codex
 PURPOSE: Add a browser-safe, user-triggered notification subscription foundation, fix signup confirmation state, and align launch palette/configuration without changing provider contracts.
 STARTED: 2026-09-15
-
 RELEASED: 2026-09-15 after build, test, lint, smoke, secret-scan, and aggregate launch verification passed.
-
-## Released
 
 LOCK: `.ai/shared/**`
 OWNER: Codex
