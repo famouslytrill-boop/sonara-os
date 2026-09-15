@@ -1,5 +1,36 @@
 # How many steps are left
 
+## Production status — 14 September 2026
+
+The repository gates are green, but the current head of `main` is **not yet the
+production commit**. Controlled Production Deployment run #170 failed closed at
+`Synchronize verified Stripe runtime secret to Vercel production`, before the
+rollback checkpoint, database mutation, or Vercel deploy. Production therefore
+remains on the previously verified commit while the runtime Stripe credential is
+repaired.
+
+The blocking owner action is now precise: add the live `sk_live_...` runtime key
+as the GitHub `production` environment secret `STRIPE_RUNTIME_SECRET_KEY`. Do
+**not** replace or expose the existing `STRIPE_SECRET_KEY` read-only verifier and
+do not paste either value into a commit, issue, chat, or log. The complete
+installation, rotation, and proof sequence is in
+`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`.
+
+Why two credentials: the deployment verifier only reads Stripe Prices/Products,
+while the application runtime creates customers and Checkout Sessions. A
+restricted `rk_live_...` verifier is deliberately rejected from runtime
+synchronization. The controlled deployment validates the separate runtime key,
+stores it in Vercel as a sensitive Production variable, then continues through
+the existing migration, deployment, alias/auth, readiness, and catalog gates.
+
+Live evidence immediately after run #170 still reports
+`paymentConnection = "invalid"`, `services.stripe = "invalid"`, and
+`invalid.stripe[0].reason = "invalid_prefix"`; `/api/health` still reports the
+previous production commit. That is the expected fail-closed state until the
+runtime secret is installed and the controlled deployment completes.
+
+---
+
 Written 12 August 2026. The honest answer is two numbers, because "completely
 done" means two different things and only one of them is countable.
 
