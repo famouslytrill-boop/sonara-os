@@ -7,6 +7,19 @@ const {
   selectExecutionAlternatives,
   buildGenerationJobContract
 } = require("../lib/sonara-generation-execution-contract.cjs");
+const {
+  validateGenerationAdapterManifest,
+  validateGenerationAdapter,
+  buildGenerationAdapterArchitecture
+} = require("../lib/sonara-generation-adapter-contract.cjs");
+const {
+  InMemoryGenerationJobRepository,
+  GenerationJobRepositoryError
+} = require("../lib/sonara-generation-job-repository.cjs");
+const {
+  IN_MEMORY_GENERATION_ADAPTER_MANIFEST,
+  InMemoryGenerationAdapter
+} = require("../lib/sonara-in-memory-generation-adapter.cjs");
 
 function options(overrides = {}) {
   return {
@@ -210,5 +223,175 @@ describe("generation execution contracts", () => {
       })
     );
     assert.equal(approved.candidates.find((item) => item.key === "local_openai_compatible_runtime").ready, true);
+  });
+});
+
+describe("generation adapter lifecycle", () => {
+  function request(overrides = {}) {
+    return {
+      tenantId: "org_alpha",
+      requestId: "req_001",
+      idempotencyKey: "idem_001",
+      modality: "image",
+      operation: "generate",
+      inputReferences: [{ ref: "object://tenant/input-1", mediaType: "image/png" }],
+      inputDigests: [{ algorithm: "sha256", digest: "a".repeat(64) }],
+      ...overrides
+    };
+  }
+
+  it("defines a canonical adapter surface while keeping execution authority outside the manifest", () => {
+    const manifest = validateGenerationAdapterManifest(IN_MEMORY_GENERATION_ADAPTER_MANIFEST);
+    assert.equal(manifest.ok, true);
+    const adapter = new InMemoryGenerationAdapter();
+    const validation = validateGenerationAdapter(adapter);
+    assert.equal(validation.ok, true);
+    assert.deepEqual(buildGenerationAdapterArchitecture().requiredMethods, ["submit", "status", "cancel", "result", "health"]);
+    assert.equal(validation.authority.publishArtifact, false);
+    assert.equal(adapter.manifest.externalNetwork, false);
+    assert.equal(adapter.manifest.externalSpend, false);
+  });
+
+  it("reuses the same logical job for one tenant and idempotency key", async () => {
+    let id = 0;
+    const adapter = new InMemoryGenerationAdapter({ idFactory: () => `id_${++id}` });
+    const first = await adapter.submit(request());
+    const second = await adapter.submit(request({ requestId: "req_retry" }));
+    assert.equal(first.created, true);
+    assert.equal(second.created, false);
+    assert.equal(second.jobId, first.jobId);
+    assert.equal(second.providerLocator.providerRequestId, first.providerLocator.providerRequestId);
+  });
+
+  it("isolates identical idempotency keys across tenants", async () => {
+    let id = 0;
+    const adapter = new InMemoryGenerationAdapter({ idFactory: () => `id_${++id}` });
+    const alpha = await adapter.submit(request());
+    const beta = await adapter.submit(request({ tenantId: "org_beta", requestId: "req_beta" }));
+    assert.notEqual(alpha.jobId, beta.jobId);
+    await assert.rejects(
+      () => adapter.status({ tenantId: "org_beta", jobId: alpha.jobId }),
+      (error) => error instanceof GenerationJobRepositoryError && error.code === "job_not_found"
+    );
+  });
+
+  it("rejects stale writes and illegal terminal transitions", () => {
+    const repository = new InMemoryGenerationJobRepository({ idFactory: () => "cas" });
+    let job = repository.createOrGetByIdempotency(request()).job;
+    job = repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: 1, toState: "submitted" });
+    assert.throws(
+      () => repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: 1, toState: "queued" }),
+      (error) => error.code === "stale_version"
+    );
+    job = repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: job.version, toState: "canceled" });
+    assert.throws(
+      () => repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: job.version, toState: "running" }),
+      (error) => error.code === "terminal_state_immutable"
+    );
+  });
+
+  it("does not persist raw prompts or source media supplied outside the reference contract", async () => {
+    const adapter = new InMemoryGenerationAdapter({ idFactory: () => "safe" });
+    const submitted = await adapter.submit(request({
+      prompt: "TOP SECRET PROMPT SHOULD NOT PERSIST",
+      media: "raw-binary-customer-media",
+      authorization: "Bearer never-store-this"
+    }));
+    const stored = adapter.repository.getById("org_alpha", submitted.jobId);
+    const serialized = JSON.stringify(stored);
+    assert.equal(serialized.includes("TOP SECRET PROMPT"), false);
+    assert.equal(serialized.includes("raw-binary-customer-media"), false);
+    assert.equal(serialized.includes("never-store-this"), false);
+    assert.deepEqual(stored.inputReferences, [{ ref: "object://tenant/input-1", mediaType: "image/png" }]);
+  });
+
+  it("withholds results until a durable artifact exists, then completes at zero external cost", async () => {
+    const adapter = new InMemoryGenerationAdapter({ idFactory: () => "complete" });
+    const submitted = await adapter.submit(request());
+    const pending = await adapter.result({ tenantId: "org_alpha", jobId: submitted.jobId });
+    assert.equal(pending.available, false);
+    assert.equal(pending.reason, "job_not_complete");
+
+    const completed = await adapter.complete({
+      tenantId: "org_alpha",
+      jobId: submitted.jobId,
+      syntheticBytes: "reference-artifact",
+      mediaType: "image/png",
+      rightsAttestationRef: "rights://attestation/1"
+    });
+    assert.equal(completed.state, "succeeded");
+    assert.equal(completed.cost.amountMinor, 0);
+
+    const result = await adapter.result({ tenantId: "org_alpha", jobId: submitted.jobId });
+    assert.equal(result.available, true);
+    assert.equal(result.artifacts.length, 1);
+    assert.equal(result.artifacts[0].durable, true);
+    assert.equal(result.artifacts[0].provenance.adapterKey, "in_memory_reference");
+    assert.equal(result.authority.publishArtifact, false);
+    assert.equal(result.authority.chargeCustomer, false);
+  });
+
+  it("refuses success before a durable artifact has been recorded", () => {
+    const repository = new InMemoryGenerationJobRepository({ idFactory: () => "artifact" });
+    let job = repository.createOrGetByIdempotency(request()).job;
+    job = repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: job.version, toState: "submitted" });
+    job = repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: job.version, toState: "running" });
+    assert.throws(
+      () => repository.transition({ tenantId: job.tenantId, jobId: job.id, expectedVersion: job.version, toState: "succeeded" }),
+      (error) => error.code === "durable_artifact_required"
+    );
+    assert.throws(
+      () => repository.recordArtifact({
+        tenantId: job.tenantId,
+        jobId: job.id,
+        expectedVersion: job.version,
+        artifactId: "artifact_1",
+        storageRef: "https://provider.example/temporary",
+        sha256: "b".repeat(64),
+        mediaType: "image/png",
+        durable: false
+      }),
+      (error) => error.code === "artifact_not_durable"
+    );
+  });
+
+  it("supports idempotent cancellation without reopening terminal jobs", async () => {
+    const adapter = new InMemoryGenerationAdapter({ idFactory: () => "cancel" });
+    const submitted = await adapter.submit(request());
+    const first = await adapter.cancel({ tenantId: "org_alpha", jobId: submitted.jobId });
+    const second = await adapter.cancel({ tenantId: "org_alpha", jobId: submitted.jobId });
+    assert.equal(first.state, "canceled");
+    assert.equal(first.canceled, true);
+    assert.equal(second.state, "canceled");
+    const result = await adapter.result({ tenantId: "org_alpha", jobId: submitted.jobId });
+    assert.equal(result.available, false);
+    assert.equal(result.reason, "job_did_not_succeed");
+  });
+
+  it("expires overdue non-terminal jobs without executing a network request", async () => {
+    const now = new Date("2026-09-15T22:00:00.000Z");
+    const adapter = new InMemoryGenerationAdapter({
+      clock: () => now,
+      idFactory: () => "expired"
+    });
+    const submitted = await adapter.submit(request({ deadlineAt: "2026-09-15T21:59:59.000Z" }));
+    const status = await adapter.status({ tenantId: "org_alpha", jobId: submitted.jobId });
+    assert.equal(status.state, "expired");
+    assert.equal(status.terminal, true);
+    const health = await adapter.health();
+    assert.equal(health.externalNetworkChecked, false);
+    assert.equal(health.billableGenerationPerformed, false);
+  });
+
+  it("keeps append-only audit history ordered and provider locators server-held", async () => {
+    const adapter = new InMemoryGenerationAdapter({ idFactory: () => "audit" });
+    const submitted = await adapter.submit(request());
+    await adapter.complete({ tenantId: "org_alpha", jobId: submitted.jobId });
+    const stored = adapter.repository.getById("org_alpha", submitted.jobId);
+    assert.deepEqual(stored.audit.map((event) => event.sequence), stored.audit.map((_, index) => index + 1));
+    assert.equal(stored.audit[0].type, "job.created");
+    assert.equal(stored.providerLocator.adapterKey, "in_memory_reference");
+    assert.equal(typeof stored.providerLocator.providerRequestId, "string");
+    assert.equal(adapter.repository.getById("org_beta", submitted.jobId), null);
   });
 });
