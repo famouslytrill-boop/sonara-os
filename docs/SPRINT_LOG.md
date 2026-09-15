@@ -2,6 +2,127 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - Two curated API directories, measured
+
+Nine repositories arrived as social-media screenshots. The useful output is one
+measurement and seven records; nothing was adopted.
+
+## The measurement
+
+Two of them are advertised as curated API and playbook directories:
+
+| Repository | Links | With an affiliate parameter | Share | Code |
+|---|---|---|---|---|
+| `cporter202/openclaw-api-list` | 78,913 | 78,216 | **99.1%** | `?fpr=p2hrc6` |
+| `cporter202/software-income-playbooks` | 78,884 | 78,186 | **99.1%** | `?fpr=p2hrc6` |
+
+One code, byte for byte, across both — evidence of a single arrangement rather
+than an inference about two repositories. Neither declares a licence, so both
+are all rights reserved and blocked twice over.
+
+**The folder names are not counts.** `automation-apis-4825`,
+`lead-generation-apis-3452`, `ai-apis-1208` — nineteen such directories, each
+containing exactly one file, in a repository of 25 files total.
+
+### It reaches a record we already had
+
+`cporter202/lead-gen-api-stack` is already in Batch 2 as "provider-discovery
+reference only" — the right verdict, reached without this measurement. Measured
+now: **5 of its 7 links carry the same code.** That record was not rewritten,
+because a repository with two verdicts has none; the batch-7 note is the
+cross-reference.
+
+### And the half that stops it being a story about a person
+
+`cporter202/generative-ai-arbitrage`, in Batch 4, carries **89 links and zero
+affiliate parameters.** So the pattern covers three of four repositories from
+that account and is **not a property of the account**. Both halves are recorded,
+and a test asserts the counter-example is still there — reporting only the
+incriminating half would be a true sentence arranged to support a conclusion it
+does not carry, which is this codebase's own defect wearing different clothes.
+
+## The other five
+
+- **DwarfStar** (`ivanfioravanti/ds4-metal`) — MIT, and the LICENSE names two
+  sets of authors (ds4.c and ggml) so one copyright line would be wrong. 2,202
+  files. **The licence permits everything and the architecture permits nothing**:
+  a Vercel function has no GPU. Owner-hosted worker at best, and the real cost is
+  a 96 GB machine rather than a per-token bill.
+- **Ballast** (`tight-line/ballast`) — MIT, Tight Line LLC. A Kubernetes operator
+  that right-sizes from observed history. Clean licence, careful code, **nothing
+  to attach to** — there is no cluster here. A permissive licence is not
+  applicability.
+- **ClawFlows** (`nikilster/clawflows`) — the README has a License section whose
+  entire content is the word "MIT" and **there is no LICENSE file anywhere**. So
+  no named holder, no grant, no disclaimer — nothing to comply *with*. Recorded
+  license-gated rather than blocked, because "said MIT informally" and "said
+  nothing" are different positions and flattening them would overstate it.
+- **Vulture** (`vulture-osint-automation-tool/vulture`) — no licence, and
+  independently refused on conduct: Dehashed breach lookups returning leaked
+  credentials, plus a dorking module its own README calls "a brute-force style
+  program that will eventually alert Google bot detection". Two refusals, either
+  sufficient — and the record says explicitly that this is **not** a position on
+  authorised security testing.
+- **OpenContext** (`0xranx/OpenContext`) — **three licence declarations**:
+  `LICENSE` is MIT, the root `package.json` says Apache-2.0, and
+  `crates/opencontext-node` says ISC. All permissive, so medium risk rather than
+  critical, but which governs is unanswered. Found by reading every manifest
+  instead of the badge.
+
+## Two that already had verdicts, and did not get second ones
+
+`ai-sdlc-framework/ai-sdlc` (9 September) and `n8n-io/n8n` (10 September) were
+submitted again. Both are in `data/open-source-tools.ts`; both are recorded in
+batch 7's deduplication list instead. A test asserts neither appears as a batch-7
+repository.
+
+Worth re-reading the AI-SDLC record for one reason beyond licence: its test
+script is dozens of named fail-closed gates, which is the same architecture as
+this repository's own 46-command release chain. The idea is already ours.
+
+## Where the records went, and a correction to my own first pass
+
+The first pass put these only in `data/open-source-tools.ts`. That was
+incomplete: screenshot-led research belongs in the radar module the public
+Research Lab renders, and the skill's file list named batches 1-4 while main had
+already added 5 and 6. So this is **batch 7**, on the dedicated
+latest-screenshot-intake surface rather than the legacy aggregate — for the
+reason that page already gives, that the aggregate API contract is not changed
+silently when new evidence arrives.
+
+Both catalogs now carry all seven. Checking the register for duplicates but not
+the radar modules was the near-miss; nothing was duplicated, but only by luck.
+
+## Broken to prove it works
+
+Seven breaks, each hash-compared before and after.
+
+One was **invalid rather than missed**, and the distinction is the same one this
+branch keeps meeting: unblocking the affiliate directory by inserting
+`integrationStatus` *before* the record's real one changed nothing, because the
+last duplicate key in an object literal wins. Redone by replacing the actual
+value, it fails by name.
+
+The other six: enabling a record in production; dropping the measured affiliate
+code; deleting the counter-example that limits the finding; adding a
+`child_process` require to a data-only module; re-recording an already-decided
+repository; and promoting the GPU runtime from research to adapter. All caught.
+
+## Also checked, and deliberately not changed
+
+`verify:stale-claims` sits in the gates chain and passes while the report says
+one document is past its review date. That looked like a check that reports
+without gating; it is not. `--check` fails on a **missing** review date and only
+reports an **expired** one, and the script says why: "Moving the date without
+looking is the one thing this cannot catch." Gating on absence is mechanical;
+gating on expiry would pressure whoever is blocked into bumping the date blind.
+The split is correct and was left alone.
+
+Verified: 4,472 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0. Register at 237 repositories, 18 declaring no
+licence -- both figures derived, and `verify:doc-counts` caught
+`docs/owner/WHAT-IS-LEFT.md` still saying 230 and 15.
+
 ### 2026-09-11 - A green light over the only unauthenticated write in the product
 
 `verify:tenant-queries` records that 27 of 111 database calls have a table it

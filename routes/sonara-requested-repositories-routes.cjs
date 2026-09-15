@@ -29,6 +29,10 @@ const {
   getScreenshotToolReadinessBatch6,
   getNonRepositoryReferencesBatch6
 } = require("../lib/sonara-screenshot-tool-radar-batch6.cjs");
+const {
+  getScreenshotToolReadinessBatch7,
+  getDeduplicatedReferencesBatch7
+} = require("../lib/sonara-screenshot-tool-radar-batch7.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -68,7 +72,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
-      brandCard("Latest screenshot intake", "The 2026-09-14 Batch 5 and Batch 6 research is available on a dedicated governed page so new evidence can be reviewed without silently changing the legacy aggregate API contract."),
+      brandCard("Latest screenshot intake", "The 2026-09-14 Batch 5 and Batch 6 research and the 2026-09-15 Batch 7 research are available on a dedicated governed page so new evidence can be reviewed without silently changing the legacy aggregate API contract."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items were verified as hosted services or learning references and intentionally kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -105,7 +109,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   app.get("/research-lab/latest-screenshot-intake", (req, res) => {
     const latest = getLatestScreenshotIntake();
     const sections = [
-      brandCard("Verified repository records", `${latest.repositories.length} Batch 5 and Batch 6 repositories are classified for product fit, license risk, runtime boundary, and staged next action.`),
+      brandCard("Verified repository records", `${latest.repositories.length} Batch 5, Batch 6 and Batch 7 repositories are classified for product fit, license risk, runtime boundary, and staged next action.`),
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were already represented in earlier governed records and were not duplicated.`),
       brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging is not installation, deployment, or permission to send customer data."),
@@ -122,8 +126,8 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     res.status(200).type("html").send(layout({
       title: "Latest screenshot research",
       eyebrow: "Research Lab",
-      heading: "2026-09-14 governed screenshot intake",
-      body: "Batch 5 and Batch 6 preserve useful product and infrastructure ideas while keeping reciprocal licenses, privacy-sensitive OSINT, financial trading, capture permissions, desktop-only runtimes, and hosted services behind explicit review boundaries.",
+      heading: "2026-09-14 and 2026-09-15 governed screenshot intake",
+      body: "Batch 5, Batch 6 and Batch 7 preserve useful product and infrastructure ideas while keeping reciprocal licenses, undeclared licenses, undisclosed affiliate content, privacy-sensitive OSINT, financial trading, capture permissions, desktop-only runtimes, GPU runtimes, and hosted services behind explicit review boundaries.",
       sections,
       actions: [
         linkAction("/research-lab/requested-repositories", "Repository intake"),
@@ -144,7 +148,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
-      brandCard("Latest screenshot intake", "Batch 5 and Batch 6 have a separate founder review surface so their current disabled state and newer safety boundaries are visible without changing the legacy aggregate readiness contract."),
+      brandCard("Latest screenshot intake", "Batch 5, Batch 6 and Batch 7 have a separate founder review surface so their current disabled state and newer safety boundaries are visible without changing the legacy aggregate readiness contract."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
@@ -214,13 +218,20 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
 function getLatestScreenshotIntake() {
   const batch5 = getScreenshotToolReadinessBatch5();
   const batch6 = getScreenshotToolReadinessBatch6();
+  // Batch 7 joins the latest-intake surface rather than the legacy aggregate,
+  // for the reason the page copy already gives: the aggregate API contract is
+  // not changed silently when new evidence arrives.
+  const batch7 = getScreenshotToolReadinessBatch7();
   return {
-    repositories: [...batch5.repositories, ...batch6.repositories],
+    repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
       ...getNonRepositoryReferencesBatch6()
     ],
-    deduplicatedReferences: batch5.deduplicatedReferences || []
+    deduplicatedReferences: [
+      ...(batch5.deduplicatedReferences || []),
+      ...getDeduplicatedReferencesBatch7()
+    ]
   };
 }
 
