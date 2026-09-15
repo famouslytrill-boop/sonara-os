@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
@@ -25,6 +25,7 @@ const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-r
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
+const registerAdminAgentRoutes = require("./routes/sonara-admin-agent-routes.cjs");
 const registerPublicBookingRoutes = require("./routes/sonara-public-booking-routes.cjs");
 const registerImportRoutes = require("./routes/sonara-import-routes.cjs");
 const registerRecurringInvoiceRoutes = require("./routes/sonara-recurring-invoice-routes.cjs");
@@ -147,7 +148,7 @@ const {
   adminRowsPage,
   layout,
   responsePage
-} = createPageFrame({ legalPages, readinessStatusClass, safeListTable });
+} = createPageFrame({ legalPages, readinessStatusClass, safeListTable, getReadiness: () => getReadiness() });
 
 // Customer sessions moved to lib/sonara-customer-auth.cjs, and took the
 // customer cookie names and lifetimes with them -- that module is what decides
@@ -291,7 +292,7 @@ const { createOrAttachOrganization } = createWorkspaceBootstrap({
 // 2026-07-28, every asset came back max-age=0.
 //
 // The stylesheets and scripts are already versioned: renderers link them as
-// `/sonara-one.js?v=sonara-ui-20260811-v11-rebrand`, and the token changes when
+// `/sonara-one.js?v=sonara-ui-20260914-v12-palette`, and the token changes when
 // the assets are rebuilt. A versioned URL can therefore be cached forever,
 // because a new build asks for a different URL.
 //
@@ -1197,7 +1198,7 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         actionCard("Business Builder", "Your offers, enquiries, customers, and payments.", [
           linkAction("/business-builder/dashboard", "Dashboard"),
           linkAction("/business-builder/tools", "Tools"),
-          linkAction("/business-builder/intake", "Intake"),
+          linkAction("/business-builder/launch-readiness", "Launch checklist"),
           linkAction("/business-builder/billing", "Billing"),
           linkAction("/business-builder/product-lifecycle", "Roadmap"),
           linkAction("/business-builder/market-intelligence", "Market intelligence")
@@ -1654,6 +1655,18 @@ app.get("/admin", requireAdmin, async (req, res) => {
   return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness, metrics));
 });
 
+registerAdminAgentRoutes(app, {
+  requireAdmin,
+  getSupabaseServerConfig,
+  safeCountTable,
+  safeCountFiltered,
+  brandCard,
+  linkAction,
+  layout,
+  adminActions,
+  recordAdminAuditEvent
+});
+
 app.get("/admin/support", requireAdmin, async (req, res) => {
   const result = await listSupportRequests();
   await recordAdminAuditEvent(req, "admin.support.view", { path: req.path });
@@ -1986,7 +1999,7 @@ function registerProduct(slug, config) {
         body: "Your company area for real setup work. Some tools unlock after setup or payment.",
         sections: [
           accessCard(req.sonaraAccess),
-          brandCard("Free tools", `Logged-in users can open: ${routes.free.map((page) => page.label).join(", ")}.`),
+          brandCard("Free tools", `Logged-in users can open: ${routes.free.filter((page) => page.visible !== false).map((page) => page.label).join(", ")}.`),
           brandCard("Paid tools", `Upgrade to use: ${routes.paid.map((page) => page.label).join(", ")}.`),
           workspaceRecordsCard(dashboard),
           workspaceActivityCard(dashboard),
@@ -2013,6 +2026,13 @@ function registerProduct(slug, config) {
   });
 
   for (const page of routes.free) {
+    if (page.redirectTo) {
+      app.get(page.path, requireWorkspaceAccess(productKey), (req, res) => {
+        const destination = `${page.redirectTo}?from=${encodeURIComponent(page.path)}`;
+        return res.redirect(303, destination);
+      });
+      continue;
+    }
     app.get(page.path, requireWorkspaceAccess(productKey), async (req, res) => {
       const records = await workspaceRecordCards(req, page, config);
       res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: false, records }));
@@ -2070,7 +2090,8 @@ function workspaceIndexCard(productKey) {
       entry.method === "GET" &&
       entry.productOwner === productKey &&
       !entry.route.includes(":") &&
-      !entry.route.startsWith("/api/")
+      !entry.route.startsWith("/api/") &&
+      entry.route !== "/business-builder/intake"
   );
   if (pages.length === 0) return brandCard("Everything in this workspace", "No pages are registered for this workspace yet.");
   const items = pages
@@ -3573,13 +3594,16 @@ async function listSupportRequests() {
 async function getAdminMetrics() {
   const config = getSupabaseServerConfig();
   if (!config.ok) return {};
-  const [users, subscriptions, webhookEvents, supportRequests, catalog, serviceRequests] = await Promise.all([
+  const [users, subscriptions, webhookEvents, supportRequests, catalog, serviceRequests, agentLogs, agentPending, agentSchedules] = await Promise.all([
     safeCountTable(config, "profiles"),
     safeCountTable(config, "billing_subscriptions"),
     safeCountTable(config, "billing_webhook_events"),
     safeCountTable(config, "support_requests"),
     safeCountTable(config, "sonara_module_registry"),
-    safeCountTable(config, "service_requests")
+    safeCountTable(config, "service_requests"),
+    safeCountTable(config, "agent_action_logs"),
+    safeCountFiltered(config, "agent_pending_actions", "?state=eq.waiting&select=id&limit=1"),
+    safeCountTable(config, "agent_schedules")
   ]);
   return {
     users: formatMetric("Profiles", users),
@@ -3587,7 +3611,10 @@ async function getAdminMetrics() {
     webhookEvents: formatMetric("Webhook events", webhookEvents),
     supportRequests: formatMetric("Support requests", supportRequests),
     catalog: formatMetric("Product modules", catalog),
-    serviceRequests: formatMetric("Service requests", serviceRequests)
+    serviceRequests: formatMetric("Service requests", serviceRequests),
+    agentActivity: [agentLogs, agentPending, agentSchedules].every((result) => result?.ok)
+      ? `Agent runs: ${agentLogs.count}. Waiting approvals: ${agentPending.count}. Schedules: ${agentSchedules.count}.`
+      : "Agent control-plane tables are setup-required until the agent migrations are applied."
   };
 }
 

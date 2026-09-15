@@ -290,7 +290,10 @@ describe("signed-in workspaces speak plainly", () => {
   // records: a bound that only fails in one direction cannot tell an
   // improvement from a measurement that stopped working. A page that starts
   // rendering is good news and still has to be recorded here.
-  const SIGNED_IN_SKIPPED = 103;
+  // 103 -> 104 on 14 September 2026: the legacy Business Builder request
+  // page now redirects signed-in customers to launch readiness, so the crawl
+  // records one additional redirect instead of reading a form page.
+  const SIGNED_IN_SKIPPED = 104;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

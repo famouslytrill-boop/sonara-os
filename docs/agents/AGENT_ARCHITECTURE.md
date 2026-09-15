@@ -12,6 +12,15 @@ The canonical experience stack is:
 
 Every skill/tool must operate inside explicit tenant, role, consent, approval, and audit boundaries. Memory and emotion/state are not authorization systems and may not expand the agent's authority.
 
+## Operational visibility
+
+The protected `/admin/agent-activity` page reports non-secret counts for
+recorded agent runs, waiting approvals, and schedules. It is read-only: it does
+not dispatch work, expose prompts or payloads, or replace the customer-facing
+`/owner/agent-activity` approval queue. If Supabase or the agent tables are not
+available, the page says setup required rather than reporting an empty or
+healthy system.
+
 ## three.ws adapter
 
 A three.ws integration is permitted only as an optional presentation adapter. Keep it isolated behind an adapter boundary and disabled-by-default feature flag such as `SONARA_3D_AGENT_ENABLED=false` until operationally approved.
