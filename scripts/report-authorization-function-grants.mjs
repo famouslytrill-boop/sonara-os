@@ -55,6 +55,27 @@ const SHIM = eval(shimBlock[1]).map((entry) => [entry[0], entry[1]]);
 if (SHIM.length < 5) { console.error(`only ${SHIM.length} shim entries parsed; refusing to run a different database`); process.exit(1); }
 console.log(`shim entries reused from the verifier: ${SHIM.length}`);
 
+// Every path that reaches a shell command goes through here.
+//
+// CodeQL alert 234 on PR #258, "Shell command built from environment values":
+// `os.tmpdir()` reads TMPDIR/TMP/TEMP, and the PostgreSQL binary directory comes
+// from a directory listing, so both are environment-derived file names being
+// interpolated into a string handed to `/bin/sh`. A TMPDIR containing a
+// semicolon or a backtick would be executed.
+//
+// It is a developer tool run locally and in CI, so the exploit needs a hostile
+// TMPDIR in an environment that already runs this repository's code -- which is
+// why it is an alert rather than an incident. Quoting is a few lines and the
+// argument for leaving it is only ever "nobody would", so it is quoted.
+//
+// POSIX single quotes: everything inside is literal, and the only character
+// needing care is the single quote itself, closed and reopened around an escaped
+// one. Double quotes would not do -- `$` and backticks are still expanded inside
+// them, which is most of what this is defending against.
+function sh(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
 const bin = fs.readdirSync("/usr/lib/postgresql").sort().reverse().map((v) => `/usr/lib/postgresql/${v}/bin`)
   .find((d) => ["initdb", "pg_ctl", "psql"].every((n) => fs.existsSync(path.join(d, n))));
 const runAs = process.getuid() === 0 ? "postgres" : null;
@@ -64,8 +85,8 @@ const socketDir = fs.mkdtempSync(path.join(os.tmpdir(), "grant-sock-"));
 const port = 5000 + Math.floor(Math.random() * 20000);
 
 const shell = (command) => {
-  const wrapped = runAs ? ["su", runAs, "-s", "/bin/sh", "-c", `PATH=${bin}:$PATH ${command}`]
-                        : ["/bin/sh", "-c", `PATH=${bin}:$PATH ${command}`];
+  const wrapped = runAs ? ["su", runAs, "-s", "/bin/sh", "-c", `PATH=${sh(bin)}:$PATH ${command}`]
+                        : ["/bin/sh", "-c", `PATH=${sh(bin)}:$PATH ${command}`];
   return spawnSync(wrapped[0], wrapped.slice(1), { encoding: "utf8" });
 };
 
@@ -79,12 +100,12 @@ const psql = (sql, { file = null, db = "replay" } = {}) => {
     fs.writeFileSync(target, sql);
     if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, target]);
   }
-  return shell(`psql -h ${socketDir} -p ${port} -U postgres -d ${db} -v ON_ERROR_STOP=1 -f ${JSON.stringify(target)}`);
+  return shell(`psql -h ${sh(socketDir)} -p ${port} -U postgres -d ${sh(db)} -v ON_ERROR_STOP=1 -f ${sh(target)}`);
 };
 
 let started = false;
 process.on("exit", () => {
-  if (started) shell(`pg_ctl -D ${dataDir} stop -m immediate`);
+  if (started) shell(`pg_ctl -D ${sh(dataDir)} stop -m immediate`);
   for (const d of [dataDir, socketDir]) fs.rmSync(d, { recursive: true, force: true });
 });
 
@@ -92,9 +113,9 @@ if (runAs) {
   execFileSync("chown", ["-R", `${runAs}:${runAs}`, dataDir, socketDir]);
   execFileSync("chmod", ["700", dataDir]);
 }
-let r = shell(`initdb -D ${dataDir} -U postgres --auth=trust`);
+let r = shell(`initdb -D ${sh(dataDir)} -U postgres --auth=trust`);
 if (r.status !== 0) { console.error(r.stderr || r.stdout); process.exit(1); }
-r = shell(`pg_ctl -D ${dataDir} -o "-k ${socketDir} -p ${port} -c listen_addresses=''" -l ${dataDir}/startup.log -w start`);
+r = shell(`pg_ctl -D ${sh(dataDir)} -o ${sh(`-k ${socketDir} -p ${port} -c listen_addresses=''`)} -l ${sh(`${dataDir}/startup.log`)} -w start`);
 if (r.status !== 0) { console.error(r.stderr, fs.readFileSync(`${dataDir}/startup.log`, "utf8")); process.exit(1); }
 started = true;
 

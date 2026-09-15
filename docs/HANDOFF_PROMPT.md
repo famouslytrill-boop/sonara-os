@@ -106,6 +106,51 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - CodeQL was right about my own script, and about the one next to it
+
+CodeQL alert 234 on PR #258, "Shell command built from environment values",
+flagged `scripts/report-authorization-function-grants.mjs` -- the experiment
+script I had added an hour earlier. It builds its PostgreSQL commands as strings
+handed to `/bin/sh`, interpolating
+`fs.mkdtempSync(path.join(os.tmpdir(), ...))`, and `os.tmpdir()` reads `TMPDIR`.
+
+**The same flaw was in `scripts/verify-migration-replay.mjs`, which is in the
+release chain** -- I had copied the pattern from it. CodeQL flagged only the new
+file, because that is how pull-request scanning works, not because the older one
+was safe. Both are fixed.
+
+## Verified reachable, and the first probe was a trap
+
+With the `initdb` path left unquoted and `TMPDIR` set to a directory literally
+named `/tmp/pwn; touch /tmp/INJECTED-MARKER; echo x`, the marker file was
+created. With the quoting in place and the same `TMPDIR`, it was not.
+
+**The first probe reported no injection and was wrong.** It aimed the injected
+`touch` at a root-owned scratch directory, and the command runs under
+`su postgres`, so nothing was written and the run looked safe. A probe that
+cannot succeed proves nothing about a defence, and had I stopped there I would
+have recorded "not exploitable this way" from an experiment that could not have
+detected exploitation. The target has to be somewhere the injected command could
+actually write.
+
+That is the same shape as the other two harness mistakes this session -- a
+baseline that already refused, and a fixture that hit a blind-scan floor. Three
+in one day, all the same: **check that the negative case could have been
+positive.**
+
+## The fix
+
+Both files route every interpolated path through an `sh()` helper wrapping in
+POSIX single quotes with embedded ones escaped. Double quotes would not do --
+`$` and backticks are still expanded inside them, which is most of what this
+defends against. Both scripts re-run afterwards: 118 migrations replay, and the
+grant experiment reports what it did before.
+
+Recorded in `SECURITY_NOTES.md`, which is usually for weakened checks. Nothing
+was weakened; it is there because "we quoted a path" is worth nothing as a claim
+and everything as a measurement, and the measurement belongs where somebody
+looks for it.
+
 ### 2026-09-15 - The campaign summary told the owner to do the irreversible thing
 
 `dispatchCampaign` bounds its per-recipient fallback at two batches, because
