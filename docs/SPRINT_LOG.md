@@ -2,6 +2,77 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - "Verifying that needs a database somebody can break" -- we have one now
+
+`docs/SHIP_READINESS.md` item 3 records twelve SECURITY DEFINER authorization
+functions reachable by `authenticated` over `/rest/v1/rpc/`, and says the
+advisor's remediation was not applied because revoking EXECUTE "could silently
+break every RLS policy that calls them", and that verifying it "needs a database
+somebody can break -- a preview branch -- not a guess."
+
+That was true when written. `verify-migration-replay.mjs` has since made such a
+database on every release. `pnpm run report:authorization-grants` now runs the
+experiment on one: throwaway cluster, Supabase primitives shimmed, 118
+migrations, reads attempted as `authenticated`.
+
+**The caution holds. Two of the surrounding sentences did not.**
+
+- Revoking EXECUTE on `is_org_member` turns a working read of `activity_events`
+  or `intake_requests` into `permission denied for function is_org_member`. So
+  the risk is real and measured.
+- It is **not silent** -- the error names the function -- and granting it back
+  restores the read in the same session.
+- It **fires on an empty table.** Both tables held no rows, so the policy was
+  evaluated for zero rows and the query was still refused. The EXECUTE check is
+  not per-row, so the breakage is immediate and total rather than
+  data-dependent. Easier to notice, much worse to ship.
+- It is **not "every RLS policy in the schema"**. The 18 July hardening revoked
+  the Data API defaults and re-granted seventeen tables by name; thirteen of
+  those have a policy calling one of these functions, so **614 of the 631
+  policies govern tables `authenticated` cannot touch at all.**
+
+And one function separates out: **`sonara_has_org_role` is created by a
+migration, granted to `authenticated`, and called by no policy here.** Revoking
+it changed nothing in the experiment. That is the one an owner can try first.
+
+## Two corrections to my own measurement
+
+**My first scan counted `create function` inside SQL comments.** Four of the
+twelve -- `is_admin`, `is_current_user_admin`, `has_scope`, `has_company_access`
+-- are not created by any migration. `20260819050000` *records* them, every line
+prefixed `--`, deliberately, because their real bodies are in the live database
+and a guess in version control would be worse than the gap. My scan reported all
+twelve as created. Stripping SQL line comments before measuring is the lesson
+`lib/sonara-comment-stripping.cjs` exists for, one language over.
+
+**My first experiment measured the grant, not the policy.** It read
+`public.organizations` and got "permission denied for table organizations" on
+the baseline -- because that table is not one of the seventeen. A baseline that
+already refuses proves nothing about a revoke, and had I not printed the
+baseline I would have recorded "revoking it breaks the read" from a run where
+nothing worked to begin with. The script prints every baseline for that reason.
+
+The shim is reused from the verifier by evaluating its own declaration rather
+than re-parsing it -- my first attempt used a regex expecting backtick templates,
+parsed zero entries, and refused to run. A second copy of the shim would be a
+different database from the one the release chain replays, which is the failure
+this experiment is about.
+
+## Deliberately not in the release chain
+
+It answers a question rather than guarding an invariant, takes about forty
+seconds, and the answer does not change when the code does. Checked in so the
+finding can be re-run rather than believed.
+
+## What it does not license
+
+Nothing in production. Every figure is the migration history replayed to an empty
+database, and this repository already knows the two differ -- four of these
+functions and one table exist live with no migration. A policy or grant that
+exists only in production is invisible here.
+`docs/owner/OWNER-STEPS.md` items 3 and 4 are still the owner's; the measurement
+just makes the question narrower.
+
 ### 2026-09-15 - The stale-claim check was reading a narrower population than it reported
 
 Found by writing a document that says "Every figure below was measured on

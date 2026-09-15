@@ -59,6 +59,7 @@
     "verify:launch": "pnpm run build && pnpm run test:coverage && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run verify:db && pnpm run verify:gates",
     "verify:all": "pnpm run verify:launch",
     "verify:postdeploy": "node scripts/verify-postdeploy.mjs",
+    "report:authorization-grants": "node scripts/report-authorization-function-grants.mjs",
     "report:stale-claims": "node scripts/report-stale-claims.mjs",
     "verify:stale-claims": "node scripts/report-stale-claims.mjs --check",
     "verify:research-copy": "node scripts/check-research-lab-public-copy.mjs",
