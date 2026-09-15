@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 118 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 29 admin routes.
-- 334 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 335 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,85 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-15 - The campaign summary told the owner to do the irreversible thing
+
+`dispatchCampaign` bounds its per-recipient fallback at two batches, because
+1,000 individual sends would exceed the 300-second function lifetime. Past that
+bound the rest are reported as not attempted, and the line an owner read ended:
+
+    201 sent, 100 not attempted -- send again to reach them.
+
+**Following that instruction mails the 201 a second time.** There is no
+send-to-the-remainder path and no record of who the 201 were.
+
+And the owner would not find out. The ledger charge is keyed on the campaign, so
+the second send's charge is refused as a duplicate and the balance does not move
+-- which removes the one signal that would have shown it. A repeat send is not
+otherwise blocked either: the only status guard refuses `completed` and
+`archived`, and a successful send sets neither.
+
+This was in the file that refuses to send a campaign at all without a working
+unsubscribe link, on the grounds that "the mail is in somebody's inbox, they
+have no way to stop the next one". Same irreversibility, in the summary line.
+
+## And the addresses were computed, returned, and dropped
+
+`dispatchCampaign` returns `notAttempted` as `[{ email, reason }]`. The send
+route forwarded sent, failed, skipped and charge -- **and not that**. So an owner
+was told "100 not attempted" with no way to learn which hundred.
+
+Third defect shape, at a route boundary rather than in a query. And the existing
+test asserting those recipients "must be reported, not silently dropped" was
+asserting it against the dispatcher's return value, one layer below the layer
+that dropped them -- the sixth shape, a check too weak to catch the thing it was
+written for.
+
+## What changed
+
+The route forwards them. The summary says what is true: the addresses are
+listed, and sending again would re-send to everyone already reached.
+
+`tests/an-owner-told-a-hundred-were-missed-can-find-out-which.test.js` asserts
+both at the HTTP boundary, with 301 recipients and a provider that returns one id
+for a batch of a hundred so the fallback budget genuinely runs out.
+**No route-level test had exercised the batch endpoint at all** -- every send
+test used few enough recipients to stay on the single-send path, which is not the
+path a real campaign takes. Getting there needed the harness to match the batch
+URL before the `/emails` prefix, because checking in the other order sends an
+array body down the single-send branch and throws on a shape production never
+produces.
+
+## What is not built, and why it is one thing rather than two
+
+`docs/architecture/2026-09-15-A-CAMPAIGN-DOES-NOT-REMEMBER-WHO-IT-REACHED.md`.
+Sending to the remainder and sending to more than 1,000 recipients are blocked on
+the same missing thing: a per-recipient record of who was reached. The 1,000 cap's
+comment says reaching further "needs a queue and is not built" -- a queue is the
+smaller half. The larger half is that a second invocation cannot know where the
+first stopped, and resuming without that re-mails people: the same harm as above,
+arriving automatically rather than on a button. The scheduling half is already a
+solved pattern here (agent-schedule-tick drives an authenticated endpoint hourly,
+because Vercel's Hobby tier permits only daily cron).
+
+The doc records what a fix has to get right while the reasoning is fresh, and the
+order that matters most: **write the recipient row before attempting the send,
+not after.** Record-then-send can lose a recipient; send-then-record can mail
+twice. One is recoverable.
+
+## Broken to prove it works
+
+Four rounds, hash-compared and restored:
+
+1. stopped the route forwarding notAttempted -- *"the route must forward
+   notAttempted; an owner cannot act on a count alone"*.
+2. put the old sentence back -- the failure prints the exact line an owner would
+   have read: *"201 sent, 100 not attempted -- send again to reach them."*
+3. made the fallback-exhausted branch also mail the recipients it reports as not
+   attempted -- *"contact200@example.com is reported as not attempted and was
+   mailed"*.
+4. made batches never fall back, so nothing reaches the not-attempted branch --
+   the count assertions fail rather than passing over an empty list.
 
 ### 2026-09-15 - "Verifying that needs a database somebody can break" -- we have one now
 

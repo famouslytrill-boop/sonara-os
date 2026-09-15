@@ -400,6 +400,12 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       sent: sent.sent,
       failed: sent.failed,
       skipped: sent.skipped,
+      // The recipients nothing was tried for. Computed by the dispatcher,
+      // returned by it, and dropped here until 15 September 2026 -- so the
+      // detail line said "100 not attempted" and the owner had no way to learn
+      // which hundred. A value fetched into a decision and never used, at the
+      // route boundary rather than inside a query.
+      notAttempted: sent.notAttempted || [],
       charge: sent.charge,
       audience,
       suppressionChecked: screened.checked,
