@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 118 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 29 admin routes.
-- 333 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 334 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,114 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-15 - Every calendar file this product made was titled "Booking"
+
+`lib/sonara-calendar-invite.cjs` reads `booking.service_name`,
+`booking.location_name` and `booking.calendar_sequence`. **`business_bookings`
+has none of the three.** Checked against every `create table` and `add column`
+for that table in migrations 013, 20260721213000 and 20260812000000; the table
+has `service_id` and `location_id` -- foreign keys -- and no revision counter at
+all. `service_name` appears in the schema only on a different table.
+
+All three reads returned `undefined`, and every fallback was silent:
+
+- `summary` fell through to `settings.defaultSummary || "Booking"`, and no call
+  site passes `defaultSummary`, so **every downloaded calendar entry was titled
+  literally "Booking"**. A salon with six appointments in a day got six
+  identical entries.
+- the `LOCATION` line is written only `if (booking.location_name)`, so it was
+  **never written** -- on bookings that carry a `location_id` pointing at a row
+  with a name and a full address.
+- `SEQUENCE` was `Number.isFinite(Number(undefined)) ? ... : 0`, so **always 0**.
+  The comment above that line says SEQUENCE "lets a later download supersede an
+  earlier one for the same UID". True of the property; not true of this file.
+  A corrected booking re-downloaded on top of the old one is the one thing
+  SEQUENCE exists for, and 0 every time is the one value that cannot do it.
+
+## Why nothing caught it
+
+The query was `select=*`. `report-unused-selected-columns.mjs` compares the
+columns a query asks for against the columns a function uses, and a star select
+does not name its columns, so there was nothing to compare. That script counts
+star selects rather than auditing them *because* of this blindness — this is the
+defect it was counting the blindness for, and it sat there for a week.
+
+## What was built
+
+`lib/sonara-booking-calendar-fields.cjs` supplies the three: the service and
+location names resolved from the two foreign keys, and a sequence derived from
+the elapsed seconds between `created_at` and `updated_at`. It is a proxy for a
+revision count and says so — two edits a second apart may collide — and it rises
+whenever the booking changes and never falls, which 0 forever could not.
+
+Two organization-filtered lookups rather than a PostgREST embed, following the
+ruling `loadCampaignRecipients` already made for the same reason: an embed
+filters the outer table and leaves the inner one to relationship detection, and
+with the service-role key that filter **is** the tenant boundary.
+
+Four `select=*` queries narrowed — the two booking exports and the two contact
+exports — taking the recorded star count 26 to 22 and the audited population 101
+to 118 multi-column selects.
+
+## The trade this nearly made instead
+
+The first version put each column list in a `const` and interpolated it. Star
+selects fell to 22 and run-time-built selects rose 25 to **30** — trading one
+blindness for the other, which is exactly what that script's header warns
+about. The lists are literal at the four query sites now, and the test asserts
+the two reads of each table agree rather than trusting them to.
+
+Narrowing the selects also produced five new tier-1 findings, because columns
+used only inside the builder modules are named nowhere in the route. Each is
+ruled on with the module and the line that reads it. They were always unread in
+that file; the star select meant nothing could say so.
+
+## The consent column, and the gate deliberately not added
+
+The contact export selected `customers.communication_preference` — the column
+recording how a customer agreed to be contacted — and compared it to nothing.
+That is the shape of the bug that check exists for, so the first question was
+whether an export was ignoring a stated preference.
+
+**It was not.** Nothing anywhere reads or writes that column, so it is
+`'unknown'` on every row. Gating the export on it would have refused every
+export for every business and told each one their customer had not agreed to be
+contacted — a definite claim about their own data, on an empty column, while
+looking like enforcement. `docs/architecture/2026-09-15-WHICH-CONSENT-STORE-IS-ENFORCED.md`
+maps all six consent-shaped stores in the schema: two enforced, two formally
+retired, two live and unused. The column is no longer fetched and nothing was
+gated.
+
+## Broken to prove the checks work
+
+`tests/a-calendar-file-cannot-read-a-column-that-does-not-exist.test.js`, eight
+rounds, each failing by name, each restored from a copy with the file hash
+compared before and after:
+
+1. renamed `service_name` to `service_headline` in the invite module — *"reads
+   service_headline off a booking. business_bookings has no such column"*. This
+   is the original defect reintroduced.
+2. dropped `notes` from the booking select — *"does not ask for notes, so those
+   reads are undefined"*.
+3. put `service_name` into the select — *"names service_name, which
+   business_bookings does not have. PostgREST answers 400"*.
+4. put `communication_preference` back — *"fetches communication_preference and
+   nothing compares it to anything"*.
+5. made the decoration `Object.assign` onto the caller's row — *"wrote onto the
+   caller's row"*.
+6. blinded the migration column parser — *"business_bookings parsed without an
+   id column; this check has gone blind"*, which is the guard firing before the
+   assertions could pass over an empty set.
+7. made `calendarSequence` return 0 always — the sequence assertion.
+8. made the diary feed ask for a shorter list than the single invite — *"the 2
+   reads of business_bookings ask for 2 different column lists"*.
+
+The migration replay was run locally to settle a separate suspicion: 77
+statements in `20260812000000` carry a doubled `default now() default now()`,
+which I expected PostgreSQL to reject as a duplicate DEFAULT. It does not. 118
+migrations apply to an empty database. Redundant, not broken, and recorded here
+so nobody else spends the time.
 
 ### 2026-09-15 - A block that promised its numbers were counted
 

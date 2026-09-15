@@ -11,6 +11,7 @@ const {
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
 const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
+const { decorateBookings, referencedIds } = require("../lib/sonara-booking-calendar-fields.cjs");
 const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
 const {
   ACCOUNTING_EXPORT_TYPES,
@@ -240,14 +241,22 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const found = await supabaseList(
       config,
       "business_bookings",
-      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+      `?select=id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,notes,created_at,updated_at,location_id,service_id&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
     );
     // A read that failed and a booking that is not there are different things,
     // and answering 404 to both would tell a business their booking is gone
     // during an outage.
     if (!found.ok) return res.status(503).type("text").send("We could not read that booking just now. Nothing has changed; try again shortly.");
-    const booking = found.rows[0];
-    if (!booking) return res.status(404).type("text").send("That booking is not in your business, or it has been removed.");
+    const rawBooking = found.rows[0];
+    if (!rawBooking) return res.status(404).type("text").send("That booking is not in your business, or it has been removed.");
+
+    // The service name and the location the calendar entry is titled and placed
+    // by. They are not columns of business_bookings; they are resolved here.
+    const lookups = await loadBookingCalendarLookups(config, org.organizationId, [rawBooking]);
+    if (!lookups.ok) {
+      return res.status(503).type("text").send("We could not read the service and location for this booking just now, and a calendar entry without them would be missing what you need. Try again shortly.");
+    }
+    const booking = decorateBookings([rawBooking], lookups)[0];
 
     // No business name is passed, and that is deliberate rather than an
     // omission: resolveOrganization returns { ok, organizationId, userId } and
@@ -286,7 +295,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const found = await supabaseList(
       config,
       "customers",
-      `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=name.asc&limit=2000`
+      `?select=id,name,email,phone,status,source,tags&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=name.asc&limit=2000`
     );
     // `found.ok ? found.rows : []` would hand back an empty address book during
     // an outage, which reads as a business with no customers.
@@ -320,7 +329,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const found = await supabaseList(
       config,
       "customers",
-      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+      `?select=id,name,email,phone,status,source,tags&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
     );
     if (!found.ok) return res.status(503).type("text").send("We could not read that customer just now. Nothing has changed; try again shortly.");
     const customer = found.rows[0];
@@ -476,14 +485,22 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const found = await supabaseList(
       config,
       "business_bookings",
-      `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=starts_at.asc&limit=500`
+      `?select=id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,notes,created_at,updated_at,location_id,service_id&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=starts_at.asc&limit=500`
     );
     // `found.ok ? found.rows : []` here would hand back an empty but perfectly
     // valid calendar during an outage, and the business would read it as having
     // no bookings.
     if (!found.ok) return res.status(503).type("text").send("We could not read your bookings just now. Nothing has changed; try again shortly.");
 
-    const feed = buildCalendarFeed(found.rows, { now: new Date() });
+    // Same decoration as the single invite, and for the same reason: a diary of
+    // five hundred entries all titled "Booking" with no address is the shape
+    // this had before the three missing fields were found.
+    const lookups = await loadBookingCalendarLookups(config, org.organizationId, found.rows);
+    if (!lookups.ok) {
+      return res.status(503).type("text").send("We could not read your services and locations just now, and a diary without them would be missing what you need. Try again shortly.");
+    }
+
+    const feed = buildCalendarFeed(decorateBookings(found.rows, lookups), { now: new Date() });
     if (!feed.ok) return res.status(503).type("text").send(feed.message);
 
     res.setHeader("Content-Type", feed.contentType);
@@ -2966,6 +2983,85 @@ async function belongsToOrganization(config, table, id, organizationId) {
   const found = await supabaseList(config, table, `?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`);
   if (!found.ok) return { ok: false, belongs: false };
   return { ok: true, belongs: found.rows.length > 0 };
+}
+
+// Why the two export selects name their columns inline rather than through a
+// constant.
+//
+// The first version of this change put each list in a `const` and interpolated
+// it. It worked, and it moved four queries out of the population
+// `pnpm run report:selected-columns` can audit and into the one it cannot --
+// star selects fell 26 to 22 and run-time-built selects rose 25 to 30. That is
+// the trade that script's own header warns about: "a computed list is readable
+// to a person and opaque to this script, which would have traded one blindness
+// for the other." So the lists are literal, at the four query sites, and
+// tests/a-calendar-file-cannot-read-a-column-that-does-not-exist.test.js
+// asserts the repeated ones agree rather than trusting them to.
+//
+// ## What the booking list is, and what the star select was hiding
+//
+// lib/sonara-calendar-invite.cjs reads `booking.service_name`,
+// `booking.location_name` and `booking.calendar_sequence`. **None is a column
+// of business_bookings.** Every calendar download was titled literally
+// "Booking", carried no LOCATION line, and had SEQUENCE 0. The three extra
+// columns in the list -- location_id, service_id, created_at, updated_at -- are
+// what lib/sonara-booking-calendar-fields.cjs needs to supply them, and that
+// module's header has the whole account.
+//
+// ## What the contact list is
+//
+// What lib/sonara-contact-card.cjs reads: id, name, email, phone, status,
+// source, tags. All seven are real columns, so unlike the booking case nothing
+// was broken -- the star select was fetching six more.
+//
+// One of the six is worth naming because of what it looks like:
+// **communication_preference**, the column recording how a customer agreed to
+// be contacted, was selected on every contact export and compared to nothing.
+// That reads exactly like the consent bug report-unused-selected-columns.mjs
+// was written for, and it is not one -- grepped across the whole repository,
+// nothing reads or writes that column, so it is 'unknown' on every row and
+// there is no permission on it to honour. Enforced consent lives in
+// growth_contact_consents and lib/growth-studio-sender.cjs reads it properly.
+// An owner downloading their own address book is not an outbound campaign and
+// needs no gate; what it needed was to stop fetching a column nothing fills.
+// See docs/architecture/2026-09-15-WHICH-CONSENT-STORE-IS-ENFORCED.md.
+
+// The location and service rows a set of bookings refers to.
+//
+// Two organization-filtered reads rather than a PostgREST embed, for the reason
+// `loadCampaignRecipients` in routes/growth-studio-control-routes.cjs already
+// gives: an embed filters the outer table and leaves the inner one to
+// relationship detection, and with the service-role key that filter is the
+// whole tenant boundary.
+//
+// A read that fails returns `ok: false` and the caller must not carry on: a
+// calendar file quietly missing every location is the failure this decoration
+// exists to fix, and producing one after a failed lookup would reintroduce it
+// with no way for the business to notice.
+//
+// Nothing referenced means nothing to ask. `id=in.()` is not a query, and
+// sending it would turn "these bookings name no location" into a 400.
+async function loadBookingCalendarLookups(config, organizationId, bookings) {
+  const out = { ok: true, locations: [], services: [] };
+  const wanted = [
+    { key: "locations", table: "business_locations", column: "location_id", select: "id,name,address_line1,address_line2,city,region,postal_code" },
+    { key: "services", table: "business_service_catalog", column: "service_id", select: "id,name" }
+  ];
+
+  for (const spec of wanted) {
+    const ids = referencedIds(bookings, spec.column);
+    if (!ids.length) continue;
+    const list = ids.map((id) => `"${encodeURIComponent(id)}"`).join(",");
+    const found = await supabaseList(
+      config,
+      spec.table,
+      `?select=${spec.select}&organization_id=eq.${encodeURIComponent(organizationId)}&id=in.(${list})&limit=${ids.length}`
+    );
+    if (!found.ok) return { ok: false, table: spec.table };
+    out[spec.key] = found.rows;
+  }
+
+  return out;
 }
 
 async function supabaseList(config, table, query) {
