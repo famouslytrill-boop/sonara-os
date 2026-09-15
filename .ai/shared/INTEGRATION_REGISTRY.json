@@ -24,6 +24,13 @@
       "secretBoundary": "server-only API key"
     },
     {
+      "name": "Web Push",
+      "purpose": "User-controlled browser notifications for account and workflow updates",
+      "codeStatus": "subscription registration implemented; sender is worker-gated",
+      "liveStatus": "unverified",
+      "secretBoundary": "public VAPID key in browser; private VAPID key remains server-only"
+    },
+    {
       "name": "Vercel",
       "purpose": "Static SPA and serverless API deployment",
       "codeStatus": "vercel.json configured",
@@ -74,4 +81,3 @@
     }
   ]
 }
-

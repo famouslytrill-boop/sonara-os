@@ -1,6 +1,6 @@
 # Current State
 
-Snapshot: 2026-07-17T23:39:04-04:00
+ Snapshot: 2026-09-15T12:30:00-04:00
 
 ## Git
 
@@ -42,6 +42,15 @@ Snapshot: 2026-07-17T23:39:04-04:00
 - Live Vercel, Supabase, Stripe, Resend, Cloudflare, Expo, Docker, Rancher, GitHub CI, and GitLab states: not verified this session.
 
 ## Coordination status
+
+### 2026-09-15 notification and launch hardening
+
+- Added `/app/settings/notifications` and `POST /api/notifications/subscribe`.
+- Added `push_notification_subscriptions` migration with owner-scoped RLS; service-role access remains server-only.
+- Signup now presents email-confirmation guidance rather than assuming a session exists.
+- Public push configuration is limited to `NEXT_PUBLIC_VAPID_PUBLIC_KEY`; private VAPID values are not bundled or logged.
+- Launch verification is green locally: build, 265 tests, secret scan, lint, smoke routes, and `verify:launch`.
+- Provider proof is deployment-dependent: Supabase migration application and any future VAPID sender must be verified in the target environment.
 
 - Shared memory system initialized by Codex.
 - The 28-file shared contract set was committed independently from all pre-existing product changes.

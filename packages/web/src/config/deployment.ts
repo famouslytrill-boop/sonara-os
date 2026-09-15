@@ -14,6 +14,9 @@ export type DeploymentConfig = Readonly<{
 export type PublicAuthConfig = Readonly<{
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  googleEnabled: boolean;
+  googleProviderReady: boolean;
+  vapidPublicKey?: string;
 }>;
 
 export type DeploymentHeadMetadata = Readonly<{
@@ -52,7 +55,7 @@ const defaultDeploymentConfig: DeploymentConfig = Object.freeze({
   companyName: "SONARA Industries",
   appVersion: "0.1.0",
   environment: "production",
-  publicAuth: Object.freeze({}),
+  publicAuth: Object.freeze({ googleEnabled: false, googleProviderReady: false }),
   diagnostics: Object.freeze({
     database: createEnvStatus(false, "Database connection is in setup mode."),
     stripe: createEnvStatus(false, "Stripe server secrets are not exposed to the client."),
@@ -176,10 +179,15 @@ export function normalizeStripeBillingHealth(
   });
 }
 
-function normalizePublicAuthConfig(config: Partial<PublicAuthConfig> | undefined): PublicAuthConfig {
+function normalizePublicAuthConfig(
+  config: Partial<PublicAuthConfig> | undefined
+): PublicAuthConfig {
   return Object.freeze({
     supabaseUrl: normalizeOptionalHttpsUrl(config?.supabaseUrl),
-    supabaseAnonKey: normalizeText(config?.supabaseAnonKey, "")
+    supabaseAnonKey: normalizeText(config?.supabaseAnonKey, ""),
+    googleEnabled: Boolean(config?.googleEnabled),
+    googleProviderReady: Boolean(config?.googleProviderReady),
+    vapidPublicKey: normalizeText(config?.vapidPublicKey, "") || undefined
   });
 }
 

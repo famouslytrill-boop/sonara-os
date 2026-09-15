@@ -270,6 +270,15 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     auth: "auth-ready"
   }),
   Object.freeze({
+    route: "/app/settings/notifications",
+    label: "Notification Preferences",
+    surface: "support",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "auth-ready"
+  }),
+  Object.freeze({
     route: "/app/prompt-library",
     label: "AI Playbook Center",
     surface: "product",
@@ -344,6 +353,51 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
   Object.freeze({
     route: "/pricing",
     label: "Pricing",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/free-launch-stack",
+    label: "Free Launch Stack",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/launch-tools",
+    label: "Launch Tools",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/formulas",
+    label: "Formulas",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/ecosystem",
+    label: "Ecosystem",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/infrastructure",
+    label: "Infrastructure",
     surface: "launch",
     nav: true,
     launchRequired: true,

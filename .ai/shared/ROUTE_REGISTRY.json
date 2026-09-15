@@ -39,7 +39,8 @@
     "/app/growth-studio",
     "/app/billing",
     "/app/settings",
-    "/app/settings/readiness"
+    "/app/settings/readiness",
+    "/app/settings/notifications"
   ],
   "criticalAdmin": [
     "/admin",
@@ -65,8 +66,8 @@
     "/api/stripe/checkout",
     "/api/stripe/create-checkout-session",
     "/api/stripe/customer-portal",
-    "/api/stripe/webhook"
+    "/api/stripe/webhook",
+    "/api/notifications/subscribe"
   ],
   "changeRule": "Update the TypeScript manifest, renderer, route tests, this registry, and handoff log together for contract changes."
 }
-

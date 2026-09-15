@@ -28,6 +28,7 @@
 - Stripe price validation, checkout, webhook signatures/idempotency, entitlements
 - Migration order, RLS expectations, storage policy
 - Route registry and public assets
+- Web notification permission, authenticated subscription registration, and RLS storage
 - Product CRUD/outputs and honest setup states
 - Mobile navigation, no overflow/clipping, reduced motion, keyboard/focus, graphics fallback
 

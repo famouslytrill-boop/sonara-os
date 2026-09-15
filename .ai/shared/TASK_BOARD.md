@@ -1,10 +1,10 @@
 # Shared Task Board
 
-Updated: 2026-07-17T23:39:04-04:00
+Updated: 2026-09-15T12:30:00-04:00
 
 ## In progress
 
-- None. Agents must claim a task and add a lock before code edits.
+- [Codex] Notification subscription foundation, signup confirmation state, palette alignment, and launch documentation. Implementation complete; metadata lock release pending.
 
 ## Blocked
 
@@ -26,6 +26,8 @@ Updated: 2026-07-17T23:39:04-04:00
 - Do not modify API shapes, migrations, billing/auth behavior, `package.json`, Vercel config, service worker, or shared route contracts without a coordinated lock.
 
 ## Done
+
+- [Codex] Added explicit opt-in web push subscription storage and gateway, signup confirmation state, palette alignment, service-worker delivery boundary, and notification/media documentation. Build, tests, secret scan, lint, smoke, and aggregate launch verification passed on 2026-09-15.
 
 - [Codex] Discovered current pnpm monorepo/Vercel SPA plus serverless API runtime.
 - [Codex] Inventoried routes, packages, migrations, API handlers, and dirty-worktree risk.

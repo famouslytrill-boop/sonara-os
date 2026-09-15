@@ -25,5 +25,36 @@ export default [
       "no-console": "off",
       "@typescript-eslint/no-explicit-any": "off"
     }
+  },
+  {
+    files: ["packages/web/src/**/*.js"],
+    languageOptions: {
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        navigator: "readonly",
+        FormData: "readonly",
+        localStorage: "readonly",
+        sessionStorage: "readonly",
+        history: "readonly",
+        location: "readonly",
+        fetch: "readonly"
+      }
+    }
+  },
+  {
+    files: ["packages/web/src/sw.js"],
+    languageOptions: {
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        clients: "readonly",
+        registration: "readonly",
+        skipWaiting: "readonly",
+        Request: "readonly",
+        Response: "readonly",
+        fetch: "readonly"
+      }
+    }
   }
 ];

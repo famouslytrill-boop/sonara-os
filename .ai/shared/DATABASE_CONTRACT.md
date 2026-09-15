@@ -14,7 +14,7 @@ Identity/access: `profiles`, `user_profiles`, `organizations`, `organization_mem
 
 Billing: `products`, `prices`, `subscriptions`, `billing_subscriptions`, `billing_entitlements`, `billing_webhook_events`, `checkout_sessions`, `payments`, `orders`, `payment_options`.
 
-Support/shared work: `support_requests`, `support_email_delivery_attempts`, `outbound_emails`, `email_events`, `activities`, `approval_events`, `files_records`, `generated_documents`, `intake_submissions`, `checklist_submissions`, `tool_runs`.
+Support/shared work: `support_requests`, `support_email_delivery_attempts`, `outbound_emails`, `email_events`, `activities`, `approval_events`, `files_records`, `generated_documents`, `intake_submissions`, `checklist_submissions`, `tool_runs`, `push_notification_subscriptions`.
 
 Business Builder: `business_profiles`, `business_plans`, `business_products`, `business_services`, `business_offers`, `business_customers`, `business_orders`, `business_invoices`, `business_tasks`, `business_documents`, `business_employees`, `business_employee_invites`, `business_launch_checklists`, `business_operations_checklists`, `business_marketing_plans`.
 
@@ -38,4 +38,3 @@ Other platform: `apps`, `app_modules`, `module_access_rules`, `feature_flags`, `
 ## Change protocol
 
 Update this contract, add a forward-safe migration, update validation/tests, record the ADR if architecture changes, and log the handoff.
-

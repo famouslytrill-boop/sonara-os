@@ -12,6 +12,7 @@
 - `GET /api/infrastructure/readiness`: infrastructure readiness.
 - Stripe checkout/create-checkout/customer-portal handlers: server-side plan validation and session/portal creation.
 - `POST /api/stripe/webhook`: raw-body signature verification, idempotent event processing, and database-backed billing state.
+- `POST /api/notifications/subscribe`: authenticated, user-initiated web-push subscription registration.
 
 ## Response principles
 
@@ -20,8 +21,8 @@
 - Distinguish missing configuration, unauthorized, forbidden, validation failure, dependency failure, and success.
 - Browser setup states must not be mistaken for successful provider operations.
 - Database write success and email delivery success are separate states.
+- Push subscription registration is separate from push delivery; no browser permission is requested automatically.
 
 ## Change protocol
 
 Contract changes require a lock, tests, frontend coordination, this document update, route registry update where applicable, and a handoff entry. Do not silently change response shapes.
-

@@ -142,7 +142,9 @@ import { renderPublicInfoPage } from "./app/public-info-pages.ts";
 import {
   renderBusinessBuilderMarketingPage,
   renderCreatorStudioMarketingPage,
+  renderFreeLaunchStackPage,
   renderGrowthStudioMarketingPage,
+  renderLaunchToolsPage,
   renderPublicHomePage
 } from "./app/public-marketing/page.ts";
 import { renderApprovalGatesPage } from "./app/security-center/approval-gates/page.ts";
@@ -169,9 +171,10 @@ import { renderResetPasswordPage } from "./app/reset-password/page.ts";
 import { renderSettingsPage } from "./app/settings/page.ts";
 import { renderAuthStatusPage } from "./app/settings/auth-status/page.ts";
 import { renderSettingsReadinessPage } from "./app/settings/readiness/page.ts";
+import { renderNotificationPreferencesPage } from "./app/settings/notifications/page.ts";
 import { renderSecuritySettingsPage as renderAccountSecuritySettingsPage } from "./app/settings/security/page.ts";
 import { renderSignupPage } from "./app/signup/page.ts";
-import { renderShellDashboard } from "./app/sonara-shell.ts";
+import { renderShellDashboard } from "./app/sonara-system.ts";
 import { renderStrategyPage } from "./app/strategyPage.ts";
 import { renderSupportPage } from "./app/support/page.ts";
 import { renderPrivateStatusPage } from "./app/status/page.ts";
@@ -189,15 +192,8 @@ import { renderMutationPage } from "./pages/mutationPage.ts";
 import { createOrganizationSetupContext } from "./lib/auth/organization-context.ts";
 import { createClientSafeError, installGlobalErrorBoundary } from "./lib/debugging/index.ts";
 import { logger } from "./lib/logger.ts";
-import {
-  installBrowserAuthGlobal,
-  loadBrowserOrganizationContext
-} from "./lib/supabase/client.ts";
-import {
-  publicMarketingRoutes,
-  publicNavigationLinks,
-  type PublicMarketingRoute
-} from "./lib/public-marketing/index.ts";
+import { installBrowserAuthGlobal, loadBrowserOrganizationContext } from "./lib/supabase/client.ts";
+import { publicMarketingRoutes, type PublicMarketingRoute } from "./lib/public-marketing/index.ts";
 import { getNavigationRoutes, getRouteDefinition, isKnownRoute } from "./routes/route-manifest.ts";
 import { applyDeploymentMetadata } from "./config/deployment.ts";
 import { SignalSound } from "./sound/signal-sound-engine.ts";
@@ -243,6 +239,7 @@ export type AppRoute =
   | "/app/settings"
   | "/app/settings/readiness"
   | "/app/settings/security"
+  | "/app/settings/notifications"
   | "/app/prompt-library"
   | "/app/business-builder/ai-playbooks"
   | "/app/business-builder/recommendations"
@@ -257,6 +254,11 @@ export type AppRoute =
   | "/forgot-password"
   | "/reset-password"
   | "/pricing"
+  | "/free-launch-stack"
+  | "/launch-tools"
+  | "/formulas"
+  | "/ecosystem"
+  | "/infrastructure"
   | "/about"
   | "/trust"
   | "/security"
@@ -555,6 +557,7 @@ export function createApp(root: HTMLElement) {
   let organizationContext = createOrganizationSetupContext();
   installGlobalErrorBoundary();
   installBrowserAuthGlobal();
+  applyStoredExperienceSettings();
   void loadBrowserOrganizationContext().then((context) => {
     organizationContext = context;
     render();
@@ -578,11 +581,23 @@ export function createApp(root: HTMLElement) {
     const route = normalizeRoute(requestedPath);
     applyDeploymentMetadata(route);
     clearElement(root);
-    root.append(
-      isPublicMarketingRoute(route)
-        ? createPublicNavigation(route)
-        : createNavigation(route, organizationContext)
-    );
+    root.dataset.route = route;
+    const publicSurface = isPublicMarketingRoute(route);
+    root.dataset.surface = publicSurface
+      ? "public"
+      : route === "/admin" || route.startsWith("/admin/") || route.startsWith("/app/admin")
+        ? "admin"
+        : "app";
+    if (publicSurface) {
+      root.append(createPublicNavigation(route));
+    } else if (root.dataset.surface === "admin") {
+      root.append(createAppTopbar(route, organizationContext));
+    } else {
+      root.append(
+        createAppTopbar(route, organizationContext),
+        createNavigation(route, organizationContext)
+      );
+    }
 
     try {
       if (route === "/") {
@@ -591,6 +606,18 @@ export function createApp(root: HTMLElement) {
       }
       if (route === "/pricing") {
         root.append(renderPricingPage());
+        return;
+      }
+      if (route === "/free-launch-stack") {
+        root.append(renderFreeLaunchStackPage());
+        return;
+      }
+      if (route === "/launch-tools") {
+        root.append(renderLaunchToolsPage());
+        return;
+      }
+      if (route === "/formulas" || route === "/ecosystem" || route === "/infrastructure") {
+        root.append(renderPublicInfoPage(route));
         return;
       }
       if (route === "/about") {
@@ -818,6 +845,10 @@ export function createApp(root: HTMLElement) {
         appendRoute(route, () => renderAccountSecuritySettingsPage());
         return;
       }
+      if (route === "/app/settings/notifications") {
+        appendRoute(route, () => renderNotificationPreferencesPage());
+        return;
+      }
       if (route === "/app/security-center") {
         appendRoute(route, () => renderSecurityCenterPage(), { renderBlockedPreview: true });
         return;
@@ -941,27 +972,39 @@ export function createApp(root: HTMLElement) {
         route === "/business-builder/orders" ||
         route === "/business-builder/billing"
       ) {
-        appendRoute(route, () => renderBusinessPaymentOptionsPage(), { renderBlockedPreview: true });
+        appendRoute(route, () => renderBusinessPaymentOptionsPage(), {
+          renderBlockedPreview: true
+        });
         return;
       }
       if (route === "/business-builder/employees") {
-        appendRoute(route, () =>
-          renderModuleSetupRequiredPage({
-            title: "Employee Management",
-            description:
-              "Employee invites are modeled in Supabase with invite hashes only. Apply the migration and connect Resend before sending invite email."
-          }),
+        appendRoute(
+          route,
+          () =>
+            renderModuleSetupRequiredPage({
+              title: "Employee Management",
+              description:
+                "Employee invites are modeled in Supabase with invite hashes only. Apply the migration and connect Resend before sending invite email."
+            }),
           { renderBlockedPreview: true }
         );
         return;
       }
-      if (route === "/business-builder/marketing-plan" || route === "/business-builder/operations") {
-        appendRoute(route, () =>
-          renderModuleSetupRequiredPage({
-            title: route === "/business-builder/marketing-plan" ? "Marketing Plan" : "Operations Checklist",
-            description:
-              "This module needs the database migration and server-side generation route before customer outputs can be created."
-          }),
+      if (
+        route === "/business-builder/marketing-plan" ||
+        route === "/business-builder/operations"
+      ) {
+        appendRoute(
+          route,
+          () =>
+            renderModuleSetupRequiredPage({
+              title:
+                route === "/business-builder/marketing-plan"
+                  ? "Marketing Plan"
+                  : "Operations Checklist",
+              description:
+                "This module needs the database migration and server-side generation route before customer outputs can be created."
+            }),
           { renderBlockedPreview: true }
         );
         return;
@@ -1084,12 +1127,14 @@ export function createApp(root: HTMLElement) {
         return;
       }
       if (route === "/creator-studio/exports") {
-        appendRoute(route, () =>
-          renderModuleSetupRequiredPage({
-            title: "Creator Exports",
-            description:
-              "Exports are disabled until generated document storage and owner-reviewed download policy are connected."
-          }),
+        appendRoute(
+          route,
+          () =>
+            renderModuleSetupRequiredPage({
+              title: "Creator Exports",
+              description:
+                "Exports are disabled until generated document storage and owner-reviewed download policy are connected."
+            }),
           { renderBlockedPreview: true }
         );
         return;
@@ -1162,7 +1207,11 @@ export function createApp(root: HTMLElement) {
         appendRoute(route, () => renderGrowthStudioDashboard());
         return;
       }
-      if (route === "/growth-studio/leads" || route === "/growth-studio/records" || route === "/growth-studio/records/free") {
+      if (
+        route === "/growth-studio/leads" ||
+        route === "/growth-studio/records" ||
+        route === "/growth-studio/records/free"
+      ) {
         appendRoute(route, () => renderWinBackPage());
         return;
       }
@@ -1179,12 +1228,14 @@ export function createApp(root: HTMLElement) {
         return;
       }
       if (route === "/growth-studio/analytics" || route === "/growth-studio/exports") {
-        appendRoute(route, () =>
-          renderModuleSetupRequiredPage({
-            title: getRouteDefinition(route)?.label ?? "Growth Studio Module",
-            description:
-              "Analytics and exports stay locked until payment state and database-backed reporting are connected."
-          }),
+        appendRoute(
+          route,
+          () =>
+            renderModuleSetupRequiredPage({
+              title: getRouteDefinition(route)?.label ?? "Growth Studio Module",
+              description:
+                "Analytics and exports stay locked until payment state and database-backed reporting are connected."
+            }),
           { renderBlockedPreview: true }
         );
         return;
@@ -1709,11 +1760,23 @@ export function createApp(root: HTMLElement) {
   function renderLoadingRoute(route: AppRoute) {
     applyDeploymentMetadata(route);
     clearElement(root);
-    root.append(
-      isPublicMarketingRoute(route)
-        ? createPublicNavigation(route)
-        : createNavigation(route, organizationContext)
-    );
+    root.dataset.route = route;
+    const publicSurface = isPublicMarketingRoute(route);
+    root.dataset.surface = publicSurface
+      ? "public"
+      : route === "/admin" || route.startsWith("/admin/") || route.startsWith("/app/admin")
+        ? "admin"
+        : "app";
+    if (publicSurface) {
+      root.append(createPublicNavigation(route));
+    } else if (root.dataset.surface === "admin") {
+      root.append(createAppTopbar(route, organizationContext));
+    } else {
+      root.append(
+        createAppTopbar(route, organizationContext),
+        createNavigation(route, organizationContext)
+      );
+    }
     const definition = getRouteDefinition(route);
     root.append(renderLoadingState(`Loading ${definition?.label ?? "page"}`));
     root.append(createMobileNavigation(route));
@@ -1742,36 +1805,85 @@ export function createApp(root: HTMLElement) {
 }
 
 function createPublicNavigation(activeRoute: PublicMarketingRoute) {
-  const nav = createElement("nav", { className: "app-nav" });
-  nav.append(createBrandMark(brandIdentity.parentName, getLogoAsset("parent-logo").src));
-  nav.append(
-    createNavGroup(
-      "Products",
-      publicNavigationLinks.filter((route) => route.group === "Products"),
-      activeRoute
-    ),
-    createNavGroup(
-      "Company",
-      publicNavigationLinks.filter((route) => route.group === "Company"),
-      activeRoute
-    ),
-    createNavGroup(
-      "Legal",
-      publicNavigationLinks.filter((route) => route.group === "Legal"),
-      activeRoute
-    )
+  const header = createElement("header", { className: "public-header" });
+  const brandLink = createElement("a", { className: "public-header__brand", href: "/" });
+  brandLink.append(createBrandMark(brandIdentity.parentName, getLogoAsset("parent-logo").src));
+
+  const nav = createElement("nav", { className: "public-header__nav" });
+  nav.setAttribute("aria-label", "Public navigation");
+  for (const item of [
+    ["Platform", "/launch-tools"],
+    ["Business Builder", "/business-builder"],
+    ["Creator Studio", "/creator-studio"],
+    ["Growth Studio", "/growth-studio"],
+    ["Pricing", "/pricing"],
+    ["Help", "/help"]
+  ] as const) {
+    nav.append(createNavLink(item[1], item[0], activeRoute));
+  }
+
+  const actions = createElement("div", { className: "public-header__actions" });
+  actions.append(
+    createElement("a", {
+      className: "public-header__access",
+      href: "/login",
+      textContent: "Access"
+    }),
+    createElement("a", {
+      className: "primary-action public-header__cta",
+      href: "/free-launch-stack",
+      textContent: "Try a free tool"
+    })
   );
-  return nav;
+  header.append(brandLink, nav, actions);
+  return header;
+}
+
+function createAppTopbar(
+  activeRoute: AppRoute,
+  organizationContext: ReturnType<typeof createOrganizationSetupContext>
+) {
+  const header = createElement("header", { className: "app-topbar" });
+  const brandLink = createElement("a", { className: "app-topbar__brand", href: "/dashboard" });
+  brandLink.append(createBrandMark(brandIdentity.parentName, getLogoAsset("app-icon").src));
+
+  const routeDefinition = getRouteDefinition(activeRoute);
+  const routeName = createElement("div", { className: "app-topbar__route" });
+  routeName.append(
+    createElement("span", { className: "stage-kicker", textContent: "Current workspace" }),
+    createElement("strong", { textContent: routeDefinition?.label ?? "SONARA workspace" })
+  );
+
+  const access = createElement("a", {
+    className: `status-badge app-topbar__status status-badge--${
+      organizationContext.state === "ready" ? "ready" : "setup"
+    }`,
+    href: organizationContext.state === "ready" ? "/account" : "/account/setup",
+    textContent:
+      organizationContext.state === "ready"
+        ? (organizationContext.organization?.name ?? "Workspace ready")
+        : organizationContext.state === "signed-out"
+          ? "Sign in required"
+          : "Setup required"
+  });
+  const avatar = createElement("a", {
+    className: "app-topbar__avatar",
+    href: "/account",
+    textContent: (organizationContext.user?.displayName ?? "S").slice(0, 1).toUpperCase()
+  });
+  avatar.setAttribute("aria-label", "Open account settings");
+  header.append(brandLink, routeName, access, avatar);
+  return header;
 }
 
 function renderRouteError(route: AppRoute, error: unknown) {
   const safeError = createClientSafeError(error, "route");
   const page = createElement("section", {
-    className: "work-screen sonara-shell protected-route-card"
+    className: "work-screen sonara-system protected-route-card"
   });
   page.setAttribute("role", "alert");
   page.append(
-    createElement("p", { className: "shell-kicker", textContent: "Route error" }),
+    createElement("p", { className: "stage-kicker", textContent: "Route error" }),
     createElement("h1", { textContent: safeError.title }),
     createElement("p", {
       className: "screen-copy",
@@ -1796,7 +1908,7 @@ function renderModuleSetupRequiredPage({
   description: string;
 }) {
   const page = createElement("section", {
-    className: "work-screen sonara-shell protected-route-card"
+    className: "work-screen sonara-system protected-route-card"
   });
   const actions = createElement("div", { className: "action-row" });
   actions.append(
@@ -1812,7 +1924,7 @@ function renderModuleSetupRequiredPage({
     })
   );
   page.append(
-    createElement("p", { className: "shell-kicker", textContent: "Setup required" }),
+    createElement("p", { className: "stage-kicker", textContent: "Setup required" }),
     createElement("h1", { textContent: title }),
     createElement("p", {
       className: "screen-copy",
@@ -1833,11 +1945,10 @@ function createNavigation(
   activeRoute: AppRoute,
   organizationContext: ReturnType<typeof createOrganizationSetupContext>
 ) {
-  const nav = createElement("nav", { className: "app-nav" });
+  const nav = createElement("nav", { className: "app-nav app-rail" });
   const productRoutes = getNavigationRoutes().filter((route) => route.surface === "product");
   const adminRoutes = getNavigationRoutes().filter((route) => route.surface === "admin");
   const signalRoutes = getNavigationRoutes().filter((route) => route.surface === "workflow");
-  nav.append(createBrandMark(brandIdentity.platformName, getLogoAsset("app-icon").src));
   nav.append(renderOrganizationSwitcherPlaceholder(organizationContext));
   nav.append(
     createNavGroup("Products", productRoutes, activeRoute),
@@ -1859,22 +1970,14 @@ function createNavigation(
 function createMobileNavigation(activeRoute: AppRoute) {
   const mobileLabels: Readonly<Record<string, string>> = {
     "/": "Home",
-    "/business-builder": "Business",
-    "/creator-studio": "Creator",
-    "/growth-studio": "Growth",
-    "/security-center": "Trust",
-    "/onboarding": "Setup"
+    "/launch-tools": "Tools",
+    "/submissions": "Activity",
+    "/support": "Support",
+    "/account": "Account"
   };
   const routes = getNavigationRoutes()
     .filter((route) =>
-      [
-        "/",
-        "/business-builder",
-        "/creator-studio",
-        "/growth-studio",
-        "/security-center",
-        "/onboarding"
-      ].includes(route.route)
+      ["/", "/launch-tools", "/submissions", "/support", "/account"].includes(route.route)
     )
     .map((route) => ({ ...route, label: mobileLabels[route.route] ?? route.label }));
   return renderMobileBottomNav({ activeRoute, routes });
@@ -1915,6 +2018,29 @@ function createNavLink(route: string, label: string, activeRoute: AppRoute) {
     link.setAttribute("aria-current", "page");
   }
   return link;
+}
+
+function applyStoredExperienceSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("sonara-exp-settings") ?? "{}") as Record<
+      string,
+      string
+    >;
+    const theme = parsed.Theme?.toLowerCase();
+    if (theme === "light" || theme === "dark") {
+      document.documentElement.dataset.theme = theme;
+    }
+    const motion = parsed["Motion quality"]?.toLowerCase();
+    if (motion) {
+      document.documentElement.dataset.motion = motion;
+    }
+    const graphics = parsed["Graphics quality"]?.toLowerCase();
+    if (graphics) {
+      document.documentElement.dataset.graphics = graphics;
+    }
+  } catch {
+    // Browser storage can be unavailable in private or restricted contexts.
+  }
 }
 
 if (typeof document !== "undefined") {

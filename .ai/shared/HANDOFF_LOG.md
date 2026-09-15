@@ -1,5 +1,13 @@
 # Dual-Agent Handoff Log
 
+## 2026-09-15 - Codex completion handoff
+
+- Scope: notification subscription foundation, signup confirmation UX, palette/manifest alignment, service-worker safety, RLS migration, launch docs, and shared registries.
+- Files: `api/notifications/subscribe.js`, `api/notifications/subscribe.test.mjs`, `packages/web/src/lib/notifications/web-push.ts`, `packages/web/src/app/settings/notifications/page.ts`, `packages/web/src/sw.js`, `supabase/migrations/20260915120000_push_notification_subscriptions.sql`, related router/config/style/docs/shared contracts.
+- Operational boundary: browser push is explicit opt-in; private VAPID credentials remain server-only and no sender job was added to the Vercel request path.
+- Verification: install, build, 79 test files/265 tests, client secret scan, lint, smoke routes, and `verify:launch` passed.
+- Manual follow-up: apply the migration in Supabase, set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` only if push is enabled, and provision a separately audited server-side sender before sending notifications.
+
 ## 2026-07-17 - Codex - Patch intake blocked before application
 
 - Branch: `fix/activate-real-saas-system`

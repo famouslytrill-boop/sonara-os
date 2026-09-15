@@ -35,9 +35,9 @@
     "export",
     "market-pattern-lab",
     "notification-sound-system",
+    "web-push-subscription-gateway",
     "payments",
     "profitability-dashboard"
   ],
   "changeRule": "Package ownership follows PROJECT_MEMORY.md; package API changes require tests and affected contract updates."
 }
-

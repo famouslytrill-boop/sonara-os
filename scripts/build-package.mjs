@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { URL } from "node:url";
 import ts from "typescript";
 import { packageName, repoRoot, walkFiles } from "./workspace.mjs";
@@ -15,6 +16,7 @@ const packageDir = path.resolve(process.cwd(), packageArg);
 const srcDir = path.join(packageDir, "src");
 const distDir = path.join(packageDir, "dist");
 const name = packageName(packageDir);
+const require = createRequire(import.meta.url);
 const webVendorPackages = Object.freeze(
   new Map([
     ["@signal-os/ui", "signal-os-ui"],
@@ -87,7 +89,7 @@ for (const sourceFile of walkFiles(
 }
 
 for (const assetFile of walkFiles(srcDir, (filePath) =>
-  /\.(css|html|ico|json|png|svg|webmanifest|webp|xml)$/.test(filePath)
+  /\.(css|html|ico|js|json|png|svg|webmanifest|webp|xml)$/.test(filePath)
 )) {
   const relativeAsset = path.relative(srcDir, assetFile);
   const outputFile = path.join(distDir, relativeAsset);
@@ -98,6 +100,7 @@ for (const assetFile of walkFiles(srcDir, (filePath) =>
 if (name === "@signal-os/web") {
   writeWebDeploymentArtifacts();
   copyWebVendorPackagesIntoWebDist();
+  copyWebBrowserVendorBundles();
 }
 
 function transpileSource(source, outputFile) {
@@ -164,6 +167,17 @@ function copyWebVendorPackagesIntoWebDist() {
   }
 }
 
+function copyWebBrowserVendorBundles() {
+  const supabaseEntry = require.resolve("@supabase/supabase-js");
+  const supabaseBrowserBundle = path.join(path.dirname(supabaseEntry), "umd", "supabase.js");
+  if (!fs.existsSync(supabaseBrowserBundle)) {
+    throw new Error("Missing the Supabase browser bundle required by the web app.");
+  }
+  const target = path.join(distDir, "vendor", "supabase.js");
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(supabaseBrowserBundle, target);
+}
+
 function writeWebDeploymentArtifacts() {
   const version = readPackageVersion(packageDir);
   const deploymentConfig = getWebDeploymentConfig(version);
@@ -174,6 +188,11 @@ function writeWebDeploymentArtifacts() {
     "/growth-studio",
     "/growth-studio/tactics",
     "/pricing",
+    "/free-launch-stack",
+    "/launch-tools",
+    "/formulas",
+    "/ecosystem",
+    "/infrastructure",
     "/about",
     "/trust",
     "/security",
@@ -217,6 +236,7 @@ function writeWebDeploymentArtifacts() {
     "/app/creator-studio",
     "/app/growth-studio",
     "/app/settings",
+    "/app/settings/notifications",
     "/app/settings/readiness",
     "/app/admin",
     "/app/admin/auth-status",
@@ -288,6 +308,30 @@ function writeWebDeploymentArtifacts() {
     ),
     "utf8"
   );
+  fs.writeFileSync(
+    path.join(distDir, "api", "readiness"),
+    JSON.stringify(
+      {
+        ok: true,
+        service: "SONARA Industries readiness",
+        status: "static_fallback",
+        version,
+        siteUrl: deploymentConfig.siteUrl,
+        generatedAt: new Date().toISOString(),
+        checks: {
+          webBuild: true,
+          routing: true,
+          sitemap: true,
+          robots: true,
+          manifest: true,
+          serverlessApi: "verify_via_vercel_functions"
+        }
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
   fs.mkdirSync(path.join(distDir, "api", "stripe"), { recursive: true });
   fs.writeFileSync(
     path.join(distDir, "api", "stripe", "webhook"),
@@ -344,7 +388,10 @@ function getWebDeploymentConfig(version) {
     ),
     publicAuth: Object.freeze({
       supabaseUrl: normalizeOptionalHttpsUrl(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      supabaseAnonKey: normalizeText(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, "")
+      supabaseAnonKey: normalizeText(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, ""),
+      googleEnabled: isEnabled(process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED),
+      googleProviderReady: isEnabled(process.env.NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY),
+      vapidPublicKey: normalizeText(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, "")
     }),
     diagnostics: Object.freeze({
       database: createEnvStatus(
@@ -460,6 +507,10 @@ function normalizeEmail(value, fallback) {
 
 function normalizeText(value, fallback) {
   return value?.trim() || fallback;
+}
+
+function isEnabled(value) {
+  return value?.trim().toLowerCase() === "true";
 }
 
 function createEnvStatus(configured, message) {

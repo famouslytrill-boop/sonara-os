@@ -6,7 +6,7 @@ export function renderSignupForm({
   state = "form"
 }: { state?: "form" | "email-confirmation" } = {}) {
   if (state === "email-confirmation") {
-    const card = createElement("article", { className: "planning-card shell-card" });
+    const card = createElement("article", { className: "auth-form-card" });
     card.setAttribute("aria-live", "polite");
     card.append(
       createElement("h2", { textContent: "Check your email" }),
@@ -19,7 +19,7 @@ export function renderSignupForm({
     return card;
   }
 
-  const form = createElement("form", { className: "planning-card shell-card" });
+  const form = createElement("form", { className: "auth-form-card" });
   form.setAttribute("aria-label", "Create account");
   const nameField = renderTextField("name", "Name", "name");
   const emailField = renderTextField("email", "Email", "email");
@@ -44,8 +44,12 @@ export function renderSignupForm({
         status.textContent = result.message;
         return;
       }
-      status.textContent = "Account created. Check your email if confirmation is enabled.";
-      window.location.assign("/dashboard");
+      status.textContent = "Account created. Check your email to confirm your address before signing in.";
+      button.replaceWith(createElement("a", {
+        className: "secondary-action",
+        href: "/login",
+        textContent: "Continue to sign in"
+      }));
     });
   });
 
@@ -57,10 +61,7 @@ export function renderSignupForm({
     renderProductInterest(),
     renderTermsCheckbox()
   );
-  form.append(
-    button,
-    status
-  );
+  form.append(button, status);
   return form;
 }
 

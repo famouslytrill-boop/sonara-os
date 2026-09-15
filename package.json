@@ -79,6 +79,8 @@
     "verify:all": "node scripts/verify-all.mjs",
     "validate:infrastructure": "node scripts/validate-infrastructure.mjs",
     "security:scan-artifacts": "node scripts/security-scan-artifacts.mjs",
+    "scan:client-secrets": "node scripts/security-scan-artifacts.mjs",
+    "verify:launch": "pnpm run check:package-manager && pnpm run typecheck && pnpm run build && pnpm test && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run check-public-routes && pnpm run check:public-claims && pnpm run check:risky-features && pnpm run check:live-readiness && pnpm run verify:supabase && pnpm run validate:infrastructure",
     "dev:utilities:test": "vitest run --pool=threads --no-isolate --run packages/web/src/developerUtilities.test.ts packages/web/src/sourceLeakPrevention.test.ts",
     "deployment:check": "tsx packages/deployment-sync/src/index.ts",
     "env:check": "tsx packages/deployment-sync/src/env-validator.ts",

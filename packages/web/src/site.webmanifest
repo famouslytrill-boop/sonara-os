@@ -4,8 +4,8 @@
   "description": "Business Builder, Creator Studio, and Growth Studio in one launch-focused platform.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#070912",
-  "theme_color": "#070912",
+  "background_color": "#F5FAF8",
+  "theme_color": "#1F7A62",
   "icons": [
     {
       "src": "/brand/sonara-one-app-icon.svg",
