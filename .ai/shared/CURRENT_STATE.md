@@ -51,6 +51,7 @@
 - Public push configuration is limited to `NEXT_PUBLIC_VAPID_PUBLIC_KEY`; private VAPID values are not bundled or logged.
 - Launch verification is green locally: build, 265 tests, secret scan, lint, smoke routes, and `verify:launch`.
 - Provider proof is deployment-dependent: Supabase migration application and any future VAPID sender must be verified in the target environment.
+- Git integration: verified commit `5496f82e` is pushed to `fix/activate-real-saas-system`; `origin/main` at `7ff76c01` has no common history with this branch, so merge/PR was safely withheld.
 
 - Shared memory system initialized by Codex.
 - The 28-file shared contract set was committed independently from all pre-existing product changes.

@@ -10,6 +10,7 @@ Updated: 2026-09-15T12:30:00-04:00
 
 - [Shared] Product code work is blocked from safe dual-agent parallelism until ownership of the 155 modified, 1 deleted, and 18 untracked pre-existing paths is established or committed in logical groups.
 - [Shared] Live provider proof is blocked pending authenticated dashboard/provider access and explicit production approval.
+- [Shared] Main integration is blocked by unrelated Git histories (`fix/activate-real-saas-system` and `origin/main` have no merge base); use an owner-reviewed migration onto the current main architecture before merging.
 - [Codex] Inspect/apply `sonara-branch-all-commits.patch` after the actual file is attached or an absolute local path is provided. Before application, verify patch format, source/base commits, affected paths, secret exposure, binary payloads, and `git apply --check` against the dirty worktree.
 
 ## Ready for Codex

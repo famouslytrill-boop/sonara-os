@@ -8,6 +8,12 @@
 - Verification: install, build, 79 test files/265 tests, client secret scan, lint, smoke routes, and `verify:launch` passed.
 - Manual follow-up: apply the migration in Supabase, set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` only if push is enabled, and provision a separately audited server-side sender before sending notifications.
 
+## 2026-09-15 - Git integration note
+
+- Verified commit: `5496f82e` (`Stabilize SONARA notification and launch operations`) was pushed to `fix/activate-real-saas-system`.
+- `origin/main` was fetched at `7ff76c01`; GitHub PR creation and a clean main-based cherry-pick were not possible because the branches have no common history and the main-based checkout deletes core files modified by this branch.
+- No force-push, automatic deployment, or destructive reset was performed.
+
 ## 2026-07-17 - Codex - Patch intake blocked before application
 
 - Branch: `fix/activate-real-saas-system`
