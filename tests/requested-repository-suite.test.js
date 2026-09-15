@@ -501,7 +501,7 @@ describe("requested repository runtime surfaces", () => {
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
     assert.match(response.text, /69 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /22 screenshot items were verified as hosted services or learning references/);
+    assert.match(response.text, /22 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
