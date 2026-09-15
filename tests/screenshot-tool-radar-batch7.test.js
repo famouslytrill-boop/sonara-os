@@ -13,6 +13,14 @@ const {
   DESIGN_BATCH9,
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
+const {
+  BATCH10_OPERATIONAL_REVIEW,
+  getBatch10OperationalReview
+} = require("../lib/sonara-batch10-operational-review.cjs");
+const {
+  CONTROL_STAGES,
+  getComplianceEvidenceReadiness
+} = require("../lib/sonara-compliance-evidence-readiness.cjs");
 
 describe("seventh screenshot tool research batch", () => {
   it("keeps every supplied repository non-executing and human-reviewed", () => {
@@ -116,5 +124,70 @@ describe("Batch 8 capability truth and Batch 9 design convergence", () => {
     assert.match(route, /designBatch9: convergence\.designs/);
     assert.match(route, /convergenceProductionExecutionAdded: convergence\.productionExecutionAdded/);
     assert.doesNotMatch(route, /screenshotResearchCount[^\n]+were verified/i);
+  });
+});
+
+describe("Batch 10 operational source review", () => {
+  it("turns uploaded material into non-executing requirements instead of new runtime authority", () => {
+    const review = getBatch10OperationalReview();
+    assert.equal(review.batch, 10);
+    assert.equal(review.recordCount, BATCH10_OPERATIONAL_REVIEW.length);
+    assert.equal(review.repositoryCountAdded, 0);
+    assert.equal(review.productionExecutionAdded, 0);
+    assert.ok(BATCH10_OPERATIONAL_REVIEW.length >= 7);
+    assert.ok(BATCH10_OPERATIONAL_REVIEW.every((item) => item.enabledByThisBatch === false));
+    assert.ok(BATCH10_OPERATIONAL_REVIEW.every((item) => item.canExecuteFromThisRecord === false));
+    assert.ok(BATCH10_OPERATIONAL_REVIEW.every((item) => item.humanReviewRequired === true));
+  });
+
+  it("keeps the uploaded source classes and implementation boundaries explicit", () => {
+    const byKey = Object.fromEntries(BATCH10_OPERATIONAL_REVIEW.map((item) => [item.key, item]));
+    assert.equal(byKey.compliance_control_model.source, "How-to-build-compliance-strategy_copy.pdf");
+    assert.equal(byKey.payment_cost_and_dispute_transparency.source, "Ebook-Secrets-of-Payment-Processing_copy.pdf");
+    assert.equal(byKey.generative_ai_governance.source, "ebook_mit-cio-generative-ai-report_copy.pdf");
+    assert.equal(byKey.saas_launch_operating_method.source, "SaasSArchitects(1).pdf");
+    assert.match(byKey.payment_cost_and_dispute_transparency.requirements.join(" "), /Do not hard-code.*fee averages/i);
+    assert.match(byKey.generative_ai_governance.requirements.join(" "), /Provider Gateway|model\/provider choice centralized/i);
+    assert.match(byKey.authorized_security_research.requirements.join(" "), /owned or explicitly authorized target/i);
+  });
+});
+
+describe("compliance evidence readiness", () => {
+  it("never turns setup evidence into a compliance or certification claim", () => {
+    const readiness = getComplianceEvidenceReadiness({
+      services: {
+        accountDatabase: "configured",
+        adminProtection: "configured",
+        paymentConnection: "configured"
+      }
+    });
+    assert.equal(readiness.complianceClaim, false);
+    assert.equal(readiness.certificationStatus, "not_assessed");
+    assert.equal(readiness.stages.length, CONTROL_STAGES.length);
+    assert.ok(readiness.stages.every((stage) => stage.certificationClaim === false));
+    assert.ok(readiness.stages.every((stage) => stage.status === "partial_evidence"));
+    assert.match(readiness.boundaries.join(" "), /not legal advice.*audit opinion.*certification/i);
+  });
+
+  it("keeps data-localization and AI-provider audit gaps visible even when core services are configured", () => {
+    const readiness = getComplianceEvidenceReadiness({
+      services: {
+        accountDatabase: "configured",
+        adminProtection: "configured",
+        paymentConnection: "configured"
+      }
+    });
+    const protection = readiness.stages.find((stage) => stage.key === "protect_localize");
+    const audit = readiness.stages.find((stage) => stage.key === "audit_reporting");
+    assert.match(protection.gaps.join(" "), /Data residency.*not verified/i);
+    assert.match(audit.gaps.join(" "), /provider\/model.*outcome\/error.*timing.*request provenance/i);
+  });
+
+  it("reports setup and review gaps instead of green status when platform evidence is absent", () => {
+    const readiness = getComplianceEvidenceReadiness({ services: {} });
+    assert.equal(readiness.counts.partialEvidence, 0);
+    assert.ok(readiness.counts.setupRequired > 0);
+    assert.ok(readiness.counts.reviewRequired > 0);
+    assert.ok(readiness.stages.every((stage) => stage.status !== "compliant" && stage.status !== "certified"));
   });
 });
