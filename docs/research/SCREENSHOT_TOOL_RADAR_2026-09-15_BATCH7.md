@@ -174,7 +174,7 @@ The AI-SDLC record is worth re-reading for one reason beyond licence: its
 `package.json` test script is dozens of named fail-closed gates —
 `test:dor-gate`, `test:drift-gate`, `test:coverage-gate`,
 `test:attestation-sign-gate` — which is the same architecture as this
-repository's own 46-command release chain. That is the idea worth having, and it
+repository's own 47-command release chain. That is the idea worth having, and it
 is already ours.
 
 ---

@@ -2,6 +2,158 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - The stale-claim check was reading a narrower population than it reported
+
+Found by writing a document that says "Every figure below was measured on
+15 September 2026" and noticing the dated count did not move.
+
+`report-stale-claims.mjs` printed "Documents making a dated claim: 17". Its
+marker required one of six words to **start a line** — which is how front matter
+is written, and not how most documents here state a measurement date. Measured
+over 382 documents: seven more make the same claim in a sentence.
+
+    "both measured on 5 September 2026"        docs/SHIP_READINESS.md
+    "hand-counted on 12 August 2026"           docs/owner/WHAT-IS-LEFT.md
+    "Public-live verified on 2026-07-17"       docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md
+    "Measured on 2026-08-05"                   docs/WORKSPACE_WORKFLOW_AUDIT.md
+
+Second shape in the skill — measuring a different population from the one
+claimed — on the check whose own output names the population. The marker's
+comment called the narrowness deliberate, and it was: the reason given was that
+a document claiming nothing needs no review date. That reason does not cover a
+document claiming plenty in different words.
+
+The marker now also matches a measurement verb, at most sixty characters of the
+same sentence, and an **explicit date**. 17 dated documents became 24.
+
+## Five documents with no review date, and why none of them got one today
+
+Adding a review date to five documents to turn the chain green would be exactly
+what this check says it cannot catch: *"Moving the date without looking."* So
+each is on `AWAITING_FIRST_REVIEW` with what it specifically needs and a deadline
+after which the check fails on it. **The deadline is my judgement — one month —
+not a derivation, and it is enforced rather than written in prose so it cannot
+quietly outlive itself.**
+
+The register is two-sided: an entry fails if the document stops making a dated
+claim, acquires a review date, or leaves the scanned set.
+
+## A correction inside the change
+
+The first draft added `measured`, `verified` and `counted` to the **line-start**
+set as well. They are ordinary sentence openers, so they matched
+"Measured live during Phase 1 work:" and "Verified in this repository: `/`
+returns 200" — claims with no date in them, which this check has nothing to say
+about. Two documents were about to be told to add a review date to a sentence
+that names no date. Taken back out; requiring the date is what makes the
+widening safe.
+
+## Broken to prove it works
+
+Three rounds, hash-compared and restored:
+
+1. moved one registration's deadline into the past — *"was registered as
+   awaiting a first review by 2026-09-01, and that date has passed"*, and the
+   check exits 1.
+2. registered a document that makes no dated claim — *"no longer makes a dated
+   claim. Remove the entry."*
+3. made the sentence marker match nothing. The count falls back to 17 and
+   **three registrations immediately fail as describing nothing.** That is the
+   register acting as the widening's blindness guard, which is a consequence of
+   its two-sidedness rather than something I designed for — worth recording
+   because it is the property that stops the widening going quiet.
+
+### 2026-09-15 - A required field, a quoted count, and no gate between them
+
+`data/open-source-tools.ts` has carried a required `reciprocalLicense` boolean
+since the register was built, with a long comment explaining why it is a stated
+field rather than a substring search — prose in one licence field once named
+four reciprocal licences while saying the repository was in none of them, and a
+search counted it.
+
+**Thirty-one records set that field. Nothing read it except a figure check.**
+`verify-doc-counts.mjs` asserts the number printed in the docs equals the number
+in the register: a true statement about two numbers that says nothing about
+whether any of the thirty-one may be adopted. So the register recorded the fact,
+the docs quoted the count, and no gate connected either to a decision.
+
+Measured: all thirty-one are at `reference_only` (18), `blocked` (7) or
+`research_only` (6). **The rule was being followed by hand** — which is precisely
+the state where nobody notices it stopping.
+
+`scripts/verify-reciprocal-licence-containment.mjs` is now the 47th command in
+the chain. Default deny: a reciprocal record with an adoption status
+(`adapter_built`, `optional_adapter_after_review`) fails unless a written ruling
+names what runs where. The ruling list is two-sided, so a reason that stops
+describing anything fails too.
+
+Three deliberate limits, each because the alternative would overclaim:
+
+- **Not a flat ban.** Whether a reciprocal licence reaches a hosted product
+  depends on how the code is reached, and a separate owner-run process behind a
+  network boundary is a genuinely contested question rather than an obvious one.
+  Default deny with a written exception is the honest shape.
+- **It does not read the licence text.** It trusts the stated field, for the
+  reason the register gives, and checks what was done with it.
+- **It does not read the rule out of `CLAUDE.md`.** That file's statement of it
+  was rewritten on 13 September in commit 86d5a5f — from naming AGPL/GPL/OSL and
+  their network-use trigger to a general instruction to review conditions — inside
+  a commit titled "Point Claude at screenshot tool research workflow". Whatever
+  the intent, a gate that derives its rule from prose loosens when the prose does.
+
+## Two copies of one label map, and only one was checked
+
+Found on the way. `data/open-source-tools.ts` holds `openSourceToolStatuses`,
+which `verify-open-source-registry.mjs` checks against the
+`OpenSourceIntegrationStatus` union in both directions. `lib/sonara-open-source-registry.cjs`
+holds `INTEGRATION_LABELS` — a second copy, which is the one
+`/research-lab/open-source` actually renders, and nothing compared it to
+anything.
+
+When `adapter_built` was added to the union it went into the checked map and not
+the rendered one, and `integrationLabel`'s `|| value` fallback made the gap
+silent: **nine records rendered the raw string `adapter_built` on a public page.**
+The verifier's own comment reasoned the symptom would be "a status rendering as
+undefined wherever the map is read" — true of the map it was looking at, and
+there were two.
+
+The label is added and the verifier now checks both maps. They may word a status
+differently, because one is customer-facing prose and one is not; neither may
+omit a status or invent one.
+
+`reciprocalLicense` also joined `readOpenSourceTools()` rather than getting a
+fourth reader of that file — the module's own header is about two readers of one
+file disagreeing. Its `booleanField` returns **three** states: an absent required
+field is `null`, not `false`, because an unreadable AGPL record reading as
+permissive is the one mistake that field exists to stop.
+
+## Broken to prove the checks work
+
+Six rounds, each failing by name, each restored from a copy with the file hash
+compared before and after:
+
+1. gave a reciprocal record an adoption status — *"zitadel-identity carries a
+   reciprocal licence (AGPL-3.0) and integrationStatus \"adapter_built\""*.
+2. deleted `adapter_built` from the rendered label map — *"has no label in
+   INTEGRATION_LABELS, so /research-lab/open-source renders the raw value to a
+   customer"*.
+3. added a `vendored_inline` status to the union — *"declared in
+   data/open-source-tools.ts and classified nowhere in this file"*, which is the
+   guard that stops a new status defaulting into the permissive branch.
+4. made the boolean reader always return false — *"no register record carries
+   reciprocalLicense: true"*, rather than a confident pass over an empty set.
+5. blinded the union parser — *"only 0 integration statuses read from the type
+   union; this check has gone blind"*.
+6. added a ruling for a record that needs none — *"whose status is now
+   \"research_only\" and needs no ruling. Remove it."*
+
+One correction to my own work mid-change: the first version of the new script
+said its status list was "read from the type union rather than retyped". It was
+hardcoded. That is the reason-you-reasoned-your-way-to that `CLAUDE.md` warns
+about, and it reads exactly like a verified one. The list is now genuinely
+checked against the union in both directions, which is stronger than what the
+comment originally claimed.
+
 ### 2026-09-15 - Every calendar file this product made was titled "Booking"
 
 `lib/sonara-calendar-invite.cjs` reads `booking.service_name`,
