@@ -203,3 +203,4 @@ describe("founder business drafting surface", () => {
 });
 
 require("./runtime-capability-planner.cjs");
+require("./generation-execution-contract.cjs");
