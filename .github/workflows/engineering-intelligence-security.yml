@@ -142,6 +142,29 @@ jobs:
             cp architecture/sonara-platform.architecture.json /tmp/sonara-platform.base.architecture.json
           fi
 
+          # Archify requires durable ids on both sides of every relationship
+          # comparison. The main snapshot that predates this contract has none,
+          # so bootstrap only missing legacy base ids from stable endpoints.
+          # Authored head ids remain the source of truth; any collision fails.
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const input = '/tmp/sonara-platform.base.architecture.json';
+          const diagram = JSON.parse(fs.readFileSync(input, 'utf8'));
+          const used = new Set();
+          for (const [index, connection] of (diagram.connections || []).entries()) {
+            const id = connection.id || `${connection.from}_to_${connection.to}`;
+            if (!connection.from || !connection.to) {
+              throw new Error(`architecture connection ${index} lacks from/to endpoints`);
+            }
+            if (used.has(id)) {
+              throw new Error(`architecture relationship id collision while bootstrapping base: ${id}`);
+            }
+            connection.id = id;
+            used.add(id);
+          }
+          fs.writeFileSync(input, `${JSON.stringify(diagram, null, 2)}\n`);
+          NODE
+
           # Archify owns both outputs explicitly: the positional output is the
           # HTML delta and --receipt is the machine-readable JSON receipt.
           node "$cli" compare architecture \

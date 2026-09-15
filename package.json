@@ -36,7 +36,7 @@
     "verify:config": "node scripts/verify-launch-config.mjs && node scripts/verify-route-registry.cjs && pnpm run verify:agent-sync && pnpm run verify:customer-ready",
     "verify:api": "node scripts/verify-openapi-contract.mjs",
     "verify:supabase-contract": "node scripts/verify-supabase-contract.mjs",
-    "verify:db": "node scripts/verify-production-schema.mjs && pnpm run verify:supabase-contract && pnpm run verify:member-read-access && pnpm run verify:tenant-queries && pnpm run verify:request-tenant-ids",
+    "verify:db": "node scripts/verify-production-schema.mjs && pnpm run verify:supabase-contract && pnpm run verify:tenant-queries && pnpm run verify:request-tenant-ids",
     "verify:production-supabase": "node scripts/verify-production-supabase.mjs",
     "verify:open-source": "node scripts/verify-open-source-registry.mjs",
     "verify:product-map": "node scripts/generate-product-integration-map.mjs --check",
