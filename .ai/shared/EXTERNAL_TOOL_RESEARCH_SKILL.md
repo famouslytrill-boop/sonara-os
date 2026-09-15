@@ -87,6 +87,8 @@ The fourth 2026-09-14 batch is documented in `docs/research/SCREENSHOT_TOOL_RADA
 - Generative AI Arbitrage: unlicensed provider/pricing directory; use only as a vendor-research lead and independently verify every provider and savings/model-equivalence claim.
 - Archify and three.ws were repeated screenshots and remain deduplicated in Batch 3. BreachLab remains a hosted-service reference rather than an executable repository record.
 
+The consolidated 2026-09-15 Batch 7 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-15_BATCH7.md` and represented in `lib/sonara-screenshot-tool-radar-batch7.cjs`. It includes the later specification, OCR, memory, evaluation, feature-flag, communications, desktop, business-operations, agent-platform, and restricted-security leads. The aggregate API and readiness views include Batches 5 through 7; all remain disabled research records.
+
 ## Output format for future intakes
 
 For each tool, return: verified upstream, license posture, what it actually does, product fit, runtime placement, security/advisory state where relevant, safety boundaries, blocked uses, implementation status, next experiment, and whether any code was actually adopted. Distinguish `researched`, `adapter built`, and `enabled in production`; those are not synonyms.
