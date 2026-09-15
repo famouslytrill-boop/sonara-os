@@ -171,3 +171,63 @@
   commercial terms, security, deliverability, consent, or operational review.
 - This is documentation and architecture guidance only; it does not claim any
   provider is configured or customer-facing.
+
+## 2026-09-14 - Direct workspace entry replaces intake in the primary path
+
+- Updated the public homepage, shared dashboard, quickstart card, Business
+  Builder landing actions, workspace actions, and workspace index so customers
+  sign up, enter a workspace, use free tools, and compare real plans without
+  being funnelled into an intake form.
+- Kept `POST /api/business-builder/intake` and its database-backed behavior for
+  compatibility with existing integrations. The authenticated GET path remains
+  reachable but redirects to the Business Builder launch checklist.
+- Added regression coverage for the direct `Start working` CTA, hidden intake
+  navigation, and the authenticated compatibility redirect.
+- Verification: build, lint, client-secret scan, route smoke, and the full test
+  suite pass (`4438 passing, 6 pending`). The integrated launch verifier reached
+  its expected protected Supabase proof boundary and stopped because this
+  checkout has no `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `SONARA_VERIFY_USER_JWT`; no deployment or
+  migration was bypassed.
+
+## 2026-09-14 - Admin agent control-plane visibility
+
+- Added protected `/admin/agent-activity` read-only operations view and linked it
+  from the admin command center and generated admin navigation.
+- The page reports only non-secret counts for recorded agent runs, waiting
+  approvals, and schedules. It does not execute work, expose prompts or
+  payloads, or widen the existing organization, approval, or audit boundaries.
+- Missing Supabase access or agent tables renders setup-required instead of a
+  false healthy state. The existing customer-facing `/owner/agent-activity`
+  queue and approval flow remain unchanged.
+- Verification: focused admin and route tests pass (18 passing); build, lint,
+  route registry, agent sync, customer-ready checks, and the prior full suite
+  remain green. No secrets, migrations, providers, or deployment settings were
+  changed.
+
+## 2026-09-14 - Public readiness preview uses the shared contract
+
+- Updated the public SONARA One interface preview to derive database, checkout,
+  support, and operator states from the existing readiness contract.
+- The preview defaults to setup-required language when readiness is unavailable
+  and never presents a static "Available" claim. It remains environment-only,
+  exposes no credentials, and keeps the public route synchronous and safe.
+- Added a page-frame regression test for configured and missing service states.
+- Focused verification passed: build, lint, and 58 route/frame/auth tests.
+
+## 2026-09-14 - Visual palette recalibration
+
+- Rebalanced the working palette around evergreen operations, cobalt navigation,
+  coral creative cues, and amber growth signals while retaining the existing
+  SONARA logo gradients.
+- Updated light, dark, and no-JavaScript fallback token blocks together,
+  including Business Builder, Creator Studio, Growth Studio, and admin accents.
+- Shifted ambient gradients, startup visuals, and Business Builder fallback
+  colors without adding third-party assets, runtime dependencies, or route
+  behavior changes.
+- Bumped the shared immutable asset token to `sonara-ui-20260914-v12-palette`
+  across the page frame, fonts, server-worker precache, and server cache note so
+  existing browsers cannot pin the previous visual bundle.
+- Verification: contrast, theme agreement, customer-ready checks, build, and
+  lint pass. The palette remains reversible and no provider, secret, migration,
+  or payment wiring changed.

@@ -30,8 +30,9 @@ const {
   getNonRepositoryReferencesBatch6
 } = require("../lib/sonara-screenshot-tool-radar-batch6.cjs");
 const {
+  getPublicScreenshotToolCatalogBatch7,
   getScreenshotToolReadinessBatch7,
-  getDeduplicatedReferencesBatch7
+  getNonRepositoryReferencesBatch7
 } = require("../lib/sonara-screenshot-tool-radar-batch7.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
@@ -46,7 +47,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   app.get("/api/ecosystem/requested-repositories", (req, res) => {
     const repositories = getCombinedPublicCatalog();
     const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
-    const nonRepositoryReferences = getNonRepositoryReferencesBatch3();
+    const nonRepositoryReferences = getAllNonRepositoryReferences();
     res.status(200).json({
       ok: true,
       status: "governed_catalog",
@@ -65,14 +66,14 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   app.get("/research-lab/requested-repositories", (req, res) => {
     const repositories = getCombinedPublicCatalog();
     const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
-    const nonRepositoryReferences = getNonRepositoryReferencesBatch3();
+    const nonRepositoryReferences = getAllNonRepositoryReferences();
     const verified = repositories.filter((item) => item.repositoryVerified).length;
     const blocked = repositories.filter((item) => item.integrationStatus === "blocked").length;
     const screenshotResearchCount = getScreenshotResearchCount();
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
-      brandCard("Latest screenshot intake", "The 2026-09-14 Batch 5 and Batch 6 research and the 2026-09-15 Batch 7 research are available on a dedicated governed page so new evidence can be reviewed without silently changing the legacy aggregate API contract."),
+      brandCard("Latest screenshot intake", "The Batch 5 through Batch 7 research is included in this complete governed catalog and has a dedicated review page."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items were verified as hosted services or learning references and intentionally kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -109,7 +110,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   app.get("/research-lab/latest-screenshot-intake", (req, res) => {
     const latest = getLatestScreenshotIntake();
     const sections = [
-      brandCard("Verified repository records", `${latest.repositories.length} Batch 5, Batch 6 and Batch 7 repositories are classified for product fit, license risk, runtime boundary, and staged next action.`),
+      brandCard("Verified repository records", `${latest.repositories.length} Batch 5 through Batch 7 repositories are classified for product fit, license risk, runtime boundary, and staged next action.`),
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were already represented in earlier governed records and were not duplicated.`),
       brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging is not installation, deployment, or permission to send customer data."),
@@ -126,8 +127,8 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     res.status(200).type("html").send(layout({
       title: "Latest screenshot research",
       eyebrow: "Research Lab",
-      heading: "2026-09-14 and 2026-09-15 governed screenshot intake",
-      body: "Batch 5, Batch 6 and Batch 7 preserve useful product and infrastructure ideas while keeping reciprocal licenses, undeclared licenses, undisclosed affiliate content, privacy-sensitive OSINT, financial trading, capture permissions, desktop-only runtimes, GPU runtimes, and hosted services behind explicit review boundaries.",
+      heading: "2026-09-15 governed screenshot intake",
+      body: "Batch 5 through Batch 7 preserve useful product and infrastructure ideas while keeping reciprocal licenses, privacy-sensitive OSINT, financial trading, capture permissions, desktop-only runtimes, and hosted services behind explicit review boundaries.",
       sections,
       actions: [
         linkAction("/research-lab/requested-repositories", "Repository intake"),
@@ -148,7 +149,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
-      brandCard("Latest screenshot intake", "Batch 5, Batch 6 and Batch 7 have a separate founder review surface so their current disabled state and newer safety boundaries are visible without changing the legacy aggregate readiness contract."),
+      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 are included in the aggregate readiness contract and remain available on a focused founder review surface."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),
@@ -187,7 +188,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     await recordAdminAuditEvent(req, "admin.latest_screenshot_intake.view", { path: req.path });
     const latest = getLatestScreenshotIntake();
     const sections = [
-      brandCard("Latest governed intake", `${latest.repositories.length} repositories and ${latest.nonRepositoryReferences.length} hosted/platform references are represented across Batch 5 and Batch 6.`),
+      brandCard("Latest governed intake", `${latest.repositories.length} repositories and ${latest.nonRepositoryReferences.length} hosted/platform references are represented across Batch 5 through Batch 7.`),
       brandCard("Production execution", "0 enabled. Every latest-intake repository remains cataloged-disabled and requires human review before implementation."),
       brandCard("Runtime boundaries", "Desktop capture/audio/networking stays on reviewed local companions; media rendering stays in isolated workers; OSINT and financial-trading projects stay research-only; diagram rendering must sanitize structured inputs."),
       ...latest.repositories.map((item) => brandCard(
@@ -203,7 +204,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     res.status(200).type("html").send(layout({
       title: "Latest screenshot readiness",
       eyebrow: "Founder operations",
-      heading: "2026-09-14 external-tool review",
+      heading: "2026-09-15 external-tool review",
       body: "Founder-facing readiness for the newest screenshot research. This surface is informational and never executes third-party code.",
       sections,
       actions: [
@@ -218,20 +219,15 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
 function getLatestScreenshotIntake() {
   const batch5 = getScreenshotToolReadinessBatch5();
   const batch6 = getScreenshotToolReadinessBatch6();
-  // Batch 7 joins the latest-intake surface rather than the legacy aggregate,
-  // for the reason the page copy already gives: the aggregate API contract is
-  // not changed silently when new evidence arrives.
   const batch7 = getScreenshotToolReadinessBatch7();
   return {
     repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
-      ...getNonRepositoryReferencesBatch6()
+      ...getNonRepositoryReferencesBatch6(),
+      ...getNonRepositoryReferencesBatch7()
     ],
-    deduplicatedReferences: [
-      ...(batch5.deduplicatedReferences || []),
-      ...getDeduplicatedReferencesBatch7()
-    ]
+    deduplicatedReferences: batch5.deduplicatedReferences || []
   };
 }
 
@@ -241,7 +237,10 @@ function getCombinedPublicCatalog() {
     ...getPublicScreenshotToolCatalog(),
     ...getPublicScreenshotToolCatalogBatch2(),
     ...getPublicScreenshotToolCatalogBatch3(),
-    ...getPublicScreenshotToolCatalogBatch4()
+    ...getPublicScreenshotToolCatalogBatch4(),
+    ...getScreenshotToolReadinessBatch5().repositories,
+    ...getScreenshotToolReadinessBatch6().repositories,
+    ...getPublicScreenshotToolCatalogBatch7()
   ];
 }
 
@@ -249,7 +248,20 @@ function getScreenshotResearchCount() {
   return getPublicScreenshotToolCatalog().length
     + getPublicScreenshotToolCatalogBatch2().length
     + getPublicScreenshotToolCatalogBatch3().length
-    + getPublicScreenshotToolCatalogBatch4().length;
+    + getPublicScreenshotToolCatalogBatch4().length
+    + getScreenshotToolReadinessBatch5().repositoryCount
+    + getScreenshotToolReadinessBatch6().repositoryCount
+    + getPublicScreenshotToolCatalogBatch7().length;
+}
+
+function getAllNonRepositoryReferences() {
+  const batch5 = getScreenshotToolReadinessBatch5();
+  return [
+    ...getNonRepositoryReferencesBatch3(),
+    ...(batch5.nonRepositoryReferences || []),
+    ...getNonRepositoryReferencesBatch6(),
+    ...getNonRepositoryReferencesBatch7()
+  ];
 }
 
 function getCombinedReadiness() {
@@ -258,14 +270,20 @@ function getCombinedReadiness() {
   const screenshotBatch2 = getScreenshotToolReadinessBatch2();
   const screenshotBatch3 = getScreenshotToolReadinessBatch3();
   const screenshotBatch4 = getScreenshotToolReadinessBatch4();
+  const screenshotBatch5 = getScreenshotToolReadinessBatch5();
+  const screenshotBatch6 = getScreenshotToolReadinessBatch6();
+  const screenshotBatch7 = getScreenshotToolReadinessBatch7();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
-  const nonRepositoryReferences = getNonRepositoryReferencesBatch3();
+  const nonRepositoryReferences = getAllNonRepositoryReferences();
   const repositories = [
     ...requested.repositories,
     ...screenshot.repositories,
     ...screenshotBatch2.repositories,
     ...screenshotBatch3.repositories,
-    ...screenshotBatch4.repositories
+    ...screenshotBatch4.repositories,
+    ...screenshotBatch5.repositories,
+    ...screenshotBatch6.repositories,
+    ...screenshotBatch7.repositories
   ];
   return {
     ok: true,
@@ -273,7 +291,7 @@ function getCombinedReadiness() {
     repositoryCount: repositories.length,
     verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
     blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
-    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount,
+    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount + screenshotBatch5.repositoryCount + screenshotBatch6.repositoryCount + screenshotBatch7.repositoryCount,
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
     productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,

@@ -587,7 +587,15 @@ describe("the server.js split stays safe", () => {
       // and its dependency wiring are part of the production route surface.
       // Keep the ceiling tight and documented rather than hiding the route in
       // an untracked string patch.
-      lines <= 3874,
+      // 3874 -> 3882 on 14 September 2026: the legacy Business Builder
+      // request path now redirects to the workspace checklist, with an
+      // explicit compatibility branch and an explanatory comment.
+      // 3882 -> 3901 on 14 September 2026: the protected admin command center
+      // now exposes a non-secret agent control-plane summary, and its route is
+      // registered through routes/sonara-admin-agent-routes.cjs. The route
+      // module keeps the new page out of this file; the remaining lines are
+      // the three real table counts and the admin registration contract.
+      lines <= 3901,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
@@ -661,6 +669,18 @@ describe("the page frame stands on its own", () => {
     assert.match(html, /<html[^>]*>[\s\S]*<\/html>\s*$/i);
     assert.match(html, /<head>[\s\S]*<\/head>/i);
     assert.match(html, /<meta name="viewport"/i);
+  });
+
+  it("derives the public interface status preview from readiness", () => {
+    const html = createPageFrame({
+      ...deps,
+      getReadiness: () => ({ services: { accountDatabase: "configured", checkout: "enabled", emailDelivery: "missing", adminProtection: "configured" } })
+    }).layout({ title: "Home", heading: "H", body: "B", sections: [], actions: [], variant: "home", surface: "marketing" });
+    assert.match(html, /Setup review/);
+    assert.match(html, /Checkout ready/);
+    assert.match(html, /Support.*Setup required/);
+    assert.match(html, /Operations.*Protected/);
+    assert.doesNotMatch(html, />Available<\/strong>/);
   });
 
   it("escapes the title and heading it is given", () => {

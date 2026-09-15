@@ -25,13 +25,15 @@ describe("public site", () => {
     assert.match(res.text, /sonara-hero-stage/);
     assert.match(res.text, /sonara-status-panel/);
     assert.match(res.text, /href="\/business-builder\/dashboard"/);
-    assert.match(res.text, /href="\/business-builder\/intake"/);
+    assert.match(res.text, /href="\/business-builder\/launch-readiness"/);
+    assert.match(res.text, /href="\/dashboard">Start working<\/a>/);
     assert.match(res.text, /href="\/creator-studio\/assets"/);
     assert.match(res.text, /href="\/creator-studio\/music-system"/);
     assert.match(res.text, /href="\/growth-studio\/campaigns"/);
     assert.match(res.text, /href="\/growth-studio\/leads"/);
     assert.match(res.text, /Setup required|setup-required|setup required/i);
     assert.doesNotMatch(res.text, /Express service is online/);
+    assert.doesNotMatch(res.text, /Open customer intake|Start an intake|href="\/business-builder\/intake"/);
     assert.doesNotMatch(res.text, /â€¢|BusinessCreatorGrowth/);
   });
 
@@ -720,9 +722,8 @@ describe("auth setup", () => {
     assert.equal(businessBuilder.status, 200);
     assert.match(businessBuilder.text, /Business Builder Dashboard/);
     assert.match(businessBuilder.text, /Logout/);
-    assert.equal(businessIntake.status, 200);
-    assert.match(businessIntake.text, /Customer Enquiries/);
-    assert.match(businessIntake.text, /Record intake/);
+    assert.equal(businessIntake.status, 303);
+    assert.equal(businessIntake.headers.location, "/business-builder/launch-readiness?from=%2Fbusiness-builder%2Fintake");
     assert.equal(creatorAssets.status, 200);
     assert.match(creatorAssets.text, /Asset Catalog/);
     assert.match(creatorAssets.text, /Create asset record/);
@@ -2042,6 +2043,8 @@ describe("auth and admin", () => {
     assert.match(res.text, /Support queue/);
     assert.match(res.text, /Product catalog/);
     assert.match(res.text, /System and storage/);
+    assert.match(res.text, /Agent control plane/);
+    assert.match(res.text, /href="\/admin\/agent-activity"/);
     assert.match(res.text, /href="\/admin\/database"/);
     assert.match(res.text, /href="\/admin\/storage"/);
     assert.match(res.text, /Logout/);
@@ -2071,6 +2074,7 @@ describe("auth and admin", () => {
       "/admin/system",
       "/admin/database",
       "/admin/storage",
+      "/admin/agent-activity",
       "/admin/business-builder",
       "/admin/creator-studio",
       "/admin/growth-studio"

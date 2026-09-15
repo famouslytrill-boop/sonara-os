@@ -13,10 +13,9 @@
  * than no rule, because it is what the next reader believes instead of looking.
  *
  * The two are not redundant and must not be merged. --nx-* carries per-theme
- * adjustments this file does not: --sonara-accent (#6E4BFF) on the dark card
- * surface measures 3.51:1, below the 4.5:1 a link has to clear, so --nx-violet
- * is lightened to #9878FF for dark and measures 5.51:1. Replacing one with the
- * other would ship a WCAG failure that looks like a tidy-up.
+ * adjustments this file does not: --sonara-accent is the evergreen operating
+ * anchor, while --nx-violet is the theme-aware link accent. Replacing one with
+ * the other would ship a contrast failure that looks like a tidy-up.
  *
  * What they must share is a theme. Both families are read on the same page, and
  * sonara-application-ui.css uses --sonara-* colours in 32 places. This file
@@ -40,21 +39,23 @@
   color-scheme: dark light;
 
   /* Brand ---------------------------------------------------------------
-   * These are the existing SONARA brand values, moved here from
-   * ui/sonara/styles/99-zz-customer-ready.css rather than reinvented. The
-   * consolidation changes where a token is declared, not what it looks like,
-   * so this step is verifiable without a visual diff. Re-colouring is a
-   * separate, deliberate change that should be reviewed on screen. */
-  --sonara-accent: #6E4BFF;
-  --sonara-accent-2: #12E1C4;
-  --sonara-warm: #FF9E5E;
-  --sonara-accent-strong: #5533E6;
-  --sonara-accent-soft: rgba(110 75 255 / 0.16);
+   * Evergreen is the operating anchor; cobalt, coral, and amber remain
+   * available in the application palette for navigation, creative work, and
+   * growth signals. The logo gradients retain their own identity. */
+  --sonara-accent: #1F7A62;
+  --sonara-accent-2: #1B8294;
+  --sonara-warm: #D18A42;
+  --sonara-accent-strong: #1C493F;
+  --sonara-accent-soft: rgba(40 92 79 / 0.16);
   --sonara-accent-contrast: #ffffff;
+  --sonara-brand-cobalt: #245DAF;
+  --sonara-brand-cyan: #65D1DE;
+  --sonara-create-highlight: #8E5CC7;
+  --sonara-grow-highlight: #E6AE61;
 
-  --sonara-build: #3DDC97;   /* Business Builder */
-  --sonara-create: #B57BFF;  /* Creator Studio   */
-  --sonara-grow: #FFB25C;    /* Growth Studio    */
+  --sonara-build: #2DA878;   /* Business Builder */
+  --sonara-create: #B15A96;  /* Creator Studio   */
+  --sonara-grow: #D18A42;    /* Growth Studio    */
 
   /* Surfaces (dark-first) ---------------------------------------------
    * Deeper and cooler than the previous set. The step between surface and

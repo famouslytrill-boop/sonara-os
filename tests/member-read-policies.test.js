@@ -85,6 +85,9 @@ const SERVICE_ROLE_ONLY = new Map([
   ["business_permission_grants", "the privilege table for a business; a member reading who holds what is a decision, not a gap"],
   ["business_control_audit_events", "who did what inside the business; owner surface, not member-readable"],
   ["business_ownership_transfers", "a transfer in progress; owner-level and sensitive before it completes"],
+  ["agent_action_logs", "agent audit records; owner/admin operational evidence is not member-readable"],
+  ["agent_pending_actions", "agent approval queue; owner/admin decisions are not member-readable"],
+  ["agent_schedules", "agent schedules; owner/admin control data is not member-readable"],
   // Which payment processor account a business takes money into. Organization
   // -scoped, and not ordinary workspace data: a member who can read it learns
   // where the business's revenue settles, and a member who could write it could
