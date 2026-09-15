@@ -166,8 +166,23 @@ no behavioural decision was reversed. The wording now says what is true: they
 the readiness figures*.
 
 Broken to prove it: restoring main's exact sentence fails the check by file and
-line; the new wording passes. The gate is not in the deploy chain, which is why
-a red main did not announce itself.
+line; the new wording passes.
+
+**Correction, made within the hour.** The commit message for this change says
+"a red main did not announce itself". That is wrong, and the way it is wrong is
+worth keeping. `sonara-industries-ci` runs `verify:launch` and has **failed on
+all five most recent main commits** -- main is announcing itself loudly. What is
+true is narrower: that CI dies at `generate-handoff-prompt.mjs --check`
+("docs/HANDOFF_PROMPT.md is out of date"), `verify:gates` short-circuits there,
+and **the copy-gate failure is never reached.** So the copy overclaim is masked
+behind an earlier failure rather than unreported by a gate nobody runs.
+
+The difference matters for what to do: main's CI needs one command
+(`node scripts/generate-handoff-prompt.mjs`) before the next failure is even
+visible, and there is at least one more behind it. I asserted the stronger claim
+from the fact that the gate is not in the deploy chain -- true, and not what
+makes it invisible. Checked by reading run 1480's log rather than inferring
+from the workflow file, which is what I should have done first.
 
 ## What was dropped, deliberately
 
