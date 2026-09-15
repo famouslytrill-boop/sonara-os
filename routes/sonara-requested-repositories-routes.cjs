@@ -73,7 +73,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Verified sources", `${verified} requested projects were matched to authoritative repositories and classified for controlled adoption.`),
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots were verified and added as non-executing research records.`),
-      brandCard("Latest screenshot intake", "The Batch 5 through Batch 7 research is included in this complete governed catalog and has a dedicated review page."),
+      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 appear in this catalog as non-executing research records, and each batch also has its own review page."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items were verified as hosted services or learning references and intentionally kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -149,7 +149,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const sections = [
       brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
-      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 are included in the aggregate readiness contract and remain available on a focused founder review surface."),
+      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 are counted in the readiness figures above and remain listed on a focused founder review surface."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} verified hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current records remain non-executing and human-reviewed.`),

@@ -106,9 +106,21 @@ jobs:
           # message that names the wrong cause is worse than one that names
           # none, because it is what the next person reads instead of looking.
           #
-          # Neither cause is derivable from git. The distance is, and the
-          # distance is what tells them apart: hours means a deploy was
-          # overtaken, weeks means none has landed.
+          # **The fix for that was itself a guess, and on 15 September it was
+          # wrong too.** It replaced one asserted cause with two, and told the
+          # reader the distance tells them apart: "hours means a deploy was
+          # overtaken, weeks means none has landed." Production was then 22
+          # commits and about twenty hours behind -- inside the "hours" band --
+          # and the cause was the second one: every deploy run since 5 August
+          # had failed, the newest of them at a single step, an empty
+          # STRIPE_RUNTIME_SECRET_KEY. Following this message would have sent
+          # somebody looking for a rogue redeploy that never happened.
+          #
+          # So the distance does NOT tell the causes apart, and this no longer
+          # claims it does. The distance is reported because it is derivable
+          # from git; the cause is not derivable here at all, and the message
+          # now says where it is -- the conclusion of the newest deploy run --
+          # rather than guessing which of two it is.
           behind="unknown"
           live_age="unknown"
           if git cat-file -e "${live}^{commit}" 2>/dev/null; then
@@ -130,9 +142,20 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           echo "::error::Production is running ${live} while main is ${expected} -- ${behind} commit(s) behind, live build ${live_age} old."
-          echo "Two causes look identical here and the distance tells them apart:"
-          echo "  hours behind  -- a redeploy took the production alias away from a commit that had already passed the deploy gate."
-          echo "  weeks behind  -- no deployment has succeeded, so the alias was never handed over in the first place."
-          echo "Check Controlled Production Deployment's recent runs before assuming the first."
-          echo "Re-run it (it accepts workflow_dispatch) rather than redeploying from the dashboard, so the migration and catalog gates run."
+          echo ""
+          echo "This workflow can see the distance and cannot see the cause. It reports the first and does not guess the second."
+          echo ""
+          echo "Open Controlled Production Deployment's recent runs. The conclusion of the"
+          echo "most recent one is the answer, and there are three:"
+          echo ""
+          echo "  the newest run SUCCEEDED   -- something took the alias afterwards. A manual"
+          echo "                                redeploy from the dashboard does this, and it is"
+          echo "                                what happened on 4 August."
+          echo "  the newest run FAILED      -- no deploy has landed since the last one that did."
+          echo "                                Read that run's failing step; it is the whole cause,"
+          echo "                                and on 15 September it was one empty secret."
+          echo "  there is no recent run     -- nothing tried. Check the trigger, not production."
+          echo ""
+          echo "Re-run the deployment (it accepts workflow_dispatch) rather than redeploying from"
+          echo "the dashboard, so the migration and catalog gates run."
           exit 1

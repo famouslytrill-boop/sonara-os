@@ -2,6 +2,79 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - Production is 22 commits behind because one secret is empty
+
+An owner screenshot of "Production Commit Drift: All jobs have failed" turned
+out to have a single cause, and it is not a code defect.
+
+Measured: production serves `f466662` (PR #255, 14 September 17:20), main is at
+`9f03507`, **22 commits apart**. Every one of the last twelve Controlled
+Production Deployment runs failed. The newest one, run 176, failed here:
+
+    STRIPE_RUNTIME_SECRET_KEY:            <- empty
+    STRIPE_VERIFIER_SECRET_KEY: ***
+    A full live Stripe runtime key is required. Configure the protected
+    STRIPE_RUNTIME_SECRET_KEY secret with an sk_live_ key; the read-only
+    verifier key will not be promoted.
+
+Everything before that step passed: production schema (118 migrations, 146
+tables), the Supabase contract, the tenant-query audit, launch config, the route
+registry, the OpenAPI contract, the open-source registry, `supabase db push
+--dry-run` reporting the remote database up to date, and the Stripe **price**
+audit against live prices using the verifier key. One step, one empty secret,
+and it is `docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md` -- owner-only, unchanged.
+
+So the drift workflow's every-two-hours failure is a true report of a real
+condition with a known cause that only the owner can clear.
+
+## The drift message was guessing, and this time the guess was wrong
+
+`production-commit-drift.yml` offered two causes and told the reader the
+distance tells them apart: *"hours means a deploy was overtaken, weeks means
+none has landed."*
+
+Production was 22 commits and about **twenty hours** behind -- inside the
+"hours" band -- and the cause was the other one. Following that message would
+have sent somebody hunting a rogue dashboard redeploy that never happened.
+
+That message was itself written to fix an earlier version which asserted a
+single cause and was wrong on 5 September. **Replacing one guess with two is
+not a fix.** The distance is derivable from git; the cause is not derivable in
+that workflow at all. It now reports the distance and points at the one place
+the cause is legible -- the conclusion of the newest deploy run -- with the
+three readings spelled out and none of them asserted.
+
+## A red release gate on main, in customer-facing copy
+
+Found while merging main in, and reproduced against `origin/main` alone so it is
+not an artefact of the merge: `check-research-lab-public-copy.mjs` **fails on
+main**. Two cards added by the batch-7 work said
+
+    "The Batch 5 through Batch 7 research is included in this complete governed catalog..."
+    "Batch 5 through Batch 7 are included in the aggregate readiness contract..."
+
+"is/are included" is the pattern that gate exists to catch, and the ambiguity is
+the real thing: a customer cannot tell "included in a research list" from
+"included in the product". The facts were right -- batches 5-7 genuinely are
+summed into `screenshotResearchCount`, checked in the code before rewording, so
+no behavioural decision was reversed. The wording now says what is true: they
+*appear in this catalog as non-executing research records* and are *counted in
+the readiness figures*.
+
+Broken to prove it: restoring main's exact sentence fails the check by file and
+line; the new wording passes. The gate is not in the deploy chain, which is why
+a red main did not announce itself.
+
+## What was dropped, deliberately
+
+PR #258 was closed without merging, so my batch-7 records were superseded by the
+owner's own via #259-#261. Main's batch 7 holds 27 records and **none of the
+seven repositories I reviewed** -- checked by name. `tests/the-seventh-screenshot-batch-stays-research.test.js`
+asserted the 7-record shape and could not pass against a 27-record module, so it
+is removed rather than left failing for a reason that is not a defect. The
+licence verdicts it carried are unshipped and the owner's to want back or not.
+
+
 ### 2026-09-15 - CodeQL was right about my own script, and about the one next to it
 
 CodeQL alert 234 on PR #258, "Shell command built from environment values",
