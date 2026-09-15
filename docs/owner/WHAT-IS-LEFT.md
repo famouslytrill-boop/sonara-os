@@ -120,12 +120,32 @@ never save and two POST handlers silently sharing one path.
 
 ## What has been built, in numbers
 
-Counted from the repository on 12 August 2026, not recalled.
+Counted from the repository, not recalled — and now *kept* counted, which the
+heading previously only promised. This block was written on 12 August 2026, and
+by 15 September four of its figures had drifted: the route count was low by
+fifty-nine, the register count was low by a hundred and fifty-five, and the
+owner-page count was low by four. `docs/SHIP_READINESS.md` carried the route
+figure as well and was stale by thirty — one fact, two documents, two different
+wrong values, which is what a hand-typed number looks like a month later.
 
-- **248** registered GET routes
+The drift amounts are spelled as words on purpose. Written as digits beside the
+phrases below they would be read as fresh claims by the very check that now
+guards them, and a check that fires on a true sentence gets reworded around
+rather than fixed.
+
+Each of the figures below except the last is now derived by
+`scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
+
+- **307** registered GET routes
 - **326** tables created by the migrations, **229** of them organization-scoped
-- **23** owner record pages, **22** record checks
+- **27** owner record pages
 - **46** verification commands in the release chain
-- **82** external repositories reviewed with their licences read off each one
+- **237** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
+- **22** record checks — **hand-counted on 12 August 2026 and not derived.**
+  Unlike the others, "record check" names no single thing a script can count, so
+  it is left alone rather than guessed at: the check's own rule is that only
+  counts derivable *exactly* belong to it, and a judgement recorded at review
+  time is deliberately a human's. Treat this one as a figure to re-measure, not
+  as a guarded one.

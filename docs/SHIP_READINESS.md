@@ -406,7 +406,7 @@ cannot:
 | Nothing would route to it anyway | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
 
 The shipped product is the Express CommonJS application: `server.js`, `routes/`,
-`lib/`, **277 registered GET routes**, deployed as one serverless function.
+`lib/`, **307 registered GET routes**, deployed as one serverless function.
 
 **What it cost, before it was found.** `scripts/report-orphan-tables.mjs` counted
 a table as "queried" when any `.ts` file named it. So the release chain reported

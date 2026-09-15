@@ -2,6 +2,97 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-15 - A block that promised its numbers were counted
+
+`docs/owner/WHAT-IS-LEFT.md` has a section headed *"What has been built, in
+numbers"*, under the line **"Counted from the repository on 12 August 2026, not
+recalled."**
+
+They were counted. Then the repository moved, and four of the seven figures
+drifted with nothing watching them. **A block that claims its numbers are counted
+is making a claim about method, and that is worse than a plain stale number,
+because it tells the reader not to check.**
+
+I found it while editing that same file an hour earlier and walked straight past
+it.
+
+## What had drifted
+
+| Figure | Said | Actual |
+|---|---|---|
+| registered GET routes | 248 | **307** |
+| external repositories reviewed | 82 | **237** |
+| owner record pages | 23 | **27** |
+| registered GET routes, in `SHIP_READINESS.md` | 277 | **307** |
+
+Three had held, and held exactly: `326` tables created by the migrations, `229`
+of them organization-scoped, and `46` chain commands. Those three are derived.
+That is the whole difference.
+
+**The register figure is the sharp one.** `docs/owner/WHAT-IS-LEFT.md` already
+says "237 reviewed repositories" in one section — corrected the same day — and
+said "82 external repositories reviewed" two sections later. One fact, two
+sentences, one guarded and one not.
+
+That failure has a precedent in the checker's own comments, for the reciprocal
+count: *"One number, two sentences, one guard: the second sentence needs its own
+pattern or it is unguarded prose."* It had happened before and the lesson had
+been written down; the register count simply had a phrasing nobody had added.
+
+## Guarded rather than corrected
+
+Three new patterns and two new derivations in `scripts/verify-doc-counts.mjs`:
+
+- `N external repositories reviewed` → the register count, the reversed
+  phrasing of an already-guarded fact.
+- `N registered GET routes` → `ROUTE_REGISTRY.length`.
+- `N owner record pages` → `ALL_OWNER_PAGES.length`.
+
+The route one needed a decision. `verify-product-lifecycle-evidence` reports
+**557 served GET routes** by scanning source, while the registry holds **307**.
+Those are different quantities, and deriving the second here as well would put
+two methods behind one number — which is how two checks come to disagree. The
+pattern requires the word *registered*, and the comment says why.
+
+**The check found a fourth on its first run**, in a document I had not opened:
+`docs/SHIP_READINESS.md` carried the route figure separately stale at 277. One
+fact, two documents, two different wrong values — which is what a hand-typed
+number looks like a month later.
+
+Countable claims: 15 → **19**.
+
+## One figure deliberately left alone
+
+`22 record checks` is now marked **hand-counted and not derived**. "Record check"
+names no single thing a script can count, and the checker's own rule is that only
+counts derivable *exactly* belong to it. Guessing a number to make the block look
+uniform would be the defect this repository is named for, dressed as tidiness.
+
+## And my own prose tripped the check
+
+Narrating the old values put digits directly beside the guarded noun phrases, and
+the pattern read `"307, external repositories reviewed"` across a comma as a
+fresh claim. The check fired on a true sentence — the precise hazard its own
+comment warns about: *"a check that fires on true statements does not get fixed;
+the prose gets reworded around it."*
+
+So the drift amounts are now spelled as **words**, and the document says why. The
+comma tolerance in the number group is deliberate for figures like 1,234 and was
+left alone; the prose was the thing that was wrong.
+
+## Broken to prove it works
+
+Four breaks, each restoring the exact stale value the document actually carried,
+each failing by name with both figures and the quantity:
+
+1. Register count back to 82 in the reversed phrasing — caught.
+2. Route registry count back to 248 — caught.
+3. Owner record pages back to 23 — caught.
+4. The route fact back to 277 in `SHIP_READINESS.md` — caught.
+
+Verified: 4,472 tests passing, lint clean, `verify:launch` and `verify:gates`
+both exit 0, stale claims 17/17 with nothing past its date.
+
 ### 2026-09-15 - Re-verifying a ship-gap document, and the blocker that moved
 
 `report-stale-claims.mjs` flagged `docs/2026-08-12-SHIP-GAP-ANALYSIS.md` three
