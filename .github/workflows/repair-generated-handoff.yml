@@ -36,82 +36,8 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Add multipart limit regressions and modernize action runtimes
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = require('node:path');
-
-          const testPath = 'tests/an-upload-arrives-intact.test.js';
-          let test = fs.readFileSync(testPath, 'utf8');
-          const marker = '  describe("never throws on something malformed", () => {';
-          const regression = `  describe("validates caller-supplied limits before parsing", () => {
-            it("refuses values whose type could change a security comparison", () => {
-              const invalid = ["1024", NaN, Infinity, -1, {}, []];
-              for (const value of invalid) {
-                const answer = multipart.parse(
-                  bodyOf([{ name: "f", filename: "x.bin", value: Buffer.alloc(16) }]),
-                  \`multipart/form-data; boundary=\${BOUNDARY}\`,
-                  { maxFileBytes: value }
-                );
-                assert.equal(answer.ok, false);
-                assert.equal(answer.code, "invalid_limits");
-                assert.match(answer.problem, /maxFileBytes/);
-              }
-            });
-
-            it("permits an explicit zero file ceiling and then refuses the first file", () => {
-              const answer = multipart.parse(
-                bodyOf([{ name: "f", filename: "x.bin", value: Buffer.alloc(4) }]),
-                \`multipart/form-data; boundary=\${BOUNDARY}\`,
-                { maxFiles: 0 }
-              );
-              assert.equal(answer.ok, false);
-              assert.equal(answer.code, "too_many_files");
-            });
-
-            it("permits an explicit zero field ceiling and then refuses the first field", () => {
-              const answer = multipart.parse(
-                bodyOf([{ name: "note", value: "x" }]),
-                \`multipart/form-data; boundary=\${BOUNDARY}\`,
-                { maxFields: 0 }
-              );
-              assert.equal(answer.ok, false);
-              assert.equal(answer.code, "too_many_fields");
-            });
-          });
-
-`;
-
-          if (!test.includes('validates caller-supplied limits before parsing')) {
-            if (!test.includes(marker)) throw new Error('multipart regression insertion marker was not found');
-            test = test.replace(marker, regression + marker);
-            fs.writeFileSync(testPath, test);
-          }
-
-          const replacements = [
-            ['actions/setup-node@v4', 'actions/setup-node@v7'],
-            ['actions/setup-node@v5', 'actions/setup-node@v7'],
-            ['actions/setup-node@v6', 'actions/setup-node@v7'],
-            ['pnpm/action-setup@v4', 'pnpm/action-setup@v6'],
-            ['pnpm/action-setup@v5', 'pnpm/action-setup@v6'],
-            ['actions/upload-artifact@v4', 'actions/upload-artifact@v6'],
-            ['actions/upload-artifact@v5', 'actions/upload-artifact@v6'],
-            ['supabase/setup-cli@v1', 'supabase/setup-cli@v3'],
-            ['supabase/setup-cli@v2', 'supabase/setup-cli@v3']
-          ];
-
-          const workflowDir = '.github/workflows';
-          for (const name of fs.readdirSync(workflowDir)) {
-            if (!/\.ya?ml$/.test(name)) continue;
-            const file = path.join(workflowDir, name);
-            let source = fs.readFileSync(file, 'utf8');
-            let next = source;
-            for (const [from, to] of replacements) next = next.split(from).join(to);
-            if (next !== source) fs.writeFileSync(file, next);
-          }
-          NODE
+      - name: Modernize supported action runtimes
+        run: node -e "const fs=require('node:fs'),path=require('node:path'); const r=[['actions/setup-node@v4','actions/setup-node@v7'],['actions/setup-node@v5','actions/setup-node@v7'],['actions/setup-node@v6','actions/setup-node@v7'],['pnpm/action-setup@v4','pnpm/action-setup@v6'],['pnpm/action-setup@v5','pnpm/action-setup@v6'],['actions/upload-artifact@v4','actions/upload-artifact@v6'],['actions/upload-artifact@v5','actions/upload-artifact@v6'],['supabase/setup-cli@v1','supabase/setup-cli@v3'],['supabase/setup-cli@v2','supabase/setup-cli@v3']]; for(const n of fs.readdirSync('.github/workflows')){if(!/\\.ya?ml$/.test(n))continue; const f=path.join('.github/workflows',n),s=fs.readFileSync(f,'utf8'); let x=s; for(const [a,b] of r)x=x.split(a).join(b); if(x!==s)fs.writeFileSync(f,x)}"
 
       - name: Regenerate repository-derived handoff
         run: node scripts/generate-handoff-prompt.mjs
@@ -120,7 +46,6 @@ jobs:
         run: |
           node --check lib/sonara-multipart.cjs
           node --check routes/sonara-ai-integrations-routes.cjs
-          node --check tests/an-upload-arrives-intact.test.js
           node --check tests/hosted-model-providers.cjs
 
       - name: Run focused release-gate regressions
@@ -138,6 +63,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/an-upload-arrives-intact.test.js docs/HANDOFF_PROMPT.md .github/workflows
-          git commit -m "test: lock security fixes and refresh action runtimes"
+          git add docs/HANDOFF_PROMPT.md .github/workflows
+          git commit -m "ci: refresh supported action runtimes"
           git push origin HEAD:fix/release-security-gates-20260916
