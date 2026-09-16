@@ -7,9 +7,9 @@
 // an "Open-source research" action, and it had no route behind it.
 //
 // The register itself was never the problem. data/open-source-tools.ts holds
-// thirty-nine reviewed repositories and scripts/verify-open-source-registry.mjs
-// gates it on every release. It simply had no page, so the work existed, the
-// gate checked it, and nobody could look at it.
+// reviewed repositories and scripts/verify-open-source-registry.mjs gates it on
+// every release. It simply had no page, so the work existed, the gate checked
+// it, and nobody could look at it.
 //
 // This is an operator surface, not a customer one. It names licences,
 // repositories and refusal reasons precisely, which is why it sits under
@@ -28,6 +28,7 @@ const {
   getRepositoryProductPlacements,
   customerAvailability
 } = require("../lib/sonara-repository-product-routing.cjs");
+const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
 
 module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -96,6 +97,7 @@ module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
 
   app.get("/technology-radar", (req, res) => {
     const placements = getRepositoryProductPlacements(readOpenSourceTools());
+    const expansion = getMarketExpansionRegistry();
     const sections = Object.values(SURFACES).map((surface) => {
       const count = placements.filter((placement) => placement.surface.key === surface.key).length;
       return brandCard(
@@ -104,6 +106,10 @@ module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
         [linkAction(surface.route, `Open ${surface.name}`)]
       );
     });
+    sections.push(brandCard(
+      "SONARA-native expansion plan",
+      `${expansion.counts.capabilities} internal capability records now map the September market and workflow research into shared platform work, add-ons, industry packs, standalone packaging, distribution, and partner integrations. These records separate existing foundations from future work.`
+    ));
     sections.push(brandCard(
       "What a listing means",
       "SONARA has identified the upstream repository and recorded its licence, safety boundaries, and possible product fit. Listing does not mean SONARA owns, bundles, endorses, or runs it."
@@ -133,17 +139,24 @@ module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
     app.get(surface.route, requireCustomer, (req, res) => {
       const placements = getRepositoryProductPlacements(readOpenSourceTools())
         .filter((placement) => placement.surface.key === surface.key);
+      const expansion = getMarketExpansionRegistry().capabilities
+        .filter((capability) => capability.targets.includes(surface.key));
       res.status(200).type("html").send(layout({
         title: `${surface.name} Technology References`,
         eyebrow: surface.name,
         heading: "Reviewed technology references",
-        body: "These technologies may inform future SONARA-native work. None is connected to your account or included in your plan unless a separate product page explicitly proves that it is live.",
+        body: "These technologies and SONARA-native expansion records may inform future work. None is connected to your account or included in your plan unless a separate product page explicitly proves that it is live.",
         sections: [
           brandCard(
-            `${placements.length} records routed here`,
-            "Every record keeps its real review status. Blocked items are shown only to explain why they are unavailable, not as recommendations."
+            `${placements.length} external research records routed here`,
+            "Every repository record keeps its real review status. Blocked items are shown only to explain why they are unavailable, not as recommendations."
           ),
-          customerReferenceTable(placements, escape)
+          customerReferenceTable(placements, escape),
+          brandCard(
+            `${expansion.length} SONARA-native expansion records`,
+            "These are internal product plans, not third-party installations. Existing foundations, provider-dependent features, implementation-next work, design-only work, and research-only work remain visibly separated."
+          ),
+          expansionReferenceTable(expansion, escape)
         ],
         actions: [
           linkAction(`/${surface.key.replace("_", "-")}/tools`, `${surface.name} tools`),
@@ -166,6 +179,47 @@ function customerReferenceTable(placements, escape) {
   const head = ["Technology", "What it may inform", "Availability", "Important boundary"]
     .map((label) => `<th>${escape(label)}</th>`).join("");
   return `<article class="card"><h2>Technology references</h2><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></article>`;
+}
+
+function expansionReferenceTable(capabilities, escape) {
+  const rows = capabilities.map((capability) => {
+    const cells = [
+      capability.name,
+      expansionFormLabel(capability.form),
+      expansionStatusLabel(capability.status),
+      capability.value,
+      capability.next.slice(0, 2).join(" / ") || "No additional work recorded"
+    ].map((value) => escape(value));
+    return `<tr>${cells.map((cell) => `<td>${cell}</td>`).join("")}</tr>`;
+  }).join("");
+  const head = ["SONARA capability", "Product form", "Current state", "Customer value", "Next implementation boundary"]
+    .map((label) => `<th>${escape(label)}</th>`).join("");
+  return `<article class="card"><h2>SONARA-native expansion plan</h2><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></article>`;
+}
+
+function expansionStatusLabel(status) {
+  const labels = {
+    live_foundation: "Existing foundation",
+    conditional_on_configured_provider: "Requires configured provider",
+    implement_next: "Planned next",
+    design_only: "Design only",
+    research_only: "Research only",
+    partner_integration: "Partner integration",
+    do_not_rebuild: "Integrate; do not rebuild"
+  };
+  return labels[status] || String(status || "Review required").replace(/_/g, " ");
+}
+
+function expansionFormLabel(form) {
+  const labels = {
+    core_platform: "Shared platform",
+    add_on: "Add-on",
+    industry_pack: "Industry pack",
+    standalone_sku: "Standalone packaging",
+    distribution_channel: "Distribution",
+    partner_integration: "Partner integration"
+  };
+  return labels[form] || String(form || "Capability").replace(/_/g, " ");
 }
 
 const CUSTOMER_TERM_REPLACEMENTS = Object.freeze([
@@ -236,17 +290,6 @@ function registerTable(tools, escape) {
   return `<article class="card"><h2>The register</h2><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></article>`;
 }
 
-// Which part of the company a repository is for.
-//
-// The register listed licence, risk and refusals and never said where a
-// repository actually goes, so the page answered "may we use this?" and not
-// "what is it for?" -- and the second question is the one somebody opening this
-// page is usually asking.
-//
-// An empty productFit is a real answer rather than a gap. Every record with one
-// is either blocked, unresolved, or build-time tooling that never reaches a
-// customer, and saying so is more useful than leaving the cell blank and
-// letting the reader guess which.
 function placement(tool) {
   const fit = (tool.productFit || []).filter((entry) => entry && entry !== "None");
   if (fit.length) return fit.join(", ");

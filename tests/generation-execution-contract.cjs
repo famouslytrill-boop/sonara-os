@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   RESEARCHED_EXECUTION_ALTERNATIVES,
   getGenerationExecutionArchitecture,
@@ -20,6 +22,18 @@ const {
   IN_MEMORY_GENERATION_ADAPTER_MANIFEST,
   InMemoryGenerationAdapter
 } = require("../lib/sonara-in-memory-generation-adapter.cjs");
+const {
+  GENERATION_PERSISTENCE_MIGRATION,
+  GENERATION_PERSISTENCE_TABLES,
+  GenerationPersistenceContractError,
+  buildGenerationJobRow,
+  buildGenerationArtifactRow,
+  buildGenerationCallbackEventRow,
+  buildGenerationCostEventRow,
+  buildGenerationAuditEventRow,
+  buildGenerationJobTransitionPatch,
+  getGenerationPersistenceArchitecture
+} = require("../lib/sonara-generation-persistence-contract.cjs");
 
 function options(overrides = {}) {
   return {
@@ -393,5 +407,145 @@ describe("generation adapter lifecycle", () => {
     assert.equal(stored.providerLocator.adapterKey, "in_memory_reference");
     assert.equal(typeof stored.providerLocator.providerRequestId, "string");
     assert.equal(adapter.repository.getById("org_beta", submitted.jobId), null);
+  });
+});
+
+describe("generation durable persistence contract", () => {
+  function persistedJob(overrides = {}) {
+    return {
+      tenantId: "11111111-1111-4111-8111-111111111111",
+      requestId: "req_persist_001",
+      idempotencyKey: "idem_persist_001",
+      modality: "image",
+      operation: "generate",
+      inputReferences: [{ ref: "object://tenant/reference-1", mediaType: "image/png" }],
+      inputDigests: [{ algorithm: "sha256", digest: "c".repeat(64) }],
+      ...overrides
+    };
+  }
+
+  it("maps the proven lifecycle onto six tenant-scoped persistence tables without enabling a provider", () => {
+    const architecture = getGenerationPersistenceArchitecture();
+    assert.deepEqual(Object.values(GENERATION_PERSISTENCE_TABLES), [
+      "generation_jobs",
+      "generation_attempts",
+      "generation_artifacts",
+      "generation_callback_events",
+      "generation_cost_events",
+      "generation_audit_events"
+    ]);
+    assert.equal(architecture.tenantColumn, "organization_id");
+    assert.equal(architecture.stateMachine.compareAndSwapVersion, true);
+    assert.equal(architecture.stateMachine.durableArtifactBeforeSuccess, true);
+    assert.equal(architecture.executionAuthority.providersEnabled, 0);
+    assert.equal(architecture.executionAuthority.externalNetworkEnabled, false);
+    assert.equal(architecture.executionAuthority.externalSpendEnabled, false);
+  });
+
+  it("persists only references and digests from a generation request", () => {
+    const row = buildGenerationJobRow(persistedJob({
+      prompt: "DO NOT STORE THIS PROMPT",
+      media: "raw-customer-bytes",
+      authorization: "Bearer never-store-this",
+      providerResponse: { secret: "provider-body" }
+    }));
+    const serialized = JSON.stringify(row);
+    assert.equal(row.organization_id, "11111111-1111-4111-8111-111111111111");
+    assert.equal(row.state, "planned");
+    assert.equal(row.version, 1);
+    assert.equal(serialized.includes("DO NOT STORE THIS PROMPT"), false);
+    assert.equal(serialized.includes("raw-customer-bytes"), false);
+    assert.equal(serialized.includes("never-store-this"), false);
+    assert.equal(serialized.includes("provider-body"), false);
+    assert.deepEqual(row.input_references, [{ ref: "object://tenant/reference-1", mediaType: "image/png" }]);
+  });
+
+  it("requires durable artifacts and stores callback digests instead of callback bodies", () => {
+    assert.throws(
+      () => buildGenerationArtifactRow({
+        tenantId: "org_alpha",
+        jobId: "job_1",
+        storageRef: "https://provider.example/temporary",
+        sha256: "d".repeat(64),
+        mediaType: "image/png",
+        durable: false
+      }),
+      (error) => error instanceof GenerationPersistenceContractError && error.code === "artifact_not_durable"
+    );
+
+    const callback = buildGenerationCallbackEventRow({
+      tenantId: "org_alpha",
+      jobId: "job_1",
+      providerKey: "provider_alpha",
+      providerEventId: "evt_123",
+      authVerified: true,
+      payloadDigest: "e".repeat(64),
+      payload: { prompt: "never persist callback body" }
+    });
+    assert.equal(callback.payload_digest, "e".repeat(64));
+    assert.equal(Object.hasOwn(callback, "payload"), false);
+    assert.equal(Object.hasOwn(callback, "body"), false);
+  });
+
+  it("keeps cost records explicit and strips sensitive audit details", () => {
+    const cost = buildGenerationCostEventRow({
+      tenantId: "org_alpha",
+      jobId: "job_1",
+      costType: "authorized",
+      amountMinor: 275,
+      currency: "usd",
+      source: "budget_gate"
+    });
+    assert.equal(cost.amount_minor, 275);
+    assert.equal(cost.currency, "USD");
+
+    const audit = buildGenerationAuditEventRow({
+      tenantId: "org_alpha",
+      jobId: "job_1",
+      eventType: "provider.callback_verified",
+      details: {
+        provider: "provider_alpha",
+        attempt: 2,
+        prompt: "secret prompt",
+        accessToken: "secret token",
+        callbackPayload: "raw payload",
+        result: "verified"
+      }
+    });
+    assert.deepEqual(audit.details, {
+      provider: "provider_alpha",
+      attempt: 2,
+      result: "verified"
+    });
+  });
+
+  it("builds compare-and-swap transitions only for legal state changes", () => {
+    assert.deepEqual(
+      buildGenerationJobTransitionPatch({ currentState: "submitted", nextState: "queued", expectedVersion: 4 }),
+      { state: "queued", version: 5, expectedVersion: 4 }
+    );
+    assert.throws(
+      () => buildGenerationJobTransitionPatch({ currentState: "planned", nextState: "succeeded", expectedVersion: 1 }),
+      (error) => error instanceof GenerationPersistenceContractError && error.code === "illegal_transition"
+    );
+  });
+
+  it("pins the SQL migration to tenant scope, RLS, callback dedupe, and the artifact-before-success guard", () => {
+    const migrationPath = path.join(__dirname, "..", "supabase", "migrations", GENERATION_PERSISTENCE_MIGRATION);
+    const sql = fs.readFileSync(migrationPath, "utf8").toLowerCase();
+    for (const table of Object.values(GENERATION_PERSISTENCE_TABLES)) {
+      assert.match(sql, new RegExp(`create\\s+table\\s+if\\s+not\\s+exists\\s+public\\.${table}\\b`));
+      assert.match(sql, new RegExp(`alter\\s+table\\s+public\\.${table}\\s+enable\\s+row\\s+level\\s+security`));
+    }
+    assert.equal(sql.includes("public.sonara_is_org_member(organization_id)"), true);
+    assert.equal(sql.includes("unique (organization_id, idempotency_key)"), true);
+    assert.equal(sql.includes("unique (organization_id, provider_key, provider_event_id)"), true);
+    assert.equal(sql.includes("generation job version must increment exactly once"), true);
+    assert.equal(sql.includes("durable generation artifact required before success"), true);
+    assert.equal(sql.includes("on delete set null (attempt_id)"), true);
+    assert.equal(sql.includes("revoke update, delete on public.generation_audit_events from service_role"), true);
+    assert.equal(/^\s*prompt\s+(text|jsonb|bytea)\b/im.test(sql), false);
+    assert.equal(/^\s*provider_response\s+(text|jsonb|bytea)\b/im.test(sql), false);
+    assert.equal(/^\s*payload\s+(text|jsonb|bytea)\b/im.test(sql), false);
   });
 });
