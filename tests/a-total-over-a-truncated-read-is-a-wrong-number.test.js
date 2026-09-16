@@ -1,0 +1,411 @@
+"use strict";
+
+// Two figures a customer reads as facts, each computed over a capped read that
+// could not tell it had been capped.
+//
+// Found by sweeping for the shape after the same defect turned up twice in the
+// export paths: a `limit=` whose rows then feed an aggregate. A capped LIST is
+// fine -- it shows what it shows. A capped read that is then counted or summed
+// is a wrong number presented as a measurement.
+//
+//   * `/business-builder/owner/recurring` read every arrangement's lines in one
+//     query, `limit=1000`, ordered `position.asc` ACROSS all arrangements, then
+//     filtered per arrangement and summed into the money figure on screen. Past
+//     the cap the truncation falls wherever the ordering puts it, so an
+//     arrangement missing lines showed a subtotal that was simply too low. The
+//     route already handled the lines read FAILING; it did not handle it
+//     returning fewer rows than exist.
+//
+//   * `/business-builder/market-intelligence` counted recorded evidence with
+//     `select=id&limit=1000` and `rows.length`, so a table holding 4,000 rows
+//     reported 1,000 -- three lines under a comment reading "What matters is
+//     that the number is real", on the page whose whole subject is not turning
+//     estimates into facts.
+//
+// 200 arrangements averaging five lines each is exactly 1,000, so neither is a
+// remote case. Both are the page working correctly right up to the point where
+// it quietly stops.
+
+const assert = require("node:assert/strict");
+const express = require("express");
+const request = require("supertest");
+const registerRecurring = require("../routes/sonara-recurring-invoice-routes.cjs");
+const registerMarketIntelligence = require("../routes/market-intelligence-routes.cjs");
+const registerAssistant = require("../routes/sonara-assistant-routes.cjs");
+const cash = require("../lib/sonara-cash-position.cjs");
+
+const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
+const USER_ID = "22222222-2222-4222-8222-222222222222";
+const SCHEDULE_ID = "33333333-3333-4333-8333-333333333333";
+const CUSTOMER_ID = "44444444-4444-4444-8444-444444444444";
+
+const LINE_CAP = 1000;
+// Read from routes/market-intelligence-routes.cjs rather than guessed. The
+// first version of this file used "market_segments", which matched no table, so
+// every count came back 0 and the assertions failed for the wrong reason.
+const SEGMENTS_TABLE = "market_intelligence_segments";
+const RECURRING_PAGE = "/business-builder/owner/recurring";
+const MONEY_DUE_PAGE = "/business-builder/owner/money-due";
+// The cap sonara-assistant-routes.cjs reads with. Stated here rather than
+// imported (it is module-local), so raising it in the source without a thought
+// for this file shows up as a failure rather than as a silently weaker check.
+const ASSISTANT_ROW_CAP = 500;
+const MARKET_PAGE = "/business-builder/market-intelligence";
+
+// PostgREST honours `limit`, so a stub that ignores it proves nothing: the route
+// could ask for cap + 1 and still be handed everything. This truncates exactly
+// as the database would, and reports an exact count the way
+// `Prefer: count=exact` does.
+function serve(url, available, { exactCount = false } = {}) {
+  const parsed = new URL(url);
+  const limit = Number(parsed.searchParams.get("limit") || available.length);
+  const body = available.slice(0, limit);
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: (name) => (exactCount && String(name).toLowerCase() === "content-range" ? `0-0/${available.length}` : null) },
+    json: async () => body
+  };
+}
+
+function line(index) {
+  return {
+    recurring_invoice_id: SCHEDULE_ID,
+    service_id: null,
+    description: `Line ${index}`,
+    quantity: 1,
+    unit_price_cents: 1000
+  };
+}
+
+function recurringHarness({ lineCount = 3, linesOk = true } = {}) {
+  const app = express();
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json());
+  const seen = [];
+
+  registerRecurring(app, {
+    layout: ({ title, heading, body, sections = [], actions = [] }) =>
+      `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p><nav>${actions.join("")}</nav>${sections.join("")}</html>`,
+    brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><div>${cardBody}</div></article>`,
+    linkAction: (href, label) => `<a href="${href}">${label}</a>`,
+    escapeHtml: (value) => String(value),
+    requireBusinessManager: (req, res, next) => {
+      req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
+      return next();
+    },
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+    supabaseHeaders: () => ({ apikey: "server-only" })
+  });
+
+  const fetchImpl = async (url) => {
+    const target = String(url);
+    seen.push(target);
+
+    if (target.includes("/rest/v1/recurring_invoice_lines")) {
+      if (!linesOk) return { ok: false, status: 500, headers: { get: () => null }, json: async () => [] };
+      return serve(target, Array.from({ length: lineCount }, (_, index) => line(index)));
+    }
+    if (target.includes("/rest/v1/recurring_invoices")) {
+      return serve(target, [{
+        id: SCHEDULE_ID,
+        customer_id: CUSTOMER_ID,
+        label: "Monthly retainer",
+        enabled: true,
+        cadence: "monthly",
+        anchor_day: 1,
+        starts_on: "2026-01-01",
+        ends_on: null,
+        payment_terms_days: 14,
+        tax_rate_basis_points: 0,
+        currency: "gbp",
+        last_issued_on: null
+      }]);
+    }
+    if (target.includes("/rest/v1/customers")) {
+      return serve(target, [{ id: CUSTOMER_ID, name: "A Customer" }]);
+    }
+    return serve(target, []);
+  };
+
+  return { app, fetchImpl, seen };
+}
+
+function marketHarness({ counts = {}, readable = true } = {}) {
+  const app = express();
+  app.use(express.json());
+  const seen = [];
+
+  registerMarketIntelligence(app, {
+    requireCustomer: (req, res, next) => {
+      req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
+      return next();
+    },
+    requireWorkspaceAccess: () => (req, res, next) => {
+      req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
+      return next();
+    },
+    layout: ({ title, heading, body, sections = [], actions = [] }) =>
+      `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p><nav>${actions.join("")}</nav>${sections.join("")}</html>`,
+    brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><div>${cardBody}</div></article>`,
+    linkAction: (href, label) => `<a href="${href}">${label}</a>`,
+    escapeHtml: (value) => String(value),
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
+  });
+
+  const fetchImpl = async (url) => {
+    const target = String(url);
+    seen.push(target);
+    if (!readable) return { ok: false, status: 500, headers: { get: () => null }, json: async () => [] };
+    const match = target.match(/\/rest\/v1\/([a-z0-9_]+)\?/);
+    const table = match ? match[1] : null;
+    const total = table && Object.prototype.hasOwnProperty.call(counts, table) ? counts[table] : 0;
+    // Ids only, and the exact count in the header -- which is what the fix
+    // relies on and what the old code had no way to read.
+    return serve(target, Array.from({ length: total }, (_, index) => ({ id: `id-${index}` })), { exactCount: true });
+  };
+
+  return { app, fetchImpl, seen };
+}
+
+function moneyDueHarness({ invoiceCount = 2 } = {}) {
+  const app = express();
+  app.use(express.json());
+  const seen = [];
+  const authenticate = (req, res, next) => {
+    req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
+    req.sonaraAccess = { user: { id: USER_ID } };
+    return next();
+  };
+
+  registerAssistant(app, {
+    layout: ({ title, heading, body, sections = [], actions = [] }) =>
+      `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p><nav>${actions.join("")}</nav>${sections.join("")}</html>`,
+    brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><div>${cardBody}</div></article>`,
+    linkAction: (href, label) => `<a href="${href}">${label}</a>`,
+    escapeHtml: (value) => String(value),
+    requireCustomer: authenticate,
+    requireWorkspaceAccess: () => authenticate,
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+    supabaseHeaders: () => ({ apikey: "server-only" })
+  });
+
+  const fetchImpl = async (url) => {
+    const target = String(url);
+    seen.push(target);
+    if (target.includes(`/rest/v1/${cash.SOURCES.incoming.table}`)) {
+      // Every invoice due in three days for the same amount, so the total is
+      // arithmetic a reader can check: count x 10000 cents.
+      return serve(target, Array.from({ length: invoiceCount }, (_, index) => ({
+        id: `inv-${index}`,
+        due_on: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+        total_cents: 10000,
+        status: "sent"
+      })));
+    }
+    return serve(target, []);
+  };
+
+  return { app, fetchImpl, seen };
+}
+
+async function withFetch(fetchImpl, run) {
+  const original = global.fetch;
+  global.fetch = fetchImpl;
+  try {
+    return await run();
+  } finally {
+    global.fetch = original;
+  }
+}
+
+describe("a total over a truncated read is a wrong number", () => {
+  describe("standing arrangements", () => {
+    it("shows the amount when every line was read", async () => {
+      // The control. Without it, every assertion below passes against a page
+      // that has stopped showing amounts at all.
+      const { app, fetchImpl } = recurringHarness({ lineCount: 3 });
+      const page = await withFetch(fetchImpl, () => request(app).get(RECURRING_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+      assert.match(page.text, /GBP 30\.00/, "three lines at GBP 10 did not total to GBP 30");
+      assert.doesNotMatch(page.text, /amount not shown/i);
+      assert.doesNotMatch(page.text, /cannot total these accurately/i);
+    });
+
+    it("leaves the amount off rather than showing one that is too low", async () => {
+      const { app, fetchImpl } = recurringHarness({ lineCount: LINE_CAP + 1 });
+      const page = await withFetch(fetchImpl, () => request(app).get(RECURRING_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+
+      // The harm first. A page that printed GBP 10,000.00 over 1,001 lines of
+      // GBP 10 is out by a line and says nothing, and that is a number somebody
+      // invoices from.
+      assert.doesNotMatch(page.text, /GBP [0-9,]+\.00/, "a subtotal was printed over a truncated line read");
+      assert.match(page.text, /amount not shown -- too many lines to total here/);
+
+      // And said once at the top, before any figure, because the lines are
+      // ordered across every arrangement: when the read is short there is no
+      // way to tell WHICH arrangements lost lines, so every amount is suspect.
+      assert.match(page.text, /We cannot total these accurately right now/);
+      assert.match(page.text, /nothing about your billing has changed/i);
+    });
+
+    it("still lists the arrangement it cannot total", async () => {
+      // Suppressing the figure must not suppress the record. An owner who
+      // cannot see that an arrangement exists will set up a second copy of it.
+      const { app, fetchImpl } = recurringHarness({ lineCount: LINE_CAP + 1 });
+      const page = await withFetch(fetchImpl, () => request(app).get(RECURRING_PAGE).set("Accept", "text/html"));
+
+      assert.match(page.text, /Monthly retainer/, "the arrangement vanished along with its total");
+      assert.match(page.text, /A Customer/);
+    });
+
+    it("tells a failed line read apart from a short one", async () => {
+      // Different causes, different actions: one is an outage to retry, the
+      // other is a size nothing about retrying changes.
+      const { app, fetchImpl } = recurringHarness({ linesOk: false });
+      const page = await withFetch(fetchImpl, () => request(app).get(RECURRING_PAGE).set("Accept", "text/html"));
+
+      assert.match(page.text, /amount not shown -- lines could not be read/);
+      assert.doesNotMatch(page.text, /too many lines to total here/);
+    });
+
+    it("asks for one line more than it will use, or it could not tell", async () => {
+      // The mechanism. A route asking for exactly the cap gets the cap back
+      // from a table holding ten times that and cannot distinguish the two.
+      const { app, fetchImpl, seen } = recurringHarness({ lineCount: 3 });
+      await withFetch(fetchImpl, () => request(app).get(RECURRING_PAGE).set("Accept", "text/html"));
+
+      const read = seen.find((url) => url.includes("/rest/v1/recurring_invoice_lines?"));
+      assert.ok(read, "the page never read the arrangement lines");
+      assert.match(read, new RegExp(`limit=${LINE_CAP + 1}`), `the page asked for a limit it cannot interpret: ${read}`);
+    });
+  });
+
+  describe("money due in and out", () => {
+    it("calls a full read the whole picture", async () => {
+      // The control, and it also pins the arithmetic: two invoices at GBP 100
+      // must total $200.00, so the assertions below are about completeness
+      // rather than about the page having stopped adding up.
+      const { app, fetchImpl } = moneyDueHarness({ invoiceCount: 2 });
+      const page = await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+      assert.match(page.text, /\$200\.00 due in/, "two invoices of 10000 cents did not total $200.00");
+      assert.doesNotMatch(page.text, /more of this than we can add up/i);
+    });
+
+    it("says the cash position is incomplete when the read was capped", async () => {
+      const { app, fetchImpl } = moneyDueHarness({ invoiceCount: ASSISTANT_ROW_CAP + 1 });
+      const page = await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+
+      // The card, before the totals -- which is where this page already puts
+      // every other caveat.
+      assert.match(page.text, /There is more of this than we can add up here/);
+      assert.match(page.text, /money owed to you/);
+      // And it must not tell them to retry: a capped read is a size, and
+      // retrying cannot change it. This is the sentence that keeps it apart
+      // from the unreadable-table card.
+      assert.match(page.text, /trying again will not change that/i);
+
+      // The headline switches to the incomplete wording, so the total is not
+      // presented as the whole picture.
+      assert.match(page.text, /of what could be dated and read/);
+      assert.doesNotMatch(page.text, /Net \$[0-9,]+\.[0-9]{2}\.$/m, "an incomplete position printed a flat net total");
+    });
+
+    it("asks for one row more than it will use, or it could not tell", async () => {
+      const { app, fetchImpl, seen } = moneyDueHarness({ invoiceCount: 2 });
+      await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      const read = seen.find((url) => url.includes(`/rest/v1/${cash.SOURCES.incoming.table}?`));
+      assert.ok(read, "the page never read the invoices");
+      assert.match(read, new RegExp(`limit=${ASSISTANT_ROW_CAP + 1}`), `the page asked for a limit it cannot interpret: ${read}`);
+    });
+
+    it("hands on no more rows than its own cap", async () => {
+      // The extra row exists only to detect the cap. Passing it downstream
+      // would put one invoice into a total the page is not entitled to claim
+      // it read completely.
+      const { app, fetchImpl } = moneyDueHarness({ invoiceCount: ASSISTANT_ROW_CAP + 1 });
+      const page = await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      // 500 invoices at 10000 cents is $50000.00; 501 would be $50010.00.
+      //
+      // No thousands separator: `asMoney` in the route is
+      // `(Math.abs(amount) / 100).toFixed(2)`, which does not insert one. The
+      // first version of this assertion expected "$50,000.00" and failed for
+      // that reason rather than for anything about truncation -- the format was
+      // read from the route afterwards rather than assumed.
+      assert.match(page.text, /\$50000\.00/, "the total does not match exactly the capped number of rows");
+      assert.doesNotMatch(page.text, /\$50010\.00/, "the detection row was counted into the total");
+    });
+  });
+
+  describe("recorded evidence", () => {
+    it("reports a count larger than any page cap", async () => {
+      // 4,000 rows used to report 1,000, because the count WAS the row array's
+      // length and the array was capped.
+      const { app, fetchImpl } = marketHarness({ counts: { [SEGMENTS_TABLE]: 4000 } });
+      const page = await withFetch(fetchImpl, () => request(app).get(MARKET_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+      assert.match(page.text, /Customer segments: 4000/, "the count is still the cap rather than the total");
+      assert.doesNotMatch(page.text, /Customer segments: 1000\b/);
+    });
+
+    it("counts by asking the database, not by measuring what it transferred", async () => {
+      const { app, fetchImpl, seen } = marketHarness({ counts: { [SEGMENTS_TABLE]: 7 } });
+      await withFetch(fetchImpl, () => request(app).get(MARKET_PAGE).set("Accept", "text/html"));
+
+      const read = seen.find((url) => url.includes(`/rest/v1/${SEGMENTS_TABLE}?`));
+      assert.ok(read, "the page never counted the segments");
+      // One row, not a thousand ids. The count comes from Content-Range.
+      assert.match(read, /limit=1(?!\d)/, `the count still transfers rows to measure them: ${read}`);
+      assert.match(read, new RegExp(`organization_id=eq\\.${ORGANIZATION_ID}`), "the count is not scoped to the organization");
+    });
+
+    it("still reports a real small count", async () => {
+      // Or the assertions above are satisfied by a page that prints nothing,
+      // and "no number" would pass a check written about a wrong number.
+      const { app, fetchImpl } = marketHarness({ counts: { [SEGMENTS_TABLE]: 7 } });
+      const page = await withFetch(fetchImpl, () => request(app).get(MARKET_PAGE).set("Accept", "text/html"));
+
+      assert.match(page.text, /Customer segments: 7/);
+    });
+
+    it("does not report a failed count as none recorded", async () => {
+      // The care the original code already took, kept. A read that did not
+      // happen is not a record type with nothing in it, and this is the page
+      // whose subject is not turning estimates into facts.
+      const { app, fetchImpl } = marketHarness({ readable: false });
+      const page = await withFetch(fetchImpl, () => request(app).get(MARKET_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+      assert.doesNotMatch(page.text, /Customer segments: 0/, "a failed count was reported as zero");
+      assert.match(page.text, /could not be read/i);
+    });
+
+    it("does not report a count from a header it could not parse", async () => {
+      // A successful request whose Content-Range is missing or malformed is a
+      // failed MEASUREMENT, and 0 is a fact about the business. Reported as
+      // unknown, which is the third state.
+      const app = marketHarness().app;
+      const page = await withFetch(
+        async () => ({ ok: true, status: 200, headers: { get: () => "*/*" }, json: async () => [] }),
+        () => request(app).get(MARKET_PAGE).set("Accept", "text/html")
+      );
+
+      assert.equal(page.status, 200);
+      assert.doesNotMatch(page.text, /Customer segments: 0/, "an unparseable count became zero");
+      assert.match(page.text, /could not be read/i);
+    });
+  });
+});

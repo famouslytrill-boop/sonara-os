@@ -229,7 +229,14 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // selects rose 25 to 30. The lists are literal at the four query sites instead,
 // and tests/a-calendar-file-cannot-read-a-column-that-does-not-exist.test.js
 // asserts the two reads of each table agree.
-const STAR_SELECT_COUNT = 22;
+// 22 -> 21 on 16 September 2026. The accounting export download
+// (/business-builder/owner/accounting-exports/:id/download) stopped fetching
+// every column of up to 10,000 rows to write the thirteen its CSV contains.
+// The full reasoning, and why the replacement is a computed select rather than
+// a literal one, is on COMPUTED_SELECT_COUNT below -- the counts moved by one
+// in opposite directions and it is one change, so reading either figure without
+// the other would misdescribe it.
+const STAR_SELECT_COUNT = 21;
 // 23 -> 25 on 13 September 2026. The operations expansion and integration
 // control routes add two helper queries whose select list is passed through a
 // shared request builder at runtime.
@@ -239,7 +246,28 @@ const STAR_SELECT_COUNT = 22;
 // one query the calendar narrowing added here rather than to the literal
 // population, and it is the right trade: two hand-written copies of a loop that
 // differ in three strings is how the pair comes to disagree.
-const COMPUTED_SELECT_COUNT = 26;
+// 26 -> 27 on 16 September 2026, and STAR_SELECT_COUNT fell by the same one, so
+// this is the trade the paragraph above warns about, made deliberately and in
+// one direction only.
+//
+// The accounting export download read `select=*` and handed the rows to
+// `buildRecordCsv(rows, source.columns)`, which writes those thirteen columns
+// and nothing else -- for up to 10,000 rows of vendor_invoices. Every other
+// column was fetched into a file's contents and never used, which is the defect
+// this whole script hunts, and the star select is what made it invisible.
+//
+// It cannot be literal here. `source.columns` is chosen by export_type from
+// lib/sonara-accounting-export-sources.cjs -- bills, sales and inventory each
+// name their own list -- so a literal select would mean three near-identical
+// query sites, and this file's own note above picked the computed form over two
+// copies for exactly that reason.
+//
+// What replaces the scanner's reading is stronger than what it would have got:
+// `tests/an-export-says-when-it-is-short.test.js` asserts the select the route
+// actually sends, split on commas, deep-equals `source.columns`. A column added
+// to the export sources and not to the query, or the reverse, fails that test
+// by name.
+const COMPUTED_SELECT_COUNT = 27;
 
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.

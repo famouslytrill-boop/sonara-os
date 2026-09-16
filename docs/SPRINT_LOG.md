@@ -2,6 +2,285 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - The cash position could be understated and still say "complete"
+
+Third hit from the same sweep, and the one with the argument for the fix already
+written in the file. `lib/sonara-cash-position.cjs` defines its own flag:
+
+> `complete` is the flag a caller must check before presenting any total as the
+> whole picture. Both an unreadable table and an undated row make it false,
+> because **both mean money exists that these figures do not include**.
+
+A read that came back capped is a third thing that means exactly that, and it was
+not one of the two the flag counted. `readRows` in
+`routes/sonara-assistant-routes.cjs` reads `ROW_LIMIT = 500` rows per table and
+returned `{ ok: true, rows }`, so a business with more than 500 invoices was
+shown an understated cash position on `/business-builder/owner/money-due`,
+labelled complete, with the confident headline rather than the hedged one.
+
+**Fixed** by reading `ROW_LIMIT + 1`, carrying `truncated` in the outcome, and
+adding it to `complete` alongside `unavailable` and `undated`. The page gets its
+own card, unshifted above the totals the way the other two caveats already are.
+
+Named separately from `unavailable` throughout, because the cause and the remedy
+differ: an unreadable table is an outage worth retrying, and a capped read is a
+size that retrying cannot change. The card says so in as many words -- telling
+somebody to try again would be telling them to do something that cannot work.
+
+**The payments read is the sharpest of the three and the least obvious.**
+Payments are *subtracted* from what is owed, so missing payment rows do not
+understate the total -- they **overstate** money coming in, by failing to reduce
+invoices that have already been settled. That is the same direction of error the
+module's existing `received?.ok` check exists to prevent ("Overstating money
+coming in is the wrong direction to be wrong in"), arriving by a different route.
+
+**Verified by breaking it,** in both halves separately: `readRows` made to ask
+for exactly the cap, and `complete` reverted to ignore truncation. Caught by
+`the page asked for a limit it cannot interpret`, `There is more of this than we
+can add up here`, and `a total summed from a capped read read as the whole
+picture`.
+
+Three assertions added to `tests/cash-position.test.js` and four to
+`tests/a-total-over-a-truncated-read-is-a-wrong-number.test.js`.
+
+One assertion there failed first for a reason that was not the defect: it
+expected `$50,000.00` and `asMoney` is `(Math.abs(amount) / 100).toFixed(2)`,
+which inserts no thousands separator. Format read from the route afterwards
+rather than assumed.
+
+#### What the sweep covered, and the two it examined and left
+
+The sweep was over every literal `limit=` of 100 or more and every
+`limit=${CONST}` in `routes/`, `lib/` and `server.js`, looking only for those
+whose rows then feed a **count or a sum**. Four aggregates found, three wrong:
+the accounting export, the standing-arrangements subtotal, the recorded-evidence
+count, and this one.
+
+Two were examined and deliberately left alone, recorded here so the next reader
+does not re-derive it:
+
+* **`readBookings` in `sonara-public-booking-routes.cjs`** (`limit=1000`) is
+  windowed to the booking horizon, about 21 days, so the cap is roughly 48
+  bookings a day before it binds. It feeds availability rather than a total, and
+  a truncated read there would make a taken slot look free -- so it is the one
+  worth watching if a multi-location operator gets busy. Left because the bound
+  is a date range rather than a whole table.
+* **The rota shift read in `sonara-rota-routes.cjs`** (`limit=1000`) is windowed
+  to about eleven days and renders a week, not a figure.
+
+Both already refuse correctly on `ok: false`, with the right sentence: an
+unreadable rota treated as an empty one reads to a visitor as "nobody works
+here".
+
+#### And a derived check was attempted and deliberately not shipped
+
+Four instances of one bug means the fifth is coming, so the obvious move was a
+release-chain command. It is not tractable: the property is "rows from a capped
+read feed an aggregate", which is dataflow rather than text.
+
+The probe measured 208 `limit=` occurrences across `routes/`, `lib/` and
+`server.js`, 72 of them at 100 or above or computed -- and the regex could not
+see across lines, reporting **zero** `cap + 1` sites when three had just been
+written. A register of 72 entries would rot, and a scanner that weak prints
+"passed" over exactly the bug it was written for, which is shape 6 in
+`.claude/skills/checks-that-cannot-lie`.
+
+So the finding went into the skill instead, as **shape 10, an aggregate over a
+read that was capped**, with all four cases, the `cap + 1` guard, the
+suppress-rather-than-footnote rule, the direction-of-error warning the payments
+read produced, `Prefer: count=exact` as the way to ask for a count, and an
+explicit note that this one is swept by hand and the per-site tests are the
+regression guard. Writing a weak green light would have been worse than writing
+nothing.
+
+### 2026-09-16 - Two figures computed over a read that had been capped
+
+Found by sweeping for the shape after it turned up twice in the export paths, on
+the principle CLAUDE.md states directly: assume more exist. The sweep was for a
+`limit=` whose rows then feed an **aggregate**. A capped list is fine -- it shows
+what it shows. A capped read that is then counted or summed is a wrong number
+presented as a measurement.
+
+Two hits, both rendered to a customer as a fact.
+
+**`/business-builder/owner/recurring`.** Every arrangement's lines were read in
+one query, `limit=1000`, ordered `position.asc` **across all arrangements**, then
+filtered per arrangement and summed into the money figure on screen. Past the cap
+the truncation falls wherever the ordering puts it, so an arrangement missing
+lines showed a subtotal that was simply too low -- no error, no gap, just a
+smaller number. The route already handled the lines read *failing*; it did not
+handle it returning fewer rows than exist. 200 arrangements averaging five lines
+each is exactly 1,000, so this was the page working correctly right up to the
+point where it quietly stopped.
+
+Fixed by reading `LINE_CAP + 1` and, when short, **suppressing every subtotal**
+with a card at the top saying so. Every subtotal, not some: the lines are ordered
+across all arrangements, so there is no way to tell which ones lost lines. A
+footnote under a printed figure would leave a wrong amount on screen for somebody
+to invoice from. The arrangements themselves are still listed -- an owner who
+cannot see an arrangement exists will set up a second copy of it.
+
+**`/business-builder/market-intelligence`.** Recorded evidence was counted with
+`select=id&limit=1000` and `rows.length`, so a table holding 4,000 rows reported
+1,000 -- the cap, presented as the total, three lines under a comment reading
+"What matters is that the number is real", on the page whose whole subject is
+"without turning estimates into facts". The same defect the record-page caption
+had when a list capped at 100 was captioned "100 records".
+
+Fixed with a `countRows` helper using `Prefer: count=exact` and `limit=1`, the
+pattern `supabaseCount` already used in `sonara-last9-routes.cjs`. Correct *and*
+cheaper: one row transferred instead of up to a thousand ids. `rest` now carries
+`contentRange`, because `count=exact` answers in a header and dropping it is what
+left the count measuring what it had transferred.
+
+Three states kept throughout: a failed read still reports `null` rather than 0 --
+the care the original code already took -- and a successful request whose
+`Content-Range` cannot be parsed is also `null`, because that is a failed
+measurement and 0 is a fact about the business.
+
+**Verified by breaking it,** both at once:
+
+* the subtotal made to sum regardless of truncation -- caught by `a subtotal was
+  printed over a truncated line read`.
+* the count reverted to measuring transferred rows -- caught by `the count is
+  still the cap rather than the total`, `the count still transfers rows to
+  measure them`, and `an unparseable count became zero`.
+
+`tests/a-total-over-a-truncated-read-is-a-wrong-number.test.js`, 10 assertions.
+Its first version named a table that does not exist (`market_segments` rather
+than `market_intelligence_segments`), so every count came back 0 and three
+assertions failed for the wrong reason; the name is now read from the route
+module and stated once.
+
+### 2026-09-16 - Two exports that could be short without saying so
+
+Both export paths were capped at 10,000 rows by `limit=10000`, and neither could
+tell the cap had been reached. `limit=10000` returns 10,000 rows for a period
+holding 10,000 and for a period holding 40,000, and those are different facts.
+
+What each one did with that:
+
+* **`/business-builder/owner/accounting-exports/:id/download`** built a CSV, set
+  `X-Sonara-Export-Rows: 10000`, and handed it to an accountant. The file opened
+  cleanly and was missing records, and nothing in it said so.
+* **`/account/data/export`** returned a payload carrying a field called
+  **`complete`**, computed from whether any table failed to READ. A table that
+  answered with its most recent 10,000 of 40,000 rows had not failed, so the
+  partial copy was labelled complete -- under a page whose own copy promised
+  "Nothing is left out of the kinds listed above".
+
+**Fixed** with `EXPORT_ROW_CAP` and `supabaseListCapped`, which asks for
+`cap + 1` and reports `truncated` when more came back. Same trick
+`listRecordPage` already uses for "is there a next page", and for the same
+reason: it costs nothing.
+
+The two are resolved **differently, on purpose**. The accounting file is now
+**refused** with a 413 naming shorter periods as the answer, because an
+accountant acting on figures that are quietly short is a harm no later
+correction undoes. The data export is still **delivered**, with `complete: false`,
+a `truncated` list, and a note saying the file holds the most recent 10,000 and
+the older records are still in the account -- a customer asking for a copy of
+their own records is better served by that than by nothing. The page's promise
+was rewritten to match, because a fix that leaves the false promise on the page
+fixes the payload and not the thing the customer read.
+
+**The cap was not raised.** Vercel's documented duration is 300 seconds and the
+rows are held in memory to build one response body, so a higher cap trades a
+silent truncation for a timeout. Detecting the cap is the fix; moving it is not.
+
+**Also:** the accounting export read `select=*` and handed the rows to
+`buildRecordCsv(rows, source.columns)`, which writes thirteen columns and
+nothing else. Every other column of up to 10,000 rows was fetched into a file's
+contents and never used. Now selects exactly those columns.
+
+That moved `report-unused-selected-columns.mjs` counts by one in each direction
+-- `select=*` 22 -> 21, computed 26 -> 27 -- which is the trade that script's own
+comments warn about. Taken deliberately: the columns cannot be literal here
+because `source.columns` is chosen by export type, and the script already chose
+a computed select over two near-identical query sites for the same reason. What
+replaces the scanner's reading is stronger: the new test asserts the select the
+route actually sends, split on commas, deep-equals `source.columns`.
+
+**Verified by breaking it,** twice:
+
+* the capped read made to ask for exactly `cap` instead of `cap + 1` -- caught by
+  four assertions, including `a period over the cap produced a file anyway` and
+  `a truncated export called itself complete`.
+* `select=*` restored and `complete` reverted to ignore truncation -- caught by
+  `the export still fetches every column to write a declared subset` and the
+  complete assertion.
+
+The first attempt at the test **timed out on all eight assertions** rather than
+failing: `requireCustomer` and `requireBusinessManager` are middleware used
+directly and only `requireWorkspaceAccess` is a factory, so passing all three as
+factories registered no routes at all. The shape is now copied from
+`tests/data-rights.test.js` rather than inferred, with a comment saying why.
+
+The rewritten page copy then tripped `no-page-lies-when-the-database-is-down`:
+`CLAIMS_EMPTY` is `/\b(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i`,
+and "Nothing is transformed, and the file says plainly whether **any**..." matched
+in one clause. Reworded to end that clause with a full stop, which the matcher
+cannot cross, rather than added to `NOT_A_CLAIM_ABOUT_RECORDS` -- an exemption is
+a reason that has to stay true, and this one would have read "not a claim about
+records" over a sentence that is about the customer's records.
+
+`tests/an-export-says-when-it-is-short.test.js`, 8 assertions.
+
+### 2026-09-16 - Sending to only the people a campaign missed
+
+The other half of the record added earlier today. `growth_campaign_sends` made
+the remainder computable; this makes it sendable.
+
+**Added:** a `remainder_only` mode on the campaign send, a
+`GET /api/growth/campaigns/:campaignId/remainder` read so an owner can see what
+is left before pressing anything, and a "Skip anyone this campaign already
+reached" tickbox on `/growth-studio/your-campaigns`.
+
+**The feature is the refusal.** An unreadable send record produces zero accepted
+rows; zero accepted rows make every recipient look unreached; and "everybody is
+unreached" mails everybody a second time -- under a button that promised not to.
+So `remainderFrom` answers `known: false` on a failed read, and both the send and
+the read pass that refusal through as a 503 with nothing sent, rather than
+softening it into a number.
+
+**The part that was easy to miss.** The charge was keyed `campaign:<id>`, and the
+dispatcher's own header describes the resulting duplicate-charge refusal as the
+thing that removes an owner's one signal. A remainder send keyed the same way
+walks straight into it from the other side: the stragglers get emailed, we pay
+Resend, and the ledger silently declines the charge as a duplicate. So
+`dispatchCampaign` gained `sendAttempt`, and the remainder's key is
+`campaign:<id>:remainder-<16 hex>` digested over the remainder's own sorted,
+case-folded addresses -- stable for a retry of that same remainder, different for
+a different one. A first send's key is byte-identical to what it was.
+
+The remainder is narrowed **before** `authoriseCampaign`, not after, because the
+charge is drawn from the authorised set: narrowing afterwards would bill for
+1,000 while sending to 100. Consent screening still runs first, so somebody who
+withdrew consent since the first send is not pulled back in by being "unreached".
+
+**Verified by breaking it,** three times:
+
+* `remainderFrom` made to return the whole list on a failed read -- caught by
+  `sends nothing when the send record cannot be read` and `refuses rather than
+  reporting everybody as unreached`.
+* the attempt discriminator removed from the charge key -- caught by `the
+  remainder send reused the first send's charge key` and by the two-different-
+  remainders assertion.
+* the `status === "accepted"` filter widened to any row -- caught by `treats a
+  failed row as somebody still to reach`.
+
+The first falsification also **found a weakness in the test itself**. Asserted
+after the status code, the "mailed somebody" check never fired: breaking the
+refusal changed the status too, so the failure an engineer read was `409 !== 503`
+-- true, and silent about the harm. The two assertions now come first, so the
+failure prints `a remainder send with an unreadable record mailed somebody`.
+
+`tests/a-remainder-send-refuses-what-it-cannot-know.test.js`, 12 assertions.
+
+**Still open:** the >1,000-recipient cross-invocation queue. It needed this same
+record and now has it, but it also needs the work to be resumable across
+invocations, which is a separate piece.
+
 ### 2026-09-16 - A campaign now records who it actually reached
 
 `lib/growth-studio-dispatch.cjs` has named this gap in its own header since 15

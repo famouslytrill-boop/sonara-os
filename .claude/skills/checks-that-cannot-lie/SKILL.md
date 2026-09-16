@@ -21,7 +21,7 @@ green light over the problem.
 Every check added this way should be recorded in `docs/SPRINT_LOG.md` with what
 was broken to prove it works.
 
-## The nine shapes, each with the case that produced it
+## The ten shapes, each with the case that produced it
 
 ### 1. Passing by measuring nothing
 
@@ -226,6 +226,79 @@ The general form is worth carrying beyond tests: **registering something with a
 system that is not the one in use produces no error and no effect.** A route on
 a router nobody mounts, a listener on an emitter nobody fires, a migration in a
 directory the tool does not read.
+
+### 10. An aggregate over a read that was capped
+
+`limit=1000` returns 1,000 rows for a table holding 1,000 and for a table
+holding 40,000, and those are different facts. A capped **list** is fine -- it
+shows what it shows. A capped read that is then **counted or summed** is a wrong
+number presented as a measurement.
+
+Four instances, found in one afternoon on 16 September 2026, and every one of
+them sat in code that was otherwise careful about outcomes:
+
+- The accounting export built a CSV from `limit=10000`, set
+  `X-Sonara-Export-Rows: 10000`, and handed it to an accountant. It opened
+  cleanly and was missing records.
+- `/account/data/export` returned a payload carrying a field called
+  **`complete`**, computed from whether any table failed to *read*. A table that
+  answered with its most recent 10,000 of 40,000 rows had not failed.
+- The standing-arrangements page read every arrangement's lines in one query,
+  ordered across all of them, then summed per arrangement into the money figure
+  on screen. Past the cap an arrangement showed a subtotal that was simply too
+  low.
+- `lib/sonara-cash-position.cjs` defines `complete` as false whenever "money
+  exists that these figures do not include" -- and counted two such things, not
+  three. A read capped at 500 rows reported `{ ok: true }`.
+
+**Guard:** ask for `cap + 1`, return at most `cap`, and carry `truncated` beside
+`ok`. Three states again, and it is shape 4 one level up: `ok: false` is a read
+that did not happen, `truncated: true` is a read that happened and came back
+short, and those need different words. An outage is worth retrying; a size is
+not, so a page that says "could not be read" about a capped read is telling
+somebody to do something that cannot work.
+
+Two things learned from fixing these:
+
+**Suppress the figure, do not footnote it.** Where the truncation cannot be
+attributed -- the arrangement lines were ordered across every arrangement, so
+there was no telling which lost lines -- *every* total on the page is suspect.
+A footnote under a printed number leaves a wrong amount on screen for somebody
+to invoice from. Say it above the figures, and leave the records themselves
+listed: an owner who cannot see that a record exists will create a second copy
+of it.
+
+**Check which direction the error runs.** The instinct is that a short read
+understates. Not always: in the cash position, payments are *subtracted* from
+what is owed, so a capped payments read **overstates** money coming in by
+failing to reduce invoices already settled. The module already refused to report
+gross as net when that read *failed*; the same error arrived by a different
+route and nothing caught it.
+
+**Where a count is what you want, ask the database.** `Prefer: count=exact` with
+`limit=1` answers exactly and transfers one row -- correct *and* cheaper than
+reading ids to measure the array. `supabaseCount` in
+`routes/sonara-last9-routes.cjs` is the pattern. Parse `Content-Range`
+defensively: a header that does not match is a failed *measurement*, and 0 is a
+fact about the business.
+
+**There is no scanner for this, and one was attempted.** The property is "rows
+from a capped read feed an aggregate", which is dataflow, not text. A probe over
+`routes/`, `lib/` and `server.js` found 208 `limit=` occurrences, 72 of them at
+100 or above or computed -- and the regex could not see across lines, reporting
+zero `cap + 1` sites when three had just been written. A register that size
+would rot, and a scanner that weak would print "passed" over exactly the bug it
+was written for, which is shape 6. **So this one is swept by hand, and the
+per-site tests are the regression guard.** Sweep it as: every literal `limit=` of
+100 or more and every `limit=${CONST}`, filtered to those whose rows then feed a
+count or a sum.
+
+When you sweep and leave one alone, write down why. Two were left in that
+afternoon -- the public booking availability read and the rota shift read -- both
+windowed to a date range rather than a whole table, and both recorded in
+`docs/SPRINT_LOG.md` with the reasoning, including which of the two is worth
+watching and what its failure would look like. A site examined and not fixed is
+a finding; a site examined and not written down gets examined again.
 
 ## Writing a new release-chain command
 

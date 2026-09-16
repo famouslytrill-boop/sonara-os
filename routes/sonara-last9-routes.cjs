@@ -450,10 +450,40 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const filters = [`organization_id=eq.${encodeURIComponent(org.organizationId)}`];
     if (record.period_start) filters.push(`${source.dateColumn}=gte.${encodeURIComponent(record.period_start)}`);
     if (record.period_end) filters.push(`${source.dateColumn}=lte.${encodeURIComponent(`${record.period_end}T23:59:59.999Z`)}`);
-    const rows = await supabaseList(config, source.table, `?select=*&${filters.join("&")}&order=${source.dateColumn}.asc&limit=10000`);
+    // The declared columns, not `*`.
+    //
+    // `buildRecordCsv` writes `source.columns` and nothing else, so every other
+    // column was fetched into the file's contents and never used -- for up to
+    // 10,000 rows, on a table like vendor_invoices that has far more columns
+    // than the thirteen this export names. That is the "fetched into a decision
+    // and never used" shape, and the export sources module already declares
+    // exactly the right list.
+    const selected = source.columns.join(",");
+    const rows = await supabaseListCapped(config, source.table, (limit) =>
+      `?select=${encodeURIComponent(selected)}&${filters.join("&")}&order=${source.dateColumn}.asc&limit=${limit}`);
     // `rows.ok ? rows.rows : []` here would hand an accountant an empty file for
     // a period that has records in it.
     if (!rows.ok) return res.status(503).type("text").send("We could not read the records for that period. Nothing has changed, and no file was made; try again shortly.");
+
+    // **A short financial file is refused rather than sent.**
+    //
+    // This read was capped at 10,000 with no way to tell the cap had been hit,
+    // so a period holding more produced a CSV that opened cleanly, carried a
+    // correct-looking row count in X-Sonara-Export-Rows, and was missing
+    // records -- in front of an accountant, who has no way to know. Every other
+    // refusal on this route exists for a weaker version of the same reason:
+    // this file's own comments already say that producing figures from guesses
+    // is worse than producing none.
+    //
+    // Narrowing the period is the answer and it is the owner's to choose, so
+    // the message says so rather than failing silently or picking a window for
+    // them.
+    if (rows.truncated) {
+      return res.status(413).type("text").send(
+        `That period holds more than ${rows.cap.toLocaleString("en-GB")} records, which is more than one file can carry. No file was made, because a short file would look complete to whoever opens it. ` +
+          `Export it in shorter periods -- a month or a quarter at a time -- and every record will be in one of them.`
+      );
+    }
 
     const csv = buildRecordCsv(rows.rows, source.columns);
     if (!csv.ok) return res.status(503).type("text").send(csv.message);
@@ -1295,7 +1325,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ),
         ui.card(
           "Take a copy",
-          `A file containing your records as they stand, in JSON. Nothing is left out of the kinds listed above, and nothing is transformed.` +
+          `A file containing your records as they stand, in JSON. Nothing is transformed. If a record kind could not be read, or is larger than one file can carry, the file says so -- ask support for a full copy when it does.` +
           `<div class="card-actions"><a class="action" href="/account/data/export">Download a copy of your records</a></div>`
         ),
         ui.card(
@@ -1320,21 +1350,47 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // A table that could not be read is named as unreadable rather than left
     // out. An export silently missing a table is the worst version of this:
     // the customer keeps the file believing it is complete.
+    //
+    // A table CAPPED at 10,000 rows is named too, and until now it was not.
+    // This read was `limit=10000` with no way to tell the cap had been reached,
+    // and the payload below carries a field called `complete` -- so a customer
+    // with more than 10,000 of anything got a partial copy of their own records
+    // labelled complete, under a page that promised nothing would be left out.
+    // Unreadable and truncated are different facts and both have to be said.
     const parts = await Promise.all(EXPORTABLE.map(async (entry) => {
-      const listed = await supabaseList(config, entry.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=10000`);
-      return [entry.table, listed.ok ? listed.rows : null];
+      const listed = await supabaseListCapped(config, entry.table, (limit) =>
+        `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=${limit}`);
+      return [entry.table, listed.ok ? listed.rows : null, Boolean(listed.ok && listed.truncated)];
     }));
 
     const unreadable = parts.filter(([, rows]) => rows === null).map(([table]) => table);
+    const truncated = parts.filter(([, , wasTruncated]) => wasTruncated).map(([table]) => table);
     res.setHeader("Content-Disposition", `attachment; filename="sonara-records-${new Date().toISOString().slice(0, 10)}.json"`);
     return res.status(200).json({
       exportedAt: new Date().toISOString(),
       organizationId: org.organizationId,
-      complete: unreadable.length === 0,
+      // Both conditions, because `complete` is read as a promise about the
+      // whole file. A truncated table is not a read that failed -- it answered,
+      // and answered with less than everything -- so counting only `unreadable`
+      // here labelled a partial copy complete.
+      complete: unreadable.length === 0 && truncated.length === 0,
       unreadable,
-      note: unreadable.length
-        ? "Some record types could not be read when this file was made. They are listed under `unreadable` and are not missing from your account -- ask support for another copy."
-        : "Every record type this export covers was readable.",
+      // The tables where this file holds the most recent 10,000 rows and not
+      // all of them. Ordered created_at.desc, so what is present is the newest
+      // and what is missing is the oldest -- said explicitly, because "some
+      // records are missing" and "your oldest records are missing" lead a
+      // person to look in different places.
+      truncated,
+      truncatedAt: truncated.length ? EXPORT_ROW_CAP : null,
+      note: [
+        unreadable.length
+          ? "Some record types could not be read when this file was made. They are listed under `unreadable` and are not missing from your account -- ask support for another copy."
+          : null,
+        truncated.length
+          ? `Some record types have more than ${EXPORT_ROW_CAP.toLocaleString("en-GB")} records, which is more than one file can carry. They are listed under \`truncated\`, and for those this file holds your ${EXPORT_ROW_CAP.toLocaleString("en-GB")} most recent -- the older ones are still in your account. Ask support for a full copy.`
+          : null,
+        unreadable.length || truncated.length ? null : "Every record type this export covers was readable, and none of them was larger than one file can carry."
+      ].filter(Boolean).join(" "),
       // null, not []. An unreadable table is named in `unreadable` above, but a
       // consumer reading records.customers reads it as the customers — the same
       // "a field called ok is read as ok" mistake one level down. null cannot be
@@ -3069,6 +3125,39 @@ async function supabaseList(config, table, query) {
   if (!response?.ok) return { ok: false, code: "table_unavailable", table };
   const rows = await response.json().catch(() => []);
   return { ok: true, table, rows: Array.isArray(rows) ? rows : [] };
+}
+
+// The most rows one export request may load.
+//
+// The number was already 10,000 in both export paths; what was missing was any
+// way to tell it had been reached. `limit=10000` returns 10,000 rows for a
+// period holding 10,000 and for a period holding 40,000, and those are
+// different facts -- so an accounting export handed to an accountant, and a
+// data export whose own payload carries a field called `complete`, could both
+// be short without saying so.
+//
+// Kept at 10,000 rather than raised. Vercel's documented function duration is
+// 300 seconds and the rows are held in memory to build one response body, so a
+// higher cap trades a silent truncation for a timeout. The fix is to detect the
+// cap, not to move it.
+const EXPORT_ROW_CAP = 10000;
+
+// A capped read that knows whether it was capped.
+//
+// Asks for CAP + 1 and reports `truncated` when more came back -- the same
+// trick `listRecordPage` uses for "is there a next page", for the same reason:
+// it costs nothing and the alternative is a count query or a guess.
+//
+// `rows` is trimmed to the cap, so a caller that ignores `truncated` gets the
+// old behaviour rather than one extra row it did not ask for. That is the
+// deliberately cautious half: a caller who forgets this returns too little,
+// which is visible, rather than an off-by-one in a financial file, which is
+// not.
+async function supabaseListCapped(config, table, buildQuery, cap = EXPORT_ROW_CAP) {
+  const listed = await supabaseList(config, table, buildQuery(cap + 1));
+  if (!listed.ok) return listed;
+  const truncated = listed.rows.length > cap;
+  return { ...listed, rows: truncated ? listed.rows.slice(0, cap) : listed.rows, truncated, cap };
 }
 
 async function supabaseCount(config, table, organizationId, filterClause = "") {

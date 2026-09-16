@@ -86,14 +86,39 @@ function registerRecurringInvoiceRoutes(app, deps = {}) {
     return { ok: true, status: response.status, rows: Array.isArray(rows) ? rows : [] };
   }
 
+  // How many arrangement lines one page load may read.
+  //
+  // The number was already 1,000; what was missing was any way to tell it had
+  // been reached, and here that mattered more than in a list. These lines are
+  // read for every arrangement at once, ordered `position.asc` ACROSS all of
+  // them, and then filtered per arrangement and summed into the money figure
+  // the page prints. So past the cap the truncation falls wherever the ordering
+  // happens to put it, and an arrangement missing lines shows a subtotal that
+  // is simply too low -- no error, no gap, just a smaller number.
+  //
+  // A business with 200 arrangements averaging five lines each is exactly at
+  // 1,000, so this is not a remote case: it is the page working correctly right
+  // up to the point where it quietly stops.
+  const LINE_CAP = 1000;
+
   async function readAll({ config, organizationId }) {
     const scope = `organization_id=eq.${enc(organizationId)}`;
     const [schedules, lines, customers] = await Promise.all([
       rest(config, `${TABLE}?${scope}&select=id,customer_id,label,enabled,cadence,anchor_day,starts_on,ends_on,payment_terms_days,tax_rate_basis_points,currency,last_issued_on&order=created_at.desc&limit=200`),
-      rest(config, `${LINES_TABLE}?${scope}&select=recurring_invoice_id,service_id,description,quantity,unit_price_cents&order=position.asc&limit=1000`),
+      // One more than the cap, which is what makes the cap detectable at all.
+      rest(config, `${LINES_TABLE}?${scope}&select=recurring_invoice_id,service_id,description,quantity,unit_price_cents&order=position.asc&limit=${LINE_CAP + 1}`),
       rest(config, `${CUSTOMERS_TABLE}?${scope}&select=id,name&order=name.asc&limit=500`)
     ]);
-    return { schedules, lines, customers };
+
+    // Truncation is reported, and the extra row is dropped so nothing below can
+    // sum a line the page is not entitled to show.
+    const linesTruncated = Boolean(lines.ok && lines.rows.length > LINE_CAP);
+    return {
+      schedules,
+      lines: linesTruncated ? { ...lines, rows: lines.rows.slice(0, LINE_CAP) } : lines,
+      linesTruncated,
+      customers
+    };
   }
 
   function linesFor(lines, scheduleId) {
@@ -111,8 +136,24 @@ function registerRecurringInvoiceRoutes(app, deps = {}) {
       }));
     }
 
-    const { schedules, lines, customers } = await readAll(scope);
+    const { schedules, lines, linesTruncated, customers } = await readAll(scope);
     const sections = [];
+
+    // Said once, at the top, before any figure below it.
+    //
+    // The lines are ordered across every arrangement, so when the read is
+    // truncated there is no way to tell WHICH arrangements lost lines -- which
+    // means every subtotal on the page is suspect, not just some. Suppressing
+    // the figures and saying so is the only honest option; printing them with a
+    // footnote would leave a wrong amount on screen for somebody to act on.
+    if (linesTruncated) {
+      sections.push(brandCard(
+        "We cannot total these accurately right now",
+        `You have more arrangement lines than this page can read at once, so the amounts are left off rather than shown too low. `
+        + `Every arrangement and its schedule is still listed below, and nothing about your billing has changed. `
+        + `Open an individual arrangement to see its lines and total.`
+      ));
+    }
 
     if (!schedules.ok) {
       // Never "you have none". That sentence invites somebody to set up a
@@ -125,11 +166,22 @@ function registerRecurringInvoiceRoutes(app, deps = {}) {
       const items = schedules.rows.map((schedule) => {
         const due = isDue(schedule, { now: new Date() });
         const own = linesFor(lines.rows, schedule.id);
-        const subtotal = own.reduce((sum, line) => sum + Math.round(Number(line.quantity || 0) * Number(line.unit_price_cents || 0)), 0);
+        // Only summed when the whole line set was read. A sum over a truncated
+        // read is a money figure that is too low with nothing to say it is --
+        // and `!lines.ok` was already handled here, so the failed read was
+        // covered and the short read was not.
+        const linesComplete = lines.ok && !linesTruncated;
+        const subtotal = linesComplete
+          ? own.reduce((sum, line) => sum + Math.round(Number(line.quantity || 0) * Number(line.unit_price_cents || 0)), 0)
+          : null;
         const who = schedule.customer_id ? (names.get(schedule.customer_id) || "a customer no longer on file") : "nobody";
         return `<li>
           <strong>${escapeHtml(schedule.label || "Standing arrangement")}</strong> · ${escapeHtml(who)}
-          <br>${escapeHtml(describeSchedule(schedule))} · ${escapeHtml(money(subtotal, schedule.currency) || "no lines")}${lines.ok ? "" : " (lines could not be read)"}
+          <br>${escapeHtml(describeSchedule(schedule))} · ${escapeHtml(
+            subtotal === null
+              ? (lines.ok ? "amount not shown -- too many lines to total here" : "amount not shown -- lines could not be read")
+              : (money(subtotal, schedule.currency) || "no lines")
+          )}
           <br>${escapeHtml(due.reason)}
           ${schedule.enabled === false ? "" : `<br><form method="post" action="/api/business/recurring/disable" class="sonara-inline-form"><input type="hidden" name="id" value="${escapeHtml(schedule.id)}"><button type="submit">Switch this off</button></form>`}
         </li>`;

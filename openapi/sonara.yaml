@@ -2243,11 +2243,51 @@ paths:
         than dropped. 402 means no credit, 409 means nobody on the list can be sent to, 413
         means the list is larger than one request can finish, and 503 means email delivery is
         not configured or a required read did not answer.
+
+
+        Set remainder_only to send only to the contacts with no accepted row in
+        public.growth_campaign_sends. That send is charged on its own idempotency key, derived
+        from the remainder's own addresses, because reusing the first send's key would email
+        the stragglers and have the ledger decline the charge as a duplicate. If the send
+        record cannot be read the request is refused with 503 and nothing is sent: an
+        unreadable record makes every contact look unreached, and sending then would mail
+        everybody a second time. 409 with all_reached means there was nobody left.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "402": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth/campaigns/{campaignId}/remainder:
+    parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getGrowthCampaignRemainder
+      tags: [Growth Studio]
+      summary: Who this campaign has still not reached, computed from the per-recipient send record.
+      description: >-
+        Reads public.growth_campaign_sends for this organization and this campaign and returns
+        the contacts with no accepted row. Only an accepted row means an email is in an inbox,
+        so a failed or not-attempted recipient is reported as still to reach. The list is
+        screened against the provider suppression list but NOT against consent, which is
+        applied when a send is authorised, so consentAppliedAtSend is always true and the
+        number actually mailed can be lower than remainderCount. 503 means the send record
+        could not be read: no remainder is returned in that case, because an unreadable record
+        yields no accepted rows and would otherwise report every contact as unreached.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: audience
+          required: false
+          schema: { type: string, enum: [campaign, organization], default: campaign }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "409": { $ref: "#/components/responses/BadRequest" }
         "413": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
