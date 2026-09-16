@@ -64,7 +64,7 @@ describe("Batch 13 governed external-tool intake", () => {
   });
 
   it("adds a public research page without claiming production enablement", () => {
-    const page = fs.readFileSync(path.join(__dirname, "../public/research-lab/batch13-event-security-media.html"), "utf8");
+    const page = fs.readFileSync(path.join(__dirname, "../public/research-batch13-event-security-media.html"), "utf8");
     assert.match(page, /Third-party repositories enabled by this research page:\s*<strong>0<\/strong>/i);
     assert.match(page, /Stealth, fingerprint evasion, CAPTCHA bypass/i);
     assert.match(page, /Raw prompts, raw responses, and secrets are excluded by default/i);
