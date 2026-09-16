@@ -34,6 +34,14 @@ const {
   getScreenshotToolReadinessBatch7,
   getNonRepositoryReferencesBatch7
 } = require("../lib/sonara-screenshot-tool-radar-batch7.cjs");
+
+const {
+  getPublicScreenshotToolCatalogBatch10,
+  getScreenshotToolReadinessBatch10,
+  getNonRepositoryReferencesBatch10,
+  getConductRefusalsBatch10,
+  getConfirmedExistingRecordsBatch10
+} = require("../lib/sonara-screenshot-tool-radar-batch10.cjs");
 const {
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
@@ -266,14 +274,21 @@ function getLatestScreenshotIntake() {
   const batch5 = getScreenshotToolReadinessBatch5();
   const batch6 = getScreenshotToolReadinessBatch6();
   const batch7 = getScreenshotToolReadinessBatch7();
+  const batch10 = getScreenshotToolReadinessBatch10();
   return {
-    repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories],
+    repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories, ...batch10.repositories],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
       ...getNonRepositoryReferencesBatch6(),
-      ...getNonRepositoryReferencesBatch7()
+      ...getNonRepositoryReferencesBatch7(),
+      ...getNonRepositoryReferencesBatch10()
     ],
-    deduplicatedReferences: batch5.deduplicatedReferences || []
+    deduplicatedReferences: batch5.deduplicatedReferences || [],
+    // Refused for what using them would do rather than for what their licence
+    // says -- three of the five are permissively licensed, so filing them as
+    // licence problems would imply a relicence could unblock them.
+    conductRefusals: getConductRefusalsBatch10(),
+    confirmedExistingRecords: getConfirmedExistingRecordsBatch10()
   };
 }
 
@@ -286,7 +301,8 @@ function getCombinedPublicCatalog() {
     ...getPublicScreenshotToolCatalogBatch4(),
     ...getScreenshotToolReadinessBatch5().repositories,
     ...getScreenshotToolReadinessBatch6().repositories,
-    ...getPublicScreenshotToolCatalogBatch7()
+    ...getPublicScreenshotToolCatalogBatch7(),
+    ...getPublicScreenshotToolCatalogBatch10()
   ];
 }
 
@@ -297,7 +313,8 @@ function getScreenshotResearchCount() {
     + getPublicScreenshotToolCatalogBatch4().length
     + getScreenshotToolReadinessBatch5().repositoryCount
     + getScreenshotToolReadinessBatch6().repositoryCount
-    + getPublicScreenshotToolCatalogBatch7().length;
+    + getPublicScreenshotToolCatalogBatch7().length
+    + getPublicScreenshotToolCatalogBatch10().length;
 }
 
 function getAllNonRepositoryReferences() {
@@ -306,7 +323,8 @@ function getAllNonRepositoryReferences() {
     ...getNonRepositoryReferencesBatch3(),
     ...(batch5.nonRepositoryReferences || []),
     ...getNonRepositoryReferencesBatch6(),
-    ...getNonRepositoryReferencesBatch7()
+    ...getNonRepositoryReferencesBatch7(),
+    ...getNonRepositoryReferencesBatch10()
   ];
 }
 
@@ -319,6 +337,7 @@ function getCombinedReadiness() {
   const screenshotBatch5 = getScreenshotToolReadinessBatch5();
   const screenshotBatch6 = getScreenshotToolReadinessBatch6();
   const screenshotBatch7 = getScreenshotToolReadinessBatch7();
+  const screenshotBatch10 = getScreenshotToolReadinessBatch10();
   const convergence = getCapabilityDesignReadiness();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
   const nonRepositoryReferences = getAllNonRepositoryReferences();
@@ -330,7 +349,8 @@ function getCombinedReadiness() {
     ...screenshotBatch4.repositories,
     ...screenshotBatch5.repositories,
     ...screenshotBatch6.repositories,
-    ...screenshotBatch7.repositories
+    ...screenshotBatch7.repositories,
+    ...screenshotBatch10.repositories
   ];
   return {
     ok: true,
@@ -338,7 +358,7 @@ function getCombinedReadiness() {
     repositoryCount: repositories.length,
     verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
     blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
-    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount + screenshotBatch5.repositoryCount + screenshotBatch6.repositoryCount + screenshotBatch7.repositoryCount,
+    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount + screenshotBatch5.repositoryCount + screenshotBatch6.repositoryCount + screenshotBatch7.repositoryCount + screenshotBatch10.repositoryCount,
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
     productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,
