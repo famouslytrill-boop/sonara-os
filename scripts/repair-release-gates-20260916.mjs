@@ -84,8 +84,8 @@ function replaceExactlyOnce(source, before, after, label) {
   let source = read(relative);
   source = replaceExactlyOnce(
     source,
-    `    ].map((value) => escape(value));\n  }).join("");\n  const head = ["SONARA capability", "Product form", "Current state", "Customer value", "Next implementation boundary"]`,
-    `    ].map((value) => escape(customerCopy(value)));\n  }).join("");\n  const head = ["SONARA capability", "Product form", "Current state", "Customer value", "Next implementation boundary"]`,
+    `    ].map((value) => escape(value));`,
+    `    ].map((value) => escape(customerCopy(value)));`,
     `${relative}: expansion customer-copy boundary`
   );
 
