@@ -4,6 +4,7 @@ const app = require("../server");
 const { getManifest, getAllManifestTables } = require("../lib/sonara-ecosystem-manifest.cjs");
 const { DATABASE_TABLES } = require("../lib/sonara-database-contract.cjs");
 const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
+const { getMarketExpansionSchemaPlan } = require("../lib/sonara-market-expansion-schema-plan.cjs");
 
 describe("SONARA ecosystem manifest", () => {
   it("contains the parent company and three current companies", function() {
@@ -41,6 +42,15 @@ describe("SONARA ecosystem manifest", () => {
     assert.ok(expansion.capabilities.some((item) => item.key === "agentic-commerce-distribution" && item.status === "research_only"));
     assert.ok(expansion.capabilities.some((item) => item.key === "payroll-tax-banking-rails" && item.status === "do_not_rebuild"));
   });
+
+  it("uses a reuse-first schema plan before new market-expansion migrations", function() {
+    const plan = getMarketExpansionSchemaPlan();
+    assert.ok(plan.count >= 10);
+    assert.equal(plan.mode, "reuse_first_non_executing_schema_plan");
+    assert.ok(plan.contracts.some((item) => item.concept === "offline mutation queue" && item.decision === "planned_new_table"));
+    assert.ok(plan.contracts.some((item) => item.concept === "unified conversation inbox" && item.decision === "projection_preferred"));
+    assert.ok(plan.contracts.some((item) => item.concept === "industry pack installation" && item.decision === "no_new_table_initially"));
+  });
 });
 
 describe("SONARA ecosystem routes", () => {
@@ -63,6 +73,7 @@ describe("SONARA ecosystem routes", () => {
     assert.equal(res.body.manifest.currentCompanies.length, 3);
     assert.ok(res.body.manifest.marketExpansion.counts.capabilities >= 20);
     assert.ok(res.body.manifest.marketExpansion.capabilities.some((item) => item.key === "restaurant-operations-pack"));
+    assert.ok(res.body.manifest.marketExpansionSchemaPlan.count >= 10);
   });
 
   it("GET /api/ecosystem/readiness returns table and expansion readiness", async function() {
@@ -72,5 +83,6 @@ describe("SONARA ecosystem routes", () => {
     assert.ok(Array.isArray(res.body.tables));
     assert.ok(res.body.tables.some((item) => item.table === "profiles"));
     assert.ok(res.body.expansionCapabilityCount >= 20);
+    assert.ok(res.body.expansionSchemaContractCount >= 10);
   });
 });
