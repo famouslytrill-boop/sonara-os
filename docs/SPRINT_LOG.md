@@ -72,6 +72,27 @@ Both already refuse correctly on `ok: false`, with the right sentence: an
 unreadable rota treated as an empty one reads to a visitor as "nobody works
 here".
 
+#### And a derived check was attempted and deliberately not shipped
+
+Four instances of one bug means the fifth is coming, so the obvious move was a
+release-chain command. It is not tractable: the property is "rows from a capped
+read feed an aggregate", which is dataflow rather than text.
+
+The probe measured 208 `limit=` occurrences across `routes/`, `lib/` and
+`server.js`, 72 of them at 100 or above or computed -- and the regex could not
+see across lines, reporting **zero** `cap + 1` sites when three had just been
+written. A register of 72 entries would rot, and a scanner that weak prints
+"passed" over exactly the bug it was written for, which is shape 6 in
+`.claude/skills/checks-that-cannot-lie`.
+
+So the finding went into the skill instead, as **shape 10, an aggregate over a
+read that was capped**, with all four cases, the `cap + 1` guard, the
+suppress-rather-than-footnote rule, the direction-of-error warning the payments
+read produced, `Prefer: count=exact` as the way to ask for a count, and an
+explicit note that this one is swept by hand and the per-site tests are the
+regression guard. Writing a weak green light would have been worse than writing
+nothing.
+
 ### 2026-09-16 - Two figures computed over a read that had been capped
 
 Found by sweeping for the shape after it turned up twice in the export paths, on
