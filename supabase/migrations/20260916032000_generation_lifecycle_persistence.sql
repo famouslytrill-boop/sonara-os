@@ -236,6 +236,16 @@ begin
   end loop;
 end $$;
 
+-- SONARA revoked PostgreSQL's default Data API table privileges on 18 July
+-- 2026. Every new table must therefore declare its surface explicitly; RLS by
+-- itself does not make a service-role PostgREST request writable.
+grant select, insert, update, delete on table public.generation_jobs to service_role;
+grant select, insert, update, delete on table public.generation_attempts to service_role;
+grant select, insert, update, delete on table public.generation_artifacts to service_role;
+grant select, insert, update, delete on table public.generation_callback_events to service_role;
+grant select, insert, update, delete on table public.generation_cost_events to service_role;
+grant select, insert on table public.generation_audit_events to service_role;
+
 -- The browser/user client can inspect tenant-scoped evidence but cannot create
 -- or mutate provider lifecycle records. Server code establishes tenant scope.
 revoke all on public.generation_jobs from anon;
