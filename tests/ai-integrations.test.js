@@ -15,6 +15,15 @@ const {
   appendProbePath,
   parseServiceUrl
 } = require("../lib/sonara-ai-integration-registry.cjs");
+const { getUnifiedBatchConvergence } = require("../lib/sonara-batch-convergence-engine.cjs");
+const { getModelEngineControlPlane, ENGINE_CATALOG } = require("../lib/sonara-model-engine-control-plane.cjs");
+const { getAgentSkillStrategyCatalog, SKILL_STRATEGIES } = require("../lib/sonara-agent-skill-strategies.cjs");
+const { getSourceEvidenceRegister, SOURCE_EVIDENCE } = require("../lib/sonara-source-evidence-register.cjs");
+const {
+  getLearningMemoryControlPlane,
+  evaluateMemoryCandidate,
+  MEMORY_CLASSES
+} = require("../lib/sonara-learning-memory-control-plane.cjs");
 
 const EXPECTED_KEYS = [
   "openclaw",
@@ -187,3 +196,93 @@ describe("governed AI integration runtime surfaces", () => {
     assert.equal((compose.match(/127\.0\.0\.1:/g) || []).length, 4);
   });
 });
+
+describe("Batch 1-10 convergence control plane", () => {
+  it("deduplicates ten batches plus requested/formal registries without granting execution", () => {
+    const convergence = getUnifiedBatchConvergence();
+    assert.equal(convergence.batchCount, 10);
+    assert.equal(convergence.counts.formalOpenSourceRegistryIntegrity.ok, true);
+    assert.ok(convergence.counts.formalOpenSourceRegistryRecords > 50);
+    assert.ok(convergence.counts.uniqueRepositoryResearch > 50);
+    assert.equal(new Set(convergence.repositories.map((item) => item.repository.toLowerCase())).size, convergence.repositories.length);
+    assert.ok(convergence.repositories.every((item) => item.convergenceExecutionAllowed === false));
+    assert.ok(convergence.repositories.every((item) => item.sourceRecords.length > 0));
+    assert.equal(convergence.currentAuthority.publicPlatformName, "SONARA One");
+    assert.equal(convergence.currentAuthority.designSystem, "v3 / Balanced Precision");
+  });
+
+  it("keeps the maintained formal registry stricter than older intake metadata", () => {
+    const convergence = getUnifiedBatchConvergence();
+    const contextMode = convergence.repositories.find((item) => item.repository.toLowerCase() === "mksglu/context-mode");
+    assert.ok(contextMode);
+    assert.equal(contextMode.integrationStatus, "blocked");
+    assert.match(contextMode.license, /Elastic License 2\.0|ELv2/i);
+    assert.ok(contextMode.sourceRecords.some((record) => record.source === "data/open-source-tools.ts"));
+  });
+
+  it("keeps model and engine placement non-executing and honors commercial-use policy", () => {
+    const control = getModelEngineControlPlane();
+    assert.equal(control.engineCount, ENGINE_CATALOG.length);
+    assert.ok(ENGINE_CATALOG.length >= 16);
+    assert.ok(ENGINE_CATALOG.every((item) => item.enabledByControlPlane === false && item.canExecuteFromRegistry === false));
+    const conductBlocked = control.openSource.blockedOrUnknown.find((item) => /camofox-browser/i.test(item.repository));
+    assert.ok(conductBlocked, "MIT conduct-blocked browser must stay blocked");
+    assert.ok(!control.openSource.permissiveCandidates.some((item) => /camofox-browser/i.test(item.repository)));
+    const publicShape = JSON.stringify(control);
+    assert.doesNotMatch(publicShape, /credentialEnv|credentialHeader|configurationKeys|GATEWAY_TOKEN|API_KEY|WORKER_TOKEN/);
+  });
+
+  it("keeps Claude and ChatGPT/Codex strategies portable but non-authorizing", () => {
+    const catalog = getAgentSkillStrategyCatalog();
+    assert.equal(catalog.strategyCount, SKILL_STRATEGIES.length);
+    assert.ok(SKILL_STRATEGIES.length >= 9);
+    assert.ok(SKILL_STRATEGIES.every((item) => item.canExecuteFromRecord === false && item.humanReviewRequired === true));
+    assert.equal(catalog.packaging.claudeCode.status, "repository_native");
+    assert.equal(catalog.packaging.codex.status, "repository_native");
+    assert.equal(catalog.packaging.chatgpt.status, "repository_native_strategy_not_installed_as_app");
+    assert.ok(SKILL_STRATEGIES.some((item) => item.key === "learning_memory_governance"));
+  });
+
+  it("maps uploaded source evidence without turning it into production authority", () => {
+    const register = getSourceEvidenceRegister();
+    assert.equal(register.sourceCount, SOURCE_EVIDENCE.length);
+    assert.ok(SOURCE_EVIDENCE.length >= 13);
+    assert.ok(SOURCE_EVIDENCE.every((item) => item.executable === false && item.productionAuthority === false));
+    const legacy = SOURCE_EVIDENCE.find((item) => item.key === "legacy_claude_design_prompt");
+    assert.match(legacy.authority, /historical_superseded/i);
+  });
+
+  it("governs learning/memory without claiming legacy schemas are a live semantic runtime", () => {
+    const memory = getLearningMemoryControlPlane({});
+    assert.equal(memory.memoryClassCount, MEMORY_CLASSES.length);
+    assert.equal(memory.currentState.legacyVectorMemorySchema.status, "schema_present_runtime_not_current");
+    assert.equal(memory.currentState.entityAgentMemory.status, "schema_present_runtime_inactive");
+    assert.equal(memory.currentState.organizationLearningRuntime.status, "design_and_policy_ready_runtime_not_enabled");
+    assert.equal(memory.currentState.semanticRetrieval.status, "not_configured");
+    for (const sensitivity of ["password", "access_token", "api_key", "service_role_key", "raw_card_data", "cvv", "private_key"]) {
+      const result = evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "operational_fact", source: "record", purpose: "assist", sensitivity, userApproved: true });
+      assert.equal(result.status, "blocked", `${sensitivity} must never become learned memory`);
+    }
+    assert.equal(evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "owner_preference", source: "owner", purpose: "personalize" }).status, "review_required");
+    assert.equal(evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "owner_preference", source: "owner", purpose: "personalize", userApproved: true }).status, "retain_candidate");
+  });
+
+  it("publishes the new static ecosystem metadata without exposing private configuration identifiers", async () => {
+    for (const endpoint of [
+      "/api/ecosystem/model-engines",
+      "/api/ecosystem/agent-skill-strategies",
+      "/api/ecosystem/learning-memory",
+      "/api/ecosystem/batch-convergence",
+      "/api/ecosystem/source-evidence"
+    ]) {
+      const response = await request(app).get(endpoint).set("Accept", "application/json");
+      assert.equal(response.status, 200, endpoint);
+      assert.equal(response.body.ok, true, endpoint);
+      assert.doesNotMatch(response.text, /SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|RESEND_API_KEY|GATEWAY_TOKEN|WORKER_TOKEN/, endpoint);
+    }
+  });
+});
+
+// Hosted-provider assertions stay in a CommonJS helper so Mocha executes them
+// through this existing suite without changing the generated test-file count.
+require("./hosted-model-providers.cjs");
