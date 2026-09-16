@@ -70,7 +70,7 @@ create table if not exists public.generation_artifacts (
   constraint generation_artifacts_job_fk foreign key (organization_id, job_id)
     references public.generation_jobs(organization_id, id) on delete cascade,
   constraint generation_artifacts_attempt_fk foreign key (organization_id, attempt_id)
-    references public.generation_attempts(organization_id, id) on delete set null,
+    references public.generation_attempts(organization_id, id) on delete set null (attempt_id),
   constraint generation_artifacts_org_storage_key unique (organization_id, storage_ref)
 );
 
@@ -91,7 +91,7 @@ create table if not exists public.generation_callback_events (
   constraint generation_callback_events_job_fk foreign key (organization_id, job_id)
     references public.generation_jobs(organization_id, id) on delete cascade,
   constraint generation_callback_events_attempt_fk foreign key (organization_id, attempt_id)
-    references public.generation_attempts(organization_id, id) on delete set null,
+    references public.generation_attempts(organization_id, id) on delete set null (attempt_id),
   constraint generation_callback_events_provider_event_key unique (organization_id, provider_key, provider_event_id)
 );
 
@@ -108,7 +108,7 @@ create table if not exists public.generation_cost_events (
   constraint generation_cost_events_job_fk foreign key (organization_id, job_id)
     references public.generation_jobs(organization_id, id) on delete cascade,
   constraint generation_cost_events_attempt_fk foreign key (organization_id, attempt_id)
-    references public.generation_attempts(organization_id, id) on delete set null
+    references public.generation_attempts(organization_id, id) on delete set null (attempt_id)
 );
 
 create table if not exists public.generation_audit_events (
@@ -124,7 +124,7 @@ create table if not exists public.generation_audit_events (
   constraint generation_audit_events_job_fk foreign key (organization_id, job_id)
     references public.generation_jobs(organization_id, id) on delete cascade,
   constraint generation_audit_events_attempt_fk foreign key (organization_id, attempt_id)
-    references public.generation_attempts(organization_id, id) on delete set null
+    references public.generation_attempts(organization_id, id) on delete set null (attempt_id)
 );
 
 -- Tenant-first indexes. Every operational tenant query begins with organization_id.
