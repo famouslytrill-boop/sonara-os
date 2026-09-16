@@ -14,6 +14,13 @@ function ok(rows) {
   return { ok: true, rows };
 }
 
+// A read that succeeded and came back short of what exists. Deliberately a
+// separate helper from `ok`: it is a third state, not a milder failure, and the
+// whole point of the assertions below is that `build` keeps the three apart.
+function short(rows) {
+  return { ok: true, rows, truncated: true };
+}
+
 const EMPTY = { incoming: ok([]), outgoing: ok([]), received: ok([]), now: NOW };
 
 describe("money due in and out", () => {
@@ -142,6 +149,61 @@ describe("money due in and out", () => {
     assert.equal(result.complete, true);
     assert.equal(result.netCents, 0);
     assert.equal(result.rows.length, cash.PERIODS.length, "every period renders, including the ones with nothing in them");
+  });
+
+  it("does not call a capped read the whole picture", () => {
+    // `complete` is documented in the module as false whenever "money exists
+    // that these figures do not include", and a read that came back capped is
+    // exactly that -- it was simply not one of the three things the flag
+    // counted. The caller read 500 rows per table and reported `{ ok: true }`,
+    // so a business with more than 500 invoices got an understated cash
+    // position labelled complete.
+    const result = cash.build({
+      ...EMPTY,
+      incoming: short([{ id: "a", due_on: day(3), total_cents: 50000, status: "sent" }])
+    });
+
+    assert.equal(result.complete, false, "a total summed from a capped read read as the whole picture");
+    assert.deepEqual(result.truncated, ["money owed to you"]);
+
+    // Kept apart from the unreadable case. The causes differ and so do the
+    // remedies: an outage is worth retrying and a size is not, so an owner told
+    // "could not be read" about a capped read is being told to do something
+    // that cannot work.
+    assert.deepEqual(result.unavailable, [], "a capped read was reported as an unreadable table");
+
+    // And the rows it DID read still count. Refusing to total anything would
+    // replace an understated figure with no figure, and the page's job is to
+    // say what it knows and what it does not.
+    assert.equal(result.totalIncoming, 50000);
+  });
+
+  it("names a capped payments read, which errs in the other direction", () => {
+    // The sharpest of the three and the least obvious. Payments are SUBTRACTED
+    // from what is owed, so missing payment rows do not understate the total --
+    // they overstate money coming in, by failing to reduce invoices already
+    // settled. The module already refuses to report gross as net when the
+    // payments read FAILS; this is the same error arriving by a different route.
+    const result = cash.build({
+      ...EMPTY,
+      incoming: ok([{ id: "a", due_on: day(3), total_cents: 50000, status: "sent" }]),
+      received: short([])
+    });
+
+    assert.equal(result.complete, false);
+    assert.deepEqual(result.truncated, ["payments received"]);
+  });
+
+  it("still reports a full read as complete", () => {
+    // Or the three assertions above are satisfied by a flag that is never true,
+    // and "never complete" would pass a check written about a wrong complete.
+    const result = cash.build({
+      ...EMPTY,
+      incoming: ok([{ id: "a", due_on: day(3), total_cents: 50000, status: "sent" }])
+    });
+
+    assert.equal(result.complete, true);
+    assert.deepEqual(result.truncated, []);
   });
 
   it("survives a malformed row rather than failing the page", () => {

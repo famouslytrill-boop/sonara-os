@@ -187,14 +187,31 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
     return `${sign}$${(Math.abs(amount) / 100).toFixed(2)}`;
   }
 
+  // Asks for ROW_LIMIT + 1 so the cap is detectable, returns ROW_LIMIT at most,
+  // and says which happened.
+  //
+  // `{ ok: true, rows }` alone was the defect: this feeds cash.build, whose
+  // totals are summed from these rows and printed as money, and whose own
+  // `complete` flag is defined as "money exists that these figures do not
+  // include". A read capped at 500 is exactly that, and it reported `ok: true`
+  // with no way to tell -- so a business with more than 500 invoices was shown
+  // an understated cash position labelled complete.
+  //
+  // It also feeds the readiness checks above, which only count and list
+  // findings; a capped read there shows fewer items to fix rather than a wrong
+  // total, so the flag travels and each caller decides what it means.
   async function readRows(config, check, organizationId) {
-    const query = `?select=${selectFor(check)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=${ROW_LIMIT}`;
+    const query = `?select=${selectFor(check)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=${ROW_LIMIT + 1}`;
     const response = await fetch(`${config.url}/rest/v1/${check.table}${query}`, {
       headers: supabaseHeaders(config)
     }).catch(() => undefined);
-    if (!response?.ok) return { ok: false, rows: [] };
-    const rows = await response.json().catch(() => []);
-    return { ok: true, rows: Array.isArray(rows) ? rows : [] };
+    if (!response?.ok) return { ok: false, rows: [], truncated: false };
+    const body = await response.json().catch(() => []);
+    const rows = Array.isArray(body) ? body : [];
+    const truncated = rows.length > ROW_LIMIT;
+    // Trimmed, so nothing downstream can sum a row this function is not
+    // entitled to have handed on.
+    return { ok: true, rows: truncated ? rows.slice(0, ROW_LIMIT) : rows, truncated };
   }
 
   function findingList(result) {
@@ -522,6 +539,19 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       sections.unshift(brandCard(
         "Some of this could not be read",
         `${view.unavailable.join(" and ")} could not be loaded just now, so the figures below are missing part of the picture. They are not a smaller total; they are an incomplete one.`
+      ));
+    }
+
+    // Named separately from the unreadable case above, and before the totals for
+    // the same reason. An unreadable table is an outage to retry; a capped read
+    // is a size, and telling somebody to try again would be telling them to do
+    // something that cannot work.
+    if (view.truncated.length > 0) {
+      sections.unshift(brandCard(
+        "There is more of this than we can add up here",
+        `You have more records than this page reads at once, so ${view.truncated.join(" and ")} ${view.truncated.length === 1 ? "is" : "are"} only partly included below. `
+        + `The figures are not a smaller total; they are an incomplete one, and trying again will not change that. `
+        + `Your invoices and bills pages list every record.`
       ));
     }
 

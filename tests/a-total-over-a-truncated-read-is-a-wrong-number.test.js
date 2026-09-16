@@ -31,6 +31,8 @@ const express = require("express");
 const request = require("supertest");
 const registerRecurring = require("../routes/sonara-recurring-invoice-routes.cjs");
 const registerMarketIntelligence = require("../routes/market-intelligence-routes.cjs");
+const registerAssistant = require("../routes/sonara-assistant-routes.cjs");
+const cash = require("../lib/sonara-cash-position.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
@@ -43,6 +45,11 @@ const LINE_CAP = 1000;
 // every count came back 0 and the assertions failed for the wrong reason.
 const SEGMENTS_TABLE = "market_intelligence_segments";
 const RECURRING_PAGE = "/business-builder/owner/recurring";
+const MONEY_DUE_PAGE = "/business-builder/owner/money-due";
+// The cap sonara-assistant-routes.cjs reads with. Stated here rather than
+// imported (it is module-local), so raising it in the source without a thought
+// for this file shows up as a failure rather than as a silently weaker check.
+const ASSISTANT_ROW_CAP = 500;
 const MARKET_PAGE = "/business-builder/market-intelligence";
 
 // PostgREST honours `limit`, so a stub that ignores it proves nothing: the route
@@ -163,6 +170,48 @@ function marketHarness({ counts = {}, readable = true } = {}) {
   return { app, fetchImpl, seen };
 }
 
+function moneyDueHarness({ invoiceCount = 2 } = {}) {
+  const app = express();
+  app.use(express.json());
+  const seen = [];
+  const authenticate = (req, res, next) => {
+    req.sonaraUser = { id: USER_ID, email: "owner@example.com" };
+    req.sonaraAccess = { user: { id: USER_ID } };
+    return next();
+  };
+
+  registerAssistant(app, {
+    layout: ({ title, heading, body, sections = [], actions = [] }) =>
+      `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p><nav>${actions.join("")}</nav>${sections.join("")}</html>`,
+    brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><div>${cardBody}</div></article>`,
+    linkAction: (href, label) => `<a href="${href}">${label}</a>`,
+    escapeHtml: (value) => String(value),
+    requireCustomer: authenticate,
+    requireWorkspaceAccess: () => authenticate,
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+    supabaseHeaders: () => ({ apikey: "server-only" })
+  });
+
+  const fetchImpl = async (url) => {
+    const target = String(url);
+    seen.push(target);
+    if (target.includes(`/rest/v1/${cash.SOURCES.incoming.table}`)) {
+      // Every invoice due in three days for the same amount, so the total is
+      // arithmetic a reader can check: count x 10000 cents.
+      return serve(target, Array.from({ length: invoiceCount }, (_, index) => ({
+        id: `inv-${index}`,
+        due_on: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+        total_cents: 10000,
+        status: "sent"
+      })));
+    }
+    return serve(target, []);
+  };
+
+  return { app, fetchImpl, seen };
+}
+
 async function withFetch(fetchImpl, run) {
   const original = global.fetch;
   global.fetch = fetchImpl;
@@ -235,6 +284,68 @@ describe("a total over a truncated read is a wrong number", () => {
       const read = seen.find((url) => url.includes("/rest/v1/recurring_invoice_lines?"));
       assert.ok(read, "the page never read the arrangement lines");
       assert.match(read, new RegExp(`limit=${LINE_CAP + 1}`), `the page asked for a limit it cannot interpret: ${read}`);
+    });
+  });
+
+  describe("money due in and out", () => {
+    it("calls a full read the whole picture", async () => {
+      // The control, and it also pins the arithmetic: two invoices at GBP 100
+      // must total $200.00, so the assertions below are about completeness
+      // rather than about the page having stopped adding up.
+      const { app, fetchImpl } = moneyDueHarness({ invoiceCount: 2 });
+      const page = await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+      assert.match(page.text, /\$200\.00 due in/, "two invoices of 10000 cents did not total $200.00");
+      assert.doesNotMatch(page.text, /more of this than we can add up/i);
+    });
+
+    it("says the cash position is incomplete when the read was capped", async () => {
+      const { app, fetchImpl } = moneyDueHarness({ invoiceCount: ASSISTANT_ROW_CAP + 1 });
+      const page = await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      assert.equal(page.status, 200);
+
+      // The card, before the totals -- which is where this page already puts
+      // every other caveat.
+      assert.match(page.text, /There is more of this than we can add up here/);
+      assert.match(page.text, /money owed to you/);
+      // And it must not tell them to retry: a capped read is a size, and
+      // retrying cannot change it. This is the sentence that keeps it apart
+      // from the unreadable-table card.
+      assert.match(page.text, /trying again will not change that/i);
+
+      // The headline switches to the incomplete wording, so the total is not
+      // presented as the whole picture.
+      assert.match(page.text, /of what could be dated and read/);
+      assert.doesNotMatch(page.text, /Net \$[0-9,]+\.[0-9]{2}\.$/m, "an incomplete position printed a flat net total");
+    });
+
+    it("asks for one row more than it will use, or it could not tell", async () => {
+      const { app, fetchImpl, seen } = moneyDueHarness({ invoiceCount: 2 });
+      await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      const read = seen.find((url) => url.includes(`/rest/v1/${cash.SOURCES.incoming.table}?`));
+      assert.ok(read, "the page never read the invoices");
+      assert.match(read, new RegExp(`limit=${ASSISTANT_ROW_CAP + 1}`), `the page asked for a limit it cannot interpret: ${read}`);
+    });
+
+    it("hands on no more rows than its own cap", async () => {
+      // The extra row exists only to detect the cap. Passing it downstream
+      // would put one invoice into a total the page is not entitled to claim
+      // it read completely.
+      const { app, fetchImpl } = moneyDueHarness({ invoiceCount: ASSISTANT_ROW_CAP + 1 });
+      const page = await withFetch(fetchImpl, () => request(app).get(MONEY_DUE_PAGE).set("Accept", "text/html"));
+
+      // 500 invoices at 10000 cents is $50000.00; 501 would be $50010.00.
+      //
+      // No thousands separator: `asMoney` in the route is
+      // `(Math.abs(amount) / 100).toFixed(2)`, which does not insert one. The
+      // first version of this assertion expected "$50,000.00" and failed for
+      // that reason rather than for anything about truncation -- the format was
+      // read from the route afterwards rather than assumed.
+      assert.match(page.text, /\$50000\.00/, "the total does not match exactly the capped number of rows");
+      assert.doesNotMatch(page.text, /\$50010\.00/, "the detection row was counted into the total");
     });
   });
 

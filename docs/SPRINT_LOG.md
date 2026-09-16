@@ -2,6 +2,76 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - The cash position could be understated and still say "complete"
+
+Third hit from the same sweep, and the one with the argument for the fix already
+written in the file. `lib/sonara-cash-position.cjs` defines its own flag:
+
+> `complete` is the flag a caller must check before presenting any total as the
+> whole picture. Both an unreadable table and an undated row make it false,
+> because **both mean money exists that these figures do not include**.
+
+A read that came back capped is a third thing that means exactly that, and it was
+not one of the two the flag counted. `readRows` in
+`routes/sonara-assistant-routes.cjs` reads `ROW_LIMIT = 500` rows per table and
+returned `{ ok: true, rows }`, so a business with more than 500 invoices was
+shown an understated cash position on `/business-builder/owner/money-due`,
+labelled complete, with the confident headline rather than the hedged one.
+
+**Fixed** by reading `ROW_LIMIT + 1`, carrying `truncated` in the outcome, and
+adding it to `complete` alongside `unavailable` and `undated`. The page gets its
+own card, unshifted above the totals the way the other two caveats already are.
+
+Named separately from `unavailable` throughout, because the cause and the remedy
+differ: an unreadable table is an outage worth retrying, and a capped read is a
+size that retrying cannot change. The card says so in as many words -- telling
+somebody to try again would be telling them to do something that cannot work.
+
+**The payments read is the sharpest of the three and the least obvious.**
+Payments are *subtracted* from what is owed, so missing payment rows do not
+understate the total -- they **overstate** money coming in, by failing to reduce
+invoices that have already been settled. That is the same direction of error the
+module's existing `received?.ok` check exists to prevent ("Overstating money
+coming in is the wrong direction to be wrong in"), arriving by a different route.
+
+**Verified by breaking it,** in both halves separately: `readRows` made to ask
+for exactly the cap, and `complete` reverted to ignore truncation. Caught by
+`the page asked for a limit it cannot interpret`, `There is more of this than we
+can add up here`, and `a total summed from a capped read read as the whole
+picture`.
+
+Three assertions added to `tests/cash-position.test.js` and four to
+`tests/a-total-over-a-truncated-read-is-a-wrong-number.test.js`.
+
+One assertion there failed first for a reason that was not the defect: it
+expected `$50,000.00` and `asMoney` is `(Math.abs(amount) / 100).toFixed(2)`,
+which inserts no thousands separator. Format read from the route afterwards
+rather than assumed.
+
+#### What the sweep covered, and the two it examined and left
+
+The sweep was over every literal `limit=` of 100 or more and every
+`limit=${CONST}` in `routes/`, `lib/` and `server.js`, looking only for those
+whose rows then feed a **count or a sum**. Four aggregates found, three wrong:
+the accounting export, the standing-arrangements subtotal, the recorded-evidence
+count, and this one.
+
+Two were examined and deliberately left alone, recorded here so the next reader
+does not re-derive it:
+
+* **`readBookings` in `sonara-public-booking-routes.cjs`** (`limit=1000`) is
+  windowed to the booking horizon, about 21 days, so the cap is roughly 48
+  bookings a day before it binds. It feeds availability rather than a total, and
+  a truncated read there would make a taken slot look free -- so it is the one
+  worth watching if a multi-location operator gets busy. Left because the bound
+  is a date range rather than a whole table.
+* **The rota shift read in `sonara-rota-routes.cjs`** (`limit=1000`) is windowed
+  to about eleven days and renders a week, not a figure.
+
+Both already refuse correctly on `ok: false`, with the right sentence: an
+unreadable rota treated as an empty one reads to a visitor as "nobody works
+here".
+
 ### 2026-09-16 - Two figures computed over a read that had been capped
 
 Found by sweeping for the shape after it turned up twice in the export paths, on
