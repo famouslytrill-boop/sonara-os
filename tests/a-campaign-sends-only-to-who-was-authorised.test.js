@@ -698,6 +698,12 @@ describe("a campaign sends only to who was authorised", () => {
         ...SEND,
         decision,
         appendLedger: async () => ({ ok: false, code: "ledger_write_failed" }),
+        // Wired and succeeding, so the ledger failure is the ONLY thing with
+        // something to report. Without it the dispatcher also reports
+        // send_record_not_wired -- a second true report -- and the exact count
+        // below would have had to be loosened to "at least one", which is a
+        // weaker assertion than the one this test was written to make.
+        recordSends: async (rows) => ({ ok: true, code: "recorded", written: rows.length }),
         report: (details) => reported.push(details),
         fetchImpl: okFetch(recorder())
       });
@@ -705,6 +711,7 @@ describe("a campaign sends only to who was authorised", () => {
       assert.equal(result.ok, true, "the email was delivered; the dispatch did not fail");
       assert.equal(result.sent, 1);
       assert.equal(result.charge.ok, false);
+      assert.equal(result.recorded.ok, true, "the send record is what makes the remainder reachable");
       assert.equal(reported.length, 1, "a charge that did not land must be reported, loudly");
       assert.match(reported[0].detail, /not recorded/);
     });

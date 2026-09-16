@@ -158,6 +158,20 @@ const tenantModule = createRequire(path.join(root, "package.json"))("./lib/sonar
 const scopedTableCount = tenantModule.TENANT_SCOPED_TABLES.size;
 const createdTableCount = scopedTableCount + tenantModule.GLOBAL_TABLES.size;
 
+// Two more figures that docs/owner/WHAT-IS-LEFT.md states under a heading
+// promising they were "counted from the repository, not recalled". They were,
+// on 12 August 2026, and then the repository moved: registered GET routes read
+// 248 against a registry of 307, and owner record pages read 23 against 27.
+//
+// The heading is the reason these belong here rather than being corrected in
+// place. A block that claims its numbers are counted is making a claim about
+// method, and that claim stops being true the moment anything changes -- which
+// is worse than a plain stale number, because it tells the reader not to check.
+const routeRegistryModule = createRequire(path.join(root, "package.json"))("./lib/sonara-route-registry.cjs");
+const routeRegistryCount = routeRegistryModule.ROUTE_REGISTRY.length;
+const ownerRecordPagesModule = createRequire(path.join(root, "package.json"))("./lib/sonara-owner-record-pages.cjs");
+const ownerRecordPageCount = ownerRecordPagesModule.ALL_OWNER_PAGES.length;
+
 for (const [label, value, floor] of [
   ["repositories on the open-source register", repositoryCount, 40],
   ["registered repositories declaring no licence", undeclaredLicenceCount, 1],
@@ -247,6 +261,22 @@ for (const file of walk("docs")) {
     // weakening on its own, so REGISTER_CLAIMS below refuses to pass if it stops
     // matching anything at all.
     [/\b(\d[\d,]{0,4})\s+reviewed\s+repositories\b/gi, repositoryCount, "repositories on the open-source register"],
+    // The register count, written the other way round -- and this is the second
+    // time one number in two sentences has gone stale here. The comment below on
+    // reciprocal repositories records the first. docs/owner/WHAT-IS-LEFT.md said
+    // "82 external repositories reviewed with their licences read off each one"
+    // against a register of 237, in the same file whose other sentence said 230
+    // and was corrected the same day. The pattern above requires the words in
+    // the order "reviewed repositories" and this phrasing has them reversed, so
+    // it was unguarded prose sitting two sections from a guarded copy of itself.
+    [/\b(\d[\d,]{0,4})\s+external\s+repositories\s+reviewed\b/gi, repositoryCount, "repositories on the open-source register"],
+    // "registered" is what makes this the route REGISTRY rather than the wider
+    // count of served GET routes that verify-product-lifecycle-evidence reports.
+    // The two are different quantities -- 307 and 557 today -- and deriving the
+    // second one here as well would put a second method behind one number, which
+    // is how two checks come to disagree.
+    [/\b(\d[\d,]{0,4})\s+registered\s+GET\s+routes\b/gi, routeRegistryCount, "records in the route registry"],
+    [/\b(\d[\d,]{0,4})\s+owner\s+record\s+pages\b/gi, ownerRecordPageCount, "owner record pages"],
     [/\b(\d[\d,]{0,4})\s+declare no licence\b/gi, undeclaredLicenceCount, "registered repositories declaring no licence"],
     [/\b(\d[\d,]{0,4})\s+carry\s+a\s+reciprocal\s+licence\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
     // The same figure, written the other way round. docs/architecture/EXTERNAL-SERVICES.md

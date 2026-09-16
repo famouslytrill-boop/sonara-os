@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-230 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 230.
+237 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 237.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -72,7 +72,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-57 repositories.
+58 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -90,6 +90,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Donkey Cut](https://github.com/DonkeyCut/Donkey) | Apache-2.0 | Read only | video editor |
 | [Doop](https://github.com/kgoedecke/doop) | AGPL-3.0 | Read only | design canvas |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
+| [DwarfStar (ds4-metal)](https://github.com/ivanfioravanti/ds4-metal) | MIT. LICENSE read 11 September 2026: 'MIT License, Copyright (c) | Read only | local model inference |
 | [Excalidraw](https://github.com/excalidraw/excalidraw) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | drawing |
 | [fal-3d-anything](https://github.com/blendi-remade/fal-3d-anything) | None declared; the README says MIT but the repository has no lic | Blocked | image-to-3D |
 | [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
@@ -185,7 +186,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-134 repositories.
+141 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -211,6 +212,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [Awesome SOC (cyb3rxp)](https://github.com/cyb3rxp/awesome-soc) | CC0-1.0 | Read only | security operations |
 | [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
+| [Ballast](https://github.com/tight-line/ballast) | MIT. LICENSE read 11 September 2026: 'MIT License, Copyright (c) | Read only | Kubernetes operator |
 | [Best APIs for Lead Gen (cporter202)](https://github.com/cporter202/best-apis-for-lead-gen) | None declared (all rights reserved) | Blocked | API directory |
 | [Better Auth](https://github.com/better-auth/better-auth) | MIT | Research only | authentication library |
 | [Bolt Slides](https://github.com/stackblitz/bolt-slides) | MIT | Read only | interactive presentations |
@@ -224,6 +226,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
 | [Claude Code](https://github.com/anthropics/claude-code) | Anthropic product terms; not treated as a redistributable open-s | Read only | developer CLI |
 | [Claude SEO](https://github.com/AgriciDaniel/claude-seo) | MIT | Adapt after review | developer workflow |
+| [ClawFlows](https://github.com/nikilster/clawflows) | Unclear, and the ambiguity is the finding. The README carries a  | Licence unresolved | agent workflow collection |
 | [Clone Wars](https://github.com/GorvGoyl/Clone-Wars) | CC0-1.0 | Read only | index of open-source clones |
 | [Cloudflare Agents](https://github.com/cloudflare/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |
@@ -238,6 +241,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Directus](https://github.com/directus/directus) | MSCL-1.0-GPL (Monospace Sustainable Core License 1.0) | Research only | headless CMS |
 | [Doop](https://github.com/kgoedecke/doop) | AGPL-3.0 | Read only | design canvas |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
+| [DwarfStar (ds4-metal)](https://github.com/ivanfioravanti/ds4-metal) | MIT. LICENSE read 11 September 2026: 'MIT License, Copyright (c) | Read only | local model inference |
 | [Ecommerce Intelligence APIs](https://github.com/cporter202/ecommerce-intelligence-apis) | MIT | Blocked | API directory |
 | [Face Anything](https://github.com/kocasariumut/faceanything) | CC-BY-NC-4.0 | Blocked | face reconstruction |
 | [fal-3d-anything](https://github.com/blendi-remade/fal-3d-anything) | None declared; the README says MIT but the repository has no lic | Blocked | image-to-3D |
@@ -281,8 +285,10 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenAI Agents SDK (Python)](https://github.com/openai/openai-agents-python) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
+| [openclaw-api-list](https://github.com/cporter202/openclaw-api-list) | None declared. No LICENSE file and no licence statement in the R | Blocked | advertised as a curated API directory |
 | [opencode (anomalyco)](https://github.com/anomalyco/opencode) | MIT | Read only | coding agent |
 | [OpenCompany](https://github.com/zeenie-ai/opencompany) | MIT | Read only | agent workflows |
+| [OpenContext](https://github.com/0xranx/OpenContext) | Three different declarations in one repository, which is the fin | Licence unresolved | AI coding agent tooling |
 | [OpenHuman](https://github.com/tinyhumansai/openhuman) | GPL-3.0 | Read only | personal AI |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [OpenVid](https://github.com/cristianolivera1/openvid) | PolyForm Noncommercial 1.0.0 | Blocked | screen recording |
@@ -306,6 +312,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Skills for Real Engineers (Matt Pocock)](https://github.com/mattpocock/skills) | MIT | Read only | agent skills |
+| [software-income-playbooks](https://github.com/cporter202/software-income-playbooks) | None declared. No LICENSE file and no licence statement, checked | Blocked | advertised as curated playbooks and APIs |
 | [Sonora (nolight132)](https://github.com/nolight132/sonora) | GPL-3.0-or-later | Read only | music streaming client |
 | [Stock Market Signal Automation (cporter202)](https://github.com/cporter202/stock-market-signal-automation) | MIT | Read only | webhook starter kit |
 | [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
@@ -318,6 +325,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Vibe Coding with Base44](https://github.com/cporter202/vibe-coding-with-base44) | MIT | Read only | prompt library |
 | [Vibe Trading](https://github.com/HKUDS/Vibe-Trading) | MIT | Blocked | trading strategy generation |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
+| [Vulture](https://github.com/vulture-osint-automation-tool/vulture) | None declared. No LICENSE file, checked 11 September 2026. All r | Blocked | OSINT automation |
 | [watermarks-remover (remove-ai-marks)](https://github.com/guillaumemeyer/watermarks-remover) | MIT | Blocked | AI provenance removal |
 | [wshobson/agents](https://github.com/wshobson/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent skills |
 | [x-cmd](https://github.com/x-cmd/x-cmd) | Apache-2.0 | Read only | command-line tooling |

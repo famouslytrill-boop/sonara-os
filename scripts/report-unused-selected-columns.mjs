@@ -72,8 +72,13 @@ try {
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
   "routes/sonara-last9-routes.cjs": {
-    columns: ["capabilities", "connection_mode"],
-    reason: "PUBLIC_GETS serves /api/integrations/providers as JSON. The rows are forwarded whole; the caller uses these fields and this file has no reason to."
+    columns: ["capabilities", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
+    reason: [
+      "capabilities and connection_mode: PUBLIC_GETS serves /api/integrations/providers as JSON. The rows are forwarded whole; the caller uses these fields and this file has no reason to.",
+      "customer_email and customer_phone: booking rows are handed whole to buildCalendarInvite and buildCalendarFeed in lib/sonara-calendar-invite.cjs, which writes the email as an RFC 5545 ATTENDEE line and the phone into the DESCRIPTION. The route moves the values and must not render them -- a booking page showing a customer's number is what shareShows on the bookings record page exists to prevent.",
+      "email, phone and tags: customer rows are handed whole to buildContactCard and buildContactBook in lib/sonara-contact-card.cjs, which writes EMAIL, TEL and a Tags note into the vCard. Both modules opened to confirm every one of the five.",
+      "These five became tier 1 findings on 15 September 2026 only because the selects stopped being `select=*`. They were always unread in this file; the star select meant nothing could say so."
+    ].join(" ")
   },
   "routes/sonara-route-registry-routes.cjs": {
     columns: ["category"],
@@ -207,11 +212,34 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // own separate query, and the editor renders `site.title` out of the parsed
 // document rather than the column. Including it "to be safe" would have put back
 // a column nothing reads, which is the thing this report exists to find.
-const STAR_SELECT_COUNT = 26;
+// 26 -> 22 on 15 September 2026, and this is the drop that justifies counting
+// them. The four were the calendar and contact exports in
+// routes/sonara-last9-routes.cjs, and narrowing them found a live defect the
+// star select had hidden for a week: lib/sonara-calendar-invite.cjs reads
+// `booking.service_name`, `booking.location_name` and
+// `booking.calendar_sequence`, and **business_bookings has none of the three**.
+// Every calendar download was titled literally "Booking", carried no LOCATION
+// line, and had SEQUENCE 0 -- so a corrected booking could not replace the
+// entry it corrected, which is the one thing SEQUENCE exists for. Nothing here
+// could see it, because the comparison this script makes needs a query that
+// names its columns.
+//
+// The fix nearly traded one blindness for the other. The first version put each
+// column list in a `const` and interpolated it; star fell to 22 and run-time
+// selects rose 25 to 30. The lists are literal at the four query sites instead,
+// and tests/a-calendar-file-cannot-read-a-column-that-does-not-exist.test.js
+// asserts the two reads of each table agree.
+const STAR_SELECT_COUNT = 22;
 // 23 -> 25 on 13 September 2026. The operations expansion and integration
 // control routes add two helper queries whose select list is passed through a
 // shared request builder at runtime.
-const COMPUTED_SELECT_COUNT = 25;
+// 25 -> 26 on 15 September 2026. `loadBookingCalendarLookups` reads the location
+// and service rows a set of bookings refers to, and the two lookups differ only
+// in table and column list, so they run from one loop over a spec. That is the
+// one query the calendar narrowing added here rather than to the literal
+// population, and it is the right trade: two hand-written copies of a loop that
+// differ in three strings is how the pair comes to disagree.
+const COMPUTED_SELECT_COUNT = 26;
 
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.

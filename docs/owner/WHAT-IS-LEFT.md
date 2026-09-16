@@ -40,7 +40,7 @@ done" means two different things and only one of them is countable.
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
 failing checks: the whole suite passes and the `verify:launch` chain is green
-across all 46 commands. The test count is deliberately not written here
+across all 48 commands. The test count is deliberately not written here
 -- it changes every time anybody adds one, and a number typed into prose has
 nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
@@ -92,9 +92,9 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 230 reviewed repositories, 31 carry a
+**Some of it cannot be built as stated.** Of 237 reviewed repositories, 31 carry a
 reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
-reaches a hosted product; 15 declare no licence at all — which is not a review
+reaches a hosted product; 18 declare no licence at all — which is not a review
 item, it is an absence of permission — and 2 rest on n8n's fair-code Sustainable
 Use Licence, which permits internal use but restricts offering it as a hosted
 service. "Install all repositories" has no completion state that is also legal.
@@ -120,12 +120,32 @@ never save and two POST handlers silently sharing one path.
 
 ## What has been built, in numbers
 
-Counted from the repository on 12 August 2026, not recalled.
+Counted from the repository, not recalled — and now *kept* counted, which the
+heading previously only promised. This block was written on 12 August 2026, and
+by 15 September four of its figures had drifted: the route count was low by
+fifty-nine, the register count was low by a hundred and fifty-five, and the
+owner-page count was low by four. `docs/SHIP_READINESS.md` carried the route
+figure as well and was stale by thirty — one fact, two documents, two different
+wrong values, which is what a hand-typed number looks like a month later.
 
-- **248** registered GET routes
-- **326** tables created by the migrations, **229** of them organization-scoped
-- **23** owner record pages, **22** record checks
-- **46** verification commands in the release chain
-- **82** external repositories reviewed with their licences read off each one
+The drift amounts are spelled as words on purpose. Written as digits beside the
+phrases below they would be read as fresh claims by the very check that now
+guards them, and a check that fires on a true sentence gets reworded around
+rather than fixed.
+
+Each of the figures below except the last is now derived by
+`scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
+
+- **308** registered GET routes
+- **327** tables created by the migrations, **230** of them organization-scoped
+- **27** owner record pages
+- **48** verification commands in the release chain
+- **237** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
+- **22** record checks — **hand-counted on 12 August 2026 and not derived.**
+  Unlike the others, "record check" names no single thing a script can count, so
+  it is left alone rather than guessed at: the check's own rule is that only
+  counts derivable *exactly* belong to it, and a judgement recorded at review
+  time is deliberately a human's. Treat this one as a figure to re-measure, not
+  as a guarded one.
