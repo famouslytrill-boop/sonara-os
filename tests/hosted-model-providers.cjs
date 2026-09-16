@@ -63,8 +63,9 @@ describe("hosted model providers", () => {
       fetchImpl: async () => { throw new Error("failed https://api.openai.com/v1/responses sk-never-render"); }
     });
     assert.equal(result.ok, false);
-    assert.equal(JSON.stringify(result).includes("sk-never-render"), false);
-    assert.equal(JSON.stringify(result).includes("https://api.openai.com"), false);
+    const serialized = JSON.stringify(result);
+    assert.doesNotMatch(serialized, /sk-never-render/);
+    assert.doesNotMatch(serialized, /api\.openai\.com/);
   });
 
   it("keeps Claude off until a server-side key exists and never renders the key", () => {
@@ -122,17 +123,21 @@ describe("hosted model providers", () => {
 });
 
 describe("founder business drafting surface", () => {
-  function buildApp(modelProviders) {
+  function buildApp(modelProviders, extraDeps = {}) {
     const app = express();
     app.use(express.urlencoded({ extended: false }));
     app.use(express.json());
     registerRoutes(app, {
       modelProviders,
-      requireAdmin: (req, res, next) => next(),
+      requireAdmin: (req, res, next) => {
+        req.sonaraAdmin = { user: { id: "00000000-0000-4000-8000-000000000001" }, role: "founder" };
+        next();
+      },
       layout: ({ title, heading, body, sections = [], actions = [] }) => `<html><head><title>${title}</title></head><body><h1>${heading}</h1><p>${body}</p>${actions.join("")}${sections.join("")}</body></html>`,
       brandCard: (title, body) => `<article><h2>${title}</h2><p>${body}</p></article>`,
       linkAction: (href, label) => `<a href="${href}">${label}</a>`,
-      recordAdminAuditEvent: async () => undefined
+      recordAdminAuditEvent: async () => undefined,
+      ...extraDeps
     });
     return app;
   }
@@ -178,6 +183,24 @@ describe("founder business drafting surface", () => {
     assert.match(calls[0].messages[0].content, /Produce a draft only/);
     assert.equal(calls[0].messages[1].content, "Draft a two-sentence service proposal.");
     assert.match(response.text, /Nothing has been sent, published, approved, or saved/i);
+  });
+
+  it("refuses the hosted operation when its rate limiter denies the request", async () => {
+    let called = false;
+    const app = buildApp({
+      getProviderReadiness: configuredReadiness,
+      generate: async () => { called = true; return { ok: true, text: "should not happen" }; }
+    }, {
+      createRateLimiter: () => (req, res) => res.status(429).send("rate limited")
+    });
+
+    const response = await request(app)
+      .post("/admin/ai-integrations/business-draft")
+      .type("form")
+      .send({ provider: "openai", prompt: "draft" });
+
+    assert.equal(response.status, 429);
+    assert.equal(called, false);
   });
 
   it("refuses unconfigured providers before any network call", async () => {
