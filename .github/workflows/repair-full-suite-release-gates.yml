@@ -1,0 +1,56 @@
+name: Repair full-suite release gates
+
+on:
+  push:
+    branches:
+      - fix/full-suite-release-gates-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/full-suite-release-gates-20260916
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply deterministic repairs
+        run: node scripts/repair-release-gates-20260916.mjs
+      - name: Regenerate canonical handoff
+        run: node scripts/generate-handoff-prompt.mjs
+      - name: Run focused release-gate tests only
+        run: >-
+          pnpm exec mocha --no-config
+          --require tests/setup-env.cjs
+          --timeout 15000
+          --exit
+          tests/an-applied-migration-cannot-be-edited.test.js
+          tests/orphan-tables.test.js
+          tests/plain-language.test.js
+          tests/the-handoff-counts-what-mocha-runs.test.js
+      - name: Remove one-shot repair machinery
+        run: |
+          rm scripts/repair-release-gates-20260916.mjs
+          rm .github/workflows/repair-full-suite-release-gates.yml
+      - name: Commit verified repairs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No repair changes were required."
+            exit 0
+          fi
+          git commit -m "Repair full-suite release gates"
+          git push origin HEAD:fix/full-suite-release-gates-20260916
