@@ -7,6 +7,7 @@ const { getAgentSkillStrategyCatalog } = require("../lib/sonara-agent-skill-stra
 const { getLearningMemoryControlPlane } = require("../lib/sonara-learning-memory-control-plane.cjs");
 const { getSourceEvidenceRegister } = require("../lib/sonara-source-evidence-register.cjs");
 const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
+const { getMarketExpansionSchemaPlan } = require("../lib/sonara-market-expansion-schema-plan.cjs");
 
 const LIVE_PROBE_TIMEOUT_MS = 800;
 
@@ -68,6 +69,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
     const memory = getLearningMemoryControlPlane();
     const evidence = getSourceEvidenceRegister();
     const expansion = getMarketExpansionRegistry();
+    const schemaPlan = getMarketExpansionSchemaPlan();
     const missingCount = readiness.tables.filter((item) => !item.ok).length;
     return res.status(200).type("html").send(layout({
       title: "Ecosystem control plane",
@@ -81,6 +83,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         brandCard("Commercial open-source decisions", `${engines.openSource.permissiveCandidateCount} permissive/allowed candidates, ${engines.openSource.copyleftReviewCount} copyleft review items, ${engines.openSource.blockedOrUnknownCount} blocked/unverified/unknown items, ${engines.openSource.researchOnlyCount} research/review-only items.`),
         brandCard("Models and engines", `${engines.engineCount} explicitly placed engines/model families/runtime companions; full repository inventory remains separately governed.`),
         brandCard("Market expansion control plane", `${expansion.counts.capabilities} capabilities classified across core platform, add-ons, industry packs, standalone SKUs, distribution, and partner integrations. Current status split: ${formatCounts(expansion.counts.byStatus)}.`),
+        brandCard("Schema planning", `${schemaPlan.count} reuse-first schema contracts distinguish existing-table reuse, projections, and candidate new tables before any migration is allowed. Decision split: ${formatCounts(schemaPlan.decisions)}.`),
         brandCard("Industry packs", expansion.industryPacks.map((item) => `${item.name}: ${item.status.replace(/_/g, " ")}`).join(" / ")),
         brandCard("Standalone SKU candidates", expansion.standaloneSkus.map((item) => `${item.name}: ${item.status.replace(/_/g, " ")}`).join(" / ")),
         brandCard("Expansion guardrail", "A market-expansion record does not install, activate, message, publish, bill, pay out, mutate infrastructure, or grant provider authority. Existing implementation and planned work remain explicitly separated."),
@@ -113,7 +116,8 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
       ok: true,
       manifest: {
         ...getManifest(),
-        marketExpansion: getMarketExpansionRegistry()
+        marketExpansion: getMarketExpansionRegistry(),
+        marketExpansionSchemaPlan: getMarketExpansionSchemaPlan()
       }
     });
   });
@@ -141,6 +145,7 @@ function getStaticEcosystemReadiness() {
     serviceCount: manifest.infrastructure.requiredServices.length,
     aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
     expansionCapabilityCount: getMarketExpansionRegistry().counts.capabilities,
+    expansionSchemaContractCount: getMarketExpansionSchemaPlan().count,
     tables: tableNames.map((table) => ({ table, ok: false, status: "setup_required" }))
   };
 }
@@ -173,6 +178,7 @@ async function getEcosystemReadiness(safeListTable, options = {}) {
     serviceCount: manifest.infrastructure.requiredServices.length,
     aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
     expansionCapabilityCount: getMarketExpansionRegistry().counts.capabilities,
+    expansionSchemaContractCount: getMarketExpansionSchemaPlan().count,
     tables
   };
 }
