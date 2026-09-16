@@ -34,6 +34,14 @@ const {
   getScreenshotToolReadinessBatch7,
   getNonRepositoryReferencesBatch7
 } = require("../lib/sonara-screenshot-tool-radar-batch7.cjs");
+
+const {
+  getPublicScreenshotToolCatalogBatch12,
+  getScreenshotToolReadinessBatch12,
+  getNonRepositoryReferencesBatch12,
+  getConductRefusalsBatch12,
+  getConfirmedExistingRecordsBatch12
+} = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
 const {
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
@@ -79,7 +87,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots are cataloged as non-executing research records; verification state remains explicit per record.`),
       brandCard("Capability convergence — Batch 8", `${convergence.batch8Count} truth records describe actual SONARA One, Business Builder, Creator Studio, Growth Studio, Claude, ChatGPT/Codex, and cross-agent delivery capability without enabling anything from the research surface.`),
       brandCard("Design and correctness — Batch 9", `${convergence.batch9Count} current design/correctness records preserve the v3 SONARA One identity, Balanced Precision interaction system, truthful loading/state language, cross-agent authority, and named repair/review work.`),
-      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 appear in this catalog as non-executing research records; Batches 8 and 9 add internal capability/design convergence rather than inventing more external repositories."),
+      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 and Batch 10 appear in this catalog as non-executing research records; Batches 8 and 9 add internal capability/design convergence rather than inventing more external repositories."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items are kept as hosted services, learning references, or unresolved non-repository leads outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -176,7 +184,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
       brandCard("Batch 8 capability truth", `${readiness.capabilityBatch8.length} internal capability records distinguish actual runtime capability from setup-gated or research-only agent integration.`),
       brandCard("Batch 9 design/correctness", `${readiness.designBatch9.length} design and correctness records define current visual authority and unresolved repair/review work.`),
-      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 are counted in the aggregate repository readiness figures; Batches 8 and 9 are separate internal convergence records."),
+      brandCard("Latest screenshot intake", "Batch 5 through Batch 7 and Batch 10 are counted in the aggregate repository readiness figures; Batches 8 and 9 are separate internal convergence records. Batch 10 also carries five refusals made on conduct rather than licence."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current repository-research records remain non-executing and human-reviewed.`),
@@ -266,14 +274,21 @@ function getLatestScreenshotIntake() {
   const batch5 = getScreenshotToolReadinessBatch5();
   const batch6 = getScreenshotToolReadinessBatch6();
   const batch7 = getScreenshotToolReadinessBatch7();
+  const batch12 = getScreenshotToolReadinessBatch12();
   return {
-    repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories],
+    repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories, ...batch12.repositories],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
       ...getNonRepositoryReferencesBatch6(),
-      ...getNonRepositoryReferencesBatch7()
+      ...getNonRepositoryReferencesBatch7(),
+      ...getNonRepositoryReferencesBatch12()
     ],
-    deduplicatedReferences: batch5.deduplicatedReferences || []
+    deduplicatedReferences: batch5.deduplicatedReferences || [],
+    // Refused for what using them would do rather than for what their licence
+    // says -- three of the five are permissively licensed, so filing them as
+    // licence problems would imply a relicence could unblock them.
+    conductRefusals: getConductRefusalsBatch12(),
+    confirmedExistingRecords: getConfirmedExistingRecordsBatch12()
   };
 }
 
@@ -286,7 +301,8 @@ function getCombinedPublicCatalog() {
     ...getPublicScreenshotToolCatalogBatch4(),
     ...getScreenshotToolReadinessBatch5().repositories,
     ...getScreenshotToolReadinessBatch6().repositories,
-    ...getPublicScreenshotToolCatalogBatch7()
+    ...getPublicScreenshotToolCatalogBatch7(),
+    ...getPublicScreenshotToolCatalogBatch12()
   ];
 }
 
@@ -297,7 +313,8 @@ function getScreenshotResearchCount() {
     + getPublicScreenshotToolCatalogBatch4().length
     + getScreenshotToolReadinessBatch5().repositoryCount
     + getScreenshotToolReadinessBatch6().repositoryCount
-    + getPublicScreenshotToolCatalogBatch7().length;
+    + getPublicScreenshotToolCatalogBatch7().length
+    + getPublicScreenshotToolCatalogBatch12().length;
 }
 
 function getAllNonRepositoryReferences() {
@@ -306,7 +323,8 @@ function getAllNonRepositoryReferences() {
     ...getNonRepositoryReferencesBatch3(),
     ...(batch5.nonRepositoryReferences || []),
     ...getNonRepositoryReferencesBatch6(),
-    ...getNonRepositoryReferencesBatch7()
+    ...getNonRepositoryReferencesBatch7(),
+    ...getNonRepositoryReferencesBatch12()
   ];
 }
 
@@ -319,6 +337,7 @@ function getCombinedReadiness() {
   const screenshotBatch5 = getScreenshotToolReadinessBatch5();
   const screenshotBatch6 = getScreenshotToolReadinessBatch6();
   const screenshotBatch7 = getScreenshotToolReadinessBatch7();
+  const screenshotBatch12 = getScreenshotToolReadinessBatch12();
   const convergence = getCapabilityDesignReadiness();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
   const nonRepositoryReferences = getAllNonRepositoryReferences();
@@ -330,7 +349,8 @@ function getCombinedReadiness() {
     ...screenshotBatch4.repositories,
     ...screenshotBatch5.repositories,
     ...screenshotBatch6.repositories,
-    ...screenshotBatch7.repositories
+    ...screenshotBatch7.repositories,
+    ...screenshotBatch12.repositories
   ];
   return {
     ok: true,
@@ -338,7 +358,7 @@ function getCombinedReadiness() {
     repositoryCount: repositories.length,
     verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
     blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
-    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount + screenshotBatch5.repositoryCount + screenshotBatch6.repositoryCount + screenshotBatch7.repositoryCount,
+    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount + screenshotBatch5.repositoryCount + screenshotBatch6.repositoryCount + screenshotBatch7.repositoryCount + screenshotBatch12.repositoryCount,
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
     productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,

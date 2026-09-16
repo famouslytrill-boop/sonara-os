@@ -114,5 +114,5 @@
   "20260910020000_usage_credit_ledger.sql": "4ebda0f40fdb9a194dde4d5b08c61f74fcd1f5d7bfe4e1835ae8a0533a67618d",
   "20260913190000_purchase_order_approval_controls.sql": "c7f09075103364a78f1f538811276614fd131feb06fc643561165289f5b02d49",
   "20260819030000_member_read_policies_research_sources.sql": "652933e372933c217bbfcc2d9faa47e19dfa45949a6b2225a1bdb2e4c42cf091",
-  "20260916032000_generation_lifecycle_persistence.sql": "43c2fb5503b353606b46f28156938e6e009d315ba628199f60bf59522832cf83"
+  "20260916040000_growth_campaign_send_records.sql": "379d292287fda83ddbdb4ba532fecffa362885d2e9b22a51f2ca86a540843d71"
 }

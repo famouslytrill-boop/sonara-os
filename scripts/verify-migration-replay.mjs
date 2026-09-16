@@ -110,6 +110,27 @@ function stop(message) {
 }
 
 // initdb, pg_ctl and psql, wherever this machine put them.
+// Every path that reaches a shell command goes through here.
+//
+// CodeQL alert 234 on PR #258, "Shell command built from environment values":
+// `os.tmpdir()` reads TMPDIR/TMP/TEMP, and the PostgreSQL binary directory comes
+// from a directory listing, so both are environment-derived file names being
+// interpolated into a string handed to `/bin/sh`. A TMPDIR containing a
+// semicolon or a backtick would be executed.
+//
+// It is a developer tool run locally and in CI, so the exploit needs a hostile
+// TMPDIR in an environment that already runs this repository's code -- which is
+// why it is an alert rather than an incident. Quoting is a few lines and the
+// argument for leaving it is only ever "nobody would", so it is quoted.
+//
+// POSIX single quotes: everything inside is literal, and the only character
+// needing care is the single quote itself, closed and reopened around an escaped
+// one. Double quotes would not do -- `$` and backticks are still expanded inside
+// them, which is most of what this is defending against.
+function sh(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
 function postgresBinaries() {
   const candidates = [];
   const versioned = "/usr/lib/postgresql";
@@ -186,8 +207,8 @@ function main() {
 
   const shell = (command) => {
     const wrapped = runAs
-      ? ["su", runAs, "-s", "/bin/sh", "-c", `PATH=${bin}:$PATH ${command}`]
-      : ["/bin/sh", "-c", `PATH=${bin}:$PATH ${command}`];
+      ? ["su", runAs, "-s", "/bin/sh", "-c", `PATH=${sh(bin)}:$PATH ${command}`]
+      : ["/bin/sh", "-c", `PATH=${sh(bin)}:$PATH ${command}`];
     return spawnSync(wrapped[0], wrapped.slice(1), { encoding: "utf8" });
   };
 
@@ -207,12 +228,12 @@ function main() {
       fs.writeFileSync(target, sql);
       if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, target]);
     }
-    return shell(`psql -h ${socketDir} -p ${port} -U postgres -d ${db} -v ON_ERROR_STOP=1 -q -f ${JSON.stringify(target)}`);
+    return shell(`psql -h ${sh(socketDir)} -p ${port} -U postgres -d ${sh(db)} -v ON_ERROR_STOP=1 -q -f ${sh(target)}`);
   };
 
   let started = false;
   const cleanUp = () => {
-    if (started) shell(`pg_ctl -D ${dataDir} stop -m immediate`);
+    if (started) shell(`pg_ctl -D ${sh(dataDir)} stop -m immediate`);
     for (const dir of [dataDir, socketDir]) fs.rmSync(dir, { recursive: true, force: true });
   };
   process.on("exit", cleanUp);
@@ -223,10 +244,10 @@ function main() {
       execFileSync("chmod", ["700", dataDir]);
     }
 
-    const init = shell(`initdb -D ${dataDir} -U postgres --auth=trust`);
+    const init = shell(`initdb -D ${sh(dataDir)} -U postgres --auth=trust`);
     if (init.status !== 0) stop(`initdb failed:\n${init.stderr || init.stdout}`);
 
-    const start = shell(`pg_ctl -D ${dataDir} -o "-k ${socketDir} -p ${port} -c listen_addresses=''" -l ${dataDir}/startup.log -w start`);
+    const start = shell(`pg_ctl -D ${sh(dataDir)} -o ${sh(`-k ${socketDir} -p ${port} -c listen_addresses=''`)} -l ${sh(`${dataDir}/startup.log`)} -w start`);
     if (start.status !== 0) {
       const log = fs.existsSync(`${dataDir}/startup.log`) ? fs.readFileSync(`${dataDir}/startup.log`, "utf8") : "";
       stop(`the throwaway cluster would not start:\n${start.stderr || start.stdout}\n${log}`);
@@ -546,7 +567,7 @@ function main() {
           and not exists (
             select 1 from pg_policies p
             where p.schemaname = 'public' and p.tablename = c.relname);
-    `, ["closed_count_26", "closed_set_audit_log,business_payment_accounts,call_sessions,call_signals,consent_records,db_health_snapshots,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
+    `, ["closed_count_27", "closed_set_audit_log,business_payment_accounts,call_sessions,call_signals,consent_records,db_health_snapshots,growth_campaign_sends,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
 
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text

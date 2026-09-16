@@ -2,6 +2,1071 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - A campaign now records who it actually reached
+
+`lib/growth-studio-dispatch.cjs` has named this gap in its own header since 15
+September, and named it accurately:
+
+> Reaching only the remainder needs a per-recipient record of who was accepted,
+> which is also what the >1,000 cross-invocation queue needs and is why both are
+> still unbuilt.
+
+The harm was specific. A campaign that reached 900 of 1,000 told the owner which
+100 were not attempted, and the only way to reach those 100 was to send the whole
+campaign again -- mailing the first 900 twice. The charge is keyed on
+`campaign:<id>`, so the second send is refused as a duplicate charge and the
+owner is never billed, which removes the one signal that would have told them it
+happened.
+
+**Added:** `public.growth_campaign_sends` (migration 119), and
+`lib/growth-studio-send-records.cjs` holding the pure half -- `sendRowsFor` and
+`remainderFrom` -- plus a Supabase writer and reader. One row per recipient per
+attempt, across the three outcomes the dispatcher already distinguished:
+accepted, failed, not attempted.
+
+`growth_campaign_sends_accepted_once` is the guarantee rather than an
+optimisation: partial on `status = 'accepted'`, keyed on
+`(organization_id, campaign_id, lower(email))`. One accepted row per person per
+campaign, so a retry cannot double-count; failed and not-attempted rows are
+deliberately outside it, because a recipient can legitimately fail twice and
+each attempt is evidence. It is case-folded because `Ann@` and `ann@` are one
+real person who would otherwise get two emails.
+
+## The defect this introduces, and the guard against it
+
+**Zero accepted rows has two opposite causes** -- nothing was sent, or the record
+was not written -- and they are the same value. Read one as the other and the
+product tells an owner it is safe to re-mail everybody, which is worse than the
+gap it replaced because now there is a record to point at.
+
+So `remainderFrom` takes a read OUTCOME and refuses a bare array. `{ ok: false }`
+returns `known: false` with an empty remainder -- declining to answer rather than
+answering "everybody". A genuinely empty record still answers, so the guard
+protects the feature instead of breaking it. That is shape 4 from
+`.claude/skills/checks-that-cannot-lie`.
+
+The dispatcher's owner-facing sentence now follows the record rather than being
+fixed: with one written it says only the remainder needs sending; without one it
+says sending again would re-mail everyone above. The route forwards `recorded`
+for the same reason it had to start forwarding `notAttempted` -- a caller that
+can read the sentence but not the state cannot decide whether offering
+"send to the remainder" is safe.
+
+**A batch 409 is not interpreted.** PostgREST fails the whole insert on a unique
+violation without naming the row, so the batch is re-inserted individually and
+each outcome attributed -- the same choice, for the same reason, as the
+batch-email fallback three files over. Bounded at 200, past which the result says
+which rows landed is unknown rather than claiming success.
+
+Also: the batch send path was reading the provider ids to decide a batch was
+clean and then discarding them. They are index-aligned by the documented
+contract, so each one is now kept against its address.
+
+**Broken to prove each check works.** Treating a failed read as an empty record,
+accepting a bare array, and counting a failed row as reached each failed by name
+and restored to an identical hash.
+
+## Three existing checks this moved, and why none was weakened
+
+- The closed-set probe in `verify-migration-replay` went 26 -> 27 tables closed
+  to everyone but the service role. That is the check working: a new table
+  invisible to anon and authenticated has to be declared deliberately.
+- `a-campaign-sends-only-to-who-was-authorised` asserts exactly one report entry
+  when the ledger fails. There are now two true things to report, so the fixture
+  supplies a working recorder and the assertion stays exact rather than being
+  loosened to "at least one".
+- `an-owner-told-a-hundred-were-missed-can-find-out-which` asserted the old fixed
+  sentence. Its fixture's fetch stub answers the send-record insert too, so the
+  record IS written there -- the assertion now reads the forwarded `recorded.ok`
+  as well as the prose, because a sentence claiming a record while the state says
+  otherwise would be the same defect in a new place.
+
+**Verified:** 4,577 tests passing, `verify:gates` exits 0, 119 migrations replay
+against an empty PostgreSQL, derived figures updated in five documents.
+
+**Still not built:** the >1,000 cross-invocation queue, and the owner-facing
+"send to the remainder" action. Both now have the record they were waiting on;
+neither is wired, and the dispatcher still refuses past its fallback budget
+rather than pretending otherwise.
+
+### 2026-09-16 - The server answers 564 GET routes and the manifest named 308
+
+An owner batch of seven screenshot uploads was held unprocessed on request.
+Once released, the single most useful thing in it was not a repository but
+OWASP Noir's premise -- *hunt every endpoint in your code, expose shadow APIs*.
+Noir itself is a compiled Crystal binary (`shard.yml`: v1.3.1, Crystal ~> 1.19)
+and cannot run in a Vercel request process, so the idea was taken and the
+dependency was not.
+
+Applied here: `lib/sonara-route-registry.cjs` declares **308** pages, the server
+answers **564** GET routes, and **256 were in no manifest at all** -- including
+`/staff/location`, `/admin/subscriptions`, `/account/security/two-factor`,
+`/growth/unsubscribe` and fourteen legal documents. Nothing in this repository
+had ever examined any of them.
+
+The reverse check that should have caught it returned an empty list and the
+assertion passed over the empty list, because `untrackedProductRoutes` filters
+on
+
+    PRODUCT_ROUTE_PATTERN = /^\/(business-builder|creator-studio|growth-studio)(?:\/|$)/
+
+so `/api`, `/admin`, `/staff`, `/account`, `/legal`, `/research-lab` and
+`/owner` were never in the population it measured -- and then
+`verify-route-registry.cjs` printed "Route registry verification passed". Both
+halves of the recurring defect in one gate.
+
+**Added:** `lib/sonara-route-surface.cjs` (13 surfaces, each with a measured
+reason), `scripts/verify-route-surface.mjs` as the 48th chain command, and
+`tests/a-route-nobody-declared-still-answers.test.js`, which probes 67 pages
+nothing had opened before.
+
+**What was broken to prove each check works.** A new `app.get` failed by name
+and exited 1. Renaming the `consent_withdrawal` pattern failed as an empty
+surface. Overlapping two patterns failed as ambiguous. Re-filing
+`/research-lab` as `signed_in` failed the strengthened refusal assertion. Each
+restored by copying the file back and comparing hashes.
+
+**The reassuring finding, stated as measured:** the server refuses a stranger on
+all 36 protected undeclared pages. The server was right about all 67 and the
+manifest was silent about all 67 -- the same shape as the sixteen mislabelled
+routes found on 19 August, one direction over. Nothing leaked.
+
+## Two of my own errors the checks caught, not the code review
+
+**A false pass in the first version of the surface module.** `/onboarding`,
+`/feedback` and `/research-lab` were filed as needing a session, and the probe
+agreed -- because it counted *any* redirect as a refusal, and all three redirect
+to public pages through `publicCompatibilityRoutes`. A refusal now has to land
+on a sign-in page. The entry for `/research-lab` had carried a confident
+sentence explaining why it refused a stranger while its children served one;
+that sentence was reasoned rather than verified, and the redirect target was
+three lines away in `server.js`.
+
+**The legal-URL finding was backwards.** It looked like a duplicate-content
+defect: seven legal documents served byte-identically at two URLs, one declared
+and one not. Reading `legalAliasPages()` showed `/legal/x` is the canonical
+`source` and the short form is the alias, and all eight pairs serve an identical
+canonical tag. There is no canonical split. What is real is narrower and is in
+`docs/owner/LEGAL-URL-DECISION.md`: **six legal documents are published only
+under `/legal/`, indexable, in no manifest**, and legal publishing is an
+owner-approval category under AGENTS.md. Nothing about what is served was
+changed.
+
+## Batch 11 of the screenshot intake
+
+68 images, 8 files and one pasted research block across seven batches. Ten
+repositories verified by shallow clone, four already in the register and
+re-measured (all four agreed), five refused on conduct, fourteen recorded as
+services or content, zero installed or executed.
+
+Three submitted descriptions did not survive measurement:
+`ran-isenberg/awesome-serverless-blueprints` was offered as production CDK
+blueprints with Rust Lambda resolvers and is 13 files with one content file;
+`brandonhimpfen/awesome-serverless` was offered as a curated directory and has
+no licence file at all; `beekeeper-studio` reached us as "an open-source SQL
+editor" and is GPL-3.0 plus a commercial EULA over `**/src-commercial`.
+`aws-samples/serverless-samples` would have been recorded closed from its first
+line -- "All Rights Reserved" -- and is MIT-0 once the body is read.
+
+**Numbered 11 after two collisions**, which is worth the next person's time:
+the screenshot radar filenames stop at `batch7`, so 8 looks free and is not
+(`capabilityBatch8`, `designBatch9`), and 10 belongs to
+`sonara-batch10-operational-review.cjs`. The collision check in
+`tests/a-screenshot-is-not-a-licence.test.js` now *derives* the claimed numbers
+by scanning `lib/` -- its first version listed 8 and 9 by name, which is exactly
+what let the second collision through. Its definition of "claims" also had to
+narrow from "names a batch identifier" to "defines one", because the moment the
+convergence engine imported this module's getter the engine read as a rival
+claimant.
+
+`repositoryVerified` here is set from an `evidence` field carrying the clone date
+and file count. Batch 7 derives the same claim as
+`!/reported in submitted screenshot|requires authoritative/.test(input.license)`,
+which grants verification to any licence text that happens to avoid two phrases.
+
+Conduct refusals are a separate list rather than more `blocked` rows: three of
+the five are permissively licensed, and filing them as licence problems would
+imply a relicence could lift them. They are people-search OSINT, provenance
+stripping, routing a coding agent through a consumer chat session in place of
+the provider API, and the detection-evasion sections of two cheat sheets.
+
+**Verified:** 4,556 tests passing, `verify:gates` exits 0 across all 39
+commands, `verify:launch` chain length now 48 and quoted correctly in
+`docs/owner/WHAT-IS-LEFT.md`.
+
+**Still open and unchanged:** `STRIPE_RUNTIME_SECRET_KEY` is owner-only and
+still blocks every deploy; the six legal documents need the owner's decision;
+the carrier adapter and inbound SMS webhook still need a vendor choice.
+
+### 2026-09-15 - Production is 22 commits behind because one secret is empty
+
+An owner screenshot of "Production Commit Drift: All jobs have failed" turned
+out to have a single cause, and it is not a code defect.
+
+Measured: production serves `f466662` (PR #255, 14 September 17:20), main is at
+`9f03507`, **22 commits apart**. Every one of the last twelve Controlled
+Production Deployment runs failed. The newest one, run 176, failed here:
+
+    STRIPE_RUNTIME_SECRET_KEY:            <- empty
+    STRIPE_VERIFIER_SECRET_KEY: ***
+    A full live Stripe runtime key is required. Configure the protected
+    STRIPE_RUNTIME_SECRET_KEY secret with an sk_live_ key; the read-only
+    verifier key will not be promoted.
+
+Everything before that step passed: production schema (118 migrations, 146
+tables), the Supabase contract, the tenant-query audit, launch config, the route
+registry, the OpenAPI contract, the open-source registry, `supabase db push
+--dry-run` reporting the remote database up to date, and the Stripe **price**
+audit against live prices using the verifier key. One step, one empty secret,
+and it is `docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md` -- owner-only, unchanged.
+
+So the drift workflow's every-two-hours failure is a true report of a real
+condition with a known cause that only the owner can clear.
+
+## The drift message was guessing, and this time the guess was wrong
+
+`production-commit-drift.yml` offered two causes and told the reader the
+distance tells them apart: *"hours means a deploy was overtaken, weeks means
+none has landed."*
+
+Production was 22 commits and about **twenty hours** behind -- inside the
+"hours" band -- and the cause was the other one. Following that message would
+have sent somebody hunting a rogue dashboard redeploy that never happened.
+
+That message was itself written to fix an earlier version which asserted a
+single cause and was wrong on 5 September. **Replacing one guess with two is
+not a fix.** The distance is derivable from git; the cause is not derivable in
+that workflow at all. It now reports the distance and points at the one place
+the cause is legible -- the conclusion of the newest deploy run -- with the
+three readings spelled out and none of them asserted.
+
+## A red release gate on main, in customer-facing copy
+
+Found while merging main in, and reproduced against `origin/main` alone so it is
+not an artefact of the merge: `check-research-lab-public-copy.mjs` **fails on
+main**. Two cards added by the batch-7 work said
+
+    "The Batch 5 through Batch 7 research is included in this complete governed catalog..."
+    "Batch 5 through Batch 7 are included in the aggregate readiness contract..."
+
+"is/are included" is the pattern that gate exists to catch, and the ambiguity is
+the real thing: a customer cannot tell "included in a research list" from
+"included in the product". The facts were right -- batches 5-7 genuinely are
+summed into `screenshotResearchCount`, checked in the code before rewording, so
+no behavioural decision was reversed. The wording now says what is true: they
+*appear in this catalog as non-executing research records* and are *counted in
+the readiness figures*.
+
+Broken to prove it: restoring main's exact sentence fails the check by file and
+line; the new wording passes.
+
+**Correction, made within the hour.** The commit message for this change says
+"a red main did not announce itself". That is wrong, and the way it is wrong is
+worth keeping. `sonara-industries-ci` runs `verify:launch` and has **failed on
+all five most recent main commits** -- main is announcing itself loudly. What is
+true is narrower: that CI dies at `generate-handoff-prompt.mjs --check`
+("docs/HANDOFF_PROMPT.md is out of date"), `verify:gates` short-circuits there,
+and **the copy-gate failure is never reached.** So the copy overclaim is masked
+behind an earlier failure rather than unreported by a gate nobody runs.
+
+The difference matters for what to do: main's CI needs one command
+(`node scripts/generate-handoff-prompt.mjs`) before the next failure is even
+visible, and there is at least one more behind it. I asserted the stronger claim
+from the fact that the gate is not in the deploy chain -- true, and not what
+makes it invisible. Checked by reading run 1480's log rather than inferring
+from the workflow file, which is what I should have done first.
+
+## What was dropped, deliberately
+
+PR #258 was closed without merging, so my batch-7 records were superseded by the
+owner's own via #259-#261. Main's batch 7 holds 27 records and **none of the
+seven repositories I reviewed** -- checked by name. `tests/the-seventh-screenshot-batch-stays-research.test.js`
+asserted the 7-record shape and could not pass against a 27-record module, so it
+is removed rather than left failing for a reason that is not a defect. The
+licence verdicts it carried are unshipped and the owner's to want back or not.
+
+
+### 2026-09-15 - CodeQL was right about my own script, and about the one next to it
+
+CodeQL alert 234 on PR #258, "Shell command built from environment values",
+flagged `scripts/report-authorization-function-grants.mjs` -- the experiment
+script I had added an hour earlier. It builds its PostgreSQL commands as strings
+handed to `/bin/sh`, interpolating
+`fs.mkdtempSync(path.join(os.tmpdir(), ...))`, and `os.tmpdir()` reads `TMPDIR`.
+
+**The same flaw was in `scripts/verify-migration-replay.mjs`, which is in the
+release chain** -- I had copied the pattern from it. CodeQL flagged only the new
+file, because that is how pull-request scanning works, not because the older one
+was safe. Both are fixed.
+
+## Verified reachable, and the first probe was a trap
+
+With the `initdb` path left unquoted and `TMPDIR` set to a directory literally
+named `/tmp/pwn; touch /tmp/INJECTED-MARKER; echo x`, the marker file was
+created. With the quoting in place and the same `TMPDIR`, it was not.
+
+**The first probe reported no injection and was wrong.** It aimed the injected
+`touch` at a root-owned scratch directory, and the command runs under
+`su postgres`, so nothing was written and the run looked safe. A probe that
+cannot succeed proves nothing about a defence, and had I stopped there I would
+have recorded "not exploitable this way" from an experiment that could not have
+detected exploitation. The target has to be somewhere the injected command could
+actually write.
+
+That is the same shape as the other two harness mistakes this session -- a
+baseline that already refused, and a fixture that hit a blind-scan floor. Three
+in one day, all the same: **check that the negative case could have been
+positive.**
+
+## The fix
+
+Both files route every interpolated path through an `sh()` helper wrapping in
+POSIX single quotes with embedded ones escaped. Double quotes would not do --
+`$` and backticks are still expanded inside them, which is most of what this
+defends against. Both scripts re-run afterwards: 118 migrations replay, and the
+grant experiment reports what it did before.
+
+Recorded in `SECURITY_NOTES.md`, which is usually for weakened checks. Nothing
+was weakened; it is there because "we quoted a path" is worth nothing as a claim
+and everything as a measurement, and the measurement belongs where somebody
+looks for it.
+
+### 2026-09-15 - The campaign summary told the owner to do the irreversible thing
+
+`dispatchCampaign` bounds its per-recipient fallback at two batches, because
+1,000 individual sends would exceed the 300-second function lifetime. Past that
+bound the rest are reported as not attempted, and the line an owner read ended:
+
+    201 sent, 100 not attempted -- send again to reach them.
+
+**Following that instruction mails the 201 a second time.** There is no
+send-to-the-remainder path and no record of who the 201 were.
+
+And the owner would not find out. The ledger charge is keyed on the campaign, so
+the second send's charge is refused as a duplicate and the balance does not move
+-- which removes the one signal that would have shown it. A repeat send is not
+otherwise blocked either: the only status guard refuses `completed` and
+`archived`, and a successful send sets neither.
+
+This was in the file that refuses to send a campaign at all without a working
+unsubscribe link, on the grounds that "the mail is in somebody's inbox, they
+have no way to stop the next one". Same irreversibility, in the summary line.
+
+## And the addresses were computed, returned, and dropped
+
+`dispatchCampaign` returns `notAttempted` as `[{ email, reason }]`. The send
+route forwarded sent, failed, skipped and charge -- **and not that**. So an owner
+was told "100 not attempted" with no way to learn which hundred.
+
+Third defect shape, at a route boundary rather than in a query. And the existing
+test asserting those recipients "must be reported, not silently dropped" was
+asserting it against the dispatcher's return value, one layer below the layer
+that dropped them -- the sixth shape, a check too weak to catch the thing it was
+written for.
+
+## What changed
+
+The route forwards them. The summary says what is true: the addresses are
+listed, and sending again would re-send to everyone already reached.
+
+`tests/an-owner-told-a-hundred-were-missed-can-find-out-which.test.js` asserts
+both at the HTTP boundary, with 301 recipients and a provider that returns one id
+for a batch of a hundred so the fallback budget genuinely runs out.
+**No route-level test had exercised the batch endpoint at all** -- every send
+test used few enough recipients to stay on the single-send path, which is not the
+path a real campaign takes. Getting there needed the harness to match the batch
+URL before the `/emails` prefix, because checking in the other order sends an
+array body down the single-send branch and throws on a shape production never
+produces.
+
+## What is not built, and why it is one thing rather than two
+
+`docs/architecture/2026-09-15-A-CAMPAIGN-DOES-NOT-REMEMBER-WHO-IT-REACHED.md`.
+Sending to the remainder and sending to more than 1,000 recipients are blocked on
+the same missing thing: a per-recipient record of who was reached. The 1,000 cap's
+comment says reaching further "needs a queue and is not built" -- a queue is the
+smaller half. The larger half is that a second invocation cannot know where the
+first stopped, and resuming without that re-mails people: the same harm as above,
+arriving automatically rather than on a button. The scheduling half is already a
+solved pattern here (agent-schedule-tick drives an authenticated endpoint hourly,
+because Vercel's Hobby tier permits only daily cron).
+
+The doc records what a fix has to get right while the reasoning is fresh, and the
+order that matters most: **write the recipient row before attempting the send,
+not after.** Record-then-send can lose a recipient; send-then-record can mail
+twice. One is recoverable.
+
+## Broken to prove it works
+
+Four rounds, hash-compared and restored:
+
+1. stopped the route forwarding notAttempted -- *"the route must forward
+   notAttempted; an owner cannot act on a count alone"*.
+2. put the old sentence back -- the failure prints the exact line an owner would
+   have read: *"201 sent, 100 not attempted -- send again to reach them."*
+3. made the fallback-exhausted branch also mail the recipients it reports as not
+   attempted -- *"contact200@example.com is reported as not attempted and was
+   mailed"*.
+4. made batches never fall back, so nothing reaches the not-attempted branch --
+   the count assertions fail rather than passing over an empty list.
+
+### 2026-09-15 - "Verifying that needs a database somebody can break" -- we have one now
+
+`docs/SHIP_READINESS.md` item 3 records twelve SECURITY DEFINER authorization
+functions reachable by `authenticated` over `/rest/v1/rpc/`, and says the
+advisor's remediation was not applied because revoking EXECUTE "could silently
+break every RLS policy that calls them", and that verifying it "needs a database
+somebody can break -- a preview branch -- not a guess."
+
+That was true when written. `verify-migration-replay.mjs` has since made such a
+database on every release. `pnpm run report:authorization-grants` now runs the
+experiment on one: throwaway cluster, Supabase primitives shimmed, 118
+migrations, reads attempted as `authenticated`.
+
+**The caution holds. Two of the surrounding sentences did not.**
+
+- Revoking EXECUTE on `is_org_member` turns a working read of `activity_events`
+  or `intake_requests` into `permission denied for function is_org_member`. So
+  the risk is real and measured.
+- It is **not silent** -- the error names the function -- and granting it back
+  restores the read in the same session.
+- It **fires on an empty table.** Both tables held no rows, so the policy was
+  evaluated for zero rows and the query was still refused. The EXECUTE check is
+  not per-row, so the breakage is immediate and total rather than
+  data-dependent. Easier to notice, much worse to ship.
+- It is **not "every RLS policy in the schema"**. The 18 July hardening revoked
+  the Data API defaults and re-granted seventeen tables by name; thirteen of
+  those have a policy calling one of these functions, so **614 of the 631
+  policies govern tables `authenticated` cannot touch at all.**
+
+And one function separates out: **`sonara_has_org_role` is created by a
+migration, granted to `authenticated`, and called by no policy here.** Revoking
+it changed nothing in the experiment. That is the one an owner can try first.
+
+## Two corrections to my own measurement
+
+**My first scan counted `create function` inside SQL comments.** Four of the
+twelve -- `is_admin`, `is_current_user_admin`, `has_scope`, `has_company_access`
+-- are not created by any migration. `20260819050000` *records* them, every line
+prefixed `--`, deliberately, because their real bodies are in the live database
+and a guess in version control would be worse than the gap. My scan reported all
+twelve as created. Stripping SQL line comments before measuring is the lesson
+`lib/sonara-comment-stripping.cjs` exists for, one language over.
+
+**My first experiment measured the grant, not the policy.** It read
+`public.organizations` and got "permission denied for table organizations" on
+the baseline -- because that table is not one of the seventeen. A baseline that
+already refuses proves nothing about a revoke, and had I not printed the
+baseline I would have recorded "revoking it breaks the read" from a run where
+nothing worked to begin with. The script prints every baseline for that reason.
+
+The shim is reused from the verifier by evaluating its own declaration rather
+than re-parsing it -- my first attempt used a regex expecting backtick templates,
+parsed zero entries, and refused to run. A second copy of the shim would be a
+different database from the one the release chain replays, which is the failure
+this experiment is about.
+
+## Deliberately not in the release chain
+
+It answers a question rather than guarding an invariant, takes about forty
+seconds, and the answer does not change when the code does. Checked in so the
+finding can be re-run rather than believed.
+
+## What it does not license
+
+Nothing in production. Every figure is the migration history replayed to an empty
+database, and this repository already knows the two differ -- four of these
+functions and one table exist live with no migration. A policy or grant that
+exists only in production is invisible here.
+`docs/owner/OWNER-STEPS.md` items 3 and 4 are still the owner's; the measurement
+just makes the question narrower.
+
+### 2026-09-15 - The stale-claim check was reading a narrower population than it reported
+
+Found by writing a document that says "Every figure below was measured on
+15 September 2026" and noticing the dated count did not move.
+
+`report-stale-claims.mjs` printed "Documents making a dated claim: 17". Its
+marker required one of six words to **start a line** — which is how front matter
+is written, and not how most documents here state a measurement date. Measured
+over 382 documents: seven more make the same claim in a sentence.
+
+    "both measured on 5 September 2026"        docs/SHIP_READINESS.md
+    "hand-counted on 12 August 2026"           docs/owner/WHAT-IS-LEFT.md
+    "Public-live verified on 2026-07-17"       docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md
+    "Measured on 2026-08-05"                   docs/WORKSPACE_WORKFLOW_AUDIT.md
+
+Second shape in the skill — measuring a different population from the one
+claimed — on the check whose own output names the population. The marker's
+comment called the narrowness deliberate, and it was: the reason given was that
+a document claiming nothing needs no review date. That reason does not cover a
+document claiming plenty in different words.
+
+The marker now also matches a measurement verb, at most sixty characters of the
+same sentence, and an **explicit date**. 17 dated documents became 24.
+
+## Five documents with no review date, and why none of them got one today
+
+Adding a review date to five documents to turn the chain green would be exactly
+what this check says it cannot catch: *"Moving the date without looking."* So
+each is on `AWAITING_FIRST_REVIEW` with what it specifically needs and a deadline
+after which the check fails on it. **The deadline is my judgement — one month —
+not a derivation, and it is enforced rather than written in prose so it cannot
+quietly outlive itself.**
+
+The register is two-sided: an entry fails if the document stops making a dated
+claim, acquires a review date, or leaves the scanned set.
+
+## A correction inside the change
+
+The first draft added `measured`, `verified` and `counted` to the **line-start**
+set as well. They are ordinary sentence openers, so they matched
+"Measured live during Phase 1 work:" and "Verified in this repository: `/`
+returns 200" — claims with no date in them, which this check has nothing to say
+about. Two documents were about to be told to add a review date to a sentence
+that names no date. Taken back out; requiring the date is what makes the
+widening safe.
+
+## Broken to prove it works
+
+Three rounds, hash-compared and restored:
+
+1. moved one registration's deadline into the past — *"was registered as
+   awaiting a first review by 2026-09-01, and that date has passed"*, and the
+   check exits 1.
+2. registered a document that makes no dated claim — *"no longer makes a dated
+   claim. Remove the entry."*
+3. made the sentence marker match nothing. The count falls back to 17 and
+   **three registrations immediately fail as describing nothing.** That is the
+   register acting as the widening's blindness guard, which is a consequence of
+   its two-sidedness rather than something I designed for — worth recording
+   because it is the property that stops the widening going quiet.
+
+### 2026-09-15 - A required field, a quoted count, and no gate between them
+
+`data/open-source-tools.ts` has carried a required `reciprocalLicense` boolean
+since the register was built, with a long comment explaining why it is a stated
+field rather than a substring search — prose in one licence field once named
+four reciprocal licences while saying the repository was in none of them, and a
+search counted it.
+
+**Thirty-one records set that field. Nothing read it except a figure check.**
+`verify-doc-counts.mjs` asserts the number printed in the docs equals the number
+in the register: a true statement about two numbers that says nothing about
+whether any of the thirty-one may be adopted. So the register recorded the fact,
+the docs quoted the count, and no gate connected either to a decision.
+
+Measured: all thirty-one are at `reference_only` (18), `blocked` (7) or
+`research_only` (6). **The rule was being followed by hand** — which is precisely
+the state where nobody notices it stopping.
+
+`scripts/verify-reciprocal-licence-containment.mjs` is now the 47th command in
+the chain. Default deny: a reciprocal record with an adoption status
+(`adapter_built`, `optional_adapter_after_review`) fails unless a written ruling
+names what runs where. The ruling list is two-sided, so a reason that stops
+describing anything fails too.
+
+Three deliberate limits, each because the alternative would overclaim:
+
+- **Not a flat ban.** Whether a reciprocal licence reaches a hosted product
+  depends on how the code is reached, and a separate owner-run process behind a
+  network boundary is a genuinely contested question rather than an obvious one.
+  Default deny with a written exception is the honest shape.
+- **It does not read the licence text.** It trusts the stated field, for the
+  reason the register gives, and checks what was done with it.
+- **It does not read the rule out of `CLAUDE.md`.** That file's statement of it
+  was rewritten on 13 September in commit 86d5a5f — from naming AGPL/GPL/OSL and
+  their network-use trigger to a general instruction to review conditions — inside
+  a commit titled "Point Claude at screenshot tool research workflow". Whatever
+  the intent, a gate that derives its rule from prose loosens when the prose does.
+
+## Two copies of one label map, and only one was checked
+
+Found on the way. `data/open-source-tools.ts` holds `openSourceToolStatuses`,
+which `verify-open-source-registry.mjs` checks against the
+`OpenSourceIntegrationStatus` union in both directions. `lib/sonara-open-source-registry.cjs`
+holds `INTEGRATION_LABELS` — a second copy, which is the one
+`/research-lab/open-source` actually renders, and nothing compared it to
+anything.
+
+When `adapter_built` was added to the union it went into the checked map and not
+the rendered one, and `integrationLabel`'s `|| value` fallback made the gap
+silent: **nine records rendered the raw string `adapter_built` on a public page.**
+The verifier's own comment reasoned the symptom would be "a status rendering as
+undefined wherever the map is read" — true of the map it was looking at, and
+there were two.
+
+The label is added and the verifier now checks both maps. They may word a status
+differently, because one is customer-facing prose and one is not; neither may
+omit a status or invent one.
+
+`reciprocalLicense` also joined `readOpenSourceTools()` rather than getting a
+fourth reader of that file — the module's own header is about two readers of one
+file disagreeing. Its `booleanField` returns **three** states: an absent required
+field is `null`, not `false`, because an unreadable AGPL record reading as
+permissive is the one mistake that field exists to stop.
+
+## Broken to prove the checks work
+
+Six rounds, each failing by name, each restored from a copy with the file hash
+compared before and after:
+
+1. gave a reciprocal record an adoption status — *"zitadel-identity carries a
+   reciprocal licence (AGPL-3.0) and integrationStatus \"adapter_built\""*.
+2. deleted `adapter_built` from the rendered label map — *"has no label in
+   INTEGRATION_LABELS, so /research-lab/open-source renders the raw value to a
+   customer"*.
+3. added a `vendored_inline` status to the union — *"declared in
+   data/open-source-tools.ts and classified nowhere in this file"*, which is the
+   guard that stops a new status defaulting into the permissive branch.
+4. made the boolean reader always return false — *"no register record carries
+   reciprocalLicense: true"*, rather than a confident pass over an empty set.
+5. blinded the union parser — *"only 0 integration statuses read from the type
+   union; this check has gone blind"*.
+6. added a ruling for a record that needs none — *"whose status is now
+   \"research_only\" and needs no ruling. Remove it."*
+
+One correction to my own work mid-change: the first version of the new script
+said its status list was "read from the type union rather than retyped". It was
+hardcoded. That is the reason-you-reasoned-your-way-to that `CLAUDE.md` warns
+about, and it reads exactly like a verified one. The list is now genuinely
+checked against the union in both directions, which is stronger than what the
+comment originally claimed.
+
+### 2026-09-15 - Every calendar file this product made was titled "Booking"
+
+`lib/sonara-calendar-invite.cjs` reads `booking.service_name`,
+`booking.location_name` and `booking.calendar_sequence`. **`business_bookings`
+has none of the three.** Checked against every `create table` and `add column`
+for that table in migrations 013, 20260721213000 and 20260812000000; the table
+has `service_id` and `location_id` -- foreign keys -- and no revision counter at
+all. `service_name` appears in the schema only on a different table.
+
+All three reads returned `undefined`, and every fallback was silent:
+
+- `summary` fell through to `settings.defaultSummary || "Booking"`, and no call
+  site passes `defaultSummary`, so **every downloaded calendar entry was titled
+  literally "Booking"**. A salon with six appointments in a day got six
+  identical entries.
+- the `LOCATION` line is written only `if (booking.location_name)`, so it was
+  **never written** -- on bookings that carry a `location_id` pointing at a row
+  with a name and a full address.
+- `SEQUENCE` was `Number.isFinite(Number(undefined)) ? ... : 0`, so **always 0**.
+  The comment above that line says SEQUENCE "lets a later download supersede an
+  earlier one for the same UID". True of the property; not true of this file.
+  A corrected booking re-downloaded on top of the old one is the one thing
+  SEQUENCE exists for, and 0 every time is the one value that cannot do it.
+
+## Why nothing caught it
+
+The query was `select=*`. `report-unused-selected-columns.mjs` compares the
+columns a query asks for against the columns a function uses, and a star select
+does not name its columns, so there was nothing to compare. That script counts
+star selects rather than auditing them *because* of this blindness — this is the
+defect it was counting the blindness for, and it sat there for a week.
+
+## What was built
+
+`lib/sonara-booking-calendar-fields.cjs` supplies the three: the service and
+location names resolved from the two foreign keys, and a sequence derived from
+the elapsed seconds between `created_at` and `updated_at`. It is a proxy for a
+revision count and says so — two edits a second apart may collide — and it rises
+whenever the booking changes and never falls, which 0 forever could not.
+
+Two organization-filtered lookups rather than a PostgREST embed, following the
+ruling `loadCampaignRecipients` already made for the same reason: an embed
+filters the outer table and leaves the inner one to relationship detection, and
+with the service-role key that filter **is** the tenant boundary.
+
+Four `select=*` queries narrowed — the two booking exports and the two contact
+exports — taking the recorded star count 26 to 22 and the audited population 101
+to 118 multi-column selects.
+
+## The trade this nearly made instead
+
+The first version put each column list in a `const` and interpolated it. Star
+selects fell to 22 and run-time-built selects rose 25 to **30** — trading one
+blindness for the other, which is exactly what that script's header warns
+about. The lists are literal at the four query sites now, and the test asserts
+the two reads of each table agree rather than trusting them to.
+
+Narrowing the selects also produced five new tier-1 findings, because columns
+used only inside the builder modules are named nowhere in the route. Each is
+ruled on with the module and the line that reads it. They were always unread in
+that file; the star select meant nothing could say so.
+
+## The consent column, and the gate deliberately not added
+
+The contact export selected `customers.communication_preference` — the column
+recording how a customer agreed to be contacted — and compared it to nothing.
+That is the shape of the bug that check exists for, so the first question was
+whether an export was ignoring a stated preference.
+
+**It was not.** Nothing anywhere reads or writes that column, so it is
+`'unknown'` on every row. Gating the export on it would have refused every
+export for every business and told each one their customer had not agreed to be
+contacted — a definite claim about their own data, on an empty column, while
+looking like enforcement. `docs/architecture/2026-09-15-WHICH-CONSENT-STORE-IS-ENFORCED.md`
+maps all six consent-shaped stores in the schema: two enforced, two formally
+retired, two live and unused. The column is no longer fetched and nothing was
+gated.
+
+## Broken to prove the checks work
+
+`tests/a-calendar-file-cannot-read-a-column-that-does-not-exist.test.js`, eight
+rounds, each failing by name, each restored from a copy with the file hash
+compared before and after:
+
+1. renamed `service_name` to `service_headline` in the invite module — *"reads
+   service_headline off a booking. business_bookings has no such column"*. This
+   is the original defect reintroduced.
+2. dropped `notes` from the booking select — *"does not ask for notes, so those
+   reads are undefined"*.
+3. put `service_name` into the select — *"names service_name, which
+   business_bookings does not have. PostgREST answers 400"*.
+4. put `communication_preference` back — *"fetches communication_preference and
+   nothing compares it to anything"*.
+5. made the decoration `Object.assign` onto the caller's row — *"wrote onto the
+   caller's row"*.
+6. blinded the migration column parser — *"business_bookings parsed without an
+   id column; this check has gone blind"*, which is the guard firing before the
+   assertions could pass over an empty set.
+7. made `calendarSequence` return 0 always — the sequence assertion.
+8. made the diary feed ask for a shorter list than the single invite — *"the 2
+   reads of business_bookings ask for 2 different column lists"*.
+
+The migration replay was run locally to settle a separate suspicion: 77
+statements in `20260812000000` carry a doubled `default now() default now()`,
+which I expected PostgreSQL to reject as a duplicate DEFAULT. It does not. 118
+migrations apply to an empty database. Redundant, not broken, and recorded here
+so nobody else spends the time.
+
+### 2026-09-15 - A block that promised its numbers were counted
+
+`docs/owner/WHAT-IS-LEFT.md` has a section headed *"What has been built, in
+numbers"*, under the line **"Counted from the repository on 12 August 2026, not
+recalled."**
+
+They were counted. Then the repository moved, and four of the seven figures
+drifted with nothing watching them. **A block that claims its numbers are counted
+is making a claim about method, and that is worse than a plain stale number,
+because it tells the reader not to check.**
+
+I found it while editing that same file an hour earlier and walked straight past
+it.
+
+## What had drifted
+
+| Figure | Said | Actual |
+|---|---|---|
+| registered GET routes | 248 | **307** |
+| external repositories reviewed | 82 | **237** |
+| owner record pages | 23 | **27** |
+| registered GET routes, in `SHIP_READINESS.md` | 277 | **307** |
+
+Three had held, and held exactly: `326` tables created by the migrations, `229`
+of them organization-scoped, and `46` chain commands. Those three are derived.
+That is the whole difference.
+
+**The register figure is the sharp one.** `docs/owner/WHAT-IS-LEFT.md` already
+says "237 reviewed repositories" in one section — corrected the same day — and
+said "82 external repositories reviewed" two sections later. One fact, two
+sentences, one guarded and one not.
+
+That failure has a precedent in the checker's own comments, for the reciprocal
+count: *"One number, two sentences, one guard: the second sentence needs its own
+pattern or it is unguarded prose."* It had happened before and the lesson had
+been written down; the register count simply had a phrasing nobody had added.
+
+## Guarded rather than corrected
+
+Three new patterns and two new derivations in `scripts/verify-doc-counts.mjs`:
+
+- `N external repositories reviewed` → the register count, the reversed
+  phrasing of an already-guarded fact.
+- `N registered GET routes` → `ROUTE_REGISTRY.length`.
+- `N owner record pages` → `ALL_OWNER_PAGES.length`.
+
+The route one needed a decision. `verify-product-lifecycle-evidence` reports
+**557 served GET routes** by scanning source, while the registry holds **307**.
+Those are different quantities, and deriving the second here as well would put
+two methods behind one number — which is how two checks come to disagree. The
+pattern requires the word *registered*, and the comment says why.
+
+**The check found a fourth on its first run**, in a document I had not opened:
+`docs/SHIP_READINESS.md` carried the route figure separately stale at 277. One
+fact, two documents, two different wrong values — which is what a hand-typed
+number looks like a month later.
+
+Countable claims: 15 → **19**.
+
+## One figure deliberately left alone
+
+`22 record checks` is now marked **hand-counted and not derived**. "Record check"
+names no single thing a script can count, and the checker's own rule is that only
+counts derivable *exactly* belong to it. Guessing a number to make the block look
+uniform would be the defect this repository is named for, dressed as tidiness.
+
+## And my own prose tripped the check
+
+Narrating the old values put digits directly beside the guarded noun phrases, and
+the pattern read `"307, external repositories reviewed"` across a comma as a
+fresh claim. The check fired on a true sentence — the precise hazard its own
+comment warns about: *"a check that fires on true statements does not get fixed;
+the prose gets reworded around it."*
+
+So the drift amounts are now spelled as **words**, and the document says why. The
+comma tolerance in the number group is deliberate for figures like 1,234 and was
+left alone; the prose was the thing that was wrong.
+
+## Broken to prove it works
+
+Four breaks, each restoring the exact stale value the document actually carried,
+each failing by name with both figures and the quantity:
+
+1. Register count back to 82 in the reversed phrasing — caught.
+2. Route registry count back to 248 — caught.
+3. Owner record pages back to 23 — caught.
+4. The route fact back to 277 in `SHIP_READINESS.md` — caught.
+
+Verified: 4,472 tests passing, lint clean, `verify:launch` and `verify:gates`
+both exit 0, stale claims 17/17 with nothing past its date.
+
+### 2026-09-15 - Re-verifying a ship-gap document, and the blocker that moved
+
+`report-stale-claims.mjs` flagged `docs/2026-08-12-SHIP-GAP-ANALYSIS.md` three
+days past its review date. Main had moved **132 commits** since it was written.
+Four of its figures were stale and its central piece of evidence no longer
+exists in the codebase.
+
+## Its own numbers contradicted each other
+
+The opening section says **23 products, all 23 execution-enabled**. Item 3 says
+**"all 13 executable products"**. Both cannot be right — the 13 was a leftover
+the same-day update missed, and it sat there for a month.
+
+Both are stale anyway: **42 products, 42 active, 42 open, 0 restricted.** Which
+also kills its line "The remaining 21 catalog products are disclosed as
+unavailable" — there are none.
+
+## The evidence for "the gate is green" had been deleted
+
+The document's proof was that *"entitlement integration is verified for all of
+them"*. **That field no longer exists as catalog data.** It survives only as a
+comment in `lib/sonara-paid-access.cjs` recording why it went:
+
+> `const entitlementIntegrationVerified = planFloor === "free";`
+> which defines "verified" as "free".
+
+So the sentence the document leaned on was reporting a field **false by
+construction for every paid product** — this codebase's signature defect, quoted
+as a green light. The comment records what production showed at the time:
+`executionEnabled 3, executionRestricted 31`.
+
+It is better now and differently shaped: an explicit map both billing and the
+catalog read, with `withAnnualTwins` so a plan's annual form cannot drift from
+its monthly form by omission. The honest claim today is about that map, not a
+boolean — and the document now says so instead of repeating the old sentence.
+
+## The prices grew from three to nine, and nobody wrote it down
+
+The three it names (700/1900/3900) are still configured. But there are **11
+plans now: 9 through checkout, 1 quoted**, and six arrived after the
+hand-verification of 12 August that the document cites — workspace $29/mo,
+all_three $59/mo, team $109/mo, and their annual forms at $290, $590 and $1090.
+
+**None of the six was covered by that verification.** A note claiming the paid
+path had one unknown, while six prices were added silently, is exactly the drift
+it existed to prevent.
+
+They are covered better now: in the production pipeline the step *Verify live
+Stripe prices match what the pricing page advertises* **passes** — nine plans
+compared against what Stripe would actually charge, on every deploy, rather than
+three compared by hand once.
+
+## The deploy blocker moved, and narrowed to one secret
+
+This is the useful finding. **The Stripe price gate that blocked PR #232 now
+passes.** The deployment fails one step later, at *Synchronize verified Stripe
+runtime secret to Vercel production*, which says:
+
+> A full live Stripe runtime key is required. Configure the protected
+> `STRIPE_RUNTIME_SECRET_KEY` secret with an `sk_live_` key; the read-only
+> verifier key will not be promoted.
+
+**Deliberate, not broken.** PR #256 separated the read-only verifier credential
+from the runtime secret so a restricted key sufficient for reading prices cannot
+be promoted into production. The step refuses because the key it can see does
+not begin with `sk_live_`.
+
+Everything after it is **skipped** — rollback checkpoint, migration apply, Vercel
+deploy. Production is untouched. A red workflow instead of a half-migrated
+database is the gate working.
+
+So the remaining deploy blocker is **one named repository secret**, owner-only.
+
+## Item 4 moved too
+
+The document says "four authorization primitives exist in production and in no
+version control". `report-security-definer-exposure.mjs` now reports **8 of 12**
+defined here — and a wrinkle the document could not have known: **two of the
+remainder read tables that exist in no migration**, so creating them would fail
+on deploy. "Recorded is not defined" is the report's own phrase, and it means
+transcription alone cannot close that gap.
+
+## And then I found I had duplicated somebody else's work
+
+Merging `main` afterwards surfaced **PR #257**, merged hours earlier:
+`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`. It documents the same blocker
+properly — a credential-boundary table, the exact owner steps, and the point my
+version missed entirely:
+
+> A verifier restricted to Prices/Products read access **can make the price audit
+> pass while every customer/Checkout Session write fails.**
+
+Which means the price gate going green is *not* evidence that billing works —
+the opposite of what a reader might take from "the blocker moved one step
+later".
+
+So the re-verification now **defers** to that document instead of restating it,
+keeping only what is genuinely its own: that the price step passes, that the
+failure is at the runtime-secret sync, and that the migration apply and deploy
+are skipped. A second description of one blocker in a second document is how the
+two drift apart, which is the failure that file exists to catch. I wrote it
+before the merge showed me the better one; leaving both would have been the
+"repository with two verdicts" problem, self-inflicted.
+
+## What was not done
+
+The review date moved **after** the measurements, not before. That ordering is
+the whole point of the check's split: `--check` fails on a missing review date
+and only reports an expired one, because — in its own words — "moving the date
+without looking is the one thing this cannot catch."
+
+Verified: 4,472 tests passing, lint clean, `verify:launch` and `verify:gates`
+both exit 0, stale claims 17/17 with nothing past its date.
+
+### 2026-09-15 - Two curated API directories, measured
+
+Nine repositories arrived as social-media screenshots. The useful output is one
+measurement and seven records; nothing was adopted.
+
+## The measurement
+
+Two of them are advertised as curated API and playbook directories:
+
+| Repository | Links | With an affiliate parameter | Share | Code |
+|---|---|---|---|---|
+| `cporter202/openclaw-api-list` | 78,913 | 78,216 | **99.1%** | `?fpr=p2hrc6` |
+| `cporter202/software-income-playbooks` | 78,884 | 78,186 | **99.1%** | `?fpr=p2hrc6` |
+
+One code, byte for byte, across both — evidence of a single arrangement rather
+than an inference about two repositories. Neither declares a licence, so both
+are all rights reserved and blocked twice over.
+
+**The folder names are not counts.** `automation-apis-4825`,
+`lead-generation-apis-3452`, `ai-apis-1208` — nineteen such directories, each
+containing exactly one file, in a repository of 25 files total.
+
+### It reaches a record we already had
+
+`cporter202/lead-gen-api-stack` is already in Batch 2 as "provider-discovery
+reference only" — the right verdict, reached without this measurement. Measured
+now: **5 of its 7 links carry the same code.** That record was not rewritten,
+because a repository with two verdicts has none; the batch-7 note is the
+cross-reference.
+
+### And the half that stops it being a story about a person
+
+`cporter202/generative-ai-arbitrage`, in Batch 4, carries **89 links and zero
+affiliate parameters.** So the pattern covers three of four repositories from
+that account and is **not a property of the account**. Both halves are recorded,
+and a test asserts the counter-example is still there — reporting only the
+incriminating half would be a true sentence arranged to support a conclusion it
+does not carry, which is this codebase's own defect wearing different clothes.
+
+## The other five
+
+- **DwarfStar** (`ivanfioravanti/ds4-metal`) — MIT, and the LICENSE names two
+  sets of authors (ds4.c and ggml) so one copyright line would be wrong. 2,202
+  files. **The licence permits everything and the architecture permits nothing**:
+  a Vercel function has no GPU. Owner-hosted worker at best, and the real cost is
+  a 96 GB machine rather than a per-token bill.
+- **Ballast** (`tight-line/ballast`) — MIT, Tight Line LLC. A Kubernetes operator
+  that right-sizes from observed history. Clean licence, careful code, **nothing
+  to attach to** — there is no cluster here. A permissive licence is not
+  applicability.
+- **ClawFlows** (`nikilster/clawflows`) — the README has a License section whose
+  entire content is the word "MIT" and **there is no LICENSE file anywhere**. So
+  no named holder, no grant, no disclaimer — nothing to comply *with*. Recorded
+  license-gated rather than blocked, because "said MIT informally" and "said
+  nothing" are different positions and flattening them would overstate it.
+- **Vulture** (`vulture-osint-automation-tool/vulture`) — no licence, and
+  independently refused on conduct: Dehashed breach lookups returning leaked
+  credentials, plus a dorking module its own README calls "a brute-force style
+  program that will eventually alert Google bot detection". Two refusals, either
+  sufficient — and the record says explicitly that this is **not** a position on
+  authorised security testing.
+- **OpenContext** (`0xranx/OpenContext`) — **three licence declarations**:
+  `LICENSE` is MIT, the root `package.json` says Apache-2.0, and
+  `crates/opencontext-node` says ISC. All permissive, so medium risk rather than
+  critical, but which governs is unanswered. Found by reading every manifest
+  instead of the badge.
+
+## Two that already had verdicts, and did not get second ones
+
+`ai-sdlc-framework/ai-sdlc` (9 September) and `n8n-io/n8n` (10 September) were
+submitted again. Both are in `data/open-source-tools.ts`; both are recorded in
+batch 7's deduplication list instead. A test asserts neither appears as a batch-7
+repository.
+
+Worth re-reading the AI-SDLC record for one reason beyond licence: its test
+script is dozens of named fail-closed gates, which is the same architecture as
+this repository's own 46-command release chain. The idea is already ours.
+
+## Where the records went, and a correction to my own first pass
+
+The first pass put these only in `data/open-source-tools.ts`. That was
+incomplete: screenshot-led research belongs in the radar module the public
+Research Lab renders, and the skill's file list named batches 1-4 while main had
+already added 5 and 6. So this is **batch 7**, on the dedicated
+latest-screenshot-intake surface rather than the legacy aggregate — for the
+reason that page already gives, that the aggregate API contract is not changed
+silently when new evidence arrives.
+
+Both catalogs now carry all seven. Checking the register for duplicates but not
+the radar modules was the near-miss; nothing was duplicated, but only by luck.
+
+## Broken to prove it works
+
+Seven breaks, each hash-compared before and after.
+
+One was **invalid rather than missed**, and the distinction is the same one this
+branch keeps meeting: unblocking the affiliate directory by inserting
+`integrationStatus` *before* the record's real one changed nothing, because the
+last duplicate key in an object literal wins. Redone by replacing the actual
+value, it fails by name.
+
+The other six: enabling a record in production; dropping the measured affiliate
+code; deleting the counter-example that limits the finding; adding a
+`child_process` require to a data-only module; re-recording an already-decided
+repository; and promoting the GPU runtime from research to adapter. All caught.
+
+## Also checked, and deliberately not changed
+
+`verify:stale-claims` sits in the gates chain and passes while the report says
+one document is past its review date. That looked like a check that reports
+without gating; it is not. `--check` fails on a **missing** review date and only
+reports an **expired** one, and the script says why: "Moving the date without
+looking is the one thing this cannot catch." Gating on absence is mechanical;
+gating on expiry would pressure whoever is blocked into bumping the date blind.
+The split is correct and was left alone.
+
+Verified: 4,472 tests passing, lint and typecheck clean, `verify:launch` and
+`verify:gates` both exit 0. Register at 237 repositories, 18 declaring no
+licence -- both figures derived, and `verify:doc-counts` caught
+`docs/owner/WHAT-IS-LEFT.md` still saying 230 and 15.
+
 ### 2026-09-11 - A green light over the only unauthenticated write in the product
 
 `verify:tenant-queries` records that 27 of 111 database calls have a table it

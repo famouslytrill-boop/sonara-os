@@ -57,7 +57,11 @@ const growthStudioMigrationNames = [
   // Defining a good customer, capturing one, scoring it, and giving it to
   // somebody. growth_leads itself is canonical and predates all of this; these
   // four are what turns a stranger into a row in it.
-  "20260825070000_lead_capture_scoring_and_routing.sql"
+  "20260825070000_lead_capture_scoring_and_routing.sql",
+  // Who a campaign send reached, per recipient. Listed here because this check
+  // is two-sided: declaring a table in GROWTH_STUDIO_TABLES is not enough, and
+  // the migration that creates it and enables RLS on it has to be named too.
+  "20260916040000_growth_campaign_send_records.sql"
 ];
 const scrollSiteMigrationNames = ["20260826020000_cinematic_scroll_sites.sql"];
 // Connected payment accounts, added 26 August 2026 -- one connected Stripe
@@ -232,7 +236,13 @@ const GROWTH_STUDIO_TABLES = Object.freeze([
   "lead_icp_profiles",
   "lead_capture_pages",
   "lead_conversations",
-  "lead_routing_rules"
+  "lead_routing_rules",
+  // Who a campaign send actually reached, one row per recipient. Written by
+  // lib/growth-studio-send-records.cjs through routes/growth-studio-control-routes.cjs
+  // and read back to work out the remainder -- see migration
+  // 20260916040000_growth_campaign_send_records.sql for why no rows must never
+  // be read as "nobody was reached".
+  "growth_campaign_sends"
 ]);
 const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_initiatives",

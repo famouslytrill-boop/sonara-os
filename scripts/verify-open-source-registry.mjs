@@ -5,7 +5,11 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 const registryRequire = createRequire(import.meta.url);
-const { BLOCK: REGISTRY_BLOCK, registryIntegrity } = registryRequire("../lib/sonara-open-source-registry.cjs");
+const {
+  BLOCK: REGISTRY_BLOCK,
+  registryIntegrity,
+  INTEGRATION_LABELS: REGISTRY_LABELS
+} = registryRequire("../lib/sonara-open-source-registry.cjs");
 
 const root = process.cwd();
 const networkMode = process.argv.includes("--network");
@@ -165,6 +169,35 @@ if (!labelBlock) {
   }
   for (const status of labelled) {
     if (!ALLOWED_STATUSES.has(status)) errors.push(`openSourceToolStatuses labels "${status}", which is not an integration status.`);
+  }
+}
+
+// The same check against the OTHER label map -- the one the page renders.
+//
+// lib/sonara-open-source-registry.cjs holds INTEGRATION_LABELS, and
+// routes/sonara-open-source-routes.cjs renders it through integrationLabel().
+// The block above checks `openSourceToolStatuses` in the .ts file, and for a
+// week that was the only one checked. `adapter_built` was added to the union
+// and to the checked map, and integrationLabel's `|| value` fallback rendered
+// the raw string "adapter_built" on /research-lab/open-source for nine records.
+//
+// Both directions, and the two maps are allowed to word a status differently:
+// this one is customer-facing prose ("Needs licence review") and the other is
+// not. What neither may do is omit a status or invent one.
+{
+  const rendered = new Set(Object.keys(REGISTRY_LABELS));
+  if (rendered.size === 0) {
+    errors.push("INTEGRATION_LABELS parsed as empty, so this check would pass on anything.");
+  }
+  for (const status of ALLOWED_STATUSES) {
+    if (!rendered.has(status)) {
+      errors.push(`Integration status "${status}" has no label in INTEGRATION_LABELS, so /research-lab/open-source renders the raw value to a customer.`);
+    }
+  }
+  for (const status of rendered) {
+    if (!ALLOWED_STATUSES.has(status)) {
+      errors.push(`INTEGRATION_LABELS labels "${status}", which is not an integration status.`);
+    }
   }
 }
 

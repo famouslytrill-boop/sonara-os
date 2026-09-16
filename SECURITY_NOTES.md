@@ -1,5 +1,41 @@
 # Security Notes
 
+## Shell commands built from TMPDIR, 15 September 2026
+
+No check was weakened. This records a real fix with a verified exploit path,
+because "we quoted a path" is worth nothing as a claim and everything as a
+measurement.
+
+CodeQL alert 234 on PR #258, *"Shell command built from environment values"*,
+flagged `scripts/report-authorization-function-grants.mjs`. Both that script and
+`scripts/verify-migration-replay.mjs` build their PostgreSQL commands as strings
+handed to `/bin/sh`, interpolating `fs.mkdtempSync(path.join(os.tmpdir(), ...))`
+-- and `os.tmpdir()` reads `TMPDIR`, `TMP` and `TEMP`. CodeQL flagged only the
+new file, which is how pull-request scanning works; the flaw was identical in the
+older one, which is in the release chain.
+
+**Verified reachable rather than assumed.** With the `initdb` path left
+unquoted and `TMPDIR` set to a directory literally named
+
+    /tmp/pwn; touch /tmp/INJECTED-MARKER; echo x
+
+the marker file was created. With the quoting in place and the same `TMPDIR`, it
+was not. The first probe was inconclusive and is worth recording as a trap: it
+aimed the injected `touch` at a root-owned scratch directory, and the command ran
+under `su postgres`, so nothing was written and the run looked safe. A probe that
+cannot succeed proves nothing about a defence -- the target has to be somewhere
+the injected command could actually write.
+
+Both files now route every interpolated path through a `sh()` helper that wraps
+in POSIX single quotes and escapes embedded ones. Double quotes would not do:
+`$` and backticks are still expanded inside them, which is most of what this
+defends against. Both scripts were re-run afterwards -- 118 migrations replay and
+the grant experiment reports the same result as before.
+
+The exploit needs a hostile `TMPDIR` in an environment already running this
+repository's code, which is why it was an alert and not an incident. The reason
+to fix it anyway is that the only argument for leaving it is "nobody would".
+
 ## Dependency Audit
 
 No audit threshold was lowered in this sprint.
