@@ -11,4 +11,4 @@
 - `.ai/shared/CHATGPT_CODEX_BATCH_1_10_STRATEGY.md`
 - `.ai/shared/PROJECT_MEMORY.md`
 - `AGENTS.md`
-- `tests/batch-convergence-control-plane.test.js`
+- `tests/ai-integrations.test.js`
