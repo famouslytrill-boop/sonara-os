@@ -76,6 +76,7 @@ const serverSecretNames = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
   "SONARA_CRON_SECRET",
 ];
 

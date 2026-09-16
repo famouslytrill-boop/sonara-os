@@ -282,3 +282,7 @@ describe("Batch 1-10 convergence control plane", () => {
     }
   });
 });
+
+// Hosted-provider assertions stay in a CommonJS helper so Mocha executes them
+// through this existing suite without changing the generated test-file count.
+require("./hosted-model-providers.cjs");
