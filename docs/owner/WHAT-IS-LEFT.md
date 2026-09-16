@@ -120,10 +120,10 @@ never save and two POST handlers silently sharing one path.
 
 ## What has been built, in numbers
 
-Counted from the repository on 12 August 2026, not recalled.
+Counted from the repository on 15 September 2026, not recalled.
 
 - **248** registered GET routes
-- **326** tables created by the migrations, **229** of them organization-scoped
+- **332** tables created by the migrations, **235** of them organization-scoped
 - **23** owner record pages, **22** record checks
 - **46** verification commands in the release chain
 - **82** external repositories reviewed with their licences read off each one
