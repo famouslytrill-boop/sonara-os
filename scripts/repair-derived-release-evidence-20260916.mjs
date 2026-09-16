@@ -30,8 +30,8 @@ rewrite("docs/owner/OWNER-STEPS.md", [
   { from: "119 migrations", to: "120 migrations", expected: 1 }
 ]);
 rewrite("docs/owner/WHAT-IS-LEFT.md", [
-  { from: "327 tables created by the migrations", to: "333 tables created by the migrations", expected: 1 },
-  { from: "230 of them organization-scoped", to: "236 of them organization-scoped", expected: 1 }
+  { from: "**327** tables created by the migrations", to: "**333** tables created by the migrations", expected: 1 },
+  { from: "**230** of them organization-scoped", to: "**236** of them organization-scoped", expected: 1 }
 ]);
 
 rewrite("lib/sonara-orphan-tables.cjs", [
