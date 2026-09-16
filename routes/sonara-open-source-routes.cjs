@@ -189,7 +189,7 @@ function expansionReferenceTable(capabilities, escape) {
       expansionStatusLabel(capability.status),
       capability.value,
       capability.next.slice(0, 2).join(" / ") || "No additional work recorded"
-    ].map((value) => escape(value));
+    ].map((value) => escape(customerCopy(value)));
     return `<tr>${cells.map((cell) => `<td>${cell}</td>`).join("")}</tr>`;
   }).join("");
   const head = ["SONARA capability", "Product form", "Current state", "Customer value", "Next implementation boundary"]
@@ -243,20 +243,24 @@ const CUSTOMER_TERM_REPLACEMENTS = Object.freeze([
   [/\bpostgres\b/gi, "database"]
 ]);
 
+function customerCopy(value) {
+  return CUSTOMER_TERM_REPLACEMENTS.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    String(value == null ? "" : value)
+  );
+}
+
 function customerReferencePurpose(record) {
   if (!record) return "Review record";
   if (["blocked", "needs_license_review", "needs_security_review"].includes(record.integrationStatus)) {
     return "Recorded for review; not offered or connected";
   }
   const source = record.useCase?.[0] || record.category?.[0] || "Product research reference";
-  return CUSTOMER_TERM_REPLACEMENTS.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), String(source));
+  return customerCopy(source);
 }
 
 function customerReferenceName(record) {
-  return CUSTOMER_TERM_REPLACEMENTS.reduce(
-    (text, [pattern, replacement]) => text.replace(pattern, replacement),
-    displayName(record)
-  );
+  return customerCopy(displayName(record));
 }
 
 function customerReferenceBoundary(record) {

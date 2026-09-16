@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SONARA Research Lab — Event, Security & Media Intake</title>
+  <meta name="description" content="Governed SONARA research on event-driven agents, LLM observability, browser automation, security research, media workers, and engineering references.">
+  <style>
+    :root { color-scheme: dark; --bg:#0b0d12; --panel:#141821; --text:#f4f7fb; --muted:#aab4c3; --line:#273142; --accent:#9ce8c4; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif; }
+    main { width:min(1100px,calc(100% - 32px)); margin:0 auto; padding:48px 0 72px; }
+    .eyebrow { color:var(--accent); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; }
+    h1 { font-size:clamp(2rem,5vw,4.4rem); line-height:1; margin:.45rem 0 1rem; max-width:12ch; }
+    .lead { color:var(--muted); max-width:72ch; font-size:1.08rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; margin-top:32px; }
+    article { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:22px; }
+    h2 { margin:0 0 8px; font-size:1.1rem; }
+    .status { display:inline-block; margin:.45rem 0 .7rem; padding:.2rem .55rem; border:1px solid var(--line); border-radius:999px; color:var(--accent); font-size:.78rem; font-weight:700; }
+    p { margin:.5rem 0; }
+    .muted { color:var(--muted); }
+    .boundary { margin-top:36px; padding:24px; border-left:3px solid var(--accent); background:var(--panel); border-radius:0 14px 14px 0; }
+    code { color:var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">SONARA Industries · Research Lab</p>
+  <h1>Event, security & media intake</h1>
+  <p class="lead">This page records the 16 September 2026 research batch. It adds SONARA-owned event and observability contracts while keeping every external repository disabled until its own implementation review is complete.</p>
+
+  <section class="grid" aria-label="Research decisions">
+    <article>
+      <h2>Event-driven agent foundation</h2>
+      <span class="status">Internal contract added</span>
+      <p>Transport-neutral event envelopes now define tenant scope, correlation, idempotency, replay, bounded retries, dead-letter behavior, provenance, and owner-review authority.</p>
+      <p class="muted">No Kafka or Confluent dependency is required by this batch.</p>
+    </article>
+    <article>
+      <h2>LLM observability</h2>
+      <span class="status">Internal contract added</span>
+      <p>Provider-neutral records cover trace IDs, provider/model, latency, tokens, cost, outcomes, source references, and evaluation fields.</p>
+      <p class="muted">Raw prompts, raw responses, and secrets are excluded by default.</p>
+    </article>
+    <article>
+      <h2>OpenOSINT</h2>
+      <span class="status">Research only</span>
+      <p>Potential Authorized Security Lab reference for owned or explicitly authorized targets only.</p>
+      <p class="muted">No unauthorized reconnaissance or consequential action from findings.</p>
+    </article>
+    <article>
+      <h2>PinchTab</h2>
+      <span class="status">Research only</span>
+      <p>Potential loopback-only browser worker using the accessibility-oriented control surface.</p>
+      <p class="muted">Stealth, fingerprint evasion, CAPTCHA bypass, anti-bot circumvention, and unauthorized scraping are excluded.</p>
+    </article>
+    <article>
+      <h2>OpenShorts</h2>
+      <span class="status">Research only</span>
+      <p>Potential isolated Creator Studio worker for clips, captions, dubbing, and vertical-video workflows.</p>
+      <p class="muted">Requires path-level license review plus content, likeness, voice, and social-publishing rights checks.</p>
+    </article>
+    <article>
+      <h2>Every Programmer Should Know</h2>
+      <span class="status">Reference only</span>
+      <p>CC-BY-4.0 engineering reading index for training and architecture gap checks.</p>
+      <p class="muted">Reference material only; attribution is preserved when material is adapted.</p>
+    </article>
+  </section>
+
+  <section class="boundary">
+    <h2>Production boundary</h2>
+    <p>Third-party repositories enabled by this research page: <strong>0</strong>. Sensitive actions still require the SONARA authority system and owner approval where required. External tools remain isolated research candidates until licensing, security, tenant isolation, privacy, and operational evidence are complete.</p>
+    <p class="muted">Implementation detail: <code>lib/sonara-event-driven-agent-contract.cjs</code> and <code>lib/sonara-llm-observability-contract.cjs</code> are SONARA-owned contracts and do not execute third-party code.</p>
+  </section>
+</main>
+</body>
+</html>
