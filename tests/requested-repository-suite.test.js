@@ -485,7 +485,7 @@ describe("requested repository runtime surfaces", () => {
     assert.equal(response.body.blockedCount, 3);
     assert.equal(response.body.screenshotResearchCount, 79);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 36);
+    assert.equal(response.body.nonRepositoryReferenceCount, 35);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -509,7 +509,7 @@ describe("requested repository runtime surfaces", () => {
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
     assert.match(response.text, /79 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /36 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /35 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });

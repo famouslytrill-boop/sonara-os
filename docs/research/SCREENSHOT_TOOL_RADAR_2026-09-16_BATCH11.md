@@ -27,7 +27,7 @@ what let the second collision through.
 | Repositories verified and recorded | 10 |
 | Already in `data/open-source-tools.ts`, re-measured, agreed | 4 |
 | Refused on conduct rather than licence | 5 |
-| Services, vendors and content artefacts | 14 |
+| Services, vendors and content artefacts | 13 |
 | Installed, executed, or enabled in production | **0** |
 
 Every licence below was read from `git clone --depth 1` on 16 September 2026.
@@ -163,7 +163,7 @@ of research.
 
 ## Services and content, recorded as references
 
-Fourteen entries, including **Slang** (paid 24/7 phone answering for
+Thirteen entries, including **Slang** (paid 24/7 phone answering for
 restaurants — the closest direct competitor in seven batches), JumpCloud, Toad,
 IDERA, IONOS, ByteByteGo's twelve security domains, a DXC white paper, and a
 24-vendor AI sales stack.
@@ -187,10 +187,3 @@ arrived as a screen recording of a social post inside another screenshot. No
 owner or repository can be established from those pixels, and guessing one into a
 permanent register is the thing the intake skill forbids outright. It stays a
 lead.
-
-## Two files flagged back to the owner
-
-An **invoice PDF** and a **2012 gang-codes PDF** arrived inside the batch with no
-product context. Neither was opened, extracted, quoted or committed. An invoice is
-a financial record; the second has no business use here. Both were flagged as
-probably misfiled, and no content from either enters this repository.
