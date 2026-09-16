@@ -5,6 +5,7 @@ const { getManifest, getAllManifestTables } = require("../lib/sonara-ecosystem-m
 const { DATABASE_TABLES } = require("../lib/sonara-database-contract.cjs");
 const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
 const { getMarketExpansionSchemaPlan } = require("../lib/sonara-market-expansion-schema-plan.cjs");
+const { getIndustryAlgorithmExpansion } = require("../lib/sonara-industry-algorithm-expansion.cjs");
 
 describe("SONARA ecosystem manifest", () => {
   it("contains the parent company and three current companies", function() {
@@ -51,6 +52,25 @@ describe("SONARA ecosystem manifest", () => {
     assert.ok(plan.contracts.some((item) => item.concept === "unified conversation inbox" && item.decision === "projection_preferred"));
     assert.ok(plan.contracts.some((item) => item.concept === "industry pack installation" && item.decision === "no_new_table_initially"));
   });
+
+  it("maps broad industries, formulas, algorithms and open-source candidates without granting runtime authority", function() {
+    const plan = getIndustryAlgorithmExpansion();
+    assert.equal(plan.authority, "non_executing_strategy_and_formula_registry");
+    assert.ok(plan.counts.industries >= 15);
+    assert.ok(plan.counts.formulas >= 30);
+    assert.ok(plan.counts.algorithms >= 15);
+    assert.ok(plan.counts.openSourceCandidates >= 20);
+    assert.ok(plan.industries.some((item) => item.key === "logistics_trucking_fleet"));
+    assert.ok(plan.industries.some((item) => item.key === "manufacturing_supply_chain_iot"));
+    assert.ok(plan.industries.some((item) => item.key === "construction_trades_field_service"));
+    assert.ok(plan.industries.some((item) => item.key === "health_wellness_interoperability" && item.priority === "partner_only"));
+    assert.ok(plan.industries.some((item) => item.key === "trading_investment_research" && item.priority === "research_only"));
+    assert.ok(plan.formulas.some((item) => item.key === "oee"));
+    assert.ok(plan.formulas.some((item) => item.key === "route_cost"));
+    assert.ok(plan.algorithms.some((item) => item.key === "constraint_solver"));
+    assert.ok(plan.algorithms.some((item) => item.key === "genetic" && item.reproducibility === "stochastic_reproducible_only_with_seed"));
+    assert.ok(plan.openSourceCandidates.some((item) => item.key === "fleetbase" && item.licenseClass === "agpl_3_or_commercial_license"));
+  });
 });
 
 describe("SONARA ecosystem routes", () => {
@@ -63,9 +83,10 @@ describe("SONARA ecosystem routes", () => {
     assert.match(res.text, /Creator Studio/);
     assert.match(res.text, /Growth Studio/);
     assert.match(res.text, /Market and product expansion/);
+    assert.match(res.text, /Industry and deterministic engine expansion/);
   });
 
-  it("GET /api/ecosystem/manifest returns the manifest and expansion registry", async function() {
+  it("GET /api/ecosystem/manifest returns the manifest and expansion registries", async function() {
     const res = await request(app).get("/api/ecosystem/manifest").set("Accept", "application/json");
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
@@ -74,6 +95,8 @@ describe("SONARA ecosystem routes", () => {
     assert.ok(res.body.manifest.marketExpansion.counts.capabilities >= 20);
     assert.ok(res.body.manifest.marketExpansion.capabilities.some((item) => item.key === "restaurant-operations-pack"));
     assert.ok(res.body.manifest.marketExpansionSchemaPlan.count >= 10);
+    assert.ok(res.body.manifest.industryAlgorithmExpansion.counts.industries >= 15);
+    assert.ok(res.body.manifest.industryAlgorithmExpansion.counts.formulas >= 30);
   });
 
   it("GET /api/ecosystem/readiness returns table and expansion readiness", async function() {
@@ -84,5 +107,8 @@ describe("SONARA ecosystem routes", () => {
     assert.ok(res.body.tables.some((item) => item.table === "profiles"));
     assert.ok(res.body.expansionCapabilityCount >= 20);
     assert.ok(res.body.expansionSchemaContractCount >= 10);
+    assert.ok(res.body.industryExpansionCount >= 15);
+    assert.ok(res.body.formulaExpansionCount >= 30);
+    assert.ok(res.body.algorithmExpansionCount >= 15);
   });
 });
