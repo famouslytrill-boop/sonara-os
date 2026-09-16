@@ -2,6 +2,80 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - Two exports that could be short without saying so
+
+Both export paths were capped at 10,000 rows by `limit=10000`, and neither could
+tell the cap had been reached. `limit=10000` returns 10,000 rows for a period
+holding 10,000 and for a period holding 40,000, and those are different facts.
+
+What each one did with that:
+
+* **`/business-builder/owner/accounting-exports/:id/download`** built a CSV, set
+  `X-Sonara-Export-Rows: 10000`, and handed it to an accountant. The file opened
+  cleanly and was missing records, and nothing in it said so.
+* **`/account/data/export`** returned a payload carrying a field called
+  **`complete`**, computed from whether any table failed to READ. A table that
+  answered with its most recent 10,000 of 40,000 rows had not failed, so the
+  partial copy was labelled complete -- under a page whose own copy promised
+  "Nothing is left out of the kinds listed above".
+
+**Fixed** with `EXPORT_ROW_CAP` and `supabaseListCapped`, which asks for
+`cap + 1` and reports `truncated` when more came back. Same trick
+`listRecordPage` already uses for "is there a next page", and for the same
+reason: it costs nothing.
+
+The two are resolved **differently, on purpose**. The accounting file is now
+**refused** with a 413 naming shorter periods as the answer, because an
+accountant acting on figures that are quietly short is a harm no later
+correction undoes. The data export is still **delivered**, with `complete: false`,
+a `truncated` list, and a note saying the file holds the most recent 10,000 and
+the older records are still in the account -- a customer asking for a copy of
+their own records is better served by that than by nothing. The page's promise
+was rewritten to match, because a fix that leaves the false promise on the page
+fixes the payload and not the thing the customer read.
+
+**The cap was not raised.** Vercel's documented duration is 300 seconds and the
+rows are held in memory to build one response body, so a higher cap trades a
+silent truncation for a timeout. Detecting the cap is the fix; moving it is not.
+
+**Also:** the accounting export read `select=*` and handed the rows to
+`buildRecordCsv(rows, source.columns)`, which writes thirteen columns and
+nothing else. Every other column of up to 10,000 rows was fetched into a file's
+contents and never used. Now selects exactly those columns.
+
+That moved `report-unused-selected-columns.mjs` counts by one in each direction
+-- `select=*` 22 -> 21, computed 26 -> 27 -- which is the trade that script's own
+comments warn about. Taken deliberately: the columns cannot be literal here
+because `source.columns` is chosen by export type, and the script already chose
+a computed select over two near-identical query sites for the same reason. What
+replaces the scanner's reading is stronger: the new test asserts the select the
+route actually sends, split on commas, deep-equals `source.columns`.
+
+**Verified by breaking it,** twice:
+
+* the capped read made to ask for exactly `cap` instead of `cap + 1` -- caught by
+  four assertions, including `a period over the cap produced a file anyway` and
+  `a truncated export called itself complete`.
+* `select=*` restored and `complete` reverted to ignore truncation -- caught by
+  `the export still fetches every column to write a declared subset` and the
+  complete assertion.
+
+The first attempt at the test **timed out on all eight assertions** rather than
+failing: `requireCustomer` and `requireBusinessManager` are middleware used
+directly and only `requireWorkspaceAccess` is a factory, so passing all three as
+factories registered no routes at all. The shape is now copied from
+`tests/data-rights.test.js` rather than inferred, with a comment saying why.
+
+The rewritten page copy then tripped `no-page-lies-when-the-database-is-down`:
+`CLAIMS_EMPTY` is `/\b(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i`,
+and "Nothing is transformed, and the file says plainly whether **any**..." matched
+in one clause. Reworded to end that clause with a full stop, which the matcher
+cannot cross, rather than added to `NOT_A_CLAIM_ABOUT_RECORDS` -- an exemption is
+a reason that has to stay true, and this one would have read "not a claim about
+records" over a sentence that is about the customer's records.
+
+`tests/an-export-says-when-it-is-short.test.js`, 8 assertions.
+
 ### 2026-09-16 - Sending to only the people a campaign missed
 
 The other half of the record added earlier today. `growth_campaign_sends` made
