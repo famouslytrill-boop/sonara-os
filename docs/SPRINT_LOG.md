@@ -2,6 +2,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - Two figures computed over a read that had been capped
+
+Found by sweeping for the shape after it turned up twice in the export paths, on
+the principle CLAUDE.md states directly: assume more exist. The sweep was for a
+`limit=` whose rows then feed an **aggregate**. A capped list is fine -- it shows
+what it shows. A capped read that is then counted or summed is a wrong number
+presented as a measurement.
+
+Two hits, both rendered to a customer as a fact.
+
+**`/business-builder/owner/recurring`.** Every arrangement's lines were read in
+one query, `limit=1000`, ordered `position.asc` **across all arrangements**, then
+filtered per arrangement and summed into the money figure on screen. Past the cap
+the truncation falls wherever the ordering puts it, so an arrangement missing
+lines showed a subtotal that was simply too low -- no error, no gap, just a
+smaller number. The route already handled the lines read *failing*; it did not
+handle it returning fewer rows than exist. 200 arrangements averaging five lines
+each is exactly 1,000, so this was the page working correctly right up to the
+point where it quietly stopped.
+
+Fixed by reading `LINE_CAP + 1` and, when short, **suppressing every subtotal**
+with a card at the top saying so. Every subtotal, not some: the lines are ordered
+across all arrangements, so there is no way to tell which ones lost lines. A
+footnote under a printed figure would leave a wrong amount on screen for somebody
+to invoice from. The arrangements themselves are still listed -- an owner who
+cannot see an arrangement exists will set up a second copy of it.
+
+**`/business-builder/market-intelligence`.** Recorded evidence was counted with
+`select=id&limit=1000` and `rows.length`, so a table holding 4,000 rows reported
+1,000 -- the cap, presented as the total, three lines under a comment reading
+"What matters is that the number is real", on the page whose whole subject is
+"without turning estimates into facts". The same defect the record-page caption
+had when a list capped at 100 was captioned "100 records".
+
+Fixed with a `countRows` helper using `Prefer: count=exact` and `limit=1`, the
+pattern `supabaseCount` already used in `sonara-last9-routes.cjs`. Correct *and*
+cheaper: one row transferred instead of up to a thousand ids. `rest` now carries
+`contentRange`, because `count=exact` answers in a header and dropping it is what
+left the count measuring what it had transferred.
+
+Three states kept throughout: a failed read still reports `null` rather than 0 --
+the care the original code already took -- and a successful request whose
+`Content-Range` cannot be parsed is also `null`, because that is a failed
+measurement and 0 is a fact about the business.
+
+**Verified by breaking it,** both at once:
+
+* the subtotal made to sum regardless of truncation -- caught by `a subtotal was
+  printed over a truncated line read`.
+* the count reverted to measuring transferred rows -- caught by `the count is
+  still the cap rather than the total`, `the count still transfers rows to
+  measure them`, and `an unparseable count became zero`.
+
+`tests/a-total-over-a-truncated-read-is-a-wrong-number.test.js`, 10 assertions.
+Its first version named a table that does not exist (`market_segments` rather
+than `market_intelligence_segments`), so every count came back 0 and three
+assertions failed for the wrong reason; the name is now read from the route
+module and stated once.
+
 ### 2026-09-16 - Two exports that could be short without saying so
 
 Both export paths were capped at 10,000 rows by `limit=10000`, and neither could

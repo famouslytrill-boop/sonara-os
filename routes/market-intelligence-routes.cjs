@@ -390,11 +390,20 @@ const RECORDED_EVIDENCE = Object.freeze([
 async function recordedEvidence(config, organizationId) {
   return Promise.all(RECORDED_EVIDENCE.map(async ([key, label]) => {
     const table = TABLES[key];
-    const listed = await rest(config, table, `select=id&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1000`).catch(() => undefined);
-    // `listed.ok ? rows.length : 0` would report a failed read as "none
-    // recorded", on a page whose whole subject is not turning estimates into
-    // facts. null travels instead, and the card says which it is.
-    return { label, count: listed?.ok && Array.isArray(listed.rows) ? listed.rows.length : null };
+    // Counted by the database, not by reading ids and measuring the array.
+    //
+    // This was `select=id&limit=1000` with `rows.length` as the count, which
+    // meant a table holding 4,000 rows reported 1,000 -- the cap, presented as
+    // the total, three lines under a comment saying "What matters is that the
+    // number is real". The same defect the record-page caption had when a list
+    // capped at 100 was captioned "100 records", and the page here is the one
+    // whose whole subject is not turning estimates into facts.
+    //
+    // Also cheaper: one row transferred instead of up to a thousand ids.
+    const counted = await countRows(config, table, organizationId).catch(() => ({ ok: false, count: null }));
+    // `counted.ok ? count : 0` would report a failed read as "none recorded".
+    // null travels instead, and the card says which it is.
+    return { label, count: counted.ok ? counted.count : null };
   }));
 }
 
@@ -498,7 +507,42 @@ async function rest(config, table, query = "", options = {}) {
   }).catch(() => undefined);
   if (!response) return { ok: false, status: 503, code: "database_unreachable", rows: [] };
   const rows = response.status === 204 ? [] : await response.json().catch(() => []);
-  return { ok: response.ok, status: response.status, code: response.ok ? "ok" : "database_operation_failed", rows: Array.isArray(rows) ? rows : [] };
+  return {
+    ok: response.ok,
+    status: response.status,
+    code: response.ok ? "ok" : "database_operation_failed",
+    rows: Array.isArray(rows) ? rows : [],
+    // Carried because `Prefer: count=exact` answers in a header rather than in
+    // the body. Dropping it is what left `recordedEvidence` counting rows it
+    // had transferred, and therefore counting the cap.
+    contentRange: response.headers?.get?.("content-range") || null
+  };
+}
+
+// How many rows match, asked of the database rather than counted here.
+//
+// `Prefer: count=exact` puts the total in Content-Range as `0-0/4000`, so one
+// request with `limit=1` answers exactly and transfers one row. The pattern is
+// `supabaseCount` in routes/sonara-last9-routes.cjs; this is the same thing in
+// the file that needed it.
+//
+// Three outcomes, not two. A read that did not happen returns `count: null`,
+// because a page whose subject is not turning estimates into facts must not
+// print 0 over a failed request -- the caller below already took that care with
+// rows and has to keep it with a count.
+async function countRows(config, table, organizationId) {
+  const result = await rest(
+    config,
+    table,
+    `select=id&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`,
+    { prefer: "count=exact" }
+  );
+  if (!result.ok) return { ok: false, count: null };
+  // `0-0/4000`, or `*/0` for an empty table. A header that does not match is
+  // reported as unknown rather than as zero: PostgREST not answering the way
+  // this expects is a failed measurement, and 0 is a fact about the business.
+  const match = String(result.contentRange || "").match(/\/(\d+)$/);
+  return match ? { ok: true, count: Number(match[1]) } : { ok: false, count: null };
 }
 
 function insert(config, table, body) { return rest(config, table, "", { method: "POST", prefer: "return=representation", body }); }
