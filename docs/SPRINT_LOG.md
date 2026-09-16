@@ -2,6 +2,61 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - Sending to only the people a campaign missed
+
+The other half of the record added earlier today. `growth_campaign_sends` made
+the remainder computable; this makes it sendable.
+
+**Added:** a `remainder_only` mode on the campaign send, a
+`GET /api/growth/campaigns/:campaignId/remainder` read so an owner can see what
+is left before pressing anything, and a "Skip anyone this campaign already
+reached" tickbox on `/growth-studio/your-campaigns`.
+
+**The feature is the refusal.** An unreadable send record produces zero accepted
+rows; zero accepted rows make every recipient look unreached; and "everybody is
+unreached" mails everybody a second time -- under a button that promised not to.
+So `remainderFrom` answers `known: false` on a failed read, and both the send and
+the read pass that refusal through as a 503 with nothing sent, rather than
+softening it into a number.
+
+**The part that was easy to miss.** The charge was keyed `campaign:<id>`, and the
+dispatcher's own header describes the resulting duplicate-charge refusal as the
+thing that removes an owner's one signal. A remainder send keyed the same way
+walks straight into it from the other side: the stragglers get emailed, we pay
+Resend, and the ledger silently declines the charge as a duplicate. So
+`dispatchCampaign` gained `sendAttempt`, and the remainder's key is
+`campaign:<id>:remainder-<16 hex>` digested over the remainder's own sorted,
+case-folded addresses -- stable for a retry of that same remainder, different for
+a different one. A first send's key is byte-identical to what it was.
+
+The remainder is narrowed **before** `authoriseCampaign`, not after, because the
+charge is drawn from the authorised set: narrowing afterwards would bill for
+1,000 while sending to 100. Consent screening still runs first, so somebody who
+withdrew consent since the first send is not pulled back in by being "unreached".
+
+**Verified by breaking it,** three times:
+
+* `remainderFrom` made to return the whole list on a failed read -- caught by
+  `sends nothing when the send record cannot be read` and `refuses rather than
+  reporting everybody as unreached`.
+* the attempt discriminator removed from the charge key -- caught by `the
+  remainder send reused the first send's charge key` and by the two-different-
+  remainders assertion.
+* the `status === "accepted"` filter widened to any row -- caught by `treats a
+  failed row as somebody still to reach`.
+
+The first falsification also **found a weakness in the test itself**. Asserted
+after the status code, the "mailed somebody" check never fired: breaking the
+refusal changed the status too, so the failure an engineer read was `409 !== 503`
+-- true, and silent about the harm. The two assertions now come first, so the
+failure prints `a remainder send with an unreadable record mailed somebody`.
+
+`tests/a-remainder-send-refuses-what-it-cannot-know.test.js`, 12 assertions.
+
+**Still open:** the >1,000-recipient cross-invocation queue. It needed this same
+record and now has it, but it also needs the work to be resumable across
+invocations, which is a separate piece.
+
 ### 2026-09-16 - A campaign now records who it actually reached
 
 `lib/growth-studio-dispatch.cjs` has named this gap in its own header since 15

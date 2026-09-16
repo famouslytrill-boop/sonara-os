@@ -1,6 +1,6 @@
 "use strict";
 
-const { randomUUID } = require("node:crypto");
+const { createHash, randomUUID } = require("node:crypto");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getGrowthProvider,
@@ -28,7 +28,7 @@ const {
   createLedgerAppender,
   DEFAULT_STARTING_ALLOWANCE_MINOR
 } = require("../lib/sonara-usage-meter.cjs");
-const { createSendRecorder } = require("../lib/growth-studio-send-records.cjs");
+const { createSendRecorder, createSendRecordReader, remainderFrom } = require("../lib/growth-studio-send-records.cjs");
 
 // How many people one request may mail, and the arithmetic behind the number.
 //
@@ -316,6 +316,78 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
 
     const screened = markSuppressed(loadedRecipients.recipients, suppression);
 
+    // "Send only to the people this campaign has not reached yet."
+    //
+    // The piece lib/growth-studio-dispatch.cjs named as blocked on a
+    // per-recipient record, now that `public.growth_campaign_sends` is that
+    // record. It exists because of one specific harm the dispatcher already
+    // describes in its own header: a campaign that reached 900 of 1,000 told
+    // the owner which 100 were missed, and the only way to reach those 100 was
+    // to send the whole campaign again -- mailing the first 900 twice.
+    //
+    // ## It refuses rather than guesses, and that is the whole feature
+    //
+    // `remainderFrom` takes the read OUTCOME, not the rows, and answers
+    // `known: false` when the read did not succeed. This handler honours that
+    // by REFUSING to send, because the alternative is the failure mode the
+    // record was built to end: an unreadable record produces zero accepted
+    // rows, zero accepted rows makes every recipient look unreached, and
+    // "everybody is unreached" mails everybody a second time.
+    //
+    // So a failed read here is a 503 and nothing is sent. That is shape 4 from
+    // .claude/skills/checks-that-cannot-lie applied at a route boundary: absent
+    // is not false, and three states rather than two.
+    //
+    // ## Narrowed before authorisation, not after
+    //
+    // The remainder is computed above `authoriseCampaign` on purpose. The
+    // charge is drawn from the authorised set, so narrowing afterwards would
+    // authorise and bill for 1,000 while sending to 100. Consent screening
+    // still runs first, so somebody who withdrew consent since the first send
+    // is not pulled back in by being "unreached".
+    const remainderOnly = truthy(req.body.remainder_only || req.body.remainderOnly);
+    let remainderState = null;
+    let audienceRecipients = screened.recipients;
+
+    if (remainderOnly) {
+      const readRecord = typeof deps.readCampaignSends === "function"
+        ? deps.readCampaignSends
+        : createSendRecordReader({ getSupabaseServerConfig: () => config });
+
+      const outcome = await readRecord({ organizationId: context.organizationId, campaignId: campaign.id })
+        .catch((error) => ({ ok: false, code: "send_record_read_threw", rows: [], detail: String(error?.message || error) }));
+
+      remainderState = remainderFrom(screened.recipients, outcome);
+
+      if (!remainderState.known) {
+        await controlEvent(config, context, "campaign.remainder_refused", "refused", {
+          campaign_id: campaign.id,
+          code: remainderState.code,
+          approved_by: context.userId
+        }, campaign.id);
+        return respond(503, {
+          ok: false,
+          code: "remainder_unknown",
+          reason: `${remainderState.detail} Nothing was sent and nothing was charged.`,
+          remainderCode: remainderState.code
+        });
+      }
+
+      if (remainderState.remainder.length === 0) {
+        // Not an error and not a send. 409 rather than 200 because the owner
+        // asked for something that did not happen, and a 200 with "sent: 0"
+        // reads as a campaign that failed.
+        return respond(409, {
+          ok: false,
+          code: "all_reached",
+          reason: remainderState.detail,
+          alreadyReached: remainderState.alreadyReached
+        });
+      }
+
+      audienceRecipients = remainderState.remainder;
+    }
+
     const readLedger = typeof deps.readUsageLedger === "function"
       ? deps.readUsageLedger
       : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
@@ -334,7 +406,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // request that could name its own approver is a request that approves
       // itself.
       approval: { status: "approved", approved_by: context.userId },
-      recipients: screened.recipients,
+      // The narrowed set when this is a remainder send, and every consenting
+      // recipient otherwise. Authorised and therefore CHARGED for what is
+      // actually being sent -- see the remainder block above for why the
+      // narrowing has to happen before this call and not after it.
+      recipients: audienceRecipients,
       history,
       allowanceMinor,
       channel: "email"
@@ -371,7 +447,20 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // what it decides.
       recordSends: typeof deps.recordCampaignSends === "function"
         ? deps.recordCampaignSends
-        : createSendRecorder({ getSupabaseServerConfig: () => config })
+        : createSendRecorder({ getSupabaseServerConfig: () => config }),
+      // What makes this send's charge distinct from the first send's.
+      //
+      // Without it the remainder is emailed and the ledger declines the charge
+      // as a duplicate of `campaign:<id>` -- the stragglers are reached, we pay
+      // Resend, and nobody is billed.
+      //
+      // Digested over the remainder's own addresses rather than a timestamp or
+      // a random value, so the key is STABLE for a retry of this same remainder
+      // and different for a different one. A double-click that races the first
+      // request's record write lands on the same key and is declined as the
+      // duplicate it is; a double-click after it completes finds an empty
+      // remainder and is refused above before reaching here.
+      sendAttempt: remainderOnly ? `remainder-${remainderDigest(audienceRecipients)}` : ""
     });
 
     await controlEvent(config, context, "campaign.sent", sent.ok ? "success" : "failed", {
@@ -395,7 +484,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // recorded on the event as well as returned. An owner reading back why a
       // campaign bounced needs to know whether it was screened at all.
       suppression_checked: screened.checked,
-      suppressed_skipped: screened.marked
+      suppressed_skipped: screened.marked,
+      // Whether this was a send to the remainder, and how many were already
+      // reached when it was worked out. On the event rather than only in the
+      // response: an owner auditing two charges against one campaign has to be
+      // able to see that the second was a remainder and not a second full send.
+      remainder_only: remainderOnly,
+      already_reached: remainderState ? remainderState.alreadyReached : null,
+      charge_reference: sent.chargeReference || null
     }, campaign.id);
 
     // 200 when anything went out. A campaign where 459 of 460 landed is not a
@@ -421,6 +517,16 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       recorded: sent.recorded || { ok: false, code: "not_reported" },
       charge: sent.charge,
       audience,
+      // Present only on a remainder send, and it carries `known` so a caller
+      // cannot read "0 already reached" as a fact when it is an absence. A
+      // remainder send that got this far always has `known: true` -- the
+      // refusal above is the other branch -- and it is still forwarded rather
+      // than flattened to a number, because the field's whole value is that
+      // the three states stay three.
+      remainder: remainderOnly
+        ? { known: remainderState.known, alreadyReached: remainderState.alreadyReached, sentTo: audienceRecipients.length }
+        : undefined,
+      chargeReference: sent.chargeReference,
       suppressionChecked: screened.checked,
       suppressedSkipped: screened.marked,
       // Present only when the screen did not run, and it names why. "460 sent"
@@ -430,6 +536,97 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   }
 
   app.post("/api/growth/campaigns/:campaignId/send", access, (req, res) => sendCampaign(req, res, req.params.campaignId));
+
+  // Who this campaign has still not reached.
+  //
+  // A read, so an owner can see "100 of 1,000 still to reach" before pressing
+  // anything, rather than finding out by sending. Separate from the send on
+  // purpose: looking must not be able to mail anybody.
+  //
+  // ## It answers three states, never two
+  //
+  // `ok: true` with a remainder, `ok: true` with nothing left, and a REFUSAL
+  // when the record could not be read. The third is the one that matters. An
+  // unreadable record yields zero accepted rows, and zero accepted rows look
+  // exactly like a campaign that reached nobody -- so returning
+  // `remainder: everybody` here would put the whole list in front of an owner
+  // under the heading "still to reach" on the strength of a request that
+  // failed. `remainderFrom` refuses to answer from a failed read and this
+  // handler passes that refusal through instead of softening it into a number.
+  app.get("/api/growth/campaigns/:campaignId/remainder", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+
+    const campaignId = req.params.campaignId;
+    if (!validUuid(campaignId)) return res.status(400).json({ ok: false, code: "invalid_campaign_id" });
+
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+
+    // Loaded tenant-scoped before anything else is read, so a campaign id from
+    // another organization is a 404 here and not a remainder computed against
+    // this organization's contacts.
+    const loaded = await loadOne(config, TABLES.campaigns, context, campaignId);
+    if (!loaded.ok) return res.status(loaded.status).json({ ok: false, code: loaded.code });
+
+    const audience = oneOf(req.query.audience, ["campaign", "organization"], "campaign");
+
+    const loadedRecipients = await loadCampaignRecipients(config, context, { campaignId: loaded.row.id, audience });
+    if (!loadedRecipients.ok) {
+      return res.status(loadedRecipients.status).json({ ok: false, code: loadedRecipients.code, reason: loadedRecipients.reason });
+    }
+
+    const suppression = await readSuppressions({
+      getEnv: typeof deps.getEnv === "function" ? deps.getEnv : undefined,
+      fetchImpl: typeof deps.fetchImpl === "function" ? deps.fetchImpl : undefined
+    }).catch(() => ({ ok: false, code: "unreadable", addresses: new Set(), origins: new Map(), reason: "suppression list unreadable" }));
+
+    const screened = markSuppressed(loadedRecipients.recipients, suppression);
+
+    const readRecord = typeof deps.readCampaignSends === "function"
+      ? deps.readCampaignSends
+      : createSendRecordReader({ getSupabaseServerConfig: () => config });
+
+    const outcome = await readRecord({ organizationId: context.organizationId, campaignId: loaded.row.id })
+      .catch((error) => ({ ok: false, code: "send_record_read_threw", rows: [], detail: String(error?.message || error) }));
+
+    const state = remainderFrom(screened.recipients, outcome);
+
+    if (!state.known) {
+      return res.status(503).json({
+        ok: false,
+        code: "remainder_unknown",
+        remainderCode: state.code,
+        reason: state.detail
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      code: state.code,
+      campaignId: loaded.row.id,
+      audience,
+      alreadyReached: state.alreadyReached,
+      remainderCount: state.remainder.length,
+      // The addresses, because "100 remain" with no way to see which hundred is
+      // the reporting defect this whole area was fixed for. Capped so one
+      // response cannot become unbounded; the count above is always complete.
+      remainder: state.remainder.slice(0, 1000).map((recipient) => ({
+        id: recipient?.id || null,
+        name: recipient?.name || null,
+        email: recipient?.email || null
+      })),
+      detail: state.detail,
+      // The caveat, carried in the payload rather than left for the reader to
+      // work out. This is the suppression-screened list and NOT the
+      // consent-screened one: consent is applied when the send is authorised,
+      // so the number actually mailed can be lower than this. Saying so is the
+      // difference between measuring one population and reporting another.
+      consentAppliedAtSend: true,
+      suppressionChecked: screened.checked,
+      suppressedSkipped: screened.marked
+    });
+  });
 
   // The form's entry point. `send` cannot be mistaken for a campaign id -- the
   // id-in-path route is three segments deep and this is two -- and the id it
@@ -1434,6 +1631,29 @@ function getOneHandler(table, paramName, deps, key) {
   };
 }
 
+// A stable short name for one particular remainder, for the charge's
+// idempotency key.
+//
+// Derived from the addresses themselves, sorted and case-folded, so the same
+// remainder always digests to the same value and two different remainders
+// almost never collide. Deliberately NOT a timestamp or a random id: either
+// would make every retry a new charge, which is the overcharge the idempotency
+// key exists to prevent.
+//
+// Case-folded the same way lower(email) is in
+// growth_campaign_sends_accepted_once. If these two ever disagreed the digest
+// would change for a set the database considers identical, and a retry would
+// charge twice.
+function remainderDigest(recipients) {
+  const addresses = (Array.isArray(recipients) ? recipients : [])
+    .map((recipient) => String((typeof recipient === "string" ? recipient : recipient?.email) || "").trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  // The count is in the digest input as well as the addresses, so a set and a
+  // set containing a duplicate of one member cannot hash alike.
+  return createHash("sha256").update(`${addresses.length}:${addresses.join(",")}`).digest("hex").slice(0, 16);
+}
+
 // Who a campaign would go to, with each contact's own consent rows attached.
 //
 // Two reads and a join in JavaScript rather than one PostgREST embed. The embed
@@ -1753,6 +1973,21 @@ function campaignSendCard(rows, escape) {
     `<option value="organization">Everyone in your contact list</option>` +
     `</select>` +
     `<label for="approved"><input id="approved" name="approved" type="checkbox" value="true" required> I approve emailing this to my customers</label>` +
+    // Only the people this campaign has not reached yet.
+    //
+    // A checkbox on the same form rather than a second button, because the
+    // subject, the message and the approval all still apply and duplicating
+    // them is how two forms drift apart.
+    //
+    // Worded as what it does to the recipients rather than as a mode name. The
+    // owner is being asked "leave out the people who already got this", which
+    // is a fact about their customers' inboxes; "remainder only" is a fact
+    // about our database.
+    `<label for="remainder_only">` +
+    `<input id="remainder_only" name="remainder_only" type="checkbox" value="true"> ` +
+    `${escape("Skip anyone this campaign already reached")}` +
+    `</label>` +
+    `<p>${escape("Tick that when you are following up a send that did not finish. If we cannot confirm who was already reached, nothing is sent -- rather than sending to everyone again.")}</p>` +
     `<button type="submit">Send email campaign</button>` +
     `</form></article>`;
 }
@@ -1773,6 +2008,11 @@ const SEND_PROBLEMS = Object.freeze({
   no_consented_recipients: "Nobody on that list has agreed to hear from you by email. Nothing was sent and nothing was charged.",
   insufficient_credit: "There is not enough credit to send this campaign. Nothing was sent.",
   balance_unreadable: "We could not check your credit just now, so nothing was sent. Try again shortly.",
+  // The two the "skip anyone already reached" tickbox can come back with.
+  // Written to say what was NOT done, because that is the part an owner needs:
+  // in both cases nobody was emailed and nobody was charged.
+  remainder_unknown: "We could not confirm who this campaign already reached, so nothing was sent. Sending now could email those people a second time -- try again shortly.",
+  all_reached: "Everyone on that list has already had this campaign, so there was nobody left to send it to. Nothing was sent and nothing was charged.",
   cannot_read_recipients: "We could not read your contact list just now, so nothing was sent.",
   cannot_read_consent: "We could not read your consent records just now, so nothing was sent.",
   consent_rows_unreadable: "There are too many consent records to read at once, and a partial read would leave out people who did agree. Nothing was sent.",
