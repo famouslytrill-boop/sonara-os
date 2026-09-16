@@ -111,7 +111,7 @@ SONARA implements a local observation record with no raw prompt/response storage
 - `lib/sonara-event-driven-agent-contract.cjs`
 - `lib/sonara-llm-observability-contract.cjs`
 - `docs/architecture/EVENT_DRIVEN_AGENT_AND_OBSERVABILITY_FOUNDATION.md`
-- `public/research-lab/batch13-event-security-media.html`
+- `public/research-batch13-event-security-media.html`
 - `tests/batch13-event-security-media.test.js`
 
 Production execution added by this batch: **0 third-party repositories**.
