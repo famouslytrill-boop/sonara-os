@@ -13,23 +13,11 @@ const {
   unknownFitLabels
 } = require("../lib/sonara-repository-product-routing.cjs");
 
+
 describe("the full repository register has customer-facing governance homes", () => {
   const records = readOpenSourceTools();
   const placements = getRepositoryProductPlacements(records);
 
-  // The counts below were four literals -- 217 records, 306 placements and a
-  // per-surface map. They were a second copy of the register, and they behaved
-  // like one: adding ten reviewed repositories on 7 September failed this test
-  // and the page-render case with it, while nothing was actually wrong. A number
-  // kept in two places drifts, and the fix for that is one place, not a test
-  // reconciling the two.
-  //
-  // So the surface totals are now recomputed here from the records and the label
-  // map, independently of the function under test, and compared against it. That
-  // is a real cross-check rather than a tautology: it fails if routing and the
-  // label map ever disagree, which is the thing worth knowing. The literal that
-  // remains is a floor, not an expected value -- it exists so the check cannot
-  // pass by measuring an empty register.
   function surfaceCountsFromLabels() {
     const counts = Object.fromEntries(Object.values(SURFACES).map((surface) => [surface.key, 0]));
     for (const record of records) {
@@ -55,7 +43,6 @@ describe("the full repository register has customer-facing governance homes", ()
       derived,
       "routing disagrees with FIT_LABEL_TO_SURFACE about where records belong"
     );
-    // Every placement is one record on one surface, so the totals must reconcile.
     assert.equal(
       placements.length,
       Object.values(derived).reduce((total, count) => total + count, 0),
@@ -75,7 +62,7 @@ describe("the full repository register has customer-facing governance homes", ()
     }
   });
 
-  it("renders the whole registry across the shared and product reference modules", async () => {
+  it("renders the whole registry and product-specific SONARA expansion plan", async () => {
     const app = express();
     registerOpenSourceRoutes(app, { requireCustomer: (req, res, next) => next() });
 
@@ -85,6 +72,7 @@ describe("the full repository register has customer-facing governance homes", ()
     assert.match(radar.text, new RegExp(`Shared SONARA platform \\(${counts.shared_platform}\\)`));
     assert.match(radar.text, /Superpowers/);
     assert.match(radar.text, /Reviewed reference only|Research reference only|Not available/);
+    assert.match(radar.text, /SONARA-native expansion plan/);
 
     const expected = new Map([
       ["/business-builder/technology", counts.business_builder],
@@ -97,8 +85,10 @@ describe("the full repository register has customer-facing governance homes", ()
     for (const [route, count] of expected) {
       const response = await request(app).get(route);
       assert.equal(response.status, 200);
-      assert.match(response.text, new RegExp(`${count} records routed here`));
+      assert.match(response.text, new RegExp(`${count} external research records routed here`));
       assert.match(response.text, /None is connected to your account/);
+      assert.match(response.text, /SONARA-native expansion plan/);
+      assert.match(response.text, /Existing foundation|Requires configured provider|Planned next|Design only|Research only/);
     }
   });
 });
