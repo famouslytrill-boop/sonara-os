@@ -884,6 +884,41 @@ paths:
       summary: Return the non-secret governed AI integration catalog.
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/model-engines:
+    get:
+      operationId: getModelEngineControlPlane
+      tags: [Ecosystem]
+      summary: Return the non-secret governed model and engine control plane.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/agent-skill-strategies:
+    get:
+      operationId: getAgentSkillStrategyCatalog
+      tags: [Ecosystem]
+      summary: Return portable non-authorizing agent skill strategy metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/batch-convergence:
+    get:
+      operationId: getBatchConvergence
+      tags: [Ecosystem]
+      summary: Return governed Batch 1-10 repository and research convergence metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/source-evidence:
+    get:
+      operationId: getSourceEvidence
+      tags: [Ecosystem]
+      summary: Return bounded non-executing source evidence metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/learning-memory:
+    get:
+      operationId: getLearningMemoryControlPlane
+      tags: [Ecosystem]
+      summary: Return governed learning and memory policy and readiness metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
   /api/admin/ai-integrations/readiness:
     get:
       operationId: getAdminAIIntegrationReadiness

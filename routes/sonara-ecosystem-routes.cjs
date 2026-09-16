@@ -1,6 +1,11 @@
 "use strict";
 
 const { getManifest, getAllManifestTables } = require("../lib/sonara-ecosystem-manifest.cjs");
+const { getUnifiedBatchConvergence } = require("../lib/sonara-batch-convergence-engine.cjs");
+const { getModelEngineControlPlane } = require("../lib/sonara-model-engine-control-plane.cjs");
+const { getAgentSkillStrategyCatalog } = require("../lib/sonara-agent-skill-strategies.cjs");
+const { getLearningMemoryControlPlane } = require("../lib/sonara-learning-memory-control-plane.cjs");
+const { getSourceEvidenceRegister } = require("../lib/sonara-source-evidence-register.cjs");
 
 const LIVE_PROBE_TIMEOUT_MS = 800;
 
@@ -13,6 +18,11 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
 
   app.get("/ecosystem", (req, res) => {
     const manifest = getManifest();
+    const convergence = getUnifiedBatchConvergence();
+    const engines = getModelEngineControlPlane();
+    const skills = getAgentSkillStrategyCatalog();
+    const memory = getLearningMemoryControlPlane();
+    const evidence = getSourceEvidenceRegister();
     return res.status(200).type("html").send(layout({
       title: "SONARA Ecosystem",
       eyebrow: "Operating blueprint",
@@ -22,13 +32,22 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         brandCard("Parent company", `${manifest.parentCompany.name}: ${manifest.parentCompany.legalRole}`),
         ...manifest.currentCompanies.map((company) => brandCard(company.name, `${company.purpose} Apps: ${company.apps.slice(0, 8).join(" / ")}`)),
         brandCard("Infrastructure", manifest.infrastructure.requiredServices.join(" / ")),
-        brandCard("Governed AI integrations", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} tools classified by runtime, risk, license, and product fit; all optional and disabled by default.`),
+        brandCard("Governed integrations", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} optional AI/service integrations plus ${engines.engineCount} explicitly placed model/engine/runtime candidates. No registry record executes a provider by itself.`),
+        brandCard("Research and open-source intelligence", `${convergence.batchCount} research batches plus maintained repository registries converge into ${convergence.counts.uniqueRepositoryResearch} deduplicated repository records. ${engines.openSource.permissiveCandidateCount} currently meet the control plane's permissive-license + allowed-commercial-state candidate rule; all still keep product/runtime review boundaries.`),
+        brandCard("Learning and memory", `${memory.memoryClassCount} governed memory classes. Project memory is active for development; customer semantic retrieval remains ${String(memory.currentState.semanticRetrieval.status).replace(/_/g, " ")} until provider/model/runtime verification.`),
+        brandCard("Claude + ChatGPT/Codex strategies", `${skills.strategyCount} shared strategies cover convergence, open source, models/providers, learning/memory, product workflows, security, and release evidence without granting account/provider authority.`),
+        brandCard("Source evidence", `${evidence.sourceCount} uploaded PDF, research, design, model-registry, diagram/graph, and visual-evidence records are mapped as bounded context rather than executable product claims.`),
         brandCard("UI direction", manifest.uiExperience.direction),
         brandCard("Launch priority", manifest.launchPriorities.slice(0, 5).join(" / "))
       ],
       actions: [
         linkAction("/api/ecosystem/manifest", "Manifest JSON"),
         linkAction("/api/ecosystem/readiness", "Readiness JSON"),
+        linkAction("/api/ecosystem/model-engines", "Models & engines"),
+        linkAction("/api/ecosystem/batch-convergence", "Batch 1-10 research"),
+        linkAction("/api/ecosystem/agent-skill-strategies", "Agent strategies"),
+        linkAction("/api/ecosystem/learning-memory", "Learning & memory"),
+        linkAction("/api/ecosystem/source-evidence", "Source evidence"),
         linkAction("/api/ecosystem/ai-integrations", "AI integration catalog"),
         linkAction("/formulas", "Formulas"),
         linkAction("/dashboard", "Dashboard")
@@ -39,17 +58,28 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
   app.get("/admin/ecosystem", requireAdmin, async (req, res) => {
     const manifest = getManifest();
     const readiness = await getEcosystemReadiness(safeListTable, { probe: true });
+    const convergence = getUnifiedBatchConvergence();
+    const engines = getModelEngineControlPlane();
+    const skills = getAgentSkillStrategyCatalog();
+    const memory = getLearningMemoryControlPlane();
+    const evidence = getSourceEvidenceRegister();
     const missingCount = readiness.tables.filter((item) => !item.ok).length;
     return res.status(200).type("html").send(layout({
       title: "Ecosystem control plane",
       eyebrow: "Founder operations",
       heading: "Ecosystem control plane",
-      body: "Admin source-of-truth view for SONARA companies, modules, integrations, infrastructure, database domains, and launch blockers.",
+      body: "Admin source-of-truth view for SONARA companies, modules, integrations, models/engines, repository research, source evidence, learning/memory, infrastructure, database domains, and launch blockers.",
       sections: [
         brandCard("System model", `${manifest.currentCompanies.length} companies, ${manifest.requiredDatabaseDomains.length} database domains, ${getAllManifestTables().length} required table references.`),
         brandCard("Database readiness", `${readiness.tables.length - missingCount}/${readiness.tables.length} table references returned OK. ${missingCount} still need setup, migration, or read permission review.`),
+        brandCard("Batch 1-10 repository convergence", `${convergence.counts.uniqueRepositoryResearch} unique repository records after collapsing ${convergence.counts.duplicateRepositoryRecordsCollapsed} duplicate/source overlaps. Formal open-source registry integrity: ${convergence.counts.formalOpenSourceRegistryIntegrity.ok ? "verified" : "review required"}.`),
+        brandCard("Commercial open-source decisions", `${engines.openSource.permissiveCandidateCount} permissive/allowed candidates, ${engines.openSource.copyleftReviewCount} copyleft review items, ${engines.openSource.blockedOrUnknownCount} blocked/unverified/unknown items, ${engines.openSource.researchOnlyCount} research/review-only items.`),
+        brandCard("Models and engines", `${engines.engineCount} explicitly placed engines/model families/runtime companions; full repository inventory remains separately governed.`),
+        brandCard("Cross-agent strategy", `${skills.strategyCount} shared Claude + ChatGPT/Codex strategies. Repository strategy does not install a ChatGPT app or widen connected-app permissions.`),
+        brandCard("Learning and memory", `${memory.memoryClassCount} memory classes; organization learning runtime is ${String(memory.currentState.organizationLearningRuntime.status).replace(/_/g, " ")}; semantic retrieval is ${String(memory.currentState.semanticRetrieval.status).replace(/_/g, " ")}.`),
+        brandCard("Source evidence", `${evidence.sourceCount} source-grounded records from uploaded PDFs, designs, research, machine-readable model data, and visual evidence.`),
         brandCard("Adapter policy", manifest.externalInspirationAndAdapters.adapterRules.join(" / ")),
-        brandCard("AI integration control plane", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} classified tools with admin-only, read-only service probes.`),
+        brandCard("AI integration control plane", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} classified optional tools with admin-only, read-only service probes.`),
         brandCard("UI layer", manifest.uiExperience.layers.join(" / ")),
         brandCard("Next priorities", manifest.launchPriorities.slice(0, 8).join(" / ")),
         ...manifest.currentCompanies.map((company) => brandCard(company.name, company.modules.slice(0, 14).join(" / ")))
@@ -59,6 +89,11 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         linkAction("/admin/formulas", "Formulas"),
         linkAction("/api/ecosystem/manifest", "Manifest JSON"),
         linkAction("/api/ecosystem/readiness", "Readiness JSON"),
+        linkAction("/api/ecosystem/model-engines", "Models & engines"),
+        linkAction("/api/ecosystem/batch-convergence", "Batch convergence"),
+        linkAction("/api/ecosystem/agent-skill-strategies", "Agent strategies"),
+        linkAction("/api/ecosystem/learning-memory", "Learning & memory"),
+        linkAction("/api/ecosystem/source-evidence", "Source evidence"),
         linkAction("/admin/ai-integrations", "AI integrations")
       ]
     }));

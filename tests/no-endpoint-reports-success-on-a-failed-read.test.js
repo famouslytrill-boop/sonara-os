@@ -59,7 +59,12 @@ function stubFetch() {
 // or static result while the database is down is the correct answer rather than
 // a claim about anything. Readiness reports are here on purpose: several of them
 // carry a per-table `ok: false`, which is the honest shape.
-const NOT_ABOUT_CUSTOMER_RECORDS = /\/(manifest|readiness|health|framework|catalog|discovery|definitions|providers|status|public|ai-integrations|requested-repositories|huggingface|open-source|templates|workflows)$/;
+//
+// Batch-convergence/model-engine/skill/memory/source-evidence routes are static
+// repository control-plane metadata. They do not read customer rows. Keeping
+// those names here prevents this outage test from treating a successful static
+// policy read as a fabricated successful customer-data read.
+const NOT_ABOUT_CUSTOMER_RECORDS = /\/(manifest|readiness|health|framework|catalog|discovery|definitions|providers|status|public|ai-integrations|requested-repositories|huggingface|open-source|templates|workflows|model-engines|agent-skill-strategies|batch-convergence|learning-memory|source-evidence)$/;
 
 function listRows(body) {
   for (const key of ["rows", "records", "items", "data"]) {
