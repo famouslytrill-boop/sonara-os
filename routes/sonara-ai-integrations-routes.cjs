@@ -10,10 +10,13 @@ const { getUnifiedBatchConvergence } = require("../lib/sonara-batch-convergence-
 const { getSourceEvidenceRegister } = require("../lib/sonara-source-evidence-register.cjs");
 const { getLearningMemoryControlPlane } = require("../lib/sonara-learning-memory-control-plane.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
+const { createRateLimiter } = require("../lib/sonara-rate-limit.cjs");
 const hostedModels = require("../lib/sonara-model-provider-router.cjs");
 
 const BUSINESS_DRAFT_MAX_CHARS = 8000;
 const BUSINESS_DRAFT_MAX_OUTPUT_TOKENS = 900;
+const BUSINESS_DRAFT_WINDOW_SECONDS = 60;
+const BUSINESS_DRAFT_MAX_ATTEMPTS = 12;
 
 module.exports = function registerSonaraAIIntegrationRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -24,6 +27,39 @@ module.exports = function registerSonaraAIIntegrationRoutes(app, deps = {}) {
     ? deps.recordAdminAuditEvent
     : async () => undefined;
   const modelProviders = deps.modelProviders || hostedModels;
+  const limiterFactory = typeof deps.createRateLimiter === "function" ? deps.createRateLimiter : createRateLimiter;
+  const getRateLimitConfig = typeof deps.getSupabaseServerConfig === "function"
+    ? deps.getSupabaseServerConfig
+    : rateLimitConfigFromEnv;
+
+  // A hosted draft is a paid/networked operation. Authentication alone does not
+  // bound cost or stop a compromised admin session from hammering the provider.
+  // Charge both the edge client and the authenticated admin identity. The shared
+  // rate-limit module uses the durable Postgres counter in production and makes
+  // any degraded fail-open visible in logs rather than silently disabling the
+  // guard.
+  const businessDraftLimiter = limiterFactory({
+    name: "admin_ai_business_draft",
+    windowSeconds: BUSINESS_DRAFT_WINDOW_SECONDS,
+    maxAttempts: BUSINESS_DRAFT_MAX_ATTEMPTS,
+    scopes: ["ip", "subject"],
+    subjectFrom: (req) => req.sonaraAdmin?.user?.id || req.sonaraAdmin?.user?.email || req.sonaraAdmin?.role,
+    getSupabaseServerConfig: getRateLimitConfig,
+    renderDenied: ({ req, res, retryAfterSeconds }) => {
+      const providerState = modelProviders.getProviderReadiness();
+      const provider = String(req.body?.provider || "").trim().toLowerCase();
+      const prompt = String(req.body?.prompt || "").trim().slice(0, BUSINESS_DRAFT_MAX_CHARS);
+      return res.status(429).type("html").send(businessDraftPage({
+        layout,
+        brandCard,
+        linkAction,
+        providerState,
+        provider,
+        prompt,
+        error: `Too many draft requests. Wait ${Math.max(Number(retryAfterSeconds) || 1, 1)} seconds before trying again.`
+      }));
+    }
+  });
 
   // The drafting handler still goes through SONARA's authority runner. The
   // action is `draft_content`, which is deliberately on the self-serve list:
@@ -101,7 +137,7 @@ module.exports = function registerSonaraAIIntegrationRoutes(app, deps = {}) {
     }));
   });
 
-  app.post("/admin/ai-integrations/business-draft", requireAdmin, async (req, res) => {
+  app.post("/admin/ai-integrations/business-draft", requireAdmin, businessDraftLimiter, async (req, res) => {
     const provider = String(req.body?.provider || "").trim().toLowerCase();
     const prompt = String(req.body?.prompt || "").trim();
     const providerState = modelProviders.getProviderReadiness();
@@ -308,6 +344,13 @@ function integrationSummary(item) {
   return `Configuration: ${display(item.configurationStatus)}. Runtime: ${display(item.runtimeStatus)}.${host}${missing} Human review required.`;
 }
 
+function rateLimitConfigFromEnv() {
+  const url = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (!url || !serviceRoleKey) return { ok: false };
+  return { ok: true, url, serviceRoleKey };
+}
+
 function display(value) {
   return String(value || "unknown").replace(/_/g, " ");
 }
@@ -320,3 +363,5 @@ function basicLayout(data) { return `<!doctype html><html><head><title>${esc(dat
 
 module.exports.BUSINESS_DRAFT_MAX_CHARS = BUSINESS_DRAFT_MAX_CHARS;
 module.exports.BUSINESS_DRAFT_MAX_OUTPUT_TOKENS = BUSINESS_DRAFT_MAX_OUTPUT_TOKENS;
+module.exports.BUSINESS_DRAFT_WINDOW_SECONDS = BUSINESS_DRAFT_WINDOW_SECONDS;
+module.exports.BUSINESS_DRAFT_MAX_ATTEMPTS = BUSINESS_DRAFT_MAX_ATTEMPTS;
