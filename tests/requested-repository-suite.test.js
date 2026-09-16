@@ -46,9 +46,9 @@ const {
 } = require("../lib/sonara-screenshot-tool-radar-batch7.cjs");
 
 const {
-  SCREENSHOT_TOOL_RADAR_BATCH11,
-  NON_REPOSITORY_REFERENCES_BATCH11
-} = require("../lib/sonara-screenshot-tool-radar-batch11.cjs");
+  SCREENSHOT_TOOL_RADAR_BATCH12,
+  NON_REPOSITORY_REFERENCES_BATCH12
+} = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -120,13 +120,13 @@ const SCREENSHOT_BATCH4_KEYS = [
 const SCREENSHOT_BATCH5_KEYS = SCREENSHOT_TOOL_RADAR_BATCH5.map((item) => item.key);
 const SCREENSHOT_BATCH6_KEYS = SCREENSHOT_TOOL_RADAR_BATCH6.map((item) => item.key);
 const SCREENSHOT_BATCH7_KEYS = SCREENSHOT_TOOL_RADAR_BATCH7.map((item) => item.key);
-const SCREENSHOT_BATCH11_KEYS = SCREENSHOT_TOOL_RADAR_BATCH11.map((item) => item.key);
+const SCREENSHOT_BATCH12_KEYS = SCREENSHOT_TOOL_RADAR_BATCH12.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
   ...NON_REPOSITORY_REFERENCES_BATCH6,
   ...NON_REPOSITORY_REFERENCES_BATCH7,
-  ...NON_REPOSITORY_REFERENCES_BATCH11
+  ...NON_REPOSITORY_REFERENCES_BATCH12
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -497,7 +497,7 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH5_KEYS,
         ...SCREENSHOT_BATCH6_KEYS,
         ...SCREENSHOT_BATCH7_KEYS,
-        ...SCREENSHOT_BATCH11_KEYS
+        ...SCREENSHOT_BATCH12_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);

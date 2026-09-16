@@ -1,6 +1,6 @@
 "use strict";
 
-// Batch 11 of the screenshot intake, checked against the things a screenshot
+// Batch 12 of the screenshot intake, checked against the things a screenshot
 // cannot tell you.
 //
 // Seven batches arrived across one hold: 68 images, eight files and a pasted
@@ -16,12 +16,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const batch11 = require("../lib/sonara-screenshot-tool-radar-batch11.cjs");
+const batch12 = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
 
-const readiness = batch11.getScreenshotToolReadinessBatch11();
-const records = batch11.getPublicScreenshotToolCatalogBatch11();
-const refusals = batch11.getConductRefusalsBatch11();
-const confirmations = batch11.getConfirmedExistingRecordsBatch11();
+const readiness = batch12.getScreenshotToolReadinessBatch12();
+const records = batch12.getPublicScreenshotToolCatalogBatch12();
+const refusals = batch12.getConductRefusalsBatch12();
+const confirmations = batch12.getConfirmedExistingRecordsBatch12();
 
 describe("a screenshot is not a licence", () => {
   it("has records to check", () => {
@@ -167,17 +167,22 @@ describe("a screenshot is not a licence", () => {
   });
 
   it("does not reuse a batch number that already means something else", () => {
-    // Written after getting this wrong twice in one sitting. The screenshot
-    // radar filenames run batch2..batch7, so 8 looks like the next free number
-    // and is not: getCombinedReadiness publishes capabilityBatch8 and
-    // designBatch9. Renaming to 10 collided again, with
-    // lib/sonara-batch10-operational-review.cjs -- the module the convergence
-    // skill's own authority order calls "Batch 10 operational requirements".
-    // This intake is 11.
+    // Written after getting this wrong three times. The screenshot radar
+    // filenames run batch2..batch7, so 8 looks like the next free number and is
+    // not: getCombinedReadiness publishes capabilityBatch8 and designBatch9.
+    // Renaming to 10 collided with lib/sonara-batch10-operational-review.cjs,
+    // the module the convergence skill's authority order calls "Batch 10
+    // operational requirements". Renaming to 11 collided with
+    // lib/sonara-batch11-operational-review.cjs, which landed on main *while
+    // this intake was being written* -- free in the branch, taken by the time
+    // CI built the merge commit. This intake is 12.
     //
-    // The claims are DERIVED here rather than listed, because a hardcoded list
-    // is precisely what let the second collision through: the first version of
-    // this assertion named batches 8 and 9 and said nothing about 10.
+    // The claims are DERIVED here rather than listed, for two reasons the three
+    // collisions demonstrate between them. A hardcoded list is what let the
+    // second through: the first version of this assertion named 8 and 9 and said
+    // nothing about 10. And nothing local could have caught the third, because
+    // the number really was free here -- only a scan run against the merged tree
+    // sees what main has claimed since.
     // A module *claims* a number when it defines that batch: its filename
     // carries the number, or it exports a symbol carrying it. Merely naming one
     // is not a claim -- the first version of this scan matched any
@@ -203,14 +208,15 @@ describe("a screenshot is not a licence", () => {
       }
     }
 
-    // Measured 16 September 2026: ten numbers, 2 through 11, each claimed by
-    // exactly one module -- 8 and 9 both by sonara-capability-design-batches.cjs.
-    assert.ok(claims.size >= 10, `only ${claims.size} batch numbers found across lib/; this check has gone blind`);
+    // Measured 16 September 2026 after merging main: eleven numbers, 2 through
+    // 12, each claimed by exactly one module -- 8 and 9 both by
+    // sonara-capability-design-batches.cjs.
+    assert.ok(claims.size >= 11, `only ${claims.size} batch numbers found across lib/, below the 11 claimed on 16 September 2026; this check has gone blind`);
 
     const mine = Number(readiness.mode.match(/batch(\d{1,2})$/)[1]);
-    assert.equal(mine, 11, "this module's batch number changed; re-derive which numbers are free before renaming it");
+    assert.equal(mine, 12, "this module's batch number changed; re-derive which numbers are free before renaming it");
 
-    const claimants = [...(claims.get(mine) || [])].filter((file) => !file.includes("screenshot-tool-radar-batch11"));
+    const claimants = [...(claims.get(mine) || [])].filter((file) => !file.includes("screenshot-tool-radar-batch12"));
     assert.deepEqual(
       claimants,
       [],
@@ -221,8 +227,8 @@ describe("a screenshot is not a licence", () => {
     // And it has to actually be published, or none of the above matters.
     const route = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-requested-repositories-routes.cjs"), "utf8");
     assert.ok(
-      route.includes("getScreenshotToolReadinessBatch11"),
-      "batch 11 is not wired into the catalog route, so none of it reaches the Research Lab"
+      route.includes("getScreenshotToolReadinessBatch12"),
+      "batch 12 is not wired into the catalog route, so none of it reaches the Research Lab"
     );
   });
 

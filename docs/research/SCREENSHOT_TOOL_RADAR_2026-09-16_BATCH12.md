@@ -1,4 +1,4 @@
-# Screenshot tool radar — batch 11
+# Screenshot tool radar — batch 12
 
 Measured: 2026-09-16
 Review by: 2026-12-16
@@ -8,17 +8,22 @@ Seven batches of screenshots arrived across a single hold the owner asked for:
 the hold was released. This is what survived verification and, more usefully,
 what did not.
 
-It is numbered **11**, and the two numbers skipped were each claimed already —
-which took two attempts to get right. The screenshot radar filenames run
-`batch2`..`batch7`, so 8 looks like the next one and is not: `capabilityBatch8`
-and `designBatch9` are published by
+It is numbered **12**, and it took four attempts to land there. The screenshot
+radar filenames run `batch2`..`batch7`, so 8 reads as the next free number and is
+not: `capabilityBatch8` and `designBatch9` are published by
 `routes/sonara-requested-repositories-routes.cjs`, and a card in that same file
-tells readers those are internal convergence records. Renaming to 10 collided
-again, with `lib/sonara-batch10-operational-review.cjs` — the module the
-convergence skill's authority order calls "Batch 10 operational requirements".
-`tests/a-screenshot-is-not-a-licence.test.js` now derives the claimed numbers by
-scanning `lib/` rather than listing them, because a hardcoded list is exactly
-what let the second collision through.
+tells readers those are internal convergence records. 10 belongs to
+`lib/sonara-batch10-operational-review.cjs` — the module the convergence skill's
+authority order calls "Batch 10 operational requirements". And 11 was claimed by
+`lib/sonara-batch11-operational-review.cjs` **on main while this intake was being
+written**, so it was free in the branch and taken by the time CI built the merge.
+
+The third collision is the one worth keeping: nothing local could have caught it,
+and CI did — because `tests/a-screenshot-is-not-a-licence.test.js` derives the
+claimed numbers by scanning `lib/` rather than listing them. Its first version
+named 8 and 9 explicitly, which is exactly what let the second collision through.
+Main's Batch 11 covers fourteen entirely different repositories, so this was only
+ever a numbering collision and never two verdicts on one repository.
 
 ## The short version
 
