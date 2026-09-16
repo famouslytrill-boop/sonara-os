@@ -208,14 +208,35 @@ RLS policy in the schema depends on, and they are reachable directly.
 
 **This has not been changed, deliberately.** Revoking `EXECUTE` from
 `authenticated` is the advisor's suggested remediation, and it is exactly the
-change that could silently break every RLS policy that calls them: a policy
-evaluates as the calling role, so removing the grant can turn a working policy
-into a denial. Verifying that needs a database somebody can break — a preview
-branch — not a guess. It is written down here rather than acted on because
-acting on it wrongly locks customers out of their own records.
+change that could break the RLS policies that call them: a policy evaluates as
+the calling role, so removing the grant can turn a working policy into a denial.
+It is written down here rather than acted on because acting on it wrongly locks
+customers out of their own records.
+
+> **Measured on 15 September 2026, and two of the three sentences above needed
+> correcting.** This paragraph said verifying it "needs a database somebody can
+> break — a preview branch — not a guess". True when written;
+> `scripts/verify-migration-replay.mjs` has since made one on every release, and
+> `pnpm run report:authorization-grants` now runs the experiment on it.
+>
+> The caution holds: revoking `EXECUTE` on `is_org_member` turns a working read
+> of `activity_events` or `intake_requests` into `permission denied for function
+> is_org_member`. But it is **not silent** — the error names the function — and it
+> is reversible in the same session. And it is not "every RLS policy in the
+> schema": the 18 July hardening left `authenticated` able to reach seventeen
+> tables, thirteen of which have a policy calling one of these functions, so 614
+> of the 631 policies govern tables it cannot touch at all.
+>
+> One of the twelve, `sonara_has_org_role`, is created by a migration, granted to
+> `authenticated`, and called by **no** policy here — revoking it changed nothing
+> in the experiment. Four others are not created by any migration at all; they are
+> recorded as commented-out text in 20260819050000. The whole measurement, its
+> caveats, and what it does not license are in
+> `docs/architecture/2026-09-15-REVOKING-AN-AUTHORIZATION-FUNCTION.md`. The grant
+> itself is still the owner's decision, against production rather than a replay.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 118 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 119 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
@@ -406,7 +427,7 @@ cannot:
 | Nothing would route to it anyway | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
 
 The shipped product is the Express CommonJS application: `server.js`, `routes/`,
-`lib/`, **277 registered GET routes**, deployed as one serverless function.
+`lib/`, **308 registered GET routes**, deployed as one serverless function.
 
 **What it cost, before it was found.** `scripts/report-orphan-tables.mjs` counted
 a table as "queried" when any `.ts` file named it. So the release chain reported
@@ -526,7 +547,7 @@ reports these tables as used.
   two-sided register meanwhile, and would fail the day a *second* route module
   is written and never wired.
 
-- **26 tables have RLS enabled with no explicit policy**, which closes
+- **27 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever
   reads with the service-role key that is the posture you want — it is what
   stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
@@ -539,7 +560,7 @@ reports these tables as used.
   succeeded since 5 August. So it had reported nothing for a month while the set
   nearly doubled.
 
-  Measured against the replay (all 118 migrations on an empty database, so this
+  Measured against the replay (all 119 migrations on an empty database, so this
   is the migrations' intended end state, not production's): **25 of 307 tables
   with RLS enabled.**
 
