@@ -6,6 +6,7 @@ const { getModelEngineControlPlane } = require("../lib/sonara-model-engine-contr
 const { getAgentSkillStrategyCatalog } = require("../lib/sonara-agent-skill-strategies.cjs");
 const { getLearningMemoryControlPlane } = require("../lib/sonara-learning-memory-control-plane.cjs");
 const { getSourceEvidenceRegister } = require("../lib/sonara-source-evidence-register.cjs");
+const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
 
 const LIVE_PROBE_TIMEOUT_MS = 800;
 
@@ -23,6 +24,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
     const skills = getAgentSkillStrategyCatalog();
     const memory = getLearningMemoryControlPlane();
     const evidence = getSourceEvidenceRegister();
+    const expansion = getMarketExpansionRegistry();
     return res.status(200).type("html").send(layout({
       title: "SONARA Ecosystem",
       eyebrow: "Operating blueprint",
@@ -34,6 +36,8 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         brandCard("Infrastructure", manifest.infrastructure.requiredServices.join(" / ")),
         brandCard("Governed integrations", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} optional AI/service integrations plus ${engines.engineCount} explicitly placed model/engine/runtime candidates. No registry record executes a provider by itself.`),
         brandCard("Research and open-source intelligence", `${convergence.batchCount} research batches plus maintained repository registries converge into ${convergence.counts.uniqueRepositoryResearch} deduplicated repository records. ${engines.openSource.permissiveCandidateCount} currently meet the control plane's permissive-license + allowed-commercial-state candidate rule; all still keep product/runtime review boundaries.`),
+        brandCard("Market and product expansion", `${expansion.counts.capabilities} governed capability records, ${expansion.counts.industryPacks} industry packs, and ${expansion.counts.standaloneSkus} possible standalone SKUs now capture the September 14-16 market, workflow, media, field, vertical-SaaS, distribution, and usability research. Planned records do not claim production execution.`),
+        brandCard("Expansion direction", "Shared Nexus primitives first: workflow, approvals, commerce, communications, media/design, field/offline, visibility, and distribution. Industry packs reuse those primitives instead of becoming disconnected applications."),
         brandCard("Learning and memory", `${memory.memoryClassCount} governed memory classes. Project memory is active for development; customer semantic retrieval remains ${String(memory.currentState.semanticRetrieval.status).replace(/_/g, " ")} until provider/model/runtime verification.`),
         brandCard("Claude + ChatGPT/Codex strategies", `${skills.strategyCount} shared strategies cover convergence, open source, models/providers, learning/memory, product workflows, security, and release evidence without granting account/provider authority.`),
         brandCard("Source evidence", `${evidence.sourceCount} uploaded PDF, research, design, model-registry, diagram/graph, and visual-evidence records are mapped as bounded context rather than executable product claims.`),
@@ -44,7 +48,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         linkAction("/api/ecosystem/manifest", "Manifest JSON"),
         linkAction("/api/ecosystem/readiness", "Readiness JSON"),
         linkAction("/api/ecosystem/model-engines", "Models & engines"),
-        linkAction("/api/ecosystem/batch-convergence", "Batch 1-10 research"),
+        linkAction("/api/ecosystem/batch-convergence", "Batch research"),
         linkAction("/api/ecosystem/agent-skill-strategies", "Agent strategies"),
         linkAction("/api/ecosystem/learning-memory", "Learning & memory"),
         linkAction("/api/ecosystem/source-evidence", "Source evidence"),
@@ -63,25 +67,30 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
     const skills = getAgentSkillStrategyCatalog();
     const memory = getLearningMemoryControlPlane();
     const evidence = getSourceEvidenceRegister();
+    const expansion = getMarketExpansionRegistry();
     const missingCount = readiness.tables.filter((item) => !item.ok).length;
     return res.status(200).type("html").send(layout({
       title: "Ecosystem control plane",
       eyebrow: "Founder operations",
       heading: "Ecosystem control plane",
-      body: "Admin source-of-truth view for SONARA companies, modules, integrations, models/engines, repository research, source evidence, learning/memory, infrastructure, database domains, and launch blockers.",
+      body: "Admin source-of-truth view for SONARA companies, modules, integrations, models/engines, repository research, source evidence, market expansion, learning/memory, infrastructure, database domains, and launch blockers.",
       sections: [
         brandCard("System model", `${manifest.currentCompanies.length} companies, ${manifest.requiredDatabaseDomains.length} database domains, ${getAllManifestTables().length} required table references.`),
         brandCard("Database readiness", `${readiness.tables.length - missingCount}/${readiness.tables.length} table references returned OK. ${missingCount} still need setup, migration, or read permission review.`),
-        brandCard("Batch 1-10 repository convergence", `${convergence.counts.uniqueRepositoryResearch} unique repository records after collapsing ${convergence.counts.duplicateRepositoryRecordsCollapsed} duplicate/source overlaps. Formal open-source registry integrity: ${convergence.counts.formalOpenSourceRegistryIntegrity.ok ? "verified" : "review required"}.`),
+        brandCard("Batch repository convergence", `${convergence.counts.uniqueRepositoryResearch} unique repository records after collapsing ${convergence.counts.duplicateRepositoryRecordsCollapsed} duplicate/source overlaps. Formal open-source registry integrity: ${convergence.counts.formalOpenSourceRegistryIntegrity.ok ? "verified" : "review required"}.`),
         brandCard("Commercial open-source decisions", `${engines.openSource.permissiveCandidateCount} permissive/allowed candidates, ${engines.openSource.copyleftReviewCount} copyleft review items, ${engines.openSource.blockedOrUnknownCount} blocked/unverified/unknown items, ${engines.openSource.researchOnlyCount} research/review-only items.`),
         brandCard("Models and engines", `${engines.engineCount} explicitly placed engines/model families/runtime companions; full repository inventory remains separately governed.`),
+        brandCard("Market expansion control plane", `${expansion.counts.capabilities} capabilities classified across core platform, add-ons, industry packs, standalone SKUs, distribution, and partner integrations. Current status split: ${formatCounts(expansion.counts.byStatus)}.`),
+        brandCard("Industry packs", expansion.industryPacks.map((item) => `${item.name}: ${item.status.replace(/_/g, " ")}`).join(" / ")),
+        brandCard("Standalone SKU candidates", expansion.standaloneSkus.map((item) => `${item.name}: ${item.status.replace(/_/g, " ")}`).join(" / ")),
+        brandCard("Expansion guardrail", "A market-expansion record does not install, activate, message, publish, bill, pay out, mutate infrastructure, or grant provider authority. Existing implementation and planned work remain explicitly separated."),
         brandCard("Cross-agent strategy", `${skills.strategyCount} shared Claude + ChatGPT/Codex strategies. Repository strategy does not install a ChatGPT app or widen connected-app permissions.`),
         brandCard("Learning and memory", `${memory.memoryClassCount} memory classes; organization learning runtime is ${String(memory.currentState.organizationLearningRuntime.status).replace(/_/g, " ")}; semantic retrieval is ${String(memory.currentState.semanticRetrieval.status).replace(/_/g, " ")}.`),
         brandCard("Source evidence", `${evidence.sourceCount} source-grounded records from uploaded PDFs, designs, research, machine-readable model data, and visual evidence.`),
         brandCard("Adapter policy", manifest.externalInspirationAndAdapters.adapterRules.join(" / ")),
         brandCard("AI integration control plane", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} classified optional tools with admin-only, read-only service probes.`),
         brandCard("UI layer", manifest.uiExperience.layers.join(" / ")),
-        brandCard("Next priorities", manifest.launchPriorities.slice(0, 8).join(" / ")),
+        brandCard("Next priorities", expansion.implementationSequence.slice(0, 8).join(" / ")),
         ...manifest.currentCompanies.map((company) => brandCard(company.name, company.modules.slice(0, 14).join(" / ")))
       ],
       actions: [
@@ -100,7 +109,13 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
   });
 
   app.get("/api/ecosystem/manifest", (req, res) => {
-    res.status(200).json({ ok: true, manifest: getManifest() });
+    res.status(200).json({
+      ok: true,
+      manifest: {
+        ...getManifest(),
+        marketExpansion: getMarketExpansionRegistry()
+      }
+    });
   });
 
   // Public readiness is intentionally static and fast. It describes the
@@ -125,6 +140,7 @@ function getStaticEcosystemReadiness() {
     })),
     serviceCount: manifest.infrastructure.requiredServices.length,
     aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
+    expansionCapabilityCount: getMarketExpansionRegistry().counts.capabilities,
     tables: tableNames.map((table) => ({ table, ok: false, status: "setup_required" }))
   };
 }
@@ -156,6 +172,7 @@ async function getEcosystemReadiness(safeListTable, options = {}) {
     })),
     serviceCount: manifest.infrastructure.requiredServices.length,
     aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
+    expansionCapabilityCount: getMarketExpansionRegistry().counts.capabilities,
     tables
   };
 }
@@ -172,6 +189,12 @@ async function boundedProbe(run, timeoutMs) {
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+function formatCounts(counts) {
+  return Object.entries(counts || {})
+    .map(([key, value]) => `${key.replace(/_/g, " ")} ${value}`)
+    .join(" / ");
 }
 
 function unique(values) {
