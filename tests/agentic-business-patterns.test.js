@@ -73,6 +73,34 @@ describe("agent execution patterns and business AI control plane", () => {
     assert.equal(response.body.agentArchitecture.patternCount, 5);
     assert.equal(response.body.businessAI.skillCount, 10);
     assert.equal(response.body.verifiedModelProfiles[0].model, "gpt-6-astra");
-    assert.doesNotMatch(response.text, /OPENAI_API_KEY|service-role|Bearer\s+[A-Za-z0-9_-]+/i);
+
+    // No secret VALUE may reach this public endpoint.
+    //
+    // This assertion used to read
+    //
+    //   assert.doesNotMatch(response.text, /OPENAI_API_KEY|service-role|Bearer\s+[A-Za-z0-9_-]+/i);
+    //
+    // and it failed on its own branch, before any merge, because the catalog's
+    // own safety prose says "never retain credentials, raw card/CVV data,
+    // access tokens, private keys, passwords, or service-role secrets". It was
+    // matching the WORDS of the rule rather than a leaked credential, so a
+    // contract that states its own boundary could not pass its own test.
+    //
+    // Narrowed to credential shapes, which is the property that was meant:
+    // a Stripe key, a JWT (every Supabase key is one), an environment-variable
+    // assignment carrying a value, or a Bearer token of real length. The
+    // previous version would also have passed a leaked key that simply avoided
+    // those three spellings, so this is stricter about values as well as
+    // quieter about prose.
+    const SECRET_VALUE = /sk_(live|test)_[A-Za-z0-9]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|(?:OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|STRIPE_[A-Z_]*KEY)\s*[:=]\s*\S+|Bearer\s+[A-Za-z0-9_-]{20,}/;
+    assert.doesNotMatch(response.text, SECRET_VALUE, "a credential value reached a public endpoint");
+
+    // And the prose the old regex tripped over has to still be there, or this
+    // check could be "fixed" by deleting the safety rule it was reporting.
+    assert.match(
+      response.text,
+      /service-role secrets/i,
+      "the memory boundary no longer states that service-role secrets are never retained"
+    );
   });
 });
