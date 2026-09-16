@@ -5,7 +5,7 @@
 // `tests/the-route-manifest-agrees-with-the-server.test.js` is thorough about
 // the routes the manifest declares, and that is exactly its boundary: its
 // population is `declaredGets()`, read from ROUTE_REGISTRY. On 16 September 2026
-// the manifest held 308 routes and the server answered 558, so **250 routes
+// the manifest held 308 routes and the server answered 564, so **256 routes
 // were outside every probe in this repository** -- including `/staff/location`,
 // `/admin/subscriptions`, `/account/security/two-factor`, `/growth/unsubscribe`
 // and fourteen legal documents.
@@ -23,10 +23,10 @@
 //
 // What the first run found, 16 September 2026, is worth recording because it is
 // the opposite of what the numbers suggested: **the server refuses a stranger
-// on all 40 protected undeclared pages** -- every `/staff` page, every `/admin`
+// on all 36 protected undeclared pages** -- every `/staff` page, every `/admin`
 // page except the login screen, every `/account` page, and
-// `/owner/agent-schedule`. Nothing leaked. The server was right about all 66
-// and the manifest was silent about all 66, which is the same shape as the
+// `/owner/agent-schedule`. Nothing leaked. The server was right about all 67
+// and the manifest was silent about all 67, which is the same shape as the
 // sixteen mislabelled routes found on 19 August, one direction over.
 //
 // Two surfaces are deliberately not probed here, and saying which matters more

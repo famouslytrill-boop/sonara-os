@@ -1,4 +1,4 @@
-# Screenshot tool radar — batch 10
+# Screenshot tool radar — batch 11
 
 Measured: 2026-09-16
 Review by: 2026-12-16
@@ -8,9 +8,17 @@ Seven batches of screenshots arrived across a single hold the owner asked for:
 the hold was released. This is what survived verification and, more usefully,
 what did not.
 
-It is numbered 10 rather than 8 because `capabilityBatch8` and `designBatch9`
-already exist in `routes/sonara-requested-repositories-routes.cjs` and mean
-something else. A card in that same file already tells readers so.
+It is numbered **11**, and the two numbers skipped were each claimed already —
+which took two attempts to get right. The screenshot radar filenames run
+`batch2`..`batch7`, so 8 looks like the next one and is not: `capabilityBatch8`
+and `designBatch9` are published by
+`routes/sonara-requested-repositories-routes.cjs`, and a card in that same file
+tells readers those are internal convergence records. Renaming to 10 collided
+again, with `lib/sonara-batch10-operational-review.cjs` — the module the
+convergence skill's authority order calls "Batch 10 operational requirements".
+`tests/a-screenshot-is-not-a-licence.test.js` now derives the claimed numbers by
+scanning `lib/` rather than listing them, because a hardcoded list is exactly
+what let the second collision through.
 
 ## The short version
 
@@ -142,7 +150,7 @@ its MIT licence permits. Its premise — *hunt every endpoint in your code, expo
 shadow APIs* — was worth taking.
 
 Applied to this repository: the page manifest declares **308** routes and the
-server answers **558**. The 250-route difference included `/staff/location`,
+server answers **564**. The 256-route difference included `/staff/location`,
 `/admin/subscriptions`, `/account/security/two-factor`, `/growth/unsubscribe` and
 fourteen legal documents, and no check here examined any of them.
 

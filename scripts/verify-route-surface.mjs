@@ -7,7 +7,7 @@
 // something.
 //
 // The reason the direction matters is the number. On 16 September 2026 the page
-// manifest held 308 routes and the server answered 558. The 250-route
+// manifest held 308 routes and the server answered 564. The 256-route
 // difference included `/staff/location`, `/admin/subscriptions`,
 // `/account/security/two-factor`, `/growth/unsubscribe` and fourteen legal
 // documents -- and the existing reverse check reported none of them, because

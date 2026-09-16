@@ -111,5 +111,5 @@ routes can no longer be invisible:
 - `tests/a-route-nobody-declared-still-answers.test.js` opens all fourteen as an
   anonymous visitor on every test run and asserts they answer.
 
-Before that work, the page manifest held 308 routes, the server answered 558, and
-these fourteen were among the 250 that no check in this repository examined.
+Before that work, the page manifest held 308 routes, the server answered 564, and
+these fourteen were among the 256 that no check in this repository examined.

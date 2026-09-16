@@ -106,6 +106,115 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - The server answers 564 GET routes and the manifest named 308
+
+An owner batch of seven screenshot uploads was held unprocessed on request.
+Once released, the single most useful thing in it was not a repository but
+OWASP Noir's premise -- *hunt every endpoint in your code, expose shadow APIs*.
+Noir itself is a compiled Crystal binary (`shard.yml`: v1.3.1, Crystal ~> 1.19)
+and cannot run in a Vercel request process, so the idea was taken and the
+dependency was not.
+
+Applied here: `lib/sonara-route-registry.cjs` declares **308** pages, the server
+answers **564** GET routes, and **256 were in no manifest at all** -- including
+`/staff/location`, `/admin/subscriptions`, `/account/security/two-factor`,
+`/growth/unsubscribe` and fourteen legal documents. Nothing in this repository
+had ever examined any of them.
+
+The reverse check that should have caught it returned an empty list and the
+assertion passed over the empty list, because `untrackedProductRoutes` filters
+on
+
+    PRODUCT_ROUTE_PATTERN = /^\/(business-builder|creator-studio|growth-studio)(?:\/|$)/
+
+so `/api`, `/admin`, `/staff`, `/account`, `/legal`, `/research-lab` and
+`/owner` were never in the population it measured -- and then
+`verify-route-registry.cjs` printed "Route registry verification passed". Both
+halves of the recurring defect in one gate.
+
+**Added:** `lib/sonara-route-surface.cjs` (13 surfaces, each with a measured
+reason), `scripts/verify-route-surface.mjs` as the 48th chain command, and
+`tests/a-route-nobody-declared-still-answers.test.js`, which probes 67 pages
+nothing had opened before.
+
+**What was broken to prove each check works.** A new `app.get` failed by name
+and exited 1. Renaming the `consent_withdrawal` pattern failed as an empty
+surface. Overlapping two patterns failed as ambiguous. Re-filing
+`/research-lab` as `signed_in` failed the strengthened refusal assertion. Each
+restored by copying the file back and comparing hashes.
+
+**The reassuring finding, stated as measured:** the server refuses a stranger on
+all 36 protected undeclared pages. The server was right about all 67 and the
+manifest was silent about all 67 -- the same shape as the sixteen mislabelled
+routes found on 19 August, one direction over. Nothing leaked.
+
+## Two of my own errors the checks caught, not the code review
+
+**A false pass in the first version of the surface module.** `/onboarding`,
+`/feedback` and `/research-lab` were filed as needing a session, and the probe
+agreed -- because it counted *any* redirect as a refusal, and all three redirect
+to public pages through `publicCompatibilityRoutes`. A refusal now has to land
+on a sign-in page. The entry for `/research-lab` had carried a confident
+sentence explaining why it refused a stranger while its children served one;
+that sentence was reasoned rather than verified, and the redirect target was
+three lines away in `server.js`.
+
+**The legal-URL finding was backwards.** It looked like a duplicate-content
+defect: seven legal documents served byte-identically at two URLs, one declared
+and one not. Reading `legalAliasPages()` showed `/legal/x` is the canonical
+`source` and the short form is the alias, and all eight pairs serve an identical
+canonical tag. There is no canonical split. What is real is narrower and is in
+`docs/owner/LEGAL-URL-DECISION.md`: **six legal documents are published only
+under `/legal/`, indexable, in no manifest**, and legal publishing is an
+owner-approval category under AGENTS.md. Nothing about what is served was
+changed.
+
+## Batch 11 of the screenshot intake
+
+68 images, 8 files and one pasted research block across seven batches. Ten
+repositories verified by shallow clone, four already in the register and
+re-measured (all four agreed), five refused on conduct, fourteen recorded as
+services or content, zero installed or executed.
+
+Three submitted descriptions did not survive measurement:
+`ran-isenberg/awesome-serverless-blueprints` was offered as production CDK
+blueprints with Rust Lambda resolvers and is 13 files with one content file;
+`brandonhimpfen/awesome-serverless` was offered as a curated directory and has
+no licence file at all; `beekeeper-studio` reached us as "an open-source SQL
+editor" and is GPL-3.0 plus a commercial EULA over `**/src-commercial`.
+`aws-samples/serverless-samples` would have been recorded closed from its first
+line -- "All Rights Reserved" -- and is MIT-0 once the body is read.
+
+**Numbered 11 after two collisions**, which is worth the next person's time:
+the screenshot radar filenames stop at `batch7`, so 8 looks free and is not
+(`capabilityBatch8`, `designBatch9`), and 10 belongs to
+`sonara-batch10-operational-review.cjs`. The collision check in
+`tests/a-screenshot-is-not-a-licence.test.js` now *derives* the claimed numbers
+by scanning `lib/` -- its first version listed 8 and 9 by name, which is exactly
+what let the second collision through. Its definition of "claims" also had to
+narrow from "names a batch identifier" to "defines one", because the moment the
+convergence engine imported this module's getter the engine read as a rival
+claimant.
+
+`repositoryVerified` here is set from an `evidence` field carrying the clone date
+and file count. Batch 7 derives the same claim as
+`!/reported in submitted screenshot|requires authoritative/.test(input.license)`,
+which grants verification to any licence text that happens to avoid two phrases.
+
+Conduct refusals are a separate list rather than more `blocked` rows: three of
+the five are permissively licensed, and filing them as licence problems would
+imply a relicence could lift them. They are people-search OSINT, provenance
+stripping, routing a coding agent through a consumer chat session in place of
+the provider API, and the detection-evasion sections of two cheat sheets.
+
+**Verified:** 4,556 tests passing, `verify:gates` exits 0 across all 39
+commands, `verify:launch` chain length now 48 and quoted correctly in
+`docs/owner/WHAT-IS-LEFT.md`.
+
+**Still open and unchanged:** `STRIPE_RUNTIME_SECRET_KEY` is owner-only and
+still blocks every deploy; the six legal documents need the owner's decision;
+the carrier adapter and inbound SMS webhook still need a vendor choice.
+
 ### 2026-09-15 - Production is 22 commits behind because one secret is empty
 
 An owner screenshot of "Production Commit Drift: All jobs have failed" turned
