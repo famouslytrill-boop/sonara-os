@@ -44,44 +44,44 @@ jobs:
           if source.count(anchor) != 1:
               raise SystemExit("Expected exactly one admin AI readiness anchor")
 
-          insertion = '''  /api/ecosystem/model-engines:
-            get:
-              operationId: getModelEngineControlPlane
-              tags: [Ecosystem]
-              summary: Return the non-secret governed model and engine control plane.
-              responses:
-                "200": { $ref: "#/components/responses/Success" }
-            /api/ecosystem/agent-skill-strategies:
-            get:
-              operationId: getAgentSkillStrategyCatalog
-              tags: [Ecosystem]
-              summary: Return portable non-authorizing agent skill strategy metadata.
-              responses:
-                "200": { $ref: "#/components/responses/Success" }
-            /api/ecosystem/batch-convergence:
-            get:
-              operationId: getBatchConvergence
-              tags: [Ecosystem]
-              summary: Return governed Batch 1-10 repository and research convergence metadata.
-              responses:
-                "200": { $ref: "#/components/responses/Success" }
-            /api/ecosystem/source-evidence:
-            get:
-              operationId: getSourceEvidence
-              tags: [Ecosystem]
-              summary: Return bounded non-executing source evidence metadata.
-              responses:
-                "200": { $ref: "#/components/responses/Success" }
-            /api/ecosystem/learning-memory:
-            get:
-              operationId: getLearningMemoryControlPlane
-              tags: [Ecosystem]
-              summary: Return governed learning and memory policy and readiness metadata.
-              responses:
-                "200": { $ref: "#/components/responses/Success" }
-          '''
-          # Normalize the indentation of the literal above; the workflow block adds six spaces.
-          insertion = "\n".join(line[10:] if line.startswith("          ") else line for line in insertion.splitlines()) + "\n"
+          insertion = "\n".join([
+              "  /api/ecosystem/model-engines:",
+              "    get:",
+              "      operationId: getModelEngineControlPlane",
+              "      tags: [Ecosystem]",
+              "      summary: Return the non-secret governed model and engine control plane.",
+              "      responses:",
+              "        \"200\": { $ref: \"#/components/responses/Success\" }",
+              "  /api/ecosystem/agent-skill-strategies:",
+              "    get:",
+              "      operationId: getAgentSkillStrategyCatalog",
+              "      tags: [Ecosystem]",
+              "      summary: Return portable non-authorizing agent skill strategy metadata.",
+              "      responses:",
+              "        \"200\": { $ref: \"#/components/responses/Success\" }",
+              "  /api/ecosystem/batch-convergence:",
+              "    get:",
+              "      operationId: getBatchConvergence",
+              "      tags: [Ecosystem]",
+              "      summary: Return governed Batch 1-10 repository and research convergence metadata.",
+              "      responses:",
+              "        \"200\": { $ref: \"#/components/responses/Success\" }",
+              "  /api/ecosystem/source-evidence:",
+              "    get:",
+              "      operationId: getSourceEvidence",
+              "      tags: [Ecosystem]",
+              "      summary: Return bounded non-executing source evidence metadata.",
+              "      responses:",
+              "        \"200\": { $ref: \"#/components/responses/Success\" }",
+              "  /api/ecosystem/learning-memory:",
+              "    get:",
+              "      operationId: getLearningMemoryControlPlane",
+              "      tags: [Ecosystem]",
+              "      summary: Return governed learning and memory policy and readiness metadata.",
+              "      responses:",
+              "        \"200\": { $ref: \"#/components/responses/Success\" }",
+              "",
+          ])
           source = source.replace(anchor, insertion + anchor, 1)
           path.write_text(source, encoding="utf-8")
           PY
