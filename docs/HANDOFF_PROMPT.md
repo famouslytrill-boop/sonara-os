@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3901 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 118 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 119 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 30 admin routes.
-- 337 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 338 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,93 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-16 - A campaign now records who it actually reached
+
+`lib/growth-studio-dispatch.cjs` has named this gap in its own header since 15
+September, and named it accurately:
+
+> Reaching only the remainder needs a per-recipient record of who was accepted,
+> which is also what the >1,000 cross-invocation queue needs and is why both are
+> still unbuilt.
+
+The harm was specific. A campaign that reached 900 of 1,000 told the owner which
+100 were not attempted, and the only way to reach those 100 was to send the whole
+campaign again -- mailing the first 900 twice. The charge is keyed on
+`campaign:<id>`, so the second send is refused as a duplicate charge and the
+owner is never billed, which removes the one signal that would have told them it
+happened.
+
+**Added:** `public.growth_campaign_sends` (migration 119), and
+`lib/growth-studio-send-records.cjs` holding the pure half -- `sendRowsFor` and
+`remainderFrom` -- plus a Supabase writer and reader. One row per recipient per
+attempt, across the three outcomes the dispatcher already distinguished:
+accepted, failed, not attempted.
+
+`growth_campaign_sends_accepted_once` is the guarantee rather than an
+optimisation: partial on `status = 'accepted'`, keyed on
+`(organization_id, campaign_id, lower(email))`. One accepted row per person per
+campaign, so a retry cannot double-count; failed and not-attempted rows are
+deliberately outside it, because a recipient can legitimately fail twice and
+each attempt is evidence. It is case-folded because `Ann@` and `ann@` are one
+real person who would otherwise get two emails.
+
+## The defect this introduces, and the guard against it
+
+**Zero accepted rows has two opposite causes** -- nothing was sent, or the record
+was not written -- and they are the same value. Read one as the other and the
+product tells an owner it is safe to re-mail everybody, which is worse than the
+gap it replaced because now there is a record to point at.
+
+So `remainderFrom` takes a read OUTCOME and refuses a bare array. `{ ok: false }`
+returns `known: false` with an empty remainder -- declining to answer rather than
+answering "everybody". A genuinely empty record still answers, so the guard
+protects the feature instead of breaking it. That is shape 4 from
+`.claude/skills/checks-that-cannot-lie`.
+
+The dispatcher's owner-facing sentence now follows the record rather than being
+fixed: with one written it says only the remainder needs sending; without one it
+says sending again would re-mail everyone above. The route forwards `recorded`
+for the same reason it had to start forwarding `notAttempted` -- a caller that
+can read the sentence but not the state cannot decide whether offering
+"send to the remainder" is safe.
+
+**A batch 409 is not interpreted.** PostgREST fails the whole insert on a unique
+violation without naming the row, so the batch is re-inserted individually and
+each outcome attributed -- the same choice, for the same reason, as the
+batch-email fallback three files over. Bounded at 200, past which the result says
+which rows landed is unknown rather than claiming success.
+
+Also: the batch send path was reading the provider ids to decide a batch was
+clean and then discarding them. They are index-aligned by the documented
+contract, so each one is now kept against its address.
+
+**Broken to prove each check works.** Treating a failed read as an empty record,
+accepting a bare array, and counting a failed row as reached each failed by name
+and restored to an identical hash.
+
+## Three existing checks this moved, and why none was weakened
+
+- The closed-set probe in `verify-migration-replay` went 26 -> 27 tables closed
+  to everyone but the service role. That is the check working: a new table
+  invisible to anon and authenticated has to be declared deliberately.
+- `a-campaign-sends-only-to-who-was-authorised` asserts exactly one report entry
+  when the ledger fails. There are now two true things to report, so the fixture
+  supplies a working recorder and the assertion stays exact rather than being
+  loosened to "at least one".
+- `an-owner-told-a-hundred-were-missed-can-find-out-which` asserted the old fixed
+  sentence. Its fixture's fetch stub answers the send-record insert too, so the
+  record IS written there -- the assertion now reads the forwarded `recorded.ok`
+  as well as the prose, because a sentence claiming a record while the state says
+  otherwise would be the same defect in a new place.
+
+**Verified:** 4,577 tests passing, `verify:gates` exits 0, 119 migrations replay
+against an empty PostgreSQL, derived figures updated in five documents.
+
+**Still not built:** the >1,000 cross-invocation queue, and the owner-facing
+"send to the remainder" action. Both now have the record they were waiting on;
+neither is wired, and the dispatcher still refuses past its fallback budget
+rather than pretending otherwise.
 
 ### 2026-09-16 - The server answers 564 GET routes and the manifest named 308
 

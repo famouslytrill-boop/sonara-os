@@ -28,6 +28,7 @@ const {
   createLedgerAppender,
   DEFAULT_STARTING_ALLOWANCE_MINOR
 } = require("../lib/sonara-usage-meter.cjs");
+const { createSendRecorder } = require("../lib/growth-studio-send-records.cjs");
 
 // How many people one request may mail, and the arithmetic behind the number.
 //
@@ -363,7 +364,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       getReadiness: typeof deps.getReadiness === "function" ? deps.getReadiness : null,
       appendLedger: typeof deps.appendUsageLedger === "function"
         ? deps.appendUsageLedger
-        : createLedgerAppender({ getSupabaseServerConfig: () => config })
+        : createLedgerAppender({ getSupabaseServerConfig: () => config }),
+      // Who this send actually reached, per recipient. Wired here rather than
+      // defaulted inside the dispatcher for the same reason appendLedger is: a
+      // dispatcher that reaches for the database itself cannot be tested on
+      // what it decides.
+      recordSends: typeof deps.recordCampaignSends === "function"
+        ? deps.recordCampaignSends
+        : createSendRecorder({ getSupabaseServerConfig: () => config })
     });
 
     await controlEvent(config, context, "campaign.sent", sent.ok ? "success" : "failed", {
@@ -406,6 +414,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // which hundred. A value fetched into a decision and never used, at the
       // route boundary rather than inside a query.
       notAttempted: sent.notAttempted || [],
+      // Whether who-was-reached is now on record. Forwarded for the same reason
+      // notAttempted had to be: the detail line changes with this, and a
+      // caller that can read the sentence but not the state cannot decide
+      // whether offering "send to the remainder" is safe.
+      recorded: sent.recorded || { ok: false, code: "not_reported" },
       charge: sent.charge,
       audience,
       suppressionChecked: screened.checked,

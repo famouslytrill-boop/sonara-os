@@ -236,7 +236,7 @@ customers out of their own records.
 > itself is still the owner's decision, against production rather than a replay.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 118 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 119 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
@@ -547,7 +547,7 @@ reports these tables as used.
   two-sided register meanwhile, and would fail the day a *second* route module
   is written and never wired.
 
-- **26 tables have RLS enabled with no explicit policy**, which closes
+- **27 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever
   reads with the service-role key that is the posture you want — it is what
   stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
@@ -560,7 +560,7 @@ reports these tables as used.
   succeeded since 5 August. So it had reported nothing for a month while the set
   nearly doubled.
 
-  Measured against the replay (all 118 migrations on an empty database, so this
+  Measured against the replay (all 119 migrations on an empty database, so this
   is the migrations' intended end state, not production's): **25 of 307 tables
   with RLS enabled.**
 

@@ -220,7 +220,29 @@ describe("an owner told a hundred were missed can find out which", () => {
       !/send again/i.test(response.body.detail),
       `the summary tells the owner to send again, which re-mails everyone already sent: ${response.body.detail}`
     );
-    assert.match(response.body.detail, /re-send to everyone above/, "it has to say what sending again would actually do");
+
+    // Since 16 September 2026 this sentence has two forms, because there is now
+    // a per-recipient record that can make the remainder reachable -- and which
+    // can itself fail to write. The wording has to follow the record rather
+    // than being fixed, or a failed write reads exactly like a successful one.
+    //
+    // This fixture's fetch stub answers the send-record insert as well as the
+    // mail requests, so the record IS written here and the sentence says the
+    // remainder is reachable. Asserted against the forwarded state rather than
+    // the prose alone: a sentence that claims a record while `recorded.ok` is
+    // false would be the same defect in a new place.
+    assert.equal(response.body.recorded.ok, true, "the fixture wrote the send record; the response must say so");
+    assert.match(
+      response.body.detail,
+      /who was already reached is on record, so only the remainder needs sending/,
+      `with the send record written the summary must say the remainder is reachable: ${response.body.detail}`
+    );
+    // The two forms are mutually exclusive, and the un-recorded one is asserted
+    // in tests/an-unrecorded-send-is-not-a-send-to-nobody.test.js.
+    assert.ok(
+      !/would re-mail everyone above/.test(response.body.detail),
+      "the summary warns of a re-mail while reporting a written record"
+    );
   });
 
   it("counts the sent and the missed separately and consistently", () => {
