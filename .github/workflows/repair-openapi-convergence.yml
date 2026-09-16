@@ -1,0 +1,99 @@
+name: Repair OpenAPI convergence contract
+
+on:
+  push:
+    branches:
+      - codex/batches1-10-engine-convergence-20260915
+    paths:
+      - .github/workflows/repair-openapi-convergence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/batches1-10-engine-convergence-20260915
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch canonical OpenAPI contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("openapi/sonara.yaml")
+          source = path.read_text(encoding="utf-8")
+          routes = [
+              "/api/ecosystem/model-engines",
+              "/api/ecosystem/agent-skill-strategies",
+              "/api/ecosystem/batch-convergence",
+              "/api/ecosystem/source-evidence",
+              "/api/ecosystem/learning-memory",
+          ]
+          already = [route for route in routes if f"  {route}:\n" in source]
+          if already:
+              raise SystemExit(f"Refusing non-idempotent repair; routes already documented: {already}")
+
+          anchor = "  /api/admin/ai-integrations/readiness:\n"
+          if source.count(anchor) != 1:
+              raise SystemExit("Expected exactly one admin AI readiness anchor")
+
+          insertion = '''  /api/ecosystem/model-engines:
+            get:
+              operationId: getModelEngineControlPlane
+              tags: [Ecosystem]
+              summary: Return the non-secret governed model and engine control plane.
+              responses:
+                "200": { $ref: "#/components/responses/Success" }
+            /api/ecosystem/agent-skill-strategies:
+            get:
+              operationId: getAgentSkillStrategyCatalog
+              tags: [Ecosystem]
+              summary: Return portable non-authorizing agent skill strategy metadata.
+              responses:
+                "200": { $ref: "#/components/responses/Success" }
+            /api/ecosystem/batch-convergence:
+            get:
+              operationId: getBatchConvergence
+              tags: [Ecosystem]
+              summary: Return governed Batch 1-10 repository and research convergence metadata.
+              responses:
+                "200": { $ref: "#/components/responses/Success" }
+            /api/ecosystem/source-evidence:
+            get:
+              operationId: getSourceEvidence
+              tags: [Ecosystem]
+              summary: Return bounded non-executing source evidence metadata.
+              responses:
+                "200": { $ref: "#/components/responses/Success" }
+            /api/ecosystem/learning-memory:
+            get:
+              operationId: getLearningMemoryControlPlane
+              tags: [Ecosystem]
+              summary: Return governed learning and memory policy and readiness metadata.
+              responses:
+                "200": { $ref: "#/components/responses/Success" }
+          '''
+          # Normalize the indentation of the literal above; the workflow block adds six spaces.
+          insertion = "\n".join(line[10:] if line.startswith("          ") else line for line in insertion.splitlines()) + "\n"
+          source = source.replace(anchor, insertion + anchor, 1)
+          path.write_text(source, encoding="utf-8")
+          PY
+      - name: Verify OpenAPI contract
+        run: node scripts/verify-openapi-contract.mjs
+      - name: Validate diff
+        run: git diff --check -- openapi/sonara.yaml
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "sonara-release-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add openapi/sonara.yaml
+          git commit -m "Document convergence ecosystem APIs"
+          git push origin HEAD:codex/batches1-10-engine-convergence-20260915
