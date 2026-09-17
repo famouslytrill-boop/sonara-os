@@ -318,7 +318,7 @@ jobs:
           set -euo pipefail
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          pnpm dlx vercel@latest env pull .env.production.catalog-verification \
+          pnpm dlx vercel@59.19.1 env pull .env.production.catalog-verification \
             --environment=production \
             --yes \
             --token="$VERCEL_TOKEN"
@@ -364,7 +364,7 @@ jobs:
             node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          printf '%s' "$runtime_key" | pnpm dlx vercel@latest env add STRIPE_SECRET_KEY production \
+          printf '%s' "$runtime_key" | pnpm dlx vercel@59.19.1 env add STRIPE_SECRET_KEY production \
             --force \
             --sensitive \
             --token="$VERCEL_TOKEN"
@@ -513,7 +513,7 @@ jobs:
         run: |
           set -euo pipefail
           test ! -e .env.production.catalog-verification
-          pnpm dlx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN" \
+          pnpm dlx vercel@59.19.1 deploy --prod --yes --token="$VERCEL_TOKEN" \
             --meta githubCommitSha="$GITHUB_SHA" \
             --meta githubCommitRef="main" \
             --meta githubCommitMessage="Controlled SONARA production deployment" \

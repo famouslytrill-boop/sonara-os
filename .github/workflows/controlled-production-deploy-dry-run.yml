@@ -140,7 +140,7 @@ jobs:
           set -euo pipefail
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          pnpm dlx vercel@latest env pull .env.production.dry-run \
+          pnpm dlx vercel@59.19.1 env pull .env.production.dry-run \
             --environment=production \
             --yes \
             --token="$VERCEL_TOKEN"

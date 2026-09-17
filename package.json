@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.1.1",
   "main": "server.js",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "vercel-build": "pnpm run build",
