@@ -137,7 +137,7 @@ Each of the figures below except the last is now derived by
 `scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
 
 - **308** registered GET routes
-- **333** tables created by the migrations, **236** of them organization-scoped
+- **337** tables created by the migrations, **240** of them organization-scoped
 - **27** owner record pages
 - **49** verification commands in the release chain
 - **237** external repositories reviewed with their licences read off each one
