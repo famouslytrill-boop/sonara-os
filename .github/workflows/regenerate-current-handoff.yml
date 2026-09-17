@@ -1,0 +1,42 @@
+name: Regenerate current handoff
+
+on:
+  push:
+    branches:
+      - codex/node24-operational-proof-20260917
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: codex/node24-operational-proof-20260917
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.1.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Regenerate handoff
+        run: node scripts/generate-handoff-prompt.mjs
+      - name: Commit generated handoff when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/HANDOFF_PROMPT.md; then
+            echo "Handoff already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/HANDOFF_PROMPT.md
+          git commit -m "Regenerate repository handoff after CI migration"
+          git push origin HEAD:codex/node24-operational-proof-20260917
