@@ -115,8 +115,8 @@ That is safe for the URL and the anon key, which are public by design.
 **There is no `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` and there must never be
 one.** The service-role key bypasses row-level security — it is the reason
 `organization_id` filtering is the tenant boundary in this codebase.
-`scripts/verify-no-client-secrets.mjs` fails the build if it appears in anything
-client-side.
+`scripts/client-secret-scan.cjs` fails the build if it appears in anything
+client-side, and it runs on every release as `pnpm run scan:client-secrets`.
 
 ### Stripe — payments (2)
 

@@ -22,7 +22,38 @@ Do **not** copy the `rk_live_...` verifier into Vercel. A verifier restricted to
 4. Keep the existing GitHub **`STRIPE_SECRET_KEY`** restricted verifier in place. It remains the low-privilege credential used by `scripts/verify-stripe-env.mjs`.
 5. Do not manually overwrite Vercel after the protected GitHub secret is installed. The controlled deployment performs the cutover and stores Vercel's `STRIPE_SECRET_KEY` as a sensitive Production variable.
 
-The controlled deployment fails **before database mutation** when the runtime secret is absent or is not an `sk_live_...` key. It validates the selected runtime key against the live configured prices before changing Vercel.
+## How the deployment tells you it is wrong
+
+**It fails on the first step, in seconds, and names which problem you have.**
+
+Updated 17 September 2026. This was already true in the sense that mattered
+most — the run failed before any database mutation — but it failed at roughly
+the seventeenth step, after dependency install, the audit, the build, the whole
+release test suite, lint, every contract check, the migration preview and the
+production environment pull. `production-commit-drift.yml` records the cost:
+*"every deploy run since 5 August had failed, the newest of them at a single
+step, an empty `STRIPE_RUNTIME_SECRET_KEY`."*
+
+The credential precondition is now the first step in the job. It resolves the
+same secret in the same order and accepts exactly the same thing — an
+`sk_live_...` key — so nothing that worked before stops working. What changed is
+that the run summary now states:
+
+- which variable the value came from (`STRIPE_RUNTIME_SECRET_KEY`, or
+  `STRIPE_SECRET_KEY` used as the documented compatibility fallback);
+- which of the ways it is unusable applies — nothing configured at all, a
+  restricted `rk_live_...` verifier, a test-mode key, or an unrecognised prefix;
+- whether the value carries leading or trailing whitespace, which is what a
+  pasted secret usually picks up. That is reported and **not** failed on, because
+  only the live validation further down can say whether Stripe accepts it. If
+  authentication fails there, re-paste the secret with no trailing newline.
+
+**No key value is ever printed, logged, or written to the run summary** — only
+which variable it came from and which shape class it is.
+
+The synchronization step further down is unchanged and remains the authority: it
+validates the selected runtime key against the live configured prices before
+changing Vercel, which is the only check that can prove a key actually works.
 
 ## Required proof after cutover
 

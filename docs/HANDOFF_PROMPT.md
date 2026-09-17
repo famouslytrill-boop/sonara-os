@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 120 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 30 admin routes.
-- 344 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 346 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,395 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-17 - Checkout had an anonymous failure, on the path the cutover just fixed
+
+The second caller for the structured emitter, and instrumenting it turned up a
+defect rather than just adding a line.
+
+`createStripeCheckoutSession` in `lib/sonara-billing.cjs` named every refusal it
+made itself -- `price_mismatch`, `price_product_archived` -- and then:
+
+    if (!response?.ok) return { ok: false };
+
+**No code at all,** for the one failure Stripe itself produces. `server.js`
+turns that into a 502 and "Checkout could not be started. Try again after
+payment setup is reviewed." So the customer is told to wait and the server keeps
+no record of why: a 401 from a key that cannot create sessions reads exactly
+like a 400 on a malformed parameter, and exactly like the network not answering.
+
+**It is the failure mode the cutover document warns about**, verbatim: *"a
+verifier restricted to Prices/Products read access can make the price audit pass
+while every customer/Checkout Session write fails."* The documented failure had
+no diagnostic, on the path the owner has just spent six weeks blocked on.
+
+Now returns `stripe_session_rejected` with the HTTP status, and the event
+attributes 401/403 to the credential, any other status to the request, and no
+status at all to the network -- three different remedies that were one silence.
+A 200 carrying no `url` is named separately again, because the credential worked
+and the response did not contain what it is supposed to.
+
+The price guard's refusals emit `refused`, not `failed`. Refusing to sell at a
+price the page does not advertise is that guard working; counting it against an
+error budget would make the budget measure catalog drift rather than
+reliability.
+
+#### And a second Stripe customer, quietly, for as long as one write kept failing
+
+The mapping insert after creating a Stripe customer was
+`.catch(() => undefined)` with the result discarded. Losing it does not produce
+a missing row -- **it produces a second Stripe customer.** The lookup above it
+is the only thing preventing one, so an absent mapping makes the next checkout
+create another for the same person, and they accumulate with a subscription
+possible on each.
+
+Behaviour deliberately unchanged: the checkout proceeds and still returns ok,
+because the customer Stripe just created is real and usable for this session,
+and refusing would turn a bookkeeping failure into a lost sale. What changed is
+that it emits `degraded` naming the consequence in the event itself, rather than
+being invisible.
+
+**Verified by breaking it,** three ways:
+
+* the bare `{ ok: false }` restored -- caught by `the Stripe rejection is still
+  anonymous`;
+* the credential and request rejections collapsed into one reason -- caught by
+  `a 401 was not attributed to the credential`;
+* the price refusal counted as `failed` -- caught by `a price refusal was
+  counted as a failure`.
+
+Six assertions added to `tests/a-log-line-you-can-count.test.js`, including one
+that the Stripe key never reaches an event: these calls carry it in an
+Authorization header, and Stripe's own 401 body quotes the key back.
+
+`tests/checkout-price-guard.test.js` still passes unchanged, which is the point
+-- the return contract gained a code and lost nothing.
+
+### 2026-09-17 - A log line you can count
+
+Item 1 of the observability phase, started at the owner's direction once the
+credential gate was unblocked. `lib/sonara-structured-log.cjs`: one JSON line
+per event with the tenant, the capability, the outcome and a correlation id.
+**No dependency added** -- this application has one and
+`docs/architecture/EXTERNAL-SERVICES.md` sets the rules before a second arrives.
+
+It is first in that plan for a reason that is not taste. An SLO is a rate over
+outcomes and an error budget is arithmetic over it, and neither can be built on
+
+    [campaign-dispatch] batch_fell_back: campaign 33.. batch of 40 did not ...
+
+which is true, useful to somebody reading one incident, and impossible to count.
+
+**It is not a migration.** There are **eight** console calls in the whole
+runtime tree, every one already routed through `lib/sonara-redaction.cjs`, and
+they all stay. `report_unreferenced_modules` refused the new module until it had
+a real caller, which is the right pressure: the dispatcher now emits one
+terminal `campaign.dispatch` event per send plus a
+`campaign.dispatch.degraded` event per named degradation, **beside** its prose
+lines rather than instead of them. A test asserts the human line survives --
+structured logging that replaced it would make one incident harder to read in
+exchange for making a hundred countable.
+
+#### Three decisions that exist to keep the count honest
+
+**The outcome set is closed:** `ok | partial | refused | degraded | failed`.
+Free text is the defect -- "failed", "failure", "error" and "Failed." are four
+values naming one thing and a rate over them is wrong invisibly. `partial` is
+its own member because a campaign where 459 of 460 landed is neither a success
+nor a failure, and counting it as either makes the rate describe nothing.
+**`refused` is separate from `failed`** because a gate saying no is this code
+working; counting a missing unsubscribe key against an error budget would make
+the budget measure configuration rather than reliability.
+
+**`scope` is required,** `organization` (with an id) or `process`. Without it a
+forgotten tenant and a genuinely tenant-less event both read as
+`organization: null` -- shape 4, absent and deliberately-none being different
+facts with the same shape. Every field is always present for the same reason: a
+consumer should never have to tell a missing key from a null value.
+
+**Redaction is field-wise, before serialisation, and that was forced rather than
+chosen.** The obvious shape is
+`console.log(redactSensitiveText(JSON.stringify(record)))` and **it corrupts the
+JSON.** Two patterns in `lib/sonara-redaction.cjs` --
+`authorization_header` and `assigned_secret` -- match an optional closing quote
+and replace with `$1: [redacted...]` without restoring it, so the quote is eaten
+and a second colon appears. Found by reading the patterns before writing the
+emitter rather than by shipping it; the falsification below reproduces it
+exactly.
+
+#### The redaction boundary was extended rather than exempted
+
+`lib/sonara-redaction.cjs` says "every output sink in this application goes
+through one of these two. The test beside this file enforces that rather than
+trusting it" -- and it does, by scanning console calls for `redactSensitiveText`
+in the call text. A new sink had to be accounted for.
+
+It is listed in that test's `ALLOWED` map, and the reason is the real one: it
+redacts per field before serialising, which the scan cannot see. **What earns
+the exemption is a new assertion** that runs all eight of that file's secret
+shapes through the emitter -- in the capability, the reason, the correlation id,
+a detail key, a detail value and a nested array -- and asserts both that the
+secret is gone **and that the line still parses**. That is stronger than the
+scan, because it reads the emitted record rather than the spelling of the call.
+Its counterpart asserts an innocent sentence survives intact, for the reason
+that file already gives: a redactor that replaces everything passes the first
+check and destroys every log line in the product.
+
+**Verified by breaking it,** three ways:
+
+* the outcome check disabled -- caught by `has a closed set of outcomes`;
+* `scope` defaulted to `process` instead of required -- caught by `refuses an
+  event with no scope, because a forgotten tenant is not an absent one`;
+* redaction moved to after `JSON.stringify` -- caught by
+  `authorization_header: emitted a line that is not valid JSON`, which is the
+  corruption above, reproduced.
+
+`tests/a-log-line-you-can-count.test.js`, 18 assertions, plus two added to
+`tests/redaction-boundary.test.js`.
+
+The test harness needed correcting once: with no injected reporter the
+dispatcher's own prose line lands on the same stderr, and the first version
+tried to `JSON.parse` `[campaign-dispatch] ...`. That is the two sinks
+coexisting exactly as intended, so the helper partitions them -- and returns the
+prose lines rather than discarding them, so a change that quietly replaced the
+human line with the structured one fails instead of passing.
+
+#### Where the phase stands
+
+Item 1 is started, not finished: the emitter exists and one module emits. The
+remaining work is callers, not design, and the two worth having next are the
+checkout path and the agent runner because those are the other places an SLO
+would be written against.
+
+The credential gate this phase waited behind is still the owner's to close, and
+the last deploy run confirms the diagnosis exactly: run 188 on `872d9d0` failed
+at **step 22, "Synchronize verified Stripe runtime secret to Vercel
+production"** -- twenty-one steps spent to report one empty secret. That step is
+now first.
+
+### 2026-09-17 - The one gate only the owner can pass now fails in seconds, not after a full release chain
+
+The owner's diagnosis, and it is right: *"the engineering bottleneck is no
+longer general code quality -- it is the single protected Stripe runtime
+credential boundary."*
+
+`production-commit-drift.yml` already recorded what that cost, in its own words:
+
+> every deploy run since 5 August had failed, the newest of them at a single
+> step, an empty `STRIPE_RUNTIME_SECRET_KEY`
+
+Six weeks of deployments. The step that noticed -- "Synchronize verified Stripe
+runtime secret to Vercel production" -- is roughly the seventeenth in the job.
+Each attempt therefore paid for dependency install, the audit, the build, the
+whole release test suite, the client-secret scan, lint, route smoke, the
+database and storage contracts, the configuration and route registry, the
+OpenAPI contract, the open-source controls, the project identity check, the
+migration preview and the production environment pull, to learn one fact that
+was available in the first twenty seconds.
+
+**Fixed by moving the question, not the answer.** The synchronization step is
+byte-for-byte unchanged and remains the authority, because validating against
+the live configured prices is the only check that can prove a key works. What
+changed is that "Require protected production credentials" -- the first step in
+the job -- now resolves and classifies that credential too.
+
+**Deliberately no stricter than the step it precedes.** Same resolution order
+(`STRIPE_RUNTIME_SECRET_KEY`, falling back to `STRIPE_SECRET_KEY`), same accept
+rule (`sk_live_`). If it accepted something that step rejects, a deploy would
+still die late; if it rejected something that step accepts, this would have
+broken a working installation rather than diagnosing a broken one. The
+documented compatibility fallback -- a full `sk_live_` key left under
+`STRIPE_SECRET_KEY` -- still passes, and there is a test for exactly that.
+
+What the run summary now says, where before there was one sentence:
+
+* which variable the value came from, including when the fallback was used;
+* which way it is unusable -- nothing configured, a restricted `rk_live_`
+  verifier, a test-mode key, or an unrecognised prefix. These were one message;
+* whether it carries leading or trailing whitespace, which is what a pasted
+  secret picks up. **Reported, not failed on:** a prefix match tolerates it and
+  only the live validation downstream can say whether Stripe does. Failing here
+  would be stricter than the step it precedes.
+
+The five other credentials are now named individually as well.
+`test -n "$X"` under `set -e` exits with **no message at all**, so five secrets
+shared one silent failure and the log showed `+ test -n ''` with nothing to say
+which was missing.
+
+**No key value is printed, logged, written to `GITHUB_ENV`, or put in the step
+summary** -- only the source variable and the shape class. The shell variable
+holding it is `unset` once its shape is known, and there is a canary test that
+supplies a distinctive fake key and asserts it appears in neither the output nor
+the summary, on the passing path and the failing one.
+
+#### The test runs the real script
+
+`tests/the-credential-gate-speaks-before-the-chain-runs.test.js` extracts the
+step's `run:` block from the workflow by indentation and executes it under bash
+with a temporary `GITHUB_STEP_SUMMARY`. A copy of the logic in the test file
+would pass forever after the workflow changed underneath it -- measuring a
+different population from the one claimed. No YAML parser: this repository has
+one production dependency and a test is not a reason to add a second.
+
+Thirteen assertions over eleven input cases: a good key, the documented
+fallback, both-unset, verifier-only, test mode, unrecognised prefix, trailing
+newline, trailing space, leading space, two missing credentials, and the leak
+canary.
+
+**Verified by breaking it three ways.** Relabelling the `rk_live_` arm as
+acceptable, echoing the key value into the summary, and moving the step after
+the test suite -- each caught by name.
+
+**The second falsification found a weak assertion of my own.** The check named
+for the boundary was
+`assert.doesNotMatch(PRECONDITION, /rk_live_\*\)\s*;;/)` -- it looked for an
+empty fallthrough arm. Relabelling the restricted arm to the accepted shape left
+*that* assertion green while the boundary was gone; two other assertions caught
+it, but not the one written for it. Exactly shape 6: a check too weak to catch
+the bug it was written for. Rewritten to read the case arms and assert that only
+the `sk_live_` arm produces the accepted shape name, whatever that name is.
+
+Two input cases were also wrong before they were right: `$(printf 'x\n')`
+strips trailing newlines, so the whitespace case passed a value with no
+whitespace in it and proved nothing. Re-run with `$'x\n'`.
+
+#### GitHub blocked the first push, and it was right to
+
+Push protection rejected the commit: **"Stripe API Key"** at
+`tests/the-credential-gate-speaks-before-the-chain-runs.test.js:79` -- the leak
+canary, which as a literal is shaped exactly like a live key. A scanner
+reasoning about the value cannot know it is invented.
+
+The offered resolution was a URL that marks the secret allowed. **Not taken.**
+Clicking it would have trained the one protection standing between this
+repository and a real leaked key to be clicked through, in the commit whose
+whole subject is a credential boundary. The canaries are assembled from parts at
+run time instead, with a comment saying why, so nobody simplifies them back into
+a literal and gets blocked again.
+
+The test is unchanged in behaviour: it still asserts the distinctive fragment
+appears in neither the step's output nor its summary.
+
+#### And the phase after this one, recorded at the owner's direction
+
+`docs/PRODUCTION_RELIABILITY_AND_OBSERVABILITY_PLAN.md`: structured logs,
+traces, SLOs, error-budget alerts, queue/retry telemetry, webhook
+observability, backup/restore drills, deployment rollback automation, and an
+owner-facing operations dashboard.
+
+Written as a plan with a status per item, because **half of them are partly
+built** and reading the list as nine empty boxes would mean rebuilding things
+that work. Queue and retry telemetry largely exists as of yesterday's send
+record; webhook observability has `billing_webhook_events` and
+`/admin/webhooks`; rollback has the checkpoint and the runbook and lacks only
+the automation. Traces and SLOs are absent outright, and the claim that
+OpenTelemetry was configured was false -- corrected yesterday.
+
+The ordering in that document is dependency, not preference: structured logs
+first because everything measurable rests on them, the PITR answer next because
+it is two minutes and unblocks the restore drill, and the dashboard last because
+it reports on all of it.
+
+### 2026-09-16 - The document you read during an incident named three scripts that do not exist
+
+Found while checking whether this repository had a disaster-recovery posture at
+all. It has a good one. The document describing it pointed somewhere else.
+
+`docs/MONITORING_AND_BACKUPS.md` ended with:
+
+> ## Scripts
+> - `scripts/backup-postgres.sh`
+> - `scripts/backup-storage.sh`
+> - `scripts/restore-postgres.sh`
+
+**None of the three exists.** All three are under `archive/`, which eslint is
+explicitly told to ignore. So the instruction for recovering the database
+pointed at a path that answers "No such file or directory", at the one moment
+nobody has time to work out why.
+
+Three more claims in the same 47 lines, each checked:
+
+* **A cadence nothing implements** -- daily database backup, weekly restore
+  test, backup before every live migration. No workflow performs any of them. A
+  schedule with no scheduler reads exactly like a schedule that is running.
+* **"Next.js build/deploy logs."** This is an Express 4 application with one
+  production dependency.
+* **Sentry and OpenTelemetry "placeholders exist through env variables",** naming
+  `SENTRY_DSN` and `OTEL_EXPORTER_OTLP_ENDPOINT`. Neither is read by any code,
+  and neither is in the environment registry `verify:env` checks. The two names
+  appear in that document and nowhere else in the repository. An owner reading
+  it would set them and believe errors were being reported.
+
+**And it omitted the mechanism that does exist.** The
+`Record pre-migration rollback checkpoint` step in
+`.github/workflows/controlled-production-deploy.yml` records a PITR restore
+target, the previously-live commit read from `/api/health`, and a schema-only
+dump -- deliberately schema-only, so customer records never land in a GitHub
+artifact -- with a pointer to `docs/PRODUCTION_ROLLBACK_RUNBOOK.md`. The file
+titled "Backups" mentioned none of it.
+
+Rewritten to describe what is there, with a section recording what it used to say
+and why each line was wrong. A document that has been wrong once should say so.
+
+**A second live instruction was wrong too.** `docs/owner/INSTALL-ALL-KEYS.md`
+told the owner that `scripts/verify-no-client-secrets.mjs` fails the build if the
+service-role key reaches anything client-side. The guarantee is real and the name
+was wrong: it is `scripts/client-secret-scan.cjs`, run as
+`pnpm run scan:client-secrets`.
+
+#### The gate, which unlike the last one is tractable
+
+Yesterday's sweep for capped aggregates could not become a check, because the
+property is dataflow. **This one is textual, so it is a check.**
+`scripts/verify-doc-script-paths.mjs` is the 49th command in `verify:launch`: a
+script path named in a document either exists, or is registered as history with
+a reason.
+
+The register is necessary rather than lax. 19 of the 74 script paths named across
+`docs/` did not exist, and most of those are correct: `scripts/verify.sh` is
+named in this log inside the sentence recording that it was **deleted**, and a
+dozen `apply-*.cjs` one-shot codemods are named in audit and completion reports
+as what was run at the time. Requiring those to exist would mean resurrecting
+retired code or rewriting history so it no longer says what happened.
+
+So it is two-sided, copying `report-orphan-tables.mjs`, and fails three ways:
+
+1. a document names a script that does not exist and is not registered;
+2. a registered path now **exists**, so calling it historical is a false
+   statement -- and it is the statement the next reader believes instead of
+   looking;
+3. a registered path is named by **no** document, so its reason describes
+   nothing.
+
+**The third one fired on me while I was writing it.** The register's reason for
+`scripts/verify-no-client-secrets.mjs` said it was named in this log in the entry
+recording the wrong name -- and I had corrected `INSTALL-ALL-KEYS.md` before
+writing that entry, so for a few minutes the reason described a document that did
+not yet say it. That is precisely a reason reasoned-to rather than verified, and
+the check caught it by name. The three backup script paths are in the same
+position and are named above for the same reason.
+
+The blindness guards are two-sided as well: 408 markdown files and 74 distinct
+script paths were the measurement on 16 September 2026, and floors of 200 and 50
+make a broken walk or a matcher that has stopped matching fail loudly rather than
+report success over nothing.
+
+Verified by breaking it three ways -- an invented script path in a document, a
+register entry for a script that exists, and a register entry no document names.
+Each failed by its own message.
+
+#### And an owner step, because the whole posture rests on a setting nobody asked about
+
+`OWNER-STEPS.md` item 9. The deploy workflow records a PITR restore target on
+every release and the runbook's database-rollback step depends on PITR existing --
+and **PITR appeared nowhere in `docs/owner/` or `SHIP_READINESS.md`**. Whether it
+is enabled is a Supabase project setting and a function of the plan, neither
+visible from the source tree, so nothing here may claim it either way.
+
+If it is off, the recorded timestamps point at a recovery that cannot be
+performed and the data half of the runbook does not exist. The schema dump cannot
+stand in, because it is schema only by design. Two minutes in the Supabase
+dashboard settles it, and either answer is fine -- not knowing is the problem.
 
 ### 2026-09-16 - The cash position could be understated and still say "complete"
 

@@ -145,6 +145,15 @@ describe("the redaction boundary", () => {
       [
         "lib/sonara-redaction.cjs",
         "the boundary itself; it cannot route through itself"
+      ],
+      [
+        "lib/sonara-structured-log.cjs",
+        "redacts every value FIELD-WISE before JSON.stringify, which is stronger than this scan "
+          + "and is forced rather than chosen: two patterns above -- authorization_header and "
+          + "assigned_secret -- match an optional closing quote and replace with `$1: [redacted...]` "
+          + "without restoring it, so running the redactor over serialised JSON eats the quote, "
+          + "writes a second colon, and the line stops parsing. The assertion below reads the "
+          + "emitted record for every case in CASES instead of reading the spelling of the call."
       ]
     ]);
 
@@ -181,6 +190,80 @@ describe("the redaction boundary", () => {
         consoleCalls += (source.match(/console\.(?:log|warn|error|info|debug)\(/g) || []).length;
       }
       assert.ok(consoleCalls > 0, "no console calls were found at all, so the scan above proved nothing");
+    });
+
+    it("scrubs every secret shape out of a structured event, not just out of prose", () => {
+      // lib/sonara-structured-log.cjs is exempt from the console scan above, so
+      // this is what earns the exemption. It runs the SAME eight cases through
+      // the emitter that the prose boundary is tested with: a shape the
+      // redactor catches in a sentence must not survive in a field.
+      const { emitEvent } = require("../lib/sonara-structured-log.cjs");
+      const names = Object.keys(CASES);
+      assert.ok(names.length >= 5, `only ${names.length} secret shapes to try; this check has gone blind`);
+
+      const survived = [];
+      for (const name of names) {
+        const secret = CASES[name].redacts;
+        const lines = [];
+        emitEvent(
+          {
+            event: "probe.secret_in_a_field",
+            scope: "organization",
+            // Every position a caller can put a string in, including the key of
+            // a detail object and a nested value.
+            organizationId: "11111111-1111-4111-8111-111111111111",
+            capability: secret,
+            outcome: "failed",
+            reason: secret,
+            correlationId: secret,
+            detail: { [secret]: secret, nested: { deeper: [secret] } }
+          },
+          { write: (line) => lines.push(line) }
+        );
+
+        assert.equal(lines.length, 1, `${name}: the emitter wrote ${lines.length} lines instead of one`);
+        // Valid JSON is part of the guarantee. A redactor that scrubbed the
+        // secret and broke the line would pass a substring check and be
+        // useless, which is the corruption the exemption above describes.
+        let parsed;
+        try {
+          parsed = JSON.parse(lines[0]);
+        } catch {
+          survived.push(`${name}: emitted a line that is not valid JSON`);
+          continue;
+        }
+        assert.equal(parsed.event, "probe.secret_in_a_field", `${name}: the record is not the one that was emitted`);
+        if (lines[0].includes(secret)) survived.push(`${name}: the secret survived in the emitted line`);
+      }
+
+      assert.deepEqual(
+        survived,
+        [],
+        "a structured event carried a credential that the prose boundary would have caught:\n  " + survived.join("\n  ")
+      );
+    });
+
+    it("keeps an innocent string intact in a structured event too", () => {
+      // The other direction, for the same reason the prose cases test it: a
+      // redactor that replaces everything passes the check above and destroys
+      // every log line in the product.
+      const { emitEvent } = require("../lib/sonara-structured-log.cjs");
+      const lines = [];
+      const innocent = "campaign 4 of 9 reached 459 of 460 contacts";
+      emitEvent(
+        {
+          event: "probe.innocent",
+          scope: "process",
+          capability: "campaign_email",
+          outcome: "partial",
+          reason: innocent,
+          detail: { note: innocent }
+        },
+        { write: (line) => lines.push(line) }
+      );
+      const parsed = JSON.parse(lines[0]);
+      assert.equal(parsed.reason, innocent, "an innocent sentence was mangled by redaction");
+      assert.equal(parsed.detail.note, innocent);
     });
 
     it("keeps the boundary in one file", () => {

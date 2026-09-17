@@ -804,6 +804,56 @@ smallest.
 `pnpm run verify:env` classifies the variable as optional, which is what makes
 "unset" a supported state rather than a misconfiguration.
 
+## 9 — Confirm point-in-time recovery is on, or know that it is not
+
+> Also the first blocker of the Production Reliability and Observability phase.
+> A backup and restore drill cannot be designed before this is answered, because
+> the procedure differs completely depending on it. See
+> `docs/PRODUCTION_RELIABILITY_AND_OBSERVABILITY_PLAN.md`, item 7.
+
+**Two minutes, and it is the difference between having a database backup and
+believing you have one.**
+
+Every production deployment already records a PITR restore target. The step
+`Record pre-migration rollback checkpoint` in
+`.github/workflows/controlled-production-deploy.yml` writes a UTC timestamp to
+the workflow run's summary before any migration is applied, and
+`docs/PRODUCTION_ROLLBACK_RUNBOOK.md` tells whoever is handling an incident to
+roll the database back to it.
+
+**Nothing in this repository can tell whether that rollback is actually
+possible.** PITR is a setting on the Supabase project and a function of the
+plan, and neither is visible from the source tree — so the code records a
+restore target it cannot verify you can use.
+
+If PITR is off, the timestamps point at a recovery that cannot be performed, and
+the data half of the runbook does not exist. The schema dump taken at the same
+moment is **schema only** — deliberately, so customer records never land in a
+GitHub artifact — so it cannot stand in.
+
+### Do this
+
+1. Open the Supabase dashboard for the production project.
+2. Go to **Database** -> **Backups**.
+3. Read what it says about point-in-time recovery: whether it is enabled, and
+   how far back the window goes.
+
+### Then write down what you found
+
+Either is a fine answer. Not knowing is the problem.
+
+- **If it is on:** note the retention window here. The runbook can only restore
+  to a point inside it, and an incident discovered after the window closes is a
+  different conversation from one discovered inside it.
+- **If it is off:** note that too, and either turn it on or accept it
+  deliberately. Accepting it means the recovery story for a bad migration is the
+  schema dump plus whatever the application can rebuild — which for customer
+  records is nothing.
+
+Until this is answered, `docs/MONITORING_AND_BACKUPS.md` names it as the single
+largest unverified assumption in this system's recovery posture, and it is named
+there rather than quietly assumed.
+
 ## What is not on this list, and why
 
 **Pricing.** It moved onto the list as item 5 on 19 August 2026, when you chose
