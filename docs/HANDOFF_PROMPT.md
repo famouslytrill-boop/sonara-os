@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 120 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 30 admin routes.
-- 345 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 346 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,108 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-17 - A log line you can count
+
+Item 1 of the observability phase, started at the owner's direction once the
+credential gate was unblocked. `lib/sonara-structured-log.cjs`: one JSON line
+per event with the tenant, the capability, the outcome and a correlation id.
+**No dependency added** -- this application has one and
+`docs/architecture/EXTERNAL-SERVICES.md` sets the rules before a second arrives.
+
+It is first in that plan for a reason that is not taste. An SLO is a rate over
+outcomes and an error budget is arithmetic over it, and neither can be built on
+
+    [campaign-dispatch] batch_fell_back: campaign 33.. batch of 40 did not ...
+
+which is true, useful to somebody reading one incident, and impossible to count.
+
+**It is not a migration.** There are **eight** console calls in the whole
+runtime tree, every one already routed through `lib/sonara-redaction.cjs`, and
+they all stay. `report_unreferenced_modules` refused the new module until it had
+a real caller, which is the right pressure: the dispatcher now emits one
+terminal `campaign.dispatch` event per send plus a
+`campaign.dispatch.degraded` event per named degradation, **beside** its prose
+lines rather than instead of them. A test asserts the human line survives --
+structured logging that replaced it would make one incident harder to read in
+exchange for making a hundred countable.
+
+#### Three decisions that exist to keep the count honest
+
+**The outcome set is closed:** `ok | partial | refused | degraded | failed`.
+Free text is the defect -- "failed", "failure", "error" and "Failed." are four
+values naming one thing and a rate over them is wrong invisibly. `partial` is
+its own member because a campaign where 459 of 460 landed is neither a success
+nor a failure, and counting it as either makes the rate describe nothing.
+**`refused` is separate from `failed`** because a gate saying no is this code
+working; counting a missing unsubscribe key against an error budget would make
+the budget measure configuration rather than reliability.
+
+**`scope` is required,** `organization` (with an id) or `process`. Without it a
+forgotten tenant and a genuinely tenant-less event both read as
+`organization: null` -- shape 4, absent and deliberately-none being different
+facts with the same shape. Every field is always present for the same reason: a
+consumer should never have to tell a missing key from a null value.
+
+**Redaction is field-wise, before serialisation, and that was forced rather than
+chosen.** The obvious shape is
+`console.log(redactSensitiveText(JSON.stringify(record)))` and **it corrupts the
+JSON.** Two patterns in `lib/sonara-redaction.cjs` --
+`authorization_header` and `assigned_secret` -- match an optional closing quote
+and replace with `$1: [redacted...]` without restoring it, so the quote is eaten
+and a second colon appears. Found by reading the patterns before writing the
+emitter rather than by shipping it; the falsification below reproduces it
+exactly.
+
+#### The redaction boundary was extended rather than exempted
+
+`lib/sonara-redaction.cjs` says "every output sink in this application goes
+through one of these two. The test beside this file enforces that rather than
+trusting it" -- and it does, by scanning console calls for `redactSensitiveText`
+in the call text. A new sink had to be accounted for.
+
+It is listed in that test's `ALLOWED` map, and the reason is the real one: it
+redacts per field before serialising, which the scan cannot see. **What earns
+the exemption is a new assertion** that runs all eight of that file's secret
+shapes through the emitter -- in the capability, the reason, the correlation id,
+a detail key, a detail value and a nested array -- and asserts both that the
+secret is gone **and that the line still parses**. That is stronger than the
+scan, because it reads the emitted record rather than the spelling of the call.
+Its counterpart asserts an innocent sentence survives intact, for the reason
+that file already gives: a redactor that replaces everything passes the first
+check and destroys every log line in the product.
+
+**Verified by breaking it,** three ways:
+
+* the outcome check disabled -- caught by `has a closed set of outcomes`;
+* `scope` defaulted to `process` instead of required -- caught by `refuses an
+  event with no scope, because a forgotten tenant is not an absent one`;
+* redaction moved to after `JSON.stringify` -- caught by
+  `authorization_header: emitted a line that is not valid JSON`, which is the
+  corruption above, reproduced.
+
+`tests/a-log-line-you-can-count.test.js`, 18 assertions, plus two added to
+`tests/redaction-boundary.test.js`.
+
+The test harness needed correcting once: with no injected reporter the
+dispatcher's own prose line lands on the same stderr, and the first version
+tried to `JSON.parse` `[campaign-dispatch] ...`. That is the two sinks
+coexisting exactly as intended, so the helper partitions them -- and returns the
+prose lines rather than discarding them, so a change that quietly replaced the
+human line with the structured one fails instead of passing.
+
+#### Where the phase stands
+
+Item 1 is started, not finished: the emitter exists and one module emits. The
+remaining work is callers, not design, and the two worth having next are the
+checkout path and the agent runner because those are the other places an SLO
+would be written against.
+
+The credential gate this phase waited behind is still the owner's to close, and
+the last deploy run confirms the diagnosis exactly: run 188 on `872d9d0` failed
+at **step 22, "Synchronize verified Stripe runtime secret to Vercel
+production"** -- twenty-one steps spent to report one empty secret. That step is
+now first.
 
 ### 2026-09-17 - The one gate only the owner can pass now fails in seconds, not after a full release chain
 

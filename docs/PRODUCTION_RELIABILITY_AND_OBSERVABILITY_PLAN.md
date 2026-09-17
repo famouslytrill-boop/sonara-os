@@ -30,17 +30,43 @@ Supplying the secret is still the owner's, and is
 
 ## 1. Structured logs
 
-**Exists:** every module logs through a named reporter rather than bare
-`console.log` in the paths that matter — `defaultReport` in
-`lib/growth-studio-dispatch.cjs` is the pattern, and it runs its text through
-`redactSensitiveText` first.
+**Started 17 September 2026.** `lib/sonara-structured-log.cjs` is the emitter:
+one JSON line per event, carrying the tenant, the capability, the outcome and a
+correlation id. No dependency added.
 
-**Absent:** the lines are prose, not records. Nothing can be queried by
-organization, capability, or outcome, because nothing emits a field.
+**Wired:** `lib/growth-studio-dispatch.cjs`, which was the module the old
+paragraph here named as the pattern to follow. It now emits one terminal
+`campaign.dispatch` event per send, plus a `campaign.dispatch.degraded` event
+per named degradation. The prose lines are unchanged and still go out beside
+them — structured logging that replaced the readable line would make one
+incident harder to read in exchange for making a hundred countable.
 
-**The shape to aim for:** one emitter, JSON per line, with the tenant, the
-capability, the outcome and a correlation id. The redaction that already exists
-must wrap it, or structured logging becomes a faster way to leak a key.
+**Three design decisions that exist to keep the count honest:**
+
+- **The outcome set is closed** — `ok | partial | refused | degraded | failed`.
+  Free text is the defect: "failed", "failure", "error" and "Failed." are four
+  values naming one thing, and a rate over them is wrong invisibly. `partial`
+  is its own member because a campaign where 459 of 460 landed is neither a
+  success nor a failure. `refused` is separate from `failed` because a gate
+  saying no is this code working, and counting it against an error budget would
+  make the budget measure configuration rather than reliability.
+- **`scope` is required** — `organization` (with an id) or `process`. Without
+  it a forgotten tenant and a genuinely tenant-less event both read as
+  `organization: null`, which is shape 4: absent and deliberately-none are
+  different facts with the same shape.
+- **Redaction is field-wise, before serialisation, and that is forced rather
+  than chosen.** Running the redactor over serialised JSON *corrupts it*:
+  `authorization_header` and `assigned_secret` in `lib/sonara-redaction.cjs`
+  both match an optional closing quote and replace with `$1: [redacted…]`
+  without restoring it, so the quote is eaten and a second colon appears.
+  `tests/redaction-boundary.test.js` runs all eight of its secret shapes
+  through the emitter and asserts both that the secret is gone and that the
+  line still parses.
+
+**Still absent:** every other caller. Eight console calls exist in the runtime
+tree and the dispatcher is the first module to emit events beside its prose.
+The next callers worth having are the checkout path and the agent runner,
+because those are the two other places an SLO would be written against.
 
 ## 2. Traces
 
@@ -154,7 +180,9 @@ how a green dashboard comes to sit over a broken system.
 
 The dependencies above are not preferences. In order:
 
-1. **Structured logs** (item 1) — everything measurable depends on it.
+1. **Structured logs** (item 1) — everything measurable depends on it. The
+   emitter exists and the campaign dispatcher emits; the remaining work is
+   callers, not design.
 2. **The PITR answer** (owner step 9) — unblocks item 7, and it is two minutes.
 3. **Backup and restore drill** (item 7), then **rollback automation** (item 8).
 4. **SLOs** (item 3), then **error budgets** (item 4).
