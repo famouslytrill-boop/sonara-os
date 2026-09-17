@@ -36,7 +36,26 @@ assert.equal(secretBindings.length, 3, "The service-role key must be bound to ex
 
 const guard = workflowStep(workflow, "Require protected production credentials");
 assert.match(guard, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
-assert.match(guard, /test -n "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/);
+// The property is that this step REFUSES to continue without the service-role
+// key. It used to be asserted by its spelling -- five literal
+// `test -n "${X:-}"` lines -- and on 17 September 2026 that step was rewritten
+// to name each missing credential instead, because `test -n` under `set -e`
+// exits with no message at all and five secrets shared one silent failure.
+//
+// So this now accepts either form and still rejects the key being dropped from
+// the requirement altogether. Matching the spelling was checking how the
+// requirement was written rather than that it was there.
+//
+// Behaviour, not just text: tests/the-credential-gate-speaks-before-the-chain-runs.test.js
+// extracts this step's script and executes it with the key empty, asserting it
+// exits non-zero and names it. That is the assertion that cannot be satisfied by
+// a form nobody thought of; this one keeps the static gate honest alongside it.
+assert.ok(
+  /test -n "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/.test(guard)
+    || /for name in [^\n]*\bSUPABASE_SERVICE_ROLE_KEY\b[^\n]*; do/.test(guard),
+  "The credential guard step must require SUPABASE_SERVICE_ROLE_KEY to be non-empty, "
+    + "either as a literal `test -n` check or by naming it in the required-credential loop."
+);
 
 // Renamed from "...for database verification" on 9 September 2026: the pulled
 // environment now also feeds the live Stripe price check, which was moved ahead

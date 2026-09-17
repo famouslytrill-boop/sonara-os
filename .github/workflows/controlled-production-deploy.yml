@@ -64,15 +64,136 @@ jobs:
         # The RLS-bypassing service-role key is exposed only to explicit database
         # verification steps, never at job scope or to dependency installation,
         # application tests, builds, or the dynamically fetched Vercel CLI.
+        #
+        # ## Why the Stripe runtime credential is checked HERE
+        #
+        # It is validated again, properly, in "Synchronize verified Stripe
+        # runtime secret to Vercel production" -- against the live configured
+        # prices, which is the only check that can prove the key works. That
+        # step is unchanged and remains the authority.
+        #
+        # The problem was WHEN it first spoke. That step is roughly the
+        # seventeenth in this job: dependency install, audit, build, the whole
+        # release test suite, the client-secret scan, lint, route smoke, the
+        # database and storage contracts, the configuration and route registry,
+        # the OpenAPI contract, the open-source controls, the project identity
+        # check, the migration preview and the production environment pull all
+        # run first. So an unset secret cost a full release chain before the run
+        # said which one thing was wrong.
+        #
+        # That is not hypothetical. production-commit-drift.yml records it:
+        # "every deploy run since 5 August had failed, the newest of them at a
+        # single step, an empty STRIPE_RUNTIME_SECRET_KEY". Six weeks of
+        # deployments, each paying for the whole chain to learn one fact that was
+        # available in the first twenty seconds.
+        #
+        # ## It is deliberately no stricter than the step it precedes
+        #
+        # Same resolution order, same accept rule: `sk_live_` or fail. If this
+        # accepted something that step rejects, a deploy would still die late;
+        # if it rejected something that step accepts, this change would break a
+        # working installation. Surrounding whitespace is REPORTED and not
+        # failed on, because a prefix match tolerates it and only the live
+        # validation downstream can say whether Stripe does.
+        #
+        # No key value is ever echoed, written to GITHUB_ENV, or put in the step
+        # summary. Only which variable it came from and which shape class it is.
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
+          STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           set -euo pipefail
-          test -n "${VERCEL_TOKEN:-}"
-          test -n "${SUPABASE_ACCESS_TOKEN:-}"
-          test -n "${SUPABASE_PROJECT_ID:-}"
-          test -n "${SUPABASE_DB_PASSWORD:-}"
-          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}"
+
+          # Named individually. `test -n "$X"` under `set -e` exits with no
+          # message at all, so five credentials shared one silent failure and
+          # the log showed `+ test -n ''` with nothing to say which.
+          missing=""
+          for name in VERCEL_TOKEN SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_ID SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "$(eval "printf '%s' \"\${$name:-}\"")" ]; then
+              missing="${missing}${missing:+, }${name}"
+            fi
+          done
+
+          if [ -n "$missing" ]; then
+            {
+              echo "### Production credentials missing"
+              echo
+              echo "Not configured in the \`production\` environment: **${missing}**."
+              echo
+              echo "Nothing was built, migrated or deployed."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing protected production credentials: ${missing}" >&2
+            exit 1
+          fi
+
+          # The same fallback the synchronization step uses, so the two cannot
+          # disagree about which secret is in play.
+          runtime_key="${STRIPE_RUNTIME_SECRET_KEY:-${STRIPE_VERIFIER_SECRET_KEY:-}}"
+          if [ -n "${STRIPE_RUNTIME_SECRET_KEY:-}" ]; then
+            runtime_source="STRIPE_RUNTIME_SECRET_KEY"
+          else
+            runtime_source="STRIPE_SECRET_KEY (compatibility fallback)"
+          fi
+
+          # Shape only. Each class prints its own name and never the value.
+          case "$runtime_key" in
+            "")        runtime_shape="unset" ;;
+            sk_live_*) runtime_shape="live_secret" ;;
+            rk_live_*) runtime_shape="restricted_live_verifier" ;;
+            sk_test_*) runtime_shape="test_mode_secret" ;;
+            rk_test_*) runtime_shape="test_mode_restricted" ;;
+            *)         runtime_shape="unrecognised_prefix" ;;
+          esac
+
+          runtime_whitespace="no"
+          case "$runtime_key" in
+            "") ;;
+            [[:space:]]*|*[[:space:]]) runtime_whitespace="yes" ;;
+          esac
+          unset runtime_key
+
+          if [ "$runtime_shape" != "live_secret" ]; then
+            case "$runtime_shape" in
+              unset)
+                why="No runtime secret is configured. STRIPE_RUNTIME_SECRET_KEY is empty and STRIPE_SECRET_KEY is empty too, so there is nothing to promote." ;;
+              restricted_live_verifier)
+                why="The only value available is a restricted live key (rk_live_). That is the read-only price verifier and it is never promoted to the runtime: it can make the price audit pass while every customer and Checkout Session write fails." ;;
+              test_mode_secret|test_mode_restricted)
+                why="The configured value is a test-mode key. Production billing needs the live secret key." ;;
+              *)
+                why="The configured value does not begin with any recognised Stripe key prefix." ;;
+            esac
+            {
+              echo "### Stripe runtime credential not usable"
+              echo
+              echo "- Resolved from: \`${runtime_source}\`"
+              echo "- Shape: \`${runtime_shape}\`"
+              echo "- Surrounding whitespace: \`${runtime_whitespace}\`"
+              echo
+              echo "${why}"
+              echo
+              echo "Fix: add a protected \`STRIPE_RUNTIME_SECRET_KEY\` secret in the \`production\` environment whose value begins \`sk_live_\`."
+              echo "Full instructions: \`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md\`."
+              echo
+              echo "**Nothing was built, migrated or deployed.** This is the first step in the job, so no release work was spent reaching it."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Stripe runtime credential unusable (source=${runtime_source}, shape=${runtime_shape}). ${why}" >&2
+            echo "See docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md" >&2
+            exit 1
+          fi
+
+          {
+            echo "### Production credentials present"
+            echo
+            echo "Stripe runtime secret resolved from \`${runtime_source}\`, shape \`${runtime_shape}\`."
+            if [ "$runtime_whitespace" = "yes" ]; then
+              echo
+              echo "> **Caution:** the value has leading or trailing whitespace, most likely a newline captured when it was pasted."
+              echo "> It is accepted here because the synchronization step's live validation is the authority on whether Stripe accepts it."
+              echo "> If that step fails to authenticate, re-paste the secret with no trailing newline."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile

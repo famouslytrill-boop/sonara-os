@@ -2,6 +2,129 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-17 - The one gate only the owner can pass now fails in seconds, not after a full release chain
+
+The owner's diagnosis, and it is right: *"the engineering bottleneck is no
+longer general code quality -- it is the single protected Stripe runtime
+credential boundary."*
+
+`production-commit-drift.yml` already recorded what that cost, in its own words:
+
+> every deploy run since 5 August had failed, the newest of them at a single
+> step, an empty `STRIPE_RUNTIME_SECRET_KEY`
+
+Six weeks of deployments. The step that noticed -- "Synchronize verified Stripe
+runtime secret to Vercel production" -- is roughly the seventeenth in the job.
+Each attempt therefore paid for dependency install, the audit, the build, the
+whole release test suite, the client-secret scan, lint, route smoke, the
+database and storage contracts, the configuration and route registry, the
+OpenAPI contract, the open-source controls, the project identity check, the
+migration preview and the production environment pull, to learn one fact that
+was available in the first twenty seconds.
+
+**Fixed by moving the question, not the answer.** The synchronization step is
+byte-for-byte unchanged and remains the authority, because validating against
+the live configured prices is the only check that can prove a key works. What
+changed is that "Require protected production credentials" -- the first step in
+the job -- now resolves and classifies that credential too.
+
+**Deliberately no stricter than the step it precedes.** Same resolution order
+(`STRIPE_RUNTIME_SECRET_KEY`, falling back to `STRIPE_SECRET_KEY`), same accept
+rule (`sk_live_`). If it accepted something that step rejects, a deploy would
+still die late; if it rejected something that step accepts, this would have
+broken a working installation rather than diagnosing a broken one. The
+documented compatibility fallback -- a full `sk_live_` key left under
+`STRIPE_SECRET_KEY` -- still passes, and there is a test for exactly that.
+
+What the run summary now says, where before there was one sentence:
+
+* which variable the value came from, including when the fallback was used;
+* which way it is unusable -- nothing configured, a restricted `rk_live_`
+  verifier, a test-mode key, or an unrecognised prefix. These were one message;
+* whether it carries leading or trailing whitespace, which is what a pasted
+  secret picks up. **Reported, not failed on:** a prefix match tolerates it and
+  only the live validation downstream can say whether Stripe does. Failing here
+  would be stricter than the step it precedes.
+
+The five other credentials are now named individually as well.
+`test -n "$X"` under `set -e` exits with **no message at all**, so five secrets
+shared one silent failure and the log showed `+ test -n ''` with nothing to say
+which was missing.
+
+**No key value is printed, logged, written to `GITHUB_ENV`, or put in the step
+summary** -- only the source variable and the shape class. The shell variable
+holding it is `unset` once its shape is known, and there is a canary test that
+supplies a distinctive fake key and asserts it appears in neither the output nor
+the summary, on the passing path and the failing one.
+
+#### The test runs the real script
+
+`tests/the-credential-gate-speaks-before-the-chain-runs.test.js` extracts the
+step's `run:` block from the workflow by indentation and executes it under bash
+with a temporary `GITHUB_STEP_SUMMARY`. A copy of the logic in the test file
+would pass forever after the workflow changed underneath it -- measuring a
+different population from the one claimed. No YAML parser: this repository has
+one production dependency and a test is not a reason to add a second.
+
+Thirteen assertions over eleven input cases: a good key, the documented
+fallback, both-unset, verifier-only, test mode, unrecognised prefix, trailing
+newline, trailing space, leading space, two missing credentials, and the leak
+canary.
+
+**Verified by breaking it three ways.** Relabelling the `rk_live_` arm as
+acceptable, echoing the key value into the summary, and moving the step after
+the test suite -- each caught by name.
+
+**The second falsification found a weak assertion of my own.** The check named
+for the boundary was
+`assert.doesNotMatch(PRECONDITION, /rk_live_\*\)\s*;;/)` -- it looked for an
+empty fallthrough arm. Relabelling the restricted arm to the accepted shape left
+*that* assertion green while the boundary was gone; two other assertions caught
+it, but not the one written for it. Exactly shape 6: a check too weak to catch
+the bug it was written for. Rewritten to read the case arms and assert that only
+the `sk_live_` arm produces the accepted shape name, whatever that name is.
+
+Two input cases were also wrong before they were right: `$(printf 'x\n')`
+strips trailing newlines, so the whitespace case passed a value with no
+whitespace in it and proved nothing. Re-run with `$'x\n'`.
+
+#### GitHub blocked the first push, and it was right to
+
+Push protection rejected the commit: **"Stripe API Key"** at
+`tests/the-credential-gate-speaks-before-the-chain-runs.test.js:79` -- the leak
+canary, which as a literal is shaped exactly like a live key. A scanner
+reasoning about the value cannot know it is invented.
+
+The offered resolution was a URL that marks the secret allowed. **Not taken.**
+Clicking it would have trained the one protection standing between this
+repository and a real leaked key to be clicked through, in the commit whose
+whole subject is a credential boundary. The canaries are assembled from parts at
+run time instead, with a comment saying why, so nobody simplifies them back into
+a literal and gets blocked again.
+
+The test is unchanged in behaviour: it still asserts the distinctive fragment
+appears in neither the step's output nor its summary.
+
+#### And the phase after this one, recorded at the owner's direction
+
+`docs/PRODUCTION_RELIABILITY_AND_OBSERVABILITY_PLAN.md`: structured logs,
+traces, SLOs, error-budget alerts, queue/retry telemetry, webhook
+observability, backup/restore drills, deployment rollback automation, and an
+owner-facing operations dashboard.
+
+Written as a plan with a status per item, because **half of them are partly
+built** and reading the list as nine empty boxes would mean rebuilding things
+that work. Queue and retry telemetry largely exists as of yesterday's send
+record; webhook observability has `billing_webhook_events` and
+`/admin/webhooks`; rollback has the checkpoint and the runbook and lacks only
+the automation. Traces and SLOs are absent outright, and the claim that
+OpenTelemetry was configured was false -- corrected yesterday.
+
+The ordering in that document is dependency, not preference: structured logs
+first because everything measurable rests on them, the PITR answer next because
+it is two minutes and unblocks the restore drill, and the dashboard last because
+it reports on all of it.
+
 ### 2026-09-16 - The document you read during an incident named three scripts that do not exist
 
 Found while checking whether this repository had a disaster-recovery posture at

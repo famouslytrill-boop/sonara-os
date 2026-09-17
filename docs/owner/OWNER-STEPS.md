@@ -806,6 +806,11 @@ smallest.
 
 ## 9 — Confirm point-in-time recovery is on, or know that it is not
 
+> Also the first blocker of the Production Reliability and Observability phase.
+> A backup and restore drill cannot be designed before this is answered, because
+> the procedure differs completely depending on it. See
+> `docs/PRODUCTION_RELIABILITY_AND_OBSERVABILITY_PLAN.md`, item 7.
+
 **Two minutes, and it is the difference between having a database backup and
 believing you have one.**
 
