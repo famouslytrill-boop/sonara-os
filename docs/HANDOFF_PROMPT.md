@@ -106,6 +106,86 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-17 - The production cutover is green, and the agent runner now emits
+
+**The gate is closed.** At 02:29 UTC the owner installed a new `sk_live_`
+runtime secret and dispatched Controlled Production Deployment run **189**,
+which succeeded on `872d9d0`. Run **190** then succeeded on the merge commit
+`39dec4a`. Run 188 was the last failure in a sequence
+`production-commit-drift.yml` recorded as starting 5 August.
+
+The four proofs `docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md` requires were read
+back from the live apex rather than inferred from a green CI run:
+`services.stripe: configured`, `paymentConnection: configured`,
+`services.checkout: enabled`, `invalid.stripe: []`.
+
+Worth stating plainly because it was the owner's own diagnosis and it was right:
+the bottleneck was one protected credential, not code quality, and closing it
+unlocked the pipeline without redesigning the workflow.
+
+#### The third structured-log caller
+
+`lib/sonara-agent-runner.cjs` -- the module CLAUDE.md calls "the one path that
+executes: classify, decide, run, record" -- now emits `agent.run` across its four
+statuses, plus `agent.autonomy_breaker` when the safety check in front of a run
+could not be evaluated at all.
+
+That second event is separate deliberately. A run can complete perfectly while
+the breaker guarding it was blind, and those are two facts; this module already
+reported a degraded breaker out loud precisely because three of the four rate
+limiters in this codebase failed open in silence for months. Now it is
+countable.
+
+**One mapping is arguable, and it is written down as a decision rather than as
+an obvious reading.** `unimplemented` -- allowed to run, and nothing implements
+it -- emits `degraded`, not `failed`:
+
+* not `refused`, because the gate said yes;
+* not `failed`, or a known capability gap would spend error budget every time
+  somebody pressed the button, and the rate would measure the roadmap rather
+  than reliability.
+
+`degraded` is the closest true member: the run was accepted and the guarantee
+that approving an action changes something did not hold, which is exactly what
+CLAUDE.md says the state exists to say -- "the one thing a button here must
+never do is report a job as done when it was not." If an owner wants it counted
+on its own, `OUTCOMES` in `lib/sonara-structured-log.cjs` is the place, and
+adding a member there is a deliberate act.
+
+#### Attribution is explicit, because the module says context is not inspected
+
+`lib/sonara-agent-runner.cjs` states that `context` "is never inspected here,
+because a runner that understands the work is a runner that has to change every
+time the work does." Reading `context.organizationId` would have been the easy
+route and would have quietly broken that. So `run()` takes `organizationId` and
+`scope` explicitly, and all six call sites pass one or the other.
+
+Scope defaults to `organization` rather than to `process`. That is the safe
+default here precisely because the emitter refuses an organization-scoped event
+with no id: a caller that forgets produces a loud `log.event_rejected` naming the
+omission, instead of a plausible tenant-less line that would quietly under-count
+a tenant. The one runner with genuinely no organization -- the admin drafting
+runner in `routes/sonara-ai-integrations-routes.cjs`, which drafts from a
+provider and a prompt with no customer behind it -- declares `scope: "process"`.
+
+A derived assertion scans `lib/` and `routes/` for `runner.run` call sites and
+fails if any passes neither, so a new one cannot be added unattributed.
+
+**Verified by breaking it,** three ways: a gated refusal counted as `failed`, the
+breaker event dropped, and the scope defaulted to `process`. Each caught by
+name.
+
+**And one of my own mistakes worth recording.** The derived call-site scan
+reported all six sites as unattributed when I knew several carried an
+`organizationId`. The cause was not the product: the test was written through a
+Python heredoc where `\b` is a **backspace character**, so the regex became
+`/\x08organizationId/` and matched nothing. A check that fails on everything
+looks like a discovery and is a broken instrument; the file now escapes those
+boundaries and says why.
+
+Eight assertions added to `tests/a-log-line-you-can-count.test.js`, which now
+covers all three callers.
+
 ### 2026-09-17 - Checkout had an anonymous failure, on the path the cutover just fixed
 
 The second caller for the structured emitter, and instrumenting it turned up a

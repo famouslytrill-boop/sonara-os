@@ -513,4 +513,190 @@ describe("a log line you can count", () => {
       assert.ok(!serialised.includes("sk_live_test"), "a checkout event carried the Stripe key");
     });
   });
+
+  describe("the agent runner, which is the one path that executes", () => {
+    const { createRunner } = require("../lib/sonara-agent-runner.cjs");
+    const fs = require("node:fs");
+    const path = require("node:path");
+
+    async function runCapturing(run) {
+      const chunks = [];
+      const original = process.stderr.write;
+      process.stderr.write = (chunk) => { chunks.push(String(chunk)); return true; };
+      let result;
+      try {
+        result = await run();
+      } finally {
+        process.stderr.write = original;
+      }
+      const events = chunks.join("").split("\n").filter((line) => line.startsWith("{")).map((line) => JSON.parse(line));
+      return { result, events };
+    }
+
+    // check_data_quality is on the self-serve list in
+    // lib/sonara-agent-authority.cjs; issue_refund requires owner approval.
+    // Both are read from that module rather than invented, because a fixture
+    // that does not match the authority rule tests nothing.
+    it("calls a completed run ok, attributed to the tenant", async () => {
+      const runner = createRunner({ handlers: { check_data_quality: async () => ({ ok: true }) } });
+      const { result, events } = await runCapturing(() => runner.run({
+        action: { action_type: "check_data_quality" },
+        organizationId: "org-9"
+      }));
+
+      assert.equal(result.status, "completed");
+      const [event] = events.filter((e) => e.event === "agent.run");
+      assert.ok(event, "a completed agent run emitted no event");
+      assert.equal(event.outcome, "ok");
+      assert.equal(event.organization, "org-9");
+      assert.equal(event.capability, "agent_action");
+      assert.equal(event.correlation, "check_data_quality");
+      assert.equal(event.detail.status, "completed");
+    });
+
+    it("calls a gated refusal refused, not failed", async () => {
+      // An owner-approval requirement doing its job is not a reliability
+      // failure, and counting it as one would make the error budget measure how
+      // often somebody proposes a gated action.
+      const runner = createRunner();
+      const { result, events } = await runCapturing(() => runner.run({
+        action: { action_type: "issue_refund" },
+        organizationId: "org-9"
+      }));
+
+      assert.equal(result.status, "refused");
+      const [event] = events.filter((e) => e.event === "agent.run");
+      assert.equal(event.outcome, "refused", "a gated refusal was counted as a failure");
+      assert.equal(event.detail.requires_owner_approval, true);
+    });
+
+    it("does not call an unimplemented action a failure", async () => {
+      // The arguable mapping, asserted so the reasoning is pinned rather than
+      // assumed: `unimplemented` is allowed-and-nothing-does-it. Counting it as
+      // failed would spend error budget on a known capability gap every time
+      // somebody pressed the button, so it is `degraded` with its own reason.
+      const runner = createRunner();
+      const { result, events } = await runCapturing(() => runner.run({
+        action: { action_type: "check_data_quality" },
+        organizationId: "org-9"
+      }));
+
+      assert.equal(result.status, "unimplemented", "fixture does not reach the unimplemented path");
+      const [event] = events.filter((e) => e.event === "agent.run");
+      assert.equal(event.outcome, "degraded");
+      assert.equal(event.reason, "unimplemented");
+      assert.notEqual(event.outcome, "refused", "an allowed-but-unimplemented action was blamed on the gate");
+    });
+
+    it("calls a handler that threw failed, without leaking what it threw", async () => {
+      const runner = createRunner({
+        handlers: {
+          check_data_quality: async () => {
+            throw new Error("https://project.supabase.co/rest/v1/x?apikey=abcdef123456 refused");
+          }
+        }
+      });
+      const { result, events } = await runCapturing(() => runner.run({
+        action: { action_type: "check_data_quality" },
+        organizationId: "org-9"
+      }));
+
+      assert.equal(result.status, "failed");
+      const [event] = events.filter((e) => e.event === "agent.run");
+      assert.equal(event.outcome, "failed");
+      // A handler talks to Supabase and a Supabase error carries the URL it
+      // failed on, and that URL carries the key.
+      assert.ok(!JSON.stringify(event).includes("apikey=abcdef123456"), "an agent run event carried a credential from a thrown error");
+    });
+
+    it("counts a blind autonomy breaker separately from the run it guarded", async () => {
+      // A run can complete perfectly while the safety check in front of it
+      // could not be evaluated. Three of the four rate limiters in this
+      // codebase failed open in silence for months, which is why this module
+      // reports a degraded breaker at all -- and now it is countable.
+      const runner = createRunner({
+        handlers: { check_data_quality: async () => ({ ok: true }) },
+        readHistory: async () => ({ ok: false, rows: [], reason: "history table unreadable" }),
+        onBreakerDegraded: () => {}
+      });
+      const { events } = await runCapturing(() => runner.run({
+        action: { action_type: "check_data_quality" },
+        organizationId: "org-9"
+      }));
+
+      const breaker = events.filter((e) => e.event === "agent.autonomy_breaker");
+      assert.equal(breaker.length, 1, "a breaker that could not be evaluated emitted no event");
+      assert.equal(breaker[0].outcome, "degraded");
+      assert.equal(breaker[0].reason, "history_unreadable");
+      assert.equal(breaker[0].organization, "org-9");
+    });
+
+    it("lets a runner with no tenant say so, rather than defaulting", async () => {
+      // The admin drafting runner in routes/sonara-ai-integrations-routes.cjs
+      // has no customer organization behind it, so "no tenant" is true there.
+      // It has to be DECLARED, because the default is organization scope and a
+      // caller that forgets must produce a complaint rather than a plausible
+      // process-scoped line.
+      const runner = createRunner({ handlers: { draft_content: async () => ({ ok: true }) } });
+      const { events } = await runCapturing(() => runner.run({
+        action: { action_type: "draft_content" },
+        scope: "process"
+      }));
+
+      const [event] = events.filter((e) => e.event === "agent.run");
+      assert.equal(event.scope, "process");
+      assert.equal(event.organization, null);
+    });
+
+    it("complains loudly when a caller forgets to attribute a run", async () => {
+      // The property that makes the default safe. No organizationId and no
+      // declared scope produces a rejected-event line naming the omission, not
+      // an agent.run event that looks tenant-less.
+      const runner = createRunner({ handlers: { check_data_quality: async () => ({ ok: true }) } });
+      const { events } = await runCapturing(() => runner.run({
+        action: { action_type: "check_data_quality" }
+      }));
+
+      assert.equal(events.filter((e) => e.event === "agent.run").length, 0, "an unattributed run was emitted as if it were fine");
+      const [rejected] = events.filter((e) => e.event === "log.event_rejected");
+      assert.ok(rejected, "an unattributed run emitted nothing at all, so the omission is invisible");
+      assert.equal(rejected.reason, "organization_id_required");
+    });
+
+    it("keeps every runner.run call site attributed", () => {
+      // Derived rather than listed. The runner defaults to organization scope,
+      // so a new call site that passes neither an organizationId nor a scope
+      // emits a rejected line instead of a countable one -- which is safe, and
+      // still a gap in the series. This fails while that gap is being added
+      // rather than after somebody notices the metric is short.
+      const roots = ["lib", "routes"];
+      const unattributed = [];
+      let sites = 0;
+      for (const dir of roots) {
+        for (const name of fs.readdirSync(path.join(__dirname, "..", dir))) {
+          if (!name.endsWith(".cjs")) continue;
+          const relative = `${dir}/${name}`;
+          const source = fs.readFileSync(path.join(__dirname, "..", relative), "utf8");
+          for (const match of source.matchAll(/[A-Za-z]*[Rr]unner\.run\(\{/g)) {
+            sites += 1;
+            // The call's own text, to its closing `});`.
+            //
+            // The word boundaries below are escaped deliberately. The first
+            // version of this file was written through a Python heredoc where
+            // `\b` is a BACKSPACE character, so the pattern became
+            // /\x08organizationId/ and matched nothing -- which reported all
+            // six call sites as unattributed and looked like a product bug.
+            const from = match.index;
+            const end = source.indexOf("});", from);
+            const call = source.slice(from, end === -1 ? from + 600 : end);
+            if (!/\borganizationId\s*:/.test(call) && !/\bscope\s*:/.test(call)) {
+              unattributed.push(`${relative}: a runner.run call passes neither organizationId nor scope`);
+            }
+          }
+        }
+      }
+      assert.ok(sites >= 5, `only ${sites} runner.run call sites found; this check has gone blind`);
+      assert.deepEqual(unattributed, [], unattributed.join("\n  "));
+    });
+  });
 });
