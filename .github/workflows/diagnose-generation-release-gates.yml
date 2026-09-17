@@ -16,13 +16,29 @@ jobs:
       fail-fast: false
       matrix:
         gate:
-          - verify:migration-replay
-          - verify:python-coverage-floor
-          - verify:production-safety
-          - verify:scheduler
-          - verify:recovery
-          - verify:runbooks
-          - verify:test-prod-boundary
+          - verify:env
+          - verify:config
+          - verify:api
+          - verify:stripe
+          - verify:catalog-sync
+          - verify:catalog-doc
+          - verify:open-source
+          - verify:reciprocal-licences
+          - verify:product-map
+          - verify:route-surface
+          - verify:doc-script-paths
+          - verify:research-copy
+          - verify:contrast
+          - verify:theme-palettes
+          - verify:source-licence
+          - verify:growth-copy
+          - verify:csp
+          - verify:margins
+          - verify:lifecycle-evidence
+          - verify:provider-keys
+          - verify:coverage-floor
+          - verify:language-floors
+          - verify:adapted-skills
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
