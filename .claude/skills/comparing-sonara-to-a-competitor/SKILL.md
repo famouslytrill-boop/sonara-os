@@ -56,6 +56,30 @@ every market document opens with when it was read and closes with the URLs.
 
 ## Writing one
 
+### Portfolio-wide market searches
+
+When the request names many companies, regions, or industries, do not produce a
+giant pseudo-ranking. Build a small set of **representative archetypes** and say
+that they are representative rather than exhaustive.
+
+For each archetype:
+
+1. Use an annual report, regulatory filing, standards document, or official
+   product/strategy disclosure for the observed fact.
+2. Label the cross-company pattern as an inference, not something every named
+   company said about itself.
+3. Map the pattern to an existing SONARA capability, a measured gap, and one of
+   `build`, `integrate`, `research`, or `defer`.
+4. Check the current repository before proposing tables, frameworks, or product
+   names. A broad search that recommends what SONARA already ships has not
+   advanced the architecture.
+5. Keep competitor technology guesses out. A public website rarely proves the
+   internal framework, database, vendor, model, or design process behind it.
+
+The output should end in a bounded implementation sequence. "Research every
+company" is not an engineering plan; a small number of evidence-backed
+decisions with owners, dependencies, and stop conditions is.
+
 ### 1. Read the current figures, do not recall them
 
 `docs/market/` and `docs/pricing/`, newest first. If the newest is past its

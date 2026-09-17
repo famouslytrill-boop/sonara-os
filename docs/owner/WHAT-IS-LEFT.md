@@ -40,7 +40,7 @@ done" means two different things and only one of them is countable.
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
 failing checks: the whole suite passes and the `verify:launch` chain is green
-across all 49 commands. The test count is deliberately not written here
+across all 50 commands. The test count is deliberately not written here
 -- it changes every time anybody adds one, and a number typed into prose has
 nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
@@ -137,9 +137,9 @@ Each of the figures below except the last is now derived by
 `scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
 
 - **308** registered GET routes
-- **333** tables created by the migrations, **236** of them organization-scoped
+- **337** tables created by the migrations, **240** of them organization-scoped
 - **27** owner record pages
-- **49** verification commands in the release chain
+- **50** verification commands in the release chain
 - **237** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision

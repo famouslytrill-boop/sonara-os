@@ -400,3 +400,15 @@ Principle: **own the workflow; rent commodity or regulated infrastructure.**
 This expansion work is intentionally stacked on the durable-generation lifecycle branch so it can reuse that persistence contract without duplicating generation tables.
 
 If the generation persistence PR changes before merge, this branch must be rebased and its lifecycle references re-verified before it is merged.
+
+## Third-search convergence add-on — 2026-09-17
+
+The subsequent broad market/technology request does not create another expansion registry. `lib/sonara-third-search-convergence.cjs` reads this registry, the reuse-first schema plan, the industry/formula catalog, the governed repository registry, shared agent strategies, and source/PDF evidence at runtime and turns them into one bounded sequence.
+
+The add-on makes three architecture decisions explicit:
+
+1. durable events and sanitized evaluation evidence are infrastructure foundations, not a new product;
+2. social, calling, streaming, recording, and interactive-media work begins as a private Creator/Growth Commons assembled from current profiles, follows, assets, calls, notifications, content queues, and commerce records;
+3. public social discovery/federation, biometric storage, Wi-Fi credential features, and a custom global media network remain outside the current product boundary.
+
+The supporting evidence, representative US/European/Chinese/industrial/creator archetypes, source-versus-runtime status, and stop conditions are recorded in `docs/research/THIRD_SEARCH_PLATFORM_CONVERGENCE_2026-09-17.md`. Named companies are representative strategy inputs, not a ranking or an assertion about their undisclosed internal stacks.

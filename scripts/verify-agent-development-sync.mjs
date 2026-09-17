@@ -64,7 +64,7 @@ assert.ok(
 // only what it is called, because it no longer serves only the database.
 const pull = workflowStep(workflow, "Pull production environment for configuration verification");
 assert.doesNotMatch(pull, /SUPABASE_SERVICE_ROLE_KEY/);
-assert.match(pull, /vercel@latest env pull/);
+assert.match(pull, /vercel@59.19.1 env pull/);
 
 const catalogVerify = workflowStep(workflow, "Verify production catalog database boundary");
 assert.match(catalogVerify, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);

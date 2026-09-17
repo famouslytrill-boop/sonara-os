@@ -1,8 +1,9 @@
-name: Diagnose generation release gates
+name: Diagnose unresolved release gates
 
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,31 +16,49 @@ jobs:
       fail-fast: false
       matrix:
         gate:
-          - verify:tenant-tables
-          - verify:member-policies
-          - verify:applied-migrations
-          - verify:shape-repair
-          - verify:handoff
-          - verify:definer-exposure
-          - verify:unreferenced-modules
-          - verify:uncalled-factory-functions
-          - verify:orphan-tables
-          - verify:filter-encoding
-          - verify:selected-columns
-          - verify:tenant-queries
-          - verify:request-tenant-ids
-          - verify:stale-claims
-          - verify:doc-counts
+          - verify:env
+          - verify:config
+          - verify:api
+          - verify:stripe
+          - verify:catalog-sync
+          - verify:catalog-doc
+          - verify:open-source
+          - verify:reciprocal-licences
+          - verify:product-map
+          - verify:route-surface
+          - verify:doc-script-paths
+          - verify:research-copy
+          - verify:contrast
+          - verify:theme-palettes
+          - verify:source-licence
+          - verify:growth-copy
+          - verify:csp
+          - verify:margins
+          - verify:lifecycle-evidence
+          - verify:provider-keys
+          - verify:coverage-floor
+          - verify:language-floors
+          - verify:adapted-skills
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
-          version: 11.1.1
-      - uses: actions/setup-node@v4
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version: "22"
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install the Python test dependencies the coverage floor needs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tools/disposable-domains/requirements.txt
+          python -m pip install -r tools/voice-clone/requirements.txt
+          python -m pip install ./python
       - name: Run ${{ matrix.gate }}
         env:
           SONARA_MIGRATION_REPLAY_REQUIRED: "1"

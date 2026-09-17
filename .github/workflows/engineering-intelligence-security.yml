@@ -24,20 +24,20 @@ jobs:
 
     steps:
       - name: Checkout SONARA with history
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
 
       # setup-node can cache pnpm only after the pnpm executable exists on PATH.
       # This mirrors the order used by the established SONARA workflows.
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           version: 11.1.1
           run_install: false
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "22"
           cache: pnpm
@@ -52,7 +52,7 @@ jobs:
       - name: Initialize CodeQL
         id: codeql_init
         continue-on-error: true
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           languages: javascript-typescript
           queries: security-extended
@@ -69,7 +69,7 @@ jobs:
       - name: Analyze JavaScript with CodeQL
         id: codeql_analyze
         continue-on-error: true
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           category: /language:javascript-typescript
 
@@ -101,7 +101,7 @@ jobs:
       - name: Checkout pinned Archify tool
         id: archify_checkout
         continue-on-error: true
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: tt-a1i/archify
           ref: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
@@ -256,7 +256,7 @@ jobs:
 
       - name: Upload release evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sonara-release-evidence-${{ github.run_id }}
           path: artifacts

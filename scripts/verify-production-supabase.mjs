@@ -6,7 +6,13 @@ const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const migrationDirectory = path.join(root, "supabase", "migrations");
 const diagnosticLogPath = path.join(root, "release-validation.log");
-const { DATABASE_FUNCTIONS, DATABASE_TABLES, STORAGE_BUCKETS } = require(path.join(root, "lib", "sonara-database-contract.cjs"));
+const {
+  DATABASE_FUNCTIONS,
+  DATABASE_TABLES,
+  DURABLE_EVENT_FOUNDATION_FUNCTIONS,
+  DURABLE_EVENT_FOUNDATION_TABLES,
+  STORAGE_BUCKETS
+} = require(path.join(root, "lib", "sonara-database-contract.cjs"));
 const { RETIRED_DATABASE_TABLES } = require(path.join(root, "lib", "sonara-database-retirement-contract.cjs"));
 
 const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -22,7 +28,8 @@ const migrationState = deriveMigrationState();
 const retiredTables = new Set(RETIRED_DATABASE_TABLES);
 const expectedTables = new Set([
   ...[...migrationState.tables].filter((table) => !retiredTables.has(table)),
-  ...DATABASE_TABLES
+  ...DATABASE_TABLES,
+  ...DURABLE_EVENT_FOUNDATION_TABLES
 ]);
 const snapshot = await fetchSnapshot();
 const publicTables = new Map((snapshot.public_tables || []).map((table) => [table.name, table]));
@@ -51,7 +58,7 @@ for (const version of [...migrationState.versions].sort()) {
   if (!appliedMigrations.has(version)) failures.push(`local migration is not recorded as applied in production: ${version}`);
 }
 
-for (const signature of [...DATABASE_FUNCTIONS, "public.sonara_database_deep_snapshot()"]) {
+for (const signature of [...DATABASE_FUNCTIONS, ...DURABLE_EVENT_FOUNDATION_FUNCTIONS, "public.sonara_database_deep_snapshot()"]) {
   const functionName = signature.slice("public.".length, signature.indexOf("("));
   if (!publicFunctionNames.has(functionName)) failures.push(`required public function is unavailable: ${signature}`);
 }
@@ -78,7 +85,7 @@ finish({
   productionPublicTables: publicTables.size,
   localMigrations: migrationState.versions.size,
   appliedMigrations: appliedMigrations.size,
-  requiredFunctions: DATABASE_FUNCTIONS.length + 1,
+  requiredFunctions: DATABASE_FUNCTIONS.length + DURABLE_EVENT_FOUNDATION_FUNCTIONS.length + 1,
   requiredBuckets: STORAGE_BUCKETS.length
 });
 
