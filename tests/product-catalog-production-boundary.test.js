@@ -391,7 +391,7 @@ describe("Recommended product catalog production boundary", () => {
     assert.ok(applyIndex >= 0 && applyIndex < databaseProofIndex);
     assert.ok(databaseProofIndex < cleanupIndex && cleanupIndex < deployIndex);
     assert.ok(deployIndex < pageProofIndex);
-    assert.match(workflow, /vercel@latest env pull \.env\.production\.catalog-verification/);
+    assert.match(workflow, /vercel@59.19.1 env pull \.env\.production\.catalog-verification/);
     assert.match(workflow, /node --env-file=\.env\.production\.catalog-verification scripts\/verify-production-product-catalog\.mjs --database-only/);
     assert.match(workflow, /rm -f \.env\.production\.catalog-verification/);
     assert.match(workflow, /test ! -e \.env\.production\.catalog-verification/);

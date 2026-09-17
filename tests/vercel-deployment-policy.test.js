@@ -36,7 +36,7 @@ describe('Vercel deployment policy', () => {
     }
 
     const migrationPosition = workflow.indexOf('supabase db push --linked --include-all');
-    const deployPosition = workflow.indexOf('vercel@latest deploy --prod');
+    const deployPosition = workflow.indexOf('vercel@59.19.1 deploy --prod');
     assert.ok(migrationPosition > previousPosition, 'Production migration must run after every release gate');
     assert.ok(deployPosition > migrationPosition, 'Vercel deployment must run after production migration and verification');
     assert.match(workflow, /githubCommitSha="\$GITHUB_SHA"/);
