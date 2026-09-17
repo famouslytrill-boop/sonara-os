@@ -58,10 +58,6 @@ const root = process.cwd();
 const HISTORICAL_SCRIPTS = Object.freeze({
   "scripts/verify.sh":
     "Named in docs/SPRINT_LOG.md and the generated handoff inside the sentence recording that it was deleted, because it built a frontend/ directory that no longer exists.",
-  "scripts/verify-stripe-config.mjs":
-    "Named in docs/SPRINT_LOG.md in the entry that itself records this name as wrong; the real script is scripts/verify-stripe-env.mjs, run as `pnpm run verify:stripe`.",
-  "scripts/seed-stripe-products.mjs":
-    "A one-shot seeding script named in docs/SPRINT_LOG.md as the source of eight product names a check surfaced. Historical narrative, not an instruction.",
   "scripts/verify-brand.mjs":
     "Named in docs/MASSIVE_UPDATE_COMPLETION_REPORT.md, a report of what was run at the time.",
   "scripts/verify-no-client-secrets.mjs":
