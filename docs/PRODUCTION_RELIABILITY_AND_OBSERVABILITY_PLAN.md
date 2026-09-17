@@ -63,10 +63,37 @@ incident harder to read in exchange for making a hundred countable.
   through the emitter and asserts both that the secret is gone and that the
   line still parses.
 
-**Still absent:** every other caller. Eight console calls exist in the runtime
-tree and the dispatcher is the first module to emit events beside its prose.
-The next callers worth having are the checkout path and the agent runner,
-because those are the two other places an SLO would be written against.
+**Also wired: the checkout path** (`lib/sonara-billing.cjs`), 17 September 2026.
+`checkout.session` and `checkout.customer` events across created, refused and
+failed.
+
+Instrumenting it turned up a defect rather than just adding a line.
+`createStripeCheckoutSession` named every refusal it made itself --
+`price_mismatch`, `price_product_archived` -- and returned **bare
+`{ ok: false }` with no code** when Stripe rejected the session. So the customer
+saw "Checkout could not be started" and the server kept no record of why: a 401
+from a key that cannot create sessions was indistinguishable from a 400 on bad
+parameters and from the network not answering.
+
+That is precisely the failure
+[`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`](owner/STRIPE-RUNTIME-KEY-CUTOVER.md)
+warns about — *"a verifier restricted to Prices/Products read access can make
+the price audit pass while every customer/Checkout Session write fails"* — and
+the documented failure mode had no diagnostic. It now returns
+`stripe_session_rejected` with the HTTP status, and the event attributes 401/403
+to the credential, any other status to the request, and no status to the
+network.
+
+The Stripe-customer mapping write was also `.catch(() => undefined)` with the
+result discarded. Losing it does not produce a missing row, it produces a
+**second Stripe customer**: the lookup is what prevents one, so an absent
+mapping makes the next checkout create another for the same person. The checkout
+still proceeds and still returns ok — the customer Stripe just created is real
+and refusing would turn a bookkeeping failure into a lost sale — but it now
+emits `degraded` naming that consequence.
+
+**Still absent:** the agent runner, and every other caller. Eight console calls
+exist in the runtime tree; two modules now emit events beside their prose.
 
 ## 2. Traces
 

@@ -358,4 +358,159 @@ describe("a log line you can count", () => {
       assert.ok(reported.every((entry) => typeof entry.code === "string"), "the prose reporter's payload shape changed");
     });
   });
+
+  describe("the checkout path, which is the other place an SLO belongs", () => {
+    const { createBilling } = require("../lib/sonara-billing.cjs");
+
+    const PLANS = {
+      starter_monthly: { name: "Starter", price: "$7/mo", amountCents: 700, mode: "subscription", env: "STRIPE_PRICE_STARTER_MONTHLY" }
+    };
+
+    function billing() {
+      return createBilling({
+        STRIPE_PLANS: PLANS,
+        getEnv: (name) => (name === "STRIPE_SECRET_KEY" ? "sk_live_test" : ""),
+        getPublicAppUrl: () => "https://sonaraindustries.com",
+        getSafeAbsoluteUrl: (value, fallback) => value || fallback,
+        getSupabaseServerConfig: () => ({ ok: false }),
+        supabaseHeaders: () => ({}),
+        safeCountTable: async () => ({ ok: true, count: 0 }),
+        formatMetric: (value) => String(value),
+        insertActivityEvent: async () => ({ ok: true })
+      });
+    }
+
+    const priceResponse = (body, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+    // The billing module does not take a sink either, so stderr is captured the
+    // same way. No prose line is expected on this path, which is itself
+    // asserted below.
+    async function runCapturing(run) {
+      const chunks = [];
+      const originalWrite = process.stderr.write;
+      const originalFetch = global.fetch;
+      process.stderr.write = (chunk) => { chunks.push(String(chunk)); return true; };
+      let result;
+      try {
+        result = await run();
+      } finally {
+        process.stderr.write = originalWrite;
+        global.fetch = originalFetch;
+      }
+      const events = chunks.join("").split("\n").filter((line) => line.startsWith("{")).map((line) => JSON.parse(line));
+      return { result, events };
+    }
+
+    it("names the Stripe rejection that used to return a bare ok:false", async () => {
+      // The defect: every other refusal in createStripeCheckoutSession was
+      // named -- price_mismatch, price_product_archived -- and the one Stripe
+      // itself produces was `return { ok: false }` with no code. A customer saw
+      // "Checkout could not be started" and the server kept no record of why.
+      //
+      // 401 is the case docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md warns about: a
+      // restricted verifier passes the price audit and cannot create sessions.
+      const { result, events } = await runCapturing(async () => {
+        global.fetch = async (url) => {
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          return priceResponse({ error: { message: "no" } }, 401);
+        };
+        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "stripe_session_rejected", "the Stripe rejection is still anonymous");
+      assert.equal(result.status, 401, "the status is what tells a credential failure from a bad request");
+
+      const [event] = events.filter((e) => e.event === "checkout.session");
+      assert.ok(event, "no checkout.session event was emitted");
+      assert.equal(event.outcome, "failed");
+      assert.equal(event.reason, "stripe_rejected_credential", "a 401 was not attributed to the credential");
+      assert.equal(event.organization, "org-7");
+      assert.equal(event.detail.status, 401);
+    });
+
+    it("tells a bad request apart from a bad credential", async () => {
+      // Same anonymous failure before; different remedy. Collapsing them would
+      // send somebody to rotate a key over a malformed parameter.
+      const { result, events } = await runCapturing(async () => {
+        global.fetch = async (url) => {
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          return priceResponse({ error: { message: "bad param" } }, 400);
+        };
+        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+      });
+
+      assert.equal(result.status, 400);
+      const [event] = events.filter((e) => e.event === "checkout.session");
+      assert.equal(event.reason, "stripe_rejected_request");
+    });
+
+    it("counts a price refusal as refused, not failed", async () => {
+      // Refusing to sell at a price the page does not advertise is the guard
+      // working. Counting it against an error budget would make the budget
+      // measure catalog drift rather than reliability.
+      const { result, events } = await runCapturing(async () => {
+        global.fetch = async (url) => {
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 4999, currency: "usd", active: true });
+          throw new Error("a session must not be created when the price is wrong");
+        };
+        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_stale", "org-7", { id: "user" }, "cus_1");
+      });
+
+      assert.equal(result.code, "price_mismatch");
+      const [event] = events.filter((e) => e.event === "checkout.session");
+      assert.equal(event.outcome, "refused", "a price refusal was counted as a failure");
+      assert.equal(event.reason, "price_mismatch");
+      assert.equal(event.detail.charges, 4999);
+      assert.equal(event.detail.advertised, 700);
+    });
+
+    it("emits ok for a session that was created", async () => {
+      // Or every assertion above is satisfied by a path that never succeeds.
+      const { result, events } = await runCapturing(async () => {
+        global.fetch = async (url) => {
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          return priceResponse({ url: "https://checkout.stripe.com/c/pay/abc" });
+        };
+        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+      });
+
+      assert.equal(result.ok, true);
+      assert.equal(result.url, "https://checkout.stripe.com/c/pay/abc");
+      const [event] = events.filter((e) => e.event === "checkout.session");
+      assert.equal(event.outcome, "ok");
+      assert.equal(event.detail.plan, "starter_monthly");
+    });
+
+    it("refuses a 200 that carries no url rather than returning ok with nothing", async () => {
+      const { result, events } = await runCapturing(async () => {
+        global.fetch = async (url) => {
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          return priceResponse({ id: "cs_1" });
+        };
+        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(result.code, "stripe_session_without_url");
+      const [event] = events.filter((e) => e.event === "checkout.session");
+      assert.equal(event.reason, "stripe_session_without_url");
+    });
+
+    it("never puts the Stripe key in a checkout event", async () => {
+      // The Authorization header on these calls carries the live key. Nothing
+      // this path emits may contain it.
+      const { events } = await runCapturing(async () => {
+        global.fetch = async (url) => {
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          return priceResponse({ error: { message: "Invalid API Key provided: sk_live_test" } }, 401);
+        };
+        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+      });
+
+      const serialised = JSON.stringify(events);
+      assert.ok(!serialised.includes("sk_live_test"), "a checkout event carried the Stripe key");
+    });
+  });
 });

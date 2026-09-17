@@ -2,6 +2,69 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-17 - Checkout had an anonymous failure, on the path the cutover just fixed
+
+The second caller for the structured emitter, and instrumenting it turned up a
+defect rather than just adding a line.
+
+`createStripeCheckoutSession` in `lib/sonara-billing.cjs` named every refusal it
+made itself -- `price_mismatch`, `price_product_archived` -- and then:
+
+    if (!response?.ok) return { ok: false };
+
+**No code at all,** for the one failure Stripe itself produces. `server.js`
+turns that into a 502 and "Checkout could not be started. Try again after
+payment setup is reviewed." So the customer is told to wait and the server keeps
+no record of why: a 401 from a key that cannot create sessions reads exactly
+like a 400 on a malformed parameter, and exactly like the network not answering.
+
+**It is the failure mode the cutover document warns about**, verbatim: *"a
+verifier restricted to Prices/Products read access can make the price audit pass
+while every customer/Checkout Session write fails."* The documented failure had
+no diagnostic, on the path the owner has just spent six weeks blocked on.
+
+Now returns `stripe_session_rejected` with the HTTP status, and the event
+attributes 401/403 to the credential, any other status to the request, and no
+status at all to the network -- three different remedies that were one silence.
+A 200 carrying no `url` is named separately again, because the credential worked
+and the response did not contain what it is supposed to.
+
+The price guard's refusals emit `refused`, not `failed`. Refusing to sell at a
+price the page does not advertise is that guard working; counting it against an
+error budget would make the budget measure catalog drift rather than
+reliability.
+
+#### And a second Stripe customer, quietly, for as long as one write kept failing
+
+The mapping insert after creating a Stripe customer was
+`.catch(() => undefined)` with the result discarded. Losing it does not produce
+a missing row -- **it produces a second Stripe customer.** The lookup above it
+is the only thing preventing one, so an absent mapping makes the next checkout
+create another for the same person, and they accumulate with a subscription
+possible on each.
+
+Behaviour deliberately unchanged: the checkout proceeds and still returns ok,
+because the customer Stripe just created is real and usable for this session,
+and refusing would turn a bookkeeping failure into a lost sale. What changed is
+that it emits `degraded` naming the consequence in the event itself, rather than
+being invisible.
+
+**Verified by breaking it,** three ways:
+
+* the bare `{ ok: false }` restored -- caught by `the Stripe rejection is still
+  anonymous`;
+* the credential and request rejections collapsed into one reason -- caught by
+  `a 401 was not attributed to the credential`;
+* the price refusal counted as `failed` -- caught by `a price refusal was
+  counted as a failure`.
+
+Six assertions added to `tests/a-log-line-you-can-count.test.js`, including one
+that the Stripe key never reaches an event: these calls carry it in an
+Authorization header, and Stripe's own 401 body quotes the key back.
+
+`tests/checkout-price-guard.test.js` still passes unchanged, which is the point
+-- the return contract gained a code and lost nothing.
+
 ### 2026-09-17 - A log line you can count
 
 Item 1 of the observability phase, started at the owner's direction once the
