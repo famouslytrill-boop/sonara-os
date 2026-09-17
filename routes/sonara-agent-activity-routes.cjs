@@ -36,6 +36,7 @@
 const { TABLE, createActionLogRecorder } = require("../lib/sonara-agent-action-log.cjs");
 const { SENSITIVE_CATEGORY_NAMES } = require("../lib/sonara-agent-authority.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
+const { createEventOutboxRepository, createRunEventPublisher } = require("../lib/sonara-event-outbox.cjs");
 const {
   TABLE: QUEUE_TABLE,
   shouldQueue,
@@ -359,9 +360,27 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
   }
 
   function queueRunner({ organizationId, actorUserId }) {
-    const runner = createRunner({
-      record: createActionLogRecorder({ organizationId, agentKey: "owner_queue", actorUserId, getSupabaseServerConfig })
-    });
+    // This is the first live producer for the durable event outbox. It is
+    // intentionally attached to the owner queue because the route already has
+    // a verified organization and actor, rather than trying to infer either
+    // from a generic agent run. Other agent surfaces can opt in only when they
+    // meet the same scope/evidence standard.
+    const runnerOptions = {
+      record: createActionLogRecorder({ organizationId, agentKey: "owner_queue", actorUserId, getSupabaseServerConfig }),
+    };
+    // Keep the existing owner-queue page usable in isolated test/dev setups
+    // that deliberately omit Supabase configuration. In a configured runtime,
+    // the publisher below is the live outbox producer.
+    if (typeof getSupabaseServerConfig === "function") {
+      const outbox = createEventOutboxRepository({ getSupabaseServerConfig });
+      runnerOptions.publishEvent = createRunEventPublisher({
+        organizationId,
+        actorId: actorUserId || "owner_queue_system",
+        producer: "owner_queue",
+        repository: outbox
+      });
+    }
+    const runner = createRunner(runnerOptions);
     registerApprovedHandlers(runner, { supabaseHeaders });
     return runner;
   }
