@@ -1,0 +1,179 @@
+name: Controlled Production Deployment Dry Run
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/controlled-production-deploy.yml"
+      - ".github/workflows/controlled-production-deploy-dry-run.yml"
+      - "supabase/migrations/**"
+      - "supabase/applied-migration-checksums.json"
+      - "scripts/verify-production-project-identity.mjs"
+      - "scripts/verify-stripe-env.mjs"
+      - "scripts/audit-dependencies.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-controlled-production-dry-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-deploy-dry-run:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_tjHnRTtPAagk3RcaEte9SRla
+      VERCEL_PROJECT_ID: prj_QN8mHacmlaJWSieVbjMFV5D7fmuY
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.109.1
+
+      - name: Require protected production credentials without exposing values
+        shell: bash
+        env:
+          STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
+          STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+
+          missing=""
+          for name in VERCEL_TOKEN SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_ID SUPABASE_DB_PASSWORD; do
+            if [ -z "$(eval "printf '%s' \"\${$name:-}\"")" ]; then
+              missing="${missing}${missing:+, }${name}"
+            fi
+          done
+          if [ -z "${STRIPE_VERIFIER_SECRET_KEY:-}" ]; then
+            missing="${missing}${missing:+, }STRIPE_SECRET_KEY"
+          fi
+          if [ -z "${STRIPE_RUNTIME_SECRET_KEY:-}" ]; then
+            missing="${missing}${missing:+, }STRIPE_RUNTIME_SECRET_KEY"
+          fi
+
+          if [ -n "$missing" ]; then
+            echo "Missing protected production credentials: $missing" >&2
+            exit 1
+          fi
+
+          case "$STRIPE_VERIFIER_SECRET_KEY" in
+            sk_live_*|rk_live_*) ;;
+            *) echo "STRIPE_SECRET_KEY is not a live Stripe verifier credential." >&2; exit 1 ;;
+          esac
+          case "$STRIPE_RUNTIME_SECRET_KEY" in
+            sk_live_*) ;;
+            *) echo "STRIPE_RUNTIME_SECRET_KEY must be a full live sk_live_ credential." >&2; exit 1 ;;
+          esac
+
+          echo "Protected production credentials are present with expected non-secret shapes."
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: node scripts/audit-dependencies.mjs
+
+      - name: Build release candidate
+        run: pnpm run build
+
+      - name: Run release test suite
+        run: pnpm test
+
+      - name: Scan release candidate for client-exposed secrets
+        run: pnpm run scan:client-secrets
+
+      - name: Lint release candidate
+        run: pnpm run lint
+
+      - name: Verify release route behavior
+        run: pnpm run smoke:routes
+
+      - name: Verify release database and storage contracts
+        run: pnpm run verify:db
+
+      - name: Verify release configuration and route registry
+        run: pnpm run verify:config
+
+      - name: Verify release OpenAPI contract
+        run: pnpm run verify:api
+
+      - name: Verify release open-source controls
+        run: pnpm run verify:open-source
+
+      - name: Verify production project identity
+        run: node scripts/verify-production-project-identity.mjs
+
+      - name: Link and preview production database migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+          supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Pull production environment for read-only configuration verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          pnpm dlx vercel@latest env pull .env.production.dry-run \
+            --environment=production \
+            --yes \
+            --token="$VERCEL_TOKEN"
+          test -s .env.production.dry-run
+
+      - name: Verify live Stripe prices with read-only verifier credential
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: node --env-file=.env.production.dry-run scripts/verify-stripe-env.mjs --require-live
+
+      - name: Verify runtime Stripe credential without synchronizing it
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
+        run: node --env-file=.env.production.dry-run scripts/verify-stripe-env.mjs --require-live
+
+      - name: Remove temporary production environment material
+        if: always()
+        shell: bash
+        run: |
+          rm -f .env.production.dry-run
+          test ! -e .env.production.dry-run
+
+      - name: Record dry-run result
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "### Controlled production deployment dry run"
+            echo
+            echo "Validated build, tests, dependency audit, route/database/API/open-source contracts, production project identity, linked migration preview, Vercel production configuration readability, and both Stripe production credentials."
+            echo
+            echo "**No production mutation was performed.**"
+            echo "- No Supabase migration apply"
+            echo "- No Vercel environment write"
+            echo "- No Vercel production deployment"
+          } >> "$GITHUB_STEP_SUMMARY"
