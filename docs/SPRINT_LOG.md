@@ -2,6 +2,107 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-16 - The document you read during an incident named three scripts that do not exist
+
+Found while checking whether this repository had a disaster-recovery posture at
+all. It has a good one. The document describing it pointed somewhere else.
+
+`docs/MONITORING_AND_BACKUPS.md` ended with:
+
+> ## Scripts
+> - `scripts/backup-postgres.sh`
+> - `scripts/backup-storage.sh`
+> - `scripts/restore-postgres.sh`
+
+**None of the three exists.** All three are under `archive/`, which eslint is
+explicitly told to ignore. So the instruction for recovering the database
+pointed at a path that answers "No such file or directory", at the one moment
+nobody has time to work out why.
+
+Three more claims in the same 47 lines, each checked:
+
+* **A cadence nothing implements** -- daily database backup, weekly restore
+  test, backup before every live migration. No workflow performs any of them. A
+  schedule with no scheduler reads exactly like a schedule that is running.
+* **"Next.js build/deploy logs."** This is an Express 4 application with one
+  production dependency.
+* **Sentry and OpenTelemetry "placeholders exist through env variables",** naming
+  `SENTRY_DSN` and `OTEL_EXPORTER_OTLP_ENDPOINT`. Neither is read by any code,
+  and neither is in the environment registry `verify:env` checks. The two names
+  appear in that document and nowhere else in the repository. An owner reading
+  it would set them and believe errors were being reported.
+
+**And it omitted the mechanism that does exist.** The
+`Record pre-migration rollback checkpoint` step in
+`.github/workflows/controlled-production-deploy.yml` records a PITR restore
+target, the previously-live commit read from `/api/health`, and a schema-only
+dump -- deliberately schema-only, so customer records never land in a GitHub
+artifact -- with a pointer to `docs/PRODUCTION_ROLLBACK_RUNBOOK.md`. The file
+titled "Backups" mentioned none of it.
+
+Rewritten to describe what is there, with a section recording what it used to say
+and why each line was wrong. A document that has been wrong once should say so.
+
+**A second live instruction was wrong too.** `docs/owner/INSTALL-ALL-KEYS.md`
+told the owner that `scripts/verify-no-client-secrets.mjs` fails the build if the
+service-role key reaches anything client-side. The guarantee is real and the name
+was wrong: it is `scripts/client-secret-scan.cjs`, run as
+`pnpm run scan:client-secrets`.
+
+#### The gate, which unlike the last one is tractable
+
+Yesterday's sweep for capped aggregates could not become a check, because the
+property is dataflow. **This one is textual, so it is a check.**
+`scripts/verify-doc-script-paths.mjs` is the 49th command in `verify:launch`: a
+script path named in a document either exists, or is registered as history with
+a reason.
+
+The register is necessary rather than lax. 19 of the 74 script paths named across
+`docs/` did not exist, and most of those are correct: `scripts/verify.sh` is
+named in this log inside the sentence recording that it was **deleted**, and a
+dozen `apply-*.cjs` one-shot codemods are named in audit and completion reports
+as what was run at the time. Requiring those to exist would mean resurrecting
+retired code or rewriting history so it no longer says what happened.
+
+So it is two-sided, copying `report-orphan-tables.mjs`, and fails three ways:
+
+1. a document names a script that does not exist and is not registered;
+2. a registered path now **exists**, so calling it historical is a false
+   statement -- and it is the statement the next reader believes instead of
+   looking;
+3. a registered path is named by **no** document, so its reason describes
+   nothing.
+
+**The third one fired on me while I was writing it.** The register's reason for
+`scripts/verify-no-client-secrets.mjs` said it was named in this log in the entry
+recording the wrong name -- and I had corrected `INSTALL-ALL-KEYS.md` before
+writing that entry, so for a few minutes the reason described a document that did
+not yet say it. That is precisely a reason reasoned-to rather than verified, and
+the check caught it by name. The three backup script paths are in the same
+position and are named above for the same reason.
+
+The blindness guards are two-sided as well: 408 markdown files and 74 distinct
+script paths were the measurement on 16 September 2026, and floors of 200 and 50
+make a broken walk or a matcher that has stopped matching fail loudly rather than
+report success over nothing.
+
+Verified by breaking it three ways -- an invented script path in a document, a
+register entry for a script that exists, and a register entry no document names.
+Each failed by its own message.
+
+#### And an owner step, because the whole posture rests on a setting nobody asked about
+
+`OWNER-STEPS.md` item 9. The deploy workflow records a PITR restore target on
+every release and the runbook's database-rollback step depends on PITR existing --
+and **PITR appeared nowhere in `docs/owner/` or `SHIP_READINESS.md`**. Whether it
+is enabled is a Supabase project setting and a function of the plan, neither
+visible from the source tree, so nothing here may claim it either way.
+
+If it is off, the recorded timestamps point at a recovery that cannot be
+performed and the data half of the runbook does not exist. The schema dump cannot
+stand in, because it is schema only by design. Two minutes in the Supabase
+dashboard settles it, and either answer is fine -- not knowing is the problem.
+
 ### 2026-09-16 - The cash position could be understated and still say "complete"
 
 Third hit from the same sweep, and the one with the argument for the fix already
