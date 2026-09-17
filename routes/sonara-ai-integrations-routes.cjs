@@ -159,7 +159,12 @@ module.exports = function registerSonaraAIIntegrationRoutes(app, deps = {}) {
 
     const run = await draftingRunner.run({
       action: { id: `business-draft-${provider}`, action_type: "draft_content" },
-      context: { provider, prompt }
+      context: { provider, prompt },
+      // Process scope, declared rather than defaulted. This is an admin route
+      // drafting content from a provider and a prompt; there is no customer
+      // organization behind it, so "no tenant" is the true answer rather than a
+      // forgotten one. Every other runner passes an organizationId.
+      scope: "process"
     });
 
     const providerResult = run.status === "completed" ? run.result : null;

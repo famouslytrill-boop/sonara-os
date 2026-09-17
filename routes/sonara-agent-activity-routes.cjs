@@ -647,7 +647,8 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
     const run = await runner.run({
       action: { action_type: actionType, proposed_by: actorUserId },
       approval: null,
-      context: { config: scope.config, organizationId: scope.organizationId, payload }
+      context: { config: scope.config, organizationId: scope.organizationId, payload },
+      organizationId: scope.organizationId
     });
 
     if (!shouldQueue(run)) {
@@ -914,7 +915,8 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
         // reads that to tell an agent's proposal from somebody's own.
         action: { action_type: schedule.action_type, proposed_by: null },
         approval: null,
-        context: { config, organizationId: schedule.organization_id, payload: schedule.payload || {} }
+        context: { config, organizationId: schedule.organization_id, payload: schedule.payload || {} },
+        organizationId: schedule.organization_id
       });
 
       // A gated action should not reach here, and if one does it is queued for

@@ -25,8 +25,24 @@ step, an empty `STRIPE_RUNTIME_SECRET_KEY`."*
 What changed on 17 September is **when** that gate speaks, not what it accepts.
 The credential precondition is now the first step in the job, so the failure
 arrives in seconds with a named cause instead of after a full release chain.
-Supplying the secret is still the owner's, and is
-[`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`](owner/STRIPE-RUNTIME-KEY-CUTOVER.md).
+
+**The gate is closed. 17 September 2026, 02:29 UTC.** The owner installed a new
+`sk_live_` runtime secret and dispatched Controlled Production Deployment run
+**189**, which succeeded on `872d9d0`. Run **190** then succeeded on the merge
+commit `39dec4a`. Run 188 was the last failure, and the four proofs
+[`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`](owner/STRIPE-RUNTIME-KEY-CUTOVER.md)
+requires were read back from the live apex rather than inferred from a green
+run:
+
+| proof | live value |
+| --- | --- |
+| `services.stripe` | `configured` |
+| `paymentConnection` | `configured` |
+| `services.checkout` | `enabled` |
+| `invalid.stripe` | `[]` |
+
+Six weeks of deployments had failed at one step. This phase no longer waits
+behind anything.
 
 ## 1. Structured logs
 
@@ -92,8 +108,34 @@ still proceeds and still returns ok — the customer Stripe just created is real
 and refusing would turn a bookkeeping failure into a lost sale — but it now
 emits `degraded` naming that consequence.
 
-**Still absent:** the agent runner, and every other caller. Eight console calls
-exist in the runtime tree; two modules now emit events beside their prose.
+**Also wired: the agent runner** (`lib/sonara-agent-runner.cjs`), 17 September
+2026 — the module CLAUDE.md calls "the one path that executes: classify, decide,
+run, record." `agent.run` across its four statuses, plus `agent.autonomy_breaker`
+when the safety check in front of a run could not be evaluated at all. That
+second event is separate on purpose: a run can complete perfectly while the
+breaker guarding it was blind, and three of the four rate limiters in this
+codebase failed open in silence for months.
+
+**One mapping there is arguable and is recorded as a decision rather than an
+obvious reading.** `unimplemented` — allowed to run, and nothing implements it —
+is emitted as `degraded`, not `failed`. It is not `refused`, because the gate
+said yes. It is not `failed` either, or a known capability gap would spend error
+budget every time somebody pressed the button and the resulting rate would
+measure the roadmap rather than reliability. If an owner wants it counted on its
+own, the place to add a member is `OUTCOMES` in
+`lib/sonara-structured-log.cjs`, deliberately.
+
+Attribution is passed **explicitly** rather than read from `context`, because
+that module states context "is never inspected here" and that property is worth
+keeping. Scope defaults to `organization`, so a caller that forgets produces a
+loud `log.event_rejected` line instead of a plausible tenant-less one. The one
+runner with genuinely no organization — the admin drafting runner in
+`routes/sonara-ai-integrations-routes.cjs` — declares `scope: "process"`. A
+derived test asserts every `runner.run` call site stays attributed.
+
+**Still absent:** every other caller. Eight console calls exist in the runtime
+tree; three modules now emit events beside their prose. Item 1 is far enough
+along that item 3 is the next real work rather than more wiring.
 
 ## 2. Traces
 
@@ -207,9 +249,10 @@ how a green dashboard comes to sit over a broken system.
 
 The dependencies above are not preferences. In order:
 
-1. **Structured logs** (item 1) — everything measurable depends on it. The
-   emitter exists and the campaign dispatcher emits; the remaining work is
-   callers, not design.
+1. **Structured logs** (item 1) — everything measurable depends on it. Done
+   enough to build on: the emitter exists and the campaign dispatcher, the
+   checkout path and the agent runner all emit. Further callers are wiring, not
+   design, and are no longer blocking.
 2. **The PITR answer** (owner step 9) — unblocks item 7, and it is two minutes.
 3. **Backup and restore drill** (item 7), then **rollback automation** (item 8).
 4. **SLOs** (item 3), then **error budgets** (item 4).

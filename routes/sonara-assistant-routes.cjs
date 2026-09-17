@@ -263,7 +263,8 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       // which is a gate a caller walks past by not reading the return value.
       const run = await runner.run({
         action: { id: `assistant-${page.product}`, action_type: "check_data_quality" },
-        context: { config, organizationId: org.organizationId, checks }
+        context: { config, organizationId: org.organizationId, checks },
+        organizationId: org.organizationId
       });
 
       if (run.status === "refused") {
@@ -420,7 +421,8 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
 
     const run = await runner.run({
       action: { id: "chase-drafts", action_type: "draft_reply" },
-      context: { config, organizationId: org.organizationId, businessName: org.organizationName || org.name || "" }
+      context: { config, organizationId: org.organizationId, businessName: org.organizationName || org.name || "" },
+      organizationId: org.organizationId
     });
 
     if (run.status !== "completed") {
