@@ -72,6 +72,7 @@ describe("durable event outbox", () => {
     const result = await repository.enqueue(item);
     assert.equal(result.ok, true);
     assert.equal(result.created, false);
+    assert.match(calls[1].url, /select=id,organization_id,idempotency_key/);
     assert.match(calls[1].url, new RegExp(`organization_id=eq\\.${item.organizationId}`));
     assert.match(calls[1].url, new RegExp(`idempotency_key=eq\\.${item.idempotencyKey}`));
   });

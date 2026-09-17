@@ -6,6 +6,8 @@ const { DATABASE_TABLES } = require("../lib/sonara-database-contract.cjs");
 const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
 const { getMarketExpansionSchemaPlan } = require("../lib/sonara-market-expansion-schema-plan.cjs");
 const { getIndustryAlgorithmExpansion } = require("../lib/sonara-industry-algorithm-expansion.cjs");
+const { getThirdSearchConvergence } = require("../lib/sonara-third-search-convergence.cjs");
+const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
 
 describe("SONARA ecosystem manifest", () => {
   it("contains the parent company and three current companies", function() {
@@ -51,6 +53,34 @@ describe("SONARA ecosystem manifest", () => {
     assert.ok(plan.contracts.some((item) => item.concept === "offline mutation queue" && item.decision === "planned_new_table"));
     assert.ok(plan.contracts.some((item) => item.concept === "unified conversation inbox" && item.decision === "projection_preferred"));
     assert.ok(plan.contracts.some((item) => item.concept === "industry pack installation" && item.decision === "no_new_table_initially"));
+    assert.ok(plan.contracts.some((item) => item.concept === "private creator/community spaces and live review rooms" && item.decision === "extend_existing_first"));
+  });
+
+  it("converges the third search without turning research into runtime authority", function() {
+    const convergence = getThirdSearchConvergence();
+    assert.equal(convergence.authority, "research_and_source_convergence_only");
+    assert.equal(convergence.inventory.governedRepositoryRecords, readOpenSourceTools().length);
+    assert.equal(convergence.inventory.sharedAgentStrategies, 11);
+    assert.equal(convergence.inventory.sourceEvidenceRecords, 14);
+    assert.ok(convergence.inventory.deterministicFormulas >= 30);
+    assert.equal(convergence.deliveryFoundation.sourceStatus, "implemented_in_source_pending_controlled_migration");
+    assert.deepEqual(convergence.deliveryFoundation.tables, [
+      "event_outbox",
+      "event_delivery_attempts",
+      "llm_observations",
+      "agent_evaluation_runs"
+    ]);
+    assert.equal(convergence.deliveryFoundation.workerStatus, "not_enabled");
+    assert.ok(convergence.creatorGrowthCommons.existing.includes("creator_follows"));
+    assert.ok(convergence.creatorGrowthCommons.existing.includes("call_sessions"));
+    assert.match(convergence.creatorGrowthCommons.federationDecision, /not enabled/i);
+    assert.ok(convergence.explicitlyDeferred.some((item) => item.key === "biometric_database" && item.decision === "do_not_build"));
+    assert.ok(convergence.explicitlyDeferred.some((item) => item.key === "wifi_credentials" && item.decision === "not_a_product_feature"));
+    assert.ok(convergence.marketArchetypes.every((item) => item.claimType.startsWith("strategy_inference")));
+    const sourceKeys = new Set(convergence.primarySources.map((item) => item.key));
+    assert.ok(convergence.marketArchetypes.every((item) => item.evidenceKeys.every((key) => sourceKeys.has(key))));
+    assert.ok(convergence.primarySources.every((item) => item.url.startsWith("https://")));
+    assert.ok(convergence.primarySources.every((item) => item.readAt === "2026-09-17"));
   });
 
   it("maps broad industries, formulas, algorithms and open-source candidates without granting runtime authority", function() {
@@ -84,6 +114,7 @@ describe("SONARA ecosystem routes", () => {
     assert.match(res.text, /Growth Studio/);
     assert.match(res.text, /Market and product expansion/);
     assert.match(res.text, /Industry and deterministic engine expansion/);
+    assert.match(res.text, /Third-search convergence/);
   });
 
   it("GET /api/ecosystem/manifest returns the manifest and expansion registries", async function() {
@@ -97,6 +128,8 @@ describe("SONARA ecosystem routes", () => {
     assert.ok(res.body.manifest.marketExpansionSchemaPlan.count >= 10);
     assert.ok(res.body.manifest.industryAlgorithmExpansion.counts.industries >= 15);
     assert.ok(res.body.manifest.industryAlgorithmExpansion.counts.formulas >= 30);
+    assert.equal(res.body.manifest.thirdSearchConvergence.deliveryFoundation.tables.length, 4);
+    assert.equal(res.body.manifest.thirdSearchConvergence.deliveryFoundation.workerStatus, "not_enabled");
   });
 
   it("GET /api/ecosystem/readiness returns table and expansion readiness", async function() {
@@ -110,5 +143,7 @@ describe("SONARA ecosystem routes", () => {
     assert.ok(res.body.industryExpansionCount >= 15);
     assert.ok(res.body.formulaExpansionCount >= 30);
     assert.ok(res.body.algorithmExpansionCount >= 15);
+    assert.equal(res.body.durableEventFoundationTableCount, 4);
+    assert.ok(res.body.thirdSearchPriorityCount >= 5);
   });
 });

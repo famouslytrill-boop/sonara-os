@@ -1,4 +1,4 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíã]õ×Ž´ßÏ4o+^²‰¢¶×# SONARA Handoff Prompt
+# SONARA Handoff Prompt
 
 Paste this whole file as the first message to ChatGPT, Codex, or any other assistant picking up work on this repository.
 
@@ -105,6 +105,73 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-17 - The third search became one convergence plan, not another product pile
+
+The broad request covered repositories, PDFs, US/European/Chinese companies,
+industrial systems, creator media, calling, streaming, manufacturing, CAD,
+robotics, 3D, agents, SEO, customer service, and new business ideas. Most of
+those categories already existed in source as governed registries, formulas,
+industry packs, or bounded product foundations. Copying the request into more
+capability names would have increased surface area without advancing the
+architecture.
+
+`lib/sonara-third-search-convergence.cjs` now reads the canonical inventories
+instead: 237 governed repository records, 27 market-expansion capabilities, 13
+reuse-first schema contracts, 18 industry systems, 38 formulas, 17 algorithms,
+11 shared agent strategies, and 14 source-evidence records at the time of this
+change. The endpoint derives those counts; it does not preserve them as stale
+constants.
+
+The representative market synthesis is explicit about inference. US platform
+suites support one identity/data/workflow layer; European industrial software
+supports vertical composition and durable records; Chinese mobile ecosystems
+support low-friction communication/commerce loops; installed-base businesses
+support reliability and service as the moat; creator platforms support a
+creation/community/distribution/monetization loop. None of that is presented as
+a claim about an undisclosed competitor stack.
+
+The product decision is a private Creator and Growth Commons over existing
+profiles, follows, assets, calls, notifications, content queues, and commerce.
+The schema plan now records the reuse-first contract and its safety gate.
+Public feeds/federation, biometric storage, Wi-Fi credential features, a global
+media network, regulated rails, and bulk repository installation remain
+explicitly deferred or rejected.
+
+The infrastructure advance beneath it is the preceding durable event/evaluation
+foundation: four service-only, RLS-protected tables, an atomic claim/settle
+path, and the owner queue as the first compact event producer. Source now says
+clearly that the migration is pending the controlled path and that no worker is
+enabled.
+
+The competitor-comparison skill now requires primary sources, representative
+archetypes, labeled inference, repository inspection, and a bounded
+build/integrate/research/defer sequence for portfolio-wide searches. Its skill
+validator and adapted-skill provenance gate pass.
+
+Focused tests pass 21/21. The full suite passes 4,707 tests with six explicit
+pending tests; typecheck, lint, build, dependency audit, stale-claim review, and
+adapted-skill verification are green. The dated research record carries a
+2026-10-17 review deadline.
+
+The release gates found two useful bookkeeping edges before review. The outbox
+duplicate lookup originally built its selected columns at run time, increasing
+the unauditable-query ratchet; it now asks for the exact three fields it reads
+instead. The new migration also changes the derived schema to 121 migrations,
+337 tables, 240 organization-scoped tables, and 31 of 311 RLS tables deliberately
+closed to every browser role. Those counts and the exact two-sided closed-table
+set now agree across the replay assertion and owner documentation.
+
+`pnpm run verify:gates` passes. This workstation has no PostgreSQL binaries, so
+the fresh-database replay read all 121 migration files but explicitly did not
+execute them; CI keeps `SONARA_MIGRATION_REPLAY_REQUIRED=1`, making that replay a
+hard failure rather than the local notice recorded here.
+
+The final `pnpm run verify:launch` chain passes end to end: build, 4,707 tests
+with six explicit media-test pendings, secret scan, lint, route smoke, database
+contracts, governance gates, and coverage. Live Stripe price comparison and
+external-repository network health remain the chain's declared credentialed/CI
+checks rather than claims made by this workstation.
 
 ### 2026-09-17 - The production cutover is green, and the agent runner now emits
 
@@ -5344,5170 +5411,1755 @@ reports all three plans `configured` -- which has always meant "a variable is
 set", not "a price that can be sold" -- and
 `assertPriceMatchesAdvertised` still refuses each one. Worth stating in the log
 because the create call *looks* like the fix and is not: the repointing is, and
-no toolëmyÚÚ$z{-®éÜj×nd it now asserts the
-**invariant instead of the absence**: the column exists, the funnel excludes
-typed rows and still counts null ones, the form offers no tracked-source field,
-and the attestation is present and not pre-ticked. Verified by removing each of
-those three protections in turn â€” every one fails, and the funnel one fails by
-name.
-
-`verify:launch` green, **1954** tests passing.
-
-### 2026-08-18 â€” an existence check that was asking the wrong module
-
-Adding `hand_entered` to a customer-journey stage failed validation, which
-turned out to be the validation's fault rather than the column's.
-
-`lib/sonara-migration-columns.cjs` answers two different questions.
-`tableColumns` says which columns **exist** â€” including the 229 added by
-`alter table` across the migrations. `describedColumns` says which columns can
-be **described**, meaning declared inside a `create table` block with a parsed
-type; it deliberately omits the rest, and says why: *"a form field with a
-made-up type is worse than a missing one"*.
-
-`lib/sonara-customer-journey.cjs` used the second to answer the first. Its
-`validate()` exists so no column is typed from memory, and it would have
-reported a real column as missing â€” **35 columns across 22 tables exist without
-being describable**, and the first stage to name one would have been rejected.
-`sonara_sound_assets` alone has 13 of them.
-
-Existence uses `tableColumns` now. Nothing in that file needed a type, so the
-describable helper went out with the switch rather than staying beside it as a
-second way to ask.
-
-Verified in both directions, because a permissive check that stops rejecting
-anything is the obvious way to "fix" this and would have been worse: a stage
-naming a column that does not exist is still caught by name, and a stage naming
-a real `alter table` column is now accepted.
-
-**And a fix that was not made.** The first read of this looked like a 229-column
-blind spot in the module itself, and the first instinct was to teach it to
-describe `alter table` columns too. Reading the code stopped that. The omission
-is deliberate, documented, and protective: describing those 35 columns would put
-them into forms built from descriptions, and `hand_entered` reaching a customer
-form is exactly the wrong outcome. The narrow fix was in the caller, not the
-module.
-
-`verify:launch` green, 1948 tests passing.
-
-### 2026-08-18 â€” which AI is possible here, and the column two features were waiting on
-
-Two pieces of work, and the first decided the second.
-
-**Researching what AI could be added produced an answer about headers, not
-models.** `AGENTS.md` requires AI calls through the Provider Gateway or an
-approved adapter, and a feature must cost the customer nothing. Together those
-rule out every hosted model API as a shipped capability: a per-token bill cannot
-sit behind a free tool, and a free tier is a price somebody else can change. So
-the question is *which AI has no per-use cost*, and there are two answers.
-
-**The first is that the plumbing already exists and is switched off.** Six
-adapters â€” Ollama, Open WebUI, Dify, Langflow, RAGFlow, Crawl4AI â€” plus the
-gateway itself, every one reporting setup-required until configured, with no page
-noticing its absence. The realistic zero-cost version of AI here is **Ollama on
-hardware the owner already owns**, and that is configuration rather than
-engineering.
-
-**The second is browser-side inference**, and it mirrors the video sweep exactly:
-the constraint that blocks server-side tools does not apply to something running
-on the customer's own device. **Transformers.js** (16,261 stars) and **WebLLM**
-(18,569), both verified Apache-2.0, registered at **111**.
-
-Both are `needs_security_review` rather than adapters, and the reasons are in
-this application's own headers, read out of `server.js` rather than assumed.
-`connect-src` names Supabase and Stripe and nothing else, so a model download
-from huggingface.co is refused â€” either that list grows or the weights are served
-from here and this product pays the bandwidth. **`Cross-Origin-Embedder-Policy`
-is not set anywhere in the codebase**: COOP is, COEP is not, so the page is not
-cross-origin isolated, `SharedArrayBuffer` is unavailable, and multithreaded WASM
-inference cannot run. And `script-src 'self'` with no bundler means a vendored
-bundle this project then owns. None of that refuses the idea; it makes it an
-owner decision about security posture.
-
-WebLLM carries one more constraint that decides it alone: a usable model is
-hundreds of megabytes at best and usually several gigabytes, once per device, on
-the customer's connection. **Free that costs somebody two gigabytes of data is
-not free.**
-
-**Then the column two refused features were waiting on.** `growth_touchpoints`
-and `sonara_prompt_templates` both refuse a form for the same reason: a typed row
-would be indistinguishable from a tracked or curated one.
-`lib/sonara-growth-create-specs.cjs` says so in as many words and names the fix â€”
-"the honest version starts with a column recording that a person entered it".
-
-`hand_entered` is that column, and it is **nullable on purpose**: true means a
-person typed it, false means it arrived tracked or curated, and **null means
-nobody recorded which**. A `not null default false` would write a claim about
-every existing row â€” that it is *known* to be machine-recorded â€” on the strength
-of nothing, which is the collapse this repository keeps finding, introduced
-deliberately.
-
-`tests/hand-entered-stays-three-state.test.js` pins that against the
-well-intentioned tidy-up. Verified against both: making it `not null default
-false` fails by name, and adding a backfill fails separately, because an UPDATE
-is the same claim written another way.
-
-Nothing writes the column yet, and that is stated rather than glossed. Before a
-touchpoint form ships, two things have to happen: the form sets `hand_entered`
-true, and the **"Reached" stage of `lib/sonara-customer-journey.cjs` stops
-counting hand-entered rows as measured** â€” a funnel a business makes decisions on
-must not quietly include evidence somebody typed.
-
-A container reset landed mid-task and destroyed the migration, the research
-document and the register edits before they were committed. All three were
-rewritten. Sixth reset in twelve check-ins.
-
-Register at **111**, 87 migrations. `verify:launch` green, **1948** tests passing.
-
-### 2026-08-18 â€” contacts, and the same literal mistake for the third and fourth time
-
-Third record type to become a file somebody else's software opens, after
-bookings became calendar entries and accounting exports became CSV. A grep for
-`VCARD` across `server.js`, `lib/` and `routes/` found nothing, so **"Customer &
-Enquiry Tracker" â€” a paid product â€” could hold a customer's phone number and
-offer no way to get it into the phone you would ring them from.**
-
-`/business-builder/owner/customers/:id/contact` for one,
-`/business-builder/owner/customers/contacts` for the address book. No dependency,
-no service the owner runs, no per-customer cost. The static path is declared
-before the parameterised one deliberately rather than by luck.
-
-Two judgements written into the module rather than left implicit. **A name and
-nothing else is a valid vCard and a useless one** â€” it imports somebody you still
-cannot contact â€” so a card needs an email or a phone and the refusal says which
-is missing. And **N is not guessed**: the product stores one `name` column, and
-treating the last word as a family name is wrong for most of the world, so the
-whole value goes in the first component and the rest stay empty.
-
-**Then the same mistake, twice more.** `escapeText` was written
-`.replace(/;/g, "\;")` â€” which in a JavaScript literal is just `";"`. In a vCard
-that is worse than in a calendar file: `N` is positional and semicolon-separated,
-so an unescaped semicolon in "Ashby; Ltd" imports as a family name and a given
-name. Then the test asserting the fix was written with the same literal and
-agreed with the broken code. That is the **third** and **fourth** occurrence of
-one two-character mistake across three files.
-
-So the guard is no longer per-module. One test now asserts that **both**
-`sonara-contact-card.cjs` and `sonara-calendar-invite.cjs` escape a semicolon, a
-comma and a backslash, and names which one failed. Verified by regressing each
-module in turn: the calendar regression fails with "calendar invite leaves a
-semicolon unescaped", the contact regression with "contact card leaves a
-semicolon unescaped". Each module's own test would have caught only its own copy,
-and the second copy was written *after* the first was fixed.
-
-The outage crawl asked for the new download to be listed in `FILE_DOWNLOADS`,
-which is the hand-maintained list added when the diary shipped. That puts it
-under the stricter download assertion â€” 503, a readable body, no JSON blob, no
-placeholder â€” rather than the page rule, which is the designed path and not a
-weakening.
-
-`verify:launch` green, **1944** tests passing.
-
-### 2026-08-18 â€” the first e-commerce record, and a table named for the wrong thing
-
-`lunarphp/lunar` was submitted with the instruction to add it to the application.
-Verified **MIT** from GitHub's detected licence field, 3,650 stars, 495 forks,
-pushed the day it was submitted. Registered at **109** â€” and it is the register's
-**first e-commerce record**, which is a real gap in the same way speech
-recognition was.
-
-**It cannot be added as a dependency, and the licence is not why.** It is a
-Composer package for Laravel; this application is Express CommonJS on Vercel
-serverless with no build step. Adopting it means the owner runs a second
-application with its own database â€” an infrastructure and cost decision, not a
-licensing one. Recorded `reference_only` for that reason.
-
-**Checking what Business Builder already has turned up the more interesting
-thing.** The table called `products` is not a merchant catalogue at all: its
-`product_key` is constrained to `business_builder`, `creator_studio`,
-`growth_studio` and `sonara_one`, so it records *which SONARA product an
-organization has enabled*. The merchant-facing tables are
-`business_service_catalog`, `menu_items` and `inventory_items`, with quotes and
-`customer_invoices` on top.
-
-So a business here can price a service and invoice for it, and has **no product
-catalogue with variants, no cart, no checkout, no tax rules and no shipping**.
-That is a larger gap than the submission implied, and it is worth knowing before
-anybody plans around the word "products".
-
-Third table this week whose name points somewhere its columns do not â€”
-`song_fingerprints` holds descriptions rather than audio, `accounting_exports`
-promised a file nothing produced, and now `products` names SONARA's own
-enablement rather than anything a customer sells. None is a bug. All three are
-the kind of thing somebody builds a plan on.
-
-What Lunar is genuinely good for is the model: variants, price breaks, tax rules
-and discount stacking are the hard part of selling, they are worked out and
-tested there, and reading them costs nothing and needs no service running. Its
-payment and refund paths are explicitly out of scope â€” money here goes through
-the existing provider path, and refunds are one of the seven owner-approval
-categories whatever an imported library would allow.
-
-`verify:launch` green, 1932 tests passing.
-
-### 2026-08-18 â€” a submitted document, assessed rather than assumed
-
-A saved MHTML archive of a newsletter landing page was submitted with the
-instruction to use its information in the product and in the Claude setup. It was
-opened before anything was done with it, which settled the question quickly.
-
-**The archive is 125 KB and its entire visible text is 1,746 characters** â€” a
-heading, fourteen resource tiles carrying a title, a category and a one-line
-description each, and a footer reading `Â© 2026 The Code Newsletter`. No code, no
-data, no specification, no attachment. Every tile is an outbound link to a
-separate hosted site, eleven of them on `lovable.app`, and **none of the fourteen
-is a repository**, so none is something this register can assess for a licence.
-
-Registered **blocked**, on the reading already applied to the IONOS guide: a
-document that is free to view and carries an explicit copyright notice has
-granted nothing. Free is a price, not a licence. Register at **108**.
-
-**What could honestly be taken was a count, not a sentence.** Eight of the
-fourteen resources are about Claude Code, the Claude Agent SDK or building AI
-agents. That is a dated, checkable observation about where a developer newsletter
-believes its subscribers' attention is, and
-`docs/market/2026-08-18-SUBMITTED-RESOURCE-INDEX.md` records it along with
-something more useful: a table mapping the subjects those tiles name against what
-this repository already has â€” the agent runner, the seven owner-approval
-categories, the hourly scheduler, the approval queue that re-asks the gate, and
-the 23-command release chain. Nothing on that list came from the document, and
-the table says so plainly. **The subjects are current and the work is already
-here.**
-
-Written down deliberately rather than left implicit: none of the fourteen
-destinations was fetched to extract its content. Reading somebody's guide in
-order to lift it is exactly what the register exists to refuse, and a page being
-publicly reachable is not a grant.
-
-`verify:launch` green, 1932 tests passing.
-
-### 2026-08-18 â€” the unexamined queue is empty
-
-`tests/form-reachability.test.js` carried **thirteen** entries reading "NOT YET
-EXAMINED". There are none left. Each now states what was checked and what was
-found, and the answers divide into two kinds that matter more than the entries do.
-
-**Listed somewhere, creatable nowhere.** A page displays the records and no form
-makes one, so a customer sees an empty list with no way to fill it.
-
-- `creator_reference_analyses` is rendered at
-  `/creator-studio/generation/reference-analysis`, and the generation form's
-  capability picker does not offer `reference_analysis` at all â€” the validator
-  even special-cases it. Only a direct POST creates one.
-- `haptic_patterns` is rendered on `/creator-studio/device-cues` as an `also`
-  block, and **no `also` block in the whole file carries a create form**; that
-  page's one form makes sound cues.
-
-The second one was telling a customer something false. Its empty state read
-*"You have not defined any vibration patterns yet"* â€” which says they simply had
-not got round to it, when there is no way for them to do it at all. It now says
-so, and states the `AGENTS.md` position while it is there: vibration stays off
-until one exists. **A page inviting an action it does not offer is the same
-defect as a page claiming a capability it does not have.**
-
-**Displayed nowhere at all.** `waste_logs`, `location_zones` and
-`sensory_feedback_profiles` appear only in the generic RESOURCE_MAP â€” a GET that
-lists and a POST that inserts, with no page anywhere. A record written through
-them is invisible from the moment it is created, which is exactly the shape that
-made the market-intelligence page worth fixing. A form would make that worse
-rather than better, and the entries say so.
-
-**The four prompt-library endpoints are reachable only by API**, and the reason
-is now stated rather than left as an absence. The library's single form â€”
-"Fill the template" â€” posts to `/prompt-library/:slug/render`, produces a preview
-to read, and saves nothing. What those pages render is curated content in
-`data/prompts-chat-reference.cjs`, so a customer-authored row saved beside it
-would be indistinguishable from the curated set on the page that lists them.
-That is the same objection already recorded for growth touchpoints, and it wants
-the same answer first: **a column marking a row as customer-authored.**
-
-Two of the thirteen turned into fixes; the rest turned into reasons somebody can
-disagree with. Both are better than "not yet examined", which is a note that
-survives indefinitely because nothing about it ever fails.
-
-`verify:launch` green, 1932 tests passing.
-
-### 2026-08-18 â€” a page that never showed what it told you it would show
-
-Working the "NOT YET EXAMINED" queue in `tests/form-reachability.test.js`. The
-four market-intelligence entries examined together, and the examination found
-something bigger than the entries.
-
-**`/*/market-intelligence` said "The workspace starts empty until
-organization-scoped evidence is recorded."** That tells a customer that recording
-evidence changes what they see. The handler was **synchronous**, read nothing,
-and rendered the same static framework cards whether the organization had one
-competitor recorded or four hundred. Four endpoints accept POSTs â€” segments,
-competitors, signals, opportunities â€” no page displayed any of them, and no form
-anywhere posts to them, so a record written through the API was invisible from
-the moment it was created.
-
-The page counts the organization's own evidence now, and a record type that could
-not be read is **named** rather than folded into a zero.
-
-**One exemption reason described a form that does not exist.**
-`/api/market-intelligence/fetch-source` was excused with "â€¦and the signal form is
-still the only way anything is written". There is no signal form: no form action,
-no create spec, nothing posts to any market-intelligence endpoint from a page.
-The same defect as a page describing a capability it does not have, sitting in
-the reason a check was excused.
-
-**Then the crawl let the new page lie, and that was the real find.** Injecting
-`0` in place of "could not be read" left the whole suite green. `CLAIMS_EMPTY`
-looks for *words* â€” "no", "nothing", "yet" â€” and **"Competitors: 0" contains
-none of them.** Any page rendering counts could tell somebody they have none of
-something during a total outage and this crawl would pass it.
-
-`CLAIMS_ZERO` closes that. No page renders a bare "Label: 0" today, so it is an
-addition with nothing to clean up behind it, and it is deliberately narrow â€” a
-pattern that fired on money would be switched off within a week.
-
-**And the first version of `CLAIMS_ZERO` matched nothing at all.** Its lookahead
-`0(?![.\d])` rejected "Competitors: 0." because the sentence-ending full stop
-looked like a decimal point. It passed, while measuring zero pages â€” this file's
-own defect, inside this file's own check â€” and the only thing that found it was
-injecting the bug again and watching it stay green. **A check that has not been
-run against bad input is not a check, however carefully it was written.**
-
-`verify:launch` green, 1932 tests passing.
-
-### 2026-08-18 â€” the same defect, found by generalising the last one
-
-The accounting export was one instance of a shape: a row written with a status
-that promises processing, and nothing that processes it. Rather than wait to trip
-over the next one, the shape was searched for â€” every table inserted with a
-default status through the generic write endpoints, thirty-one of them.
-
-Most defaults are `active` or `draft`, which are honest initial states a *person*
-changes by editing the record. Two words promise a machine: `queued` and
-`scheduled`. **`integration_jobs` is the other `queued` one**, and grep finds the
-insert, the tenant-scoped list, and no runner anywhere â€” no page, no status
-transition, nothing that reads it.
-
-Its default is **`manual_required`** now, which is already in the schema's check
-constraint and is true: a person has to do this. One word, no migration, and the
-row stops claiming a worker this system does not have.
-
-**This one was already recorded as unexamined, and that is the part worth
-keeping.** `tests/form-reachability.test.js` listed it as *"NOT YET EXAMINED:
-resource in RESOURCE_MAP with no page."* â€” one of fourteen such entries. The
-codebase had honestly written down that it did not know, rather than assuming it
-was fine, and examining it took ten minutes and closed it. The entry now says
-what is true: nothing consumes `integration_jobs`, so a form would let somebody
-queue work that will never run, which is worse than no form.
-
-Thirteen "NOT YET EXAMINED" entries remain, and they are a better queue of real
-work than the rest of the GitHub category sweep.
-
-`verify:launch` green, 1932 tests passing.
-
-### 2026-08-18 â€” a status nothing could advance, and a cell that runs as code
-
-Checking the product before searching again, this time across every record type:
-**the application emitted no CSV at all.** 141 HTML responses, 10 plain text, one
-XML. Nothing else.
-
-That matters because `/business-builder/owner/accounting-exports` said *"Batches
-of your records prepared for an accountant or accounting software, and whether
-each one finished."* `accounting_exports` carries `export_type`, a period, a
-`status` and a `file_url`. **Nothing wrote `file_url`. Nothing moved `status`
-past `queued`.** The only code touching the table is the endpoint that inserts
-the request. So a customer asked for an export, saw "Queued" under a column
-promising to say whether it finished, and the answer could never change.
-
-**The file is built when it is asked for**, not queued and stored. There is no
-worker here, and a status only a worker could advance is how the promise came to
-be written.
-
-Three export types are served â€” bills, sales, inventory â€” and
-`payroll_summary` and `journal_entries` are **refused by name**. Both need
-accounting judgement this code has not been given: what belongs in a journal
-line, how gross pay reconciles to cost. Guessing would put wrong figures in front
-of an accountant, which is worse than putting none, and "not supported" tells
-somebody nothing about whether to wait.
-
-**A cell is not a formula, and that is a security property.** A value beginning
-`=`, `+`, `-`, `@`, tab or carriage return is executed by Excel, Sheets and
-LibreOffice on open â€” so a note a customer typed becomes code running on their
-accountant's machine. `lib/sonara-record-csv.cjs` prefixes such a value with an
-apostrophe, which **changes it**, so the count is returned and the route sends it
-in a header rather than rewriting somebody's records silently.
-
-**And the first version of that broke the export it was protecting.** `-` is a
-formula-start character, so every negative amount came out as `'-12.50` â€” text,
-in a file whose whole purpose is for an accountant to sum it. A plain number is
-exempt now, by an exact pattern rather than a permissive one: `-1+cmd|'/c calc'!A1`
-still fails it. The test caught this by asserting the behaviour and my reading
-what that meant, not by going red.
-
-Three more things the checks caught, each a real ambiguity rather than a nuisance:
-`accounting_exports` had no member read policy (added, 51 now); the page copy I
-wrote to replace the old promise said *"nothing sits here waiting to be
-processed"*, which the outage crawl read as a claim that the customer has no
-exports â€” ambiguous rather than wrong, and reworded rather than exempted; and the
-"Status" column, which on seven other pages tracks something that moves, is
-labelled **"Asked for"** here because nothing advances it.
-
-`verify:launch` green, **1932** tests passing.
-
-### 2026-08-18 â€” the diary, and a crawl that judged a file as if it were a page
-
-The per-booking calendar download shipped as half a feature. A business wants
-their week in their calendar, not to click twenty times.
-`/business-builder/owner/bookings/calendar` is the diary.
-
-**One builder, not two.** The feed was going to assemble its own VEVENT lines,
-which is how two builders of one format drift until a client accepts the download
-and rejects the feed. `eventLines` is now shared, and a test asserts the same
-booking renders **identically** whether downloaded alone or inside the diary.
-
-**What it does with a booking a calendar cannot show is the point.** It skips it
-and *counts* it, and the count is returned rather than dropped â€” a feed that
-quietly omits three appointments is a diary that lies by being incomplete, and
-the business has no way to notice. The route sends the number in a header. `null`
-and `[]` stay different answers too: a failed read is refused with
-`not_a_list` rather than rendered as a business with no bookings, and the route
-answers 503 instead of handing back an empty but perfectly valid calendar.
-
-**Then the outage crawl failed, correctly, and the fix was not to relax it.**
-The crawl requires every route to render a page with HTML markers. This route
-serves a *file*; putting an HTML page into a `.ics` request would be the wrong
-thing, so it answers 503 with a plain sentence.
-
-The HTML rule was always a proxy for "a human can read what came back", chosen
-because everything crawled until now was a page. **Widening that proxy for every
-route would have weakened it.** Instead downloads come out of that population
-into a separate, *stricter* assertion: 503, a body a person can read, no JSON
-blob, no placeholder, and wording that says what actually happened. The count of
-routes accounted for does not fall, and these gain a check the pages do not have.
-`FILE_DOWNLOADS` is listed by hand and deliberately short, because a route added
-there stops being checked for page markers.
-
-Verified against bad input: answering JSON instead of a sentence fails, a
-placeholder leaking into the message fails, and emptying `FILE_DOWNLOADS` fails
-rather than passing on nothing.
-
-**A note on how nearly this went wrong.** The first two probe runs appeared to
-show the new check passing on bad input, and the honest conclusion looked like
-"the check does not work". It did work â€” `head -3` was truncating the output
-before the summary line, and the visible matches were test *names* containing the
-word "failing". Printing what the check had actually collected settled it in one
-run. A probe that lies about a check is the same defect one level up, and the
-only cure is looking at the data rather than at a filtered view of it.
-
-`verify:launch` green, **1923** tests passing.
-
-### 2026-08-18 â€” a booking you can put in a calendar
-
-Thirteenth sweep pass: calendar. Checking the product before searching ended it
-before a query was run.
-
-`business_bookings` has `starts_at`, `ends_at`, a customer and a status. Three
-booking tables, an API, a page. A grep for `VCALENDAR`, `text/calendar`, `VEVENT`
-or `.ics` across `server.js`, `lib/` and `routes/` found **nothing**, and
-`package.json` has no calendar dependency. A business could take a booking and
-still have to retype it into whatever they actually use.
-
-**No repository was needed.** RFC 5545 for one event is a few lines of text.
-`lib/sonara-calendar-invite.cjs` builds it: no dependency, no bundle, no service
-the owner runs, no per-customer cost, works offline. Against this sweep's other
-findings â€” six repositories cleared on licence and blocked on architecture or
-bandwidth â€” the capability worth shipping needed nothing adopted at all. That is
-a fifth kind of result: **the gap was real and the answer was not a repository**,
-and a sweep looking only for things to adopt does not find it.
-
-`/business-builder/owner/bookings/:id/calendar` serves it, organization-scoped
-like every sibling read, because the service key bypasses row level security and
-the tenant filter is the only boundary. A download rather than an emailed
-invitation on purpose: sending mail is a customer campaign under `AGENTS.md` and
-needs owner approval; handing somebody a file they asked for is not. A failed
-read answers 503 and a missing booking 404, because answering 404 to both would
-tell a business their booking is gone during an outage.
-
-**The parts of the spec that fail silently are done rather than approximated.** A
-malformed `.ics` does not error â€” the calendar declines it, or imports it at the
-wrong time, and the business finds out when nobody arrives. CRLF on every line
-including the last. Folding at 75 **octets** via `Buffer.byteLength`, because
-counting characters splits a multi-byte character in half and one accented name
-does it. UTC with `Z`, since a local time without `VTIMEZONE` is the commonest
-way an invite lands an hour out. A stable UID, so downloading twice replaces the
-entry rather than double-booking the day. An unrecognised status stays
-`TENTATIVE`; a booking with no end time is refused by name rather than given a
-guessed hour.
-
-**And the bug worth keeping.** `escapeText` was written
-`.replace(/;/g, "\;")` â€” in a JavaScript literal that is just `";"`, so it
-compiles, runs, and emits an unescaped semicolon. Caught by printing the
-generated file, not by reading the code. Then the test asserting the fix was
-written with **the same literal**, agreed with the broken implementation, and
-failed against the correct one. Running it caught that. Neither would have caught
-itself, which is the whole argument for doing both.
-
-The member-read-policy check then caught the new read: `business_bookings` had no
-policy a signed-in member could read through. Added to `ORGANIZATION_READ_TABLES`
-rather than the service-role escape hatch, because it is ordinary workspace data
-â€” a business's own appointments, sibling to `customer_records` â€” and the hatch is
-for privilege and audit tables. 50 organization-scoped policies now.
-
-Register unchanged at **107**. `verify:launch` green, **1919** tests passing.
-
-### 2026-08-18 â€” the category that was already built, and a description I nearly acted on
-
-Twelfth sweep pass: automation. Twelve Apache-2.0 results above 2,000 stars â€”
-`conductor` (32,100), `trigger.dev`, `dagster`, `cadence`, `argo-events`.
-
-This looked like the most product-relevant category yet, because a paragraph
-describing this codebase says an agent action refused by the approval gate has
-nothing to re-run it once the owner approves, and a serverless runtime has no
-process running when no request is in flight. That is exactly what this class of
-software is for.
-
-**The gap is closed, and it was closed here.** Checked rather than assumed: an
-hourly Vercel cron at `/api/agents/schedule/tick`, secret-gated, reading
-`agent_schedules` across tenants â€” deliberately unscoped with the reason *stated*
-to `buildTenantQuery` rather than hand-built to slip past the guard â€” and scoping
-every run to the `organization_id` on its own row; `agent_pending_actions`
-holding a refused run with its inputs; `lib/sonara-agent-queue.cjs` calling the
-**same runner** again on approval; and a test.
-
-It is also better for this purpose than any candidate, because the requirement
-was never durable distributed execution. The classification is re-derived from
-the action type rather than read off the row, since a stored classification is a
-column the subject can write. Approving is not running, and approving something
-unimplemented writes `unimplemented` rather than reporting a job as done. A
-decision is made once, because approving claims the row out of `waiting` first.
-Adopting Conductor or Cadence would put the approval gate inside a third-party
-execution engine â€” the one place `AGENTS.md`'s rule is hardest to enforce.
-
-**Fourth kind of empty result: *already built*.** With wrong word, wrong intent
-and wrong altitude, that is the full set this sweep has needed.
-
-**And a methodological note worth more than the pass.** I began from that
-paragraph and was ready to treat the gap as real. The paragraph was true when
-written; the repository has moved past it, and `lib/sonara-agent-queue.cjs` is
-the queue it says does not exist. Acting on it would have meant **removing a
-working, tested approve button** â€” the paragraph even says no button should
-suggest otherwise. The finding came only from opening the files instead of
-trusting a description of them.
-
-That is the same failure the `song_fingerprints` record turned on, pointing the
-other way: there, a description promised a capability the columns did not have;
-here, a description denied one the code does have. Descriptions drift in both
-directions, and nothing executes them either way.
-
-Register unchanged at **107**. `verify:launch` green, 1910 tests passing.
-
-### 2026-08-18 â€” a category that yields tooling, and a property nothing was holding
-
-Eleventh sweep pass: animation. Ten results above 1,000 stars, and **every one
-runs in the browser** â€” the good shape by pass nine's rule. By the standard the
-owner set, none of them qualifies. `anime.js` (72,222 stars, the most-starred
-repository found anywhere in this sweep), `mojs`, `svg.js`, `two.js`, `thorvg`
-and the rest are **libraries for building our own interface**. They would make
-these pages nicer. None is something a Creator Studio customer would ever see
-listed as a feature.
-
-That is a third kind of empty result, and the three are worth keeping distinct:
-**wrong word** (`topic:paywall`, where the software existed under
-`topic:publishing`), **wrong intent** (paywall removers, StreamCap), and now
-**wrong altitude** â€” real, well-licensed, well-shaped software that is
-infrastructure for us rather than a product for a customer. A sweep optimising
-for registrations adds `anime.js` on its star count, and the register then holds
-a JavaScript animation library inside a programme of work about products that
-solve customer problems.
-
-**What the pass produced instead.** Asking whether the product needed an
-animation library meant checking what it already does, and that turned up an
-unguarded property rather than a defect.
-
-Eight client assets start motion. **All eight respect `prefers-reduced-motion`,
-so nothing is broken.** What did not exist was anything holding it there:
-`tests/motion-brand-system.test.js` asserts that
-`public/sonara-application-ui.css` carries a reduced-motion block â€” true, and
-about that one loader. A ninth animating file with no guard would have failed
-nothing, and the suite would have stayed green while the guarantee quietly
-stopped being true. That is this codebase's defect class in its purest form: not
-a signal reporting success falsely, but a guarantee with no signal at all.
-
-`tests/motion-respects-the-reduced-motion-setting.test.js` now asserts it across
-every asset in `public/`, and asserts the list is non-empty first, because a
-list-based check passes by being empty. **Verified three ways before being
-trusted**: a new animating file with no guard (caught), the guard stripped from a
-real file (caught and named), and the population emptied to zero (caught by the
-non-empty assertion rather than passing silently).
-
-`AGENTS.md` puts sounds, voice announcements and haptics off by default or under
-explicit user control. Motion is the same kind of thing, and the operating system
-already carries the user's answer.
-
-Register unchanged at **107** repositories. `verify:launch` green, **1910** tests
-passing.
-
-### 2026-08-18 â€” a cost that grows when the customer succeeds
-
-Tenth sweep pass: streaming, licence-first, MIT and Apache-2.0 run separately
-because qualifiers cannot be OR'd. Six results above 800 stars, and pass nine's
-rule sorted them on sight: `srs` (29,145), `vidgear` and `red5-server` are media
-servers; `rx-player` (932) is client-side but a browser already plays ordinary
-video, so it earns its place only for adaptive streaming with DRM, which this
-product does not have.
-
-**"A server the owner runs" was hiding two different costs, and the distinction
-matters.** Every server-side candidate so far â€” whisper.cpp, vosk, Spleeter,
-Ghost â€” costs compute **per file, once**: transcribe a video and the cost is paid
-and finished. A media server costs **bandwidth, per viewer, every time**. It is
-the one shape where the bill grows with the customer's success â€” a business whose
-event goes well pays more than one whose event nobody watched, and pays again on
-every replay.
-
-The shorthand this sweep has used since the speech-recognition pass was accurate
-and was concealing that. For a product whose rule is that a feature costs the
-customer nothing, per-viewer bandwidth is the one cost that cannot be absorbed by
-buying a bigger box once.
-
-**And the category produced a second conduct block.** `ihmily/StreamCap` â€” 4,113
-stars, verified Apache-2.0, second-largest result â€” monitors and automatically
-records live streams from TikTok, Twitch, YouTube, Bilibili, Douyin, Douyu and
-Huya. Every recording is somebody else's broadcast, taken without their
-involvement. AGENTS.md requires this product to enforce provenance, consent and
-anti-clone safety; this is not a borderline reading of that rule, it is the case
-the rule describes. Recorded `blocked`, on **conduct rather than licence** â€” the
-same shape as watermarks-remover, also permissive and also blocked.
-
-Worth keeping visible for how it presents: legitimate topic, legitimate search,
-clean permissive licence, high stars, and **nothing in its metadata flags it**.
-Only the description does. That is `topic:paywall` again â€” a search term right
-for the capability and wrong for the intent â€” and it is the concrete argument
-against screening on licence and stars and skipping the reading, which is
-otherwise the fastest way to run these passes.
-
-Register at **107** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the blocker was a server-side blocker
-
-Ninth sweep pass: video, licence-first. Fourteen MIT results above 1,000 stars.
-Most are Python pipelines â€” moviepy, backgroundremover, autoclip, FunClip â€” with
-the familiar blocker. **Two are a different shape**, both verified MIT:
-**WebAV** (2,085 stars, WebCodecs SDK) and **FreeCut** (2,046, a complete
-browser editor on WebCodecs and WebGPU).
-
-**This qualifies the conclusion from pass six.** That pass ended "licence was the
-constraint when this sweep started, architecture is now", on the strength of six
-permissive repositories all blocked by this runtime. Every one of those six needs
-**a server the owner runs** â€” infrastructure they pay for, a queue, and the
-customer's media leaving the customer's machine.
-
-A WebCodecs library has none of that shape. The work happens in the browser the
-customer already has: no per-customer cost, no queue, and no upload of a file
-that was never meant to leave their device. That is the same pair of constraints
-this product's rules impose anyway, satisfied for free.
-
-So architecture is the constraint **for server-side tools**, and there is a class
-of candidate for which it is not. The sweep had not looked at that class until
-now, only because every earlier category's leaders happened to be Python â€” which
-is a fact about the categories chosen, not about what exists. A generalisation
-drawn from six samples that shared a hidden property; the second one this sweep
-has had to walk back, after the NOASSERTION rule.
-
-What does **not** change, written into both records rather than glossed:
-WebCodecs is not available everywhere and a browser without it must be *told* the
-feature is unavailable rather than shown an editor that silently does nothing;
-video work is heavy on a phone and `AGENTS.md` requires mobile to work; the
-vendoring decision under `script-src 'self'` is the same one Excalidraw needs;
-and FreeCut was created November 2025, so a browser editor's real cost â€” keeping
-up with codec and browser changes â€” is a cost it has not paid yet.
-
-Carried forward for the remaining categories: **ask where a candidate runs before
-asking what it does.** Client-side and server-side are not two implementations of
-one capability here â€” they are a free feature and a funded one.
-
-Register at **106** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” a table whose name promised something its columns do not have
-
-Eighth sweep pass: audio and music, licence-first. Two registered, both verified
-MIT â€” **spleeter** (28,379 stars, stem separation) and **seek-tune** (5,595, Go,
-Shazam's recognition algorithm). Both carry the split that WhisperX established:
-the code is MIT and the pretrained models are separately licensed, and the models
-are the part doing the work. Both are outside this runtime, so both are services
-the owner runs.
-
-**seek-tune is registered mainly because of a trap next to it.** This repository
-has a table called `song_fingerprints`, and the subsystem registry described it
-as backing anti-clone matching. Pointing an acoustic fingerprinter at it is the
-obvious move and it is wrong.
-
-Its columns are `song_title`, `creator_name`, `identity`, `mood`,
-`audience_signal`, `sonic_palette`, and a `fingerprint_id` that is **a plain text
-field somebody supplies**. No audio, no hash, nothing derived from a recording.
-The word "fingerprint" in its name means something entirely different from the
-word "fingerprint" in seek-tune's. `grep` finds no writer either â€” the migration,
-the tenant-scoped list, the registry note, and no code.
-
-So acoustic matching is new storage and a new safety flow, not a column added to
-a table that already sounds right.
-
-**The registry's description was the part that misled, and it is fixed.** It read
-*"Fingerprints used to tell one piece of work from another"* â€” which is precisely
-what an acoustic fingerprint does, so it promised what the columns do not hold.
-It now says what the table actually stores. The table cannot be renamed from
-here: migration 004 is frozen and a rename is a destructive data change, which
-`AGENTS.md` puts behind owner approval, so the description was moved to the
-columns rather than the other way round.
-
-This is the codebase's recurring defect found one layer out from the code. A
-*description* claiming a capability that does not exist is harder to catch than a
-function that lies, because nothing executes a description â€” no test fails, no
-page breaks, and it reads as documentation of something real for as long as
-nobody opens the schema.
-
-The safety point sits ahead of the engineering one and the registry already had
-it right: a false positive accuses a creator of copying, so the flow that
-consumes a match is the safety-critical part, not the matcher, and nothing should
-act on a match until that flow exists.
-
-Register at **104** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the empty category was the wrong word
-
-Seventh sweep pass: publishing. `topic:publishing` splits between publishing and
-**package** publishing â€” lerna, gradle-play-publisher and intuit/auto are all
-about shipping software releases. Fifth ambiguity, milder than the rest because
-the real hits still sit at the top.
-
-**And the top result is what pass three went looking for and reported as absent.**
-Pass three searched `topic:paywall` for a way to help creators put work *behind*
-a paywall and get paid, found four tools for defeating paywalls, and wrote the
-category up as yielding nothing. It was not an empty category. It was the wrong
-word: nobody building membership software tags it "paywall" â€” the people using
-that tag are the ones removing them. **`TryGhost/Ghost`**, 54,789 stars, Node.js,
-verified **MIT**, describes itself as "publishing, memberships, subscriptions and
-newsletters", and was under `topic:publishing` the whole time.
-
-Carried into the sweep document as a rule, because it will happen again: **when a
-category comes back empty or hostile, suspect the search term before concluding
-the software does not exist.** An empty result is evidence about vocabulary at
-least as often as evidence about the world.
-
-Ghost is also the strongest counterexample yet to the NOASSERTION observation
-from pass five. Ghost(Pro) is not a side business, it is how the project is
-funded, and the software is still MIT. Two clear exceptions out of six data
-points now. The tendency stays as something to search by; both documents say
-plainly it is not something to conclude from.
-
-What is actually available: being Node.js is less useful than it sounds, since
-Ghost is a full application with its own database and admin client â€” adopting it
-means running it, not importing it. The part that needs no licence resolved and
-no service run is the **membership model** â€” tiers, gated posts, what a member
-sees before and after paying. That is the piece this product does not have.
-
-Register at **102** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the rule broke on its first test, which is the useful part
-
-Sixth sweep pass, run licence-first â€” `license:mit` in the query before any
-assessment of fit, which is what the previous pass concluded to do. The method
-works. It also broke the rule that motivated it, in one category.
-
-**Digital signage** yields three MIT results above 200 stars and nothing worth
-registering: a Flutter embedder, an Android kiosk lockdown app, a 363-star
-signage CMS. Hardware-adjacent enough that signage would be a new product rather
-than an improvement to an existing one.
-
-**Whiteboard and drawing** yields `excalidraw/excalidraw` at **129,927 stars**,
-verified **MIT** â€” and Excalidraw has a hosted commercial product at
-excalidraw.com behind it, exactly like twenty, Carbon and Hi.Events. The rule was
-stated after three data points and contradicted by the fourth, which is about
-what three data points are worth. It stays in the sweep document as a good thing
-to *search* by and not as something to conclude from. Recording that explicitly
-matters more than the rule did: a generalisation that survives in a document
-because nobody went back to check it reads exactly like one that held.
-
-Same result set, same old lesson: `poteto/hiring-without-whiteboards` at 51,379
-stars is a **list of companies**, not software.
-
-**The bottleneck has moved, and that is the finding of the day.** Excalidraw is
-the first candidate in the whole sweep whose licence, size, maturity and product
-fit all pass. What stops it is that it is a React package and this application is
-server-rendered Express with **no build step** and `script-src 'self'`. Using it
-means vendoring a prebuilt bundle served from this origin â€” permitted by the CSP
-â€” and owning its size and updates permanently. A supply-chain decision for the
-owner, and explicitly not a licence problem, so the record does not describe it
-as one.
-
-Counting this pass with the speech-recognition pass: of the four repositories
-added whose licences are fully settled and permissive â€” whisper.cpp, whisperX,
-vosk, Excalidraw â€” **all four are blocked by this runtime rather than by their
-terms**. Licence was the binding constraint when this sweep started. It is not
-any more.
-
-Register at **101** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” three for three, and a rule worth more than the repositories
-
-Fifth sweep pass: events, RSVP and ticketing. `topic:event-management` turns out
-to be mostly **software event dispatchers** â€” fourth topic-name trap, after
-`topic:pos`, `topic:scheduling` and `topic:paywall`. Four of eight results above
-300 stars are event buses and listener libraries, `saltstack/salt` among them.
-
-One real hit, `HiEventsDev/Hi.Events` (3,981 stars, Eventbrite alternative), and
-its detected licence is **NOASSERTION** â€” the third in a row.
-
-**That is now the most useful thing this whole sweep produced.** Three
-categories, three leaders, three licences GitHub cannot classify: twenty (CRM,
-55,066 stars, twenty.com behind it), Carbon (manufacturing, carbon.ms),
-Hi.Events (ticketing, hi.events). Written up as a rule rather than three
-anecdotes:
-
-> A project positioned as "the open-source alternative to X", with a hosted
-> commercial product behind it, has usually written a licence specifically
-> against being resold as a hosted service. That is what this product is.
-
-Three consequences, all of which change how the next sweep should be run.
-**Star count and category leadership predict licence trouble, not licence
-safety** â€” the more polished the alternative-to-X project, the more likely a
-company is protecting it. **Read the licence first**, because screening by stack
-or stars and checking the licence afterwards means doing the fit analysis on
-exactly the repositories least likely to be usable. And **NOASSERTION is not
-"unknown, probably fine"** â€” it means GitHub read a real licence file and could
-not match it to anything standard, which is what a lawyer-written custom licence
-looks like from outside.
-
-None of the three is blocked, and all three are worth reading for their domain
-models, which needs no licence resolved. What none of them is, on current
-evidence, is something to take code from.
-
-Register at **100** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the closest fit keeps having the worst licence
-
-Fourth sweep pass: manufacturing and industrial. 13 repositories above 300 stars
-pushed in the last year, splitting cleanly in two.
-
-**Most of the category is MQTT and protocol plumbing** â€” emqx (16,630), vernemq,
-nanomq, node-opcua, neuron. Brokers for talking to PLCs and sensors. Correctly
-tagged and irrelevant: Business Builder helps somebody run a business, not read a
-Siemens S7. The ERP half is dominated by the GPL family (ERPNext at 38,211,
-metasfresh), which reaches a hosted product.
-
-**`crbnos/carbon` is the second closest-fit-worst-licence in this sweep.** ERP,
-MES and QMS on **Supabase, PostgreSQL, TypeScript and React Router** â€” this
-product's exact stack â€” and its detected licence is **NOASSERTION**. So is
-`twentyhq/twenty`, the closest fit in the CRM category, also Supabase and
-TypeScript, also with a hosted commercial product behind it.
-
-That is not a coincidence and it is now written down where the next sweep will
-find it: **a project with a company behind it writes a licence protecting it
-from being resold as a hosted service, which is exactly the use this product
-would make of it.** Searching by stack and then checking the licence walks into
-that every time. Reading the licence first and letting the stack decide between
-what is left is the cheaper order.
-
-**And the doc-count guard fired on a true sentence.** Writing that finding up
-produced "13 repositories above 300 stars pushed in the last year", which the
-register-count pattern read as a claim about our register and failed the release
-over. Rewording the prose would have been the wrong fix â€” a check that fires on
-true statements does not get fixed, it gets written around, and then it is
-training people to avoid it rather than measuring anything. The pattern now
-requires "**reviewed** repositories".
-
-Narrowing a pattern is a quiet weakening on its own, so it comes with the thing
-that stops it being one: the check now **refuses to pass if that pattern matches
-nothing at all**. Three cases were run before trusting it â€” the register count
-wrong (caught), the claim reworded out of the document entirely (caught by the
-new guard), and the true sentence about search results (correctly ignored).
-
-Register at **99** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the search term that would have got it backwards
-
-Third sweep pass: paywall, creator economy, speech recognition.
-
-**`topic:paywall` is paywall *bypassing*.** Third topic-name trap after
-`topic:pos` (postcss, postgrest, oh-my-posh) and `topic:scheduling` (cron, not
-appointments), and the first one where following the results would have been
-actively harmful rather than merely wasteful. Five repositories carry the topic
-above 200 stars; **four exist to defeat paywalls** â€” `everywall/ladder` at 8,819
-stars leads the category. Creator Studio's job is to help creators put work
-*behind* a paywall and get paid. A sweep that ranked by stars and skipped the
-reading would have reported the most popular anti-paywall tool on GitHub as the
-category leader for a product that sells paywalls. Nothing registered, and
-licence had nothing to do with it.
-
-**`topic:creator-economy` is thin and yields nothing.** Four repositories above
-50 stars in the last year: a curriculum, a Google-Drive-plus-crypto video
-platform, a 100-star project with 161 open issues, and a cookbook for a keyed
-hosted API that also "finds verified emails" â€” a price rather than a licence, and
-a lead-scraping capability that meets this product's consent rules head-on. The
-empty result is recorded deliberately: research that only reports hits cannot be
-distinguished from research that found nothing and said nothing.
-
-**Speech recognition was a real gap.** 33 projects above 3,000 stars pushed in
-the last year, and the register held **nothing at all** under it across 95
-records â€” while captions and transcripts are squarely Creator Studio's job and
-the owner named speech recognition explicitly. Three added, each licence verified
-by the detected-licence method: **whisper.cpp** MIT (52,977 stars),
-**whisperX** BSD-2-Clause (23,617), **vosk-api** Apache-2.0 (15,064).
-
-**Licence is not what constrains any of the three, and the records say so.** This
-is Express on Vercel serverless with no build step. A C++ binary with
-multi-gigabyte weights, a Python GPU pipeline and native bindings are none of
-them things a serverless function loads. All three sit at
-`optional_adapter_after_review` because adopting them means the owner runs a
-service reached under the four rules in `docs/architecture/EXTERNAL-SERVICES.md`
-â€” infrastructure and cost, not licensing. Two further things the licence does not
-cover, written into the records rather than left to be found: WhisperX's
-permissive licence does not reach the alignment and diarization models it
-downloads at runtime, which are the pieces doing the work; and diarization
-attributes speech to a named person, which under this product's provenance and
-consent rules is a draft for a human to confirm, never a published label.
-
-Register at **98** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the repository had been renamed, and six licences were guesses
-
-Having just written that a search filter is not a licence, the obvious next
-question was whether anything *could* verify one from here. Something can, and it
-changed six records.
-
-**`search_repositories` with `minimal_output: false` returns GitHub's detected
-licence.** The full repository object carries `license.spdx_id` â€” what GitHub
-read out of the root `LICENSE` file â€” as distinct from the licence *filter*,
-which only says which bucket a repository sorted into. Every record resting on a
-family was re-read, and **none of the six was as recorded**: wacrm **MIT**
-(back into the adoption path), vercel-labs/skills **MIT**, GPT-SoVITS **MIT** on
-the code, ury **AGPL-3.0**, brightbean-studio **AGPL-3.0** confirmed rather than
-inferred from its topic list, and twenty **NOASSERTION** â€” GitHub read its
-licence file and could not match it to any known licence, which is a far better
-answer than "appeared in neither filter" and means the same thing.
-
-**Foodya-Restaurant settled the other way.** Its repository object has **no
-`license` key at all**, which is what GitHub returns when it finds no licence
-file: an established absence, not an unread field. The record moved
-`needs_license_review` â†’ `blocked`. Repositories declaring no licence went 5 â†’
-6, and `verify-doc-counts` â€” added hours earlier â€” caught the stale figure in
-`docs/owner/WHAT-IS-LEFT.md` before it could ship. That is the check earning its
-place on its first live change.
-
-**Cal.com was not refused. It was renamed.** Yesterday's note recorded that
-`repo:calcom/cal.com` returned 422 and concluded the session lacked permission.
-The repository is now **`calcom/cal.diy`** â€” same repository id `350360184`, same
-2021 creation date, 47,768 stars. The 422 was accurate; the inference was not.
-GitHub's message says *"the resource does not exist **or** you do not have
-permission"*, and it was read as the second clause because that was the clause
-already suspected. **A refusal that names two causes is not evidence for
-whichever one you came in believing.** It is now record 95, at
-`needs_license_review` despite a clean MIT at the root â€” because GitHub detects
-the *root* licence and this is a monorepo, and projects in this category
-routinely keep an enterprise directory under separate commercial terms. The root
-is established; the packages are not, and taking code from one means reading that
-one.
-
-Method note for whoever sweeps next: `repo:` returns 422 for any repository name
-containing a dot. Use `org:` plus a filter for those.
-
-Register at **95** repositories, 11 reciprocal, 6 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” a bucket is not a grant, and half an adoption path
-
-Three CRM and social-scheduling repositories went onto the register from a
-second GitHub sweep, and closing the counts behind them turned up two checks
-measuring less than they claimed.
-
-**A search filter is not a licence.** `wacrm` was recorded as permissive because
-GitHub's licence *filter* sorted it into the permissive bucket, and it shipped
-at `optional_adapter_after_review` on that basis.
-`tests/open-source-licence-terms.test.js` rejected it, correctly: a filter
-reports which bucket a repository fell into, not what its author granted.
-Reading the file itself was refused â€” `api.github.com/repos/ArnasDon/wacrm/license`
-answers **403** to a session scoped to this repository only â€” so the record now
-says the licence is **not established** and sits at `needs_license_review`. The
-same 403 is why Cal.com's licence is still recorded as unverified rather than
-recalled.
-
-**The adoption-path check covered half the adoption path.** Its name says
-"everything in the adoption path"; its status set held
-`optional_adapter_after_review` alone. `adapter_built` â€” the status meaning code
-from that repository *is already here and something calls it*, the stronger
-commitment of the two â€” was outside the population it claimed to measure. The
-covered set went **13 â†’ 19**. Two named-but-not-SPDX licences (Dify, Open WebUI)
-are allowlisted explicitly rather than admitted by loosening the pattern.
-
-**The reciprocal-licence count is derived now, and could not be derived the
-obvious way.** `docs/owner/WHAT-IS-LEFT.md` quotes it at somebody deciding what
-may legally be adopted, and it had drifted **10 â†’ 11** with nothing watching.
-Searching the licence prose for `AGPL` reports **12**: one record's licence text
-reads *"it appeared in neither the permissive filter (MIT, Apache-2.0,
-BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0, ...)"* â€” four
-reciprocal licences named in the course of saying the repository is in none of
-them. So the register states the fact instead, in a **required** `reciprocalLicense`
-field: a missing flag is a type error, and `verify-doc-counts` refuses to run
-the count unless all 94 records answer. Optional would have let somebody add an
-AGPL repository, omit the flag, and leave the figure sitting where it was.
-
-**Each of the three new checks was run against bad input before being trusted.**
-Wrong number in prose, a dropped flag, an AGPL record flagged false, and a vague
-licence promoted to `adapter_built` â€” all four fail. The first pattern written
-for the prose claim matched *nothing*, because the document wraps "carry a /
-reciprocal licence" across a line break and the pattern had a literal space in
-it; it reported green while checking zero claims. Countable claims went 7 â†’ 8
-only after that was fixed, which is how it was caught.
-
-Register at **94** repositories, 11 reciprocal, 5 declaring no licence.
-`verify:launch` green, 1908 tests passing.
-
-### 2026-08-18 â€” the open end closed, and the pin that was loose by more than double
-
-Yesterday's entry recorded thirteen routes the outage crawl could not render,
-unexamined, with the count pinned "so the set cannot grow unnoticed". Examining
-them found something about the pin itself first.
-
-**There were six, not thirteen.** The 13 came from a run before the alias rule
-took effect and was never re-measured. A pin set at more than double the real
-figure would have sat green through **seven** new failures â€” which is the same
-defect as the bare `continue` it replaced, only quieter, because a number that
-looks deliberate invites less suspicion than an obvious gap.
-
-**Examining the six closed all of them.**
-
-- `/business-builder/dashboard` and `/business-builder/control-center` answer
-  **503 and render a real page** â€” *"Business Builder is temporarily
-  unavailable"*. The crawl skipped every non-200, which meant **it had never
-  inspected the pages written for the state it exists to test**. Those are the
-  pages most likely to make a claim about a customer's records, because they are
-  the ones with something to explain. 503 bodies are read now, when a body came
-  back; a 302 has nothing to read and a 500 is a different check's problem.
-- `/creator-studio/billing` and `/growth-studio/billing` redirect to `/billing`,
-  which redirects again to `/business-builder/billing`, which the crawl renders.
-  **A two-hop chain against a one-hop rule.** The rule follows the chain now,
-  with a `seen` set, because a redirect loop would otherwise hang the check that
-  exists to stop things going unnoticed.
-- `/business-builder/businesses` is a 302 to `/control-center`, resolved by the
-  same two fixes together.
-- `/auth/callback` answers *"OAuth deferred"* to a request carrying no OAuth
-  code, which is correct.
-
-**The pin is now zero**, asserted as `deepEqual(unreachable, [])`. Every route is
-either rendered or lands on a page that was. Proved rather than assumed: adding
-one unrenderable route to the registry fails the run, and removing it passes.
-
-Worth keeping the shape of this. The finding was not in the six routes â€” five of
-the six were behaving correctly all along. The finding was that **the number
-guarding them was wrong, and wrong in the permissive direction**, which is the
-only direction that stays quiet.
-
-### 2026-08-18 â€” a GitHub category sweep, and the search that returned postcss
-
-Two categories swept properly out of roughly forty asked for. Method and findings
-in `docs/market/2026-08-18-GITHUB-CATEGORY-SWEEP.md`; three records added.
-
-**The failed search is the useful half of the method.** The first attempt used
-free text â€” `restaurant OR point-of-sale OR pos in:name,description` â€” and
-returned **postcss, postgrest, oh-my-posh, postal, node-postgres and
-postgres-operator**. Substring matching on "pos". Zero of eight results were
-relevant and the call cost about thirty thousand tokens. `topic:` filters find
-the category; free text finds the spelling. Written down so the next person does
-not spend the same thirty thousand tokens discovering it.
-
-**Finding one: the POS category is mostly closed to us, on licensing.** Of
-eighteen point-of-sale projects above 200 stars pushed in the last year, **eight
-are reciprocal and every large one is** â€” erpnext at 38.2k, frappe/books, NexoPOS,
-lakasir, OCA/pos, viewtouch. That includes **ury**, the only purpose-built
-restaurant system in the set and otherwise the obvious candidate. A reciprocal
-licence triggers on network use, and this is a hosted product.
-
-The route that stays open is not adoption but an **owner-operated deployment
-reached through an adapter**, where the obligation sits with that deployment
-rather than with this codebase â€” the arrangement `EXTERNAL-SERVICES.md` already
-describes. Five of the eighteen are permissive, and none of those five is a
-restaurant system.
-
-**Finding two: four of the five headline speech projects are voice cloning.**
-GPT-SoVITS (61k, clones from one minute of audio), VoxCPM, CosyVoice and dia are
-all permissively licensed and all pushed recently â€” and `AGENTS.md` says *enforce
-provenance, consent, and anti-clone safety*. They are recorded as **one** record
-rather than four, because they pose one question. None is unusable; all are
-unusable *as a general feature*. Cloning a voice whose owner has recorded
-permission is the legitimate case and the only one, and the difference is a
-`creator_voice_consents` row, not a disclaimer.
-
-**The one worth pursuing is the one that runs offline.** `sherpa-onnx` â€”
-Apache-2.0, 14.2k stars â€” does speech-to-text, text-to-speech, diarization and
-VAD with **no network call at all**. That is the same commercial argument that
-made the calculator tools worth building: no per-customer cost, and no customer
-audio leaving the machine. It is also the only headline speech project in the
-shortlist not built around cloning.
-
-**What these three records claim, stated precisely.** Licence and fit, from the
-GitHub API licence field and the project's own description. **Not a source read.**
-The other 88 records were read before they were written, and writing three that
-quietly implied the same standard would be the defect this register exists to
-prevent. Each says so in its own licence field.
-
-**And what was not done.** The request named around forty categories and asked
-for "all repositories at github.com". GitHub holds hundreds of millions; there is
-no completion state for that, and a register claiming to have swept it would be
-this codebase's recurring defect at the largest scale yet attempted. Two
-categories cost six searches and an afternoon of judgement. Forty is a programme,
-best done in the order the product actually needs them.
-
-### 2026-08-18 â€” a storyboard that adds up, and a guide that cannot be copied
-
-**The IONOS guide cannot go into the product, and the reason is on its cover.**
-Submitted as a PDF to add to the application: *"Smarter business with AI â€” the
-ultimate prompting guide for entrepreneurs"*, fourteen pages, and the cover reads
-**COPYRIGHT Â© 2025 IONOS INC.** It grants nothing. A free download is a price of
-zero, not a licence, and copying its text in would be the failure this register
-exists to prevent with prose instead of code.
-
-Two things can be taken from it legitimately, and both were. The **intelligence**:
-a hosting competitor is spending marketing budget teaching small businesses to
-prompt, which says where that market believes the value is. And the **techniques**
-â€” role prompting, style targeting, prompt chaining, few-shot, progressive
-layering â€” which are industry-standard, predate the document by years and belong
-to nobody. What is theirs is the wording, and none of it has been used. Registered
-as blocked with that reasoning attached.
-
-**The Creator Studio tool, built rather than offered.** The storyboard prompt
-circulating online produces a handsome document whose shot durations do not sum
-to the runtime. That is not cosmetic: a creator books a shoot, a voice artist and
-an edit against those numbers and finds out on the timeline that the shot list
-was thirty seconds long for a fifteen-second slot.
-
-So the arithmetic is the product. `allocateSeconds` uses **largest-remainder**
-rather than rounding each shot independently â€” eight shots rounded separately
-lose or gain up to four seconds against the runtime, which is exactly the defect.
-The test checks the property across nine awkward runtimes and three shot counts,
-including 7 seconds over 8 shots, where independent rounding falls apart.
-
-**What is ours and what is film grammar.** The shape â€” hook, subject, tension,
-demonstration, message, payoff, climax, ending â€” is in every screenwriting text
-for fifty years and is nobody's property. Ours is the **weighting**: the hook and
-the ending get more than an even split, because those two shots decide whether
-the middle is watched at all. That is asserted rather than asserted-to: the test
-compares both against `total / count`.
-
-It also refuses. No runtime, no shot list â€” a plan built on a guessed runtime is
-worse than none. No idea, no subject invented. And a runtime that leaves shots
-under two seconds gets told so, without the warning costing the sum.
-
-**Not done, and said plainly rather than left to look done.** The request also
-asked to improve all products, to research breakthrough technology worldwide, and
-to review "all GitHub repositories at github.com that pertains to our
-application". The register holds 88 records, each one read before it was written;
-GitHub holds hundreds of millions. There is no version of that last item that
-finishes, and a sweep that pretends to would be this codebase's own recurring
-defect at the largest scale it has yet been attempted. The forty-two catalog
-products can be improved one at a time against stated criteria, which is a real
-piece of work with a real shape, and it is the next thing worth doing.
-
-### 2026-08-18 â€” nine more products, this time from what the market complains about
-
-The first nine were built from what a small business obviously needs. These nine
-were built from dated survey figures, and each one is only defensible while its
-number holds. Sources in `docs/market/2026-08-18-PRODUCT-GAP-RESEARCH.md`, with a
-February 2027 review date on them.
-
-**The three numbers that drove the design.**
-
-- **67% of creators had a contract or payment dispute in the past year** (HubSpot
-  2025), and the average creator earns **$44,293** (CreatorIQ 2026). That is a
-  market with a paperwork problem and no budget for a lawyer. The crowded answer
-  is contract *generators*; the gap is the moment before a contract exists.
-- **83% of small businesses call referrals their best acquisition source, up from
-  65%; 87% at ten staff or fewer** (LocaliQ 2026). The channel most businesses
-  rate first is the one almost no software measures, because a referral has no
-  click to attribute.
-- **52% of buyers switch business software over inefficiency, not price**, and
-  the feature they need is *"buried, missing, or on the enterprise tier at three
-  times the budget"*. Competing on breadth competes where the complaint is, so
-  three of these are deliberately narrow.
-
-**Business Builder** â€” Price Rise Planner (pricing tools compute a price; none
-answer *how many customers can I afford to lose*); Software Spend Auditor (the
-category's own products add to the stack, this one measures it); Quiet Month Cash
-Plan (forecasts project a trend, this names the month you run out).
-
-**Creator Studio** â€” Deal Memo Recorder; Late Payment Escalation (invoicing tools
-resend, this prices the delay); Usage Rights Expiry (no mainstream creator tool
-tracks a licence *end* date, and the failure is silent â€” the brand keeps using
-the work and nobody is doing anything wrong on purpose).
-
-**Growth Studio** â€” Referral Source Tracker; Review Recency Score (review tools
-optimise the average while the survey says **recency** is what moved); Enquiry
-Response Clock.
-
-**Profitability, stated rather than assumed.** All nine are deterministic: no
-model call, no provider, no network, **no per-customer cost**. A tool with a
-per-use cost cannot sit on a free tier and act as the reason somebody signs up,
-which is the whole commercial argument for building them this way.
-
-**Where the tools refuse to answer.** A price rise on a price already below cost
-returns no "customers you can afford to lose" figure at all, because there is
-not one â€” it says the rise is not the first move. Late payment accrues no
-interest before the due date. The response-time tool states its rule in the
-output and says plainly *"not a measurement of your business"*, because it is one
-explicit assumption applied to the customer's own numbers, and dressing that as
-data would be the most saleable thing on the page and the least honest.
-
-**Three of my own test expectations were wrong**, and running them is what found
-it: a cash plan whose figures never actually went negative while the test
-asserted a month it ran out; a licence expiry asserted as December when 12 Ã— 30.44
-days lands in January; and a response-time gap asserted at double its real value.
-The code was right in all three. The corrections are in the test with the
-arithmetic spelled out, because the next person will otherwise redo the same
-sums.
-
-**Also registered: `vercel-labs/skills`** (`find-skills`), as
-`needs_license_review` â€” its licence has not been read, and that is stated rather
-than assumed from a social post. The reason it is not simply low-risk developer
-tooling: its output is *an install command for somebody else's skill*, so the
-thing under review is not one repository but a channel for arbitrary ones, and
-`npx` fetches and executes on the spot. Recorded with the boundary that nothing
-it recommends is installed without its own register entry.
-
-**And `watermarks-remover` arrived again, and stays blocked.** The screenshot
-adds detail that confirms the original review rather than changing it: 5k stars,
-v0.4.0, and a table naming C2PA, EXIF and XMP across PNG, JPEG, PDF, DOCX, HTML
-and Markdown. Popularity is not a licence argument and was never the objection.
-
-### 2026-08-18 â€” the outage crawl had never once opened the admin area
-
-`tests/no-page-lies-when-the-database-is-down.test.js` opens with the sentence
-*"Every page, rendered with every data read failing."* It was not every page. It
-was 211 of 260.
-
-**The `continue` that hid it.** The crawl skipped any route that did not answer
-200, with a bare `continue` and no record. Measured: **49 routes skipped**, 46 of
-them redirects to a login the customer session cannot pass, and almost all of
-those the admin area. So the file whose whole job is catching a page that tells
-somebody they have no records had never rendered `/admin`, `/admin/database`,
-`/admin/users` or `/admin/system` â€” the pages an **owner** opens during an
-outage, which is where that false claim does the most damage, because the owner
-is the person deciding whether anything has actually been lost.
-
-The guard beside it, `rendered >= 150`, says how much was looked at and says
-nothing about what was missed. That is the shape worth remembering: a population
-check that cannot shrink-detect is not a population check.
-
-**Two passes now**, customer and owner, over the same routes. The stub answers
-`user_roles` with `owner` and `ADMIN_EMAILS` is set alongside the Supabase
-stubs, so the admin gate resolves.
-
-**What the owner pass found on its first run: nothing false.** Three findings,
-all the same sentence, all the database console's own caveat card â€” *"Nothing
-here says your database is empty."* That card exists to stop an owner concluding
-exactly the thing this check hunts for, so it is the opposite of a lie, flagged
-only because the pattern matches the words "Nothing here" anywhere. It went into
-`NOT_A_CLAIM_ABOUT_RECORDS` with that reason, which is what the excuse list is
-for. Reporting it as a defect found would have been the easy write-up and the
-wrong one.
-
-**Accounting, rather than a bare skip.** A route now counts as unreachable only
-when *both* sessions were refused â€” neither cookie reaches everything, the owner
-being redirected away from `/billing` and `/account/*` just as the customer is
-from `/admin/*`. Aliases are covered too: `/business-builder/tutorial` is a 302
-to `/tutorials/business-builder` and `/business-builder/pricing` a 302 to
-`/pricing`, both of which the crawl renders, so a redirect whose destination was
-rendered is not a gap.
-
-**Thirteen routes are left, and that is stated rather than dressed up.** They
-sit behind a session this crawl does not establish, and they have not been
-examined one by one. The count is pinned so the set cannot grow without somebody
-being told â€” which is strictly better than the `continue` that dropped
-forty-nine in silence, and honestly worse than examining them. Next person: that
-is the open end of this.
-
-### 2026-08-18 â€” nine new products, three for each product line
-
-Built on what is already here rather than on anything new: the free-tool runtime,
-the module-output save path, the records pages, the catalog, and the outage crawl
-written this morning â€” which covered all nine the moment they were registered,
-without a line added to it.
-
-**Why calculators and not generators.** The fifteen tools that came before are
-mostly outline and script builders: words in, better-organised words out. What a
-small business is actually stuck on is arithmetic it does not trust itself to do
-â€” what price covers the cost, how long the cash lasts, whether a referral reward
-is affordable, whether the splits add to a hundred. Those have one right answer
-and an expensive wrong one.
-
-So all nine are deterministic. No model call, no provider, no network, **no
-per-customer cost**, same inputs to same output. `docs/SHIP_READINESS.md` records
-eleven catalog products removed for describing work that did not exist, and the
-cheapest way not to repeat that is to ship things that compute.
-
-**Business Builder** â€” Break-Even and Runway; Shift Rota Cost Planner; Deposit and
-Payment Schedule.
-**Creator Studio** â€” Rate Card Builder; Split Sheet and Credits; Repurposing
-Planner.
-**Growth Studio** â€” Campaign Budget Split; Referral Reward Planner; Follow-Up
-Schedule.
-
-**Two rules run through all of them.** A number that cannot be read is *named*,
-never turned into `NaN` â€” `numberFrom` returns null and every tool checks before
-doing arithmetic, so the customer is told which box was unreadable rather than
-shown `$NaN`. And a case with no answer says so rather than returning zero: a
-business losing money on every sale has **no** break-even, and "0 sales needed"
-would be the most dangerous possible rounding of that. A rota with no expected
-sales reports that the labour share cannot be worked out and *"is not zero"*.
-
-**Guards caught three things on the way in**, each a real integration the work
-would otherwise have half-done:
-
-- `verify-route-registry` refused nine routes that existed but were not
-  canonically registered.
-- The catalog seed migration `20260725180000` is applied and **frozen**, so the
-  new products could not be added to it. They are seeded by a new migration
-  instead, and the test that checked "one migration seeds every product" now asks
-  whether each product is seeded *anywhere* â€” which is the actual guarantee. It
-  also refuses to count the generated sync migration, because that one only
-  updates: a product listed there and nowhere else would be retired-proof and
-  never created.
-- `verify-doc-counts` caught a migration count that moved 83 â†’ 84.
-
-**One assumption checked rather than acted on.** The existing tools use
-`parsePositiveNumber`, which returns null, and null in arithmetic gives `NaN` â€”
-so I expected `$NaN` on the pricing tool for prose input and went to fix it.
-Submitted it: zero occurrences. The existing path already handles it. Nothing was
-changed on the strength of a defect I had reasoned my way to rather than seen.
-
-### 2026-08-18 â€” a malformed role read could take out every admin page
-
-Ten focused minutes on the sweep, and the one thing found is the worst-placed
-instance of the day.
-
-**`getUserRoles` iterated whatever came back.** It read `user_roles` and ran
-`for (const row of rows)` on the parsed body. PostgREST answers **200 with an
-object** in some failure modes â€” an error body rather than a row list â€” and
-`for...of` on an object throws. This is the admin authorization path; every admin
-page calls it. Before the route safety net landed earlier in this branch that
-throw hung the request forever, and after it the same throw is a **500 on every
-admin page at once**, from a database that is answering.
-
-Verified by removing the guard and watching `TypeError: rows is not iterable` at
-`getUserRoles` on `/admin`, rather than by reading the code and reasoning about
-it.
-
-The fix fails closed, which is the only acceptable direction here: an unreadable
-role list grants nothing. `row?.role` rather than `row.role` for the same reason â€”
-a ragged array denies instead of throwing, and a valid row after a bad one is
-still honoured.
-
-**Two smaller cause-claims corrected while there.** The dashboard said *"Setup
-required: the service_requests table is not available yet"* and the same for
-deliverables, whenever `safeListTable` returned not-ok. A 500 is not a missing
-table, and that sentence sends an owner to run a migration that is already
-applied. Both now say the figure could not be read.
-
-**Two sibling reads were already guarded** â€” storage buckets and the agent
-activity queue both do `Array.isArray(rows) ? rows : []`. `getUserRoles` was the
-outlier, which is the useful shape of the finding: the pattern was known here and
-the one place it was missing is the one that gates administration.
-
-### 2026-08-18 â€” a crawl for the pages nobody crawled, and the branch it proved unreachable
-
-Six instances of this pattern were found by hand today. The seventh was found by
-a check, which is the point: the last two lived on **pages a customer only sees
-after pressing a button**, and every sweep in this repository issues GETs.
-
-**Placeholder leakage, everywhere.**
-`tests/no-page-lies-when-the-database-is-down.test.js` already renders 150+ pages
-with every read failing. It now also fails on `null`, `undefined`, `NaN` and
-`[object Object]` in visible text â€” the four things a JavaScript template
-produces when the value behind it is missing, and none of them a word this
-product's copy would use. It found nothing on the GET pages, which is why it was
-proved rather than trusted: injecting `Reference ID: null.` into one real card
-fails the run, and removing it passes.
-
-**Its self-check caught a trap on the way in.** A `/g` regex carries `lastIndex`
-between calls, so the recognition test matched its first sentence, resumed from
-that offset for the second, and reported that the pattern had stopped working.
-The file already had this shape for its other pattern â€” `CLAIMS_EMPTY` and
-`CLAIMS_EMPTY_ALL` â€” and the new one now follows it. **The check written to prove
-the check works is what caught it.**
-
-**And the pages that were never crawled at all.**
-`tests/every-tool-result-page-survives-an-outage.test.js` posts to all **fifteen**
-free tools with the session resolved, the workspace found, and every write
-refused â€” the state a real customer is in during an outage, and the state where a
-result page has most to get wrong: the tool worked, so there is an answer to
-show, and the save did not, so there is bad news beside it. `TOOLS` is exposed
-through `app.locals.sonaraFreeTools`, following the same pattern
-`sonaraDatabaseManagementPage` already uses.
-
-**The generated submission was wrong first, and the fix was to stop guessing.**
-The first draft chose values by field name â€” numbers for `/cost|price|rate|â€¦/`,
-prose otherwise â€” and got `visitors`, `leads` and `customers` wrong, so the KPI
-calculator correctly refused with a 400 and this file reported its own bad input
-as a missing page. Every field now gets `"12"`, which the calculators parse and
-the text tools accept. A per-name heuristic is a thing that drifts silently the
-moment somebody adds the sixteenth tool.
-
-**Then the crawl found what hand-testing had missed.** Re-injecting yesterday's
-`Reference ID: null` defect did **not** fail the run â€” because the branch it
-lives in was unreachable. `saveModuleOutput` returned `code: "setup_required"`
-for *every* unsaved outcome, including this one: past a resolved workspace, past
-a working config, with only the writes failing. So `sendToolResult` always took
-its setup branch, and the "this is on our side" wording added yesterday had never
-once rendered. The code is `save_failed` now, the branch is reachable, and the
-crawl bites on the defect it was written for.
-
-That is the part worth remembering. Yesterday's fix was verified by a test that
-asserted the *new* wording appears â€” and it did, on the one path that test drove.
-It never asked whether the other path could happen at all.
-
-### 2026-08-17 â€” "Reference ID: null", which I put there
-
-Sixth instance, and the first one this session's own work created. Worth the
-entry for that reason rather than its size.
-
-**What happened.** Two commits earlier, `saveModuleOutput` stopped minting a
-`randomUUID()` reference for work it had not saved and returned `null` instead.
-That was right. `sendToolResult` printed the value through `String(...)`
-unconditionally, so every unsaved free-tool result rendered:
-
-> Save requires account database setup. Your output was generated and is shown
-> above. â€¦ **Reference ID: null.**
-
-A fix that swapped a misleading number for the literal word "null" on a
-customer's screen. Nothing objected, because **no test rendered that page** â€” the
-existing coverage asserted the JSON body, and the two page-level assertions in
-`saas-platform-upgrade` were checking for the presence of the string "Reference
-ID", which `null` satisfies.
-
-**The test I wrote to catch it was itself wrong first**, and that is the more
-useful half. Its first draft asked for `text/html` while calling `.send(object)`,
-which sets `Content-Type: application/json` â€” and this application answers JSON
-to that regardless of `Accept`. So two assertions about page content passed
-against a body with no page in it. They went green immediately, which is the only
-reason I looked: a check that passes the moment you write it has not been shown
-to work. The HTML case posts a form now, the way a browser does.
-
-**Two more things wrong on the same card.** *"Save requires account database
-setup"* states a cause, and it is false whenever the workspace is finished and
-the write failed underneath it â€” `workspace_unreadable` and `records_unavailable`
-both arrive here, and both sent the customer to a setup page with nothing on it
-to do. There are two messages now, and which one shows depends on the code rather
-than on the assumption. And a JSON caller got **200 with `ok: true`** for a write
-that stored nothing, while `POST /service-requests` and `sendWorkspacePostResult`
-both answer 503 with `ok: false` for the same failure â€” one product, one kind of
-failure, two answers. Now 503 either way.
-
-**The output still renders in every case**, asserted first, because a free tool
-that loses the answer it just worked out to a save failure would be a worse
-product than the one with the bad label.
-
-### 2026-08-17 â€” the queue that was not there
-
-Fifth instance, and the first one that is not a read collapsing. This is a
-**mechanism described to the customer that was never built**, with a passing test
-asserting it.
-
-**The sentence.** A support request whose insert failed ended at:
-
-> "Setup required: the account database is not configured, so the request used
-> the safe fallback queue. Reference ID: `<uuid>`."
-
-There is no fallback queue. Searched for: no table, no file, no in-memory store,
-nothing scheduled. The phrase was in five strings â€” the support result, two
-dashboard cards, an admin card and a service-lifecycle page â€” and every one of
-them described something that does not exist.
-
-**What actually happened on that path.** The insert had failed *and* the
-notification email had failed, so nothing was stored and nothing was sent. The
-customer got `ok: true`, HTTP 200, a reference number, and the word "queue". They
-would reasonably stop chasing it. **A support request that silently disappears is
-worse than a form that refuses to submit, because the second one gets retried** â€”
-and this was the one page somebody reaches when something has already gone wrong.
-
-**A test asserted the fabrication**, by name: *"POST /support/request uses the
-safe fallback queue with a reference ID when database is missing"*. It cleared
-the Supabase environment and checked for `ok: true` and a reference ID. The
-guarantee had a green tick and no implementation, which is this codebase's stated
-recurring defect in its purest form.
-
-**The reference number is the part that does the damage.** It is minted before
-the insert and written into the row as `reference_id`, so when the row is stored
-it genuinely identifies it â€” and when the row is not stored but the email went
-out, it is in the email body, so support can still find it. Both real, in
-different places, and the message now says which. When neither happened it
-identifies nothing anywhere, and handing it over is the artefact that makes
-somebody believe they have a case open. That case now returns **no reference at
-all**, `ok: false`, and 503 â€” so a caller reading only the status code cannot
-record a vanished request as a filed one.
-
-`lib/sonara-support-outcome.cjs` holds the four-way decision. Its test asserts
-the two success endings *first*, because every "did not go through" assertion
-would otherwise pass against a form that refuses everything.
-
-**Three more invented references, swept in the same pass.** `POST
-/service-requests` minted one with `randomUUID()` on two failure branches and, on
-the success branch, fell back to `randomUUID()` when the insert worked but the
-representation did not come back â€” the hardest of the three to notice, because
-everything else about the request was fine. `saveModuleOutput` did the same in
-two places, and `sendWorkspacePostResult` printed the result on a page that had
-already, correctly, said the work could not be saved. All now null, and the
-unsaved page prints no reference.
-
-**Lint proved the sweep was complete** in one file: removing the last
-`randomUUID()` call left the import unused and the build said so. That is a
-better completeness check than my own reading of the file.
-
-Four tests changed. Each asserted the old behaviour, and each was read before
-being touched â€” one of them, *"still accepts a valid request"*, is a real guard
-against fixing a failure path by breaking a success path, so it kept its job and
-lost only its acceptance of the word "queued".
-
-### 2026-08-17 â€” Awesome DeepSeek Agent reviewed; the answer is that nothing needs adding
-
-Added to the register on request. **Blocked**, and the more useful half of the
-finding is that the request it came with was already satisfied.
-
-**No licence, checked three ways** rather than assumed: the repository page shows
-no LICENSE file, the repository API returns no licence field, and
-`/repos/deepseek-ai/awesome-deepseek-agent/license` answers 404, which is what
-GitHub returns when it detects none. No licence is not permissive by default. It
-is all rights reserved, and nobody here can grant what the author has not.
-
-**Two claims in the pitch did not survive reading the repository.** It described
-twenty applications; the contents table lists 24. And the one-million-token
-context window is stated there for one tool's DeepSeek-TUI entry, not as a
-property of a model â€” worth being exact about, because that is precisely the kind
-of figure that gets repeated into marketing copy and then has to be defended.
-`DeepSeek-V4-Pro` and `DeepSeek-V4-Flash` are referenced by name in the
-repository; their pricing, terms and availability were **not** verified here, and
-cost is a constraint of the same weight as licence.
-
-**There is nothing to install.** It is documentation â€” 24 setup guides, no
-runnable code, no installer, no agent skill.
-
-**And DeepSeek already works without a line of code changing here.**
-`lib/sonara-open-webui-adapter.cjs` sends `model: readiness.model`, read from
-`SONARA_OPEN_WEBUI_MODEL`. The model is a configuration value, not a code path,
-so a DeepSeek model served behind the owner's own Open WebUI or gateway is
-reachable today. That is the arrangement `docs/architecture/EXTERNAL-SERVICES.md`
-describes, and the reason the register has carried DeepSeek V3 as an optional
-gateway model family rather than as a dependency since before this.
-
-**A second stale number fell out of it.** The doc-count guard rejected the
-release for `docs/owner/WHAT-IS-LEFT.md` saying "85 reviewed repositories", which
-is what it is for. Counting the rest of that sentence by hand found the next
-clause wrong too: it said **2** repositories declare no licence, and the register
-held **4** before today. That figure was never checked, because
-`verify-doc-counts.mjs` deliberately leaves licence questions to a human â€” and
-rightly, for the interpretive ones. Whether a reciprocal licence reaches a hosted
-product is a judgement. How many records say no licence was declared is not; it
-is a fact about the register, and it is now derived and compared like the other
-counts. Verified by putting the wrong figure back and watching it fail before
-trusting the green. The sentence now reads 86 and 5.
-
-**One correction worth recording, because a guard made it.** The record was first
-filed as `reference_only`, reasoning that reading a public page needs no licence.
-That reasoning is true and it is not what this register governs.
-`tests/open-source-licence-terms.test.js` refused it: a record whose licence text
-says nothing was declared must be `blocked`. The rule is right to be absolute â€”
-the moment an undeclared licence can sit at `reference_only`, the line between
-may-read and may-take rests on whoever opens the entry next. **The record moved,
-not the check.** Weakening it would also have needed a documented reason in
-`SECURITY_NOTES.md`, which is the second reason not to.
-
-### 2026-08-17 â€” the fourth instance, and this one is what the customer sees
-
-Went looking for it deliberately. Three fixes today were the same collapse in
-three different modules, so the question was where else it lives â€” and the
-answer was one layer further out, in the rendering rather than the reading.
-
-**`workspaceRecordCards` returned `""` for a read that failed.** It returns `""`
-for three unrelated situations: a page with no records section, a read that
-failed, and a read that could not be attempted. The reasoning above it is sound
-and is kept â€” *"a records list that cannot load should leave the tool usable
-rather than take the page down with it"*. The mistake is the choice of `""` for
-the middle one. `""` is what a page with no records section looks like, so a
-customer with twenty saved leads saw the form and nothing under it. On a page
-titled Records, an empty page is not the absence of a statement.
-
-**The neighbouring renderers already had it right for the case they could see.**
-`renderRecordCards` on a genuinely empty list says *"Nothing saved yet. Use the
-form above and it will appear here."* That sentence is true after a successful
-read and false after a failed one, and nothing told them apart â€” the failure
-never reached the renderer at all.
-
-`renderRecordsUnavailable` now says the list could not be loaded, that it is our
-side, and that nothing has been deleted. Setup codes stay silent, because a
-customer with no workspace yet is not looking at a failure and the page has its
-own setup card; a "we could not load" banner on a brand-new account would be a
-new false statement in place of the old one.
-
-**Two smaller things found on the way in.** `moduleCrud.list` passed a 200
-carrying a non-array straight through as `records`, which reached `.map` in the
-renderers â€” before this morning's route safety net that hung the request, and
-after it a 500. It is a read failure now. And `readModuleRecords` reported
-`setup_required` for every organization failure, which since this morning
-includes `workspace_unreadable`; only a genuine `workspace_not_ready` maps there
-now.
-
-**The test's second half is the half that matters.** For each of the two page
-shapes it asserts the failed read says so â€” and then that a *successful* empty
-read still says "Nothing saved yet" and does not say "could not load". Without
-that pair, a page apologising unconditionally would pass, and that is the same
-lie told in the commoner direction, to every customer who genuinely has not
-saved anything yet.
-
-**Line-neutral in server.js**, which stays at 4032: two `return ""` became two
-calls, and the new markup lives in `lib/sonara-module-crud.cjs` beside the
-renderers it belongs with.
-
-### 2026-08-17 â€” a customer who had paid could be shown a paywall
-
-Third instance of the same collapse in one day, and the one that touches money.
-
-`getCustomerPaidEntitlement` asks two tables whether this customer holds a plan
-that opens this product: `billing_entitlements`, then `billing_subscriptions`.
-Both reads were `if (response?.ok) { ... }` with no else. A read that failed and
-a read that found nothing ended in the same place â€” **HTTP 402**, under the
-heading **"Upgrade required"**, beside a link to pricing, with the sentence
-*"Paid access is locked until payment updates show an active or trialing plan."*
-
-So during an outage on our side, a paying customer was told they had not paid.
-402 is literally Payment Required. The first thought of somebody shown a paywall
-they already paid past is that they have been charged wrongly, and every element
-of that page agreed with them.
-
-A plan can live in either table, so **one** silent read is enough to make the
-conclusion unfounded â€” the subscription read failing alone was sufficient, with
-the entitlement read answering correctly and finding nothing.
-
-**Now:** `readBilling` returns rows or `null`, never `[]`, and treats a 200
-carrying a non-array as failed too. If either read came back null and neither
-found a match, the answer is `503 entitlement_unreadable` with a message that
-says whose fault it is and does not mention payment. `workspace_unreadable` and
-`workspace_unavailable` from the tenant resolver land there as well, rather than
-being flattened into `upgrade_required` as every organization failure was.
-
-**The page had to change with it.** The heading was hardcoded, so a 503 would
-still have rendered under "Upgrade required". The result now carries a `heading`,
-and server.js drops the pricing link when it is present â€” there is nothing to buy.
-Results that genuinely mean upgrade carry no heading and are untouched, which is
-what the test's `assert.equal(unpaid.heading, undefined)` is for.
-
-**The test asserts the paid paths and the genuine-402 path first**, so the three
-503 cases are not green against a reader that stopped charging anybody.
-
-Two notes for whoever is next. The four production markers
-`verify-production-product-catalog.mjs` greps for are intact â€” both PostgREST
-paths, the active-or-trialing filter, and the locked message, which is still the
-text of a genuine 402. And `billingRowOpensProduct`, which refuses a
-`workspace_monthly` row for the wrong workspace, still returns its own 402: that
-is a real answer about a real row, not a read that failed.
-
-**A container reset landed mid-change** and put the tree back on `f3e51f2`, four
-commits behind. Recovered by fetching and fast-forwarding rather than resetting
-hard. Worth recording because the first version of this fix was written against
-the stale file â€” which had neither `metadata` in its selects nor
-`billingRowOpensProduct` â€” and the patch's own assertion is the only reason it
-did not apply cleanly onto code that had moved on.
-
-### 2026-08-17 â€” a read that failed could hand a customer a second workspace
-
-Found while sweeping for the absent-vs-empty collapse this codebase keeps
-producing. This one is in the tenant boundary itself, which makes it the worst
-place it has turned up.
-
-**What it was.** `getCustomerPrimaryOrganization` looks in
-`organization_memberships`, then `business_memberships`, and if neither has a
-row it calls `sonara_bootstrap_customer_workspace` to make one. Both lookups
-were written as `if (response?.ok) { ... }` with no else, so "the read failed"
-and "there is no row" fell through to the third step identically.
-
-**Why it was not caught by the RPC being idempotent.** It is idempotent â€” but
-only against `organization_memberships`, which it checks for an active
-membership before creating anything. It never looks at `business_memberships`.
-So a failed read of the first table was covered by accident, and a failed read
-of the second was not: a customer whose only membership lives there, on a
-request where that read failed, was handed a brand-new empty organization while
-their real one sat untouched with every record in it. From their side the
-product had lost their business.
-
-**The fix is a refusal, not a retry.** Both reads must answer before "there is
-nothing to find" is a conclusion anyone may write against. `readMemberships`
-returns the rows or `null`, never `[]`, for exactly that reason â€” and it returns
-null for a 200 carrying something that is not an array too, which is a real
-PostgREST failure mode and read as "no membership" before.
-
-**And the same collapse one level up.** "No workspace" and "could not check"
-were both `workspace_not_ready`, a code that reads as a fact about the customer.
-Someone mid-outage was told they had no workspace and offered a button to create
-one. `workspace_unreadable` is now separate; callers testing only `.ok` are
-unaffected, which is nearly all 95 of them.
-
-**Extracted while fixing**, to `lib/sonara-customer-organization.cjs`. server.js
-came down 40 lines and the ratchet in `tests/server-split.test.js` went to 4033
-â€” below where it stood before this morning's seven-line rise for the async route
-safety net.
-
-**Two existing guards caught the move before the tests did**, which is worth
-recording because both were written after being fooled once.
-`tests/member-read-policies.test.js` refuses any function handed a table name
-that it does not know, so `readMemberships` had to be registered before its two
-tables could go unchecked. And `tests/database-query-contract.test.js` pins the
-deterministic membership query â€” explicit total order and `limit=1`, without
-which a customer in two organizations flips between them per request. Its
-assertions now read the whole runtime rather than server.js, per that file's own
-note that which file holds a query is not part of the contract, and check that
-both tables go through one shared query rather than each carrying its own.
-
-### 2026-08-17 â€” a route that fails now answers, instead of hanging
-
-`docs/SHIP_READINESS.md` carried one open finding since 13 August: a request to
-`/admin/database` with a *healthy* catalog did not complete, while requests whose
-catalog failed answered in milliseconds. It was never diagnosed. It is now, and
-the cause was not in that route.
-
-**Express 4 ignores the promise an async handler returns.** A handler that
-throws, or awaits something that rejects, never reaches `next(error)`. Nothing
-writes a response. The request stays open until whoever is at the other end
-gives up. Probed directly against this application: `UNHANDLED REJECTION` on the
-process, and no response at all through a five-second deadline. There are **225
-async handlers** here. `/admin/database` was where somebody happened to be
-looking, and its healthy branch is simply the one with more code in it to fail.
-
-**A stall is not a slow 500**, which is why this got a module rather than a
-try/catch in the handler that was noticed. The customer sees a spinner, so they
-retry rather than report. The serverless function is billed until its own
-timeout rather than until the error. And it landed on the page an owner opens
-when they already think something is wrong.
-
-**Fixed at registration.** `lib/sonara-async-route-safety.cjs` patches
-`app.get/post/put/patch/delete/use/all` once, before the first route exists, so
-a rejection becomes `next(error)`; a terminal handler registered last answers
-500 â€” a branded page, or JSON under `/api/` â€” with no error text and no stack in
-it. Wrappers keep their argument count, because Express decides what is an error
-handler by counting parameters, and a 4-argument handler wrapped in a
-3-argument one silently stops being one and starts receiving the error as `req`.
-Express routers are left unwrapped so `verify-route-registry` can still walk
-their stacks. 225 handlers cannot be individually remembered, and the 226th gets
-written by somebody who never read this entry.
-
-**The test's first assertion is that the defect exists.** An unpatched Express 4
-app must stall; otherwise the four passing cases after it would be green against
-a framework that never had the problem. Then: a page for a browser, JSON for an
-API caller, no error text or stack in either, a synchronous throw caught too,
-and a response already sent left alone â€” a 500 written over work that succeeded
-is worse than the stall. Two more read the real router stack: every registered
-handler wrapped, terminal handler last.
-
-**The one thing still unknown**, said plainly rather than closed over: what made
-`/admin/database` throw was never identified and no longer reproduces â€” 2ms
-inside the full suite, 40ms standalone. An unidentified throw is still an
-unidentified throw. What changed is that it can no longer take a request down
-with it, and if it comes back it arrives as a 500 with a stack in the log rather
-than as silence.
-
-**One ratchet moved.** `server.js` grew 7 lines and the ceiling in
-`tests/server-split.test.js` went 4066 â†’ 4073, with the reason written next to
-it: a require, one call after `const app = express()`, and a four-line terminal
-handler, all of which must be in that file because they bracket every route
-registered in it. Everything else went into the module.
-
-### 2026-08-17 â€” "GitHub is down" is not "the repository is gone"
-
-`external-repository-health` went red on PR #202 with thirty-five lines of
-`ERROR: GitHub returned 504 for ...`, naming `rust-lang/rust`,
-`sindresorhus/awesome` and `ollama/ollama` among others. Nothing was wrong with
-the register. GitHub's API was returning gateway timeouts, and the checker
-reported that as evidence about the repositories.
-
-**Why this one mattered more than the noise.** The obvious response to a red
-external-repository-health run is to go and remove the named entries from
-`data/open-source-tools.ts`. A check that cannot tell *this repository is gone*
-from *GitHub did not answer* does not merely fail uselessly â€” it argues for
-deleting eighty-five records that are fine, in the one place where the argument
-looks authoritative.
-
-**Three outcomes now, not two.** Confirmed means GitHub answered and the answer
-was good; error means GitHub answered and the answer was bad â€” 404, 410,
-disabled, no default branch; indeterminate means GitHub did not answer â€” 5xx,
-timeout, transport failure, rate limit. 429 and 5xx are retried twice with
-backoff first, because a gateway timeout is usually a moment rather than a
-state; a rate limit is not retried, since burning attempts against it only
-deepens it. Transport failures were folded in too â€” an offline runner used to
-report every registered repository as broken.
-
-**And the pass had to be tightened at the same time.** Downgrading 5xx to a
-warning on its own would have turned thirty-five false errors into a silent
-green, which is this codebase's recurring defect wearing its other face. So a
-`--network` run that confirms *zero* targets now fails, and the summary line
-reports the population it actually reached rather than the one it was given.
-That line already lied on the rate-limit path, which breaks out of the loop
-partway and then went on to claim "every registered repository still exists".
-
-**Verified against a stubbed API rather than reasoned about**, since a check
-about failure handling that has only been read is a check nobody has run: three
-504s among ninety-one targets warn and exit 0 naming 88 of 91 confirmed; a 404
-on `rust-lang/rust` still exits 1; a rate limit on the first target exits 1 for
-having established nothing; and the offline release-chain path is unchanged.
-
-### 2026-08-14 â€” the 124 policy-less tables are correct, and now provably so
-
-The Supabase work asked for was a search for what is broken. What it found was
-a property that is right and undefended, which is a different kind of problem
-and a worse one, because the fix for it looks like a fix.
-
-**The finding.** Row level security is enabled on every table in this schema.
-124 of them carry no policy at all. A security advisor reads that as a gap, and
-the obvious remedy is to write policies. Both readings are wrong. RLS enabled
-with zero policies denies every row to `anon` and to `authenticated`; the
-service role bypasses RLS entirely. Every query this product makes goes through
-Express holding the service key, so deny-all is not a gap in the wall â€” it *is*
-the wall, and it is the strongest state available. Writing policies to satisfy
-the advisor would open 124 tables to any signed-in user of any organization, in
-exchange for nothing, because nothing is being denied that anybody wanted.
-
-**Why it held.** Checked rather than assumed: no file under `public/` or
-`packages/` names `/rest/v1/`, a `*.supabase.co` host, or `createClient(`. The
-anon key appears only in server-side modules. The browser genuinely has no route
-to PostgREST, so the tenant boundary is the `organization_id` filter in Express
-and nothing depends on a policy that isn't there.
-
-**What was missing.** Nothing checked the "no route to PostgREST" half. That is
-the load-bearing assumption, it is invisible from the database side, and the
-first client script to query PostgREST directly would get empty results from 124
-tables and send whoever wrote it straight to the policy editor. The database
-cannot warn about this; only the client tree can.
-
-**What was added.** `scripts/client-secret-scan.cjs`, already in
-`verify:launch`, now also fails if a browser file names a PostgREST path, a
-Supabase host, or a Supabase client constructor â€” with the reasoning in the
-failure text, so the person who trips it reads why before deciding what to do.
-The scan also throws on zero files read, since a walk that stopped matching
-would otherwise report both of its checks green having read nothing, which is
-this codebase's recurring defect exactly.
-
-**Verified to bite.** Appending a `fetch("https://<ref>.supabase.co/rest/v1/customers")`
-call to `public/sonara-one.js` fails the scan; so does a bare Supabase host
-string with no fetch around it. The restored tree passes and names the count of
-files it read.
-
-**Still open and owner-only.** Leaked-password protection is a dashboard toggle
-in Supabase Auth and no tool here can set it. The four authorization functions
-(`is_admin`, `is_current_user_admin`, `has_scope`, `has_company_access`) exist
-in the live database and not in any migration; exporting them needs the Supabase
-MCP connector authorized, which it is not.
-
-### 2026-08-14 â€” watermarks-remover reviewed and refused
-
-Added to the register on request, and **blocked**. The name suggests removing a
-photographer's visible watermark. Read from the repository, it does something
-else: it strips multi-vendor **AI provenance marks** â€” C2PA Content Credentials,
-SynthID-class statistical text watermarks, invisible Unicode markers, and
-EXIF/XMP metadata â€” across PNG, JPEG, WebP, SVG, PDF, DOCX, ODT, HTML and
-Markdown. Its own skill manifest gives the purpose as *"anti-detect clean AI
-output"*, and it ships a reference document on defeating one specific vendor's
-marks.
-
-**The licence is MIT, and that is the point of this entry.** There is no licence
-obstacle whatsoever. The obstacle is ours. `AGENTS.md` says, in as many words:
-*enforce provenance, consent, and anti-clone safety*. C2PA and SynthID **are**
-the provenance layer. A product that sells provenance enforcement and also ships
-a provenance stripper is not offering two features â€” it is contradicting itself,
-and the contradiction gets discovered by whichever customer relied on the first
-one. This is the register's most useful shape: a repository with a clean licence
-that still cannot be used, for a reason that has nothing to do with copyright.
-
-**The legitimate slice, acknowledged rather than flattened.** The project frames
-itself as privacy and hygiene on content you own, and one part of that is real:
-stripping GPS coordinates out of your own photograph before publishing is
-privacy hygiene creators genuinely need. That slice does not require this. It is
-a metadata field, it can be built against the files a customer already uploads,
-and building it separately is what keeps it from arriving bundled with
-provenance removal. The register entry says so, and the safety boundary written
-against it is that any future EXIF-privacy feature strips location and device
-fields only and leaves content credentials intact.
-
-**Not installed anywhere.** The repository ships an agent-skill installer
-(`skills/remove-ai-marks/`, `install-skill.sh`). It was not installed into this
-session or into the repository's skills, and "installing that skill into any
-agent used on this codebase" is written into `blockedUses` so the reason
-outlives whoever read it.
-
-### 2026-08-13 â€” Every connector reconciled against what the application actually uses
-
-A connector being available as a tool is not the same as the product depending
-on it, and the two were never written down together. Reconciled:
-
-| Connector | State | What the application does with it |
-| --- | --- | --- |
-| Stripe | live, account `sos` | Checkout and billing. Three new prices created today. |
-| Resend | `sonaraindustries.com` verified, sending enabled | Email delivery. |
-| Vercel | team and project `sonara-os` reachable | Hosting. **No env-var tool exists**, so setting the three price variables is the owner's step and cannot be done from here. |
-| GitHub | working | Branch, PR and CI for this repository. |
-| ElevenLabs | authenticated, **zero agents** | Named in the voice provider registry. |
-| Cloudinary | authenticated, **Free plan**, 64 objects, 0.68% of credits | **Nothing.** No source file references it. |
-| Cloudflare | authenticated | Two mentions, both register entries rather than calls. |
-| Base44, Canva, HeyGen, Supabase | **need authorisation** | Not usable from this session. |
-
-**Two findings worth keeping.**
-
-`descript` appeared to be referenced in 43 source files. It was matching the
-word "description". Recorded because a grep that answers a question you did not
-ask is how a survey ends up confidently wrong.
-
-Cloudinary is on a **Free plan** and the application does not use it. That is
-the good version of the free-tier hazard in CLAUDE.md â€” a free tier that
-nothing ships on can change without breaking anything. It would stop being the
-good version the moment a feature rested on it.
-
-**The voice gate was checked rather than assumed.** ElevenLabs is a voice
-cloning service and AGENTS.md requires provenance, consent and anti-clone
-safety, so the path that could reach it was read end to end. `evaluatePolicy`
-refuses any voice capability without a rights attestation, a consent
-attestation, and a consent row that exists, is attested, is not revoked and has
-not expired â€” scoped to the organisation and the user. Imitation language in a
-prompt routes to human review before any of that. And a consent row that could
-not be *read* refuses too, rather than being treated as permission, which is the
-same rule this codebase applies everywhere else and the one that is easiest to
-get backwards.
-
-### 2026-08-13 â€” Agents run on the customer's schedule, and still cannot approve themselves
-
-Until now nothing proposed work on a schedule. Agents run on one now, and the
-schedule belongs to the **customer**: a single platform cron at 03:00 UTC would
-have been our schedule wearing their name, and two businesses want their week
-reviewed on different days.
-
-`agent_schedules` holds cadence, local hour, weekday or day-of-month, and the
-customer's time zone. `/owner/agent-schedule` is where they set it.
-`vercel.json` carries an hourly cron onto `/api/agents/schedule/tick`, because
-Vercel runs no process between requests and a schedule needs something to knock.
-
-**The safety property survives, and was tested against a deliberate attack on
-it.** A scheduled run goes through the same runner as any other, so
-`decideExecution` still refuses the seven gated categories without an approval.
-Writing `issue_refund` straight into the schedules table â€” bypassing the
-allowlist the form enforces â€” produced `refused`, and the action was queued for
-the owner with category `refunds` rather than executed. **A schedule can start
-work. It cannot approve it.**
-
-**Three things the arithmetic gets right, and they are the easy ones to get
-wrong invisibly.** The customer's local hour, not the server's â€” "Monday at 9"
-is a different instant in Auckland and Lisbon. Never twice in one period, so an
-hourly tick still produces one daily run. And a missed period is not made up:
-three quiet days produce one run, not three, because catching up turns an outage
-into a burst of work at the moment service returns.
-
-**Scheduled runs do real work rather than reporting `unimplemented`.**
-`check_data_quality` was registered against the queue runner, running the same
-22 record checks the assistant page runs. Its limit is stated rather than
-papered over: it returns counts and writes no findings, because an audit trail
-accumulating copies of a customer's records would be a second store with
-different retention. A scheduled check tells an owner *that* something needs
-attention; the page tells them what.
-
-**Three gates caught this change, which is the system working on its author.**
-The tenant guard blocked the tick's cross-tenant read until it was declared in
-`EXEMPT_PATTERNS` with its reason â€” narrowed to the exact shape the tick issues.
-`verify:env` refused the new secret until it was classified. And `verify:doc-counts`
-caught the migration count moving 82 â†’ 83 in two owner documents.
-
-**One claim corrected because it stopped being true.** The contract gate printed
-"autonomous execution remains disabled" on every release. Agents now run on a
-schedule, so it says what is true instead: schedules can start work but cannot
-approve it, and no gated action executes without an approval record.
-
-**The three Stripe prices exist.** Created in the live account on the owner's
-instruction â€” `sonara_workspace_monthly` $19, `sonara_all_three_monthly` $39,
-`sonara_team_monthly` $79, with lookup keys so they can be found without the
-setup table. Creating a price charges nobody; it is inert until a checkout
-session names it. The remaining step is the owner's: set the three variables in
-Vercel and redeploy, and the pricing page switches ladders on its own.
-
-### 2026-08-13 â€” The database console could report a database with nothing in it
-
-Swept the 38 admin pages with the database down. Thirty-seven report the failed
-read; the outage path was already sound everywhere. What the sweep found instead
-was one page that can report an **impossible** figure.
-
-`/admin/database` summarises the catalog through `lengthOf`, which returned `0`
-for a missing key and `0` for an empty list. So a catalog response the page did
-not expect â€” a renamed key, a partial read, an RPC answering 200 on its own
-internal failure â€” rendered as **0 schemas, 0 tables, 0 functions, 0 policies,
-0 applied migrations**. A connected Postgres has never had no schemas and no
-tables. That pair is not a low count, it is an impossible one, and it appears on
-the page an owner opens when they already suspect something is wrong.
-
-`reconcileMigrations` did the same thing one layer up, coercing an absent
-`applied` list to `[]` before the summary could see it, so "the catalog said
-nothing about migrations" and "no migration has ever been applied" arrived as
-the same value.
-
-Both distinguish absent from empty now: a missing figure reads `unavailable`, a
-genuinely empty list still reads `0`, and no-schemas-and-no-tables carries a card
-saying the figures describe the response rather than the database.
-
-**A correction to make plainly.** The first version of this note said the page
-showed zeros during an outage. It does not â€” an outage fails the RPC and the
-page correctly says "Database Management needs setup". What was actually
-reproduced is the narrower case where the catalog answers and the answer is not
-what the page assumed. The fix is the same; the description was wrong.
-
-**And an open finding that came out of it.** The healthy-catalog render stalls
-under the test harness â€” not slowly, at all, twice through eight-second
-deadlines â€” while the failing-catalog renders in the same process answer in
-milliseconds. Ordering, the admin gate, the section default and the environment
-are all ruled out. It is not explained, so it is written up in
-`docs/SHIP_READINESS.md` as an open finding, and the test file carries no
-healthy-page assertion rather than a green one that cannot run.
-
-### 2026-08-13 â€” Two free-LLM-API directories reviewed and registered
-
-Added on request: `mnfst/awesome-free-llm-apis` and
-`open-free-llm-api/awesome-freellm-apis`. Both went through the register rather
-than into the product, which is what `CLAUDE.md` requires of any external
-repository, and both licences were **read from the repository's own licence
-file** rather than assumed:
-
-| Repository | Licence | Status |
-| --- | --- | --- |
-| `mnfst/awesome-free-llm-apis` | CC0-1.0 | `reference_only` |
-| `open-free-llm-api/awesome-freellm-apis` | MIT | `reference_only` |
-
-Neither licence restricts anything. **That is the easy half, and it is not the
-half that decides this.** `CLAUDE.md`: *"Cost is a constraint of the same weight
-as licence. A hosted service with a free tier is a price, not a licence, and a
-shipped feature resting on one stops working when the tier changes â€” which is
-the vendor's decision, not this project's."* Every entry in both directories is
-exactly that. So they are good research for deciding what an owner might
-configure, and nothing in them may become something a customer-facing feature
-depends on.
-
-**Two things recorded that a reader should weigh.** The mnfst list is published
-by manifest.build and links to it throughout â€” a commercial interest in the
-list rather than a defect, but worth knowing. And the second repository is the
-content surface of a hosted service: `freellm.net` appears 115 times in its
-README and the data is refreshed from that site, so it is a snapshot of
-somebody else's service rather than the source of its own facts.
-
-**One pattern in it is explicitly blocked.** It ships
-`code-examples/claude-code.md`, which tells a reader to point Claude Code at a
-third-party endpoint by setting `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN`.
-That is a developer's own choice on their own machine; it is not a pattern for
-this repository, because redirecting an assistant sends whatever is in the
-prompt to that provider. It is in `blockedUses` so the reason survives the
-person who found it.
-
-Both are placed under Research Lab and AI Governance â€” reading them is research,
-and the conclusion recorded against them is governance. The register is at 84
-records, and the integration map regenerated to match.
-
-### 2026-08-13 â€” The data export left out 21 of the 51 record types
-
-`/legal/terms` says: *"What you put in stays yours. You can export it at any
-time from your data page."* The export covered **30** tables. The product keeps
-**51**.
-
-Missing: **every Growth Studio record** â€” leads, campaigns, audience groups,
-contact history, conversions, automations â€” and **every line item inside a
-record**, including what is on an invoice and what has been paid against it.
-
-The sharpest of those was `growth_contact_consents`, the record proving somebody
-agreed to be contacted. A business that leaves without it loses the basis on
-which it contacts its own customers, and the export gave no sign anything was
-absent.
-
-The cause was ordinary and is the reason this keeps happening: `EXPORTABLE` was
-assembled by hand from two of the three page collections, and nothing compared
-it against the third or against the children. It is derived from all of them
-now, so a record type that ships with a page is in the export the day it ships.
-`GROWTH_TABLES` moved to `lib/` for it â€” the map lived inside the growth routes
-where the export could not reach it, which is how the gap opened.
-
-**An unreadable table is `null`, not `[]`.** The file already named unreadable
-tables under `unreadable` and set `complete: false`, and then wrote `[]` into
-`records` for them â€” so a consumer reading `records.growth_contact_consents`
-read it as the consents. That is the "a field called ok is read as ok" mistake
-one level down, and for a consent record the difference between `[]` and `null`
-is the difference between having permission and not.
-
-**Verified.** 1807 tests passing, chain green. The export was downloaded through
-Express with two tables failing: 51 record types present, the two named, both
-`null`, the rest carrying rows. Reverting to the two-collection list fails the
-new check, and so does putting `[]` back.
-
-**Also checked and sound, recorded so it is not re-swept.** The staff portal
-reports a failed personal read on all six pages rather than showing an empty
-schedule, and `/staff` itself states no count it could not support.
-
-### 2026-08-13 â€” Eight stale figures in the documents the owner reads
-
-`verify:doc-counts` exists because a figure typed into prose has nothing
-watching it. It shipped covering two claim shapes â€” the length of the release
-chain, and a raw "N passing" â€” and **eight live figures drifted underneath it
-anyway**, all of them in the two documents an owner reads to decide whether to
-launch:
-
-| Document | Said | Is |
-| --- | --- | --- |
-| `owner/WHAT-IS-LEFT.md` | 66 reviewed repositories | 82 |
-| `owner/WHAT-IS-LEFT.md` | 302 tables created | 303 |
-| `owner/WHAT-IS-LEFT.md` | 209 organization-scoped | 210 |
-| `SHIP_READINESS.md` | 77 migrations | 82 |
-| `SHIP_READINESS.md` | 497 policies | 505 |
-| `SHIP_READINESS.md` | 197 policies / 59 tables | 202 / 64 |
-| `owner/OWNER-STEPS.md` | 197 policies / 59 tables | 202 / 64 |
-
-Every one was right when written. That is the whole point, and it is why adding
-a check for one shape of figure does not watch the others.
-
-**The gate now derives four more.** Repositories on the open-source register,
-migration files, tables created by the migrations, and how many of those are
-organization-scoped â€” each read from the repository, each anchored on the noun
-phrase the documents actually use so a sentence about somebody else's
-repositories is not misread as a claim about ours. Six countable claims are
-checked where there were two, and every one of the four was confirmed to fail on
-the figure it had been carrying.
-
-**What was deliberately not automated.** "How many licences reach a hosted
-product" is a judgement recorded at review time, not something re-derivable from
-the register, so it stays a human's to keep â€” the check counts the nine
-reciprocal licences and leaves the reading to a person.
-
-**One number was left wrong on purpose.** `SHIP_READINESS.md` recounts a bug
-where a broken parser "saw 191 policies instead of 497". Correcting 497 to 505
-would falsify the history â€” 497 was true that day. It now says "where there were
-then 497" and points at the live figure above it, the same principle that keeps
-this log and the dated audits out of the check entirely. `docs/audits/` is now
-excluded by path, because those carry their date in the filename rather than in
-a `Date:` line the existing marker could see.
-
-### 2026-08-13 â€” An applied migration could be edited and nothing would notice
-
-`scripts/generate-member-read-policies.cjs` carries this warning, in its own
-words: *"Once a migration has been applied in production it is recorded as done
-and never read again, so editing it changes the repo and nothing else â€”
-silently. Every check in this repository reads the file, so they would all pass
-while production sat without the policies."* It refuses to **write** an applied
-migration, because the comment alone had not stopped the mistake happening once.
-
-Nothing stopped a hand edit. Deleting all **33** `create policy` statements from
-`20260728120000_member_read_policies.sql` â€” an applied migration â€” left
-`pnpm run verify:launch` **completely green**, all twenty-two commands. The repo
-and production would have diverged with no signal anywhere.
-
-`scripts/verify-applied-migrations.mjs` pins the content of every migration the
-repository declares applied, and `supabase/applied-migration-checksums.json`
-holds the hashes. Editing one fails the build and names the only correct fix:
-put the change in a new migration. Deleting one fails too â€” a migration that has
-run cannot be un-run by removing the file.
-
-**The first version left the same hole one file over, and was widened before it
-shipped.** It pinned only the three names in `APPLIED_MIGRATIONS`, a hand-kept
-list naming the member-policy migrations. But
-`20260728130000_sync_published_catalog_names.sql` is a generated migration its
-generator has *moved past* â€” it will never be rewritten, so it can only change
-by hand, and a hand edit cannot reach production. It was not on the list.
-
-So the rule is inverted. A migration is **writable** only while a generator
-still owns it, and every generator names its current output â€” so the set is
-derived rather than remembered. Everything else is frozen the moment it is
-pinned: **80 migrations, not three.** Being on `main` is deliberately not used
-as the test; the application deploys on merge and `supabase db push` is a
-separate step, so inferring it from git history would be wrong in both
-directions.
-
-**Re-pinning by habit is refused.** `--write` adds a hash for a file that has
-none and will not change one for a frozen migration. Without that this would be
-a checksum anybody could rewrite, which is a check that reports success for
-whatever it was last shown â€” and naming that risk in a comment while leaving it
-open is the shape of the defect, not a guard against it.
-
-**The empty-list case is a failure, not a pass.** An empty `APPLIED_MIGRATIONS`
-would make every assertion vacuously true and report success having pinned
-nothing, so it exits non-zero instead.
-
-**Verified.** 1802 tests passing, chain now twenty-three commands. The test
-removes every policy from a frozen migration and requires the checker to fail;
-hand-edits the superseded generated one the narrow version missed and requires
-both the check *and* the regenerate to fail; and deletes a file and requires a
-failure again. A checksum file nothing compares looks exactly like one that is
-compared.
-
-### 2026-08-13 â€” Three Growth Studio forms that could never save
-
-Fill in each Growth Studio create form and press the button. **Three of eight
-came back 400**, and all three failed the same way: the handler required
-something no form had a field for, so the refusal named a field the customer
-could not see.
-
-- **Segments** wanted `segment_definition`, an object. The form collects a name,
-  a description and a status. Every submission failed, so the only way to create
-  a segment was to hand-craft an HTTP request â€” which is exactly what
-  `lib/sonara-growth-create-specs.cjs` was written to stop.
-- **Experiments** wanted two variants whose weights sum to one. The form offered
-  no variants at all.
-- **Consents** validated `channel` against a closed list. The form rendered it as
-  free text labelled "email, sms, post, phone", and **"post" has never been on
-  that list** â€” a customer who took the label at its word got
-  `consent_fields_required` naming no field.
-
-This is the `item_name` defect again, and the reason it survived is the same:
-the existing tests post a body assembled by hand, and a body you assemble
-yourself cannot be missing a field.
-
-**The fixes are not symmetrical, because the three causes are not.**
-
-Segments: the handler now builds the definition from the words the form already
-collects, stored as `{ described_as: â€¦ }`. **Not** a JSON rule box â€” nothing in
-this product reads `segment_definition` back to work out who is in a segment, so
-a rule builder would look like a filter the product applies and would not be
-one. The separate key keeps that honest for whoever writes the evaluator.
-
-Experiments: two named sides, split evenly. The split is not a field, because a
-weight a customer has to get right is a weight that stops the save.
-
-Consents: one list, exported from the specs module and imported by the handler.
-Two copies of a rule is the shape every drift in this codebase has taken.
-
-**The check that was missing.**
-`tests/every-growth-form-can-actually-save.test.js` builds its bodies **out of
-the rendered HTML** â€” every input by name, every select's first real option,
-every textarea â€” and requires a write. It also refuses a submission that logs
-an audit event and saves no record, which would otherwise satisfy "something was
-written". Deleting the variant fields again fails it, naming the endpoint and
-the body its own form produces.
-
-**Three findings that were not defects, recorded so they are not re-investigated.**
-`consent_basis_attested`, `primary_metric` and `assignment_unit` are form fields
-with no matching column, and all three are deliberate: the handlers route them
-into `provider_response` and `metadata` jsonb explicitly. A sweep that assumes
-every form field is a column reports these, and they are correct as they are.
-
-**Verified.** `pnpm run verify:launch` green, 1795 tests passing. All eight
-Growth Studio forms now save what they collect; the experiments form writes the
-experiment plus two variant rows at 0.5 each.
-
-### 2026-08-13 â€” An approved agent action actually runs
-
-`/owner/agent-activity` carried a card saying approving was not wired up, and it
-was right: approving has to do two things, record the decision and re-run the
-action, and nothing re-ran anything. The runner is called per request by the
-page wanting work done, so an approval had nowhere to live and nothing to
-consume it. A button that wrote `approved` and changed nothing else would have
-told an owner their refund was authorised while no refund existed.
-
-**The queue is its own table, and the reason is one column.**
-`agent_action_logs` deliberately stores no payload â€” an audit trail must not
-become a second copy of the data with different retention â€” so a refused refund
-in it records that a refund was proposed and not which one, for how much.
-Re-running needs the action's inputs. The nineteen `entity_*` tables from
-migration 008 have the right shape and key on `entity_id`, which has no
-organisation. So `agent_pending_actions`: organisation-scoped, holding the
-action, its inputs, and the owner's decision.
-
-**Approving asks the gate again.** `lib/sonara-agent-queue.cjs` builds the
-approval and calls the same runner that refused it, with the classification
-re-derived from the action type rather than read off the row â€” a stored
-classification is a column the subject can write, which is why
-`decideExecution` already refuses to trust `requires_approval`.
-
-**Approving is not running, and the page says which happened.** Approving an
-action nothing implements writes `unimplemented` and the row reads "You approved
-this. Nothing in the product performs it yet, so nothing has happened and
-nothing was changed." That is the whole point: the failure being avoided is a
-screen reporting a job as done when it was not.
-
-**One handler, deliberately.** `approve_scheduled_content` sets one
-`growth_content_queue` row to approved, scoped by `organization_id` in the
-filter and not only by id â€” the service key bypasses row level security, so that
-filter is the tenant boundary. PostgREST answers 200 with an empty array when a
-filter matches nothing, which is what another organisation's id looks like, so
-an empty result is a failure here rather than a success. Registering a handler
-is how a capability becomes real, so the list grows one reviewed line at a time
-rather than through a generic executor that runs whatever it is handed.
-
-**Two clicks run the action once.** `running` is a claim: approving moves the
-row out of `waiting` with a conditional update before the action runs, so the
-second click finds nothing to take. It is a state rather than a lock because a
-run that dies part way has to be visible as "started and did not finish".
-
-**Two things found while wiring it.** `requireCustomer` and
-`requireBusinessManager` hang the signed-in user off different properties, so
-reading only the page's one made every queue endpoint answer `setup_required` â€”
-a 503 that looks like an unconfigured database and is a missing property name.
-And the page returned early on an empty log, which was right while it only read
-a log and wrong once it was also where an owner decides and hands an agent a
-job: the one screen with something to press had nothing on it at exactly the
-moment an owner had never used an agent. The empty log is a card now.
-
-**Verified.** `pnpm run verify:launch` green, 1789 tests passing. The loop was
-driven through Express: propose, queue, approve, and the `growth_content_queue`
-row actually changing to approved. Both key assertions were confirmed to bite â€”
-replacing the re-run with a bare state write fails with "the owner approved and
-the record did not change", and removing the `state=eq.waiting` claim fails the
-run-once check.
-
-**Still true, and worth keeping true:** nothing proposes actions on a schedule.
-An action reaches the queue because somebody asked for it. There is no
-background agent, and this change does not add one.
-
-### 2026-08-13 â€” The legal position stated as a disclaimer rather than a pending review
-
-`/readiness` reported `legalPages: review_required`. It rendered as "Legal
-pages: Review required", in a list beside "Payment connection: Missing" and
-"Checkout: Setup required" â€” items somebody closes by doing something. Nobody
-could close this one. A qualified legal review is a decision about engaging
-counsel, made outside this repository and with a cost, and no change to this
-code moves it.
-
-`docs/SHIP_READINESS.md` had already reached that conclusion and taken the item
-off the owner's list, for exactly that reason. The readiness surface had not
-caught up, so the permanent open item had moved rather than gone â€” same
-sentence, different page.
-
-It now reports `published_with_disclaimer`: the pages are published and every
-one says it is not legal advice. That is finished, and has no next step.
-
-**Derived, not declared.** The old value was a literal nothing could make
-false. `lib/sonara-legal-position.cjs` owns the disclaimer sentence, `legalPage()`
-renders it, and the status is computed from the page list and the sentence â€” so
-deleting the disclaimer changes what `/readiness` says. Three answers, not two:
-an empty page list returns `no_legal_pages` rather than passing vacuously, which
-is the shape this codebase keeps finding. A caller that forgets to inject the
-reader gets `unknown`, not the good answer.
-
-**The line this does not cross.** Dropping "review required" and asserting
-"reviewed" are different acts, and only the first happened.
-`legalReviewBoundary: not_attorney_reviewed` is untouched, every legal page is
-checked to claim no attorney review, `docs/legal/LEGAL_REVIEW_REQUIRED.md` and
-`COUNSEL_REVIEW_BRIEF.md` still hold the review itself, and the new test fails
-if either document is deleted or emptied â€” taking an item off a setup list must
-not quietly answer the question it asked.
-
-`scripts/smoke-live-routes.mjs` now asserts both values against the live site
-rather than one. `legalReviewBoundary` is the half somebody could drop without
-anybody noticing, and it was the half nothing watched.
-
-**Verified.** `pnpm run verify:launch` green, 1777 tests passing. Every route
-serving legal text was rendered and checked for the disclaimer â€” the routes are
-read off Express rather than from a list, so a new legal page is covered the day
-it ships. Replacing the disclaimer with a sentence that does not say "not legal
-advice" fails 23 tests, including the new one.
-
-### 2026-08-13 â€” The artist system built, and a contract that was reading two of three directories
-
-Migration 016 created eight tables with row level security and indexes.
-`routes/creator-artist-system-routes.cjs` was the only code that read five of
-them, `server.js` never required it, so its pages 404ed and the tables were
-never written in production â€” they read as *used* because a file existed that
-would have used them, had anything loaded it. The module was deleted and
-`lib/sonara-orphan-tables.cjs` recorded the choice: build the workspace
-properly from the real columns, or drop the tables. It is built.
-
-**Five pages**, through the same record-page machinery as everything else, so
-there is no second code path to fall out of use the way that module did:
-`/creator-studio/artists`, `/sound-identity`, `/album-cycles`,
-`/prompt-blueprints`, `/video-treatments`. The four children require
-`artist_profile_id` â€” it is nullable in the schema, and a row without one would
-be invisible on every page, since each lists by organisation and belongs to no
-artist.
-
-Three column kinds are deliberately absent from the forms: the jsonb rule
-blocks, `keys_allowed` (text[]), and `video_treatments.track_id`. A text input
-posting into jsonb or an array produces a failed insert or a shape nothing
-reads back.
-
-**The picker was going to be dead on arrival.** The creator page renderer
-called `formCard(page, {}, ui)` â€” harmless while no creator page had a
-reference field, wrong the moment one did. All four artist pickers would have
-read "Nothing to choose yet â€” add one first" to a customer with artists. That
-exact failure is recorded above `loadReferences`, where it shipped on the owner
-pages. The nav was also a hand-written list of four links sitting on what is
-now nine pages; it is generated from the pages themselves.
-
-**Not a second prompt library.** `creator_prompt_blueprints` and
-`sonara_prompt_templates` both hold prompt text, and the difference is not
-obvious, so the page says it: the library is where a prompt lives, with
-versions, provenance and licence status; a blueprint is a rule for one artist â€”
-what a track needs before a prompt is written from it, and how long it may be.
-The library has no column for either.
-
-**The contract was reading two of three runtime directories.**
-`scripts/verify-supabase-contract.mjs` scans the runtime for table references
-and failed anything uncontracted. It read `server.js` and `routes/` and not
-`lib/` â€” which is runtime, is where the record pages and record checks live,
-and is the same directory the production deploy gate greps for its paid-access
-markers. Widening it surfaced **seven** more tables the application reads and
-this contract had never named: the detail rows under purchase orders, stock
-counts, transfers and vendor invoices, plus `pos_menu_mix_items`,
-`employee_wage_rates` and `reviews`.
-
-`BUSINESS_OPERATIONS_TABLES` also turned out to pass through no create-or-RLS
-check at all â€” it existed only to stop the runtime scan failing, so a table
-could be listed as reviewed and exist nowhere. It now goes through
-`verifyExtension` against the five migrations that create its members.
-
-**Verified.** `pnpm run verify:launch` green, 1769 tests passing, 0 orphan
-tables. The five pages were rendered and posted to through Express: each
-returns 200, its form points at a registered endpoint, the artist picker shows
-a real artist, a save reaches the right table scoped to the organisation, and a
-child with no artist writes nothing. Both new checks were confirmed to bite â€”
-a table listed under operations that no named migration creates fails, and
-dropping `lib/` from the scan makes it pass while blind.
-
-### 2026-08-13 â€” The pricing restructure applied, and one ladder on the page
-
-`docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` argued for pricing **breadth**
-â€” how many of the three workspaces you get â€” instead of depth. It is applied.
-
-**The three new plans.** `workspace_monthly` $19 (any one workspace),
-`all_three_monthly` $39, `team_monthly` $79 (all three plus the staff portal).
-They live in `lib/sonara-stripe-plans.cjs` and carry no Stripe price until the
-owner creates one, so they render "Not open for checkout yet" and cannot break
-anybody's checkout. **Starter / Core / Pro are untouched.** Stripe prices are
-immutable, and an existing subscriber has to keep paying what they agreed to.
-
-**$19 buys one workspace, not three.** `SINGLE_WORKSPACE_PLANS` and
-`billingRowOpensProduct` in `lib/sonara-paid-access.cjs` are what make that
-true: a `workspace_monthly` row opens a product only if
-`metadata.workspace` names it. Both match points in
-`lib/sonara-paid-entitlement.cjs` call it, and both selects now ask PostgREST
-for `metadata`. A row with no choice recorded fails closed with
-`workspace_not_chosen` and a sentence telling the customer to pick â€” listing
-the key without this check would have made $19 buy what $39 is for.
-
-**One ladder on the pricing page.** Listing every key put eight plans on it,
-two priced $19 and two priced $39, containing different things. The obvious
-half-fix â€” hide the old ladder â€” empties the page, because the new plans have
-no Stripe price yet and every card would say "not open". So `offeredPlanKeys`
-takes two rules: a superseded plan drops off once its replacement **can be
-bought**, and a replacement stays off until it can be, for as long as any plan
-it replaces still works. The page switches ladders by itself when the owner
-creates the prices, and there is no state where nothing is purchasable.
-
-The "any", rather than "its own predecessor", is deliberate: keyed to its own,
-a Pro whose price variable went missing would pull All three onto the page
-unbuyable beside it â€” two $39 plans, arriving from a misconfiguration.
-
-`Team` is not hidden, because nothing supersedes into it. It appears saying it
-is not open yet, which is what every unpriced plan does. Hiding every unpriced
-plan would be a tidier page bought by making a missing price invisible.
-
-**The prose moved with the cards.** "Pro covers all three for $39" was written
-out in two places and Pro is not on the new page; the successor is called
-"All three", which would have made it "All three covers all three for $39". The
-sentence is now `All three cost $39 together`, derived from the cheapest offered
-plan marked `coversAllThree`. "Which plan should I pick?" is built from the
-plans that are actually buyable, cheapest first, and says paid plans are not
-open yet when none are.
-
-**Pro against Core.** Both open all three workspaces, so after the August
-widening Pro had nothing exclusive. Locations are what separate them:
-`INCLUDED_LOCATIONS` gives Core 3 and Pro unlimited, enforced at
-`routes/sonara-last9-routes.cjs:706`. `all_three_monthly` inherits Pro's
-unlimited rather than a fresh middle rung â€” the restructure doc says it *is*
-Pro renamed at the same price, and giving it three would make the rename a
-reduction discovered at a customer's fourth site.
-
-**Two checks that had gone blind, found by moving the table.**
-`tests/dashboard-setup-doc.test.js` parsed price env vars out of `server.js`
-source with a regex; the moment the table moved it found zero, and "no env var
-is missing from the doc" was true of an empty list. Its own guard caught it, and
-it now reads the table object. `tests/database-query-contract.test.js` pinned a
-`doesNotMatch` on a PostgREST select string that the added `metadata` column
-would have slipped past.
-
-Also: `module.exports = STRIPE_PLANS` with `offeredPlanKeys` hung off the same
-object put a function into the plan table, so `Object.entries` yielded a ninth
-"plan" the pricing page would have tried to render. The table is now frozen and
-exported under a name.
-
-**Verified.** `pnpm run verify:launch` green, 1745 tests passing. The pricing
-page rendered under five environments â€” nothing connected, legacy only, legacy
-with Pro misconfigured, partly switched, fully switched â€” and each shows one
-coherent ladder with no two plans at the same price. `server.js` 4122 â†’ 4065
-lines; the ratchet came down to 4066 and was confirmed to fail at 4068.
-
-**What the owner still has to do:** create the three Stripe price objects
-(`STRIPE_PRICE_WORKSPACE_MONTHLY` $19, `STRIPE_PRICE_ALL_THREE_MONTHLY` $39,
-`STRIPE_PRICE_TEAM_MONTHLY` $79) and set them in production. Nothing else is
-needed â€” the page switches on its own.
-
-### 2026-08-13 â€” The tap-target rule, checked against a class nothing renders
-
-AGENTS.md: "Mobile layouts must avoid overflow and use large enough tap
-targets." **Both rules hold.** Neither was being checked.
-
-`tests/design-system.test.js` asserted `--sonara-tap: 44px` and
-`max-width: 100%` appear in `public/sonara-design-system.css`. The token is
-real. The only selector consuming it is `.sonara-ds-button`, and the
-application never renders one: across six representative pages the interactive
-elements are 43 bare `<button>`, 41 `a.action`, 39 bare `<input>`, 14 `<select>`
-and 2 `<textarea>`. Not one `.sonara-ds-button`.
-
-The rules that actually govern those controls live in
-`public/sonara-application-ui.css`, and had nothing watching them. Strip every
-`min-height` from the selectors the product renders and every control collapses
--- while the design-system assertion stays green, because it is reading a
-different file about a different class.
-
-`tests/mobile-rules-hold-on-what-is-rendered.test.js` scrapes the controls off
-rendered pages and checks the served stylesheet against those, refusing to
-assert about a selector the sample does not contain. It also checks the two
-halves of the overflow rule that matter on a phone: the body must not scroll
-sideways, and a record table -- wider than any phone -- must scroll inside
-itself, or its columns are simply unreachable.
-
-**One correction worth recording.** The first attempt to prove the new check
-bites deleted the 46px rule and the check still passed, which read exactly like
-a check passing for the wrong reason. It was not: a second rule gives the same
-selectors 48px, so the guarantee genuinely still held and the experiment was
-wrong rather than the check. Removing *every* `min-height` on those selectors
-fails it, naming each control and how many of them are on the page. Being wrong
-about which of the two was broken is the easy mistake here, and worth the extra
-five minutes it took to find out.
-
-The old assertion is kept and renamed to what it does -- the token is the right
-place for the number, and a token quietly changed to 20px should still fail
-something.
-
-Verified: `pnpm run verify:launch` green end to end, 1,737 tests passing.
-
-### 2026-08-13 â€” The document the owner reads to decide whether to launch
-
-`docs/owner/WHAT-IS-LEFT.md` said "`pnpm test` is at 1347 passing and the
-eighteen-command `verify:launch` chain is green". The suite was at 1,733 and the
-chain at 21. Its by-the-numbers block was stale in five more places: 242 routes
-against 248, 301 tables against 302, 66 reviewed repositories against 82, 22
-owner record pages against 23.
-
-Every figure was right when it was written. None had anything watching it, which
-is the whole point: this is the document somebody reads to decide whether the
-thing is ready, and it was describing a repository three weeks behind.
-
-`scripts/verify-doc-counts.mjs` checks the two kinds of countable claim a live
-document can make. A chain length must match `verify:launch`. A **passing test
-count may not be stated at all** outside a generated document -- it is stale the
-next time anybody adds a test, and there is no version of it a hand-written file
-can keep true.
-
-Four things had to be right for the check to be worth having, and three of them
-were wrong first.
-
-`docs/HANDOFF_PROMPT.md` is generated and embeds the sprint log verbatim, so
-every historical "1,733 tests passing" reappeared in it -- the check was reading
-the same history twice and calling it a live claim. Two audit files open with
-"Date:" and "Verification date:", which makes them records of a day in the same
-way the sprint log is; correcting their counts would make them worse records, so
-the rule is a dated marker near the top rather than a list of filenames.
-`1,733` was read as `733`, because the pattern did not allow a thousands
-separator and the error quoted a number nobody had written. And
-`**21** verification commands` never matched at all, because emphasis sits
-between the word boundary and the digits -- so after the fix the check passed
-having examined **zero** claims. It refuses that now: no claim found anywhere is
-reported as the patterns having stopped matching, not as everything being fine.
-
-Adding the check to the chain made the chain 22 commands and the sentence I had
-just corrected wrong again, which the check caught on its first real run.
-
-Verified: `pnpm run verify:launch` green end to end across 22 commands.
-
-### 2026-08-13 â€” The write half of the outage crawl, which found nothing
-
-The third of the outage crawls, and the one with the worst consequence if it
-had found something: what a customer is told when their record could not be
-**written**. They close the tab believing it saved.
-
-**Nothing needed fixing.** Every endpoint that reaches a write reports the
-failure, by redirecting back with `?problem=` or answering `ok: false`. That is
-worth recording as a result rather than a non-event -- it is the half of the
-application this sprint has not had to correct.
-
-The check stays, because the shape it looks for is one line away at any time.
-Making a failed insert redirect as though it saved fails it in sixty-six places.
-
-**What it does not cover is stated rather than implied.** 74 endpoints are
-create-shaped; a generic body plus every declared form field gets 40 of them as
-far as a write. The other 34 reject earlier on validation of their own --
-consent requirements, provider contracts, market-intelligence scoring -- and
-modelling each one's valid input is a different piece of work.
-
-That distinction is the whole reason the file exists in this shape. The first
-version of the probe reported **"74 of 74 report failure honestly"**, which was
-true and meaningless: 42 were being rejected before the write, so it was
-measuring the validation path and calling it the write path. A hundred percent
-on a check is a reason to ask what it reached, not a reason to move on.
-
-Verified: `pnpm run verify:launch` green end to end, 1,733 tests passing.
-
-### 2026-08-13 â€” The same crawl against the API, and a field called ok
-
-The companion to the page crawl: every JSON GET, with the database answering
-nothing, reading what a consumer of the API is told rather than what a page
-renders.
-
-**Four endpoints answered `ok: true` with an empty list.** They were not
-careless -- they put the real outcome in a second field, `saved`, leaving `ok`
-to mean "the request was handled". That is a defensible convention and it is not
-the one the rest of this API uses: 68 other JSON GETs answer a failed read with
-`ok: false` or a 4xx. Worse, `createChecklistItem` returns `ok: false` for the
-same two setup conditions `listChecklistItems` directly above it reported as
-`ok: true`, so one file answered one question two ways depending on whether you
-were reading or writing. A field called ok is read as ok.
-
-"The read failed" is now also distinguishable from "setup was never done".
-`code: "setup_required"` was returned for both, and a consumer would retry one
-and not the other.
-
-**And the first version of the check was measuring four endpoints while reading
-as though it covered the API.** It skipped anything without a
-rows/records/items field, which was 63 of 67. Counting all of them found
-`/api/growth/metrics` answering `ok: true` over a response in which every figure
-was null -- honest per field, and the envelope said success. It reports
-`countsRead` now and is false only when nothing at all could be counted, because
-a partial read is already described precisely by the nulls.
-
-Reintroducing both regressions fails the crawl in twelve places; that was tried
-rather than assumed.
-
-Verified: `pnpm run verify:launch` green end to end, 1,731 tests passing.
-
-### 2026-08-13 â€” Rendering every page with the database down
-
-`tests/signed-in-workspace-crawl.test.js` crawls with the database answering and
-empty, which is the state a new customer is in. Nothing crawled with it
-answering nothing at all, which is the state everybody is in for the few minutes
-a year it happens -- and the state where a page is most likely to tell somebody
-something false about their own records. 197 pages render in it. Four were
-lying.
-
-**The billing panel told a paying customer they had no plan.**
-`getBillingPanelSummary` returned `{ status: "No subscription records
-returned.", rows: [] }` when the read failed, and that string renders on the
-billing page as a statement about the customer's subscription. Somebody paying
-$39 a month, on a bad day for the database, was told no active paid plan was
-found. That is the one place in the product where being wrong in that direction
-costs a cancellation rather than a support ticket.
-
-**All three workspace dashboards said "No activity yet."** The read outcome was
-dropped before the card saw it -- while `countLabel` on the same card already
-answered "unavailable" for a failed count, so the two halves of one card
-disagreed about what a failure looks like.
-
-**Two card headings contradicted their own bodies.** "No areas yet" and "No
-consent records yet" printed above text explaining the read had failed. A
-customer skims headings, and a creator reading the second could reasonably
-conclude a permission they had recorded was gone.
-
-The crawl is `tests/no-page-lies-when-the-database-is-down.test.js`, with an
-excuse list for prose that matches the pattern and is not a claim about records
--- the earnings disclaimer, "nothing is sent from here", "nothing here has been
-sent". Each entry says why.
-
-Two weaknesses in the check itself, both found before trusting it. It excused
-against the matched fragment rather than the surrounding sentence, so the
-billing panel's own new failure wording arrived as "nothing here" and no excuse
-for the full phrase could ever fire. And it examined only the **first** match on
-each page, so a page whose opening safety statement is excused could carry a
-real claim further down and never be looked at -- a check going blind exactly
-where a page has the most to say. Reintroducing the dashboard regression now
-fails it in six places; that was tried rather than assumed.
-
-Verified: `pnpm run verify:launch` green end to end, 1,728 tests passing.
-
-### 2026-08-13 â€” A scan of the whole tree, and three pickers that never worked
-
-Swept 30,491 lines of runtime across 97 files for the failure shapes this
-sprint has been finding. Most instances of `result.ok ? rows : []` turned out
-to be fine -- the outcome travels in the returned object, and
-`lib/sonara-cash-position.cjs` and the Creator Studio consent list both already
-reason about the failure explicitly, in comments, with the right answer. What
-the scan found was elsewhere.
-
-**Three reference pickers on line forms had never worked.** `loadReferences`
-read `page.form.fields` only, and `lineFormCard` called `formField` with an
-empty references object, so every reference field on a child line form rendered
-"Nothing to choose yet -- add one first" regardless of what the business had.
-The service picker when writing an invoice line is the one that matters: it
-predates this sprint by a long way, and a business with a full service catalogue
-was being told to go and add a service first. The stock picker on a recipe
-ingredient and the menu picker on what sold were mine, added last week and
-broken from the moment they were written.
-
-The detail handler never loaded references at all, which is the other half of
-it. Both halves are fixed, and the invoice-line picker was checked through the
-rendered page rather than by reading the code.
-
-**And a picker now has three states rather than two.** A failed read collapsed
-to the same empty array as a source with nothing in it, so "we could not load
-your customers" and "you have no customers" were the same sentence -- and the
-second one tells a business to create records it may already have hundreds of.
-
-One note on the test harness. The first version of the picker assertion said
-"although the stub returns rows for every table", and the stub did not: it
-answers for parent and line tables and returned nothing for the tables behind
-the pickers. The stub was strengthened rather than the claim weakened, because
-the other way round is a check that passes for a reason unrelated to what it
-says.
-
-Verified: `pnpm run verify:launch` green end to end, 1,724 tests passing.
-
-### 2026-08-13 â€” Rendering the day page, which nothing had done
-
-The labour work shipped with two test files that both passed and neither of
-which had run the page. `tests/what-a-day-made.test.js` calls `derivedCard`
-directly with hand-built arguments; `tests/labour-cost.test.js` calls
-`labourCostForDay` directly. The wiring between them -- the handler awaiting
-`derivedReads`, threading its result in as a fourth argument -- was never
-executed by anything, and a mistake anywhere along it leaves both files green
-and the page without a figure on it. That is the defect class this repository
-keeps finding, arrived at from the inside.
-
-It does work, and now something says so.
-`tests/the-day-page-renders-its-own-figures.test.js` opens
-`/business-builder/owner/sales/:id` through the real handler and reads the card
-off the rendered HTML. Breaking the wiring -- dropping the fourth argument --
-fails three of its six checks; that was tried before trusting it.
-
-Two things it asserts that the unit tests could not. The extra reads go out with
-the service key, which bypasses row level security, so **the organization filter
-in the query is the only thing between one business and another's payroll** --
-checked against the query strings that actually left, not against the code that
-builds them. And the hours query is bounded to the day being looked at rather
-than reading every entry a business has ever recorded, which is how a page gets
-slow without anybody noticing.
-
-Verified: `pnpm run verify:launch` green end to end, 1,721 tests passing.
-
-### 2026-08-13 â€” The labour half, and four ways it is not knowable
-
-Each day under Daily sales now costs its own labour: hours from
-`employee_time_entries`, rates from `employee_wage_rates`, joined on the date
-the rate was in force. That completes the food-and-labour figure the restaurant
-schema has held since migration 014 and nothing has ever produced.
-
-`lib/sonara-labour-cost.cjs` is mostly refusals, and that is the point. A labour
-figure is a number a business prices against, and the obvious version of this
-join is confidently short in four ways:
-
-  * a shift still clocked in has no end, so its hours are unknown, not zero
-  * a salaried person cannot be divided into a day by multiplying hours -- eight
-    hours times a Â£4,000 monthly rate is a labour cost of thirty-two thousand
-  * somebody with no rate on that date costs an unknown amount, not nothing
-  * a break longer than the shift is bad data, not negative work
-
-Each is counted and named to the customer, because a figure missing three people
-reads exactly like a complete one. When anything is missing the wording changes
-to "labour at least X, leaving at most Y", and says which people it left out.
-
-The card still never says profit. It says food and labour only, and that rent
-and energy are not in it.
-
-Two mechanical notes. The detail handler grew a `derivedReads` hook, because
-hours and rates are not children of a sales summary; it hands the page a
-**scoped** list function rather than the Supabase config, so a page cannot write
-a query that forgets the organization filter -- the one mistake that would let
-one business read another's payroll. And `finiteNumber` moved to
-`lib/sonara-numbers.cjs`: the labour module needs it and the record pages now
-need the labour module, which is a require cycle. It is re-exported from its old
-home because enough modules import it from there that moving them would be
-churn.
-
-Two mistakes worth recording. The guard that was supposed to add the new require
-read `if ("sonara-labour-cost" not in source)` -- and the source already
-contained that string, in the comment pointing at the file, so the require was
-never inserted. Second time in two changes that a check has been satisfied by
-prose about itself. And a test fixture gave one employee both no rate and
-impossible hours, expecting both to be reported; the hours check runs first, so
-the no-rate case was never reached and the assertion for it failed. The fixture
-was wrong, not the code.
-
-Verified: `pnpm run verify:launch` green end to end, 1,715 tests passing.
-
-### 2026-08-13 â€” Three more copies of the confident zero, outside the record pages
-
-The general sweep reads column definitions, so it cannot see anything that
-renders through its own formatter. Three did.
-
-A Creator Studio generation job with no progress reported showed **0%**, which
-reads as started and stalled rather than nothing has said yet. And the Growth
-Studio conversion totals summed `Number(row.value || 0)` in two places, so a
-sale with no value recorded counted as zero and vanished into the figure -- a
-total short by however many sales are unpriced, presented as the value of every
-sale. The figure now sums only the rows that carry a value and says how many it
-left out, in the API's `computedOver` and in the label on the totals card.
-
-**The first version of the check failed on its own comment.** It searched the
-source for `Number(x || 0)` and matched the comment written directly above the
-fix, which quotes the pattern to say what it replaced. Comments are stripped
-before matching now -- the same trap `scripts/verify-open-source-registry.mjs`
-hit reading a type union out of a file whose comment contained a semicolon. A
-regex over source is a regex prose can satisfy.
-
-Verified: `pnpm run verify:launch` green end to end, 1,699 tests passing.
-
-### 2026-08-13 â€” What a day made, and the wage rates that were blocking it
-
-`employee_wage_rates` had a schema, row level security and no page. That is why
-labour cost is not computable anywhere in this product: hours are recorded on
-`employee_time_entries`, rates were not recordable at all. It sits under Staff
-now, as a child of the person it belongs to -- the same relationship recipe
-ingredients have to a recipe.
-
-With that unblocked, each day under Daily sales states its own food cost: net
-sales off the day, food cost from the menu mix, and the share of sales it
-represents. The card **does not call the remainder profit.** In a food business
-labour is the second-largest cost after food, so a "gross profit" that quietly
-omits wages is not an approximation, it is a wrong number somebody might price
-against. It says "before labour" and says why labour is not in it, and there is
-a test asserting the word profit never appears.
-
-`/business-builder/owner/costs` says the narrower true thing now: the food-cost
-half is on each day, and combining it with labour into one figure per day is
-still not built.
-
-Three things in the test harness were wrong and only showed up because a child
-with a required *date* arrived. `requiredBody` filled every non-numeric required
-field with the word "Something", so a date column was posted the string
-Something -- accepted by the stub, rejected by Postgres, which means the harness
-was exercising a path no real submission takes. And "will not take the
-organization from the form" hand-wrote a body with `item_name` against
-`WITH_LINES[0]`; adding a child changed which page came first, its form asks for
-an amount and a date, and the submission was rejected before the tenant check it
-exists to run could happen. It builds the body from the page's own form now,
-which is the lesson this file had already learned once and applied everywhere
-except there.
-
-Verified: `pnpm run verify:launch` green end to end, 1,697 tests passing.
-
-### 2026-08-13 â€” The half of the audit that nobody would have read
-
-*Selling Your Work* is free, on the owner's instruction. The only page that does
-it is a free one, so a Starter floor charged for something a signed-in customer
-already had. Ten of twenty-three products are free now, three Starter, eight
-Core, two Pro.
-
-**And the audit before this one fixed the wrong half.** It trimmed nine
-`capabilities` lists to what their page renders and left every `summary` alone.
-`capabilities` is internal and nobody outside this repository sees it; `summary`
-and `customerOutcome` are printed on the catalog card a customer reads before
-paying. So "Products, services, licences, bundles, prices, delivery files,
-payment links, and your refund position" stayed on a product whose page drafts
-one offer and saves it, next to a capability list that had been cut to three
-honest items.
-
-Seven summaries rewritten. Research & Roadmap no longer claims scored
-opportunities or live experiments; One Connected Account no longer says files
-stay in one place, because `/dashboard` holds none; Landing Pages & Results no
-longer describes a path through a form, a booking and a payment; Connection
-Health no longer offers limits, retries, costs and where you are being
-mentioned.
-
-`tests/the-catalog-copy-claims-nothing-unbuilt.test.js` is the list of phrases
-no product may use and the reason each one is not there to promise -- bundles,
-delivery files, payment links, UTM, refund position, scored opportunities,
-validation portfolio, referral tracking, answer-engine, renewal reminders, CSV
-mapping, file storage. It reads the customer-facing fields, not the internal
-one, which is the mistake it exists to catch.
-
-It found one I had missed by hand: *Connected Accounts* still offered "safe
-connections to payments, email, publishing, **file storage**, and analytics",
-after the storage product itself had been rewritten. A phrase outliving the
-thing it described is exactly what a hand pass misses and a list catches.
-
-Verified: `pnpm run verify:launch` green end to end, 1,690 tests passing.
-
-### 2026-08-13 â€” Opening all twenty-three products and reading what they render
-
-Every catalog product opened as a paying customer, with its page compared to
-what its row claims. **Six were pointing at the wrong page and three more were
-claiming work that is not built anywhere.**
-
-The worst was *Quotes, Invoices & Getting Paid*, at `/business-builder/billing`
--- the customer's own SONARA subscription, with "Upgrade: Starter" and "Manage
-billing portal" on it. A product about invoicing their customers sent them to a
-page about paying us. It goes to `/business-builder/owner/invoices` now.
-
-*File Storage* claimed file storage, versions, approvals and provenance, at
-`/dashboard`. There is no file store a customer can upload to anywhere in this
-product -- the only storage path is the signed download of a Creator Studio
-generation result -- and the dashboard holds no files at all. It is now what
-does exist: `/account/data`, every kind of record the account holds, a download
-of all of it, and an erasure request.
-
-*Brand & Asset Library* pointed at the generic Creator Studio workspace index
-rather than `/creator-studio/assets`, which is the asset catalogue.
-*Logins, Team & Permissions* pointed at `/account/setup`, which renders no cards
-at all -- `/account` is where an organization is created or joined. *One
-Connected Account* pointed at `/products`, the public marketing index.
-
-**And *Selling Your Work* was wrong for the second time.** The previous change
-moved it off the generic setup checklist and onto `/creator-studio/offers`,
-chosen because the page *definition* is titled "Offer Records". Rendering it
-shows two cards -- "What this tool does" and "Access" -- with no records and no
-form. Reading a definition is not reading a page, and the check that existed
-asked whether the route resolved and whether the plan opened it. Both were true.
-It points at `/creator-studio/offers/free` now, which drafts and saves an offer,
-and the claims are cut to that: bundles, payment links and delivery files are
-not built anywhere in Creator Studio and the row said all three.
-
-Three capability lists trimmed to what their page shows. *Research & Roadmap*
-claimed opportunity scoring and a validation portfolio; the page states a
-thesis, a pricing position and a rule about not inventing data. *Landing Pages &
-Results* claimed a UTM builder and landing-page forms; neither exists. *Connection
-Health* claimed answer-engine evidence and referral tracking; it lists connected
-services.
-
-`tests/each-product-does-what-it-says.test.js` renders all twenty-three as an
-entitled customer and requires each to show a card of its own -- not the
-application frame, and not a placeholder describing what it would do. A page
-need not have a form: several products are reports, and demanding a button of
-them would be demanding the wrong thing. The card scrape has its own guard,
-because a scrape that silently stops matching reports every page as healthy,
-which is how the first pass through this looked fine.
-
-Verified: `pnpm run verify:launch` green end to end, 1,686 tests passing.
-
-### 2026-08-13 â€” Twenty-three columns reporting a number nobody recorded
-
-Started as a sweep of every record column and turned into one fix in three
-helpers.
-
-`money()`, `quantity()` and `percent()` all guarded with
-`Number.isFinite(Number(value))`. `Number(null)` is 0 and 0 is finite, so a
-column with nothing in it printed a confident figure: `$0.00` for a service with
-no price, `0` for an item nobody had counted, `0.0%` for a target nobody had set.
-Twenty-three columns across the owner and growth record pages did it.
-`countText()` and `percentText()` in `lib/sonara-growth-record-pages.cjs` were a
-second copy of the same fault.
-
-A stored `0` still renders as `0`. That is the point: absent and zero are
-different facts and the helpers can now tell them apart.
-
-Two more of the same shape found on the way. `lowStock` on the Business Builder
-snapshot read `Number.isFinite(Number(row.reorder_level))`, which accepts null,
-so an item with no reorder level was compared against a threshold of zero and
-any item with no quantity recorded counted as low stock -- the headline figure
-was inflated by items nobody had set a threshold for.
-`lib/sonara-record-checks.cjs` asks the same question correctly with
-`Number(row.reorder_level) > 0`; two modules, one question, two answers, and the
-wrong one was on the dashboard. And the segments page reported "0 people" for a
-segment nobody had evaluated.
-
-**And a bug I had introduced the change before.** `percent()` multiplies by 100,
-so every column feeding it holds a fraction. I stored recipe waste as a whole
-number and wrote "nothing read this column before, so the convention is set
-here" -- true about the column, wrong about the codebase, since every
-`numeric(7,4)` percent column in migration 014 is a fraction. A 5% waste
-displayed as 500.0%. The customer still types 5; the derive hook stores 0.05.
-
-`tests/no-column-invents-a-number.test.js` is the general check. It reads each
-column's fields with a Proxy rather than guessing them -- the first version
-probed an all-empty row and missed the menu margin, which only lies when the
-price is present and the cost is not -- then removes one numeric field at a time
-and requires the column either to say it does not know or not to print a figure.
-It was checked against a reintroduced `Number()` guard before being trusted.
-
-Verified: `pnpm run verify:launch` green end to end, 1,681 tests passing.
-
-### 2026-08-13 â€” A day's takings, and a menu that stopped claiming 100% margin
-
-`/business-builder/owner/menu` has a "You keep" column that reported the whole
-selling price as profit, at 100%, for every dish. `theoretical_cost_cents` is
-`integer default 0` and nothing writes it, so every menu item a customer had
-entered read as costing nothing to make -- on the screen a restaurant uses to
-decide what to charge. Zero is read as "never costed" now, which is the same
-reading `lib/sonara-record-checks.cjs` already takes when it flags a dish with a
-price and no cost. A dish that genuinely costs nothing is not a case a kitchen
-has.
-
-`pos_sales_summaries` and `pos_menu_mix_items` have a page:
-`/business-builder/owner/sales`, a day at a time with what sold as its lines.
-
-And `/business-builder/owner/costs` stopped promising. Its body said the figures
-were "worked out from your own records rather than entered by hand" and its
-empty state said they "appear once you have sales and costs recorded" -- but
-nothing writes `daily_profit_snapshots`, so they would not have appeared however
-much a business recorded. The page is kept, because the table and the
-calculation are real work worth doing; what was wrong was telling a customer it
-was already happening. It now says which half is ready and which is not built.
-
-**The reverse of form reachability was unguarded, and I walked straight into
-it.** `tests/form-reachability.test.js` asks whether every create-shaped POST
-route can be reached from a form. Nothing asked the other direction: a page
-declaring `api:` for an endpoint nobody registered renders a form that posts to
-a 404. The daily sales page was written that way -- the child endpoint is
-registered automatically from the child spec, so only the parent was missing,
-and the OpenAPI gate flagged the child while saying nothing about the parent.
-The button looked exactly like the working ones.
-
-The check for it had to learn the same lesson `lib/sonara-form-reachability.cjs`
-did: a page's form may declare its own `action`, so reading `page.api` alone
-reported the working time-clock page as broken. Clocking in posts to
-`/api/business/time-entries/start`, because it is "start one now" rather than
-"create a time entry".
-
-Verified: `pnpm run verify:launch` green end to end, 1,677 tests passing.
-
-### 2026-08-13 â€” A recipe that costs something, and a total that was short
-
-`recipe_cards` shipped with a page. `recipe_ingredients` shipped with a schema,
-row level security, an index and no way to add one, so a recipe was a name, a
-yield and a block of method text. Recipe costing -- the number a food business
-is actually buying, and what a $350-a-location competitor sells -- could not be
-worked out from anything the product held.
-`docs/2026-08-12-WHAT-ELSE-CAN-WE-SELL.md` names this table first for that
-reason.
-
-Ingredients now hang off a recipe like invoice lines hang off an invoice, using
-the child-line machinery that already existed. Two things about it are
-deliberate. The cost is **derived, not asked for**: quantity, unit cost and
-waste are facts a person knows, and the cost is arithmetic over them, so asking
-for both would let the stored number disagree with its own inputs. That is
-deliberately unlike an invoice line, where `line_total_cents` is asked for and
-stored, because a line total is what the business decided to charge and
-recomputing it would overwrite a discount. Nobody discounts a recipe.
-
-`waste_percent` had no reader anywhere, so the convention is set here rather
-than inherited: 5 means 5%, written on the field a person types into, and
-asserted -- the other reading of `numeric(7,4)` would turn a customer typing 5
-into 500% waste.
-
-**Two defects came out of writing the tests for it.**
-
-`Number(null)` is `0` and `Number("")` is `0`, and both are finite. `linesCard`
-guarded its total with `Number.isFinite(Number(row[totalFrom]))`, so a line
-whose amount had never been entered counted as nothing and the total printed as
-"Total of these lines" while being short by however many were blank -- with the
-blank cell visible in the same table. That was live on invoices, purchase
-orders, stock counts, transfers and vendor invoices. `finiteNumber` replaces the
-guard at both sites.
-
-And the detail page read its child rows as `listed.ok ? listed.rows : []`, so an
-unreadable line list rendered as `spec.empty` -- "Nothing has been added to this
-invoice yet" -- for an invoice whose lines could not be read. The read outcome
-travels now, and an unreadable list says so instead.
-
-A smaller one, found by making the mistake: a `reference` field naming no entry
-in `REFERENCE_SOURCES` renders an empty picker rather than failing. Writing
-`from: "inventory"` before the source existed produced a control that looked
-like a way to choose something and offered nothing, and no check objected.
-`tests/owner-record-lines.test.js` refuses a dangling source now.
-
-The OpenAPI gate caught the new endpoint, which is the second time this session
-it has been the thing that noticed a route with no operation.
-
-Verified: `pnpm run verify:launch` green end to end, 1,673 tests passing.
-
-### 2026-08-13 â€” Widened what a plan buys, and gave locations a limit
-
-Two owner decisions applied.
-
-**Widened rather than repriced.** Creator Studio moves down to Starter and
-Growth Studio down to Core, so all seven products that advertised a plan the
-server refuses now open on the plan they name. The two Growth products marked
-Starter moved to Core, because `growth_studio` does not open below it. All 23
-catalog products execute.
-
-The consequence is written into `lib/sonara-paid-access.cjs` rather than left to
-be discovered: **Pro $39 no longer opens a workspace Core $19 does not.** Three
-workspaces and three paid tiers make a three-rung cumulative ladder, and moving
-two workspaces down spends two rungs. The staff and scheduling features are the
-intended answer and they already exist, given away free, against Deputy at $5 a
-user. Until they move to Pro, Pro is priced above what it uniquely opens.
-
-**Locations are limited by plan, not billed per location.** Starter 1, Core 3,
-Pro unlimited, in `lib/sonara-plan-limits.cjs`, enforced when a location is
-created. An add-on would have needed a Stripe price object nothing here can
-create; an allowance needs the count and the plan, both already on the request.
-
-`locationAllowance` returns three answers rather than two, and that is the part
-worth keeping. A count that could not be read refuses with "we could not check"
-and 503, not "you have hit your limit" and 402 -- a reachable state where the
-obvious two-valued version tells a customer a definite thing nobody measured.
-`null` means unlimited and is kept distinct from `0`, with a test for it,
-because `included || Infinity` would turn a deliberate zero into no limit at
-all.
-
-**Three copies of the same list collapsed into one.** The deploy gate held its
-own transcription of `PAID_ENTITLEMENT_KEYS`, and a test resolved it by parsing
-quoted strings out of the gate's source. Widening the map meant editing the
-gate by hand; deriving it instead broke the parser, which reported that the
-check had gone blind -- correctly, for a reason that was not a defect. The list
-is `PAID_ACCESS_RUNTIME_MARKERS` now, imported by both, and it was checked
-against a deliberately reformatted mapping before being trusted.
-
-`getCustomerPaidEntitlement` moved to `lib/sonara-paid-entitlement.cjs`, which
-took server.js from 4124 lines to 4100 and absorbed the one line the plan-limit
-dependency added rather than raising the split ratchet for it. Two things broke
-on the move and both are the same shape: `tests/database-query-contract.test.js`
-read server.js alone and failed on code that was present, correct and shipped
-one directory over -- which is exactly the fault the marker check was written
-for after an earlier move of this same function broke a production deploy while
-the suite stayed green. It reads the whole runtime now. The const also had to be
-built above its first use, because it used to be a hoisted `async function` and
-the deps object reads it at module load.
-
-Verified: `pnpm run verify:launch` green end to end, 1,660 tests passing.
-
-### 2026-08-12 â€” Seven products sold on plans the server refuses
-
-Started as a route fix on "Selling Your Work", which pointed at
-`/creator-studio/launch-readiness` -- server.js's generic
-`/:product/launch-readiness`, one setup checklist shared by all three products
-and not even signed-in gated. The identical fault had been fixed on Business
-Builder's exports product a change earlier and missed here, because the two rows
-were read a week apart and nothing compared a route to what the route renders.
-
-Checking the plan that product is sold on turned up the larger fault.
-`getCustomerPaidEntitlement` matches a subscriber's plan_slug against
-`getPaidEntitlementKeys(productKey)`. The catalog decided whether a product's
-paid access was real with `hasEnforcedPaidAccess(productKey)` -- whether the
-family enforces *anything*. Seven of fourteen paid products fell in the gap:
-Creator Studio enforces core_monthly and pro_monthly while three of its products
-advertised Starter, and Growth Studio enforces pro_monthly alone while four of
-its products advertised Starter or Core. Buying the advertised plan and clicking
-the product returned 402 upgrade_required, both halves working exactly as
-written and disagreeing about the price.
-
-Worth naming as a pattern, because it is the second time: this is the successor
-to `planFloor === "free"`. That one defined verified access as free access; this
-one defined it as somebody, somewhere in the family, being able to get in. Both
-are true statements about something other than what the customer is being sold,
-and both read as reasonable until you ask what question the code is answering.
-`planFloorOpensProduct` asks the one the customer is asking.
-
-The seven now report closed, which is honest but is not where they should stay.
-Which way they open is a pricing decision -- raise the floor, or widen what a
-plan buys -- so it is listed as a work queue with a note per product rather than
-decided here.
-
-Two routes also stopped colliding. "Customer & Enquiry Tracker" and "Bookings,
-Staff & Day-to-Day" both pointed at `/business-builder/dashboard`; they are the
-CRM and the operations hub respectively, not duplicates, and now go to
-`/business-builder/owner/customers` and `/business-builder/owner`.
-
-`tests/catalog-routes-go-somewhere-real.test.js` opens every catalog route
-against the booted application rather than reading
-`lib/sonara-route-registry.cjs`. The registry is hand-maintained and is not
-complete -- `/readiness` is a live public page, linked from three screens, with a
-plain-language title, and it appears in none of the registry's route arrays. A
-check reading the registry would have called that catalog row broken while the
-page was fine.
-
-`docs/2026-08-12-WHAT-ELSE-CAN-WE-SELL.md` is the research that came out of it.
-Two findings worth carrying forward. The seven are not seven mistakes: the
-catalog prices on a depth ladder while `PAID_ENTITLEMENT_KEYS` gates on breadth,
-and that map is already a workspace-access map wearing plan-tier clothing --
-which is independent evidence for the restructure in
-`docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md`, this time from a bug rather
-than from a market comparison. And migration 014 is a complete restaurant margin
-schema, eighteen tables with ten working record pages, sold today as two words
-inside a $19 plan against a comparable at $350 per location per month.
-
-Verified: `pnpm run verify:launch` green end to end, 1,653 tests passing.
-
-### 2026-08-12 â€” Eleven products removed, and the row that would have kept publishing them
-
-The catalog had 34 products and 21 that could not be run. Eight of those were
-only mislabelled and were opened in the previous change. The remaining thirteen
-were looked at one at a time. Eleven described work that does not exist: a
-"Records, Renewals & Exports" product pointing at the service setup checklist,
-several named for tables nothing writes to, one whose lifecycle field said
-`validation_required` with no criteria that could ever be met. Those eleven are
-gone. Two were fixed instead â€” "Research & Roadmap" was priced `pro` under
-`sonara_industries`, which enforces no entitlement, so the plan bought nothing
-and the product could never open; it is free now. "Records & Exports" kept the
-part that exists and dropped the promises: it points at
-`/business-builder/owner/accounting-exports` and no longer claims renewal
-reminders or CSV import mapping, neither of which is built.
-
-**Removing a product from the code did not remove it from the site.**
-`/service-catalog` reads `service_catalog_items` where `status = 'active'` and
-merges those rows over the code defaults, so the database wins. All eleven would
-have gone on being published under their old names, with routes a customer could
-still click. `scripts/generate-catalog-sync-migration.cjs` said "Updates only.
-No row is inserted or deleted here", which was true and was the problem. It now
-also retires rows the catalog no longer lists, and
-`20260803180000_sync_catalog_paid_access.sql` was moved into `APPLIED_MIGRATIONS`
-per that script's own rule.
-
-The number 34 was written down in five places â€” the deploy gate twice, two test
-files, and a hand-written document â€” and removing eleven products failed all
-five. None of them knew the number independently; each was repeating the
-catalog. The gate derives its counts now, and
-`tests/published-catalog-sync.test.js` fails if a literal comes back.
-
-**Two checks went vacuous on their own success**, which is worth recording
-because both were correctly written and both still had to change. One required
-the production catalog to always contain a restricted product; that reads as a
-boundary check and is really a requirement that something stay unfinished. The
-other asserted the "why is this closed, how do I ask" copy appears on the
-rendered catalog page â€” true while anything was closed, and it failed on a page
-that was correct once nothing was. The wording is what the production gate
-reads, so relaxing it would have left it unguarded; `catalogAccessReason` and
-`catalogRequestLabel` are exported and asked directly instead, against products
-built to be closed.
-
-`docs/SONARA_RECOMMENDED_PRODUCT_CATALOG_2026.md` is generated now
-(`pnpm run gen:catalog-doc`, checked by `verify:launch`). The hand-written
-version listed 34 products under names the code had stopped using and opened
-with "SONARA Nexus Shared Operating Spine" â€” a retired public name AGENTS.md
-forbids in launch docs. Nothing referenced the file, which is why nothing
-failed.
-
-`openSourceToolStatuses` in `data/open-source-tools.ts` ends in
-`satisfies Record<OpenSourceIntegrationStatus, string>`, which reads as the
-compiler guaranteeing every status has a label. It is not: `pnpm run typecheck`
-is a parse check over the runtime `.js` and `.cjs` files and never compiles that
-file, so the clause was decoration. `adapter_built` had been in the union and
-taken by six records with no label. `verify:open-source` compares the two now,
-and was checked against both a missing label and a spurious one before being
-trusted.
-
-`veedstudio/open-edit` registered, Apache-2.0 read from the LICENSE file at
-`main`. `research_only`, and the reason is not the repository's licence: the
-renderer it ships is VEED's own closed-source binary, "free to use" â€” a
-permission the vendor grants and can withdraw â€” and it runs on Apple Silicon
-macOS only, so nothing in a Linux serverless function could call it. A tool for
-the owner's laptop, which is the boundary
-`docs/architecture/EXTERNAL-SERVICES.md` already draws.
-
-Verified: `pnpm run verify:launch` green end to end, 1,645 tests passing.
-
-### 2026-08-11 â€” The search page nothing linked to
-
-`/search` shipped in the previous sprint reachable only by typing the URL.
-Nothing offered the way in â€” no dashboard action, no navigation, nothing.
-
-This is the same defect as `/research-lab/open-source` from the other side. That
-one was two links pointing at a route that did not exist, and the link checker
-caught it. This is a route that exists with nothing pointing at it, and **no
-check caught it**: every existing test passed, because a route that resolves is
-not the same as a route somebody can get to.
-
-Linked now from all three product dashboards and from every owner record page â€”
-the page a customer is on is the one where they realise they cannot find the
-record they came for.
-
-`tests/page-reachability.test.js` is deliberately narrow. Not every route needs a
-link: a detail page is reached from its list, an API endpoint from a form, a
-legal alias exists to be linked *from* elsewhere. What it checks is the small set
-of pages that are a destination in their own right, where something has to offer
-the way in.
-
-What counts as "resolves" matches `no-dead-links.test.js` rather than being
-decided again â€” 503 is correct for a page that needs Supabase in an environment
-with none, and only 404 or 500 means the link is dead.
-
-### 2026-08-11 â€” Search, which this product did not have at all
-
-`/search` finds one record among thousands, across twelve record types â€”
-bookings, services, locations, staff, inventory, vendors, invoices, menu,
-recipes, vehicles, leads, campaigns.
-
-Until now there was nothing. No `/search` route, no `tsvector`, no index. An
-owner with two years of bookings could open the bookings page, see the most
-recent hundred, and have no way to find the one from March. Every record page
-had the same hole, and **none of them looked broken**, which is why it went
-unnoticed until reading LightRAG's record made the absence obvious.
-
-What it is, precisely: case-insensitive substring matching across a named set of
-columns per table, scoped to one organization, through PostgREST's `or` filter.
-Not ranked full-text, and it does not pretend to be. Postgres full-text is free
-and built in, and a `tsvector` column plus a GIN index across nineteen tables is
-a schema change whose value arrives at a scale one business does not reach. A
-restaurant has hundreds of menu items, not millions. The reason is written down
-because "we used ilike" reads as laziness without it.
-
-The part that mattered most to get right is the tenant filter. `organization_id`
-is its own term, never inside the `or()` group â€” inside the group it becomes one
-alternative among many, and a row matching on name would come back regardless of
-which business owns it. There is a test asserting that for all twelve tables.
-
-Three other distinctions kept: a table that could not be read is not a table
-with no matches; a term under two characters is refused rather than returning
-everything; and no secret-shaped column is searchable, checked independently of
-the function that is supposed to check it.
-
-Two of my own mistakes, both the same shape as before. `requireCustomer` was
-never passed to the route module, so the route would have registered with
-`undefined` middleware â€” Express accepts that and fails at request time, so the
-page would have 500'd rather than never existing. Registration is now skipped
-when the gate is missing, which 404s visibly instead.
-
-And the injection test asserted the substring "neq" was absent from the built
-query, which failed against working code: escaping turns the whole hostile term
-into one literal search string, so "organization_id neq x" surviving as *text*
-is correct. The danger is the dot-delimited operator form, which is what the
-check tests now. Third time this session the check was wrong rather than the
-code.
-
-### 2026-08-11 â€” Nine warnings nobody could act on, now zero
-
-`verify-external-repositories` printed nine warnings on every release for
-months: register records whose `repoUrl` was `https://github.com/`. Nobody
-acted on them, and the reason turned out to be that nobody *could*.
-
-They were not repository records. "LightRAG-style reference",
-"Voicebox-style voice synthesis", "OpenFang / autonomous agent OS-style
-references", "Godmode-style multi-model interface" â€” each named a *genre*
-rather than an artifact, with a licence field reading "must be verified before
-use". There was nothing to verify. A register of repositories cannot hold a
-record that names no repository.
-
-Eight are removed. One turned out to be real: **LightRAG is `HKUDS/LightRAG`**,
-MIT, from the EMNLP 2025 paper â€” now recorded properly with a verified licence.
-
-Reading it produced a finding worth more than the record. It is reference rather
-than adaptation for a *product* reason, not a licence one: **nothing in this
-product can search a customer's own records at all.** No `/search` route, no
-`tsvector`, no full-text index anywhere in the tree. So the first useful step is
-Postgres full-text over records the business already owns â€” not a second index
-this product would have to keep in step with them.
-
-The placeholder check is now a **failure rather than a warning**. Nine warnings
-that print every release and change nothing are worse than none: they train
-whoever reads the log to skim past the section where a real problem would
-appear. Verified by pointing the LightRAG record back at `https://github.com/` â€”
-the release fails.
-
-One process slip worth recording. After proving the new failure fires, I ran
-`git checkout -- data/open-source-tools.ts` to undo the test mutation, which
-also undid the seven deletions and the LightRAG rewrite in the same file. The
-work had to be redone. Copy the file next time; `git checkout` does not know
-which of your changes was the experiment.
-
-### 2026-08-11 â€” The OSINT directory, blocked category by category
-
-An open-source-intelligence bookmark directory came in for assessment. Recorded
-as blocked, with the reasons named individually rather than as a general
-objection, because three of its categories are incompatible with what this
-product is in specific ways:
-
-The **generators** produce synthetic identity documents â€” credit card numbers,
-social security numbers, driver licences, VINs. A platform holding real customer
-records has no honest use for a tool that manufactures fake ones.
-
-The **data dumps** serve breached personal data. Building on stolen records would
-contradict the consent and provenance rules this product enforces on its own
-creators â€” the same rules `creator_voice_consents` exists to implement.
-
-The **people-search** category assembles a profile of a named individual from
-scattered sources, which is the opposite of a product where every table is
-scoped to one organization and one owner.
-
-The rest â€” maps, search engines, translation â€” are ordinary public services that
-need no register entry to use.
-
-There is exactly one item in that directory this product needs, and it is
-already here and built better. `lib/sonara-leaked-password.cjs` calls Have I
-Been Pwned through the k-anonymity range API: five hex characters of a SHA-1
-digest, never the password and never its full hash. That is the right shape for
-the whole category, and it is why the rest of the category is not needed.
-
-### 2026-08-11 â€” Five dead modules, and the schema they were holding up
-
-`scripts/report-unreferenced-modules.mjs` asks which modules under `lib/` and
-`routes/` are named by nothing. This runtime has no bundler, no dynamic import
-and no code generation left, so the only way into a module is a literal require
-â€” which makes unreferenced mean *unreachable*, not merely unused.
-
-I had flagged two dead homepage modules three times across this project and left
-them each time, because noticing is free and deleting needs somebody to be sure.
-The check found **five**, 758 lines:
-
-- `lib/sonara-cohesive-homepage.cjs`, `lib/sonara-advanced-builder-homepage.cjs`
-- `lib/open-source-software-catalog.cjs`
-- `lib/sonara-ecosystem-registry.cjs` â€” note the near-twin
-  `sonara-ecosystem-manifest.cjs` *is* used, which is how a dead file hides
-- `routes/creator-artist-system-routes.cjs`
-
-That last one is worse than dead. It registers `/creator-studio/artists` and
-five API endpoints, and `server.js` never required it â€” so those routes 404ed.
-Its payload is `TASHA_KEYS_TEMPLATE`: a hardcoded invented artist with a
-backstory, themes and a sobriety arc. Wiring it up would have shipped fabricated
-content into a product whose own About page says it does not invent activity.
-
-**Deleting it re-orphaned five tables** â€” `creator_artist_profiles`,
-`creator_album_cycles`, `creator_prompt_blueprints`, `creator_sonic_profiles`,
-`creator_video_treatments`. That module was their only reader, and since nothing
-loaded it, they were never actually written in production either. They read as
-used only because a file existed that *would* have used them, had anything
-loaded it. All five recorded as `keep` with the reason, so the real choice â€”
-build the artist workspace properly, or drop the tables â€” is made on purpose.
-
-Two checks composing is the point: deleting dead code surfaced dead schema, and
-neither report could have found this alone.
-
-One bug caught in the new script before it shipped: this file's own header names
-two of the modules it reports on, so a comment would have counted as a
-reference. `scripts/report-orphan-tables.mjs` shipped with exactly that bug
-once. Comments are stripped before matching now.
-
-### 2026-08-11 â€” The runner, and the gate that could be walked past
-
-`lib/sonara-agent-runner.cjs` joins the two halves that existed separately: the
-authority module that says what an agent may do, and the checks that are work an
-agent can do. Classify, decide, run, record â€” one path.
-
-It closes a real hole. Each assistant page called `classifyAction` itself and
-then did the work regardless of the answer. That is a gate you get past by not
-reading the return value, and nothing in a diff shows it. Now skipping the gate
-means not calling the runner, which is visible. There is a test that fails if
-`classifyAction` reappears in those routes.
-
-Registering a handler is not permission either â€” a handler registered under
-`delete_customer_records` still gets refused, because the name is classified
-before the handler is reached.
-
-Three distinctions the runner keeps that a simpler version would collapse.
-"Allowed and unimplemented" is not "refused" â€” they send somebody to different
-files. A handler that throws is a failed run, not a crashed page, and its
-message goes through the redaction boundary because a handler talks to Supabase.
-And a recorder that throws does not undo a run that succeeded: the work
-happened, and losing the note about it is worse than nothing but far better than
-losing the work.
-
-**Runs are not persisted, and the reason is architectural.** `entity_action_runs`
-is scoped by `entity_id`; `entities` has no `organization_id`. The nineteen
-agent tables scope by entity membership while every other table in this product
-scopes by organization, and there is no join between them. Writing an
-organization's run there would mean inventing an entity per organization or
-leaving a NOT NULL foreign key null â€” both invisible afterwards, because the
-rows would exist and look right. The recorder is injectable and ships empty, and
-`docs/SHIP_READINESS.md` records the choice that needs making.
-
-### 2026-08-11 â€” Where people fall out, and the rate it refuses to invent
-
-`/growth-studio/journey` counts how many people are at each stage of the
-customer journey and where the number drops. The assistant pages say what is
-broken; a business can have nothing broken and still be losing everybody between
-enquiry and booking, and no check in this product would have mentioned it.
-
-The interesting part is which drops are real.
-
-`growth_touchpoints`, `growth_leads` and `growth_conversions` each carry
-`lead_id`, so a conversion traces back to the lead it came from. That is a
-funnel: one person moving through stages, and the drop between them is a
-measurement.
-
-`business_bookings` and `reviews` carry no `lead_id`. A booking is not linked to
-the lead that produced it, and a review is linked to a customer. Putting them in
-the same column and calling the difference a conversion rate would invent a
-relationship the schema does not have â€” and it would look exactly like a real
-number, which is the failure this codebase keeps producing. So stages carry a
-`linked` flag, checked against the schema rather than trusted, and an unlinked
-stage reports a count and says on screen that it is one.
-
-`dropRate` is `null` rather than `0` where there is no relationship. Those two
-render differently and mean opposite things: `0` would print "0% lost" for a
-comparison that was never a funnel.
-
-One process note, because it cost time. The container reset to a checkout from
-several commits back mid-sprint, and I wrote a page against files that were not
-there. `git status` showing only two untracked files against an old HEAD was the
-tell. This has now happened twice in this session â€” worth checking `git log -1`
-before editing after any gap.
-
-### 2026-08-11 â€” 3D interaction, and pointing Claude at what this repository knows
-
-The depth layer moved cards; now it lights them. A soft highlight tracks the
-pointer across each card, and each workspace catches its own colour â€” Business
-Builder green, Creator Studio violet, Growth Studio amber â€” so the mark, the
-backdrop and the light on the card finally agree. The per-product backdrops lean
-the same way. Actions gained a press that moves toward the page, inside the
-perspective the cards already sit in.
-
-It costs nothing extra per frame. `sonara-depth.js` already computed the pointer
-position for the tilt, so the spotlight writes two more custom properties from
-numbers it had. `tests/depth-interaction.test.js` fails if a second
-`pointermove` listener appears.
-
-What that test really protects is the exits. Every effect has to disappear under
-reduced motion, under the user's own motion switch, on small screens, and in
-print â€” and stay off work screens entirely. Each new effect is one more thing
-that can forget one of those, and a forgotten exit is invisible to whoever added
-it, because they are not the person with vestibular disorder or the phone.
-
-One correction: the print check read only the first `@media print` block and
-reported the spotlight as printing when it does not. The check was wrong, not
-the CSS.
-
-**`CLAUDE.md` was one line: `@AGENTS.md`.** Every session inherited the rules and
-none of the accumulated facts â€” the agent approval rule, the register, the
-recurring-defect pattern, the handoff prompt that is regenerated on every
-release. It now points at all of them, so a new session starts with what this
-repository has learned instead of rediscovering it.
-
-**The register page now says where each repository lands.** It listed licence,
-risk and refusals and never named the product, so it answered "may we use this?"
-and not "what is it for?" â€” and the second is the question somebody opening that
-page is usually asking. All 71 records are placed: 61 against a product, and 10
-with a stated reason they are not (five blocked, one licence unresolved, three
-build-time tooling, one that cannot run on this stack).
-
-### 2026-08-11 â€” Rebrand: a new palette, and the marks that never matched it
-
-New colours across the design system, and one finding that came out of doing it.
-
-**The logos and the palette had never been the same colours.**
-`--sonara-build` was `#5ec8a8`, a mint green; `business-builder-mark-v3.svg` was
-a blue-to-cyan gradient of `#2563EB` and `#06B6D4`. Creator Studio's token was a
-lilac and its mark ran blue through violet to pink. Growth Studio's token was
-amber and its mark was teal through green to lime. Every product mark disagreed
-with the colour the product is named by everywhere else in the interface.
-
-Nothing caught it because the two live in different formats. The stylesheet's
-rule that a token is declared in exactly one place is true â€” for CSS. An SVG
-served as `<img src>` inherits no custom properties from the page embedding it,
-so the hex is written into the file, and a hex written into a file is a copy.
-Eighteen marks were recoloured and `tests/brand-palette.test.js` now checks the
-copies.
-
-The same disagreement was in `theme-color`, which paints the mobile address bar:
-`#FAF8F4` (warm off-white) against a `#F6F7FC` (cool) light surface, and
-`#0C1122` against a `#04050B` dark page. Neither was wrong enough to look
-broken; both showed as a seam above the page on a phone.
-
-**Contrast was measured, not estimated.** `text-3` â€” the quiet supporting line
-under a heading, the text most often read on a phone outdoors â€” was 5.1:1, which
-clears AA and not AAA. It is now 7.2:1. All three text tokens clear AAA against
-the new background, and white on the new accent is 5.1:1.
-
-The one cross-family gradient is on the parent and platform marks only. A
-signature that appears on every product is not a signature, and three products
-painted the same violet would be tidier while telling a customer nothing about
-which workspace they are in.
-
-### 2026-08-10 â€” One redaction boundary, and the sink that proved it was needed
-
-`redactSensitiveText` lived in server.js, was applied at four call sites â€” all
-around support requests and email failures â€” and was named like a boundary while
-being used like a helper. Its patterns covered Stripe-shaped keys, long digit
-runs and `password: value`. That covers a customer pasting a card number into a
-support message, which is what it was written for.
-
-It did not cover the thing most likely to leak from this deployment. A Supabase
-service-role key is a JWT: not `sk_`-shaped, no long digit run, and it bypasses
-row level security. The patterns now lead with JWTs, then Authorization headers,
-URL query credentials, Stripe, Resend, Postgres connection strings, assigned
-secrets, and card-like numbers last because it is the loosest.
-
-`lib/sonara-redaction.cjs` is now the only definition, and
-`tests/redaction-boundary.test.js` scans every runtime file for console calls
-that print error-shaped text without going through it.
-
-A second thing was caught, this time by the release rather than by me. The
-kimi-k3-in-c record went in with `repoUrl: https://github.com/kimi-k3-in-c` â€” an
-owner path with no owner behind it. The screenshot it came from showed the
-repository name and not its owner, and I completed the URL instead of looking it
-up. `verify-external-repositories` resolves every registered repository against
-the GitHub API and failed the PR. It is `FareedKhan-dev/kimi-k3-in-c`.
-
-Worth knowing for next time: that check runs with `--network` in CI and without
-it in `verify:launch`, so a wrong URL passes every local gate. The register's
-whole point is that its facts are checked rather than recalled, and this one was
-recalled.
-
-**It found one on its first run.** `reportDegradedRateLimit` interpolated the
-caught error straight into `console.error`. The rate limiter calls
-`sonara_consume_rate_limit` over PostgREST with the service-role key, so the
-error it degrades on is a Supabase error carrying the URL it failed to reach â€”
-and that URL carries an `apikey` parameter. It printed the credential into the
-log on exactly the path taken when the database is already struggling.
-
-Two things about how this went, both worth not repeating. Every pattern has a
-benign string it must leave intact, because a redactor that eats everything
-passes the redaction tests and destroys every error message in the product.
-
-And while wiring the catalog route's `console.error` through the boundary, the
-`require` did not land â€” the file does not start with `"use strict";`, which is
-what the edit anchored on. The module still loaded, because the reference sits
-inside a catch that only runs in test mode. Caught by grepping for the import
-rather than by anything failing.
-
-### 2026-08-06 â€” The assistant, extended to all three products
-
-Twenty checks now: nine Business Builder, five Creator Studio, six Growth
-Studio, one page each at `/business-builder/owner/assistant`,
-`/creator-studio/assistant`, `/growth-studio/assistant`. Same engine, gated by
-the same workspace-access rule as the rest of each workspace.
-
-The Creator and Growth checks are the interesting half, because several enforce
-rules this product already holds itself to and had never looked at. Voice
-consent that has expired or been withdrawn while the record still reads as
-attested â€” an expired consent is indistinguishable from a live one until
-somebody checks, and nothing was checking. Consent marked attested with no
-evidence reference behind it. Lyrics originality left unresolved on a track
-heading for release. Content queued to go to customers without approval, which
-is the case AGENTS.md's owner-approval rule exists for and the case where it
-gets forgotten. Contact consent withdrawn while the record sits in the same list
-as the live ones.
-
-Those were all sentences in AGENTS.md with tables underneath and nothing
-comparing the two.
-
-Renamed on the way: `sonara-business-checks.cjs` became
-`sonara-record-checks.cjs` and the route module dropped `business-` from its
-name, because both had stopped being about one product.
-
-The "has a test case for every check" assertion earned itself immediately â€”
-eleven new checks landed with no cases and it failed rather than letting them
-through untested.
-
-### 2026-08-06 â€” The business assistant, and the first thing that does work
-
-`/business-builder/owner/assistant` runs nine checks over an owner's own
-records: dishes selling for less than they cost, dishes with a price and no
-recorded cost, supplier invoices past due, services with no price, bookings with
-no way to reach the customer, stock at its reorder level, vehicle registrations
-expiring within thirty days, staff with no contact details, locations with no
-address.
-
-All of it is arithmetic over rows the business already has. No model call, no
-provider, nothing metered â€” which is the reason it can run on every page load
-without costing anyone anything, not a limitation worked around.
-
-It consults `lib/sonara-agent-authority.cjs` rather than assuming. Reading
-records and reporting is self-serve today; if `check_data_quality` ever moves
-onto the sensitive list, the page stops instead of continuing under an
-assumption written down once.
-
-Two things it deliberately does not do, both of them the same mistake in
-different clothes. It does not hide checks that found nothing â€” "we looked and
-it is fine" and "we did not look" must not render identically. And it does not
-count an unreachable table as zero findings; the headline says how many checks
-could not run rather than rounding them down into a clean bill of health.
-
-No column is typed from memory. `validate()` checks all forty-odd against
-`supabase/migrations/`, because seventeen owner forms once shipped sending
-`user_id` to tables that do not have it and every save failed in production
-while the tests passed against a stub. Each check also has one row it must catch
-and one it must leave alone, since a predicate that quietly stops matching
-reports "nothing to fix", which is the answer an owner most wants to believe.
-
-### 2026-08-06 â€” The security-definer blast radius, measured
-
-Twelve SECURITY DEFINER functions are callable by any signed-in user over
-`/rest/v1/rpc/`. SHIP_READINESS said this was unchanged deliberately, because
-revoking EXECUTE can turn a working RLS policy into a denial and verifying that
-needs a database somebody can break. Right about the last mile, wrong that
-nothing could be learned first â€” the migrations say which policies call which
-functions.
-
-`scripts/report-security-definer-exposure.mjs` computes it. `is_org_member` is
-called by 197 policies across 59 tables; that is the number that makes a preview
-branch the only responsible way to try the change. One function,
-`sonara_has_org_role`, is called by nothing and is the only safe part.
-
-The finding nobody was looking for: four of the twelve â€” `is_admin`,
-`is_current_user_admin`, `has_scope`, `has_company_access` â€” are defined by no
-migration. They exist in production and not in version control, so nobody can
-review them by reading this repository. That is worse than the grant.
-
-**The first version of this report was confidently wrong.** Its policy pattern
-could not read a quoted multi-word policy name, which is most of them, so it saw
-191 policies instead of 497 and said six of these functions were safe to lock
-down â€” including ones with dozens of dependents. Acting on it would have locked
-customers out of their own records. It now runs two independent checks and a
-disagreement between them fails the release.
-
-If you take one thing from this entry: the report looked finished and read
-plausibly at 191 policies. Nothing about its output suggested it was blind.
-
-### 2026-08-06 â€” Cinematic public surfaces
-
-Every public route is now on one of two lists with a recorded reason: twenty are
-cinematic front doors, eleven stay calm. The eleven are the seven legal
-documents, the accessibility page, and the three launch-readiness checklists â€”
-somebody opens a refund policy to check a term, and parallax does not help them
-find it.
-
-`/help` and `/prompt-library` moved to the marketing surface. Both are reached
-before signing up as often as after and were rendering the plain operational
-frame.
-
-The backdrop is one rule on `.sonara-stage::before` rather than markup on
-eighteen pages â€” three colour fields in the product hues over a ruled grid,
-parallaxed by the scroll variable the depth script already writes. No image
-files, no library, nothing for the CSP to refuse.
-
-Not obvious and worth keeping: `z-index: -1` with `isolation: isolate` on the
-stage is the only combination that works. At `z-index: 0` an absolutely
-positioned pseudo-element paints over in-flow text; without the isolation, `-1`
-falls behind the body background and disappears.
-
-The asset version token lives in four files and the service worker caches by it.
-Three were updated and one was not; an existing test caught it.
-
-### 2026-08-06 â€” The agent approval rule as code
-
-`lib/sonara-agent-authority.cjs` implements the seven categories from AGENTS.md
-plus the default. The nineteen agent tables have existed since migration 008
-with nothing running against them, so the release gate's "no runtime" line was
-the whole guarantee â€” a guarantee that expires the moment somebody builds one.
-
-Four decisions that look backwards until you see why. The default is deny.
-Sensitive patterns are checked before the allowlist, because `delete_draft_content`
-matches both. The row's own `requires_approval` column is ignored, because it is
-writable and a safety property the agent can edit is not one. And an approval
-must name a person, be for that action, and not come from the requester.
-
-The release checks all of it. Verified by flipping the unrecognised-action
-default to allow â€” the release fails.
-
-There is still no runtime. That is the next thing, and it should be built to
-call `decideExecution` rather than around it.
-
-### 2026-08-06 â€” Twenty-five repositories, licences verified
-
-Read off each repository rather than recalled, which mattered: five turned out
-reciprocal (AGPL, GPL, OSL), two declared no licence at all, two could not be
-confirmed. Recalling them would have put four in the adoption path wrongly.
-
-Two blocks that cannot be lifted from inside this project: a repository with no
-licence is all rights reserved, so there is nothing to authorise.
-
-Two corrections to earlier reasoning, both mine. The AGENTS.md anti-clone rule
-sits beside provenance and consent and is implemented by `song_fingerprints` and
-`creator_voice_consents` â€” it protects creators from being cloned, not this
-project from reading open-source code. And Apache-2.0 permits derivative works
-commercially; attribution is the obligation, not prohibition.
-
-`tests/open-source-licence-terms.test.js` reads the licence sentence rather than
-the risk tier, because `check-license-risk.mjs` greps for "gpl" and otherwise
-trusts two hand-typed fields â€” and neither `OSL-3.0` nor "None declared"
-contains it.
-
-`docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` is now generated per
-repository from the register instead of being four sentences that named none of
-them.
-
-### 2026-08-11 â€” Pricing structure, analysed not applied
-
-The current list â€” Free / Starter $7 / Core $19 / Pro $39 â€” prices depth. The
-product's shape is breadth: three workspaces, each replacing a different tool.
-The July survey puts the stack being replaced at $77 (Jobber $29 + Podia $39 +
-Brevo $9), and the current price list never says so.
-
-`docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` recommends Free $0 / One
-workspace $19 / All three $39 / Team $79, with $19 chosen specifically so no
-existing Core customer pays more.
-
-Nothing is applied. `STRIPE_PLANS` is unchanged. Billing is owner-approved
-under AGENTS.md, and three things have to be true first: the positive
-subscribed-user test has never been run in production, the new Stripe price
-objects do not exist, and "All three" and "Team" need entitlement keys that
-the catalog resolves against â€” so this is a code change, not only a Stripe one.
-
-The document does not claim these prices convert better. No paid signup has
-completed, so there is no conversion data, and inventing one would be the
-failure this repository keeps catching.
-
-### 2026-08-11 â€” Three loopholes in the tenant guard, none of them live
-
-Hunted rather than tripped over. All three were the same shape: a check that
-reports coverage it does not have.
-
-The known-tables test scanned `server.js` and `routes/` and not `lib/`, which
-also issues PostgREST requests. A table queried from `lib/` and created by no
-migration would have been invisible to the test and waved through by the guard.
-Nothing was actually wrong â€” six literal table names in `lib/`, all recognised â€”
-but the scan could not have said so. Widened, then confirmed by planting a
-`lib/` file querying a table no migration creates and watching it fail.
-
-`inspect()` returned `{ allowed: true, unrecognised: table }` and `install()`
-read only `.allowed`. The comment said "allow it and say so"; it allowed and did
-not say. Now reported once per table name, not once per request, because a
-warning that prints on every page load is one nobody reads.
-
-`install()` was guarded by a module-level `installed` boolean that ignored the
-target, so the first install anywhere made every later one a silent no-op. The
-new test installed onto its own scope object, got `false`, exercised an
-unwrapped `fetch` and passed â€” in isolation. It failed in the full suite only
-because the test asserts the return value. Tracking targets in a `WeakSet` is
-both more correct and what keeps that test honest.
-
-The guard still allows an unrecognised table. Failing closed there trades a
-quiet hole for an outage, and a stale generated list is a likelier event than a
-malicious one.
-
-### 2026-08-11 â€” A trades AI-tool guide, and the money table that points the wrong way
-
-Analysed *"The Top 12 AI Tools for Trades Business Owners"* (Profitable Tradie,
-2026) â€” a lead magnet aimed at exactly the Business Builder customer. Recorded
-in `docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`. Its wording stays out of
-our copy; it is someone else's brand. The market facts transfer.
-
-Eleven distinct products, **$297/month** at entry paid tiers and **$206** at the
-floor once free tiers are used. That is a second competitor stack, specific to
-trades, beside the generalist $77 already recorded. The $77 stays the headline
-because it is the cheapest credible one and therefore the hardest to dispute.
-
-The finding worth acting on came from checking the schema rather than the guide.
-**Every money table in this product points outward.** `vendor_invoices`,
-`purchase_orders` and `bill_payment_records` are money the business owes;
-`payments` and `purchases` are SONARA's own Stripe billing. There is no
-accounts-receivable table, so a business can record what it owes its suppliers
-and cannot record what its customers owe it.
-
-Nothing on screen lies about this â€” the existing check is labelled "Supplier
-invoices past due". But the guide's entire cash-flow section is about the
-receivable side, and for a trades business that side is the business. Three of
-its twelve tools are downstream of that one missing table.
-
-Also corrected CLAUDE.md, which still said there is no agent runtime. There is
-one; what there is not is anything that re-runs an action after approval, and
-that is now what it says.
-
-### 2026-08-11 â€” Accounts receivable, the side of the money that was missing
-
-Every money table in this product pointed outward. `vendor_invoices`,
-`purchase_orders` and `bill_payment_records` are what the business owes;
-`payments` and `purchases` are SONARA's own Stripe billing. A business could
-record a bill it had to pay and had nowhere to record a bill it had sent.
-
-`customer_invoices` and `customer_invoice_payments`, with
-`/business-builder/owner/receivables` over them. `customers` gets a page too --
-it had a table, row level security and no way in, and bookings store a
-customer's name as free text rather than pointing at it, so an invoice had
-nobody to be addressed to.
-
-Payments received are rows, not an `amount_paid_cents` column. A denormalised
-total stops being true the first time somebody records a payment without
-updating it.
-
-No line-items table, deliberately. The owner-page framework renders one child
-per page, and between line items and payments received it is payments that
-answer "who owes me what". A line table with no page is schema nothing can
-reach, and there is enough of that already.
-
-Two checks: `customer_invoices_overdue` fires only on `sent`, because a draft
-nobody has seen is not late and counting it would put invented pressure on a
-number read as real money. `customer_invoices_sent_without_due_date` catches the
-row the first check structurally cannot see -- an invoice with no due date never
-goes overdue, so it leaves every chase list in silence.
-
-Four gates caught things on the way through, all correctly: the lines test
-counted 4 pages and found 5, the record-checks test refused a check with no
-fixture proving it catches and ignores, the Supabase contract refused tables the
-runtime referenced, and the OpenAPI contract refused unregistered routes.
-
-The lines test asserted the string "Flour" for every page, which held while all
-four line tables were stock lines with an `item_name`. Payments have a date, an
-amount, a method and a reference, so one shared marker would have reported a
-working page broken. Evidence is now declared per table, and a page whose table
-has none fails rather than passing quietly.
-
-### 2026-08-11 â€” Money due in and out, which is not a forecast
-
-`/business-builder/owner/money-due`, over `lib/sonara-cash-position.cjs`.
-Unblocked by accounts receivable: with invoices owed to the business and bills
-owed out, both carrying due dates, money in and out by period is arithmetic
-over the owner's own rows. No model, no provider, nothing metered. Tool six of
-the twelve in the trades guide is Float or Bauwise at $49 a month.
-
-**It is not a forecast, and the naming is the substance rather than a caveat.**
-A forecast predicts revenue nobody has promised. This adds up what has been
-promised in both directions. An owner deciding whether payroll clears cannot
-tell an extrapolated number from a counted one once they are in the same
-column, so there is no extrapolated number.
-
-Three things it refuses to do:
-
-A row with no due date is excluded **and reported**, above the totals rather
-than in a footnote. Dropping it silently would make every figure look complete
-while being short by an unknown amount, which is the shape of most of the
-defects found in this repository.
-
-There is no closing balance. No table holds the bank balance, so this reports
-movement. A position computed from an opening balance of zero would read as the
-money the business has.
-
-An unreadable payments table counts as unavailable rather than reporting gross
-as net. Overstating money coming in is the wrong direction to be wrong in.
-
-Two arithmetic traps have tests because both would have been silent: an
-invoice paid in full whose status was never changed off "sent" drops out
-instead of counting at full value, and an overpayment clamps at zero instead of
-going negative and quietly reducing another invoice's total.
-
-### 2026-08-11 â€” The payment form that could never save
-
-`customer_invoice_payments` shipped with a working form, a working button and
-no way to save a row. The child POST handler read `req.body.item_name`
-directly, which was true of the four line tables that existed when it was
-written â€” all stock lines with an item name. A payment has a date, an amount, a
-method and a reference. Every submission came back `missing_required` naming a
-field its form never asks for.
-
-The test suite passed because every case posted `item_name` regardless of which
-page it was testing. That one shared body meant the two ownership tests were
-also passing vacuously on this page: both were being rejected at the required
-check long before reaching the parent-ownership check they exist to prove.
-
-Required fields now come from the child's own form declaration, and the tests
-build each submission from the same declaration. Two new cases: post exactly
-what a page marks required and assert it saves, and drop one required field and
-assert it does not.
-
-Third time in this area that one shape was assumed for all children â€” after the
-"Flour" evidence marker. The pattern is worth naming: a helper written when a
-set had one member encodes that member's shape as the rule.
-
-### 2026-08-11 â€” Invoice line items, and a record that can hold two kinds of child
-
-`page.lines` was a single object, which was right while every record with
-children had exactly one kind. An invoice has two: what is on it, and what has
-been paid against it. `childrenOf(page)` normalises either shape, so the four
-existing declarations are untouched.
-
-`customer_invoice_lines` was deliberately left out of the receivables migration
-because the framework rendered one child and payments had the slot. There is
-somewhere to put it now.
-
-Line totals are stored rather than derived, which is the opposite of the choice
-made for payments, and the two are different kinds of number. What has been paid
-is a fact about other rows, so deriving it keeps it true. A line total is what
-the business decided to charge â€” a quantity times a price it may have discounted
-and rounded its own way. Recomputing it on read would overwrite that decision.
-
-Three failures on the way through, all real:
-
-The new child was declared at `/api/business/invoice-lines`, which
-`vendor_invoice_lines` already owned. Two POST handlers on one path is not a
-duplicate-route error â€” Express registers both and the first wins, so every
-invoice line would have been validated against a vendor invoice and written to
-the vendor table. Nothing would have errored. There is now a test that no two
-children share an endpoint.
-
-`lib/sonara-form-reachability.cjs` read `page.lines.api`, which becomes
-`undefined` against an array. Every child endpoint left the reachable set at
-once and was reported as having no form while its form was on screen.
-
-The lines test iterated pages and read `page.lines`, so it would have tested the
-first child of each record and skipped the rest. It iterates (record, child)
-pairs now.
-
-### 2026-08-11 â€” Quote to invoice, and the button that must not fire twice
-
-`quotes` had a table, row level security and no page.
-`customer_invoices.quote_id` was a column nothing ever wrote. The step between
-"they said yes" and "they have been billed" was the one an owner does at 10pm,
-retyping figures they already agreed.
-
-`/business-builder/owner/quotes`, and a convert action that produces a draft
-invoice with an opening line.
-
-**This is the owner acting, not an agent.** `lib/sonara-agent-authority.cjs`
-governs what runs without a person; a person pressing a button they can see is
-the person. Routing this through the runner would classify the owner's own
-click as an unrecognised agent action and refuse it â€” the gate misfiring rather
-than working. Worth writing down, because the opposite mistake is the one that
-matters and the distinction is easy to blur.
-
-Four refusals, each of which bills somebody wrongly if missed:
-
-Only an accepted quote converts. "Sent" is the state where the answer is still
-outstanding, and billing for work nobody agreed to is worse than not billing.
-
-A quote with no customer or no amount refuses rather than producing an invoice
-addressed to nobody, or for nothing.
-
-The same quote cannot be invoiced twice. A double submit or a refresh bills one
-job twice, and the second invoice looks exactly as legitimate as the first. The
-check that backs it reads existing invoices first â€” and **an unreadable list is
-not an empty one**, so a failed read refuses rather than converting.
-
-No due date is set. Payment terms are recorded nowhere in this product, so any
-date would be invented, and `customer_invoices_overdue` would then chase a
-deadline nobody agreed to. The sent-without-due-date check catches the gap
-instead, which is what it is for.
-
-The opening line is written best-effort after the invoice. Failing the whole
-conversion once the invoice exists would leave the owner unable to retry,
-because the duplicate check would then refuse.
-
-### 2026-08-12 â€” Chase drafts, and the sentences a draft may not contain
-
-`/business-builder/owner/chase-drafts`. Tool five of the twelve is "Claude for
-overdue invoices" â€” the message an owner puts off, because writing it while
-annoyed is how a customer relationship ends.
-
-The split it rests on was checked against `lib/sonara-agent-authority.cjs`
-rather than assumed, and asserted in the test: `draft_reply` is self-serve â€”
-"It writes a reply a person still has to send" â€” while `send_invoice_reminder`,
-`email_customer` and `chase_overdue_invoice` all fall through to `unrecognised`
-and stop at the owner. So this drafts and stops. The page says so in its own
-words, not only in a comment.
-
-**No model call.** Assembled from the owner's own rows, which keeps it free â€”
-but that is not the main reason. A template cannot hallucinate a payment that
-was never made. What it costs is range: these read like forms, because they
-are, and the page says that too.
-
-The interesting part was deciding what a draft may not say. Three things the
-obvious version would have invented, each with a test that greps every stage
-for it:
-
-**How many reminders have already been sent.** Nothing records that. "As we
-have already reminded you twice" is a claim that can be false to the customer's
-face.
-
-**Payment terms, interest, or a late fee.** No table holds them. A draft naming
-a fee the business never agreed is a term it cannot enforce.
-
-**Any threat of legal action, collection or credit reporting.** That is a
-statement the business is held to. An owner can write it themselves; a draft
-that arrives pre-written invites sending it unread.
-
-Two other refusals. The amount is what is outstanding after payments, never the
-invoice total â€” chasing the full amount after a part payment is the fastest way
-to lose a customer, and there is a test that the total does not appear. And if
-the payments table cannot be read, **no draft is written at all**, because
-every figure would be one that might already have been paid.
-
-An invoice that cannot be drafted is listed with the reason rather than
-omitted. A shorter list with no explanation reads as less debt.
-
-The message is a readonly textarea rather than a copy button: the CSP is
-`script-src 'self'` with no bundler, so a button would need inline script, and
-selecting text cannot fail silently the way a clipboard call can.
-
-### 2026-08-12 â€” Counting what is left, and correcting what was said about it
-
-`docs/owner/WHAT-IS-LEFT.md` and `docs/owner/OWNER-STEPS.md`.
-
-The count is two numbers because "completely done" means two things. Shipping
-what exists is **four steps, all owner-only** â€” no repository-side work remains,
-which was verified rather than assumed: no TODOs, no unimplemented paths, 1347
-tests passing, the eighteen-command chain green.
-
-Building everything discussed has **no step count**, and quoting one would be
-the most misleading thing in either document. The list is open-ended, 8 of 66
-reviewed repositories cannot be incorporated at all on licence grounds, and
-"fully autonomous" contradicts the seven owner-approval categories that are also
-an instruction. Stated plainly rather than absorbed into an estimate.
-
-The four owner steps are written to be run: the exact SQL, the dashboard path,
-and how to tell it worked. Item 4 in particular â€” one `EXECUTE` revoke on a
-preview branch â€” is the only part of the advisor's remediation this repository
-can call safe on its own evidence, and the migration is deliberately **not**
-written, because a migration here runs on deploy and shipping it without the
-branch test would be acting past the evidence.
-
-`SHIP_READINESS.md` still claimed the runner persists nothing. That stopped
-being true when `agent_action_logs` was wired. Corrected â€” and the correction
-names the gap that is actually still open, which is that nothing re-runs an
-action after approval.
-
-**That gap is deliberately not being closed.** No handler in this repository
-performs a refund, a payout change, a policy publication or a customer send, so
-a queue over the seven gated categories would be the frame of a mechanism with
-no contents, and the approval screen would gain a button whose only effect was
-to change a word in a log. The runner already reports `unimplemented`, which is
-the honest answer until a handler exists. Build a gated capability first, then
-the approval path it needs.
-
-### 2026-08-12 â€” The first repository that is actually installed
-
-The register had 66 reviewed repositories and no way to say any of them was in
-use. Its most advanced status was `optional_adapter_after_review` â€” "you may
-build one" â€” so 66 reviewed with nothing built and 66 reviewed with every
-adapter built were indistinguishable. A vocabulary that cannot express the
-finished state makes the work look permanently undone.
-
-`adapter_built` added, and Ollama moved to it, because there is now an adapter.
-
-**Nothing in this product called a model.** `lib/optional-ai-gateway.cjs` says
-so in its own first line: "This is a readiness DETECTOR only. It never makes
-network calls." Every "AI" surface here was arithmetic over the owner's rows â€”
-which is why the record checks and the chase drafts can be trusted, and why
-they cost nothing. `lib/sonara-ollama-adapter.cjs` is the first thing that
-calls one.
-
-Ollama first for three reasons that are facts rather than preferences: MIT owes
-nothing but attribution, a local runtime costs nothing per call, and it needs no
-key, so there is no secret to leak.
-
-**The constraint stated before anything else:** this application deploys as
-serverless functions, so a model on the owner's own machine is not reachable
-from it, and `localhost` in production means the function's own container. The
-readiness check names that case by host rather than letting it arrive as a
-timeout. It is genuinely useful for a self-hosted deployment or a reachable
-host, and misleading for a laptop â€” so it says which.
-
-Off by default, and no page may depend on it. A model being unavailable must
-never be the difference between a page working and a page failing.
-
-Three defects found in the writing, all mine:
-
-The adapter had `.catch(() => undefined)` on the fetch, which swallowed the
-abort before the handler could classify it â€” a timeout reported as
-"unreachable", sending somebody to check a network for a model that was merely
-slow.
-
-`integrationStatus` was checked for presence and never for value, so a typo
-would have become a record nobody could filter on. It is now read from the type
-union in the same file.
-
-That union parse then reported every status but the first two as invalid,
-because **a semicolon inside the comment explaining the new status ended the
-non-greedy match.** Same class as the policy parser that once read 191 policies
-where there were 497: a regex over source that prose can terminate early.
-Comments are stripped first now.
-
-`adapter_built` also has to name a module that exists, checked on disk. It is
-the one status that claims something about this repository rather than about
-the upstream project, so it is the one that can be false without anybody
-noticing. Both new checks were verified by breaking them.
-
-### 2026-08-12 â€” One adapter contract, three more adapters, and how to reach them
-
-`lib/sonara-service-adapter.cjs` holds what all four have in common. The Ollama
-adapter carried it inline; four copies would be four chances for one to be
-quietly less careful, and the careless one would be the one nobody re-read.
-Each adapter now owns only its call shape.
-
-The refactor immediately proved the point. Moving the base URL onto the shared
-readiness object leaked it â€” a base URL can carry a token in its query string
-and readiness is rendered onto a page. The existing Ollama test failed within
-seconds. It is carried non-enumerably now, so `postJson` can read it and
-`JSON.stringify` cannot. Open WebUI's API key gets the same treatment.
-
-**Langflow** (MIT): calls a flow by id, so the flow stays the owner's to change
-without a deploy here. The id is validated as a plain identifier before it
-enters the request path â€” a value containing a slash addresses a different
-endpoint on the same host, with this server making the request.
-
-**Open WebUI**: the licence review it was waiting on is done, read from the
-repository rather than recalled. BSD-3-Clause in structure with one added
-condition â€” branding may not be altered except under fifty end users, with
-written permission, or under an enterprise licence. **That binds redistribution
-and deployment with branding altered. It does not restrict calling the HTTP API
-from separate software**, which is all the adapter does. It does bind the owner
-if they deploy and rebrand it themselves, and that is recorded.
-
-**Crawl4AI** (Apache-2.0): the one adapter that makes this server fetch a URL
-somebody supplied, which is a request forwarder if the target is unchecked. It
-refuses loopback, link-local, cloud-metadata and the private IPv4 ranges, and
-refuses a URL carrying credentials. Stated limit: those checks read the URL as
-written, and a public hostname that resolves to a private address is the case
-they cannot see from here.
-
-`docs/architecture/EXTERNAL-SERVICES.md` answers the connectivity question that
-governs all of them. Three routes, in order: a tunnel (Cloudflare Tunnel or
-Tailscale Funnel, free at this scale, no architecture change), a host the
-server can already reach, or running this application beside the services on
-one network. The third is the only one that also unblocks the wider question â€”
-Dify is Python, Chatwoot is Rails, TastyIgniter is PHP, and none of them can
-ever be required into a CommonJS Express app regardless of licence. As
-neighbouring services called through adapters, all of them become reachable.
-
-The document says the part people skip: a tunnel makes a service reachable by
-everybody, and Ollama and Crawl4AI have no authentication of their own.
-
-`tests/service-adapters.test.js` runs the same rules against every adapter and
-asserts the list length, so adding one without adding it there fails. The
-plain-language gate caught "endpoint" in the new page copy; rewritten rather
-than exempted.
-
-### 2026-08-12 â€” Two more adapters, one review that ended in a no
-
-Secrets moved into `lib/sonara-service-adapter.cjs`. Open WebUI satisfied the
-required check, deleted the property and redefined it non-enumerably by hand â€”
-which worked, and was one forgotten line away from a key on a page the moment a
-second adapter needed one. Three did. It is a declaration now, and forgetting it
-means the key is not read at all rather than read and rendered.
-
-**Dify** â€” licence read from the repository. Modified Apache 2.0 with two added
-conditions: no operating a multi-tenant environment from the source without a
-commercial licence, and no removing the LOGO or copyright from the Dify console.
-Calling a self-hosted Dify's API is permitted and that is all the adapter does.
-
-The boundary is not obvious and is recorded as a blocked use: **SONARA is itself
-multi-tenant.** That is fine while each owner points the adapter at their own
-Dify â€” SONARA is the multi-tenant thing, Dify is not. It stops being fine the
-moment SONARA runs one shared Dify and serves customers from it, which is
-exactly the condition. Somebody adding that as a convenience later would not
-find it out from the code.
-
-**RAGFlow** â€” plain Apache-2.0, and the review it was actually waiting on was
-security, which was the right question: unlike a model or a crawler this one is
-about the business's own documents. Same answer as Ollama â€” the owner's own
-instance, the owner's own files, nothing sent to a third party. What remains is
-a boundary the adapter enforces by omission: **it retrieves and it does not
-upload.** A page pushing customer records into a search index would be a second
-copy of customer data with different retention under different access rules.
-
-It also separates "searched and found nothing" from "the search failed", and
-keeps matched passages separate from the joined text so a caller showing an
-answer can show where it came from. A source it does not know is `null`, never
-invented.
-
-**n8n â€” reviewed, and the answer is not yet.** The Sustainable Use License
-permits internal business use and restricts free-of-charge non-commercial
-distribution. On the three questions that decide our case it is silent: hosting
-arrangements, self-hosting for internal automations called from separate
-software, and whether that changes when the calling product is commercial SaaS
-whose customers never touch n8n. A reading that this is plainly internal use is
-available and may well be right â€” but it is a reading, and this register does
-not record readings as findings. It stays out of the adapter set. That makes it
-the second item, after the four owner steps, that needs someone with authority
-to answer rather than more work here.
-
-Six adapters now, all on one contract, all off by default, none depended on.
-
-### 2026-08-12 â€” A cross-tenant write behind one environment variable
-
-Asked what else needs to be on before paid usage, and went to look rather than
-recall. The answer had a hole in it.
-
-`SONARA_ALLOW_MANUAL_ORG_ID=true` accepts an `organization_id` straight from the
-request body with **no membership check** â€” and there cannot be one, because the
-branch exists to work without a resolved session. While it is on, any request
-names any organization and every owner-record write that resolves through it
-writes into whichever tenant the body asked for.
-
-It was gated on the variable alone. One wrong value in a production dashboard
-was a cross-tenant write hole, it appeared in no documentation, and nothing in
-the release chain looked at it. The code now checks `NODE_ENV` and `VERCEL_ENV`
-as well, so the flag is inert in production regardless of its value â€” a
-convenience somebody can switch on in production is not a convenience. Verified
-by removing the guard and watching the test fail.
-
-**`pnpm run verify:env` was stale and not in the release chain.** Seven of its
-twelve "required" names were read by nothing: `STRIPE_PRICE_STARTER` and
-friends, whose real names all end `_MONTHLY`. It failed on every run, so anybody
-who ran it would have chased eight variables that do not exist. A stale check is
-worse than none â€” it teaches people the output is noise.
-
-Rewritten to derive from source. Every name the code reads must be classified as
-required, ratchet, development-only, optional capability or platform-provided,
-and it fails in both directions: an unclassified variable, and a classification
-for a variable nothing reads. Now in the chain.
-
-It also caught itself. The script lives under `scripts/`, which it scans, so
-every name in its own lists counted as "used" by being listed â€” the stale-name
-check could never fire, which is the exact check that would have caught
-`STRIPE_PRICE_STARTER`. It excludes itself now, verified by renaming an entry
-and watching both errors appear.
-
-Fifty-eight variables read, ten required. `docs/owner/WHAT-MUST-BE-ON.md` says
-which, and what breaks without each.
-
-### 2026-08-12 â€” All ten required variables were already set, and an adapter did its first work
-
-Asked to set the ten required variables, and could not: they are secrets held in
-Vercel, not in the repository, and AGENTS.md forbids committing them. Asking
-production turned out to be better than setting anything â€” `/api/readiness`
-reports configuration status without leaking values, and it says every one is
-already configured. Supabase, Stripe, the Stripe webhook, Resend and admin
-protection all `configured`, `missing` empty for every service, all three paid
-plans at `checkout: enabled`. Google sign-in is `deferred`, deliberately.
-
-So there was nothing to set. What is left is the leaked-password ratchet and the
-paid signup nobody has run.
-
-**Six adapters existed and nothing called them** â€” one step from a module
-nothing references. The readiness page reported whether they were configured and
-no feature ever asked them for anything.
-
-`POST /api/market-intelligence/fetch-source` is the first that does work. Every
-market intelligence surface depended on somebody having the page open in another
-tab; this is the difference between recording what you found and going to look.
-
-**It fetches and it stops.** Nothing is written â€” no summary, no signal type, no
-confidence. A signal is evidence somebody judged, and a summary this server
-invented would enter the record indistinguishable from one an owner wrote. The
-test asserts the handler contains no insert, no `recordEvent`, no table name,
-and none of the five fields the signal form requires.
-
-An unconfigured Crawl4AI answers 200 with `fetched: false` and says to paste the
-text instead. A 503 would make an optional capability look like a broken one,
-and this page worked before the adapter existed.
-
-The form-reachability check flagged it â€” correctly by its own rule and wrongly
-for this case, since it matches create-shaped POSTs and this one creates
-nothing. Recorded with that reason rather than joining the four "NOT YET
-EXAMINED" entries beside it, because this one has been examined.
-
-### 2026-08-12 â€” CI was running a different set of tests, and nobody could see it
-
-A CI failure on `04dafda` that would not reproduce locally, under CI's exact
-mocha command, with the proxy and Vercel variables stripped, and against the
-merge commit. Re-running the same job on the same SHA with no change passed.
-So it was flaky, not a real failure â€” and chasing it found two things worth
-more than the flake.
-
-**Four test files never ran in CI.** Its invocation passed `"tests/**/*.js"` on
-the command line, and a glob there overrides the spec list. `pnpm test` also
-passed `"tests/**/*.mjs"`. So `brand-assets`, `brand-registry`, `brand-routes`
-and `platform-prep` ran locally and were invisible to the gate everyone trusts.
-They were green either way, which is exactly why it went unnoticed: **a check
-that does not run and a check that passes look identical from outside.**
-
-**The suite relied on mocha's 2000ms default.** The slowest test locally is
-744ms, and several iterate all 242 registered routes, so they scale with the
-product. A slower runner turned that into a failed release on a commit that was
-fine.
-
-`.mocharc.json` now owns the spec list, the setup file, the timeout and
-`--exit`, and both `pnpm test` and the workflow inherit it rather than restating
-it. 15000ms is generous enough to absorb runner variance and bounded enough to
-still catch a hang; several tests already set their own explicit timeouts.
-
-`tests/ci-runs-the-same-tests.test.js` fails if the workflow passes a spec glob
-or `--file` again, if the config stops matching either extension, or if the
-timeout drifts outside the range. Verified by restoring the old glob and
-watching it go red.
-
-The flake itself is now much less likely, but the reason to fix this was not the
-flake. It was that the release gate was quietly narrower than the one people
-were running.
-
-### 2026-08-12 â€” Search could not find the money
-
-Search covered twelve tables and none of the records added since it was written.
-`customers`, `quotes` and `customer_invoices` were all invisible: an owner who
-raised an invoice could not find it, and **an empty result reads exactly like
-"you have no invoices"** â€” this codebase's recurring failure, pointed at the one
-page whose entire job is finding things.
-
-Six tables added. The three money records, plus `purchase_orders`,
-`maintenance_logs` and `bill_payment_records`, which hold a PO number, a
-description and a payment reference â€” things an owner actually types.
-
-Six deliberately left out, each with a reason rather than a silence: schedules
-and time entries are found by person and date, a profit snapshot is a date and
-numbers, an accounting export is a period and a file, and counts and transfers
-are found by location and date. None has text a search term would match.
-
-The list rotted because nothing compared it against the pages that exist.
-`tests/search.test.js` now requires every owner record page's table to be either
-searchable or named in `NOT_SEARCHABLE` with a reason, so adding a page forces
-the decision. It also names `customers`, `quotes` and `customer_invoices`
-explicitly â€” a count-based check would pass again the next time something is
-added and forgotten, which is exactly how this happened.
-
-Verified by removing an exclusion and watching it fail.
-
-### 2026-08-12 â€” The owner dashboard showed one side of the money
-
-Two gaps, both the same shape as the search one, found by checking rather than
-assuming.
-
-`operationsSummary` counted `vendor_invoices` under the label **"Invoices"** and
-did not count `customer_invoices` at all. An owner opening their own dashboard
-saw what they owed suppliers and nothing about what customers owed them â€” the
-outward-only bias the schema had before accounts receivable existed, still
-sitting in the summary. Both sides are counted now, and both are labelled by
-direction: "Bills you owe" and "Invoices you have sent". The bare word
-"Invoices" is no longer used for either, because with two sides on screen it
-reads as whichever one you were looking for.
-
-None of the money pages were linked from it. Customers, quotes, receivables,
-money due and chase drafts were all reachable only by knowing the URL.
-
-One thing worth recording about how this was found: the first harness read
-`ROUTE_REGISTRY` entries as `.path` when the field is `.route`, and reported all
-sixteen record-check fix links as broken. They were all fine. Three times now a
-check has been wrong rather than the code, so the reflex of confirming the
-harness before believing an alarming result keeps earning its keep.
-
-`tests/owner-dashboard-reach.test.js` fails if a money page stops being linked,
-if either invoice table stops being counted, if they share a label, or if a
-label stops saying which direction the money goes. Verified by removing a link
-and flattening a label, and watching both fail.
-
-### 2026-08-12 â€” Five account pages nobody could reach, and a crawl that lied
-
-After two hand-kept lists turned out stale, went looking for the general version
-rather than a third instance.
-
-A source scan of every registered page route against every link construct
-reported 57 unlinked. **It was wrong.** `/tutorials` builds its four subpage
-links from a list, so the literal path never appears in source â€” the scan
-called them unreachable while `/tutorials` renders all four. Rendered HTML is
-the only honest answer to "can somebody get here".
-
-A rendered crawl was better and still not trustworthy: it reported
-`/owner/agent-activity` unreached, which is linked from `/dashboard` â€” the
-stubbed session does not render the signed-in pages, so the crawl under-reaches
-and would have produced 162 claims, most of them false. **Not shipped.** A check
-that cries wolf is the thing that teaches people to ignore checks, which is the
-same disease as a check that never fires.
-
-What survived verification was real. `/account` linked `/account/setup` and
-nothing else, so **profile, security, preferences, workspaces and integrations
-were registered, rendered, and reachable only by typing the URL** â€” the `/search`
-defect, five times over, including the page somebody goes looking for after a
-security scare.
-
-Fixed, and added to `tests/page-reachability.test.js`, which fetches the page
-and reads its rendered links. The links are built from `ACCOUNT_SECTIONS`, so
-fixing five unreachable pages cost three lines of `server.js` rather than
-thirteen; the ceiling moved 4072 â†’ 4075 with that reason.
-
-The general check is still worth building. It needs a session that renders the
-signed-in pages, and until it has one it would report more noise than findings.
-
-### 2026-08-12 â€” The tenant guard could not see the receivables table
-
-Building the authenticated crawl surfaced this, which is worth more than the
-crawl was: the tenant guard's own warning fired, for real, on
-**`customer_invoices`** â€” the parent table of the entire accounts-receivable
-feature. It was in neither `TENANT_SCOPED_TABLES` nor `GLOBAL_TABLES`, so
-`lib/sonara-tenant-guard.cjs` could not check a single query against it. It had
-been that way since the table was created.
-
-The cause is a regex terminator. `generate-tenant-scoped-tables.cjs` required a
-CREATE TABLE body to end with a **line-initial** `)`, and a CREATE TABLE inside
-a `do $$ ... $$` block is indented. `integration_statuses` ends `    );`, never
-terminated, and the non-greedy match ran on to the next line-initial `);` â€”
-3,432 characters later, **in a different migration file**, swallowing
-`customer_invoices` whole. The generator joins every migration into one string,
-so nothing stopped it crossing the boundary.
-
-**It was invisible because `verify:tenant-tables` regenerates and compares.** A
-generator verified by re-running the same generator agrees with itself whatever
-its parser does. Every release passed while the guard was blind to a money
-table.
-
-Three changes. The terminator tolerates indentation. A body containing another
-`create table` now throws, because that match consumed past its own end â€” and
-that fires on exactly the case that caused this, verified by restoring the old
-terminator. And an independent scan, deliberately not sharing the pattern,
-asserts every table a migration declares was classified.
-
-The independent scan reported a table called **`to`** on its first run, from the
-words "create table to" in a comment. Comments are stripped now â€” the same
-lesson as the semicolon that once broke the licence-union parser. A cross-check
-that reports phantoms is one people switch off.
-
-Also surfaced: **`product_modules` is queried twice from `server.js` and created
-by no migration.** Same class as the four authorization functions â€” schema in
-the live database and not in version control. Recorded in `SHIP_READINESS.md`
-rather than guessed at, because inventing a definition that may not match
-production is worse than the gap.
-
-### 2026-08-12 â€” Reaching the pages nobody could reach: 110 down to 26
-
-Worked the unreachable list rather than adding a check that would have reported
-it forever. Authenticated crawl, three structural fixes, and the number went
-110 â†’ 26.
-
-**Eleven owner record pages.** The owner dashboard carried eleven hand-written
-links and had fallen eleven pages behind: purchase orders, stock counts,
-transfers, supplier payments, accounting exports, costs, maintenance, menu,
-recipes, vehicles and vendors. Generated from `ALL_OWNER_PAGES` now â€” the same
-list that defines the pages, so it cannot fall behind again.
-
-**Seventy-three product pages**, across all three workspaces, registered and
-rendering and reachable only by typing the URL. Same cause: hand-written link
-lists beside the registry that defines the routes. The product dashboards now
-carry a workspace index generated from `ROUTE_REGISTRY` by `productOwner`.
-
-Business Builder needed it twice: `sonara-business-control-plane-routes.cjs`
-intercepts `GET /business-builder/dashboard` before the per-slug handler, so
-Creator Studio and Growth Studio got the index and Business Builder did not.
-It is on both branches there â€” including the onboarding one, since an owner who
-has not created a business yet is exactly the person who cannot find anything.
-
-**The plain-language gate caught the index immediately**, which is the system
-working: it renders registry titles, and three of those carry "lifecycle" and
-"readiness". The rest of the application already calls those pages Roadmap and
-Setup checklist in its own links â€” the plain name existed and the index was
-reading the wrong field. `plainRouteTitle` now supplies it.
-
-Two false alarms are worth recording. A source scan of link constructs reported
-57 unreachable; `/tutorials` builds its links from a list, so the literals never
-appear. And the first crawl reported 162, because a stubbed session does not
-render signed-in pages. Neither was shipped as a check.
-
-The 26 that remain are mostly legitimate: `/sitemap.xml` and `/robots.txt` are
-machine endpoints, `/logout` and `/auth/callback` are redirect targets,
-`/reset-password` arrives by email, and the `/terms` and `/cookies` family are
-aliases of the canonical `/legal/*` pages the footer already links. They should
-be declared rather than linked, which is the check still worth building.
-
-### 2026-08-12 â€” The declaration check, and twelve more pages nobody could reach
-
-`tests/every-page-is-reachable.test.js`. An authenticated crawl from ten roots,
-following rendered links, comparing what it reaches against every registered
-page route. Anything unreached must be declared with a reason, and **a
-declaration for a page that turns out to be reachable fails too** â€” a stale
-reason is how this list would rot the same way the hand-written link lists it
-replaced did.
-
-It found twelve on its first run, and the right answer for all twelve was to
-link them rather than declare them. **Ten admin pages** â€” database management,
-migrations, organizations, email, pipelines, deployments, audit, system design
-intelligence, model safety and the prompt library. The admin index carried cards
-for the pages somebody thought of, which is the same hand-kept list that had
-fallen behind everywhere else; it is generated from the registry now.
-`/notifications` and `/market-intelligence` are on the customer dashboard.
-
-It also caught its own stale declaration immediately: `/business-builder/login`
-was listed as unlinked and is reachable. Removed.
-
-Three guards on the check itself, because a crawl that silently stops crawling
-reports a clean bill of health. It asserts it fetched more than 100 pages and
-reached more than 150 paths, so a broken session fails loudly rather than
-reporting nothing unreachable.
-
-**One bug of mine, worth recording.** The test replaced `global.fetch` with a
-Supabase stub and restored only the environment. The stub leaked into every file
-that ran after it, and ten sign-in tests failed â€” they got a Supabase that
-answered every auth call successfully, so a refusal test saw a redirect.
-`tests/setup-env.cjs` installs an offline firewall on that handle; putting it
-back restores it. Fixed, and the reason is in the `after` hook.
-
-Thirteen declarations remain, all genuine: two machine endpoints, five
-redirect-or-email targets, and six aliases of the canonical `/legal/*` pages the
-footer already links on every page.
-
-### 2026-08-12 â€” A won lead becomes a customer
-
-`growth_leads` and `customers` hold the same four fields â€” name, email, phone,
-source â€” and nothing joined them. A lead that closed had to be retyped before it
-could be quoted or invoiced. That seam is what the "one system" claim is
-actually about: Growth Studio finds the work, Business Builder bills it.
-
-`growth_leads.customer_id` added, and `POST
-/api/growth-studio/leads/:leadId/customer` over it. Both tables belong to the
-same organization, so this crosses a product boundary and not a tenancy one â€”
-and every read and write still carries the organization rather than trusting
-that.
-
-The column is not only a join. **Without it there is no way to tell a lead has
-already been converted**, and a second press creates two customers with the same
-name and no way to know which is real. `customer_invoices.quote_id` does the
-same job one step later.
-
-Five refusals, each of which leaves a record somebody has to untangle if missed.
-Only a **won** lead converts â€” "qualified" is somebody looking promising, which
-is not agreement, and it is the same distinction as "sent" against "accepted" on
-a quote. A lead with no name has nothing to address. A lead with no email *and*
-no phone has nowhere to send an invoice, which is the only reason to create a
-customer at all. An already-linked lead refuses. And a customer with the same
-email refuses, matched on email rather than name because two people share a name
-and a duplicate row is what somebody finds months later with half the invoices
-against each.
-
-The duplicate check reads existing customers first, so **a failed read refuses
-rather than converting** â€” an unreadable list is not an empty one.
-
-Two checks caught things, both correctly. The migration-column test used
-`describedColumns`, which deliberately omits ALTER-added columns because it
-cannot read their type; `hasColumn` knows them. And the policy scan caught a
-literal table name passed through a read helper, which hides the table from the
-member-policy check â€” every other call in that file goes through `TABLES`, and
-now so does this one.
-
-### 2026-08-12 â€” Two conversions with no button, one of them mine from two sprints ago
-
-Went to check the lead conversion was pressable and found it was not â€” and
-neither was turning an accepted quote into an invoice, built two sprints
-earlier, tested, documented, and shipped with **no way for an owner to press
-it**.
-
-The reason nothing reported it: `createShapedRoutes` skips routes with a path
-parameter, and both conversions are `/â€¦/:id/â€¦`. The one check that asks "does
-this endpoint have a form" never saw either of them. So the endpoints worked,
-the tests passed, the docs described them, and the feature did not exist for
-anybody without an API client.
-
-`rowAction` on an owner page declaration fixes it generally rather than adding
-two buttons. A row that can take the action renders a form; a row that cannot
-**says why in the same column** â€” "Waiting on their answer" for a sent quote,
-"No customer on this quote" â€” rather than showing a button that would refuse
-when pressed. A button that refuses teaches people the product is broken.
-
-`tests/row-actions-are-pressable.test.js` asks the question the scan cannot: it
-checks every declared action posts to a route the server registers, that each
-declares a reason function and a label, that the quotes action offers itself on
-an accepted quote with a customer and an amount and refuses the four ways it can
-be wrong, and that a malformed row cannot take the page down.
-
-It also asserts, as a test rather than as folklore, that `createShapedRoutes`
-still excludes parameterised routes â€” so if that ever changes, the exemption
-this test exists to cover can go with it.
-
-The leads page uses a different renderer and still has no button. Recorded here
-rather than half-built.
-
-### 2026-08-12 â€” The competitor figure on the pricing page was wrong
-
-Researched the comparison set against live 2026 pricing rather than the July
-snapshot, and the headline finding is a correction that goes against us.
-
-**$77 was Jobber's annual price added to Podia's monthly one.** Not a stack
-anybody is quoted. On monthly billing â€” which is what a new customer takes â€”
-Jobber Core is $39, Podia Mover $39, Brevo Starter $9: **$87**. The pricing page
-had been telling customers $77 for two weeks.
-
-The fees the July table never recorded matter more than the sticker prices.
-**Podia Mover takes 5% of every digital sale**, so it costs more than Shaker at
-about $1,000 of monthly sales. **Brevo Starter puts Brevo's logo on your emails**
-unless you pay $9 to remove it, and has no automation until Standard at $18. A
-working stack â€” unbranded, with automation, monthly â€” is **$105**.
-
-Against $87 our All-three at $39 is 45% of the stack; against $105 it is 37%.
-The recommendation does not change, because $19/$39/$79 was chosen so no
-existing customer pays more. The comparison it rests on is simply stronger than
-it was, and now says "monthly billing" out loud.
-
-`docs/market/2026-08-12-MARKET-AUDIT.md` also separates what we can claim from
-what we cannot. We take no percentage of a customer's sales, which against
-Podia's 5% is the largest real cost difference â€” **and we cannot say it in
-marketing until a paid signup has completed in production**, because until then
-there is no evidence our own payment path works. And Jobber Connect at $119 buys
-routing and a field app this product does not have; pricing against that would
-be selling something we cannot deliver.
-
-Two guards came out of it. `tests/pricing-claim-matches-research.test.js` ties
-the figure on screen to the audit that establishes it, requires the billing
-period to be named â€” that being the exact error â€” and requires the audit to
-cite sources. And an existing test pinned the literal string "July 2026", so
-**re-surveying the market broke the test that exists to keep the claim honest**.
-It reads the date from the audit now.
-
-The first version of my own check matched any "$N a month" and caught "$39 a
-month for the business side" â€” a per-product figure in the same sentence.
-Tightened to the sentence that totals the stack.
-
-### 2026-08-12 â€” A tap was leaving cards rotated, and the check looked at the wrong file
-
-Audited the depth against 2026 practice before changing anything, the same way
-the pricing claim was audited. Findings and sources in
-`docs/design/DEPTH-AND-CORE-WEB-VITALS.md`.
-
-Most of it held up. Depth is CSS 3D rather than WebGL, `will-change` is scoped
-to `.sonara-stage` so work screens rendering hundreds of cards pay nothing,
-pointer work is one delegated passive `pointermove` coalesced into a single
-`requestAnimationFrame`, entrance uses `IntersectionObserver` rather than a
-scroll handler, and reduced motion and print are both handled. The 2026 shift
-the research describes â€” depth that answers the cursor and the scroll position
-instead of a hero object performing â€” is already what `sonara-depth.js` does.
-Nothing needed adding.
-
-**One rule did not hold.** `public/sonara-application-ui.css` tilted
-`.sonara-product` on `:hover` with no pointer gate. A tap on a touch screen
-latches `:hover` onto the tapped element until the next tap lands somewhere
-else, so that is not a hover effect â€” the card rotates and stays rotated.
-
-Nothing was visibly broken, which is the part worth keeping. A correct, gated
-`body.sonara-home-v3 .sonara-product:hover` sat on top of it and won on
-specificity. But that rule is scoped to a body class, and `.sonara-product`
-renders on exactly one page: **the guarantee held because of where the card
-rendered, not because of what the card was.** The first such card on any other
-page brings the stuck tilt back with every check still green. The small-screen
-fallback had the same shape â€” it reduced the tilt but was still `:hover`-bound,
-and width is not pointer.
-
-`tests/marketing-depth-surface.test.js` asserts this gate exists, by reading
-`sonara-design-system.css` and only that file. It was true, and true about the
-wrong file â€” the other stylesheet is linked by the same frame and loaded after
-it, so at equal specificity the ungated rule wins.
-
-`tests/pointer-gated-depth.test.js` names no file. It reads the stylesheet list
-out of `lib/sonara-page-frame.cjs` and holds every served sheet to the same
-rule, so a third stylesheet is covered without anyone remembering. It walks
-`@media` nesting rather than matching text, because whether a selector is safe
-depends entirely on what it is nested inside. It fails when it finds zero 3D
-hover rules or fewer than two stylesheets, since a check guarding nothing reads
-exactly like a check finding nothing wrong. Verified by putting the original
-rule back and confirming it fails by name.
-
-The last assertion is the one that generalises: a 3D hover rule scoped to a body
-class must still carry its own pointer gate. Specificity is a fine way to win a
-cascade and a poor way to hold a safety guarantee.
-
-### 2026-08-12 â€” The lead conversion finally has a button
-
-Recorded two entries above as half-built, and it is built now.
-
-`/growth-studio/leads` is a capture form â€” somewhere to write a lead down, with
-no list of the ones already written â€” so the conversion's rules, endpoint,
-duplicate guards and migration were reachable only by an API client. That is
-not what a small business owner has.
-
-`/growth-studio/enquiries` lists the people who have come to you and carries the
-button that makes one a customer. Named for what it holds rather than for the
-table, in the words the totals card on this product already uses.
-
-The row that cannot convert says why rather than showing a button that refuses.
-**The reason is `reasonNotConvertible` itself â€” the endpoint's own function, not
-a second copy of the rules.** Two implementations of "can this convert" drift,
-and the one on the page drifts silently: it only ever shows or hides a button,
-so nobody finds out until an owner presses one that fails. That rule needs the
-customer list, so the page loads it, and a failed read stays `null` instead of
-becoming an empty array â€” an unreadable customer list is not "no duplicates".
-
-The endpoint answered every path with JSON. A form post would have shown the
-owner a wall of punctuation and lost the customer they had just created: a
-working endpoint that reads as a crash. It redirects a browser to the customer
-it made, or back with `?problem=` when it refused.
-
-`tests/row-actions-are-pressable.test.js` **names this exact defect in its own
-header comment** and then iterated `ALL_OWNER_PAGES` and nothing else, so the
-lead action could be absent or mis-wired with every assertion passing. It reads
-both renderers now and asserts both declare an action, so a third collection
-cannot quietly narrow what the file means.
-
-Two checks came out of building it. Both renderers substitute on the literal
-`:id`, so an action declared with the route's own parameter name â€” `:leadId` â€”
-passes every other check here and posts to a literal `":leadId"` path when
-pressed; that is now asserted. And route shapes are compared with parameter
-names normalised rather than by string, which is what let the check cover two
-routes whose parameters are named differently. Verified by mis-declaring the id
-and by removing the action, and both were caught by name.
-
-### 2026-08-12 â€” A table queried by the code and created by no migration
-
-`verify:orphan-tables` asks which tables the migrations create that nothing
-queries. That is the harmless direction â€” unused schema costs confusion. The
-dangerous one went unasked: a table the application queries that no migration
-creates is a feature that cannot work, in production, forever.
-
-`server.js` counted `product_modules` on two admin surfaces. **No migration has
-ever created it.** The name was written in a bulk commit in July 2026 and never
-backed, so both cards have always rendered "unavailable until Supabase tables
-are migrated" â€” a message promising a migration that was never coming. The
-catalog it wanted is `sonara_module_registry`, which migration 018 creates and
-seeds, and which is already classified global.
-
-`tests/tenant-isolation.test.js` comes close and states its own limit honestly:
-a `/rest/v1/${table}` is resolved at runtime and cannot be checked from there.
-True â€” but the blind spot is wider than the sentence.
-`safeCountTable(config, "product_modules")` passes a string literal, knowable at
-rest, invisible only because a helper builds the URL.
-
-`tests/every-declared-table-exists.test.js` asks the question of declarations
-rather than of request URLs: rest paths, `table:` properties, assignments,
-helper calls, and the `TABLES` maps route files use to keep literal names out of
-call sites â€” the same indirection that hid this one. Across the whole runtime it
-found exactly one problem. It separately asserts it still finds declarations
-*through indirection*, without which it silently degrades into a duplicate of
-the check that already passes.
-
-### 2026-08-12 â€” What a streaming engine does and does not say about a record list
-
-Prompted by a streaming-engine explainer. Two of its six concepts describe
-something true here; the other four are a rendering architecture for a
-continuous 3D world, and borrowing their vocabulary for a list of invoices would
-be taking the appearance of rigour without the substance. Written up that way in
-`docs/design/STREAMING-AND-RECORD-LOADING.md` rather than as six mapped
-principles.
-
-**The load zone did not know the size of the map.** Every owner and creator
-record page read `limit=100` and captioned the table `${rows.length} records`.
-Under the cap that is right. Over it, the page states a total it never measured
-â€” a business with 250 customers is told it has 100, with nothing on screen
-suggesting otherwise. Not a truncated list: a wrong number, presented as
-confidently as a right one. The row count was never the record count.
-
-Reading one row past the page settles "is there more" for free, and an exact
-count is paid for only once the first read shows it will say something new â€” so
-an account under the cap still costs one query. A failed count stays null and
-the caption says "more than 100", the floor the first read established rather
-than a number invented to fill the gap. The caption is its own exported
-function, because the defect is a sentence and a sentence can be checked without
-a database.
-
-**Level of detail, applied.** The owner pages selected `*`: 307 columns fetched
-to render 112. Now 153. The field list cannot be read off the declaration â€”
-columns are `value: (row) => â€¦`, the renderer reaches for `row.id`, and refusal
-rules read fields no column shows â€” so it was derived two ways and unioned:
-running each function against a recording proxy, and reading the properties
-taken off the parameter in the function source. **Both were needed.** The
-runtime probe alone missed `customer_id` on quotes, because the refusal rule
-returns early on any status that is not `accepted` and never reaches the line
-that reads it.
-
-The check deliberately does not repeat that derivation â€” a check that rebuilds
-the list the way the list was built agrees with itself by construction, which is
-the tenant-tables defect exactly. It tests the property instead: give a column
-function a row containing only what the select asked for, and see what it
-reaches for. And separately, that every selected field is a column the
-migrations create, because PostgREST rejects an unknown column by rejecting the
-whole query â€” one typo turns into a page reporting itself as unconfigured.
-
-Paging past the first 100 is still not built. The list now says a total exists
-beyond the cap and still offers no way to reach it. Saying so is better than the
-previous silence and is not the same as being finished.
-
-### 2026-08-12 â€” The environment check could not report a name it had never heard of
-
-`scripts/verify-env.mjs` exists to hold one line: every variable the code reads
-is classified, and every classified name is read. It found names two ways â€”
-`process.env.X`, and bare string literals, because this codebase declares some
-variables by name rather than reaching for them. The literal pass read:
-
-```js
-if (candidateNames.has(match[1])) used.add(match[1]);
+no tool in this session can set a Vercel environment variable.
+
+Both owner documents now carry the ids and say exactly that, so neither reads as
+though the job is done.
+
+### 2026-09-08 - Serverless AI and a second database, and the env check that could not see either
+
+The owner asked to install software for running complex systems, databases and
+AI serverlessly, and chose the Cloudflare route over self-hosting. Two adapters,
+built on the existing base: **Workers AI** for inference and **D1** for SQL.
+
+Both are hosted APIs, which inverts this family's premise -- every previous
+adapter talks to something the owner runs, which is why they all carry the
+loopback-on-serverless check. They use the same base anyway, because placeholder
+rejection, bounded timeouts, a token that cannot reach a page and an error
+message that never carries the URL are not about where a service runs.
+
+Neither is a licence question; no Cloudflare code ships here. Both are a price,
+which `CLAUDE.md` treats with the same weight, so both are off by default and
+neither may become a launch dependency.
+
+## D1 refuses to become a second source of truth
+
+This product's entire tenant boundary is `organization_id` filtering against
+Supabase, because the service-role key bypasses row-level security. A customer
+row in a second database is a customer row outside the only boundary there is.
+
+So `derivedOnlyViolation` refuses any statement naming a table the migrations
+create -- both `TENANT_SCOPED_TABLES` and `GLOBAL_TABLES`, read from the
+generated list rather than typed -- plus SQL comments and any second statement.
+It over-refuses on purpose. **Falsified three ways**: emptying the reserved set
+trips the gone-blind guard, dropping the statement check fails the batch test,
+and widening the model-id pattern to `/.*/ ` lets `../../user/tokens` through
+and fails by name.
+
+The test also caught a guard that could not fire: `query(sql, params = [])`
+meant a caller who *forgot* params got an empty array and sailed past the check
+written to catch exactly them. The default is gone.
+
+## The environment check had never seen a single adapter variable
+
+`pnpm run verify:env` reported "82 variables read by the code, all classified".
+It could not see one variable belonging to any adapter. Every adapter names its
+variables through `base.envKeysFor(PREFIX, [...])`, which builds them by
+concatenation, so no pass matching string literals could ever find one.
+
+Adding a pass for that shape surfaced **44 unclassified variables across ten
+adapters** in a single run -- 35 of them years older than this change. All 44
+are now classified, and the pass carries the non-empty guard the file's three
+earlier passes established. Its first version matched only a literal prefix,
+found zero, and said so, which is what that guard is for.
+
+## And the reverse direction of that check had been dead
+
+Worse, and found by probing rather than by reading. `verify-env.mjs` excludes
+itself from its own scan, because the string-literal pass matches any classified
+name it finds -- so a file holding the lists makes every name in them count as
+"used", and the stale-name check can never fire.
+
+**It excluded one path, and the lists had moved.** They now live in
+`lib/sonara-environment-classification.cjs`, so this gate and the owner's key
+guide read one list, and `lib/` is scanned. From that move until today, every
+classified name matched itself and the reverse direction was dead.
+
+Proven both ways: classify `SONARA_INVENTED_NEVER_READ`, which nothing reads.
+With the exclusion as it was, a clean run reported **127 variables "read by the
+code"**. With both files excluded, it errors by name. The comment above it read
+"Verified by renaming an entry and watching the stale error appear" -- true when
+written, and quietly false since. That is the exemption-whose-reason-expired
+shape inside the check written to prevent it.
+
+## A tenth adapter nobody had registered
+
+`tests/service-adapters.test.js` asserted `ADAPTERS.length === 7` under the
+message "an adapter was added without being added here", while
+`lib/sonara-voice-clone-adapter.cjs` sat in the same folder registered nowhere.
+A hand-typed count is updated by the person who remembers, and the person who
+forgets to register an adapter is the person who forgets. The count is now read
+from `lib/`, so an adapter file that is not listed fails the test -- verified by
+unregistering one and watching it name the file.
+
+### 2026-09-08 - The pricing page advertises three plans that cannot be bought
+
+The owner asked for a step-by-step guide to installing the API keys and the
+Stripe pricing. Answering it required reading the live state rather than the
+documents, and the live state has a hole in it.
+
+`/pricing` advertises **One workspace $29, All three $59, Team $109**. Read from
+`acct_1TRSqj0dKtlEU3lA` in live mode on 8 September 2026, that account holds
+**thirteen prices in its entire history and none of them is $29, $59 or $109.**
+The closest are the three created on 13 August, charging $19 / $39 / $79.
+
+`assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs` fetches the price on
+every checkout and returns `price_mismatch` rather than creating the session, so
+nobody is charged the wrong amount. The cost is quieter: **every headline plan on
+the pricing page refuses checkout.** Only Free works. `/api/readiness` reports
+`checkout: enabled` throughout, because `enabled` is computed from "a price
+variable is set" and not from "a price that can be sold".
+
+## The check that would have caught it exits 0 when it does not run
+
+`scripts/verify-stripe-env.mjs` compares every advertised amount against the
+live Stripe price, and it is the only thing that does. It skips without
+`STRIPE_SECRET_KEY`, which is every CI run â€” **and it exited 0 while skipping.**
+Both `docs/owner/OWNER-STEPS.md` and `docs/owner/PRICE-CUTOVER-RUNBOOK.md`
+compensated with prose: "read the last line rather than the exit code". That is
+a check whose correctness depends on somebody reading carefully, which is the
+same as not having one.
+
+It now takes `--require-live`. With the flag, three things become failures
+rather than skips: no key; a plan on the page with no price id (a
+`hiddenUntilBuyable` plan is still allowed to have none, matching how
+`lib/sonara-readiness.cjs` reports it as deferred); and a run that compared no
+live price at all, which is the guard against measuring nothing.
+
+**Verified by failing it.** Without a key, `--require-live` exits 1 naming
+`STRIPE_SECRET_KEY`; with a syntactically valid but unusable key it names each
+offered plan and stays silent about all three annual plans. Without the flag it
+still exits 0 and prints the same honest `[SKIP]`, so the release chain is
+unchanged.
+
+## The instruction that produced it is fixed, not just annotated
+
+`OWNER-STEPS.md` item 5 was written on 19 August, when the plans cost
+$19 / $39 / $79, and it names those price ids in a table under "set each
+variable above to its price id". Correct that day. When the amounts moved on
+6 September the ids stopped matching, and the instruction still read like a
+current one. It has been rewritten as "create three prices at the amounts the
+page now advertises", with the August table kept and labelled as a record.
+
+## Two other checks that name things that have retired
+
+Both found while reading the same paths, both the exemption-whose-reason-expired
+shape:
+
+- `scripts/smoke-live-routes.mjs` required `starter_monthly`, `core_monthly` and
+  `pro_monthly` to be `checkout: enabled` on the live site. Those three left the
+  pricing page on 6 September, and runbook step 7 archives their prices â€” after
+  which this check goes red for a correct site. **Falsified both ways** against a
+  local server serving crafted readiness payloads: the old assertion fails on the
+  post-archive payload and the new one passes, while an absent `checkoutPlans`,
+  a closed free plan and a payload where nothing is buyable each fail by name.
+- The same file asserted `googleOAuth === "deferred"` with the message "should
+  remain explicitly deferred **until configured**". It cannot become configured:
+  the value is a string literal in `lib/sonara-readiness.cjs` and no route reads
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` or `GOOGLE_REDIRECT_URI`. The
+  message said something the code cannot do; only the message was wrong, so only
+  the message changed. Worth knowing for the owner: `missing.googleOAuth`
+  listing `GOOGLE_REDIRECT_URI` is not a task, and setting it would make the
+  payload claim a capability that does not exist.
+
+## And a comment recommending prices nobody should create
+
+`lib/sonara-stripe-plans.cjs` said "Two months free -- $190, $390 and $790
+against $228, $468 and $948 paid monthly" directly above a table holding $290,
+$590 and $1090. Those are the figures for the $19/$39/$79 ladder. Somebody
+creating the annual Stripe prices reads the comment. The figures are gone; the
+ratio is stated instead, and
+`tests/an-annual-plan-opens-what-its-monthly-twin-opens.test.js` already fails if
+any annual amount stops being ten months of its twin.
+
+## What the owner gets
+
+`docs/owner/SETUP-STEP-BY-STEP.md`, dated and read from the live site, the live
+Stripe account and this repository. Section 1 is the recovery in four steps;
+section 2 is what is genuinely still open; sections 3 to 5 are the reference for
+every key. `WHAT-IS-LEFT.md` and `OWNER-STEPS.md` are reconciled with it â€” item 8
+(production serving 5 August code) is closed, run #134 having been the first
+end-to-end green deployment since #110, and the step counts in both documents now
+agree with the headings they describe.
+
+### 2026-09-08 - The pricing page was checked against a survey that had been superseded
+
+The live pricing page quoted the **August** competitor survey â€” "$39 for the
+business side, $39 for the creator side, and $9 for the marketing side â€” around
+$87 a month â€¦ from published prices in August 2026" â€” three days after the
+5 September re-survey moved Jobber to $49, Podia to $49 and the stack to **$107**.
+
+It drifted in the direction that costs us. All three at $59 is **55%** of the
+real stack; quoted against $87 it reads as 68%, so the page was making the
+weaker version of its own argument.
+
+## I said nothing checked this. Something did
+
+Earlier today I told the owner "no check covers competitor figures in
+customer-facing code". That was wrong, and the way it was wrong is more useful
+than the fix.
+
+`tests/pricing-claim-matches-research.test.js` has checked exactly this since the
+`$77` incident. It reads a survey document, finds the stack total, and asserts
+the page quotes that figure and no other. **It never went quiet and it never
+went green on a lie.** It was reading
+`docs/market/2026-08-12-MARKET-AUDIT.md` â€” and when the market was re-surveyed
+into `docs/pricing/2026-09-05-PRICING-STRATEGY.md`, nothing moved its authority.
+So it went on requiring the page to say $87, and the page obligingly did.
+
+`tests/pricing.test.js` had the same pin on the same document for the date, and
+so required the page to say "August 2026".
+
+That is the exemption-whose-reason-expired shape from
+`.claude/skills/checks-that-cannot-lie` wearing a different coat: not a check
+that stopped measuring, but a check still measuring faithfully **against a
+document that had been replaced**. A newer survey was written and two checks
+kept pointing at the older one.
+
+## One authority instead of one per test
+
+`lib/sonara-competitor-stack.cjs` now holds the September figures â€” each column
+with its product, plan and amount, the stack derived by summing them rather than
+restated, the automation figure, the 5% creator fee, the survey date, and the
+name of the document it came from.
+
+`server.js` renders both sentences from it. Our own price was already derived
+(`allThreeSentence` comes from `STRIPE_PLANS`); the competitor half was two
+hand-typed sentences, and now neither half is typed.
+
+Both older tests read the survey **named by that module**, so "which survey is
+current" has one answer, in the module the page itself uses.
+
+## What the page says now, and one thing it no longer claims
+
+The August copy said "$105 once you remove another company's logo from your
+emails and turn automation on". The September survey is careful in a way that
+copy was not:
+
+> $116 â€” the same stack with marketing automation switched on (Brevo Standard
+> $18 rather than Starter $9). *Whether the logo add-on is still required on
+> Standard was not confirmed and is not included.*
+
+So the page now says $116 for the plan that turns automation on, and **drops the
+logo claim entirely**, because the survey explicitly did not settle it. A check
+enforces that: the automation sentence may not mention the logo while the survey
+still records it as unconfirmed.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Jobber reverted to the August $39 | *"does not show Jobber at $39. Either the survey was re-run and this module was not updated, or the module holds a figure nobody surveyed."* |
+| The date dropped from the sentence | *"a pricing sentence states figures without saying when they were read"* |
+| The figures typed back into server.js | *"the pricing page no longer renders the cost-elsewhere sentence from the module"* |
+| The logo claim reattached to the automation figure | *"the automation figure is claiming the logo add-on again, which the survey says it does not include"* |
+
+The first probe is the original bug, reproduced and caught.
+
+Two things I got wrong while doing it, both caught by tests that already existed.
+I widened a regex to `\$(\d+) a month` and it matched "$49 a month for the
+business side" â€” a per-product figure, not the stack claim â€” which is precisely
+what that test's own comment warned about. And I briefly required the
+11 August restructure document to carry the September total, which would mean
+rewriting a dated record every time the market moves; that case now guards what
+it was actually for, that a corrected figure is not left standing as current.
+
+The `server.js` line ceiling went 3876 â†’ 3877. Roughly 600 characters of prose
+left the file and one `require` came back, which the split wanted; the line count
+is simply a coarser measure than the thing it stands in for.
+
+### 2026-09-08 - Voicebox reviewed, and the licence that matters is not the one on the badge
+
+Five repositories arrived. Three were already recorded earlier today --
+`mattpocock/skills`, `diffusionstudio/editor` and `langflow-ai/langflow`, the
+last already in the register from an earlier batch -- and one screenshot was
+again the Quran database whose owner it still does not show. One is new.
+
+**`jamiepine/voicebox`.** LICENSE read: MIT, Copyright (c) 2026 Voicebox
+Contributors. 681 files. A local-first voice studio: cloning from a short
+sample, 23 languages across 7 TTS engines, a bundled local LLM, all on the
+user's own machine. The privacy posture is real and genuinely different from
+the hosted voice APIs already in the register.
+
+It is recorded `needs_license_review`, and **not because of its own licence**.
+
+## The licence on the badge is not the licence that decides
+
+MIT covers Voicebox's code and says nothing about the models it runs. The
+project keeps its own licence watch-list in `docs/PROJECT_STATUS.md`, and it is
+explicit:
+
+> **XTTS-v2** â€¦ Candidate â€” CPML license likely blocker
+>
+> Fish Speech V1.5 â€¦ benchmark leader but research/non-commercial license â€” same
+> blocker
+>
+> **Watch-list / blocked** â€¦ Sarashina2.2, Higgs Audio v3, T5Gemma-TTS,
+> Step-Audio-EditX, MisoTTS (non-commercial terms â€¦)
+
+So adopting Voicebox means clearing each engine we actually switch on, one at a
+time. This is the boundary already recorded against `book-to-skill`: a
+permissive licence on a tool is not permission for what the tool processes. It
+is the reason this record exists rather than an adapter.
+
+## Consent, and who carries it
+
+It ships `RESPONSIBLE_USE.md`, which is more than most projects here do, and its
+own words put the obligation exactly where we would have to carry it anyway:
+
+> Voicebox does not and cannot independently verify who owns a voice sample.
+>
+> Developers building products on top of Voicebox should treat consent records,
+> disclosure, and jurisdiction-specific requirements as part of their own
+> application design.
+
+AGENTS.md requires provenance, consent and anti-clone safety, and this
+repository already has the machinery that would have to do the enforcing:
+`lib/sonara-record-checks.cjs` carries `consent_scope`, `consent_attested`,
+`expires_at` and `revoked_at`. Their disclaimer is theirs; the enforcement would
+be ours.
+
+Worth remembering alongside it: `consent_scope` is the field that
+`.claude/skills/checks-that-cannot-lie` records as the sharpest defect this
+codebase has found -- selected on every voice job, and compared to nothing.
+Being in the `select` list is what made it look checked.
+
+## Everything up to date, checked rather than assumed
+
+| | |
+| --- | --- |
+| Production commit | `6fcd09e` |
+| `main` HEAD | `6fcd09e` â€” **they match** |
+| Migrations pinned and unchanged | 112 frozen, 3 generator-owned |
+| Migrations execute in order | 115 applied to an empty PostgreSQL |
+| Register | 228 records, integration map regenerated |
+| Derived doc counts | 14 claims, 43 chain commands, 300 test files |
+
+Production and `main` agree. What is **not** in either is PR #221, which holds
+the catalog-gate fix and the readiness `deferred` fix; it cannot go green on its
+own head because `smoke:live` reads the site that is live now.
+
+### 2026-09-08 - The price cutover happened, and it turned every pull request red
+
+The owner set the three monthly price variables. `/pricing` now advertises
+**$29 / $59 / $109**, Starter and Core have dropped off, and `offeredPlanKeys`
+swapped the ladders exactly as designed. The restructure has been one owner step
+away since 13 August; it is live.
+
+Within minutes, `production-connectivity` went red on PR #221:
+
+```
+Production connectivity smoke failed with 1 issue(s):
+- /api/readiness: stripe reports missing configuration
 ```
 
-**A literal was recorded only if it was already classified.** A name the file
-had never heard of was skipped rather than flagged, so "all classified" was true
-by construction â€” it could not have come out any other way.
+## It was not transient, and it was ours
 
-Thirteen names sat in that gap, and they were not incidental. The plan table in
-`server.js` declares its price variables as `env:` and `envAliases:` values, and
-`lib/sonara-readiness.cjs` resolves each primary name and then its aliases at
-line 301. **The three variables that gate every paid plan were invisible to the
-environment check while it reported success on every deploy.**
+The first reading looked like a deployment window: `/api/readiness` reported
+`stripe: configured` when read by hand a few minutes later. It was re-run on
+that basis and **failed again**, which is the rule for a reason â€” a second
+failure is real.
 
-The filter had a real purpose â€” any shouty string literal would otherwise look
-like a variable â€” so the fix is not removing it but adding a pass that needs no
-allow-list: a key literally named `env` is not ambiguous. The count went 58 â†’ 71.
+The service status was never the point. `scripts/smoke-live-routes.mjs` reads
+`payload.missing.stripe`, not `services.stripe`, and that list held:
 
-Turning it on surfaced eight more names from `scripts/seed-stripe-products.mjs`,
-which is **deleted rather than classified**. It was referenced only from
-`archive/`, printed the retired public names, and quoted $9â€“15 / $29 / $49â€“59 /
-$79â€“99 against live plans of $7 / $19 / $39. Classifying its variables would
-have recorded a fiction; the honest read is that anyone who ran it would have
-been told to build the wrong catalogue under names we do not use.
-
-`tests/env-check-can-report-a-name-it-does-not-know.test.js` guards the property
-rather than the line: it writes a module declaring an unclassified `env:` name,
-runs the script, and requires it to fail *and to name the variable*. If that ever
-comes back clean, the literal pass has been re-gated and the blind spot is open.
-
-Worth stating plainly, since the classification is honest but easy to
-misread: each price variable is genuinely optional â€” a missing one makes that
-plan report setup_required, a stated fallback â€” which means **it is possible to
-set all ten "required for paid usage" variables and still sell nothing.** The
-ten cover the machinery of charging, not the existence of anything to charge for.
-
-### 2026-08-12 â€” What the live Stripe account actually contains
-
-Checked read-only against `acct_1TRSqj0dKtlEU3lA`. All three advertised plans
-have an active price on an active product charging exactly the advertised
-amount: Starter 700, Core 1900, Pro 3900. The price ids are now written into
-`docs/owner/OWNER-STEPS.md` beside the variable each belongs in â€” they are not
-secrets, they travel to the browser at checkout.
-
-So step 1 is not blocked on Stripe configuration. What it proves is whether
-*our* checkout, webhook and entitlement path works end to end, which no amount
-of reading establishes.
-
-Two findings from the same look. A one-time **$197 `Business Builder setup`
-price is live and sellable** on an active product, while the application
-deliberately does not offer that plan â€” nothing is broken, but the price exists
-if a variable is ever pointed at it. And `lib/sonara-billing.cjs` claimed the
-three retired plans were active prices on archived products; **that is no longer
-true** â€” all three read inactive on both. The guard stays, because Stripe really
-does not clear a price's active flag when its product is archived, but the
-comment now describes a shape that could occur rather than one that does.
-
-### 2026-08-12 â€” Two checks of the same rule, and the optimistic one was on display
-
-Whether a plan can actually be sold is asked in two places: `lib/sonara-billing.cjs`
-at checkout, where the key is always present, and `scripts/verify-stripe-env.mjs`
-in the release chain, where it usually is not.
-
-**They disagreed.** The runtime guard expands the Stripe product and refuses
-`price_product_archived`, because archiving a product does not clear its prices'
-active flag â€” `price.active` alone reads true and only the product says
-otherwise. The release check read `price.active` and stopped, so it would pass a
-configuration the running server rejects. The release output is what people
-read, which put the more optimistic of the two on display.
-
-The second defect was in the summary. The last line read *"Stripe configuration
-verified against the deployed server"* whether or not the live comparison ran â€”
-and it never runs in CI, because `STRIPE_SECRET_KEY` is not there. So every
-release ended with a sentence saying the amounts had been checked against Stripe
-while the `[SKIP]` two lines above said they had not. **The skip was honest and
-the summary overwrote it.**
-
-Both fixed: the release check expands the product and refuses an archived one,
-and the summary now names which half ran. Offline runs say plainly that live
-prices were not compared and point at the guard that does compare them.
-
-`tests/stripe-checks-agree-with-each-other.test.js` holds the pair together. It
-requires both files to expand the product and both to refuse an archived one, so
-neither can quietly become the lenient one again. It also requires the summary
-to be conditional, and requires the flag to be set on the success path rather
-than when the key is found â€” setting it early would restore the original claim
-in a new place. These are source assertions because the online half needs a live
-secret, and a test that supplied one would mean either a secret in the
-repository or a network call in the suite.
-
-### 2026-08-12 â€” The same overclaim, one script over, and a check for the class
-
-Having found it in `verify-stripe-env.mjs`, I swept the release chain for the
-shape rather than assuming it was a one-off. It was not.
-
-`verify-open-source-registry.mjs` printed `Network verification: disabled` and
-then, on its last line, *"Open-source and external repository controls
-verified."* The release chain does not pass `--network`, so **the release log
-ended with the word "verified" while nothing had confirmed that any of the 72
-registered GitHub targets still exists.**
-
-Milder than the Stripe case in one respect: the network half is not unrun, it
-has its own workflow (`external-repository-health.yml`). So the summary now
-names it, which is more useful than a bare qualification â€” the question a reader
-has at that point is "then who does check".
-
-`tests/no-check-claims-more-than-it-ran.test.js` covers the class instead of the
-two instances. It reads the script list out of `verify:launch` rather than
-restating it, so a script added to the chain is covered without anybody
-remembering; it selects the ones that can decline part of their work, by their
-own output; and it requires their verification summary to name the reduced scope.
-A third script cannot arrive with the same shape.
-
-The sweep also found the honest cases, which is worth recording: `verify:db`,
-`verify:api`, `verify:member-policies`, `verify:definer-exposure` and the rest
-either need no credentials or fail rather than degrade. Two scripts had the
-defect and the other eleven did not.
-
-### 2026-08-12 â€” The differentiators reach the customer, bound to the code
-
-The market audit worked out what is genuinely different about this product and
-then none of it was on the site. Three findings sat in
-`docs/market/2026-08-12-MARKET-AUDIT.md` and the home page said nothing about
-any of them.
-
-Each was verified against the code before it was written as copy, not after:
-
-- **One record, not three.** The chain is pressable end to end â€” a lead becomes
-  a customer, a quote becomes an invoice, an invoice becomes a reminder draft.
-  It only became true this week; both conversions had shipped with no button.
-- **Nothing is invented.** `lib/sonara-chase-drafts.cjs` makes no network call
-  and loads no provider.
-- **It says when it does not know.** The cash position excludes undated rows
-  *and reports them*; an unreadable table renders unavailable rather than zero;
-  and a capped list now names its total rather than its page.
-
-`tests/the-claims-on-the-home-page-are-true.test.js` binds each sentence to the
-behaviour underneath it. A claim on a marketing page is a promise, and this
-repository's whole history is statements that were true when written and quietly
-stopped being. If somebody wires a model into the chase drafts or makes the cash
-position count an undated invoice as due today, the claim fails before a
-customer finds out â€” verified by adding a `fetch` to the drafts and watching the
-claim go red.
-
-**It deliberately does not grep for comments.** `lib/sonara-chase-drafts.cjs`
-contains the line "**No model call.**", and a check matching that would pass on
-the comment while the file did whatever it liked underneath. It asserts the
-absence of `fetch(`, of any gateway or adapter require, and of provider names.
-
-One claim is checked more strictly than it reads. "Type it once" would be
-satisfied, by every structural test, by a conversion that created a blank
-customer and made the owner fill it in â€” so the test converts a real lead and
-asserts name, email, phone and source all arrive. The source in particular:
-losing it means the owner cannot remember where the customer came from, which is
-the whole reason Growth Studio recorded it.
-
-The copy went into the existing home page string rather than a new module,
-because `server.js` sits exactly on its 4124-line ratchet and a `require` would
-have cost the only line available. The section reuses `sonara-outcome-grid`, so
-it inherits the mobile rules rather than needing new ones.
-
-### 2026-08-12 â€” The totals card counted the page, including a money figure
-
-The same defect as the record lists, in a different renderer, and one row of it
-was money.
-
-`growthTotalsCard` read up to 500 or 1000 rows and reported `rows.length` as the
-total, under a heading reading "counted from your own records". A business with
-1,200 enquiries was told it had 1,000. **Value of those sales summed the capped
-read**, so a real revenue figure was short by however many conversions did not
-fit â€” and the home page now claims every figure comes from the owner's own
-records and that the product says when it does not know. The card contradicted
-the claim shipped hours earlier.
-
-A third defect sat in the same function: the failure guard was
-`if (!campaigns.ok && !leads.ok && !conversions.ok && !content.ok)`, so a problem
-was reported only when *every* read failed. One unreadable table left a real `0`
-beside six real numbers, indistinguishable from a business that had none of that
-thing.
-
-Counts now come from `count=exact`, which costs one row of transfer whatever the
-size, and each failed count says so in its own row. The value is the one figure
-PostgREST cannot total without an RPC, so it is labelled for exactly the rows it
-covers â€” "Value of the 1000 most recent sales" â€” rather than presented as a total
-it is not.
-
-**Two of my own assertions were wrong before they were right, and that is the
-part worth recording.**
-
-The first version stubbed every count as failing and asserted no `<td>0</td>`
-appeared. It passed â€” and kept passing when I broke the code â€” because with all
-counts failing the card short-circuits to "we could not count these" and renders
-no rows at all. A vacuous assertion, of exactly the kind this repository keeps
-finding. Caught only by breaking the code and noticing the test did not.
-
-The second version failed only the leads count, which was right, but kept the
-blanket "no zero anywhere" check â€” and that fails on the money row, which
-honestly reads 0 when there are no sales. A check that cannot tell an honest zero
-from a substituted one is not checking the thing it claims to. The third version
-reads the specific row and asserts what that cell says.
-
-### 2026-08-12 â€” The same substitution in the API, where nobody can question it
-
-Swept for the shape rather than stopping at the card, and `/api/growth/metrics`
-had it worse. Every field under a key literally called `totals` was `rows.length`
-from a read capped at 500 or 1000. **A page has a heading somebody might
-question; a JSON key called `totals` does not.**
-
-Counts come from `count=exact` now, same field names, correct values. A count
-that could not be read returns `null` rather than `0` â€” zero is an answer, "we
-could not ask" is a different one, and an API returning `0` for both leaves the
-caller unable to tell them apart.
-
-`conversionValue` and the attribution breakdown are the two figures PostgREST
-cannot compute without an RPC, so both are still a sample of the most recent
-conversions. The response now carries `computedOver: { conversions, complete }`
-saying so, instead of letting a caller assume it covers everything.
-
-**The fix paid for itself in reads.** Once the counts came from the database,
-five of the seven list reads were dead â€” still fetching up to a thousand rows
-each purely to call `.length` on them. Lint caught it as five unused variables,
-which is a more useful signal than it sounds: an unused variable here was a
-thousand-row query nobody needed. The endpoint went from seven large reads to
-two, plus nine counts that cost one row apiece.
-
-### 2026-08-12 â€” A correction, and the worst instance of the same defect
-
-**I got this wrong in the previous summary.** I said the remaining `rows.length`
-uses found in the sweep were honest, and named two that were. I had not checked
-`routes/sonara-business-control-plane-routes.cjs`, and it was not honest â€” it
-carried the same defect twice, in the place it does the most damage.
-
-`dashboardSnapshot` read each resource capped at 200 and did
-`result.ok ? result.rows : []`. **Every failed read became a count of zero**, and
-`nextBusinessAction` is driven entirely by those counts:
-
-```js
-if (!snapshot.counts.services) return { title: "Create the first offer", â€¦ };
-if (!snapshot.counts.customers) return { title: "Add the first customer", â€¦ };
+```
+STRIPE_PRICE_WORKSPACE_ANNUAL
+STRIPE_PRICE_ALL_THREE_ANNUAL
+STRIPE_PRICE_TEAM_ANNUAL
 ```
 
-So an unreadable services table told a business that already sells things to
-create its first offer, and an unreadable customers table told one with a full
-list to add its first customer. A wrong number is a bad dashboard. **A wrong
-instruction tells somebody their work has vanished** â€” and it is the same
-sentence a genuinely new business sees, so nothing distinguishes a database
-problem from an empty account.
+The three annual plans, added on 6 September with `hiddenUntilBuyable` so
+`offeredPlanKeys` keeps them off the page entirely until their Stripe prices
+exist. `docs/owner/PRICE-CUTOVER-RUNBOOK.md` names staging the monthly ladder
+first as **pathway B**, supported and costing one extra deploy.
 
-Three fixes. A failed read is now `null` rather than `[]`, and "not readable"
-never satisfies a "you have none of these" branch â€” it falls through to the
-closing advice, which is true either way. Figures render as `â€”` rather than `0`,
-because a confident zero on a dashboard reads as "your records are gone". And
-the read asks for 201 rows so a full page reports `200+` rather than presenting
-the cap as the total.
+`lib/sonara-readiness.cjs` put every unset plan price into `missing.stripe`.
+That was right while every plan was meant to be buyable, and stopped being right
+the day a plan existed that deliberately was not. So taking the pathway the
+runbook offered turned every pull request red, naming three prices nobody had
+promised to create.
 
-`moduleCard` needed catching on the way through: it interpolated the count
-directly, so a null would have rendered the word "null" beside "saved records",
-which is worse than either a wrong number or a dash.
+**The deployment was fine. The classification was wrong**, and it was wrong
+because of work recorded three entries above this one.
 
-The counts here are still page-based rather than `count=exact`, unlike the growth
-surfaces. `rest()` discards the response headers and the tests bind their own
-stub to `globalThis.__sonaraBusinessControlRest`, so exact counts would change a
-contract several tests depend on. Recorded as a known limit rather than done
-badly: the figures are now honest about being capped, which is the part that was
-lying.
+## Deferred, not missing, and not dropped
 
-### 2026-08-12 â€” Sweeping "a failed read is an empty table"
+A variable nobody is waiting for is deferred â€” the same shape as `googleOAuth`,
+which has read that way in this file for months. It now goes into its own
+`deferred.stripe` bucket rather than `missing.stripe`.
 
-Having found it twice by accident, I swept for the pattern rather than waiting to
-trip over it again: `result.ok ? result.rows : []`, everywhere.
+Reported rather than dropped, deliberately. "Nobody is waiting for this" and
+"nobody has noticed this" are different facts and the owner needs both. A fix
+that simply stopped counting them would be this codebase's recurring defect
+wearing a bug fix: a signal that reports success by measuring less.
 
-Fifteen sites. **Collapsing to `[]` is not automatically a defect** â€” it is fine
-when nothing derives a claim from the empty set, and the sweep confirmed several
-that were already right. `lib/sonara-cash-position.cjs` tracks what it could not
-read and reports it. `routes/sonara-assistant-routes.cjs` goes further: without
-the payments table a chase draft would state a full total on an invoice that may
-be half settled, so it writes no draft at all. `/creator-studio/generation/jobs`
-sets an unavailable message and never reaches its empty state.
+## Broken, and confirmed red
 
-Three sites were making a claim, and two of them were about the customer's own
-history:
+| Probe | What it said |
+| --- | --- |
+| Reverted to reporting every unset price as missing | *"belongs to a plan the page does not show yet and is still reported as missing. That is what turned production connectivity red on every pull request."* |
+| Deferred plans dropped silently instead | *"is neither missing nor deferred, so it has vanished from readiness entirely. The owner still needs to see that it is unset."* |
 
-**The creator generation landing page** did `jobs = listed.ok ? listed.rows : []`
-under an empty state reading *"Nothing yet. Use the form above to make your first
-one."* A failed read told a creator their generated work had never existed and
-invited them to start over â€” about outputs they may have paid for and waited on.
+The second probe is the one worth keeping: it is the shape of a fix that makes
+the symptom go away by looking at less, and it fails.
 
-**A job's outputs card** did the same, and its sentence is worse: *"Nothing was
-produced for this one"* on a completed job. The creator concludes the generation
-they waited for failed, when the files are sitting in a table nobody could read.
-The history card too.
+## Two things the owner still has to do
 
-**`GET /api/business-builder/businesses/:id`** returned `[]` per resource on
-failure, over JSON, where a consumer has no heading to question and no way to
-tell an empty table from an unreadable one. It now returns `null` for those and
-lists them under `unavailable`.
+**Run `verify-stripe-env.mjs` with the key.** Runbook step 4, and the only check
+that compares each advertised amount against the live Stripe price. A Stripe
+price is immutable and the 13 August prices still charge $19 / $39 / $79.
+Nothing in CI can catch a variable pointed at one of those â€” it skips without
+`STRIPE_SECRET_KEY` â€” and the result would be $59 on the page and $39 on the
+card.
 
-That endpoint also read its eleven resources in a `for` loop with `await` inside
-â€” eleven round trips in series for a response that needs none of them ordered.
-Now one `Promise.all`.
+**The live /pricing page still quotes the August survey**: "$39 â€¦ $39 â€¦ $9 â€”
+around $87 a month â€¦ from published prices in August 2026", where `docs/market/`
+was re-surveyed on 5 September to Jobber $49, Podia $49, stack **$107**. Dated,
+so stale rather than false, and it understates us: All three at $59 is 55% of
+the real stack, not the 68% the page implies. No check covers competitor figures
+in customer-facing code â€” `tests/a-price-in-prose-is-the-price-we-charge.test.js`
+only reads `docs/`.
 
-The rule that came out of the sweep, and the reason it is not simply "never
-return an empty array": **an empty list is only a lie when something reads it as
-a fact about the customer.** A table that renders no rows is fine. A sentence
-saying "you have never made anything", a count, an instruction, or a money total
-is not.
+### 2026-09-08 - Production is deployed, and the last gate could only pass while the product was broken
 
-### 2026-09-03 - Routing reviewed repositories without pretending they are products
+**Deployment #133 deployed.** Step 26 passed for the first time, step 28 --
+"Deploy validated source to Vercel production" -- ran for the first time in 133
+attempts, and `/api/health` now answers:
 
-The latest branch had 171 governed repository records. Thirty-two reviewed,
-non-duplicate records from the structural-hardening branch had not reached that
-baseline, so they were carried forward without replacing newer records or
-reviving retired repository URLs. A later reconciliation preserved 14 newer
-records from the shared development baseline as well. The register now has 217
-records covering 213 unique GitHub targets.
+```json
+{"commitSha":"6fcd09e81fbc4cb98657f1a82f522c62a69e802b","branch":"main","environment":"production"}
+```
 
-A source manifest preserves all 50 social links that prompted the review. It
-maps the 35 repository identities the evidence actually supports and leaves 17
-unresolved or service-only links unguessed. Those 35 records now have governed
-product homes: 21 in Shared Platform, 9 in Creator Studio, 4 in Business Builder,
-and 1 in Growth Studio.
+Production had served `eebc80c` since 5 August. It does not any more.
 
-The customer-visible implementation is deliberately a reference layer. A
-public `/technology-radar` explains the governance posture; signed-in customers
-can open the matching technology module in each product. Nothing is installed,
-executed, or described as connected. A blocked record stays unavailable, and a
-record with no approved product fit stays in Shared Platform governance rather
-than being forced into a product.
+Step 30 then failed, on its first ever execution:
 
-The full test run exposed Windows assumptions that had hidden behind Linux CI:
-the tests required an `unzip` binary, compared slash direction, formatted dates
-in local time, and treated CRLF checkout conversion as an applied migration
-edit. The fixes preserve the assertions while making them platform-independent.
-The reconciled result is 3,801 passing tests and 6 explicit pending tests, with
-lint, typecheck, build, route smoke, client-secret scan, database contract, and
-local governance gates passing. The launch gate records V8 coverage during that
-one successful suite and accepts the cache only for the identical source-tree
-fingerprint, avoiding a second loopback-heavy Windows run without weakening the
-coverage floor. Migration replay remains visibly skipped without local
-PostgreSQL binaries and remains mandatory in CI.
+```
+AssertionError: Production catalog is missing boundary text:
+not open yet â€” we are still checking this one.
+```
 
-### 2026-09-05 - A table existing does not mean it has the current tenant shape
+## The page was right and the gate was wrong
 
-The controlled deployment for merge `7aa68a06` passed every source and dry-run
-gate, recorded a rollback checkpoint, then stopped while applying
-`20260819030000_member_read_policies_research_sources.sql`. Production's legacy
-`customers` table exists, but does not have the canonical `organization_id`
-column the generated member policy names. `to_regclass()` proved only that the
-table existed, so the generated policy failed before deployment.
+Every one of the five strings in `CATALOG_BOUNDARY_TEXT` is rendered by the
+`else` branch of `catalogActions` in
+`routes/sonara-service-lifecycle-routes.cjs`, reached only when a product is
+**not** open. All 42 products are active and execution-enabled, so the live page
+says *"You can use this now."* and never needs the other wording. Measured, not
+inferred: the page was fetched and all five strings confirmed absent while the
+open note was present.
 
-The policy generator now checks the column its predicate requires before it
-changes RLS or creates a policy: `organization_id` for organization reads and
-`user_id` for personal reads. A legacy-shaped table is left unchanged with an
-explicit notice. This is intentionally not a guessed mapping to a legacy key;
-granting access through the wrong tenant relationship would be worse than
-leaving that future user-scoped read unavailable. Current service-role reads
-are unchanged, and canonical tables still receive the same policy.
+Requiring all five unconditionally made this **a gate that gets harder to
+satisfy the better the product gets.** To keep it green, some product would have
+to stay shut. Promoting the last beta products â€” deliberate work, recorded in
+this log â€” is what finally broke it.
+
+The same discovery had already been made one layer down and not carried across.
+That route file says `catalogRequestLabel` was moved out of `catalogActions`
+because *"once every product in the catalog was open, there was no closed
+product to find, so the only check on this wording went vacuous"*. That fix
+reached the offline test and never reached the deploy gate.
+
+## Why nothing caught it for a month
+
+The rule was inline in `scripts/verify-production-product-catalog.mjs`, which
+needs production credentials, so **nothing could execute it** â€” it was wrong
+from the day the last product was promoted and could only be discovered by a
+deployment getting far enough to run it.
+
+It now lives in `lib/sonara-catalog-boundary.cjs` as
+`catalogPageAccessViolations`, a pure function beside the row-shaped predicate
+that was already there, and
+`tests/the-catalog-gate-follows-production-not-a-wish.test.js` runs it against
+**the page production actually served on 8 September**, saved as a fixture.
+
+The access rule itself moved too. `catalogAccessReason` was item-shaped inside
+the router; the gate needed the same answer from database rows, and a copy there
+would have been the third â€” in a file whose own comment records what happened
+the last time it was two. It is now `catalogRowAccessReason` in the shared
+module, with the router as an item-shaped door onto it.
+
+## The promise is not weakened
+
+A non-open note on the page still obliges the sentence *and* the way to ask
+beside it. Added on top: the page and the database must **agree** about whether
+anything is shut, in both directions, so a page that silently stopped mentioning
+a genuinely restricted product now fails where before it would have passed by
+saying nothing.
+
+## Broken, and confirmed red
+
+| Probe | Result |
+| --- | --- |
+| The empty-page guard removed | red â€” the rule would pass on a page that rendered no cards |
+| The database cross-check removed | red, two cases â€” both directions of page-vs-database disagreement |
+| The gate reverted to requiring all five strings | *"the gate is requiring every boundary string unconditionally again, which can only pass while a product is shut"* |
+
+One test had to be repointed rather than satisfied.
+`tests/product-catalog-production-boundary.test.js` asserted the route file
+literally contained `item.executionEnabled !== true` â€” pinning **where** the
+rule was written rather than that it exists, which failed a move it had no
+quarrel with. It now checks the rule where it lives and that the router still
+goes through it.
+
+## What this does not claim
+
+**That deployment #134 will pass.** Step 30 has now run twice and failed twice;
+the second failure would be a different one.
+
+**That anything has been bought.** `docs/SHIP_READINESS.md` item 1 is still
+open: no paid signup has completed in production, and the six Stripe prices and
+six Vercel variables in `docs/owner/PRICE-CUTOVER-RUNBOOK.md` are still the
+owner's to create.
+
+### 2026-09-08 - Deployment #132 reached one fault, and it was one I had reported as absent
+
+PR #219 merged and **deployment #132 got further than any run before it**. Step
+25 passed, step 23 applied the migrations, and step 26 -- which had reported
+eight faults in #131 -- reported one:
+
+```
+Supabase deep verification failed (1):
+- active application table is missing from production: public.reviews
+```
+
+Every service-role grant fault is gone and every missing-retired-table fault is
+gone. Both halves of yesterday's work did what they were for.
+
+## A correction I have to make first
+
+**I reported #131 as having eight findings, and it had at least nine.**
+
+I read those failures from `get_job_logs` with `tail_lines`, and the window
+began at `- service role cannot read table: public.shared_links`. The header
+line, `Supabase deep verification failed (N)`, was above the window and I never
+saw it. The gate sorts its active-table failures alphabetically and **`reviews`
+sorts immediately before `shared_links`** -- so it was the line directly above
+the first one I read.
+
+I then wrote "these eight are every finding #131 reported" into a pull request
+body. That is a truncated population reported as the complete one, which is the
+defect this repository exists to catch, and no check would have caught it
+because it was in prose. When reading a truncated log, the count in its header
+is the population; the lines are a sample.
+
+## Why reviews was missing, and why nothing found it sooner
+
+`20260811210000_repair_missing_platform_tables.sql` records the root cause in
+its own words:
+
+> Production's own migration history says `010` is applied and the table is not
+> there -- which is what happens when an existing database is adopted into the
+> Supabase CLI and its early migrations are marked applied rather than run.
+
+That migration repaired the tables it could *find*: the ones later migrations
+alter, index, or point a foreign key at without creating. **Nothing in this
+repository references `public.reviews`.** No migration after 010 names it at
+all. So it fell outside a search that was otherwise sound, and stayed missing
+for as long as there were louder faults ahead of it in the report.
+
+It is not cosmetic. `lib/sonara-customer-journey.cjs` reads `reviews` through
+the service-role client and `lib/sonara-tenant-scoped-tables.cjs` lists it as
+tenant-scoped, so this was a 42P01 waiting for the first customer down that
+path.
+
+## The repair
+
+`20260908000000_repair_missing_reviews_table.sql` creates the one table, with
+the definition copied unchanged from 010 lines 235-247 so a repaired database
+and a replayed one agree. Not a re-run of 010, for the reason the August repair
+gave: 010 also creates `billing_customers`, which `20260805120000` deliberately
+retired, and replaying it would resurrect a table somebody removed.
+
+It carries its Data API grant, because it is dated after the July hardening and
+a table created now without one lands unreadable by the server -- the fault that
+took five tables down in #131. It also asserts its own three post-conditions:
+the table exists, RLS is on, and `service_role` can select from it.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| The grant removed, then replayed | *"ERROR: service_role cannot read public.reviews after the grant"* -- the migration refuses to apply to an empty database |
+| The same, checked offline | `tests/a-new-table-declares-its-data-api-surface.test.js` named `reviews (20260908000000_repair_missing_reviews_table.sql)` |
+
+Yesterday's check caught today's migration, from both directions, which is what
+it was written for.
+
+## What this does not claim
+
+**That deployment #133 will pass.** Steps 28 to 30 have never executed in 132
+runs. Step 28 is the one that actually deploys; 29 and 30 verify aliases,
+commit, catalog pages and plan infrastructure, and a first-run failure there
+would be new ground rather than a regression.
+
+**That production has deployed.** It still serves `eebc80c`.
+
+### 2026-09-07 - Three marketing skills adapted, and the licence review wired to the folder
+
+Three skills added under `.claude/skills/`, adapted from two of the MIT
+libraries cleared in the review earlier today:
+
+- **`writing-sonara-marketing-copy`** -- from Corey Haines's `copywriting`,
+  `copy-editing` and `product-marketing`.
+- **`comparing-sonara-to-a-competitor`** -- from his `competitors` and
+  `competitor-profiling`.
+- **`writing-a-social-post-for-sonara`** -- from Charlie Hills's
+  `hook-generator`, `post-writer`, `post-formatter` and `post-scorer`.
+
+Rewritten rather than copied, and what was left behind matters as much as what
+was taken.
+
+**The context document.** The marketing library's foundation skill interviews
+the user and writes `.agents/product-marketing.md`, which every other skill then
+reads. SONARA's positioning is already fixed in `AGENTS.md` and its market
+figures are dated in `docs/market/`. A second, undated statement of who we are
+is exactly the uncheckable second copy this repository keeps deleting, so the
+adapted skills point at the existing ones -- and at the two claims here that are
+checked against code: a price written into prose, and saying a reviewed
+repository ships.
+
+**Apify.** The social library's `post-scorer` pulls the author's real post
+history through Apify and scores drafts against what performed. Better than a
+static rubric, and unavailable here: Apify is a hosted paid service in no record
+in the register, and `CLAUDE.md` is explicit that a free tier is a price rather
+than a licence. A rubric that silently scores nothing when a key is missing is
+worse than a plain one, so the adapted skill ships a plain five-axis rubric --
+with truthfulness as a veto axis rather than one fifth of a score.
+
+**The hook formula.** That library requires a "How I" statement and a digit in
+every hook, on clickbait principles. Right for a personal brand, wrong for a
+company whose own rule is plain customer-facing language -- and manufacturing a
+digit is how a post acquires a number nothing supports.
+
+**The audience numbers.** Its banner reads "the 17 skills behind 350k followers
+and 100M+ views a year". The frameworks travel; the proof does not.
+
+All three skills end at a draft. Customer campaigns and proof publishing are two
+of the seven categories `lib/sonara-agent-authority.cjs` holds for the owner,
+and each skill says so in its own text rather than leaving it to be remembered.
+
+## The half that stops it reopening
+
+Nothing checked `.claude/skills/` before today. Fine while every skill in it was
+written here; not fine the moment skills came from outside repositories, because
+an adapted skill looks the same whatever its source was licensed under.
+
+`scripts/verify-adapted-skills.mjs` closes the loop both ways. **Forward**: a
+skill naming a source must name one `data/open-source-tools.ts` has reviewed and
+cleared, and that record must read `adapter_built`. **Backward**: a record
+marked `adapter_built` in the "agent skills" category must be named by a skill
+that exists, so "we did" cannot be claimed for work nobody did.
+
+It found its own first defect on its first run -- both records still said
+`optional_adapter_after_review` while the skills were already written.
+
+## A pattern that had stopped covering its population
+
+`verify-open-source-registry.mjs` requires an `adapter_built` record to name
+something that exists, and matched only `lib/*.cjs`. A skill is an adapter by
+the same definition and the pattern could not see it. Widened to accept
+`.claude/skills/<name>` and to check its `SKILL.md` is really there, so the
+guarantee survives. Same shape as the dynamic-drop parser fixed this morning:
+not a wrong rule, a rule whose pattern stopped matching its population.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Source switched to `plannotator/artifact-server` | *"which the register BLOCKS (integrationStatus: blocked, commercialUseStatus: blocked_until_review)"* -- the AGPL repository, which is the case this check exists for |
+| Source switched to an unreviewed repository | *"has no record in data/open-source-tools.ts. Review it first"* |
+| The social skill directory deleted | *"recorded as adapter_built ... but no skill under .claude/skills names it. Either the skill was removed, or the record claims work that was never done"* |
+
+## What this does not claim
+
+**That the skills have been used.** Written and loadable; no copy produced with
+them yet.
+
+**That a post or campaign can now be sent.** All three end at a draft.
+
+---
+
+### 2026-09-07 - Fourteen recommendations, read licence-first
+
+Fourteen things arrived as social-media screenshots with the instruction to
+incorporate them. Ten are repositories and are now recorded in
+`data/open-source-tools.ts` (217 records to 227). Every licence was read from
+the LICENSE file in a shallow clone; every count was measured rather than taken
+from a README.
+
+**The spread is the finding.** All of these were posted in the same voice, as
+useful open source to adopt:
+
+| Repository | Licence read | Verdict |
+| --- | --- | --- |
+| coreyhaines31/marketingskills | MIT | adapted -- see the entry above |
+| mattpocock/skills | MIT | cleared to adapt |
+| charlie947/social-media-skills | MIT | adapted -- see the entry above |
+| msitarzewski/agency-agents | MIT | reference only -- personas, not skills |
+| ashishpatel26/500-ai-agents-projects | MIT | reference only -- an index |
+| microsoft/ai-agents-for-beginners | MIT + trademark policy | reference only |
+| cyb3rxp/awesome-soc | **CC0-1.0** | reference only, nothing to install |
+| diffusionstudio/editor | **MPL-2.0** | needs licence review |
+| cporter202/automate-for-growth | **none** | **blocked** |
+| plannotator/artifact-server | **AGPL-3.0** | **blocked** |
+
+## The one that mattered
+
+`plannotator/artifact-server` is described as "the open-source, self-hostable
+alternative to Claude Code artifacts", and it is open source. It is also
+**AGPL-3.0**, whose preamble states the case it was written for: it "requires
+the operator of a network server to" offer source to the community. SONARA One
+is a hosted network service. Adopting it would oblige publishing this product's
+own source.
+
+`cporter202/automate-for-growth` has **no LICENSE file**, so it is all rights
+reserved. Measured for the affiliate pattern recorded against that author's
+three API directories -- 114 links, zero carrying `?fpr=` -- so it is a
+different artefact and the objection is purely the missing licence. Sixteen
+files, all prose; there was nothing to depend on either way.
+
+Two narrower constraints a badge does not show. Microsoft's MIT grant covers the
+code and **not the name** -- its README carries an explicit trademark section --
+and its examples wire directly to Azure OpenAI, which AGENTS.md forbids in
+favour of the Provider Gateway. And MPL-2.0 on the video editor is reciprocal
+*per file*: `reciprocalLicense` is recorded false because this register's field
+asks whether the licence obliges releasing SONARA's own source, which MPL does
+not, while the record says plainly that it is copyleft.
+
+## Four that are not repositories
+
+- **fingerprint.to** -- a hosted username and email search across 700+
+  platforms. Not adopted, and not a close call: aggregating people's accounts
+  from an identifier is the consent problem AGENTS.md names, and this register
+  already blocks bulk contact scrapers on that ground.
+- **drafted.ai** -- hosted architectural generation. No source to review.
+- **A Quran database** shown under a "GAIT" banner. **The screenshot never shows
+  the owner**, only a file listing. The review skill's first rule is not to
+  guess an owner into a permanent register, so nothing was recorded.
+- The sixth screenshot was **this repository's own Languages panel**, which
+  turned out to be the more interesting one.
+
+## Every language, held to something
+
+The instruction alongside the screenshots was that all our languages be at 35%
+or better. Read literally against the Languages panel that cannot be done: those
+are shares of the codebase and six shares cannot each exceed a third. Read as
+this repository's own 35% coverage floor it is a real and unmet requirement, and
+that is how it was taken.
+
+**The panel was measuring dead code.** 489 of the 500 TypeScript files and four
+of the five app-level stylesheets are under `archive/`. `.gitattributes` now
+marks `archive/**` as `linguist-vendored`, so the panel describes the product
+that is actually shipped.
+
+Six languages ship outside `archive/`: JavaScript 681 files, SQL 117, Python 49,
+CSS 15, TypeScript 11, HTML 1. Two had a floor. The other four were not failing
+anything because nothing was asking.
+
+`scripts/verify-language-coverage-floors.mjs` now requires every one of them to
+be either held to the floor by an executed check, or to carry a dated reason why
+executed-line coverage cannot mean anything for it, naming the checks that
+govern it instead. **SQL turned out to be the best-covered language we have** --
+`verify:migration-replay` applies all 117 migrations to an empty PostgreSQL on
+every release, so its executed fraction is 100%, not 35%. TypeScript here is
+data registers that nothing runs; CSS and HTML have no executed lines at all.
+Bolting a percentage onto those would have been a number nobody could act on,
+which is this codebase's recurring defect wearing a percentage.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| The CSS entry deleted | *"CSS is shipped in 15 file(s) and nothing in this repository holds it to the 35% floor or records why a floor cannot apply"* |
+| A reason pointed at a missing script | *"names scripts/verify-colour-contrast-GONE.mjs, which does not exist -- the reason points at nothing"* |
+| A COBOL entry added | *"still describes COBOL, which no longer appears outside archive/"* |
+| The Python floor removed from package.json | *"Python's floor ... is not called by any package.json script, so it never runs"* |
+| Multi-fit records forced onto one surface | *"routing disagrees with FIT_LABEL_TO_SURFACE about where records belong"* |
+
+The third probe is the half that matters most: an exemption whose reason has
+expired is the shape `.claude/skills/checks-that-cannot-lie` records as worse
+than no exemption, because it is what the next person reads instead of checking.
+
+The fifth is a separate repair. `tests/repository-product-routing.test.js` pinned
+217 records, 306 placements, 42 governance-only records and a per-surface map as
+literals. They were a second copy of the register and failed on this change while
+nothing was wrong. The per-surface totals are now recomputed independently from
+`FIT_LABEL_TO_SURFACE` and compared against the routing function, which is a real
+cross-check rather than a tautology.
+
+## What this does not claim
+
+**That the four non-floor languages are tested.** They are governed by named
+checks that measure what can go wrong with them. That is a different claim from
+a coverage percentage, and it is deliberately written as one.
+
+---
+
+### 2026-09-07 - The tables the server was never given permission to read
+
+Deployment **#131** failed with eight findings. Three are what PR #219 fixes.
+**Five were a different fault entirely, and two of them break a feature:**
+
+```
+service role cannot read table: public.shared_links
+service role cannot read table: public.user_auth_factors
+service role cannot read table: public.user_recovery_codes
+service role cannot read retired table: public.audio_assets
+service role cannot read retired table: public.daw_sessions
+```
+
+`lib/sonara-two-factor.cjs` reads `user_auth_factors` through the service-role
+client on every sign-in that checks for a second factor, and
+`routes/sonara-shared-result-routes.cjs` reads `shared_links`. **A table the
+service role cannot select from is a feature that does not work in production**,
+not a gate being fussy.
+
+## The guess in the #219 body was wrong
+
+That PR said the five "may be a PostgREST schema-cache race". It is not, and the
+way to tell took one grep: `service_role_select` is
+`has_table_privilege('service_role', ...)`, computed inside
+`sonara_database_deep_snapshot()`. That is a catalog privilege, not a cache --
+it does not settle after a moment, and it would never have gone green on a
+retry. Recorded here because it is exactly the failure `CLAUDE.md` warns about:
+a reason reasoned to rather than verified, and it reads the same as a real one.
+
+## What is actually happening, in the repository's own words
+
+`20260718064853_data_api_privilege_hardening.sql`:
+
+> Existing objects retain their current explicit/legacy grants. New public
+> objects become opt-in so a future migration must declare its Data API surface
+> alongside RLS.
+
+```
+alter default privileges for role postgres in schema public
+  revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+```
+
+**The boundary is working exactly as designed.** What keeps getting forgotten is
+the declaration. A migration adds a table, never says who may reach it, and the
+table lands with `service_role` holding everything except the four verbs that
+matter. This already happened once -- 27 July, `sonara_auth_rate_limits`, fixed
+one table at a time by `20260727190000`, whose comment explains the whole
+mechanism. Nobody generalised it, so it happened again.
+
+It also explains why only five surfaced out of 48 candidates: several of these
+migrations use `create table if not exists`, which is a no-op when the table is
+already there and therefore keeps its legacy pre-July grants. Whether a given
+table really was created after 18 July lives in the production database and
+cannot be read out of this repository.
+
+## The fix, in two halves
+
+**The declaration.** `20260907120000_declare_service_role_data_api_surface.sql`
+grants `select, insert, update, delete` to `service_role` on all 48 candidates
+rather than the five the deploy happened to name -- because the deploy log only
+sees production as it is today, and granting a table that already holds the
+grant changes nothing. The two retired names are guarded by `to_regclass`, since
+production is not required to have them.
+
+**`anon` and `authenticated` are deliberately untouched.** The 27 July precedent
+also revoked from the browser roles, and copying that half here would have taken
+down `public_booking_pages`, `scroll_sites`, `lead_capture_pages` and
+`creator_follows` -- tables that back pages an unauthenticated visitor is meant
+to load. This migration widens nothing for the browser roles and narrows nothing
+either.
+
+**The half that stops it reopening.**
+`tests/a-new-table-declares-its-data-api-surface.test.js` fails when a migration
+dated after the hardening creates a table that no migration grants. Offline, on
+every release, instead of on a deploy.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| `'user_auth_factors'` removed from the declaration | *"public.user_auth_factors lost its service_role grant. That is the exact failure deployment #131 reported."* -- and the general case named the file too |
+| The `to_regclass` presence guard removed | *"the retired grants lost their presence guard, so the migration will fail on a database that dropped them"* |
+| The hardening's own revoke narrowed to drop `service_role` | *"no longer revokes default table privileges from service_role ... new tables are silently inheriting grants"* |
+
+One case had to be rewritten before it was trustworthy: it first asserted that
+the only retired tables granted anywhere in history were these two, and
+`integration_statuses` failed it -- granted legitimately, long before
+`20260806000000` dropped it. Measuring all of history was the wrong population;
+it now reads the new migration's own array.
+
+`pnpm run verify:migration-replay` executes this SQL against an empty PostgreSQL
+-- 114 migrations in order, so the `RAISE EXCEPTION` for a missing table is
+proven not to fire. `pnpm run verify:launch` exit 0, suite **3,859 passing**.
+
+## One more check that was failing for the wrong reason
+
+Adding the migration failed `generate-catalog-sync-migration.cjs`, with a message
+saying it "writes into migrations production has already applied" -- naming two
+catalog files this change never touched. The guard (added in #218) measures
+filename order against the newest *frozen* migration, and frozen means
+"not owned by a generator", so it moves every time anybody hand-writes one.
+
+The remedy it printed was to rename both files. Their content was byte-identical,
+and rewriting a file to the bytes it already holds reaches production no
+differently from leaving it alone -- so there was nothing to fix, and following
+the instruction would have set up a treadmill: every future migration renaming
+those two forever.
+
+It now guards only entries whose content would actually change, which is the case
+it was written for. Falsified both ways: appending a line to a generated file
+brings the failure back, and widening it to every entry again is caught by a new
+case in `tests/published-catalog-sync.test.js`. The message also no longer states
+as fact something it inferred -- it says what it measured.
+
+## What this does not claim
+
+**That deployment #132 will pass.** These five plus #219's three are all eight
+findings #131 reported, but the gate stops at the first failing step and there
+are steps after it that have never run.
+
+**That production has deployed.** It still serves `eebc80c`.
+
+### 2026-09-06 - Deployment #130 got one step further, and the next step was a parser that stopped matching
+
+PR #218 merged. **The catalog boundary step it was written to fix now passes** --
+step 25 of Controlled Production Deployment, green for the first time. The
+failure moved to step 26, "Verify complete production Supabase state", which had
+been *skipped* in #129 because 25 failed ahead of it. New ground rather than a
+regression.
+
+```
+active application table is missing from production: public.sonara_billing_customers
+active application table is missing from production: public.sonara_permission_matrix
+active application table is missing from production: public.sonara_subscriptions
+```
+
+**The gate was demanding tables the codebase deliberately dropped on 6 August.**
+
+## Why it could not see the drop
+
+`deriveMigrationState` in `scripts/verify-production-supabase.mjs` builds the
+expected-table set from a regex over literal statements -- `create table
+public.<name>` adds, `drop table public.<name>` removes.
+`20260806000000_drop_retired_superseded_tables.sql` drops **thirteen** tables by
+iterating an array and calling `execute format('drop table ... public.%I', t)`.
+At parse time the name is `%I`. The creates were counted; the drops were
+invisible.
+
+Ten of the thirteen are still present in production -- that migration keeps a
+table that has rows unless explicitly forced -- so only the three genuinely gone
+surfaced. The other ten were quietly being verified as active tables.
+
+That is `CLAUDE.md`'s own phrase, *a report whose parser silently stopped
+matching*, and it had been sitting between production and every deployment for a
+month.
+
+## The fix, in two halves
+
+**The list.** All thirteen added to `RETIRED_DATABASE_TABLES`, which is what
+"production is not required to have this table" means. Checked first that none
+of them is queried by runtime code, because four names came *off* this list on
+18 August for exactly that reason.
+
+**The half that stops it reopening.**
+`tests/a-dynamic-drop-still-retires-the-table.test.js` reads that migration's own
+array and fails when a name in it is missing from the contract. It deliberately
+does **not** teach the parser to follow `format()` through a loop: a regex that
+tries to read generated SQL is a parser with its own silent failure mode, which
+is the thing being fixed. The array the migration iterates is a fact; inferred
+intent is a guess.
+
+It also asserts the gate's regex still *cannot* see these drops -- so if that
+ever changes, somebody finds out rather than the file quietly checking nothing.
+
+## The check I nearly shipped broken
+
+`tests/a-price-in-prose-is-the-price-we-charge.test.js` guards the sentence
+`CLAUDE.md` warns is copied into marketing copy. Its first draft treated any
+line beginning `>` as a historical quotation -- and the canonical comparison in
+`2026-09-05-PRICING-STRATEGY.md` **is written as a blockquote**. Reverting it to
+`$39` left the suite green.
+
+Shape 6, a check too weak to catch the bug it was written for, caught by
+falsifying rather than by trusting it green. A line is historical because it
+says so, not because of how it is indented. One of the test's own cases asserted
+the wrong thing and was rewritten to assert the opposite.
+
+## Broken, and confirmed red
+
+- `sonara_subscriptions` removed from the contract: *"these tables are dropped by
+  a migration and are not in RETIRED_DATABASE_TABLES ... That is what failed
+  deployment #130."*
+- The migration's array declaration renamed: *"no longer declares `superseded
+  constant text[] := array[`; this check has gone blind."*
+- The comparison sentence reverted to `$39`: *"says all_three_monthly costs $39,
+  but it charges $59."* (Only after the blockquote exclusion was removed. Before
+  that, silent.)
+
+The retirement contract's count ratchet moved 23 â†’ 36 with the reason written
+in, rather than being derived: growing that list means production stops being
+required to have a table, which should cost somebody a deliberate keystroke.
+
+3,853 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That deployment #131 will pass. Step 26 reported more than the three missing
+tables -- it also said the service role cannot read `shared_links`,
+`user_auth_factors` and `user_recovery_codes`, all created by migrations applied
+in that same run seconds earlier. **That was not investigated here**, and it may
+be a PostgREST schema-cache race rather than a permissions fault. It is the next
+thing to look at if #132 fails.
+
+### 2026-09-06 - The pathway to the new prices, and the ordering that would take the page down
+
+Researching how to get from the live ladder to $29/$59/$109 turned on one fact,
+read rather than assumed: **nobody is subscribed to anything on sale.**
+`SHIP_READINESS.md` records the only two charges that ever happened -- both the
+owner's, both on prices now `active: false`, one refunded and one failed for
+insufficient funds. No migration, no grandfathering, no proration. That is what
+makes this a cutover rather than a project, and the window closes the moment
+somebody subscribes.
+
+`docs/owner/PRICE-CUTOVER-RUNBOOK.md` is the result: three pathways, the one
+chosen, and seven ordered steps each with what to run and what it should say.
+
+## The ordering that matters
+
+**Archiving the old Stripe prices first takes the page down.** A superseded plan
+drops off only when its *replacement* can be bought, so archiving Starter, Core
+and Pro before the new ladder is live leaves all three on the page saying
+checkout is not configured -- a pricing page with nothing purchasable on it.
+Archiving is step 7, not step 1, and the runbook says why rather than just
+saying when.
+
+## The check that only runs when somebody remembers the key
+
+`scripts/verify-stripe-env.mjs` is the only thing that compares an advertised
+amount against the live Stripe price -- and it **skips without
+`STRIPE_SECRET_KEY`, which is every CI run.** Pointing a variable at the 13
+August price would advertise $59 and charge $39, and nothing in the release
+chain would say so.
+
+So the offline half now exists: `tests/dashboard-setup-doc.test.js` parses the
+checklist's price table and fails when a row's amount disagrees with what the
+plan advertises. It checked variable *names* and never amounts, which is exactly
+how a document can name the right variable beside the wrong price.
+
+## Broken, and confirmed red
+
+- The checklist reverted to `$39/mo` beside `STRIPE_PRICE_ALL_THREE_MONTHLY`:
+  *"the checklist tells the owner to create STRIPE_PRICE_ALL_THREE_MONTHLY at
+  $39/mo, but all_three_monthly advertises $59/mo. Following it would put one
+  number on the pricing page and charge another."*
+- Amounts stripped from the table: *"the checklist row for
+  STRIPE_PRICE_WORKSPACE_MONTHLY prints no amount."*
+
+## A figure in prose that outlived its claim
+
+`SHIP_READINESS.md` said "No plan currently on the pricing page -- **$19, $39 or
+$79** -- has ever been bought." Neither half was right: those are the breadth
+ladder's amounts and the breadth ladder is not on the page (its variables are
+unset, so the page is Free / $7 / $19 / $39), and the breadth amounts moved on 6
+September. The sentence is now true without naming amounts, and the numbers live
+in the runbook where a check reads them.
+
+3,845 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the cutover has happened. Every step in the runbook is still the owner's:
+six Stripe prices to create, six variables to set, and the deploy that carries
+the plan table -- production still serves `eebc80c`.
+
+That step 6 is optional. Buying one plan with a real card is the only thing that
+exercises the entitlement half, which has never been observed working: the only
+subscription that ever existed lived 29 minutes.
+
+### 2026-09-06 - The breadth ladder raised to $29 / $59 / $109
+
+The owner's instruction: competitive but cheaper. $19/$39/$79 becomes
+**$29/$59/$109**, with the yearly plans following at $290/$590/$1090.
+
+Each is set against what the customer would otherwise pay for that job rather
+than against the plan below it. One workspace is 59% of Jobber Core or Podia
+Mover ($49). All three is 55% of the $107 stack. Team is 73-78% of Jobber
+Connect ($139) or Housecall Pro Essentials (~$149), and carries all three
+workspaces where those carry one.
+
+**$79 for all three was considered and rejected**, not out of caution: it is
+still "cheaper" at 74% of the stack, but the comparison is the whole commercial
+argument and an argument that needs explaining stops working. *"They cost $107
+between them; all three of ours cost $59"* is a sentence somebody repeats.
+
+## Why it could be done in place
+
+Raising a price normally means a fourth ladder and a migration story. Two facts
+made that unnecessary, and both were checked rather than assumed:
+
+- The breadth plans' price variables are unset in production, so
+  `/api/readiness` lists only free, starter, core, pro and the quoted package
+  under `checkoutPlans`. Checkout for them has never been possible.
+- No paid signup has completed in production at all -- `SHIP_READINESS.md` item
+  1, still open.
+
+Nobody is subscribed to any of them, so no existing charge changes. **The old
+Starter/Core/Pro ladder is deliberately untouched** for the opposite reason:
+those have live Stripe prices and are what the page shows today. The window
+closes the moment the owner sets those variables; after that a price change is a
+new key and a supersession.
+
+## The trap this creates, and where the guard is
+
+A Stripe price is immutable. The three created on 13 August still exist and
+still charge $19/$39/$79. Pointing a variable at one would put "$59/mo" on the
+pricing page and charge **$39**.
+
+`scripts/verify-stripe-env.mjs` compares the advertised amount against the live
+price and catches exactly that -- **but only on a run holding
+`STRIPE_SECRET_KEY`, and it skips without one, which is every CI run.** So the
+offline guard is `docs/MANUAL_DASHBOARD_SETUP_FINAL.md`, which no longer prints
+the old IDs and says why in the paragraph that replaced them.
+
+## Two more literal prices that made a price change hard
+
+`tests/one-ladder-on-the-pricing-page.test.js` pinned `/Team - \$79\/mo/`,
+`/Move to Starter at \$7/` and `/All three cost \$39 together/`. What that test
+exists to prove is that **the prose follows the table** -- so the amounts are now
+read from `STRIPE_PLANS`, and a page that names a plan at the wrong price still
+fails. Same lesson as the "/mo" suffix and the $77 stack bound: a literal price
+inside a check about prices is the thing that makes changing prices expensive.
+
+## The requirement itself is now checked
+
+"Cheaper than the competitor it replaces" was an instruction and nothing
+enforced it. `tests/pricing.test.js` now compares each paid plan against the
+tool it actually replaces -- One workspace against $49, All three against the
+$107 stack, Team against $139 -- with a blindness guard on the list length.
+
+## Broken, and confirmed red
+
+- Team at $149: *"team_monthly costs 14900 against 13900 for Jobber Connect at 5
+  users ... so it is not cheaper."*
+- One workspace at $55: *"workspace_monthly costs 5500 against 4900 for Jobber
+  Core / Podia Mover ... so it is not cheaper."*
+
+**The first probe attempted was invalid and is recorded because of it.** Pricing
+All three at $119 did fail the suite -- but on the *stack* assertion earlier in
+the same `it` block, which aborts before the new loop runs. It would have been
+recorded as proof of a check it never reached. The two probes above trip plans
+only the new comparison covers.
+
+3,844 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That these prices convert better than $19/$39/$79. No paid signup has completed,
+so there is no conversion data for either set.
+
+That One workspace is cheaper than every competitor in every column. Against
+Brevo Starter at $9, or Standard at $18, $29 is more expensive. That comparison
+is not like for like -- Growth Studio is a control plane and does not send -- but
+the honest reading is that One workspace is priced for the Business Builder and
+Creator Studio columns and is a poor deal bought for Growth alone. It is written
+down in `docs/pricing/2026-09-06-PRICE-INCREASE.md` rather than left for a
+customer to discover.
+
+### 2026-09-06 - The largest thing we built was recorded everywhere as the largest thing we lacked
+
+The owner's brief: our products have to be better than the competition, cheaper
+than the competition, and affordable. Checking whether the first of those is
+true turned up something worse than a gap.
+
+**Stripe Connect exists.** `lib/sonara-connected-payments.cjs`,
+`routes/sonara-connected-payment-routes.cjs`,
+`20260826090000_business_payment_accounts.sql`, mounted at server.js:1501,
+covered by `tests/a-business-can-be-paid-by-its-own-customers.test.js`. Charges
+are created **on the connected account** via the `Stripe-Account` header, so the
+money lands in the business's own Stripe balance and never enters SONARA's.
+
+**Two places still said it did not.**
+
+- `lib/sonara-invoice-settlement.cjs` opened its reasoning with *"There is no
+  Stripe Connect in this application. No connected-account model, no
+  `on_behalf_of`, no `transfer_data`, no table holding a business's Stripe
+  account."*
+- `docs/market/2026-08-26-PER-PRODUCT-COMPETITOR-REASSESSMENT.md` carried the
+  same belief into the competitive record **twice**, as "the gap that is worth
+  closing first" for two of the three products.
+
+The survey was written on 26 August. So was the migration. The record and the
+capability were a day apart and never met.
+
+This is `CLAUDE.md`'s fifth shape -- an exemption whose reason has expired --
+and the damage is specific: asked what we do better than Jobber and Podia, our
+own documentation answered with the thing we had just built.
+
+## What was corrected, and what deliberately was not
+
+The invoice-settlement comment gave **two** reasons for having no pay button.
+Only the first was stale. The second -- that the shared invoice's footnote tells
+its reader never to pay from a link, because a forwarded invoice with a pay
+button is the exact shape of a payment-redirection fraud -- is still true and is
+still the design. `sonara-connected-payments.cjs` preserves it deliberately. So
+the correction is surgical: the false reason is replaced and dated, the true one
+stays, and payment remains something the business initiates from inside the
+product.
+
+The survey is amended rather than rewritten, because a dated survey is a record
+and rewriting one destroys what it is for. Each "cannot do" line that stopped
+being true is struck through and dated inline, with an amendment box at the top.
+
+## The check, and why it is two-sided
+
+`tests/a-capability-we-built-is-not-described-as-missing.test.js` registers a
+capability, how to tell the code really has it, and the sentences that must not
+be said while it does. `presentWhen` is more than "a file exists" -- it requires
+the module, the route file, the migration **and** the mount, because this
+repository has shipped a route file nobody mounted.
+
+It fails in both directions: when a document claims the capability is missing
+while the code has it, and when the code loses it while the documents have
+stopped saying so. Only the first is the bug that happened; a check written for
+that direction alone goes blind the day Connect is removed.
+
+Two refinements the first draft needed:
+
+- A **correction has to be writable.** A checker that cannot tell a quotation
+  from an assertion makes the honest fix impossible, so quoted and dated lines
+  are exempt.
+- **Strikethrough alone is not an exemption.** Struck-through text is still text
+  somebody reads. A crossed-out claim counts as a claim unless the same line
+  says when it stopped being true, and there is a case asserting exactly that.
+
+## Broken, and confirmed red
+
+- The original sentence restored into `sonara-invoice-settlement.cjs`:
+  *"lib/sonara-invoice-settlement.cjs:24 still says the product lacks Stripe
+  Connect."*
+- The mount removed from `server.js`: *"is registered here as present and the
+  code no longer has it."*
+
+**The second probe was invalid on the first attempt and is recorded because of
+it.** Breaking the mount makes `server.js` throw, so every test that loads it
+fails and mocha aborts before reaching this file -- which looks from the outside
+exactly like a check that passed. It was re-run with the repository's spec
+config bypassed so the file ran alone, and only then did it fail by name.
+
+3,844 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the product is better than its competitors. Connect closes the gap this
+survey called the widest, and the survey's other findings still stand: nothing
+here answers a phone, there is no mobile application and no offline mode, no GPS
+or routing, and Growth Studio still cannot send -- it is a control plane over
+Klaviyo and HubSpot, and is only honest sold as one. The amended survey now
+names **the phone** as the gap worth closing first for Business Builder, and
+**charging for generation** for Creator Studio.
+
+### 2026-09-05 - Annual billing, and three checks that could not express a yearly price
+
+The market was re-surveyed against live sources and the stack we compare
+against has moved: **$107 a month, not $87.** Jobber's monthly Core is $49 (was
+$39) and Podia's Mover is $49 monthly (the $42 everyone quotes is its annual
+rate). All three workspaces at $39 is now 36% of the stack rather than 45%. The
+argument got stronger without anybody doing anything, and it is written down
+with dates and URLs in `docs/pricing/2026-09-05-PRICING-STRATEGY.md`.
+
+## The gap worth acting on
+
+**No annual billing at all.** Every competitor discounts annually; we were being
+compared monthly-to-annual and losing a comparison we win on the absolute
+number. Added at **two months free** -- $190, $390, $790 -- rather than matching
+Jobber's 41% drop, because a percentage match here gives away margin to win a
+comparison already won.
+
+Entitlements and allowances for the three annual plans are **derived** from the
+monthly twin, never listed again. Four lists had to agree for a plan to work,
+and the last time they did not, seven products advertised plans that would have
+answered a paying customer with a 402.
+
+## What deriving them broke, which is the interesting part
+
+`PAID_ACCESS_RUNTIME_MARKERS` renders the entitlement lists back into the exact
+text they have in `lib/sonara-paid-access.cjs`, and the production deploy gate
+greps the shipped runtime for that text as proof the fail-closed path deployed.
+Expanding the lists in place made the rendered marker appear **nowhere in the
+source**, so the gate went looking for a string that no longer existed.
+
+A marker is only proof while it is something the source really says. So the
+literals stay literal in `BASE_ENTITLEMENT_KEYS`, the expansion happens to a
+copy, and `withAnnualTwins(BASE_ENTITLEMENT_KEYS.business_builder)` is itself a
+marker -- otherwise the three lines would ship and an annual subscriber would be
+refused by a bundle that passed every marker.
+
+## Three checks that made a correct yearly price impossible to write
+
+Each asserted "/mo" for every plan, so the only string they accepted for $190 a
+year was `$190/mo`:
+
+- `tests/pricing.test.js`
+- `scripts/verify-stripe-env.mjs`, twice -- the advertised-string comparison,
+  **and** a check that Stripe's recurring interval is `month` for every
+  subscription. That second one would have fired the first time the owner
+  created a yearly price, on a Stripe price that was right.
+
+## A stale bound nobody moved
+
+`tests/pricing.test.js` pinned Pro under "the ~$77 competitor stack". $77 was
+corrected to $87 on **12 August** -- it had compared Jobber's annual price with
+Podia's monthly one -- and the test never moved with it. Now `4900 + 4900 + 900`
+with the source named, so the arithmetic is in the file rather than a remembered
+total, and annual plans are compared against a *year* of the stack.
+
+## A correction to this work's own document
+
+The strategy document first said none of the six Stripe prices exist. Wrong:
+`docs/MANUAL_DASHBOARD_SETUP_FINAL.md` records the three breadth prices as
+created in the live account on **13 August**, with lookup keys. What is missing
+for those three is the three Vercel variables, not the prices -- so the
+restructure is one step from live, not four.
+
+## Broken, and confirmed red
+
+- `staff_portal` back to `["team_monthly"]`: *"opens team_monthly but not
+  team_annual. Somebody paying yearly for the same product is refused."*
+- `withAnnualAllowances` bypassed: *"INCLUDED_LOCATIONS has no entry for
+  workspace_annual, so it silently takes the free allowance."*
+- All three priced at $460 instead of $390: *"all_three_annual is not ten months
+  of all_three_monthly, but its description promises two months free."*
+
+3,838 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That any of it takes money. The three annual Stripe prices do not exist, and the
+three monthly ones exist behind unset variables -- so the page still shows the
+old Starter/Core/Pro ladder, which is `offeredPlanKeys` working rather than
+failing. And no paid signup has completed in production, so there is still no
+conversion data behind any price here.
+
+**Two decisions were left to the owner, not taken:** what happens to
+`business_builder_one_time` ("We quote you" is the only line in the price list
+that needs a person), and whether to build the usage layer -- six capabilities
+are priced in `lib/sonara-paid-capabilities.cjs` and that module is required by
+exactly two files, its own release check and its own test. It charges nobody.
+
+### 2026-09-05 - The free tier is 5 per studio, and the migration that carries it had been dead for weeks
+
+The owner asked for five free tools in each studio instead of twenty-nine free
+overall. Seven products move behind a plan: `shift-rota-cost-planner`,
+`deposit-payment-schedule`, `price-rise-planner`, `late-payment-escalation`,
+`usage-rights-expiry`, `storyboard-builder` to **starter**, and
+`review-recency-score` to **core**.
+
+`review-recency-score` is the one that is not like the others.
+`planFloorOpensProduct("growth_studio", "starter")` is **false** -- Growth Studio
+enforces `core_monthly` and `pro_monthly` and nothing below. Advertising Starter
+there would have answered a customer who bought the advertised plan with a 402,
+which is the failure `lib/sonara-recommended-product-catalog.cjs` already carries
+a long comment about. Core is the lowest plan that opens it.
+
+The seven account-level tools stay free and are outside the count. Gating
+`/pricing` means paying to reach the page where you pay, and `/account/data`
+tells customers "Leave whenever you want, with everything you put in" -- a
+paywall on an export would contradict published copy.
+
+## What the change ran into, which is the larger half
+
+Deployment #129 -- the first since #110 to get past the migrations, and it did
+get past them: **step 23, "Apply production database migrations", succeeded.**
+The shape repair worked. It failed one step later:
+
+```
+AssertionError: break-even-runway-planner entitlement verification mismatch
+false !== true
+```
+
+`entitlement_integration_verified` and `execution_enabled` are
+`not null default false`, and exactly one migration ever sets them: the
+generated catalog sync at `20260812120000`. Three migrations dated **after** it
+-- `20260818060000` (9 rows), `20260818070000` (9), `20260818080000` (1) --
+insert **nineteen** products and set neither column. The sync that would have
+corrected them sits six days earlier in history and never runs again.
+
+**The generator had been rewriting an applied migration.** Its own comment says
+"Add a filename here once its migration reaches main, and point `migrationName`
+at a new one", and the prose above the list names `20260812120000` as applied.
+It was never added to the list. So every release regenerated a file
+`supabase db push` skips by filename: a change that passes every local check and
+reaches no customer. That is this repository's recurring defect wearing a
+migration's clothes -- and it is why the owner's pricing change would have
+shipped green and never been seen.
+
+## What was done about it
+
+- `20260905190000_sync_catalog_plan_floors.sql` -- a new, pending sync carrying
+  the seven plan floors **and** both flags for all 42 products, which repairs the
+  nineteen rows as a side effect of being the first sync production will run
+  since 12 August.
+- `20260812120000` and `20260827100000` move into `APPLIED_MIGRATIONS`, and the
+  assertions move to `20260905193000` so they still run last -- the rule that
+  file states about itself.
+- **The list is no longer what the guard trusts.** `migrationsProductionHasRunPast`
+  reads `supabase/applied-migration-checksums.json`, takes the newest frozen
+  migration, and fails on any generated file older than it: a frozen migration
+  newer than the generator's output means the generator's output reached main
+  first and production has run past it. A hand-maintained list of things you must
+  not forget is the thing you forget; this one cannot go stale by omission,
+  because adding any migration moves the frontier on its own. It runs on
+  `--check`, not only on write, and refuses a manifest under 50 entries rather
+  than clearing every name against an empty list.
+
+## Broken, and confirmed red
+
+- `migrationName` pointed back at `20260812120000`: *"this generator writes into
+  migrations production has already applied ... older than the newest frozen
+  migration, 20260903120000"*, on `--check`.
+- The manifest emptied to `{}`: *"the frozen-migration manifest lists only 0
+  names; this check has gone blind"* -- not a pass.
+
+3,828 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the nineteen rows are fixed. The migration that fixes them is written and
+verified against a replayed database; **production has not run it**, because
+#129 failed before deploying and the fix is what makes the next run different.
+Whether `/service-catalog` was actually showing those nineteen as unavailable to
+customers was not measured -- the site serves a commit from before they existed.
+
+### 2026-09-05 - A gate's most important property was a comment, not a test
+
+Last surface in the sweep: automation elevation â€” the path where an agent action
+the rules refuse becomes a row in `agent_pending_actions`, and an owner approving
+it re-runs the action with the approval attached.
+
+The module is careful and its comments say the right things. One of them is the
+whole security posture:
+
+> **The classification is never read from the row.** `category` is stored so the
+> queue can be listed without re-classifying, and it is re-derived from
+> `action_type` on every decision.
+
+That is true â€” `approveAndRun` calls `classifyAction(action.action_type)`.
+**Fourteen tests covered this module and not one proved it.** So it was a reason
+somebody reasoned their way to rather than one anybody verified, which is the
+failure mode `CLAUDE.md` names in its own words.
+
+## Why this particular comment needed a test under it
+
+`agent_pending_actions` rows carry a `category` column, and a row is data
+somebody could write. If any decision read that column instead of re-deriving,
+a row claiming `self_serve` while its `action_type` is `issue_refund` would be
+approved under the wrong rules â€” **privilege escalation through a stored
+string**, and the one shape a gate like this must not have.
+
+The fixture therefore lies on purpose: the row states the least-privileged
+category the system has, alongside an action type that is one of the seven
+requiring an owner. The assertion is that the lie is ignored. A second case does
+the same one column over, for `requires_approval: false`, which the module also
+says it does not trust.
+
+## Broken, and confirmed red
+
+- **The escalation itself.** `approveAndRun` changed to prefer the row's stored
+  category: *"the approval took the category off the row instead of deriving it
+  from the action type"*.
+- **Blindness.** `classifyAction` stubbed to answer `self_serve` for everything,
+  so the test cannot pass by comparing two identical wrong answers.
+
+A third case pins that `issue_refund` really does derive to a gated category, so
+the first two are not two `undefined`s agreeing.
+
+Suite 3,825 -> 3,828. `verify:launch` exit 0.
+
+### 2026-09-05 - The number I wrote to replace a stale one had the same defect
+
+Having corrected "thirteen" to twenty-five, `verify-doc-counts.mjs` turned out
+to carry the diagnosis of why it went stale, written months ago against a
+different claim:
+
+> It also has to be written as a **DIGIT**. "eight" is invisible to every
+> pattern here, so a derived count spelled as a word cannot be checked at all --
+> which is worth knowing before writing one.
+
+The claim that drifted was "**Thirteen** tables have RLS enabledâ€¦", spelled as a
+word. And the replacement I had just written was "**Twenty-five** tablesâ€¦" â€” the
+same blind spot, one hour old.
+
+## Making the figure checkable rather than merely correct
+
+The doc now says **25**, as a digit, and `verify-doc-counts.mjs` derives the
+truth from the set `verify-migration-replay.mjs` pins â€” which is not hand-written
+either: the replay asserts it against a real PostgreSQL with all 111 migrations
+applied and fails if a table joins or leaves.
+
+    database -> replay probe -> verify-doc-counts -> the document
+
+Every link checked. Two guards inside it: the probe states the figure twice, as
+a count and a list, and disagreement between them stops the run before any
+document is trusted; and a set that cannot be parsed out of the probe at all is
+an error rather than a zero.
+
+## The hole that was demonstrated, not imagined
+
+Probing the word-revert showed the check going **quiet** rather than red: claims
+checked dropped 14 -> 13 and it passed. A pattern that stops matching stops
+measuring, and nothing noticed â€” which is precisely how "thirteen" survived.
+
+The file already had that guard for one claim (`registerClaimsSeen`). It now has
+it for this one, and the message names the likely cause, because the next person
+to hit it will have done exactly what I did.
+
+Four probes: the number drifted back to 13, the number respelled as a word, the
+probe's own count and list disagreeing, and the pinned set made unreadable. Each
+fails by name.
+
+Suite unchanged at 3,825; countable claims 13 -> 14.
+
+### 2026-09-05 - Thirteen was twenty-five, and nothing had looked in a month
+
+`docs/SHIP_READINESS.md` carried this under "Known and deliberate":
+
+> **Thirteen tables have RLS enabled with no explicit policy**, which closes them
+> to everything except the service role. That is the intent, and the deep
+> verification reports it every run.
+
+Both halves were wrong.
+
+**The number.** Measured in the replay â€” all 111 migrations against an empty
+database â€” it is **twenty-five**, out of 307 tables with RLS enabled. Written by
+hand, derived by nothing, and nearly doubled since somebody counted.
+
+**The reassurance.** "The deep verification reports it every run" points at
+`scripts/verify-production-supabase.mjs`, which needs the service-role key and
+runs **only** inside Controlled Production Deployment. That workflow has not
+succeeded since 5 August. It had reported nothing for a month, which is the more
+serious half: the sentence told a reader the set was being watched.
+
+## What this is not
+
+A claim that 25 tables are wrongly closed. This application reads Supabase with
+the service-role key, which bypasses RLS, so RLS-with-no-policy is the posture
+you *want* for a server-only table â€” it is what stops a leaked anon key reading
+`user_recovery_codes` or `user_auth_factors`. Several of the 25 are plainly
+meant to be there.
+
+Which of them are correctly closed and which are customer data that should be
+reachable is a separate audit, and it needs production's real shape rather than
+the replay's. Saying so beats implying an answer I have not measured.
+
+## Pinned as a set, not a count
+
+`verify-migration-replay.mjs` now asserts the exact 25 names, two-sided. A table
+**joining** the set has just become unreadable by every customer; a table
+**leaving** it has just become readable. Neither is a decision to make by
+accident, and both now turn the release chain red with the name in the message.
+
+Probed both directions: dropping `user_preferences`' policies gave
+`closed_count_26`, and adding a policy to `leads` failed the set comparison.
+
+## The check that caught my own documentation
+
+Listing the 25 names made `report-orphan-tables.mjs` fail: `db_health_snapshots`
+is a genuine orphan, and naming it in the probe's SQL string made it read as
+queried. That script already strips comments for exactly this reason â€” "the
+difference between measuring usage and measuring mentions" â€” but a name in a
+SQL string is not a comment.
+
+The fix is the mechanism already there: `verify-migration-replay.mjs` joins
+`INVENTORIES`, the list of files that *enumerate* tables rather than query them.
+Narrow rather than blinding, and proved so â€” a real `.from("db_health_snapshots")`
+added to a scanned file is still caught.
+
+Suite 3,824 -> 3,825. `verify:launch` exit 0.
+
+### 2026-09-05 - The drift alarm was right for a month and said the wrong reason
+
+Following the scheduler finding to its root: four workflows talk to production,
+and **Production Commit Drift** runs every two hours. It has **288 runs** and
+the recent ones are all `failure`.
+
+So this alarm has been correct the whole time. It is not lying â€” it is being
+ignored, which a permanently red scheduled workflow eventually earns.
+
+## What it said, and why that was the problem
+
+Its failure message asserted one cause:
+
+> Something took the production alias away from the deployed commit.
+
+That is the scenario it was built for, on 4 August: a manual redeploy overtook a
+commit that had already passed the deploy gate, and production served a stale
+build for three and a half hours while everything was green.
+
+**It is not the current cause.** No deployment has *succeeded* since 5 August â€”
+fourteen consecutive failures, then #125 â€” so nothing took the alias. It was
+never handed over. A message that names the wrong cause is worse than one that
+names none, because it is what the next person reads instead of looking.
+
+## The distance is what tells the two apart
+
+Neither cause can be derived from git. The magnitude can, and it separates them
+cleanly: hours behind means a deploy was overtaken; weeks behind means none has
+landed. Measured from this checkout:
+
+    commits behind main: 339
+    live commit age:     30 days
+
+That is the fact "drift detected" has been hiding for a month, and reporting it
+costs `fetch-depth: 0` and two git commands. The message now offers both causes
+with the distance attached and points at Controlled Production Deployment's run
+history before assuming the first.
+
+The unresolvable case is handled rather than papered over: a live commit this
+clone cannot resolve (a force-push, a deleted branch) says so instead of
+printing a distance computed from nothing.
+
+Three probes, each red by name: the counting removed, `fetch-depth` back to 2,
+and the single-cause message restored.
+
+Suite 3,824 -> 3,825.
+
+### 2026-09-05 - The scheduler has reported success hourly while never running
+
+Sweeping the automation and scheduling surface, the agent schedule tick is the
+one piece with moving parts outside this repository: an hourly GitHub Actions
+cron that POSTs to `/api/agents/schedule/tick` on production.
+
+Ten runs, every one green. Each about **one second** â€” far too fast for a call
+with `--max-time 60`, which is the tell. The job takes its first branch: the
+secret is unset, so it warns and exits 0.
+
+That much is deliberate and the workflow says so: an unconfigured scheduler is
+"a product with no scheduled work rather than a broken one". Defensible. What it
+does not say is that there is a **second, independent blocker**, and this one is
+not a configuration choice.
+
+## Measured against production, not inferred
+
+    POST https://sonaraindustries.com/api/agents/schedule/tick
+    404 {"ok":false,"code":"not_found","message":"Unknown route."}
+
+    GET /api/health
+    commitSha eebc80c2cae6ed6ec108aef503cb9ea1cf607625
+
+`eebc80c` has served production since 5 August and contains **no occurrence** of
+that path â€” the endpoint arrived after it. So setting the secret would not start
+scheduled runs; it would convert a quiet green no-op into an hourly red 404.
+**Deploy first, then set the secret.** The other order is strictly worse.
+
+## Two fixes to the workflow
+
+**A 404 branch that names the cause.** The generic case said only
+`Scheduler tick failed::HTTP 404`, which is true and sends the reader looking
+for a broken route rather than an old deployment.
+
+**`"ok":true` instead of `"ok"`.** The 200 branch asked whether the field was
+*present*. This application's own error bodies are `{"ok":false,...}` â€” the 404
+above is one â€” so a 200 carrying a refusal would have been read as a successful
+tick. Presence is not the value, and the distance between them is the whole
+defect this repository keeps finding.
+
+Both probed: the 404 branch deleted, and the grep loosened back to presence.
+Each fails by name.
+
+Recorded in `docs/SHIP_READINESS.md` with the closing order, because a green
+hourly workflow over "nothing has ever run" is exactly the kind of state that
+stays invisible until somebody asks why no schedule fired.
+
+Suite 3,822 -> 3,824. `verify:launch` exit 0.
+
+### 2026-09-05 - What a skipped table costs, measured
+
+#217 landed on `main` while this branch was open, from
+`codex/production-member-policy-compat-20260905`. It attacks the same failure
+deployment #125 died on, from the other side: instead of adding the missing
+column, it makes the member-policy generator skip a table whose tenant column
+is absent, with a notice, rather than failing the migration.
+
+That is the right call, and its comment gives the right reason -- checking
+"before enabling RLS prevents a generated policy from either failing the
+deployment or changing access on a table it cannot scope." A migration that
+half-applies a security posture is worse than one that declines to start.
+
+It is also a claim about runtime behaviour that nothing executed. The replay
+harness is the only thing here that runs the SQL, and it already has the
+database degraded to production's exact shape at that point -- `customers`
+present, `organization_id` gone -- so measuring it cost one more invocation of a
+file already on disk.
+
+## What the database actually said
+
+    rls=true  total_policies=1  member_policy=0
+    policy_names=service role can manage customers
+
+**Row level security was already enabled on that table by an earlier
+migration**, and the only policy on it is the service-role one. So a skipped
+table is not left untouched. It is left with RLS on and nothing an organization
+member can read through.
+
+The guard prevents a failed deployment. It does **not** prevent members being
+locked out, because they already are. With #217 alone, deployment #126 would go
+green while `customers` stays unreadable by the people it belongs to -- a
+successful deployment shipping a silently missing feature, which is this
+repository's recurring defect wearing a deployment's clothes.
+
+That is the argument for the shape repair one version earlier, and it is now
+evidence rather than assertion. The two changes compose rather than compete: the
+repair puts the column back so the migration finds it and writes the policy, and
+the guard catches anything the repair did not anticipate without taking
+production down for it.
+
+## The first version of the probe was too weak to catch its own case
+
+It asked whether the table had **any** policy, and got "access_unchanged" every
+time -- because the service-role policy is always there. Moving the guard to
+*after* `enable row level security`, which reproduces the exact danger the
+comment names, left it green.
+
+Shape 6 in `.claude/skills/checks-that-cannot-lie`, in a check written twenty
+minutes earlier, and caught only by running the falsification rather than
+trusting the pass. The rewrite reports the three numbers separately -- RLS
+state, member policy count, service policy count -- so a wrong answer is visible
+instead of averaged into one verdict word.
+
+## Then the same question asked of all 54, not just the one that broke
+
+The probe above checks `customers`, because that is the table deployment #125
+died on. It is one of **54** organization-scoped tables, and a repair that fixed
+the one named in the error message while leaving the other 53 skipped would pass
+it -- the same shape as the table repair that created the absent tables and did
+nothing for the present ones.
+
+So the final assertion now reads the list out of the generator at run time and
+asks the database for all of them. Two failure modes told apart on purpose:
+**absent** (the table is not there, `to_regclass` skipped it) and **no policy**
+(the table is there and the member policy is not). The second is the silent one.
+
+**Measured: all 54 present, all 54 policied, none absent.** That includes
+`shared_links`, whose own creating migration runs *after* this one -- so the
+ordering resolves rather than leaving it unpolicied. I had assumed the opposite
+and was wrong; the replay said so.
+
+### The fact that made the first falsification useless
+
+**51 of the 54 are also policied by an earlier migration.** Six files create
+`*_select_member` policies, and only three tables -- `shared_links`,
+`service_comments`, `research_sources` -- depend on this one alone.
+
+The first attempt to break the probe removed `bookings` from the generator and
+the probe stayed green. That looked like a weak check and was not: `bookings`
+gets its policy from `20260729233000` as well, so the end state was still
+correct and green was the right answer. Repeating it with `service_comments`
+gave `policied_53`, `unpolicied_service_commëOuë†òµë(š+my×F÷'’†27Vç@§F†RÖöçF‚6Æ÷6–ærâ—B&VG27FVBF–Ç’VçF—F–W2(	B6öÖÖ2Â76W2÷"æWp¦Æ–æW2Â6–æ6RF†—2vWG26÷–VB÷WBöb7&VG6†VWB6öÇVÖâ(	BæBF†R÷&FW §VçF—G’†Æb—2÷F–öæÂÂ6ò6öÖV&öG’v†òöæÇ’vçG2Fò¶æ÷r§v†Vâ¢Fò÷&FW"—0¦æ÷B7F÷VB'’Gvò6÷7BVW7F–öç2à ¥F‡&VR&ö&W3¢F—f–F–ær'’âÂW6–ærÂ–ç7FVBöb(‰¤ÂÂæBG&÷–ærF†R¦W&òÖf–ÆÂà¤V6‚f–Ç2F†RFW7G2à ¦FW7G2öæ–æR×Æææ–ær×FööÇ2ÖFò×F†RÖ&—F†ÖWF–2çFW7Bæ§676W'FVBW†7FÇ’F‡&VP§FööÇ2W"&öGV7BÆ–æRæB6'&–VBF†R6÷VçB–â—G2f–ÆVæÖRâ&÷F‚vVçB7FÆP§v—F‚F†RFVçF‚âF†RçVÖ&W"6ÖR÷WBöbF†RæÖRÂæBv†B—276W'FVBæ÷r—2F†P§6†RF†BÖGFW'3¢fÆö÷"öbF‡&VRW"Æ–æRÂæB–ææVBF÷FÂ6òFööÀ¦6ææ÷B&RFFVB÷"Æ÷7Bv—F†÷WBFV6—6–öâ&V–ærÖFR–âF†Bf–ÆRà ¢¢¤æ÷B'V–ÇBÂæBv÷'F‚6––ærv‡’â¢¢7F÷6WVVæ6–ær—2F†Rö'f–÷W26ö×æ–öâ(	@¦&÷WFUö6÷7F77VÖW2F—7Fæ6UöÖ–ÆW6F†R6ÖRv’&V÷&FW%÷ö–çF77VÖVB6fWG§7Fö6²ÂæBæV&W7BÖæV–v†&÷W"ÇW2"Ö÷B÷fW"†fW'6–æRF—7Fæ6W2v÷VÆBç7vW"—@¦FWFW&Ö–æ—7F–6ÆÇ’âÆö6F–öå÷¦öæW6Ç&VG’6'&–W2ÆF—GVFRæBÆöæv—GVFRF†P¦7W7FöÖW"7WÆ–W2Â6òæòvVö6öF–ær6W'f–6R—2æVVFVBâ—B—26W&FR–V6Rö`§v÷&²&F†W"F†âÆ–æR–âF†—2öæRà ¥7V—FR"Ã#‚76–ærà ¢222##bÓ‚Ó’(	BF†RÆ7BGvò÷væW"7FW2Â&W6V&6†VB&F†W"F†â&W7FFV@ ¤6¶VBFòf–æBv—2Fò6ö×ÆWFRF†RÆV¶VB×77v÷&BFövvÆRæBF†R&Wf–WrÖ'&æ6€§&Wfö¶RFW7BâæV—F†W"6â&RW&f÷&ÖVBg&öÒ†W&R(	Bæò7W&6R7&VFVçF–Ç2–âF†—0¦6öçF–æW"æBF†R6öææV7F÷"æVVG2âWF†÷&—¦F–öâF†—26W76–öâ6ææ÷BFò(	B6ð§F†Rv÷&²v2FòÖ¶RV6‚öbF†VÒ6ÖÆÆW"Â6fW"æBfW&–f–&ÆRà ¢¢¥F†RÆV¶VB×77v÷&BvFRv2&WGFW"F†âW‡V7FVBæB†BöæR†öÆRâ¢ ¦67&—G2÷fW&–g’×&öGV7F–öâ×&ö¦V7BÖ–FVçF—G’æÖ§6Ç&VG’&VG2F†R&VÀ¦77v÷&Eö†–'öVæ&ÆVFf–VÆBg&öÒF†RÖævVÖVçB’&F†W"F†âG'W7F–ærF†P§&F6†WBf&–&ÆRÂæBÇ&VG’f–Ç2v†VâF†R7&VFVçF–Ç2Fò&VB—B&RÖ—76–ærà¥F†Bv26†V6¶VB&Vf÷&R77VÖ–ær÷F†W'v—6RÂæBF†R77V×F–öâv÷VÆB†fR&VVà§w&öærà ¥F†R†öÆS¢F†R&F6†WBGW&æVB¢¦F—6&ÆVB¢¢–çFòFWÆ÷’f–ÇW&RæBÆVgB¢¦6÷VÆ@¦æ÷B&VBF†R6öæf–wW&F–öâ¢¢æB¢§F†Rf–VÆBv2Ö—76–ær¢¢276–æræ÷FW2(	@¢¦WfVâv—F‚F†R&F6†WB6WB¢â6òF†RÖöÖVçBF†R÷væW"6W@¦4ôä$õ$UT•$UôÄT´TEõ55tõ$Eõ$õDT5D”ôã×G'VV&VÆ–Wf–ærF†RFWÆ÷’æ÷p¦Væf÷&6VB—BÂ&÷FFVBFö¶Vâ÷"â’6†ævRv÷VÆB6–ÆVçFÇ’F÷væw&FR—BFð§VæVæf÷&6VBæBWfW'’&VÆV6Rv÷VÆB7F’w&VVâââVç&VBç7vW"—2æ÷B¦6öæf—&ÖF–öââ&÷F‚æ÷rf–Âv†VâF†R&F6†WB—26WBÂ&÷fVBv—F‚6—‚Ö66RG'WF€§F&ÆR÷fW"·Vç&VF&ÆRÂÖ—76–ærÖf–VÆBÂVæ&ÆVGÒ9r·&F6†WB6WBÂVç6WGÒà ¢¢¦67&—G2öVæ&ÆRÖÆV¶VB×77v÷&B×&÷FV7F–öâæÖ§6¢¢GW&ç2F†RF6†&ö&B7FW–çFð¦çÒ'VâVæ&ÆS¦ÆV¶VB×77v÷&Fâ—B&W÷'G2'’FVfVÇBæBw&—FW2öæÇ’v—F€¦ÒÖVæ&ÆV²—B&VgW6W2ç’&ö¦V7B÷F†W"F†âF†R–ææVB&VbÂ&V6W6RF†—0¦÷&væ—¦F–öâ†öÆG26V6öæB&ö¦V7BæÖVBÆ–¶R&öGV7F–öâæB6WGF–ærfÆ—V@¦öâF†Rw&öæröæR&VG22FöæS²æB—B¢§&VG2F†RfÇVR&6²g&öÒF†R6W'fW ¦gFW"w&—F–ær¢¢Â&V6W6R#öâD4‚6—2F†R&WVW7Bv266WFVBÂæ÷BF†@§F†R6WGF–ær—2öââ6WfVâ'&æ6†W2&ö&VBÂ–æ6ÇVF–ærF†RöæRF†BÖGFW'2(	@¥7W&6R66WF–ærF†R6†ævRv†–ÆRF†RfÇVR7F—2fÇ6RÂv†–6‚f–Ç2&F†W §F†â6öæw&GVÆF–ærç–&öG’à ¢¢¥F†R&Wfö¶RFW7BGW&æVB÷WBFò&Rf"ÆW72FævW&÷W2F†â—BÆöö¶VBÂæBF†P¦ÖV7W&VÖVçB—2F†Rö–çBâ¢¢—FVÒBv&æVBF†B&Wfö¶–ærU„T5UDVg&öÐ¦WF†VçF–6FVF6÷VÆBGW&âv÷&¶–æröÆ–7’–çFòFVæ–ÂæBÆö6²7W7FöÖW'2÷WBÀ§v—F‚—5ö÷&uöÖVÖ&W&&6¶–ær#"öÆ–6–W27&÷72cBF&ÆW2à ¢¢¥F†BÖV6†æ—6Ò—2æ÷B7W'&VçFÇ’&V6†&ÆRâ¢¢WfW'’F&ÆR&VB–âF†R'Vææ–æp§&öGV7BvöW2F‡&÷Vv‚7W&6T†VFW'2‚–Âv†–6‚6VæG2F†R6W'f–6R×&öÆR¶W’0¦&÷F‚–¶W–æBWF†÷&—¦F–öæ(	BsR6ÆÂ6—FW27&÷72Bf–ÆW2ÂæòW†6WF–öç2à¥F†R6W'f–6R&öÆR'—76W2&÷rÆWfVÂ6V7W&—G’VçF—&VÇ’Â6òæòöÆ–7’—2WfÇVFV@¦öâç’Æ—fR&VBÂ6òæòöÆ–7’w26ÆÂFò4T5U$•E’DTd”äU"gVæ7F–öâ—2öâÆ—fP§F‚âÆ–"÷6öæ&×7W&6RÖ6Æ–VçG2æ6§6ÂF†R5$•BÓ2ƒ"’Ö6†–æW'’f÷"6†æv–æp§F†BÂ—2&WV—&VB'’W†7FÇ’öæRf–ÆS¢—G2÷vâFW7Bà ¢¢¥v†–6‚—2&V77W&æ6Rv—F‚âW‡—'’FFRÂ6ò—Bv÷BÆ&VÂâ¢ ¦FW7G2÷F†R×&Wfö¶R×&V6öæ–ærÖ—2×7F–ÆÂ×G'VRçFW7Bæ§6f–Ç2F†RÖöÖVçBW6W"×66÷V@§&VB—2v—&VB–â(	B'’–×÷'BÂ'’†VÇW"æÖRÂ÷"'’7W&6T†VFW'66V6–ærFð§6VæBF†R6W'f–6R×&öÆR¶W’(	BæB—G2f–ÇW&RÖW76vR6—2Fò&R×&VB—FVÒB&Vf÷&P§&Wfö¶–ærç—F†–ærâ—BÇ6ò76W'G2F†RÖöGVÆR—BvF6†W27F–ÆÂW†—7G2Â&V6W6P¦÷F†W'v—6RFVÆWF–ær—Bv÷VÆBÖ¶RF†R6†V6²72'’†f–æræ÷F†–ærFòf–æBâ&ö&V@§Gvòv—2à ¤—FVÒBæ÷r&V6öÖÖVæG2F†R6ÖR&Wf–WrÖ'&æ6‚FW7Bf÷"&WGFW"&V6öã¢æ÷@¦&V6W6RÆö6¶÷WB—2Æ–¶VÇ’Â'WB&V6W6RF†R&V6öæ–ær&W7G2öâÖV7W&VÖVçBö`¢§F†—2&W÷6—F÷'’¢ÂæB—FVÒ2—2F†R&ööbF†BF†RÆ—fRFF&6R†öÆG26öçFVç@§F†—2&W÷6—F÷'’6ææ÷B6VRâ—BÇ6òFG2F†Rf÷W"gVæ7F–öç2g&öÒ—FVÒ2FòF†@§FW7B2F†RæW‡B6fW7BgFW"6öæ&ö†5ö÷&u÷&öÆVà ¢222##bÓ‚Ó’(	BF†Rf÷W"WF†÷&—¦F–öâgVæ7F–öç2Â&VBBÆ7@ ¥F†R÷væW"&âF†RuövWEögVæ7F–öæFVfVW'’æB7WÆ–VBÆÂf÷W"â&V6÷&F–æp§F†VÒv2F†RV7’†Æc²&VF–ærF†VÒv2F†R†Æbv÷'F‚Fö–ærà ¢¢¥F†W’6öÖRg&öÒF–ffW&VçB66†VÖvVæW&F–öââ¢¢†5÷66÷V¦ö–ç0¦V&Æ–2æ÷&væ—¦F–öåöÖVÖ&W'6öâ÷&uö–FâF†—2&ö¦V7Bw2F&ÆR—0¦÷&væ—¦F–öåöÖVÖ&W'6†—6æB—G26öÇVÖâ—2÷&væ—¦F–öåö–F(	BF–ffW&VçBæÖP¢¦æB¢F–ffW&VçB6öÇVÖâÂæ÷BG—òâ—BÇ6ò&VG2÷66÷W6Âæ@¦†5ö6ö×ç•ö66W76&VG2÷&væ—¦F–öåöö66W76â¢¤æöæRöbF†÷6RF‡&VP§F&ÆW2W†—7G2–âç’Ö–w&F–öâ†W&RÂ÷"ç—v†W&RVÇ6R–âF†—2&W÷6—F÷'’¢¢(	@¦6†V6¶VBv—F‚v÷&BÖ&÷VæF'’6V&6‚gFW"7V'7G&–ær6V&6‚&WGW&æVBƒfÇ6P§÷6—F—fW2ÂWfW'’öæRöbF†VÒ÷&væ—¦F–öåöÖVÖ&W'6†—6÷"U$Â6öçF–æ–ær—Bà ¥F†W’Ç6òæÖR6—‚&öÆW2(	B÷væW"ÂFÖ–âÂÖævW"ÂVF—F÷"Â&–ÆÆ–æuöFÖ–âÀ§6V7W&—G•öFÖ–â(	Bv†–6‚÷&væ—¦F–öåöÖVÖ&W'6†—6FöW2æ÷B6''’à ¢¢¦—5öFÖ–â‚–æB—5ö7W'&VçE÷W6W%öFÖ–â‚–&R'—FRÖ–FVçF–6Ââ¢¢6ÖR&öG’À§6ÖRföÆF–Æ—G’Â6ÖR6V&6…÷F‚ÂGvòæÖW2à ¢¢¤ÆÂf÷W"&R†&FVæVB6÷'&V7FÇ’â¢¢WfW'’öæR6WG26V&6…÷F‚DòwV&Æ–2vÀ§v†–6‚—2W†7FÇ’v†B4T5U$•E’DTd”äU"gVæ7F–öâ6†÷VÆBFòâF†RGf—6÷"w0§v&æ–ær&VG22F†÷Vv‚F†W’&R6&VÆW73²F†W’&Ræ÷BÂæBF†B—2v÷'F€§&V6÷&F–ær2F†–ærF†B—2&–v‡Bà ¢¢¤æòöÆ–7’–âç’Ö–w&F–öâ6ÆÇ2ç’öbF†Rf÷W"¢¢Âv–ç7BÖ÷&RF†âF†—'G¦6ÆÇ2Fò—5ö÷&uöÖVÖ&W&7&÷72f—fRÖ–w&F–öç2âF†B—2F†RÖ÷7BW6VgVÂf7Bf÷ ¤õtäU"Õ5DU2—FVÒB(	BæB—BFöW2æ÷B6WGFÆR—BÂf÷"F†R&V6öâF†B&öGV6VBF†—0¦—FVÒ–âF†Rf—'7BÆ6S¢F†W6Rf÷W"W†—7FVB–âF†RFF&6RæB–âæòÖ–w&F–öâÀ§6òF†R66†VÖ†öÆG26öçFVçBF†—2&W÷6—F÷'’6ææ÷B6VRÂæBöÆ–6–W2&R'Bö`§F†B6öçFVçBà ¢¢¥F†RÖ–w&F–öâ7&VFW2æ÷F†–ærÂ&WÆ6W2æ÷F†–æræBG&÷2æ÷F†–ær¢¢ÂæBF†@¦—2F†RFV6—6–öâ&F†W"F†âF†R6†÷'F7WBâÄäuTtR7Æ&öG’—2fÆ–FFVBv†Và§F†RgVæ7F–öâ—27&VFVBÂ6ò7&VFR÷"&WÆ6VöbV—F†W"gVæ7F–öâv†÷6RF&ÆW0¦&RÖ—76–ær¢¦f–Ç2öâFWÆ÷’ÂöâF†RWF†÷&—¦F–öâF‚¢¢âæBæ÷F†–ær†W&R6à¦W†V7WFR÷7Fw&W2Â6òFVf–æ—F–öâw&—GFVâ†W&Rv÷VÆB&RöæRæö&öG’†B'Vââv†@¦—BFöW26''’—2F†Rf÷W"FVf–æ—F–öç2fW&&F–ÒÂÇW2Fö&Æö6²F†B&—6W0¦æ÷F–6W26––ærv†–6‚gVæ7F–öç2æBv†–6‚öbF†RF‡&VRF&ÆW2F†RFF&6R—B'Vç0¦v–ç7B7GVÆÇ’†2(	BF†RöæRVW7F–öâF†—2&W÷6—F÷'’6ææ÷Bç7vW"g&öÐ¦÷WG6–FR—Bà ¢¢¤öæR&W÷'B†BÇ&VG’vöæR7FÆR'’F†RF–ÖRF†—2ÆæFVBâ¢ ¦&W÷'B×6V7W&—G’ÖFVf–æW"ÖW‡÷7W&RæÖ§6&–çFVB%F†W6RW†—7B–âF†RÆ—fRFF&6P¦æBæ÷B–âfW'6–öâ6öçG&öÂÂ6òF†W’6ææ÷B&R&Wf–WvVB'’&VF–ærF†—0§&W÷6—F÷'’â"G'VRv†Vâw&—GFVâÂfÇ6RF†RÖöÖVçBF†RFVf–æ—F–öç2vW&R&V6÷&FVBà¤—Bæ÷r6W&FW2¢§&V6÷&FVB¢¢g&öÒ¢¦FVf–æVB¢¢(	BF†R6÷VçBöb‚öb"—0§Væ6†ævVBæB7F–ÆÂ6÷'&V7BÂ&V6W6R—B6÷VçG2v†BF†—2&W÷6—F÷'’FVf–æW2Âæ@§F†—2Ö–w&F–öâFVf–æW2æ÷F†–æröâW'÷6Râ6öÆÆ6–ærF†RGvò7FFW2v÷VÆB†fP¦ÖFRF†R6VçFVæ6Rw&öær–âF†R÷F†W"F—&V7F–öâà ¥F†B&VFW"FVÆ–&W&FVÇ’&VG2F†R&rÖ–w&F–öâ&F†W"F†âF†R6öÖÖVçB×7G&—V@¥5ÂWfW'’÷F†W"6†V6²–âF†Bf–ÆRW6W2Â&V6W6RF†RFVf–æ—F–öç2&R6öÖÖVçFV@¦÷WBöâW'÷6S²&VF–ærF†R7G&—VBfW'6–öâv÷VÆBf–æBæ÷F†–æræB&W÷'BÆÀ¦f÷W"2Vç&VF&ÆRâ&ö&VB&÷F‚v—2(	B&VÖ÷f–æröæRFVf–æ—F–öâæÖW2—B0§Vç&VF&ÆRÂFVÆWF–ærF†Rf–ÆRæÖW2ÆÂf÷W"à ¢222##bÓ‚Ó’(	BF†R7G&—R&–6W2W†—7FVBGv–6RÂæBöæR7V'67&—F–öâ–âF†R66÷VçBw2†—7F÷' ¤6¶VBFò6†V6²æB6ö×ÆWFRF†RGvò÷væW"ÖöæÇ’—FV×2âöæRöbF†VÒGW&æVB÷WBFð¦&R&V6†&ÆRg&öÒ†W&RæBÖ÷7FÇ’Ç&VG’FöæS²F†R÷F†W"—2æ÷B&V6†&ÆR@¦ÆÂÂæB6––ærv†–6‚—2v†–6‚—2F†Rö–çBöbF†—2VçG'’à ¢¢¥7G&—Rv2&V6†&ÆR¢¢(	BF†R6öææV7F÷"†öÆG2Æ—fR7&VFVçF–Ç2f÷ ¦67EóE%7£D·FÄUS6ÄÂF†R6ÖR66÷VçBFö72ö÷væW"ôõtäU"Õ5DU2æÖF&V6÷&G20¦6†V6¶VB&VBÖöæÇ’öâ"VwW7Bâ6òF†R7FW6÷VÆB&RfW&–f–VB&F†W"F†à¦FW67&–&VBà ¢¢¥F†RF‡&VR&–6W2Ç&VG’W†—7FVBâ¢¢7&VFVB2VwW7B##bÂBC’ÂC3’æ@¢Cs’ÖöçF†Ç’Âv—F‚Æöö·W¶W—2Âæ–6¶æÖW2ÂæB&öGV7BFW67&—F–öç2F†BÖF6€¦Æ–"÷6öæ&×7G&—R×Æç2æ6§6¢§fW&&F–Ò¢¢â6†V6¶–ærf—'7B—2F†RöæÇ’&V6öà§F†Bv2f÷VæC²7&VF–ærF†VÒ2F†R7FW–ç7G'V7FVBv÷VÆB†fRÖFRF†—&@§6WBà ¢¢¥F†W&RvW&RÇ&VG’Gvò6WG2â¢¢6V6öæB(	B&&R&öGV7G2æÖVBöæRv÷&·76VÀ¦ÆÂF‡&VVæBFVÖÂæòFW67&—F–öç2ÂæòÆöö·W¶W—2ÂWFòÖ76–væVBFVfVÇ@§&–6W2(	Bv27&VFVBöâ’VwW7BBF†R6ÖRF‡&VRÖ÷VçG2âGvòÆ—fR&–6W2@¦öæRÖ÷VçBÂF–ffW&–æröæÇ’–âv†–6‚6'&–W2F†R7W7FöÖW"Öf6–ærFW67&—F–öâÂ—0¦G&¢ö–çBf&–&ÆRBF†Rw&öæröæRæBF†R–çfö–6RæÖW2&öGV7Bv—F€¦æòFW67&—F–öâöâ—Bà ¤æV—F†W"6WB†B7V'67&–&W"Â6òF†RGWÆ–6FW2vW&R&6†—fVB(	@¦&öEõcdfV¤·%dÔ“cfÂ&öEõcdfwÔµ¦TWFƒVÂ&öEõcdfttÖUe6æçu#&â&WfW'6–&ÆRÀ¦æ÷F†–ærFVÆWFVBÂæB7G&—RFöW2æ÷BW&Ö—BFVÆWF–ær&–6Rç—v’à ¥7G&—R&VgW6VBF†Rf—'7BGFV×Bv—F‚'F†—2&–6R6ææ÷B&R&6†—fVB&V6W6R—@¦—2F†RFVfVÇB&–6Röb—G2&öGV7B"Âv†–6‚—2v‡’F†R&öGV7G2vW&R&6†—fV@§&F†W"F†âF†R&–6W2âF†BÆVfW2F‡&VR&–6W2&VF–ær7F—fS¢G'VVöà¦&6†—fVB&öGV7G2(	B¢§F†RW†7B6†RÆ–"÷6öæ&Ö&–ÆÆ–æræ6§6Ç&VG’wV&G0¦f÷"F†RF‡&VR&WF—&VB4ôä$õ2Æç2â¢¢F†RwV&Bv2w&—GFVâ&V6W6R7G&—P¦FöW2æ÷B6ÆV"&–6Rw27F—fRfÆrv†Vâ—G2&öGV7B—2&6†—fVBÂæB—Bæ÷p¦6÷fW'2F‡&VRÖ÷&Rà ¢¢¤öæR7V'67&—F–öâW†—7G2–âF†R66÷VçBw2VçF—&R†—7F÷'’â¢¢C’ã“’öÖòÂ7F'FV@£BÖ’##bÂ6æ6VÆÆVBF†R6ÖRF’Âöâ&–6RF†B—2æ÷r&6†—fVBâF†B—0¦–æFWVæFVçB6öæf—&ÖF–öâöbõtäU"Õ5DU2—FVÒ(	Bæö&öG’†26ö×ÆWFVB–@§6–vçW–â&öGV7F–öâ(	BæB—B6öÖW2g&öÒF†R7V'67&—F–öâÆ—7B&F†W"F†âg&öÐ§F†RFWÆ÷’÷WGWB6––ær÷6—F—fU7V'67&–&VEW6W%FW7C¢'VæF–ær&à ¤—FVÒR—2&Ww&—GFVââ—B—2æòÆöævW"&7&VFRF‡&VR&–6W2#²—B—2'6WBF‡&VP§f&–&ÆW2"Âv—F‚F†R&–6R–G2w&—GFVâF÷vâÂ&V6W6R&–6R–G2&Ræ÷B6V7&WG2(	@§F†W’G&fVÂFòF†R'&÷w6W"GW&–ær6†V6¶÷WBà ¢¢¥F†Rf÷W"WF†÷&—¦F–öâgVæ7F–öç2vW&Ræ÷B&V6†&ÆRæB&VÖ–â÷Vââ¢¢F†P¥7W&6R6öææV7F÷"æVVG2âWF†÷&—¦F–öâF†—26W76–öâ6ææ÷BW&f÷&ÒÂæBF†—0¦6öçF–æW"†öÆG2æò5U$4UõU$ÆÂ5U$4Uõ4U%d”4Uõ$ôÄUô´U–÷ ¦5U$4Uô44U55õDô´Tæ(	B6†V6¶VB&F†W"F†â77VÖVBâF†W&R—2æò&÷WFRg&öÐ¦†W&RFòuövWEögVæ7F–öæFVfÂæB÷7Fu$U5BFöW2æ÷BW‡÷6Ru÷&ö6âF†B7FW ¦—2Væ6†ævVBæB7F–ÆÂæVVG2F†R÷væW"Fò'VâF†RVW'’à ¢222##bÓ‚Ó’(	Bf—fR&W÷6—F÷&–W2g&öÒ6WBöb67&VVç6†÷G2ÂæBöæRF†BÖGFW'0 ¥7V&Ö—GFVB2†öæR67&VVç6†÷G2öb6ö6–Â÷7G2&F†W"F†â2Æ–æ·2Âv†–6€¦6†ævW2F†Rf—'7B¦ö#¢v÷&¶–ær÷WBv†Bv27GVÆÇ’&V–ær6†÷vâÂF†Vâ6†V6¶–æp¦—B&F†W"F†â&VF–ær—BöfbF†R–7GW&Rà ¢¢¤WfW'’Æ–6Væ6RæB7F"6÷VçB&VÆ÷r6ÖRg&öÒF†Rv—D‡V"’¢¢ÂæBF†B—2æ÷@¦f÷&ÖÆ—G’âF†Rv—D‡V"&ö¦V7G2÷7G2V÷FVBf–wW&W2v—F†–âfWr‡VæG&VBö`§F†R’(	BF†÷6RvW&Rf–æRâ6W&FR–ÖvRÂ$TDÔRF—FÆVB#3F†–æw2Fð¤–ç7FÆÂ–çFò6ÆVFR"ÂV÷FVB#sãv²f÷"öæR&W÷6—F÷'’Â#6²f÷"æ÷F†W"æB¦6Æ–ÖVB"ÃsS‚Ã#bF÷FÂ7&÷72F†—'G“²F†÷6RFòæ÷B7W'f—fRF†R6ÖR6†V6²à¤æ÷F†–ærg&öÒF†B–ÖvRv2&V6÷&FVBâ¢¤7F"6÷VçB–âF†—2&Vv—7FW"6öÖW2g&öÐ§F†R’ÂæWfW"g&öÒ67&VVç6†÷B¢¢ÂæBF†—2—2F†Rf—'7BF–ÖRF†B'VÆR6Vv‡@§6öÖWF†–ærà ¢Ò¢¥FööÄ¦WB¢¢(	BuÂÓ2ãÂCÃS7F'2â¢¤&Æö6¶VBÂæB—B—2F†RöæRF†@¢ÖGFW'2â¢¢F†R7V"Ö'V–ÆFW"6†—VBV&Æ–W"F†R6ÖRF“¢7W7FöÖW"FVf–æW0¢&V6÷&BG—W2v—F‚F†V—"÷vâf–VÆG2æBvWG2vW2Fòf–ÆÂF†VÒ–ââFööÄ¦WB—0¢F†RÖGW&Rf÷'G’×F†÷W6æB×7F"fW'6–öâöbF†B–FVÂv†–6‚Ö¶W2—BF†RöæP¢&W÷6—F÷'’†W&R6öÖV&öG’6÷VÆB&V6öæ&Ç’&VB26†÷'F7WBâF†RffW&ò6ÆW6P¢G&–vvW'2öâæWGv÷&²W6RÂ6ò–æ6÷'÷&F–ærç’öb—Bv÷VÆBö&Æ–vRV&Æ—6†–æp¢F†—2&öGV7Bw26÷W&6RâF†R&6†—FV7GW&Â&V6öâ7FæG2Bç’Æ–6Væ6S¢—B—0¢&V7BÇW2æW7D¥2ÇW2÷7Fw&W2ÇW2&VF—2–â6öçF–æW'2Âv–ç7BöæRW‡&W70¢f–ÆRv—F‚öæR&öGV7F–öâFWVæFVæ7’â¢¥&VBF†RÖöFVÂÂæWfW"F†R6öFR¢¢(	B†÷r—@¢7F÷&W27W7FöÖW"ÖFVf–æVB66†VÖæBfÆ–FFW2&÷w2v–ç7B—B—2W†7FÇ’v†@¢Æ–"÷6öæ&×7V"Ö2æ6§66öÇfW2ÂæB&VF–ærFW6–vâ—2æ÷BFW&—f–ærg&öÒ—Bà¢F†R&V6÷&BÇ6ò6—2Æ–æÇ’F†B4ôä$w27V"Ö'V–ÆFW"—2¦æ÷B¢¢6ö×WF—F÷"æB6†÷VÆBæ÷B&RFW67&–&VB2öæRà¢Ò¢¤÷Vä7WB¢¢(	BÔ•BÂƒRÃcR7F'2â&W6V&6‚öæÇ’ÂæBF†RÆ–6Væ6R—2æ÷Bv†@¢FV6–FW2—Bâ¢¤7&VF÷"7GVF–ò7F÷&W2æòÖVF–FöF’¢¢(	B—G2vW2†öÆB&÷w0¢FW67&–&–ærv÷&²Âæ÷BF†Rv÷&²ââVF—F÷"—2F†R6V6öæB†Æböb—VÆ–æRv†÷6P¢f—'7B†ÆbFöW2æ÷BW†—7BÂæBF†Bf—'7B†Æb—2WÆöG2Â7F÷&vRæ@¢G&ç66öF–æs¢F†Rf—'7BW"Öv–v'—FR&V7W'&–ær6÷7BF†—2&öGV7Bv÷VÆB6''’à¢Ò¢¤ÆöwFò¢¢(	BÕÂÓ"ãÂBÃ3ƒ27F'2â&VfW&Væ6RöæÇ’â7W&6RWF‚Ç&VG’FöW0¢F†—2ÂæB7v–ærv÷&¶–ærWF†VçF–6F–öâ7—7FVÒ—2æ÷Bf–ÆÆ–ærvâ¶W@¢&V6W6RÕÂÓ"ã—2&V6—&ö6Â§W"f–ÆR¢&F†W"F†âW"&ö¦V7B(	B&VÀ¢F—7F–æ7F–öâg&öÒuÂ(	BæB&V6W6R—B—2F†R6†Röbâç7vW"Fð¢õtäU"Õ5DU2—FVÒ2Âv†W&Rf÷W"WF†÷&—¦F–öâgVæ7F–öç2Æ—fR–âF†RFF&6Ræ@¢–âæòÖ–w&F–öââ&V6÷&FVB2&VfW&Væ6UööæÇ’&F†W"F†â&Æö6¶VBFVÆ–&W&FVÇ“ ¢F†R&VgW6Â—2&÷WBf—BÂæ÷BW&Ö—76–öâÂæBF†÷6R&RF–ffW&VçBç7vW'2à¢Ò¢¥V&Æ–2—2¢¢(	BÔ•BÂCcRÃc27F'2Â'’v–FRÖ&v–âF†RÖ÷7B×7F'&V@¢&W÷6—F÷'’öâF†—2&Vv—7FW"æBF†RÆV7B6öç6WVVçF–Ââ—B—2Ö&¶F÷vâÆ—7Bà¢—G2Ô•BÆ–6Væ6R6÷fW'2F†RÆ—7BæB6—2æ÷F†–ær&÷WBç’’–â—BÂæB¢¦¢g&VRF–W"—2&–6RÂæ÷BÆ–6Væ6R¢¢(	BF—&V7F÷'’öbg&VR—2—2F†RÖ÷7@¢Vff–6–VçBv’Fò'V–ÆBfVGW&RF†B7F÷2v÷&¶–æröâ6öÖV&öG’VÇ6Rw0¢FV6—6–öâà¢Ò¢¥Vç6Æ÷F‚¢¢(	B6†RÓ"ãÂs2ÃssR7F'2â&VfW&Væ6RöæÇ’â6ÆVâÆ–6Væ6RÂæòf—C ¢—BæVVG2uRÂ6W'fW&ÆW72gVæ7F–öâ6ææ÷B&V6‚öæRÂæBuR—2&VçFVB'¢F†R†÷W"v†WF†W"ç–öæRvVæW&FW2ç—F†–ær÷"æ÷BâF†B—2F†R÷÷6—FR6†P¢FòWfW'’FööÂF†—2&öGV7B6†—2Âv†–6‚&R&—F†ÖWF–2÷fW"F†R7W7FöÖW"w2÷và¢&÷w2æB6÷7Bæ÷F†–ærW"W6Rà ¥GvòöbF†Rf—fRf—'7BFV6Æ&VB&öGV7Df—C¢²%6†&VBÆFf÷&Ò%ÖÂæ@¦vVæW&FR×&öGV7BÖ–çFVw&F–öâÖÖæÖ§6&VgW6VBF†VÓ¢%6†&VBÆFf÷&Ò"—2§7W&f6RF†RÖFW&—fW2Âæ÷BÆ&VÂ&V6÷&BÖ’6Æ–Òâ6÷'&V7FVBFð¦FÖ–â6öÖÖæB6VçFW&æB&—fFRÖöFVÂÖöFVâF†R6†V6²v2&–v‡BæBF†P§&V6÷&G2vW&Rw&öærà ¥&Vv—7FW"æ÷r†öÆG2CR&V6÷&G2v–ç7BCRVæ—VRv—D‡V"F&vWG2à ¢222##bÓ‚Ó’(	BF†RÖöGVÆR&÷VæF'’ÂæBF†R6—‡FVVâ&÷WFW2—Bv2w&öær&÷W@ ¤Ö¶–ærF†RF‡&VR7GVF–÷26W&&ÆR7F'G2v—F‚¶æ÷v–ærv†B&VÆöæw2FòV6‚À¦æBF†BGW&æVB÷WBFò&RÇ&VG’w&—GFVâF÷vã¢Æ–"÷6öæ&×&÷WFR×&Vv—7G'’æ6§6 ¦FV6Æ&W2#C‚&÷WFW2v—F‚f—6–&–Æ—G–Â&WV—&VE&öÆVÂ&WV—&VEÆææ@¦&öGV7D÷væW&â—B—2F†RÖöGVÆRÖæ–fW7Bâ¢¤æ÷F†–ær6†V6¶VB—Bv–ç7BF†P§6W'fW"â¢  ¦67&—G2÷fW&–g’×&÷WFR×&Vv—7G'’æ6§676W'G2WfW'’FV6Æ&VB&÷WFR—2&Vv—7FW&V@¦æBF†BV&Æ–2&÷WFW2&RFV6Æ&VBV&Æ–2âæV—F†W"—Bæ÷"ç’FW7BWfW"6¶V@§v†WF†W"&÷WFRFV6Æ&VB&WV—&VE&öÆS¢&7W7FöÖW"&7GVÆÇ’&VgW6W26öÖV&öG§v†ò—2æ÷BöæRà ¢¢¥6—‡FVVâöb#CbFV6Æ&VBtUB&÷WFW26W'fVB#Fòâæöç–Ö÷W2f—6—F÷"v†–ÆP¦FV6Æ&–ærF†W’æVVFVB6–væVBÖ–â7W7FöÖW"â¢¢ÖV7W&VBv–ç7B¦6öæf–wW&VB §6W'fW"öâW'÷6R(	Bv—F†÷WB7W&6RÂvW2F†Bv÷VÆB&VF—&V7B&VæFW"'6WGW §&WV—&VB"æBç7vW"#–ç7FVBÂ6ò&ö&Röâ&&RÖ6†–æRÖV7W&W2F†P¦Ö6†–æR&F†W"F†âF†R&öGV7Bà ¤æ÷F†–ærÆV¶VBâF†—'FVVâ&R7GVF–ògVææVÂvW2v—F‚æòFF&6R&VBÂöæR—0§F†R7W÷'Bf÷&ÒÂæBF†RGvò66÷VçBvW2&VæFW"f÷&Òv†÷6Rw&—FRç7vW'0£CæB7F÷&W2æ÷F†–ærâ6òF†R6W'fW"v2&–v‡B&÷WBf÷W'FVVâæBF†RÖæ–fW7@§v2w&öær&÷WBF†VÓ²öâF†R÷F†W"GvòF†R6W'fW"v2w&öærà ¢Ò¢¥F†—'FVVâ7GVF–òVçG'’vW2¢¢(	BV6‚7GVF–òw27F'BwV–FRÂFööÂF—&V7F÷'’À¢6FÆöwVRÂ6öçFVçBvRæB7W÷'Bf÷&Òâf—6–&–Æ—G“¢'&öGV7B&ÖV6†æ–6ÆÇ¢6WB&WV—&VE&öÆS¢&7W7FöÖW"&ÂæBf÷"F†RgVææVÂF†Bv26–×Ç’VçG'VRà¢F†W’&Ræ÷r$ôET5EôTåE%•õ$õUDU6ÂæBF†W’¢§7F’–â$ôET5Eõ$õUDU6¢£ ¢v†ò÷vç2vRæBv†òÖ’÷Vâ—B&RF–ffW&VçBVW7F–öç2ÂæBÖ÷f–ærF†VÐ¢FòT$Ä”5õ$õUDU6v÷VÆB†fRÖFRö'W6–æW72Ö'V–ÆFW"÷FööÇ6ÆFf÷&ÒvRà¢v†–6‚7GVF–ò÷vç2v†–6‚vR—2F†RöæRF†–ærç–&öG’6W&F–ærF†VÒ†2Fð¢¶æ÷rf—'7Bà¢Ò¢¦÷7W÷'F¢¢Ö÷fVBFòF†RV&Æ–2Æ—7BâF†R†æFÆW"—2'V–ÇBFòv÷&²6–væV@¢÷WBæB—G2÷vâ6öÖÖVçB6—26ò(	BF†R&WVW7G26&B—2öÖ—GFVB&F†W"F†âF†P¢vR&VgW6VBâ7W÷'Bf÷&Ò6öÖV&öG’Æö6¶VB÷WB6ææ÷B&V6‚—27W÷'@¢f÷&Òf÷"V÷ÆRv†òFòæ÷BæVVB—Bà¢Ò¢¦ö66÷VçFæBö66÷VçB÷6WGW¢¢æ÷r6VæB7G&ævW"Fò6–vâ–ââF†W’&VæFW ¢66÷VçBæf–vF–öâæBf÷&ÒF†Bv÷VÆB&VgW6RF†VÒÂv†–6‚—2F†P¢7W7FöÖW"Öf6–ær6†Röb6–væÂF†B&W÷'G27V66W72v—F†÷WB&V–ærG'VRà ¢¢¦ö66÷VçB÷6WGWv2F†RöæRv÷'F‚f–æF–ærâ¢¢6W'fW"æ§6&Vv—7FW'2—Bv—F€¦&WV—&T7W7FöÖW&ââçW6V–çFW&6WF÷"–à¦&÷WFW2÷6öæ&Ö'W6–æW72Ö6öçG&öÂ×ÆæR×&÷WFW2æ6§6ÖF6†VBF†R6ÖRF‚Â&à¦f—'7BÂæBç7vW&VBF–ffW&VçBvRv—F‚æòwV&BBÆÂ(	B6òF†R&÷WFRv0¦vFVB–âF†Rf–ÆR6öÖV&öG’v÷VÆB&VBæBVævFVB–âF†Rf–ÆRF†B&ââF†P¦wV&B—Bæ÷rW6W2—2F†RöæRF†Rö'W6–æW72Ö'V–ÆFW"öF6†&ö&F–çFW&6WF÷ §GvVçG’Æ–æW2&VÆ÷rÇ&VG’W6VBÂ–âF†R6ÖR6†Rà ¦FW7G2÷F†R×&÷WFRÖÖæ–fW7BÖw&VW2×v—F‚×F†R×6W'fW"çFW7Bæ§6—2F†R6†V6²ÂæB—@¦6·2&÷F‚F—&V7F–öç2ÇW2F†R&÷VæF'’—G6VÆc¢æòvR÷VâF†B6—2—B—0¦6Æ÷6VBÂæòvR6Æ÷6VBF†B6—2—B—2÷VâÂWfW'’&÷WFR÷væVB'’öæRöbF†P§F‡&VR7GVF–÷2÷"F†RÆFf÷&ÒÂWfW'’÷væW"÷væ–ær6öÖWF†–ærÂæBWfW'’7GVF–òw0§vW2VæFW"F†B7GVF–òw2F‚â&ö&VB'’&RÖ÷Væ–ærö66÷VçB÷6WGWæB'¦G&÷–ærvRg&öÒF†RVçG'’Æ—7C²&÷F‚f–Â6÷'&V7FÇ’à ¢¢¥F‡&VRW†—7F–ær6†V6·2†B&VVâ&VF–ærvW22F†Rw&öærf—6—F÷"¢¢ÂæBGvð¦öbF†VÒöæÇ’7W&f6VB&V6W6RF†—2v÷&²6†ævVBv†B7G&ævW"6VW3  ¢ÒFW7G2÷vR×&V6†&–Æ—G’çFW7Bæ§6fWF6†VBö66÷VçF6–væVB÷WBFò&VB—G0¢Æ–æ·2âöæ6Rö66÷VçF7F'FVB&VF—&V7F–ær—B&W÷'FVBf—fR66÷VçB7V'vW0¢2Vç&V6†&ÆRâF†W’vW&Ræ÷B(	BF†R6†V6²†B&VVâ&VF–ærvR26öÖV&öG¢v†ò6†÷VÆBæWfW"†fR&VVâ6†÷vâ—Bâ—B6–vç2–âæ÷rà¢ÒFW7G2öÖ&¶WF–ær×7W&f6R×'VÆRçFW7Bæ§66†V6¶VBF†Bv÷&²67&VVç26''’æð¢Ö&¶WF–æræ–ÖF–öâ'’fWF6†–ær7W7FöÖW"&÷WFW26–væVB÷WBæB6¶—–æp¢ç—F†–ærF†B&VF—&V7FVBâ—G2÷vâ&VæFW&VBâwV&Bf—&VBF†RÖöÖVçBF†P¢Æ7BF‡&VR÷VâöæW26Æ÷6VC¢¢¦æ÷F†–ær&VæFW&VBÂ6òF†R6†V6²v2&÷f–æp¢æ÷F†–ær¢¢ÂæB†B&VVâ6Æ÷6RFò&÷f–æræ÷F†–ærf÷"ÆöærF–ÖRà¢ÒFW7G2÷6W'fW"çFW7Bæ§6Æ—7FVB&÷F‚66÷VçBvW2ÖöærF†RV&Æ–2&÷WFW2æ@¢76W'FVB#âF†R76W'F–öâv÷'F‚¶VW–ær(	BF†BF†R6WGWf÷&Ò—2&VÂ(	Bæ÷p¢6–vç2–â&F†W"F†â&V–ærFVÆWFVBv—F‚F†Ræöç–Ö÷W266W72—B&W7FVBöâà ¢¢¥&V6÷fW&VBg&öÒ6öçF–æW"&W6WBÖ–B×F6²â¢¢F†R6ÆöæR†B&VVâ&öÆÆVB&6°¦&V†–æB6—‚W6†VB6öÖÖ—G2Âv—F‚Gvò7FÆR'F–f7G2–âF†Rv÷&¶–ærG&VRF†@¦&VÆöævVBFòæV—F†W"F†—2v÷&²æ÷"÷&–v–ââfWF6†VBf—'7BÂ6öæf—&ÖVB÷&–v–â†@¦WfW'’6öÖÖ—BÂF—66&FVBF†R7FÆRf–ÆW2Âf7BÖf÷'v&FVBÂæB&RÖÆ–VBF†P¦VF—G2v–ç7BF†R&VÂf–ÆW2&F†W"F†â6÷––ærF†R&6·W2÷fW"F†VÒà ¥7V—FR"Ã76–ærà ¢222##bÓ‚Ó’(	B7V"Ö3¢&V6÷&G2F†—2&öGV7BFöW2æ÷B†fRvRf÷  ¥F†R÷væW"w26†ö–6Rf÷"F†RæW‡B&Æö6²öbv÷&²âf—fR'W6–æW75÷7V%öò¦F&ÆW0§vW&R7&VFVBöâ3Ö’##bæBæ÷F†–ær†2WfW"&VBF†VÓ°¦Æ–"÷6öæ&×7V'7—7FVÒ×&Vv—7G'’æ6§6&V6÷&G2v‡’Â†öæW7FÇ“¢$FW6–væVBÂæWfW ¦'V–ÇBâ  ¢¢¥v‡’—B6÷VÆBæ÷B†fR&VVâ'V–ÇB2—B7FööBâ¢ ¦'W6–æW75÷7V%ööFF&6U÷66†VÖ6†öÆG2f–VÆG6§6öæ"FW67&–&–ærv†B§&V6÷&BÆöö·2Æ–¶RÂæB¢§F†W&Rv2æòF&ÆR†öÆF–ær&V6÷&G2¢¢â7W7FöÖW"6÷VÆ@¦FW6–vâ&V6÷&BG—RæB†fRæ÷v†W&RFòWBöæR(	B66†VÖFW6–væW"v—F‚æð§&÷w2Âv†–6‚—2F†R6ÖR6†R2F†RfVGW&R—Bv2ÖVçBFò&Rà¦##cƒ“C÷7V%ö÷&V6÷&G2ç7Æ—2F†RÖ—76–ær†ÆbÂæB—B—2F†Rf—'7@¦Ö–w&F–öâöbF†R'V–ÆB&F†W"F†âF†RÆ7Bà ¤öæRF&ÆRf÷"WfW'’7W7FöÖW"&V6÷&BG—RÂæ÷BöæRF&ÆRV6‚â7&VF–ær&VÀ§F&ÆRW"&V6÷&BG—Rv÷VÆBÖVâF†—2Æ–6F–öâ—77V–ærDDÂB'VçF–ÖRv—F€§F†R6W'f–6R×&öÆR¶W’Âv–ç7BFF&6Rv†÷6RÖ–w&F–öç2&Rg&÷¦Vâæ@¦6†V6·7VÖÖVB&V6—6VÇ’6òæ÷F†–ærFöW2F†Bâ&÷w2&R§6öæ"ÂfÆ–FFVBv–ç7@§F†R66†VÖw2÷vâf–VÆBÆ—7BöâF†Rv’–âà ¥F†R6ÖRÖ–w&F–öâFG2v†BF†R÷&–v–æÂf—fRF&ÆW2æWfW"†C¢6†V6°¦6öç7G&–çG2öâF†V—"7FGW66öÇVÖç2(	BÆÂöbF†VÒvW&RFW‡Bæ÷BçVÆÂFVfVÇ@¢vG&gBv66WF–ærç’7G&–ærÂF†Rv&W6V&6…÷6÷W&6W66'&–VBVçF–ÂF†—0¦Ö÷&æ–ær(	B6öç7G&–çBF†Bf–VÆG6—2æöâÖV×G’'&’ÂæBVæ—VR–æFW‚öà¦‡7V%öö–BÂ66†VÖö¶W’–6òGvò&V6÷&BG—W26ææ÷B6Æ–ÒF†R6ÖRvRà ¢¢¥6WfVâf–VÆBG—W2¢¢ÂæBF†R6†÷'FæW72—2F†Rö–çC¢FW‡BÂÆöærFW‡BÂçVÖ&W"À¦ÖöæW’ÂFFRÂ–W2öæòÂæBöæRÖöbÖÖÆ—7BâWfW'’öæR&VæFW'22â–çWBÂfÆ–FFW0¦öâF†Rv’–âÂæB&VG2&6²2F†R6ÖRfÇVRâG—RF†B6ææ÷BFòÆÂF‡&VP¦—26öÇVÖâF†BÆöö·27W÷'FVBæB—2æ÷Bâf–ÆRWÆöG2Â&VfW&Væ6W2&WGvVVà§7V"Ö2æB6ö×WFVBf–VÆG2&R'6VçBöâW'÷6R(	BV6‚æVVG27F÷&vRÀ¦–çFVw&—G’÷"âWfÇVF÷"F†BFöW2æ÷BW†—7BÂæBV6‚v÷VÆB&R†ÆbÖç7vW §F†BÆöö·2v†öÆR–âG&÷F÷vâà ¤f÷W"FV6—6–öç2v÷'F‚æ÷B&VF—66÷fW&–æs  ¢Ò¢¤ÖöæW’—2v†öÆR6VçG2â¢¢C"ãS7F÷&W22C#SÂF†R'VÆRWfW'’÷F†W"ÖöæW¢6öÇVÖâ†W&RföÆÆ÷w2ÂæBæVvF—fRÖ÷VçB—2&VgW6VB&F†W"F†â7F÷&VBà¢Ò¢¤&Ææ²÷F–öæÂf–VÆB—27F÷&VB2çVÆÆÂæ÷BöÖ—GFVBâ¢¢&W6VçBÖæBÖçVÆÀ¢6—2&ÆVgB&Ææ²#²'6VçB6—2'F†—2f–VÆBF–Bæ÷BW†—7Bv†VâF†R&V6÷&Bv0¢ÖFR"ÂæBF†÷6R&RF–ffW&VçBf7G2à¢Ò¢¤âVçF–6¶VB6†V6¶&÷‚—2fÇ6VÂæ÷BVæ¶æ÷vââ¢¢F†B—2F†RöæRÆ6R'6Væ6P¢—2fÇVR&F†W"F†âvÂæB—B—2G'VRöbWfW'’…DÔÂf÷&Òà¢Ò¢¤&V6÷&B—26†V6¶VBv–ç7BF†R66†VÖ–âF†RFF&6RÂæWfW"v–ç7BF†P¢f÷&ÒF†Bv27V&Ö—GFVBâ¢¢f÷&Ò—2…DÔÂæB'&÷w6W"6âVF—B—C²F†P¢7F÷&VBf–VÆBÆ—7B6ææ÷B&Rà ¢¢¤æ÷F†–ærw&—FW2'W6–æW75÷7V%ööFWÆ÷–ÖVçG6â¢¢—B6'&–W2¦FWÆ÷–ÖVçE÷W&ÆæBF†—2&öGV7B6ææ÷Bf–ÆÂ—C¢æò'V–ÆB7FWÂæòW"×FVæç@¦†÷7F–ærÂöæR6W'fW&ÆW72gVæ7F–öâ6W'f–ærWfW'’&÷WFRâ7V"ÖÆ—fW2–ç6–FP¥4ôä$BF‚âFW7B76W'G2F†R&÷WFRf–ÆRæWfW"æÖW2F†BF&ÆR÷"F†@¦6öÇVÖâÂ&V6W6RF†RæW‡BW'6öâFò6VRFWÆ÷–ÖVçE÷W&Æv–ÆÂ&V6öæ&Ç’77VÖP¦—B—2ÖVçBFò&Rw&—GFVâFòà ¥&Vv—7FW&VBg&öÒ&÷WFW2÷6öæ&ÖÆ7C’×&÷WFW2æ6§6&F†W"F†âg&öÒ6W'fW"æ§6 §6ÖR&öGV7B&VÂWfW'’FWVæFVæ7’Ç&VG’–â66÷RÂæB6W'fW"æ§6—2VæFW"¦Æ–æR&F6†WBv†÷6Rv†öÆRö–çB—2F†B&V†f–÷W"ÆVfW2—B&F†W"F†â'&—fW2à¤—B7F—2BBÃ32à ¥GvVçG’Öf—fRFW7G2âGvò&ö&W2f—&VB6÷'&V7FÇ’(	BG&÷–ærF†R÷&væ—¦F–öâf–ÇFW ¦g&öÒF†R66†VÖÆöö·WÂæB66WF–ærç’fÇVRf÷"Æ—7Bf–VÆBâöæRW†—7F–æp¦wV&B6Vv‡B&VÂ&ö&ÆVÒ–âF†RæWrvS¢æòvRÆ–W2v†VâF†RFF&6R—0¦F÷væfÆvvVBF†R6VçFVæ6R&æ÷F†–ær†W&Rv–ÆÂöffW"–÷RöæR"2âV×G’×7FFP¦6Æ–Ò&÷WBF†R7W7FöÖW"w2&V6÷&G2â—Bv2&Wv÷&FVB&F†W"F†âW†V×FVBà ¥7V—FR"Ã“"76–ærà ¢222##bÓ‚Ó’(	BÇ––ærF†R&–6–ær&W7G'V7GW&RÂæBF†RÆâF†Bv26VÆÆ–æræ÷F†–æp ¥F†R÷væW"6†÷6RFòÇ’—Bæ÷r&F†W"F†âgFW"F†Rf—'7B&öGV7F–öâ6ÆRÀ§v†–6‚Fö72÷&–6–æró##bÓ‚ÓÕ$”4”ärÕ$U5E%T5EU$RæÖF†BæÖVB2§&V6öæF—F–öââF†V—"6ÆÂÂæB7FFVB2F†V—'2–âF†RFö7VÖVçBà ¢¢¤Ö÷7BöbF†R6öFR†Æbv2Ç&VG’FöæRÂæB’6†V6¶VB&F†W"F†â77VÖVBâ¢ ¦v÷&·76UöÖöçF†Ç–C’ÂÆÅ÷F‡&VUöÖöçF†Ç–C3’æBFVÕöÖöçF†Ç–Cs’&R–à¦Æ–"÷6öæ&×7G&—R×Æç2æ6§6v—F‚7WW'6VFVD'–v—&VBæBöffW&VEÆä¶W—6 ¦†æFÆ–ærF†R6†ævV÷fW"26WBâÆ–"÷6öæ&×–BÖ66W72æ6§6Ö2ÆÂF‡&VRFð¦WfW'’v÷&·76RF†W’6÷fW"Â–æ6ÇVF–ær6†ö÷6W4öæUv÷&·76V6òC’FöW2æ÷@§V–WFÇ’'W’ÆÂF‡&VRâÆ–"÷6öæ&×ÆâÖÆ–Ö—G2æ6§6v—fW2V6‚—G2Æö6F–öà¦ÆÆ÷væ6RâæöæRöbF†BæVVFVBF÷V6†–ærà ¢¢¤öæRF†–ærF–Bâ¢¢F†R&–6–ærFö7VÖVçB6—2W†7FÇ’v†BFVÒ6VÆÇ3¢%F†R7Ff`§÷'FÂÂW"×W'6öâ66†VGVÆW2ÂF–ÖRVçG&–W2æB76–væVBF6·2Ç&VG’W†—7Bæ@¢¢¦&Rv—fVâv’¢¢â"F†W’vW&RâÆÂ6—‚÷7FffvW2vW&R&Vv—7FW&VBv—F€¦&WV—&T7W7FöÖW&Â6òç’6–væVBÖ–â66÷VçB(	Bg&VR–æ6ÇVFVB(	B÷VæVBWfW'’öæP¦öbF†VÒâFVÒw2öæÇ’F–ffW&Væ6Rg&öÒÆÂF‡&VRBC3’v26VçFVæ6Rà ¤æ÷F†–ærf–ÆVBÂ&V6W6Ræ÷F†–ær6¶VBâF†R&–6–ærFW7G26†V6²F†RvR6†÷w0§F†RÖ÷VçBF†R6öæf–r†öÆG3²F†RVçF—FÆVÖVçBFW7G26†V6²Æâ¶W’÷Vç2§v÷&·76RâæV—F†W"6·2v†WF†W"Æâw2¦FW67&—F–öâ¢—2G'VRâÆâF†@¦6†&vW2f÷"6öÖWF†–ærg&VR—2F†—26öFV&6Rw2&V7W'&–ærFVfV7BvV&–ær&–6P§Frà ¦dTEU$UôTåD•DÄTÔTåEô´U•6–âÆ–"÷6öæ&×–BÖ66W72æ6§6—2F†Rf—‚Â¶W@¦'Bg&öÒ”EôTåD•DÄTÔTåEô´U•6&V6W6RF†BÖw2¶W—2&R&öGV7B¶W—2æ@§GvòFW7G2vÆ²F†VÒ2&öGV7G2âF†R7FfbvW2vòF‡&÷Vv€¦&WV—&U–D÷$÷væW$66W72‚'7Ffe÷÷'FÂ"–Âv†–6‚Ç&VG’6W&FW2F†RF‡&VP¦ç7vW'2F†—2æVVG2¶WB'C¢–BÂæ÷B–BÂæB¢¦&–ÆÆ–ær&VBF†BF–Bæ÷@¦ç7vW"¢¢âF†RF†—&B&WGW&ç2S2v—F‚'F†—2—2öâ÷W"6–FR"ÂæWfW"—vÆÂ(	Bà¦V×Æ÷–VR6†÷vâ'Ww&FR&WV—&VB"&V6W6R7W&6Rv26Æ÷r—2&V–ærFöÆBF†V— ¦V×Æ÷–W"†2æ÷B–Bà ¦FW7G2÷F†R×7Ffb×÷'FÂÖ—2×v†B×FVÒ×6VÆÇ2çFW7Bæ§66÷fW'2ÆÂF‡&VRÂæBF†P¦vFRv2&ö&VB'’&VÖ÷f–ær—BæBvF6†–ærF†Rg&VRÖ66÷VçB66Rf–Âv—F€¦÷7Ffb—27F–ÆÂg&VRƒ#–à ¥GvòFö7VÖVçG2vW&Rw&öæræB&R6÷'&V7FVC¢F†R&–6–ærFö7VÖVçBö–çFVB@¦67&—G2÷fW&–g’×7G&—RÖ6öæf–ræÖ§6Âv†–6‚FöW2æ÷BW†—7B†fW&–g’×7G&—RÖVçbæÖ§6 ¦FöW2’ÂæB—G2&v—fVâv’"6VçFVæ6Ræ÷r6'&–W2v†B6†ævVBà ¢¢¥v†B—2ÆVgB—27G&—R¢¢ÂæB—B—2Fö72ö÷væW"ôõtäU"Õ5DU2æÖF—FVÒR(	BF‡&VP¥&–6Rö&¦V7G2ÂF‡&VRf&–&ÆW2ÂæBF†R6†V6²F†B6ö×&W2F†VÒv–ç7Bv†BF†P§vR&öÖ—6W2âVçF–ÂF†W’W†—7BF†RæWrÆç2&VæFW"$6†V6¶÷WB—2æ÷B6öæf–wW&V@¦f÷"F†—2Æâ–WB"æBF†RöÆBÆFFW"7F—2WÂv†–6‚—2öffW&VEÆä¶W—6Fö–æp¦W†7FÇ’v†B—Bv2'V–ÇBFòFòà ¢222##bÓ‚Ó’(	BF†R6V6öæBÆ–6F–öâ—2vöæP ¥F†R÷væW"w2FV6—6–öâÂ6¶VBæBç7vW&VC¢FVÆWFR—Bà ¢¢£cs"f–ÆW2â¢¢öƒ#3æW‡Bæ§2vW2Â"’&÷WFW2Â#Sbf–ÆW2–âÆÂ’Âƒ¦6ö×öæVçG2Â#bçG6ÖöGVÆW2VæFW"Æ–"öÂÇW26öæf–röÂG—W2öÂWF–Ç2öÀ¦&÷‡’çG6ÂG66öæf–ræ§6öæÂæW‡Bæ6öæf–ræÖ§6Â÷7F772æ6öæf–ræÖ§6æ@¦æW‡BÖVçbæBçG6âæöæRöb—B6÷VÆB'Vã¢æW‡FÂ&V7FæBG—W67&—FvW&Ræ÷@¦FWVæFVæ6–W2ÂçÒ'Vâ'V–ÆF—2æöFRÒÖ6†V6²6W'fW"æ§6ÂæBfW&6VÂæ§6öæ ¦'VæFÆW2öæÇ’·V&Æ–2ò¢¢Ç&÷WFW2ò¢¢ÆÆ–"ò¢§Ö–çFòöæRW‡&W72gVæ7F–öâv—F‚WfW'§&÷WFR&Ww&—GFVâFò—Bà ¦FFò¢çG67F—2(	BF†÷6R&R&Vv—7FW'2F†R6†—VB6öFR'6W22FW‡BÂæ@¦FFö÷Vâ×6÷W&6R×FööÇ2çG6ÆöæR—2&VB–âGvVÇfRÆ6W2à ¢¢¥F†R&VÆV6R6†–âæWfW"æ÷F–6VBâ¢¢ÆÂ#B6öÖÖæG276VBv—F‚öFVÆWFV@¦æBæ÷F†–ær&W—&VBâv†B'&ö¶Rv2WfW'—F†–ærVÇ6RÂæBV6‚'&V²v26†V6°§FVÆÆ–ærF†RG'WF‚f÷"F†Rf—'7BF–ÖS  ¢Ò¢¦fW&–g“¦Vçf&W÷'FVB6—‚f&–&ÆW26Æ76–f–VBæB&VB'’æ÷F†–ærâ¢¢F†W¢†B&VVâFV6Æ&VB–âÆ–"öVçb÷6W'fW"çG6ÂÆ–"öWF‚÷v÷&·76RçG6æBGvò÷F†W ¢FVBÖöGVÆW2âöæRöbF†VÒÖGFW'3¢¢¦4ôä$ôDÔ”åôTÔ”Å6¢¢Âv†–6‚f—fP¢Fö7VÖVçG2–ç7G'V7FVBF†R÷væW"Fò6WBf÷"FÖ–â66W72ÂæBv†–6‚æò'Vææ–æp¢f–ÆR†2WfW"&VBâ6WGF–ær—Bw&çFVBæ÷F†–æræBæ÷F†–ær6–B6òà¢dõTäDU%ôTÔ”Å6ÂDÔ”åôTÔ”Å6æBDÔ”åôTÔ”Æ&RF†RÆ—fRæÖW3²F†Rf—fP¢Fö7VÖVçG2æBæVçbæW†×ÆVæ÷r6’6òà¢Ò¢¦fW&–g“¦÷'†â×F&ÆW6v–æVBFVâF&ÆW2¢£¢F†RVçF—G•ò¦fÖ–Ç’g&öÐ¢Ö–w&F–öâ‚âF†W’vW&RæWfW"VW&–VB'’ç—F†–ærF†B&âV—F†W"(	BF†W’vW&P¢VW&–VB'’Æ–"öVçF—F–W2ò¢çG6Â6òF†R6†V6²6÷VçFVBF†VÒ2W6VBVçF–ÂF†÷6P¢f–ÆW2vVçBâVçF—F–W6†26ÇVrÂæÖRæB—5÷V&Æ–6æB¢¦æð¢÷&væ—¦F–öåö–F¢£¢6V6öæBFVææ7’ÖöFVÂ&W6–FR÷&væ—¦F–öç2Âv†–6‚—2v‡¢æöæRöbF†VÒ6â&R&§W7Bv—&VBW"âV6‚æ÷r6'&–W2&V6÷&FVBFV6—6–öâà¢Ò¢¤æ–æRfÆ–FF÷"67&—G2W†—7FVBv†÷6RVçF—&R7V&¦V7Bv2F†RFV@¢Æ–6F–öâ¢¢(	BfW&–g’Ö'&æFÂfW&–g’ÖÆö6ÂÖÆVæ6†À¢fÆ–FFR×6öæ&ÖgVÆÂÖ–æg&7G'V7GW&VÂVçF—G’Ö†V'F&VBÖ6†V6¶æBf—fRÖ÷&Rà¢F†W’76W'FVBF†Bf–ÆW2W†—7FVB–ââÆ–6F–öâF†B6÷VÆBæ÷B'V–ÆBà¢¢¤æ÷F†–ær–â6¶vRæ§6öæ÷"4’&VfW&Væ6VBç’öbF†VÒ¢¢Â6òF†W’†BæWfW ¢'VâBÆÂâFVÆWFVBÂÆöærv—F‚67&—G2÷fW&–g’ç6†Âv†–6‚'V–ÇBg&öçFVæBö ¢F—&V7F÷'’F†—2&W÷6—F÷'’FöW2æ÷B†fRà ¥Gvò6†V6·2vW&R&Ww&—GFVâ&F†W"F†âFVÆWFVBÂ&V6W6RF†V—"VW7F–öç2vW&P§7F–ÆÂÆ—fRæB†B&VVâ6¶VBöbF†Rw&öær7W&f6S  ¢ÒFW7G2ö'&æB×&Vv—7G'’çFW7BæÖ§676W'FVBF†BWfW'’'&æBVçF—G’†BæÖRÂ¢FvÆ–æRæBF‡&VR†W‚6öÆ÷W'2(	B–âÆ–"ö'&æBö'&æB×7—7FVÒçG6Âv†–6‚æWfW ¢FWÆ÷–VBâ—Bæ÷r6·2F†R6ÖRöbÆ–"÷6öæ&Ö'&æB×&Vv—7G'’æ6§6ÂæB6·0¢Ö÷&S¢F†BWfW'’ÆövòF‚&W6öÇfW2Fòf–ÆR–âV&Æ–2öÂæBF†BV6€¢&öGV7Bw266VçBFö¶VâæÖW2ç6öæ&×&öGV7BÒÓÇFö¶Vãæ'VÆRF†B7GVÆÇ¢W†—7G2–âF†R6†—VB552â&VæÖ–æröæRv—F†÷WBF†R÷F†W"6–ÆVçFÇ’Æ÷6W2¢&öGV7Bw26öÆ÷W"ÂæB&÷F‚†ÇfW27F’–æF—f–GVÆÇ’fÆ–Bà¢Ò6†V6²Öv—F‡V"×&F"×V&Æ–2Ö6÷’æÖ§6wV&FVBv–ç7BV&Æ–26÷’6Æ–Ö–ær¢&Wf–WvVB&W÷6—F÷'’6†—2v—F‚F†—2&öGV7Bâ—BvÆ¶V@¢÷&W6V&6‚ÖÆ"öv—F‡V"×&F"ò¢¢ò¢çG7†æB76VBWfW'’F–ÖRâF†RÆ—fP¢&W6V&6‚ÖÆ"—2W‡&W72ÂB÷&W6V&6‚ÖÆ&æBf÷W"6†–ÆB&÷WFW2ÂæBæ÷F†–æp¢†BWfW"&VB—Bâ67&—G2ö6†V6²×&W6V&6‚ÖÆ"×V&Æ–2Ö6÷’æÖ§6&VG2F†R6—€¢f–ÆW2F†B&VæFW"—BæB¢¦—2–âF†R6†–â¢¢Âv†–6‚F†RöÆBöæRæWfW"v2à ¥&ö&–ærF†B&WÆ6VÖVçBf÷VæBFVfV7B–â—C¢F†Rf—'7B&ö&R76VB&V6W6R§VÆ–f–W"BöæRVæBöbÆöær6W'fW"×&VæFW&VBÆ–æRW†7W6VBâ÷fW&6Æ–ÒBF†P¦÷F†W"âF†RVÆ–f–W"æ÷r†2Fò6—Bv—F†–âC6†&7FW'2öbF†R6Æ–Òâ&÷F€§&ö&W2f–Â6÷'&V7FÇ’à ¢¢¥7F–ÆÂ†W&RÂæB6W&FRVW7F–öã¢¢¢&6¶VæBö(	B3sÖÆ–æR—F†öâf7D¦Æ–6F–öââ6†V6¶VB&÷W&Ç’gFW"4’vVçBw&VVâ&F†W"F†â77VÖVC¢F†P¦&6¶VæBÖFWVæFVæ6–W6¦ö"–ç7FÆÇ2—G2&WV—&VÖVçG2Â'Vç2—6†V6¶ÂVF—G0§F†VÒv—F‚—ÖVF—FÂ6ö×–ÆW2&÷F‚ÖöGVÆW2æB–×÷'G2F†R76W'F–æp¦ö†VÇF†æBö'&æG6&R&÷WFVBâ¢¥6òVæÆ–¶RF†RæW‡Bæ§2G&VRÂ—B'V–ÆG2¢¢À¦æB—B—2æ÷BFVB6öFRâv†B—BFöW2æ÷BFò—2FWÆ÷’(	BfW&6VÂæ§6öæ'VæFÆW0¦öæÇ’·V&Æ–2ò¢¢Ç&÷WFW2ò¢¢ÆÆ–"ò¢§Ö–çFòöæRæöFRgVæ7F–öâÂ6òæ÷F†–ær–à§&öGV7F–öâ6W'fW2—Bâv†WF†W"—B6†÷VÆBW†—7B—27F–ÆÂâ÷VâVW7F–öâÂæBF†P¦ç7vW"—2æ÷B&FVÆWFR—BÆ–¶RF†R÷F†W"öæR"à ¢¢¤æBF†R¦ö"æÖVBg&öçFVæBÖFWVæFVæ6–W6†2æòg&öçFVæBâ¢¢—B'Vç2v–ç7@§F†R&W÷6—F÷'’&ö÷BæBFöW2&VÂv÷&²(	BF†RçÒVF—BÂF†R÷Vâ×6÷W&6P§&Vv—7G'’6†V6²ÂF†R'6R6†V6²ÂF†R'V–ÆB(	B6òF†R6–væÂ—26÷VæBæBöæÇ’F†P¦æÖRÖ—6ÆVG2â—B—2ÆVgBÆöæRöâW'÷6S¢¦ö"w2æÖR—2F†R6†V6²æÖP¤v—D‡V"&W÷'G2Â6ò&VæÖ–ær—B&WF—&W2F†B6†V6²æB7&VFW2æWröæRÂæB–`§F†RöÆBæÖR—2&WV—&VB7FGW26†V6²öâÖ–æWfW'’VÆÂ&WVW7Bv÷VÆBF†Và§v—Bf÷&WfW"f÷"6†V6²F†BæòÆöævW"'Vç2â&÷F‚¦ö'2æ÷r6''’6öÖÖVç@§6––ærv†BF†W’7GVÆÇ’6÷fW"à ¥7V—FR"Ãc276–ærÂ6†–âw&VVâB#R6öÖÖæG2à ¢222##bÓ‚Ó’(	Bv†BF†R÷væW"7GVÆÇ’†2Fò–ç7FÆÂÂ6†V6¶VB'’'Vææ–ær—@ ¤6¶VBf÷"W†7B–ç7FÆÆF–öâ–ç7G'V7F–öç2â&öGV6–ærF†VÒÖVçB'Vææ–ærF†P¦–ç7G'V7F–öç2F†BÇ&VG’W†—7FVBÂæBF‡&VRöbF†VÒvW&Rw&öærà ¢Ò¢¦çÒ'VâF#§W6†6÷VÆBæ÷B'VâBÆÂâ¢¢—B6ÆÆVBçÒW†V27W&6VÀ¢æBF†R7W&6R4Ä’—2æ÷BFWVæFVæ7’öbF†—2&W÷6—F÷'’(	BF†Rç7vW"v0¢´U%%õåÕõ$T5U%4•dUôU„T5ôd•%5Eôd”ÅÒ6öÖÖæB'7W&6R"æ÷Bf÷VæFÂv†–6€¢&VG2Æ–¶R6÷''WFVB–ç7FÆÂ&F†W"F†âFööÂæö&öG’†2–ç7FÆÆVBâf÷W ¢Fö7VÖVçG2–âFö72ö–ç7G'V7B6öÖV&öG’Fò'Vâ—Bà ¢FF–ær—B2FWdFWVæFVæ7’v2G&–VBæB&WfW'FVC¢F†RçÒ6¶vRVÆÇ2¢¢£SRÔ"¢¢ÆFf÷&Ò&–æ'’2â÷F–öæÂFWVæFVæ7’ÂæBfW&6VÂ'Vç0¢çÒ–ç7FÆÂÒÖg&÷¦VâÖÆö6¶f–ÆVöâWfW'’FWÆ÷’Â6ò—Bv÷VÆB6—BöâF†P¢7&—F–6ÂF‚öbWfW'’&öGV7F–öâ'V–ÆBf÷"FööÂW'6öâ'Vç2'’†æBà¢67&—G2÷&WV—&R×7W&6RÖ6Æ’æ6§6æ÷r6†V6·2f÷"—BæB&–çG2F†R–ç7FÆÀ¢6öÖÖæG2f÷"Ö4õ2Âv–æF÷w2æB&æò–ç7FÆÆW""–ç7FVBà ¢Ò¢¤6÷––æræVçbæW†×ÆVFòæVçfFöW2æ÷F†–ærâ¢¢F†W&R—2æòF÷FVçf†W&R(	@¢F†RöæÇ’&öGV7F–öâFWVæFVæ7’—2W‡&W76ÂæBæ÷F†–ær&VG2æVçff–ÆP¢B7F'GWâF†R$TDÔRFöÆBV÷ÆRFò6÷’—BæBF†VâçÒ7F'FÂv†–6€¢vWG2'Vææ–ær6W'fW"v—F‚æöæRöbF†÷6Rf&–&ÆW26WBæBÆöö·2W†7FÇ’Æ–¶P¢v÷&¶–ær6WGWâæöFR#"ÆöG2—BæF—fVÇ’Â6òçÒ'VâFWf—2æ÷p¢æöFRÒÖVçbÖf–ÆSÒæVçb6W'fW"æ§6âfW&–f–VC¢æVçf†öÆF–ærõ%CÓ3& ¢&öGV6VBÆ—7FVæ–æröâ3&à ¢Ò¢¥F†R÷'B—2SÂæ÷B3â¢¢6W'fW"æ§6&VG2&ö6W72æVçbåõ%BÇÂS°¢F†R3–âF†R$TDÔR6ÖRg&öÒæVçbæW†×ÆVÂv†–6‚(	B6VR&÷fR(	Bv2æWfW ¢&V–ær&VBà ¦Fö72ö÷væW"ô”å5DÄÂæÖF—2F†RwV–FRÂæBWfW'’6Æ–Ò–â—Bv2'Vâ&F†W"F†à§&V6ÆÆVC¢çÒ7F'F6W'fW2öÂ÷&–6–ævæBö'W6–æW72Ö'V–ÆFW&B#æ@¦öF6†&ö&FBS2Âv†–6‚—2F†R6÷'&V7B'6WGW&WV—&VB"7FFRf÷"&Ææ°¦–ç7FÆÂæBæ÷BfVÇBà ¥F†R†öæW7B†VFÆ–æR—2F†BF†W&R—2¢¦ÆÖ÷7Bæ÷F†–ærFò–ç7FÆÂ¢¢âöæP§&öGV7F–öâFWVæFVæ7’Âæò'VæFÆW"Âæò6ö×–ÆR7FW(	BçÒ'Vâ'V–ÆF'6W2F†P§6W'fW"æBÆöG2—BâF†Rv÷&²—2f÷W"66÷VçG2æBF†V—"6WGF–æw2Âæ÷B§FööÆ6†–âà ¢222##bÓ‚Ó’(	BF†R7&vÂW&Ö—76–öâvFRÂ'V–Ç@ ¦&W6V&6…÷6÷W&6W2çW&Ö—76–öå÷7FGW6†2W†—7FVB6–æ6RF†RÆFf÷&Ò&VFW6–vâöà£#‚Ö’##bÂæ÷BçVÆÂFVfVÇBvæVVG5÷&Wf–WrvÂv—F‚7&vÅ÷7FGW6&W6–FR—Bà¤æV—F†W"6öÇVÖâ†B6†V6²6öç7G&–çBÂ6ò&÷F‚66WFVBç’7G&–ærâ¢¤æ÷F†–ær–à§F†RÆ–6F–öâ†BWfW"&VBV—F†W"öæR¢¢(	BF†RF&ÆRV&VB–âF†RvVæW&FV@§FVæçB×66÷R–çfVçF÷'’æBöæR7V'7—7FVÒÆ—7F–ærÂæBæ÷v†W&RVÇ6RâW&Ö—76–öà¦vFRv2FW6–væVB–çFòF†R66†VÖæBæö&öG’'V–ÇB—Bà ¦õ5Bö’öÖ&¶WBÖ–çFVÆÆ–vVæ6RöfWF6‚×6÷W&6VÖVçv†–ÆRFöö²ç’…EE2U$Âg&öÒ§&WVW7B&öG’æB†BF†—26W'fW"fWF6‚—Bâ7&vÃD’&VgW6W2Æö÷&6²ÂÆ–æ²ÖÆö6ÂÀ¦6Æ÷VBÖÖWFFFæB&—fFRFG&W76W2&Vf÷&RF†R&WVW7BÆVfW2Â6ò—Bv2æ÷B§&WVW7Bf÷'v&FW"(	B'WBæ÷F†–ærç—v†W&R6¶VBv†WF†W"F†R'W6–æW72†@¦W7F&Æ—6†VB—BÖ’Æöö²BF†R6—FRBÆÂà ¢¢¤æòvR6ÆÆVBF†BVæGö–çB¢¢Âv†–6‚—2W†7FÇ’v‡’6Æ÷6–ær—Bæ÷r6÷7@¦æ÷F†–ærâF†W&Rv2æòfVGW&R&W7F–æröâF†Rvà ¥v†Bv2'V–ÇC  ¢Ò¢¥F†R'VÆRâ¢¢6÷W&6UW&Ö—76–öâ‚––â&÷WFW2öÖ&¶WBÖ–çFVÆÆ–vVæ6R×&÷WFW2æ6§6À¢W‡÷'FVB6òFW7B6â6²—BF—&V7FÇ’âF‡&VR÷WF6öÖW2ÂæWfW"Gvó¢&÷fVFÀ¢æ÷Eö&÷fVFÂæBVç&VF&ÆVâ&VBF†Bf–ÆVB—2æ÷B6÷W&6Ræö&öG¢&÷fVB(	B&÷F‚&VgW6RÂ'WBöæRFVÆÇ2F†R7W7FöÖW"FòvòæB&÷fR6öÖWF†–æp¢F†W’Ö’Ç&VG’†fR&÷fVBÂæBF†R÷F†W"6—2F†R6†V6²F–Bæ÷B'Vâà¢gVÆÂvRöb&÷fVB&÷w2&WGW&ç2Vç&VF&ÆVFöòÂ&V6W6RÖF6‚6÷VÆ@¢†fR&VVâöâF†RæW‡BöæRæB&æ÷B&÷fVB"F†W&Rv÷VÆB&RwVW72à¢Ò¢¤†÷7BÂæ÷BU$Ââ¢¢â&÷fVB&÷r6÷fW'2F†Rv†öÆR6—FS²6¶–ær6öÖV&öG’Fð¢&V6÷&BWfW'’F‚ÖVç2æö&öG’W6W2—BâW†7B†÷7BF†÷Vvƒ¢&ÆöræW†×ÆRæ6öÖ ¢—2æ÷BW†×ÆRæ6öÖÂ&V6W6Rv—F‡V"æ–öÂfW&6VÂææBvW2æFWf†æ@¢7V&FöÖ–ç2÷WBW"W6W"ÂæBvÆ¶–ærWF†RFöÖ–âv÷VÆB&÷fR7G&ævW'2à¢Ò¢¥F†RfÇVW2â¢¢##cƒ“#÷&W6V&6…÷6÷W&6U÷W&Ö—76–öå÷fÇVW2ç7ÆFG0¢6†V6²6öç7G&–çG2öâ&÷F‚6öÇVÖç2ÂgFW"æ÷&ÖÆ—6–ærUDDW2âF‡&VRfÇVW2f÷ ¢W&Ö—76–öâÂ&V6W6RGvòv÷VÆBÆ÷6RF†RF—7F–æ7F–öâF†BÖGFW'3¢6÷W&6P¢æö&öG’†2'VÆVBöâ—2v÷&²6öÖV&öG’†2FòFòÂæ÷BFV6—6–öâF†W’ÖFRà¢Ò¢¥F†RvRâ¢¢ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷&W6V&6‚×6÷W&6W6Æ—7G2v†B†2&VVà¢&V6÷&FVBæBF¶W2æWröæRà¢Ò¢¥F†Rv’Fò6†ævR–÷W"Ö–æBâ¢¢&V6÷&BvW27&VFR&÷w2æBæWfW"VF—BF†VÒÀ¢6òv—F†÷WBõ5Bö’ö'W6–æW72÷&W6V&6‚×6÷W&6W2ó§6÷W&6T–Bö&÷fV6÷W&6P¢&V6÷&FVB†öæW7FÇ’2æVVG5÷&Wf–Wvv÷VÆB6—BF†W&Rf÷"vööBæBF†RvFRv÷VÆ@¢&VgW6R—Bf÷"vööBâ—B—2&÷r7F–öâöâF†RvRÂ66÷VB'’÷&væ—¦F–öâ0¢vVÆÂ2'’–B(	BF†R6W'f–6R¶W’'—76W2&÷rÆWfVÂ6V7W&—G’ÂæBF†—2&÷p¢FV6–FW2v†BF†—26W'fW"v–ÆÂvòæBfWF6‚à ¥GvVçG’×F‡&VRFW7G2–à¦FW7G2ööæÇ’Ö×6÷W&6R×–÷RÖ&÷fVBÖ—2ÖfWF6†VBçFW7Bæ§6â&÷F‚æWr6öçG&7@¦76W'F–öç2vW&R&ö&VB'’'&V¶–ærF†RÖ–w&F–öâæBvF6†–ærF†VÒf–ÂÂæBF†P¦VæGö–çBFW7Bv2&ö&VB'’F—6&Æ–ærF†RvFRæBvF6†–ær—Bf–Ââ7V—FR"Ãc0§76–æs²fW&–g“¦ÆVæ6†w&VVâà ¤f÷W"&W÷6—F÷'’×v–FR6†V6·26Vv‡BF†RæWrvRöâF†Rv’–âÂv†–6‚—2F†P§7—7FVÒv÷&¶–æs¢ÖVÖ&W"×&VB×öÆ–6–W6vçFVBöÆ–7’6–væVBÖ–âÖVÖ&W"6à§&VBF‡&÷Vv‚‡F†RF&ÆRw2÷vâöÆ–7’&VFFW2FòWF†VçF–6FVF’Â6V&6† §vçFVBF†RF&ÆR66÷VçFVBf÷"V—F†W"v’ÂfW&–g’×7W&6RÖ6öçG&7FvçFVBF†P§F&ÆRæÖVB–â&Wf–WvVBw&÷WÂæBfW&–g’Ö÷Væ’Ö6öçG&7FvçFVBF†RF‡&VP§&÷WFW2Fö7VÖVçFVBà ¢¢¥7F–ÆÂæ÷BWFöÖFVBÂFVÆ–&W&FVÇ’â¢¢æ÷F†–ær7&vÇ2öâ66†VGVÆRÂ6ð¦7&vÅ÷7FGW6&V6÷&G2â–çFVçF–öâ&F†W"F†âG&—f–æröæRÂæBF†R6öÇVÖà¦6öÖÖVçB6—26òâF†RvFR—26öç7VÇFVBW"&WVW7B'’F†RVæGö–çBF†BfWF6†W2à ¢222##bÓ‚Ó’(	B67&Æ–ærÂæBF†RW&Ö—76–öâvFRF†Bv2æWfW"'V–Ç@ ¤%4BÓ2Ô6ÆW6RÂfW&–f–VBg&öÒF†Rv—D‡V"’w2FWFV7FVBÆ–6Vç6Rç7G…ö–FâsRÃ@§7F'2æBrÃC“’f÷&·2(	B¢§F†R6V6öæBÖ÷7B×7F'&VB&W÷6—F÷'’WfW"7V&Ö—GFV@¦†W&R¢¢ÂgFW"ÖöæW•&–çFW%GW&&òâ—F†öâöâÆ—w&–v‡BÂW6†VB†÷W'2&Vf÷&R—Bv0§7V&Ö—GFVBà ¢¢¤—B—2GvòÆ–'&&–W2–âöæR&W÷6—F÷'’æBF†W’æVVB÷÷6—FRç7vW'2¢¢Âv†–6€¦—2F†Rv†öÆRö–çBöbF†R&V6÷&Bâ&VF–ær—B26–ævÆR–W2÷"æò—2†÷rF†P§6V6öæB†Æb'&—fW2v—F‚F†Rf—'7Bà ¢Ò¢¤FF—fR6VÆV7F÷'2¢¢&RvVçV–æVÇ’FF—F—fRâÆ–"÷6öæ&Ö7&vÃF’ÖFFW"æ6§6 ¢fWF6†W2vRæB&WGW&ç2&VF&ÆRFW‡C²—B†2æòæ÷F–öâöbf–æF–ærF†R6ÖP¢VÆVÖVçBv–âgFW"6—FR—2&VFW6–væVBà¢Ò¢¥7FVÇF‚¢¢—2÷WBöb&÷VæG2Âf÷"6öæ7&WFR&V6öâ&F†W"F†â7VVÖ—6€¢öæS¢4ôä$w2÷vâVw&W72FöW2F†RfWF6†–ærÂ6ò'—76–ær6—FRw2&÷BFWFV7F–öà¢—2F†—2&öGV7B÷fW'&–F–ær6—FR÷W&F÷"w27FFVBv—6†W2Âöâ7W7FöÖW"w0¢&V†ÆbÂBföÇVÖRF†R7W7FöÖW"6†ö÷6W2à ¤F–ffW&VçB&W7VÇBg&öÒf–w&æ—VÒÂæBv÷'F‚F†R6öçG&7Bâf–w&æ—VÒv2uÂÓ2ã ¦æBF–Bv†BF†R6†RÓ"ã7&vÃD’FFW"Ç&VG’FöW2(	Bv÷'6RÖÆ–6Vç6V@¦GWÆ–6FRÂ6òF†Rç7vW"v2æòâF†—2—2W&Ö—76—fVÇ’Æ–6Vç6VBæBFöW26öÖWF†–æp¤7&vÃD’FöW2æ÷BâF†Rç7vW"—27F–ÆÂ¢¦æ÷B–WB¢¢Â'WBf÷"&V6öâ&÷WBF†—0§&öGV7B&F†W"F†â&÷WBF†R&W÷6—F÷'’à ¢¢¤6†V6¶–ærv†BF†R&öGV7BÇ&VG’FöW2GW&æVBWF†R&V6öââ¢ ¦&W6V&6…÷6÷W&6W66'&–W2W&Ö—76–öå÷7FGW2FW‡Bæ÷BçVÆÂFVfVÇBvæVVG5÷&Wf–Wrv ®(	B6öÇVÖâv†÷6RVçF—&RW'÷6R—2&V6÷&F–ærv†WF†W"6÷W&6RÖ’&R7&vÆVBà¢¢¤æ÷F†–ær&VG2—Bâæ÷F†–ærw&—FW2—BV—F†W"¢£¢F†RF&ÆR—2æÖVBöæÇ’–âF†P¦vVæW&FVBFVæçB×66÷R–çfVçF÷'’æBöæR7V'7—7FVÒÆ—7F–ærÂæBF†RÆ—fRfWF6€¦VæGö–çBF¶W2U$Â7G&–v‡Bg&öÒF†R&WVW7B&öG’æB†æG2—BFò7&vÃD’à¥F†R66†VÖçF–6—FVBW&Ö—76–öâvFRF†Bv2æWfW"'V–ÇBà ¥F†B—2F†R÷&FW"ÖöbÖ÷W&F–öç2ö–çBæB—BFV6–FW2F†R&V6÷&Bâ¢¤FF–ærFööÀ§v†÷6R6VÆÆ–ærö–çB—2æ÷B&V–ærFWFV7FVBÂFò7—7FVÒF†BFöW2æ÷B–WB6†V6°§v†WF†W"—Bv2ÆÆ÷vVBÂ—2F†Rw&öærv’&÷VæBâ¢¢F†RvFR—2F†R6†VW"v÷&°¦æBF†R–V6RF†Bv÷VÆBÖ¶RV—F†W"67&W"FVfVç6–&ÆR(	BæB—B—2F†Rö'f–÷W0¦æW‡BF†–ær†W&RÂFVÆ–&W&FVÇ’æ÷B'VæFÆVB–çFò&W÷6—F÷'’&Wf–Wrà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâÂC&Vv—7G'’&V6÷&G2ÂCVæ—VRv—D‡V"F&vWG2à ¢222##bÓ‚Ó’(	BâVçF—&RæW‡Bæ§2Æ–6F–öâF†BFöW2æ÷B'V–ÆB÷"6†—  ¤6¶VBFò'V–ÆB&÷Vv†Ç’GvVçG’Öf—fR&öGV7B7W&f6W2(	B&ö¦V7G2ÂÖVÖ÷2ÂÆöv&öö·2À¦†—&–ærÂFV×2Âf–ÆW2ÂæBF†R&W7Bâ&F†W"F†â7F'BG—–ærÂ6†V6¶VBv†–6‚ö`§F†VÒÇ&VG’†fR66†VÖæBæòv’–ââGvòF–C¢6öæ&÷&ö¦V7G6æ@¦V×Æ÷–VUö¦ö%÷÷7G6âföÆÆ÷v–ær6öæ&÷&ö¦V7G6Fòv†FWfW"&VG2—Bf÷Væ@¦Æ–"÷6öæ&÷&ö¦V7G2÷&ö¦V7E7F÷&RçG6ÂæBF†VâF†R7GVÂç7vW"à ¢¢¥F†R&W÷6—F÷'’6öçF–ç2ÃcRçG6öçG7†f–ÆW2Â–æ6ÇVF–ærâöF—&V7F÷'¦öb#3æW‡Bæ§2vW2æB"’&÷WFW2âæöæRöb—B'V–ÆG2æBæöæRöb—B6†—2â¢  §Âf7BÂv†W&RÀ§ÂÒÒÒÂÒÒÒÀ§ÂæW‡FæB&V7F&Ræ÷BFWVæFVæ6–W2Â6¶vRæ§6öæ²æöFUöÖöGVÆW2öæW‡FFöW2æ÷BW†—7BÀ§ÂæòG—U67&—B'V–ÆBW†—7G2ÂçÒ'Vâ'V–ÆF—2æöFRÒÖ6†V6²6W'fW"æ§2bbæöFRÖR'&WV—&R‚râ÷6W'fW"r’&À§Âö—2æ÷B–âF†RFWÆ÷–ÖVçBÂfW&6VÂæ§6öæ'VæFÆW2·V&Æ–2ò¢¢Ç&÷WFW2ò¢¢ÆÆ–"ò¢§Ö–çFò’ö–æFW‚æ§6À§Âæ÷F†–ærv÷VÆB&÷WFRFò—BÂfW&6VÂæ§6öæ&Ww&—FW2ò‚â¢–Fòö–ÂF†RW‡&W72À ¢¢¤æ÷F†–ær–âF†—2&W÷6—F÷'’w2Fö7VÖVçFF–öâÖVçF–öæVB—B¢¢(	Bæ÷BF†R†æFöfbÂæ÷@¦tTåE2æÖFÂæ÷B4„•õ$TD”äU52æÖFâ—BFöW2æ÷rà ¢¢¥v†B—Bv26÷7F–ærâ¢¢67&—G2÷&W÷'BÖ÷'†â×F&ÆW2æÖ§66÷VçFVBF&ÆR0§VW&–VBv†Vâç’çG6f–ÆRæÖVB—BÂ6òF†R&VÆV6R6†–â&W÷'FVB¢#F&ÆW0¦7&VFVBæBæWfW"VW&–VB"¢v†–ÆR¢§FVâvW&RVW&–VBöæÇ’'’6öFRF†B6ææ÷@§'Vââ¢¢vFR76W'F–ærwV&çFVRF†B†B7F÷VB†öÆF–ær(	BF†RFVfV7BF†—0§&W÷6—F÷'’¶VW2f–æF–ærÂF†—2F–ÖR–ç6–FRF†R6†V6²ÖVçBFò6F6‚—BâF†R66à¦æ÷r&VG2öæÇ’v†B6†—2â6öæf—&ÖVB'’WGF–ærçG6&6²æBvF6†–ærF†P§&W÷'BFVÖæBF†÷6RFVâ&R§&VÖ÷fVB¢2æòÆöævW"÷'†æVBà ¤V6‚öbF†RFVâ†2&V6÷&FVBFV6—6–öâÂæBF‡&VR&Rv&æ–æw2&F†W"F†à¦÷÷'GVæ—F–W3¢6öæ&÷W6W%÷7V'67&—F–öç6—2¢§F†—&B¢¢&–ÆÆ–ærÖöFVÂ&W6–FRF†P¦Æ—fR&–ÆÆ–æu÷7V'67&—F–öç6æB&–ÆÆ–æuöVçF—FÆVÖVçG6²6öæ&÷&ö¦V7G6 ¦GWÆ–6FW2×W6–5÷&ö¦V7G6Âv†–6‚Ç&VG’†2v÷&¶–ærvS²7—7FVÕöVF—EöWfVçG6 §v÷VÆB&R¢¦f–gF‚¢¢VF—BÆörâöæR—2&VÂv(	B6öæ&÷6÷VæEö76WG6ÖöFVÇ0¦Æ–6Væ6RÂ&VF—7G&–'WF–öâæBGG&–'WF–öâf÷"F†—&B×'G’VF–òÂv†–6€¦FFö÷Vâ×6÷W&6R×FööÇ2çG6FöW2f÷"6öFRæBæ÷F†–ærFöW2f÷"6÷VæBà ¢¢¥v†WF†W"F†BÆ–6F–öâ—2&Wf—fVBÂFVÆWFVB÷"ÆVgB–æW'B—2F†R÷væW"w0¦FV6—6–öâ¢¢ÂæBFö72õ4„•õ$TD”äU52æÖF6WG2÷WBF†RF‡&VR6÷7G2v—F†÷W@§&V6öÖÖVæF–æröæRâFVÆWF–ærãÃcRf–ÆW2—2FW7G'V7F—fRæBtTåE2æÖFWG2F†@¦&V†–æB÷væW"&÷fÃ²&Wf—f–ær—Bf÷&·2F†R&öGV7B–çFòGvòg&öçBÖVæG2÷fW"öæP¦FF&6RÂæBF†RW‡&W726–FR—2F†RöæRv—F‚F†RFW7G2ÂF†RFVæçBwV&G2æ@§F†R&VÆV6R6†–âà ¢¢¤6öçF–æW"&W6WBÆæFVBÖ–B×F6²¢¢Âöâ„TBc6SSc&v—F‚F†RFö7VÖVçFV@§7FÆR'F–f7G2â&V6÷fW&VB'’F†R&V6÷&FVB&ö6VGW&R(	B7F6‚Â¢¦fWF6‚f—'7B¢ ¦&V6W6RF†R&W6WB&Wv–æG2F†R÷&–v–âö&VbFöòÂfbÖöæÇ’ÖW&vRÂG&÷âF†RFVÆÂv0§F†R7V—FR&W÷'F–ærÃs#‚FW7G2v†W&R—B†B&W÷'FVB"Ã3s¢6‡&–æ¶–ær70¦6÷VçBv—F‚æòf–ÇW&W2—2G&VRF†B6†ævVBVæFW&æVF‚Âæ÷B7V—FRF†Bv÷@¦&WGFW"âWfW'’VF—Bv2F†Vâ&RÖÆ–VBv–ç7BF†R&VÂf–ÆW2&F†W"F†â6÷–VBÀ¦æBF†Ræ6†÷'2F–ffW&VB(	Bõ%„åôD•5õ4•D”ôå6v2V×G’öâF†R&VÂ„TBæ@§÷VÆFVBöâF†R&W6WBöæRà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâÂ#3rFW7G276–ærÂ÷'†ç2ÆÂ66÷VçFVBf÷"à ¢222##bÓ‚Ó’(	BÖöæW•&–çFW%GW&&òÂæBF†Rv—Bö–çFVB@ ¥7V&Ö—GFVBöâ—G2÷vââ¢£‚ÃS7F'2æBbÃCsBf÷&·2(	B'’v–FRÖ&v–âF†P¦Ö÷7B×7F'&VB&W÷6—F÷'’WfW"WB–çFòF†—2&Vv—7FW"¢¢ÂÖ÷&RF†âF‡&VRF–ÖW2F†P¦æW‡BâÔ•BÂfW&–f–VBg&öÒF†Rv—D‡V"’w2FWFV7FVBÆ–6Vç6Rç7G…ö–Fâ—F†öâÀ§W6†VBF†RF’&Vf÷&R—Bv27V&Ö—GFVBà ¤—BvVæW&FW26†÷'Bf–FVòg&öÒF÷–3¢67&—BÂæ'&F–öâÂ7Fö6²fö÷FvRÀ§7V'F—FÆW2Â&VæFW"Â–ÖVBBF–µFö²Â&VVÇ2æB6†÷'G2à ¢¢¥F†RÆ–6Væ6R—2F†RV7’'BæB—B—2f–æRâ¢¢F‡&VR÷F†W"F†–æw2&Ræ÷BÂæ@§F†W’&RF‡&VRF–ffW&VçB¶–æG2öbFV6—6–öâÂv†–6‚—2v‡’F†R&V6÷&B6W&FW0§F†VÒ&F†W"F†â&V6†–æröæRfW&F–7C  ¢Ò¢¤&6†—FV7GW&Râ¢¢—F†öâÂff×VrÂÖ–çWFW2öb5RæB‡VæG&VG2öbÖVv'—FW2ö`¢67&F6‚W"f–FVòâF†—2'VçF–ÖR—2&WVW7B×66÷VB6W'fW&ÆW72v—F‚æò'V–Æ@¢7FWâ—B—2v÷&¶W"F†R÷væW"'Vç2ÂÆ–¶RWfW'’÷F†W"&VæFW&–ær6æF–FFR†W&Rà¢Ò¢¤F÷vç7G&VÒÆ–6Væ6W2â¢¢Ô•B6÷fW'2F†R÷&6†W7G&F–öââv†FWfW"7Fö6²6÷W&6R—@¢—26öæf–wW&VBv—F‚†2—G2÷vâFW&×2ÂæB–FVçF–f–&ÆRV÷ÆR÷"G&FVÖ&·2–à¢7Fö6²fö÷FvR6''’&VÆV6RVW7F–öç2æòÆ–6Væ6Rf–ÆRç7vW'2â6ÖR6†RF†P¢&Vv—7FW"Ç&VG’&V6÷&FVBf÷"VF–ô7&gBÂv†W&RF†R6öFR—2Ô•BæBF†RvV–v‡G0¢&Ræ÷Bà¢Ò¢¥&öGV7BöÆ–7’â¢¢—B&öGV6W26öçFVçBV&Æ—6†VBVæFW"7W7FöÖW"w2æÖRÂ@¢föÇVÖRÂFòÆFf÷&×2v—F‚F†V—"÷vâ'VÆW2&÷WB–æWF†VçF–2æBWFöÖFV@¢6öçFVçBâv†WF†W"4ôä$6†÷VÆBFòF†Bf÷"7W7FöÖW'2—2FV6—6–öâæö&öG’†0¢ÖFRÂæB—B—2æ÷BâVæv–æVW&–æröæRà ¤öæR6öæ7&WFR6öç7G&–çB&F†W"F†âvVæW&Âv÷''“¢¢§F†RæÖRæWfW"&V6†W0¦7W7FöÖW"Öf6–ær6÷’â¢¢FW7G2öwV–FW2çFW7Bæ§6Ç&VG’76W'G2æòvR&öÖ—6W0§&WfVçVRÂ&æ¶–ær÷"wV&çFVVB÷WF6öÖRÂæB7&VF÷"fVGW&R6ÆÆV@¤ÖöæW•&–çFW"—2F†B&öÖ—6RÖFR–â6–ævÆRv÷&Bà ¢¢¥F†RW6VgVÂf–æF–ær—27G'V7GW&ÂÂæB—B—2&÷WBF†—26öFV&6Râ¢ ¦7&VF÷%övVæW&F–öåö¦ö'2æ6&–Æ—G–—26–ævÆP¦FW‡Bæ÷BçVÆÂ6†V6²†6&–Æ—G’–â‚âââ’–6öÇVÖâ(	B¢¦öæR6&–Æ—G’W"¦ö"â¢ ¥FW‡BFò7VV6‚—2¦ö"âFW‡BFòf–FVò—2¦ö"â6†÷'Bf–FVò76VÖ&ÆVBg&öÒ§67&—BÂæ'&F–öâÂfö÷FvRæB'W&çBÖ–â7V'F—FÆW2—2¦6†–â¢öbF†VÒÂV6€§7FWfVVF–ærF†RæW‡BÂæBæ÷F†–ær†W&R6âW‡&W72F†BâWfW'’vVæW&F–öà§7W&f6R—2öæR×6†÷BâF†Bvv÷VÆB†fRFò&R6Æ÷6VB&Vf÷&Rç’—VÆ–æRöbF†—0¦¶–æB6÷VÆB&RG&—fVâg&öÒ7&VF÷"7GVF–ò(	BF†—2öæR÷"öæRw&—GFVâ†W&R(	BæB—@§v2f÷VæB'’&VF–ærv†B7V&Ö—GFVB&W÷6—F÷'’FöW2&F†W"F†â'’&VF–ærF†—0¦6öFV&6Rà ¢¢¥v†Bv2fW&–f–VBæBv†Bv2æ÷B¢¢Â&V6W6RF†RF–ffW&Væ6R—2F†Rö–çBö`§F†—2&Vv—7FW#¢Æ–6Væ6RÂ7F'2Âf÷&·2ÂÆæwVvRÂ7F—f—G’æBF÷–726öÖRg&öÒF†P¤v—D‡V"’âF†R&W÷6—F÷'’w2÷vâf–ÆW2vW&R¢¦æ÷B¢¢&VB(	B&W÷6—F÷'’66W72†W&P¦—266÷VBFò6öæ&Ö÷6æBF†RVw&W72&÷‡’&Æö6·2F—&V7BfWF6†W2(	B6òF†RW†7@§7Fö6²6÷W&6RæB&÷f–FW"Æ—7B6öÖRg&öÒ—G2FW67&—F–öâÂæBç—F†–ær&W7F–æröà§F†VÒæVVG26†V6¶–ærv–ç7BF†R&W÷6—F÷'’—G6VÆbà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâÂ3’&Vv—7G'’&V6÷&G2ÂCVæ—VRv—D‡V"F&vWG2à ¢222##bÓ‚Ó’(	B7&÷72×FVæçBw&—FRÂf÷VæB'’VF—F–ærf÷W"VæGö–çG0 ¢¢¦ö’ö'W6–æW72÷F–ÖRÖVçG&–W2÷7F÷&W6öÇfVBæò÷&væ—¦F–öâBÆÂâ¢¢—BFöö²à¦–Bg&öÒF†R&WVW7B&öG’æBF6†VBV×Æ÷–VU÷F–ÖUöVçG&–W6v—F‚F†R6W'f–6P¦¶W’Âv†–6‚'—76W2&÷rÆWfVÂ6V7W&—G’â6ò¢¦ç’6–væVBÖ–â7W7FöÖW"6÷VÆB6Æ÷6P¦ç’F–ÖRVçG'’–âç’'W6–æW72¢¢Â7F×–ær6Æö6µö÷WEöFÂ7FGW6ÂæB'&V°¦ÆVæwF‚öbF†V—"6†ö÷6–ærà ¦'&VµöÖ–çWFW6—2F†R'BF†B&V6†W2çVÖ&W"6öÖV&öG’—2–Böã ¦v÷&¶VD†÷W'2‚–7V'G&7G2—BÂæB—BfVVG2F†RÆ&÷W"6÷7BöâF†RF–Ç’6ÆW0§vRâ—BÇ6ò66WFVBæVvF—fW2ÂæBæVvF—fR'&V²FG2†÷W'2à ¤f÷VæB'’Æ—7F–ærWfW'’†æB×w&—GFVâç÷7F–âF†Rf–ÆRæB6¶–æröæP§VW7F–öâöbV6‚(	BFöW2—B&W6öÇfRâ÷&væ—¦F–öãòF‡&VRöbf÷W"F–BâF†—2öæP¦F–Bæ÷BÂæB¢£"Ã#RFW7G276VB÷fW"—Bâ¢¢F†R6öÖÖVçB&÷fRF†R6†–ÆBÖÆ–æP¦†æFÆW"†B6–Bv‡’—BÖGFW&VBf÷"–V'3¢'v—F†÷WBF†—26†V6²Æ–æR6÷VÆB&P§w&—GFVâ–çFòæ÷F†W"÷&væ—¦F–öâw2÷&FW"'’÷7F–ær—G2–Bâ  ¤f—†VC¢÷&væ—¦F–öâ&W6öÇfVBÂF†RVçG'’6†V6¶VBv–ç7B—B&Vf÷&RF†RF6‚Â¦f–ÆVB&VB¶WB'Bg&öÒâVçG'’F†B&VÆöæw2Fò6öÖV&öG’VÇ6RÂæ@¦'&VµöÖ–çWFW66Æ×VBB¦W&òâF†RwV&BÖ÷fVBFò&WV—&T'W6–æW74ÖævW&Fð¦ÖF6‚ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷F–ÖVÂF†RöæÇ’vRF†BöffW'2—Bà ¢¢¤6V6öæBÂ6ÖÆÆW"FVfV7BöâF†R6ÖRVæGö–çBâ¢¢F†R&÷r7F–öâF†W&R—2à¤…DÔÂf÷&ÒÂ6ò6Æö6¶–ær6öÖV&öG’÷WBç7vW&VB'WGFöâ&W72v—F‚&r¥4ôâ–âF†P¦'&÷w6W"â—B&WGW&ç2FòF†RvRæ÷rà ¢¢¥F†R6ÖR6Æ72öâGvòÖ÷&RVæGö–çG2ÂöæRÆ–æRV6‚â¢¢ö’öÆö6F–öâöWfVçG6 ¦æBö’ö'W6–æW72÷F–ÖRÖVçG&–W2÷7F'F&÷F‚Föö²V×Æ÷–VUö–Fg&öÒF†R&WVW7@¦&öG’æBw&÷FR—BVæ6†V6¶VBâF†R7Ffb÷'FÂÆ—7G2'’V×Æ÷–VUö–FÂ6òà§Væ6†V6¶VBöæRWG2†÷W'2÷"Æö6F–öâ&V6÷&BöçFò6öÆÆVwVRw2vR(	B÷"öçFð¦æ÷F†W"'W6–æW72w2V×Æ÷–VRVçF—&VÇ’â&÷F‚æ÷r6†V6²F†B7WÆ–VBV×Æ÷–VRÀ¦&V÷"Æö6F–öâ&VÆöæw2FòF†R6ÆÆW"w2÷&væ—¦F–öâà ¥F†RV×Æ÷–VR—2FVÆ–&W&FVÇ’¢¦æ÷B¢¢f÷&6VBFò&RF†R6ÆÆW#¢F†Rf÷&Òöà¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷F–ÖV6·2%v†ò—27F'F–ær"Â6òÖævW"6Æö6¶–æp§6öÖV&öG’VÇ6R–â—2F†R–çFVæFVBW6Râ6†V6¶VB&Vf÷&R6†æv–ær—BÂ&V6W6P¦f÷&6–ær6VÆbÖGG&–'WF–öâv÷VÆB†fR'&ö¶Vâv÷&¶–ærfVGW&Rà ¦&VÆöæw5Fô÷&væ—¦F–öæ&WGW&ç2F‡&VRç7vW'2&F†W"F†âGvò(	B–W2ÂæòÂæ@¢'F†R&VBF–Bæ÷B†Vâ"(	B&V6W6R6öÆÆ6–ærF†RF†—&BV—F†W"&VgW6W2¦ÆVv—F–ÖFR6Æö6²Ö÷WBGW&–ærâ÷WFvR÷"w&—FW27&÷72FVæçB&÷VæF'’öâæð¦Wf–FVæ6Rà ¢¢¥F†RVW7F–öâ—26¶VBöâWfW'’'V–ÆBæ÷râ¢¢FW7G2öWfW'’×w&—FRÖæÖW2ÖÖ'W6–æW72çFW7Bæ§6 ¦Æ—7G2WfW'’w&—F–ær†æFÆW"7&÷726W'fW"æ§6æB&÷WFW2öæB&WV—&W2V6‚Fð¦W7F&Æ—6‚â÷&væ—¦F–öâÂv—F‚öæR&V6÷&FVBW†V×F–öã¢öWF‚öf÷&v÷B×77v÷&FÀ§v†–6‚†Vç2&Vf÷&Rç–&öG’—26–væVB–âæBw&—FW2Fò7W&6RWF‚&F†W"F†à¦FVæçBF&ÆRâF†RW†V×F–öâ—2Gvò×6–FVB(	B—BÇ6òf–Ç2–bF†B†æFÆW"7F'G0§&W6öÇf–ærâ÷&væ—¦F–öâ÷"7F÷2W†—7F–ærÂ&V6W6R&V6öâF†B÷WFÆ—fW2v†@¦—BW†7W6W2—2v†BF†RæW‡BW'6öâ&VG2–ç7FVBöb6†V6¶–ærà ¥v†B—B6âæB6ææ÷B6VR—2v÷'F‚7FF–æs¢—B6F6†W2F†R¢¦'6Væ6R¢¢öb§66÷RÂv†–6‚—2F†R6†RF†B6†—VBâ†æFÆW"F†B&W6öÇfW2â÷&væ—¦F–öà¦æBF†Vâf÷&vWG2Fòf–ÇFW"'’—B7F–ÆÂ76W2à ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâÂ#3rFW7G276–ærâWfW'’FVfV7Bv26öæf—&ÖV@¦'’WGF–ær—B&6²(	B&VÖ÷f–ærF†R÷væW'6†—6†V6²f–Ç2GvòFW7G2ÂÆÆ÷v–ær¦æVvF—fR'&V²f–Ç2öæRÂæB&W7F÷&–ærF†R÷&–v–æÂVç66÷VB†æFÆW"f–Ç26—‚à ¢222##bÓ‚Ó‚(	B6Æ–Ò’V&Æ—6†VBÂÖFRG'VP ¥F†R6&–Æ—G’VF—B6VçBFòF†R÷væW"6–BöbF†R&öGV7B6FÆöwVS¢$â–çfö–6P¦Æ–æR6âæÖRöæRÂ¢§6ò6FÆöwVR—FVÒvöW2öçFò&–ÆÂv—F†÷WB&V–æp§&WG—VB¢¢â"6†V6¶–ær×’÷vâ6VçFVæ6Rv–ç7BF†R6öFS¢F†RÆ–æR&V6÷&FV@¦f&–çEö–FÂæBFW67&—F–öææBÆ–æU÷F÷FÅö6VçG6vW&R&÷F‚&WV—&VFÂ6ò§W'6öâ–6¶VB$ö²6†VÆb(	BÆ&vR"æBF†VâG—VBF†RæÖRæBF†R&–6RF†W’†@¦§W7B6WBöâ—BâF†R6FÆöwVR6fVBæö&öG’ç—F†–ærà ¤V—F†W"F†R6Æ–Òv2w&öær÷"F†RfVGW&Rv2Væf–æ—6†VBâ—Bv2F†RfVGW&Rà ¥–6¶–ærfW'6–öâæ÷rf–ÆÇ2F†RFW67&—F–öâÂF†RVæ—B&–6RæBF†RÆ–æRF÷FÂà¤f÷W"'VÆW2ÂæBF‡&VRöbF†VÒ&R&÷WBæ÷BFö–ærFöò×V6ƒ  ¢Ò¢¤öæÇ’&Ææ·2&Rf–ÆÆVBâ¢¢G&÷&Ææ·6†2Ç&VG’&VÖ÷fVBç—F†–ærÆVg@¢V×G’Â6ò7V&Ö—GFVE¶¶W•ÒÓÓÒVæFVf–æVF—2W†7FÇ’'F†W’F–Bæ÷BG—RF†—2"à¢G—VB&–6R—2F—66÷VçB6öÖV&öG’ÖVçBÂæBF†RÖ–w&F–öâ—2W‡Æ–6—BF†@¢Æ–æRF÷FÂ—2v†BF†R'W6–æW72FV6–FVBFò6†&vRà¢Ò¢¤&Ææ²VçF—G’—2F†R6öÇVÖâw2÷vâæ÷BçVÆÂFVfVÇB¢¢Âæ÷BwVW72à¢v—F†÷WBF†BÂfW'6–öâ–6¶VBv—F‚æ÷F†–ærVÇ6RG—VB6fVB&–6VBÆ–æP¢F÷FÆÆ–ær¦W&òà¢Ò¢¥F†RÆöö·W—266÷VB'’÷&væ—¦F–öâ¢¢ÂÆ–¶RF†R&VçB6†V6²&÷fR—BâF†P¢6W'f–6R¶W’'—76W2&÷rÆWfVÂ6V7W&—G’Â6òwVW76VB–Bv÷VÆB÷F†W'v—6R&–6P¢Æ–æRg&öÒæ÷F†W"'W6–æW72w26FÆöwVRà¢Ò¢¤&VBF†Bf–ÆVB—2æ÷BfW'6–öâF†BFöW2æ÷BW†—7Bâ¢¢F†Rf—'7Bv÷VÆ@¢WBçVÆÂ–çFòæ÷BÖçVÆÂ6öÇVÖâæB7W&f6R2FF&6RW'&÷"æö&öG’6à¢7Böã²F†R6V6öæB—26öÖV&öG’VÇ6Rw2&÷râF†W’&VgW6R6W&FVÇ’æB6¢v†–6‚à ¥F†RGvò&WV—&VFfÆw2†BFò6öÖRöfbÂæBF†B—2F†R'Bv÷'F€§VæFW'7FæF–ær&F†W"F†â6÷––æs¢v—F‚&WV—&VF–âF†R…DÔÂF†R'&÷w6W"&Æö6·0§F†R7V&Ö—76–öâ&Vf÷&RF†R6W'fW"6âf–ÆÂç—F†–ærâ6òF†R'VÆRÖ÷fVBFð¦&WV—&TV—F†W#¢²&VfW&Væ6RÂf–VÆG2Ö(	B–6²öæRÂ÷"G—RF†÷6R(	BæBF†R6W'fW §&RÖ6†V6·2F†R¢¦gVÆÂ¢¢Æ—7BgFW"f–ÆÆ–ærÂ6ò&VfW&Væ6RF†B&öGV6VBæð¦FW67&—F–öâ7F–ÆÂ&VgW6W2&F†W"F†â–ç6W'F–ærçVÆÂà ¦FW7G2ö÷væW"×&V6÷&BÖÆ–æW2çFW7Bæ§6'V–ÇB—G27V&Ö—76–öç2g&öÒ&WV—&VFÆöæRæ@§6ò÷7FVBæV—F†W"f–VÆBÂv†–6‚ÖFRF‡&VRVç&VÆFVBFW7G2Æöö²Æ–¶RF†RVæGö–ç@¦†B'&ö¶VââF†R†&æW72¶æ÷w2&÷WB&WV—&TV—F†W&æ÷s²†&æW72F†BFöW2æ÷@¦¶æ÷rv†BvR&WV—&W2&W÷'G2F†RvR2'&ö¶Vâà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâÂ##RFW7G276–ærâ&÷F‚'VÆW2F†BÖGFW"vW&P¦6öæf—&ÖVB'’'&V¶–ærF†VÒ(	Bf–ÆÆ–ær÷fW"G—VBfÇVW2ÂæBG&÷–ærF†P¦÷&væ—¦F–öâf–ÇFW"g&öÒF†RÆöö·W(	BæBV6‚—26Vv‡Bà ¢222##bÓ‚Ó‚(	BF†R&öGV7F–öâvFRF–Bæ÷B&WV—&Rf÷W"F&ÆW2f÷W"vW2&V@ ¤f÷VæB'’6†V6¶–ærâW†6ÇW6–öâÆ—7Bv–ç7BF†R'VçF–ÖR–ç7FVBöb&VF–ær—Bà ¦Æ–"÷6öæ&ÖFF&6R×&WF—&VÖVçBÖ6öçG&7Bæ6§6æÖW2F&ÆW2&g&öÒ7WW'6VFV@§66†VÖ2"F†B&&Ræ÷B7F—fR4ôä$'VçF–ÖRF&ÆW2"â&V–æröâ—B—2æ÷@¦6÷6ÖWF–3¢67&—G2÷fW&–g’×&öGV7F–öâ×7W&6RæÖ§6G&÷2F†÷6RæÖW2g&öÐ¦W‡V7FVEF&ÆW6æBfW&–f–W2F†VÒv—F‚¢¦&WV—&VC¢fÇ6V¢¢Â6òâ'6VçBöæP¦—2æ÷Bf–ÇW&R(	BæBV6‚'VâVÖ—G2v&æ–ær6––ærF†RF&ÆR'6†÷VÆB&P§&Wf–WvVBf÷"&6†—fÂ"à ¤f÷W"öbF†RGvVçG’×6WfVâvW&RVW&–VB'’Æ—fR6öFS  §ÂF&ÆRÂ&VB'’À§ÂÒÒÒÂÒÒÒÀ§ÂV×Æ÷–VUöææ÷Væ6VÖVçG6Â÷7Ffböææ÷Væ6VÖVçG6À§ÂV×Æ÷–VU÷F6·6Â÷7Ffb÷F6·6À§ÂV÷FW6Âö'W6–æW72Ö'V–ÆFW"ö÷væW"÷V÷FW6æBö’ö'W6–æW72÷V÷FW6À§Â&Wf–Ww6ÂF†R%&Wf–WvVB"7FvRöbF†R7W7FöÖW"Ö¦÷W&æW’gVææVÂÀ ¥6ò¢¦–bV÷FW6F—6V&VBg&öÒ&öGV7F–öâF†RvFRv÷VÆB72¢¢Âv†–ÆP§&V6öÖÖVæF–ær—B&R&6†—fVBâæöæRöbF†Rf÷W"—2–âF†R6æöæ–6À¦DD$4UõD$ÄU6V—F†W"Âv†–6‚—2v†Bv÷VÆB†fRWBF†VÒ&6²–çFòF†P§&WV—&VB6WBà ¤ÆÂf÷W"&RöfbF†RÆ—7BâF†RwV&BF†Bv÷VÆB†fR6Vv‡B—B—2æ÷r–à¦FW7G2÷7W&6RÖ7F—fRÖ6öçG&7B×&V6öæ6–Æ–F–öâçFW7Bæ§6¢æòVçG'’öâF†P§&WF—&VÖVçBÆ—7BÖ’&RF&ÆR'VçF–ÖR6öFRVW&–W2âfW&–f–VB'’WGF–ærV÷FW6 ¦&6²æBvF6†–ær—BæÖRV÷FW6à ¢¢¥GvòF†–æw2&÷WB†÷r—Bv2f÷VæBÂ&÷F‚v÷'F‚¶VW–ærâ¢¢F†Rf—'7B72W6VB§Æ–âv÷&BÖ&÷VæF'’w&WæB&W÷'FVBGvVÇfR(	Bf–ÆW6Â–ÖVçG6ÂÆVG6æ@¦6×–vç6&R÷&F–æ'’VævÆ—6‚æB÷&F–æ'’f&–&ÆRæÖW2ÂæBöæRöbF†VÒv0¦ÖF6†–ærf&–&ÆR–â×’÷vâ67&F6‚67&—Bâ&VFöæRv—F‚F†Rf÷W"GFW&ç0¦fW&–g’×7W&6RÖ6öçG&7BæÖ§6Ç&VG’G&VG22'VçF–ÖRF&ÆR&VfW&Væ6RÂ—Bv0¦f÷W"â6Æ÷’ÖV7W&RF†B÷fW"×&W÷'G2—2æ÷BF†R6fRF—&V7F–öã²—B'W&–W2F†P§&VÂf÷W"–âV–v‡BfÇ6RöæW2à ¤æB&Wf–Ww67W'f—fVBF†B6V6öæB72öâ&÷WFR7Vff—‚(	B²'&Wf–Ww2"À¦FE7FvU&Wf–WuÖ–âF†R&öGV7BÖÆ–fV7–6ÆR&÷WFW2(	B6ò—Bv26†V6¶VBF†—&BF–ÖP¦&Vf÷&R&V–ær6ÆÆVBÆ—fRâ—B—3¢Æ–"÷6öæ&Ö7W7FöÖW"Ö¦÷W&æW’æ6§6&VG2—B2¦gVææVÂ7FvRà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ#rFW7G276–ærâF†R&öGV7F–öà§fW&–f–W"—G6VÆb6ææ÷B&R'Vâg&öÒ†W&R(	B—BæVVG2Æ—fR7W&6R7&VFVçF–Ç2(	B6ð§v†B6†ævVB—2v†–6‚F&ÆW2—Bv–ÆÂ&WV—&Röâ—G2æW‡B'Vâv–ç7B&öGV7F–öâà ¢222##bÓ‚Ó‚(	BGvòVF—G2F†Bf÷VæBF†R66†VÖ&–v‡BÂæBöæRvF†W’ÆVg@ ¥&âGvò7—7FVÖF–2‡VçG2vVæW&Æ—6VBg&öÒFVfV7G2Ç&VG’f÷VæBFöF’â&÷F‚&P§v÷'F‚&V6÷&F–ærf÷"v†BF†W’F–B¦æ÷B¢f–æBÂ&V6W6R&6†V6¶VBæB6ÆVâ"—0¦–æf÷&ÖF–öâF†RæW‡BW'6öâ÷F†W'v—6R—2f÷"v–âà ¢¢¤&ööÆVâ6öÇVÖç2FVfVÇF–ærFòG'VV¢¢(	BF†RvVæW&Æ—6F–öâöbF†P¦fVVF&6²×&öf–ÆRf—‚Âv†W&RF†RFF&6RFV6–FVBVW7F–öâtTåE2æÖF6—2§W'6öâ†2FòâGvVçG’ÖöæR7V6‚6öÇVÖç27&÷72F†RÖ–w&F–öç2âÆÖ÷7BÆÂ&P¢¢¦f–ÂÖ6Æ÷6VB6fWG’FVfVÇG2æB6÷'&V7B¢£¢&WV—&W5ö&÷fÆÀ¦‡VÖå÷&Wf–Wu÷&WV—&VFÂ6V7W&—G•÷&Wf–Wu÷&WV—&VFÂ&Ç5÷&WV—&VFÀ¦÷væW%÷&Wf–Wu÷&WV—&VFÂÆ–6Vç6U÷&Wf–Wu÷&WV—&VFÂ&—fFU÷&WV—&VFÀ¦æõö'F—7EöæÖU÷&ö×F–ævâFVfVÇF–ærF†÷6Röâ—2F†R&–v‡Bv’&÷VæBà ¦æ÷F–f–6F–öå÷&VfW&Væ6W6GW&æVB÷WBFò&RW†V×Æ'’&F†W"F†â7W7V7C ¦6÷VæEöVffV7G6Âfö–6Uöææ÷Væ6VÖVçG6Â†F–76ÂVÖ–ÅöÆW'G6Â6×5öÆW'G6 ¦æB'&÷w6W%÷W6†¢¦ÆÂFVfVÇBfÇ6V¢¢(	BF†R6—‚F†–æw2tTåE2æÖFæÖW2(	@¦æBöæÇ’f—7VÅöÆW'G6ÂF†RÆV7B–çG'W6—fR¶–æBæBæ÷BöâF†BÆ—7BÂFVfVÇG0§G'VRâ6öÖV&öG’–×ÆVÖVçFVBF†B'VÆR&÷W&Ç’æB—B—27F–ÆÂ†öÆF–ærà ¤öæRÆVgBÆöæRFVÆ–&W&FVÇ“¢7&VF÷%÷G&6·2æW‡Æ–6—E÷fW'6–öåöÆÆ÷vVFFVfVÇG0§G'VRÂæBæ÷F†–ær–âF†R'VçF–ÖRw&—FW2÷"&VG2—B÷"F†P¦6ÆVå÷fW'6–öå÷&WV—&VF&W6–FR—Bâ6†æv–ærFVfVÇBöâ6öÇVÖâv—F‚æð§7W&f6R—2Ö÷F–öâÂæ÷Bf—‚à ¢¢¤6öÇVÖç2vR&VæFW'2'WBæWfW"6·2f÷"¢¢(	BF†R–çfW'6Rö`¦&W÷'C§6VÆV7FVBÖ6öÇVÖç6ÂæBF†RÖ÷&RFævW&÷W2F—&V7F–öââ&V6÷&BvP¦†æB×w&—FW26VÆV7FæB6öÇVÖç66W&FVÇ“²6öÇVÖâ&VB'WBæ÷B6VÆV7FVB—0¦VæFVf–æVFöâWfW'’&÷rÂ6òF†RvR&VæFW'2$æ÷B6WB"f÷"WfW'’&V6÷&Bf÷&WfW"à¥F†B—2–æF—7F–æwV—6†&ÆR'’W–Rg&öÒ6öÇVÖâæö&öG’f–ÆÆVB–âà £3s6öÇVÖâ&VG27&÷72WfW'’&V6÷&BvRÂ6†–ÆBF&ÆRæBÇ6ö&Æö6³¢¢¦ÆÀ¦6ÆVââ¢¢'WBæ÷F†–ær†B&VVâ6†V6¶–ærÂæBf÷W"&V6÷&BvW2vW&R†æB×w&—GFVà¦–â6–ævÆRF’F†—2vVV²ÂV6‚v—F‚—G2÷vâ6VÆV7B7G&–ærâ—B—2FW7Bæ÷rÀ§fW&–f–VB'’G&÷–æröæR6öÇVÖâg&öÒöæR6VÆV7BæBvF6†–ær—Bf–Âà ¤æV—F†W"VF—B&öGV6VB&öGV7B6†ævRâF†Rf—'7Bf÷VæBF†R66†VÖÇ&VG§&–v‡C²F†R6V6öæBf÷VæBF†RvW2Ç&VG’&–v‡BæBÆVgBwV&B&V†–æB6òF†W§7F’F†Bv’à ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ#bFW7G276–ærà ¢222##bÓ‚Ó‚(	BF†RÆö6F–öâvR¶æWr†÷r&V6—6VÇ’—B†BG&6¶VB6öÖV&öG ¥v÷&¶VBF†R6—‡FVVâGf—6÷'’f–æF–æw2g&öÒçÒ'Vâ&W÷'C§6VÆV7FVBÖ6öÇVÖç6À§v†–6‚†BæWfW"&VVâW†Ö–æVBâöæRv2&VÂFVfV7BæB—B—2öâF†RÖ÷7@§6Vç6—F—fR7W&f6R–âF†R7Ffb÷'FÂà ¦÷7FfböÆö6F–öæ6VÆV7FVB&—f7•öÖöFVæB&VæFW&VBæ÷F†–ærâF†R6öÇVÖâÆÆ÷w0¢¢§&V6—6RÂ&÷†–ÖFRÂÖ6¶VBæBÖçVÂ¢¢Â—B—2æ÷BçVÆÂFVfVÇBw&V6—6RvÀ¦æBw&Wf–æG2æ÷F†–ærç—v†W&R(	B6Æ–VçB÷"6W'fW"(	BF†B†2WfW"6WB—BFð¦ç—F†–ærVÇ6Râ6òWfW'’6†V6²Ö–â—27F÷&VBBF†RÖ÷7B&V6—6R6WGF–ærÂF†P¦FF&6R6†÷6RF†BÂæB¢§F†RvRW'6öâ÷Vç2Fò6VRv†Bv2&V6÷&FVB&÷W@§F†VÒF–Bæ÷B6’v†–6‚öbF†Rf÷W"Æ–VBâ¢  ¤V6‚6†V6²Ö–âæ÷r6—2âF†R6&B6÷’6†ævVBFöó¢$æ÷F†–ær†W&RG&6·2–÷R–à§F†R&6¶w&÷VæB"v2G'VRæBöæR×6–FVBÂv†–6‚—2F†RV7’†Æböb6VçFVæ6P¦&÷WB6öÖV&öG’w2Æö6F–öââ—Bæ÷r6—2v†B¦—2¢¶WB2vVÆÂà ¢¢¥F†RFVfVÇBv2FVÆ–&W&FVÇ’æ÷B6†ævVB¢¢ÂæBF†R&V6öâ&VÆöæw2æW‡BFòF†P¦f—‚â¦ö"×6—FR6†V6²Ö–âW†—7G2Fò&V6÷&BF†B6öÖV&öG’v2F†W&RÂæBV–WFÇ¦FVw&F–ær—BFò&&÷†–ÖFR"v÷VÆBFÖvR'W6–æW72&V6÷&Böâ×’§VFvVÖVç@§&F†W"F†âF†R÷væW"w2âF†Rf—‚—2F†BF†RW'6öâ—2FöÆBÂæ÷BF†BF†Rf7B—0¦ÇFW&VBâF†B—2F†R÷÷6—FR6ÆÂg&öÒF†RfVVF&6²×&öf–ÆRf—‚V&Æ–W"FöF’À§v†W&RtTåE2æÖF&WV—&W26÷VæBæBf–'&F–öâöfb'’FVfVÇBæBF†RfÇVP¦—G6VÆbv2w&öærà ¤Æ&VÇ2Æ—fR–âÆ–"÷6öæ&×Æ–âÖÆæwVvRæ6§6v—F‚F†R&öGV7Bw2÷F†W"v÷&G2Âæ@¦'6VçB&VæFW'2$æ÷B&V6÷&FVB"&F†W"F†âF†RÖ÷7B–çf6—fRöbF†Rf÷W"(	B76W'FVBÀ¦&V6W6RÖ—76–ærfÇVR&W÷'FVB2&V6—6V—2F†R6ÖRFVfV7BöæRÆWfVÂF÷vâà ¢¢¥F†R÷F†W"f–gFVVâf–æF–æw2vW&R6†V6¶VBæB&R7&÷72ÖgVæ7F–öâW6W2ÂW†7FÇ’0§F†RFööÂw2F–W""Fö7VÖVçG2â¢¢v÷'F‚&V6÷&F–ær6òæö&öG’&RÖW†Ö–æW2F†VÓ  ¢Ò—4'W6–æW74ÖævW%W6W&6VÆV7G2÷&væ—¦F–öåö–FæB&WGW&ç2ÖVÖ&W'6†—Â6ð¢—B&V6†W2F†R6ÆÆW"âF†—2öæRv2÷VæVBf—'7B&V6W6R—B—2WF†÷&—¦F–öâà¢Ò7Ffe6V7F–öç66VÆV7G2'&VµöÖ–çWFW6f÷"v÷&¶VD†÷W'2‚–ÂöæRgVæ7F–öâ÷fW"à¢ÒÆ—7E7W÷'E&WVW7G66VÆV7G2F‡&VR6öÇVÖç2F†RöFÖ–â÷7W÷'F†æFÆW ¢&VæFW'2â—G2VÖ–ÅöFVÆ—fW'•÷7FGW2ÇÂ'VæF–ær&fÆÆ&6²ÖF6†W2F†R6öÇVÖâw0¢÷vâæ÷BçVÆÂFVfVÇBwVæF–ærvÂ6ò—BwVW76W2æ÷F†–ærà¢ÒF†R&W7B&R†æFÆW'276–ær&÷w2Fò&VæFW&W'2à ¥F†B—2F†RF–W&–ær6Æ–'&FVB6÷'&V7FÇ“¢öæR&VÂFVfV7BÂf–gFVVâ&Væ–vâÂæBF†P¦vFR7F–VBöâF–W"v†W&RF†R'VÆ–æw2&RfW&–f–VBà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ#RFW7G276–ærâF†RGvòæWr6†V6·0§vW&R6öæf—&ÖVB'’G&÷–ærF†R&V6—6–öâg&öÒF†R6&Bv–âæBvF6†–ærF†VÐ¦f–Âà ¢222##bÓ‚Ó‚(	B&–ç7FÆÂÆÂ&V6—&ö6Â&W÷6—F÷&–W2"Âv÷&¶VBF‡&÷Vv‚æBç7vW&V@ ¤6¶VBÂæB—BæVVFVBF†R÷væW"f—'7C¢–ç7FÆÆ–ær&V6—&ö6Â6öFRö&Æ–vW0§V&Æ—6†–ær4ôä$w2÷vâ6÷W&6RVæFW"F†R6ÖRÆ–6Væ6RÂv†–6‚—2FV6—6–öâ&÷W@§F†R'W6–æW72&F†W"F†âF†R'V–ÆBâF†Rç7vW"v2¢¦–ç7FÆÂv†B6â&P¦–ç7FÆÆVBv—F†÷WB6†æv–ær4ôä$w2Æ–6Væ6RÂæBæ÷F†–ærF†Bv÷VÆB6†ævR—Bâ¢  ¤VçVÖW&F–ærF†Rrv2F†RW6VgVÂ'BÂ&V6W6RF†RÆ–6Væ6RGW&æVB÷WBæ÷BFò&P§F†R&–æF–ær6öç7G&–çBf÷"Ö÷7BöbF†VÓ  ¢Ò¢¤VÆWfVâ&Rv†öÆRÆ–6F–öç2¢¢Â–âf÷W"ÆæwVvR'VçF–ÖW2F†—2FWÆ÷’FöW0¢æ÷B†fR(	B22òääUBÂ…Â'W7BÂ—F†öââ–÷R'VâF†VÓ²–÷RFòæ÷B–ç7FÆÂF†VÐ¢–çFòâW‡&W726öÖÖöä¥2v—F‚æò'V–ÆB7FWà¢Ò¢¥F‡&VR&R&VfW&Væ6RÖFW&–Â¢¢v—F‚æò–ç7FÆÆ&ÆR'F–f7Bà¢Ò¢¤W†7FÇ’öæR—2Æ–'&'’F†—2'VçF–ÖR6÷VÆBÆöB¢£¢‡—W$f÷&×VÆà ¢¢¥F†R6ÆV&W7B&W7VÇBv2&V6öâæ÷BFò'V–ÆBâ¢¢f–w&æ—VÒ—2uÂÓ2ãæBFöW0§v†BÆ–"÷6öæ&Ö7&vÃF’ÖFFW"æ6§6Ç&VG’FöW2(	BfWF6‚vRÂ&WGW&à§&VF&ÆRFW‡B(	BW†6WB7&vÃD’—26†RÓ"ãÂÇ&VG’'V–ÇBÂÇ&VG’6ÆÆVBg&öÐ¦&÷WFW2öÖ&¶WBÖ–çFVÆÆ–vVæ6R×&÷WFW2æ6§6ÂæBÇ&VG’&VgW6W2Æö÷&6²À¦Æ–æ²ÖÆö6ÂÂ6Æ÷VBÖÖWFFFæB&—fFR&ævW2âF÷F–ær—Bv÷VÆBG&FR§W&Ö—76—fRÆ–6Væ6Rf÷"&V6—&ö6ÂöæRæBv–âæ÷F†–ærâF†B¶–æBöb&W7VÇ@¦FöW2æ÷Bææ÷Væ6R—G6VÆbÂ6ò—B—2w&—GFVâ–çFòF†R&Vv—7FW"w0¦&V6öÖÖVæFVD7F–öæ&F†W"F†âÆVgB–â6†Bà ¢¢¤‡—W$f÷&×VÆ†2Gvòæöâ×&V6—&ö6Â&÷WFW2æBöæRÖ—76–ærf7Bâ¢¢'W’F†P§fVæF÷"Æ–6Væ6RÂ÷"'Vâ—B26W&FR6W'f–6R6ÆÆVB÷fW"…EE(	BuÂ—2æ÷@¤uÂÂ6òF†R6W'f–6R&÷VæF'’—2F†R6WGFÆVB&VF–ærâ&÷F‚&R&Æö6¶VBöâ&–6P¦æö&öG’†26¶VBf÷"ÂæB‡—W&f÷&×VÆæ†æG6öçF&ÆRæ6öÖ—2&Æö6¶VB'’F†—0¦Vçf—&öæÖVçBw2Vw&W72&÷‡’Â6ò¢§F†RçVÖ&W"—2æ÷B–âç’Fö7VÖVçB’w&÷FRâ¢¢—@¦—2â÷væW"7FWæ÷rÂ‡&6VB2F†RW†7BVW7F–öâFò6VæBà ¤æV—F†W"&÷WFR—2v÷'F‚F¶–ær–WC¢æ÷F†–ærÆWG27W7FöÖW"w&—FRf÷&×VÆÂ6òà¦FFW"FöF’v÷VÆB&R6&–Æ—G’v—F‚æò6ÆÆW"(	BF†RFVBÖVæB6†RF†—0¦ÖöçF‚†2&VVâ7VçB6Æ÷6–ærà ¢¢¥F†RuÂæBõ4ÂVÆWfVâ7F’VçF÷V6†VBÂæBF†R&V6öâ—27FFVB2v†B—@¦—2â¢¢4ÄTDRæÖFF¶W2F†R6öç6W'fF—fR&VF–æræBæ÷F†–ær†W&RÆö÷6Vç2—Bà¥v†WF†W"âuÂ6W'f–6R†VÆBB&Òw2ÆVæwF‚—2vVçV–æVÇ’6W&&ÆR—2Æw–W"w0§VW7F–öâÂæ÷BF†—2&W÷6—F÷'’w2ÂæBF†R'&ævVÖVçB&÷fR—2&÷÷6VBöæÇ’v†W&P§F†R6W&F–öâ—26WGFÆVBà ¢¢¤wV&Bv2Ö—76–æræB—2æ÷rF†W&Râ¢¢Fö72ö&6†—FV7GW&RôU…DU$äÂÕ4U%d”4U2æÖF §&VB%F†RV–v‡B&V6—&ö6Â&W÷6—F÷&–W2&R6W&FRFV6—6–öâ"(	B7FÆR'’æ–æRÀ§v—F‚æ÷F†–ærvF6†–ær—BÂ&V6W6RF†RFö2Ö6÷VçBGFW&â&WV—&W2F†Rv÷&G2&6''¦&V6—&ö6ÂÆ–6Væ6R"æBF†—2‡&6–ær†2æV—F†W"âöæRçVÖ&W"ÂGvò6VçFVæ6W2À¦öæRwV&Bâ6V6öæBGFW&âæ÷r6÷fW'2$â&V6—&ö6Â&W÷6—F÷&–W2"ÂfW&–f–VB'§WGF–ærF†R7FÆRf–wW&R&6²æBvF6†–ær—Bf–Âà ¥GvòF†–æw2v÷'F‚6''––ærf÷'v&Bg&öÒF†Bâ¢¤FW&—fVB6÷VçB7VÆÆVB2v÷&@¦—2–çf—6–&ÆRFòWfW'’GFW&â¢¢(	B&V–v‡B"6÷VÆBæWfW"†fR&VVâ6Vv‡BÂ6òw&—FP¦FW&—fVB6÷VçG22F–v—G2âæBF†RæWrwV&B6Vv‡B—G2÷vâWF†÷"öâf—'7BW6S ¢'F†R÷F†W"b&V6—&ö6Â&W÷6—F÷&–W2"&VG226Æ–Ò&÷WBF†RF÷FÂÂæBF†P¦f—‚v2Fò7F÷WGF–ærçVÖ&W"–âF†B6VçFVæ6RBÆÂà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ6÷VçF&ÆR6Æ–×26†V6¶VBÂ3€§&Vv—7G'’&V6÷&G2Â#2FW7G276–ærâ¢¤æ÷F†–ærv2–ç7FÆÆVBÂæBF†B—2F†P¦f–æ—6†VB7FFRöbF†RFV6—6–öâ&F†W"F†âFVfW'&Ââ¢  ¢222##bÓ‚Ó‚(	BGvVçG’ÖV–v‡B&W÷6—F÷&–W2Â7V&Ö—GFVB2&g&VRæB÷Vâ6÷W&6R  ¥F†W’&Ræ÷BÂæBF†R&Vv—7FW"æ÷r6—26òv—F‚WfW'’Æ–6Væ6R&VBg&öÒF†P¤v—D‡V"’w2FWFV7FVBÆ–6Vç6Rç7G…ö–F&F†W"F†âg&öÒ$TDÔRâF†R&F6€¦F—f–FW2F‡&VRv—2ÂæBF†Rw&÷W2æVVBF–ffW&VçBFV6—6–öç3  ¢¢¥F‡&VRFV6Æ&RæòÆ–6Væ6RBÆÂ¢¢(	B&—–Væ"ög&VRÖf÷"ÖFWfƒ3"ÃCB7F'2’À¦6E6W'fW'2÷6G6W'fW'6Â†–ÇF&÷"ôÔDEvâÆÂ&–v‡G2&W6W'fVBâF†RÖ÷7B×7F'&V@§&W÷6—F÷'’–âF†R&F6‚Â'’f7F÷"öbF‡&VRÂ—2F†RöæRv—F‚F†RÆV7@§W&Ö—76–öâGF6†VBFò—C¢¢§÷VÆ&—G’—2æ÷BÆ–6Væ6Râ¢  ¢¢¥6—‚&R&V6—&ö6Â¢¢(	BF‡&VRf–w&æ—VÒ&W÷6—F÷&–W2ÂfÆ÷†ÂæWF–ÇW5÷G&FW&À¦6VÆbÔG&—f–ærÔ6"Ö–âÕf–FVòÔvÖW6âF†W6R¦&R¢g&VRæB÷Vâ6÷W&6RÂæBF÷F–æp¦öæRö&Æ–vW2&VÆV6–ærF†—2&öGV7Bw26÷W&6RâGvòF—7F–æ7F–öç2&V6÷&FVB&V6W6P§F†W’FV6–FRF–ffW&VçB66W3¢F†RuÂ6Æ÷6W2F†RFö÷"F†RÆ–âuÂÆVfW2÷Và¢‡'Vææ–ær—B26W&FR6W'f–6R—2W†7FÇ’v†BF†RuÂv2w&—GFVâf÷"’Âæ@§W6–æruÂFööÂFò'V–ÆB6ögGv&RFöW2æ÷BÖ¶RF†R6ögGv&RuÂà ¢¢¤â÷&væ—6F–öâ—2æ÷BÆ–6Væ6Râ¢¢F†Rf÷W"f–w&æ—VÒ&W÷6—F÷&–W26''’F‡&VP¦F–ffW&VçBÆ–6Væ6W27&÷72öæR÷&r(	BuÂÓ2ãÂÔ•BæBuÂÓ2ãâ6†V6¶–æröæRFöÆ@§–÷Ræ÷F†–ær&÷WB—G26–&Æ–æw2à ¢¢¥F‡&VR&Räô54U%D”ôââ¢¢÷7D†ör—2F†R–ç7G'V7F—fRöæS¢Ô•Bf÷"Ö÷7BöbF†P§G&VRæB—G2÷vâVçFW'&—6RFW&×2f÷"'G2öb—BÂ6ò%÷7D†ör—2Ô•B"—2G'VRö`¦Ö÷7Bf–ÆW2æBfÇ6RöbF†R&W÷6—F÷'’à ¢¢¥F†R&Vv—7FW"w2÷vâ6†V6·26Vv‡BGvòF†–æw2’v÷VÆB†fR6†—VBw&öærâ¢¢F†P¦GWÆ–6FR×6ÇVr6†V6²&VgW6VB6V6öæB&÷‡–‡×62×7F'FW"Ö¶—F&V6÷&B(	BÇ&VG§&Wf–WvVBÂæB6'&–VBgW'F†W"F†â×’g&W6‚&Wf–Wrv÷VÆB†fRF¶Vâ—BÂ6ð§&R×&Wf–Wv–ærv÷VÆB†fR&WÆ6VB6öç6–FW&VBFV6—6–öâv—F‚6†ÆÆ÷vW"öæRâæ@¦f÷W"&Æö6¶VF&V6÷&G2vW&R&VgW6VBf÷"æ÷BFV6Æ&–ær&Æö6¶VEW6W6â&÷F‚&RF†P§&Vv—7FW"Fö–ærF†R¦ö"—BW†—7G2f÷"à ¢¢¥F†RFö2Ö6÷VçBwV&B6Vv‡BF†RF†—&Bâ¢¢FF–ær6—‚&V6—&ö6Â&W÷6—F÷&–W2Ö÷fV@¦f–wW&RV÷FVBBF†R÷væW"–âFö72ö÷væW"õt„BÔ•2ÔÄTeBæÖFg&öÒFòrÂæ@§F†RwV&Bf–ÆVBF†R'V–ÆB&F†W"F†âÆWGF–ær—BG&–gB(	Bv†–6‚—2F†RW†7@¦f–ÇW&RF†R&WV—&VB&V6—&ö6ÄÆ–6Vç6Vf–VÆBv2FFVBFò&WfVçBà ¤V–v‡B&W÷6—F÷&–W2–âF†R&F6‚&RæÖVBvVçG6æBÖVâBÆV7BF‡&VP§Vç&VÆFVBF†–æw3¢F6²vVçG2F†B7Bf÷"'W6–æW72Â&V–æf÷&6VÖVçBÖÆV&æ–æp§öÆ–6–W2ÂæB&ö×Bf–ÆW2f÷"6öF–ær76—7FçG2â&F6‚76VÖ&ÆVB'’¶W—v÷&@¦6öçF–ç2F†–æw2F†R¶W—v÷&BöæÇ’V'2Fò6öææV7BÂæBF†R&Vv—7FW"—2v†W&P§F†BvWG26Vv‡B&Vf÷&R6öÖWF†–ærVç&VÆFVB&V6öÖW2FWVæFVæ7’à ¢¢¥Gvò6¶–ÆÇ2w&—GFVâÂæBFVÆ–&W&FVÇ’æ÷B6÷–VBg&öÒç—F†–ær7V&Ö—GFVBâ¢ ¦w6†ö'6öâövVçG6„Ô•BÂ3‚Ãƒ“‚7F'2’æB÷Vâ×66&÷F‚6†—6¶–ÆÇ2f÷"6öF–æp¦76—7FçG2ÂæB&VF–ærF†VÒF†RW6VgVÂ6öæ6ÇW6–öâv2F†BF†Rf÷&ÒG&ç6fW'2æ@§F†Rf–ÆW2Fòæ÷B(	BvVæW&Â×W'÷6R&6öFR&Wf–WvW""6¶–ÆÂv÷VÆB6’æ÷F†–ær&÷W@§çÒÖöæÇ’ÂF†R#BÖ6öÖÖæB6†–âÂ÷"F†B'6VçB—2æ÷BfÇ6Râ6ð¦æ6ÆVFR÷6¶–ÆÇ2öFF–ærÖ×&V6÷&B×vV—2F†RV–v‡BÖf–ÆR6WVVæ6RæBF†R6—‚v—0§F†R6†–â&VgW6W2â–æ6ö×ÆWFRöæRÂæBæ6ÆVFR÷6¶–ÆÇ2ö6†V6·2×F†BÖ6ææ÷BÖÆ–V ¦—2F†R6—‚6†W2öbF†R&V7W'&–ærFVfV7BÂV6‚v—F‚F†R66R–âF†—2&W÷6—F÷'§F†B&öGV6VB—B(	B–æ6ÇVF–ærF†RöæRv†W&RF†Rf—'7BfW'6–öâöb6†V6²v÷VÆBæ÷@¦†fR6Vv‡BF†R'Vr—Bv2w&—GFVâf÷"à ¤æÇ—6—2–âFö72öÖ&¶WBó##bÓ‚Ó‚Õ5T$Ô•EDTBÕ$Uõ4•Dõ$”U2Ô$D4‚Ó"æÖFà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ3‚&Vv—7G'’&V6÷&G2Â3’Væ—VP¤v—D‡V"F&vWG2Â#2FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R7vVW&V6ÖR6†V6²ÂæBF†R6†V6²f÷VæBF†R&–ÆÆ–ærvP ¥F†R67&F6‚7vVWF†Bf÷VæBF†R6öç6VçB×66÷R'Vr—2æ÷p¦67&—G2÷&W÷'B×VçW6VB×6VÆV7FVBÖ6öÇVÖç2æÖ§6Â–âF†R&VÆV6R6†–ââvWGF–ær—@§&–v‡BFöö²GvòGFV×G2ÂæBF†Rf–ÆVBöæR—2F†R'Bv÷'F‚¶VW–ærà ¢¢¥F†Rf—'7BfW'6–öâv÷VÆBæ÷B†fR6Vv‡BF†R'Vr—Bv2w&—GFVâf÷"â¢¢—@¦6ö×&VBV6‚6VÆV7FVB6öÇVÖâv–ç7BF†Rv†öÆRf–ÆRÂæ@¦&÷WFW2ö7&VF÷"ÖvVæW&F–öâ×&÷WFW2æ6§6æÖW26öç6VçE÷66÷VV–v‡BF–ÖW2(	B–âF†P¦6öç6VçBõ5B†æFÆW"Â–âF†RW&Ö—76–öâ–6¶W"Â–â6öç7FçB(	B6òF†RöæP¦gVæ7F–öâ–væ÷&–ær—Bv2†–FFVâ&V†–æB6WfVâF†BF–Bæ÷Bâ&V–çG&öGV6–ærF†R'Vp¦ÆVgBF†R6†V6²w&VVââ6†V6²&W÷'F–ær7V66W72÷fW"F†RFVfV7B—BW†—7G2Fòf–æ@¦—2F†RFVfV7BÂ6ò—Bv2F‡&÷vâv’&F†W"F†â6†—VBà ¥F†R6V6öæBfW'6–öâ'6W2V6‚f–ÆRæB6·2W"gVæ7F–öââF†BFöW26F6‚—C §WGF–ærF†R'Vr&6²æÖW2WfÇVFUöÆ–7’‚–æB6öç6VçE÷66÷VÂæB&VÖ÷f–æp¦—Bv–â6ÆV'2F†Rf–æF–ærà ¢¢¥GvòF–W'2ÂæBöæÇ’öæRöbF†VÒvFW2â¢¢F–W"—2&æÖVBæ÷v†W&R–âF†Rf–ÆR ®(	BF‡&VRöbF†÷6RÂV6‚÷VæVBæB'VÆVBöââF–W""—2'W6VB–âF†Rf–ÆRÂæ÷B–à§F†RgVæ7F–öâF†B6¶VB"Âv†–6‚—2F†RF–W"F†B6F6†W2F†R6öç6VçB6†Ræ@¦Ç6ò6F6†W26—‡FVVâW&fV7FÇ’6÷'&V7B†VÇW'2&VF–ær&÷rF†V—"6ÆÆW ¦fWF6†VBâvF–æröâF–W""v÷VÆBÖVâ6—‡FVVâW†V×F–öç2w&—GFVâFò6ÆV"vFRÀ¦æBW†V×F–öç2w&—GFVâF†Bv’&R†÷r&V6öâæö&öG’&V6†V6·2&V6öÖW2v†BF†P¦æW‡BW'6öâ&VG2–ç7FVBöb6†V6¶–ær(	BF†Rf–ÇW&RF†—26W76–öâÇ&VG’f÷VæB–à¦FW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§6â6òF–W""&–çG2æBW'6öâÆöö·2à ¢¢¤—Bf÷VæBöæR–ÖÖVF–FVÇ’â¢¢vWD&–ÆÆ–æuæVÅ7VÖÖ'–6VÆV7FV@¦7W'&VçE÷W&–öEöVæFæBæWfW"W6VB—BÂ6òF†R&–ÆÆ–ærvRfWF6†VBF†R&VæWvÀ¦FFRæBF–Bæ÷B6†÷r—Bâv÷'6RÂ—BæWfW"6¶VBf÷"6æ6VÅöE÷W&–öEöVæF@¦ÆÂ(	BF†R7G&—RvV&†öö²†2Çv—2w&—GFVâF†B6öÇVÖâæBæ÷F†–ær†BWfW §&VB—B(	B6ò7W7FöÖW"v†ò†BÇ&VG’¢¦6æ6VÆÆVB¢¢&VB$6÷&RÖöçF†Ç“¢7F—fR ¦æBæ÷F†–ær&÷WB—BVæF–ærâG'VRÂæBÖ—6ÆVF–ær–âF†RöæRF—&V7F–öâF†B6÷7G0¦7W÷'BF–6¶WBà ¥F†RvR6—2v†B†Vç2æW‡Bæ÷rÂ–âF‡&VR7FFW2Â&V6W6R'6VçB—2æ÷@¦fÇ6S¢6æ6VÆÆ–ærv—F‚FFRÂ&VæWv–ærv—F‚FFRÂ÷"FFRv—F‚æòç7vW ¦&÷WB&VæWvÂÂv†–6‚6—2öæÇ’v†VâF†RW&–öBVæG2â&÷rv—F‚æòFFR6—0¦æ÷F†–ær&F†W"F†âwVW76–ærÖöçF‚†VBâF†R&÷FV7F–öâF†RgVæ7F–öâÇ&VG¦†B—276W'FVBÆöæw6–FS¢f–ÆVB&VB—27F–ÆÂ'vR6÷VÆBæ÷B6†V6²–÷W"Æâ"À¦æWfW"&æò7F—fR–BÆâ"à ¦W7&VR—2ÆöFVBF‡&÷Vv‚W6Æ–çBw2÷vâ&WV—&RÂæB¢¦–b—B6ææ÷B&Rf÷VæBF†P§67&—B7F÷2¢¢&F†W"F†âfÆÆ–ær&6²FòF†Rf–ÆRÖÆWfVÂ6ö×&—6öââ6†V6°§F†BV–WFÇ’F÷væw&FW2FòvV¶W"ÖV7W&Rv†–ÆR7F–ÆÂ&–çF–ær'76VB"—0§&V6—6VÇ’v†BF†—2öæRW†—7G2Fò6F6‚à ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBv—F‚F†RæWr6öÖÖæBƒ#B–âF†P¦6†–âæ÷r’Â#2FW7G276–ærâ&÷F‚F–W'2vW&R6öæf—&ÖVBv–ç7B&VÂFVfV7G2(	@§F–W""v–ç7BF†R6öç6VçB'VrWB&6²ÂF–W"v–ç7BÆçFVB6VÆV7Bà ¢222##bÓ‚Ó‚(	B7vVWf÷"F†RFVfV7BF†B¶VW2&V7W'&–ærÂæBv†B—Bf÷Væ@ ¥F†R6öç6VçB×66÷R'Vr†B6†Rv÷'F‚vVæW&Æ—6–æs¢¢¦6öÇVÖâVW'’6VÆV7G0¦æBF†Rf–ÆRæWfW"W6W2v–â¢¢â&V–ær–âF†R6VÆV7FÆ—7B—2v†BÖFR—BÆöö°¦6†V6¶VBâ6ò’7vWBWfW'’6VÆV7CÖ–â&÷WFW2öÂÆ–"öæB6W'fW"æ§6f÷ ¦6öÇVÖç2fWF6†VBæBæWfW"æÖVBv–âÂv—F‚6öÖÖVçG27G&—VB6ò6öÇVÖà¦ÖVçF–öæVBöæÇ’–â&÷6RFöW2æ÷B6÷VçB2W6VBà ¥F‡&VR†—G2ÂæBöæRöbF†VÒv2&VÂà ¦ö7&VF÷"×7GVF–ò÷&–v‡G66VÆV7G27V&¦V7E÷G—VæBæWfW"W6W2—Bâ—G26&G2&P¦†VFVB&÷rç7V&¦V7EöæÖRÇÂ$6öç6VçB&V6÷&B&(	BæB¢¦7V&¦V7EöæÖV—2çVÆÆ&ÆP§v†–ÆR7V&¦V7E÷G—V—2æ÷BçVÆÆ¢¢Â6òF†RvRF—66&FVBF†Rf7BF†B—0¦Çv—2F†W&R–âff÷W"öbF†RöæRF†BÖ–v‡Bæ÷B&RâW&Ö—76–öâ&V6÷&FV@§v—F†÷WBæÖRv2†VFVB$6öç6VçB&V6÷&B"æBæÖVBæö&öG’à ¥F†R6ÖRvRÇ6ò&–çFVB6öç6VçE÷66÷Vv—F‚—G2VæFW'66÷&W27vVBf÷ §76W2Â6òöæRW&Ö—76–öâ&VB%fö–6R6÷––ær"öà¦ö7&VF÷"×7GVF–ò÷fö–6R×W&Ö—76–öç6æB¢¢'fö–6R6ÆöæR"¢¢öâF†—2öæR(	BGvð§fö6'VÆ&–W2f÷"öæRF&ÆRÂv†–6‚—2†÷rF†W’G&–gBÂæBFF&6RfÇVR–à¦g&öçBöb7W7FöÖW"V—F†W"v’à ¦fö–6U7V&¦V7DÆ&VÆÂfö–6U66÷TÆ&VÆæBfö–6TWf–FVæ6TÆ&VÆæ÷rÆ—fR–à¦Æ–"÷6öæ&×Æ–âÖÆæwVvRæ6§6v—F‚F†R&öGV7Bw2÷F†W"v÷&G2ÂæB&÷F‚vW0§W6RF†VÒà ¥F†RwV&BF†BÖGFW'2Ö÷7B—2æ÷BV—F†W"vS¢¢§F†RÆ&VÂÖ2&R6†V6¶V@¦v–ç7BF†RÖ–w&F–öâw2÷vâ6†V6²6öç7G&–çG2â¢¢ÖF†B7F÷26÷fW&–ær—G0¦6öÇVÖâç7vW'2$æ÷B&V6÷&FVB"f÷"&VÂfÇVR(	BW&Ö—76–öâF†BW†—7G2Â6†÷và¦2öæRF†Bv2æ÷Bw&—GFVâF÷vâ(	BæBF†B—26–ÆVçBâFF–ærfÇVRFòF†P¦6öç7G&–çBæ÷rf–Ç2F†R'V–ÆBà ¥F†R÷F†W"Gvò†—G2&Ræ÷BFVfV7G3¢ö’ö–çFVw&F–öç2÷&÷f–FW'6—2¥4ôâ§v†÷6R6ÆÆW"W6W2F†Rf–VÆG2ÂæBæ÷F–f–6F–öâ6FVv÷'–—26'&–VBf÷"F†P§&W7öç6R&F†W"F†âF†R&VæFW"â&V6÷&FVB†W&R6òF†RæW‡BW'6öâ'Vææ–ærF†P§7vVWFöW2æ÷B&RÖW†Ö–æRF†VÒà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ#RFW7G276–ærâF†RF‡&VP§vRÖÆWfVÂ6†V6·2vW&R6öæf—&ÖVB'’WGF–ærF†RöÆBW‡&W76–öç2&6²æBvF6†–æp§F†VÒf–Âà ¢222##bÓ‚Ó‚(	BF†R6öç6VçB&V6÷&Bw2öæRÖVæ–ævgVÂf–VÆBFV6–FVBæ÷F†–æp ¥vVçBFò6†V6²F†R6öç6VçBÖ6GW&RfÆ÷rv2&VÆÇ’'V–ÇBÂ6–æ6RtTåE2æÖF §&WV—&W2—C¢$Væf÷&6R&÷fVææ6RÂ6öç6VçBÂæBçF’Ö6ÆöæR6fWG’â"—B—2(	@¦7&VFRÂÆ—7BÂ&Wfö¶RÂvRÂæBWfÇVFUöÆ–7–&VgW6–ærfö–6R¦ö"v—F†÷W@¦Æ—fR&V6÷&BâGvòF†–æw2–ç6–FR—BvW&Ræ÷Bà ¢¢¦6öç6VçE÷66÷Vv26VÆV7FVBöâWfW'’fö–6R¦ö"æB6ö×&VBFòæ÷F†–ærâ¢¢—@¦—2F†Rf–VÆBF†B6—2§v†BF†RW'6öâw&VVBFò¢(	BFW‡B×Fò×7VV6‚Â7VV6‚×FòÐ§7VV6‚Âfö–6R6ÆöæRÂ6–æv–ærfö–6RÂ÷"ÆÂöb—B(	BæBW&Ö—76–öâw&çFVBf÷ §FW‡B×Fò×7VV6‚WF†÷&—6VBfö–6R6ÆöæRâF†R6öÇVÖâ&V–ær–âF†R6VÆV7FÆ—7B—0§v†BÖFR—BÆöö²6†V6¶VC²F†B—2F†—2&W÷6—F÷'’w2&V7W'&–ærFVfV7BW†7FÇ’Âöà§F†RÖ÷7B6Vç6—F—fRvFR–âF†R&öGV7Bà ¥F†W&R—2æ÷rÖg&öÒ6&–Æ—G’Fò66WF&ÆR66÷W2ÂæB6&–Æ—G’v—F‚æð¦VçG'’—2¢§&VgW6VB¢¢&F†W"F†âÆWBF‡&÷Vv‚öâF†R&Ææ¶WB66÷RÂ6òFF–æröæP§Fòdô”4Uô4$”Ä•D”U6v—F†÷WBFV6–F–ærv†B6÷fW'2—Bf–Ç26Æ÷6VBâFW7@¦76W'G2WfW'’vFVB6&–Æ—G’†2âVçG'’ÂæB6V6öæB76W'G2WfW'’66÷P¦æÖVB—2öæRÖ–w&F–öâ##cs#3ƒw26†V6²6öç7G&–çBv–ÆÂ7GVÆÇ’7F÷&R(	@¦÷F†W'v—6RW&Ö—76–öâF†B6F—6f–W2F†R6†V6²6÷VÆBæWfW"&R7&VFVBà ¦×W6–5÷fö–6U÷&öf–ÆVæBFÆ¶–æuöfF&†fRæò66÷RöbF†V—"÷vâ–âF†@¦6öç7G&–çBÂ6òöæÇ’ÆÅ÷fö–6UövVæW&F–öæ6÷fW'2F†VÒâ7FFVB&F†W"F†à§V–WFÇ’v–FVæVC¢F†RÇFW&æF—fR—2FV6–F–æröâ6öÖV&öG’w2&V†ÆbF†B'6–æv–æp§fö–6R"–æ6ÇVFVBF†V—"f6Rà ¥F†RÖ—6ÖF6‚†2—G2÷vâ6öFRæB—G2÷vâ6VçFVæ6Râ%&V6÷&BW&Ö—76–öâ"v÷VÆ@§6VæB6öÖV&öG’Fò7&VFR6V6öæBöæR–FVçF–6ÂFòF†Rf—'7C²v†BF†W’æVVB—2Fð§–6²F–ffW&VçBöæR÷"v–FVâF†RöæRF†W’†fRà ¢¢¤æBF†Rf÷&ÒöffW&VBGvò6&–Æ—F–W2æ÷F†–ær6â'Vââ¢¢F†R6&–Æ—G’Æ—7Bv0¦†æB×w&—GFVâæB–æ6ÇVFVBfö–6Uö6ÆöæVæB6–æv–æu÷fö–6V²¢¦æò&÷f–FW"–à¦Æ–"ö7&VF÷"ÖvVæW&F–öâ×&÷f–FW"×&Vv—7G'’æ6§6FV6Æ&W2V—F†W"â¢¢6òF†RGvòÖ÷7@§6Vç6—F—fRF†–æw2öâF†RÖVçRvW&RF†RGvòF†B6÷VÆBæ÷Bv÷&²(	B7W7FöÖW"–6¶V@¢%fö–6R6÷’"Âv2FöÆBfö–6Rv÷&²æVVG2W&Ö—76–öâöâf–ÆRÂvVçBæB&V6÷&FV@¦öæR¢¦æÖ–ær&VÂW'6öâ¢¢Â6ÖR&6²Â&W76VBF†R'WGFöâæBv÷@¦6&–Æ—G•öæ÷E÷7W÷'FVFâ6öç6VçB&V6÷&B&÷WB&VÂ‡VÖâ&V–ærÂ6öÆÆV7FV@¦f÷"æ÷F†–ærà ¥F†RÆ—7B—2FW&—fVBg&öÒv†B&÷f–FW'2FV6Æ&Ræ÷rÂf–ÇFW&VBF‡&÷Vv‚âW‡Æ–6—@¦–çFVçB÷&FW"Â6ò&÷F‚6öÖR&6²öâF†V—"÷vâF†RÖöÖVçB&÷f–FW"öffW'2F†VÒ(	@¦æBFW7B76W'G2F†W’&R7F–ÆÂf–ÇFW&VB÷WBÂ6òF†RF’F†B†Vç26öÖV&öG¦—2FöÆBF†RÖVçRw&Wr&F†W"F†âf–æF–ær÷WBÆFW"à ¥F†R6†V6²F†R6†ævR†BFò7W'f—fS¢F†R66÷RFW7B×W7Bæ÷B&V6öÖRF†RöæÇ§FW7Bâ&Wfö¶VB÷"W‡—&VBW&Ö—76–öâv†÷6R66÷RÖF6†W2W†7FÇ’—27F–ÆÀ§&VgW6VBÂæB&÷F‚&R76W'FVBà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ““’FW7G276–ærâF†R66÷R6†V6°§v26öæf—&ÖVB'’F—6&Æ–ær—BæBvF6†–ærF‡&VRFW7G2f–Âà ¢222##bÓ‚Ó‚(	BF†RFF&6Rv2ç7vW&–ærVW7F–öâtTåE2æÖB6—2W'6öâ†2Fð ¥vVçBFòv—fR6Vç6÷'•öfVVF&6µ÷&öf–ÆW6(	BF†RÆ7BöbF†RF‡&VRFWf–6RF&ÆW0§v—F‚â–ç6W'BVæGö–çBæBæò7W&f6R(	BÆ—7BæBf÷&Òöà¦ö7&VF÷"×7GVF–òöFWf–6RÖ7VW6ÂæBf÷VæB6öÖWF†–ær–âF†R66†VÖöâF†Rv’à ¦tTåE2æÖF¢%6÷VæG2Âfö–6Rææ÷Væ6VÖVçG2Â†F–72Â4Õ2ÂW6‚ÂæBVÖ–ÂÆW'G0¦×W7B&R¢¦öfb÷"W‡Æ–6—FÇ’W6W"Ö6öçG&öÆÆVB'’FVfVÇB¢¢â"Ö–w&F–öâRv—fW0¦6Vç6÷'•öfVVF&6µ÷&öf–ÆW2ç6÷VæEöVæ&ÆVFæBçf–'&F–öåöVæ&ÆVF¢¦6öÇVÖà¦FVfVÇBöbG'VV¢¢ÂæBF†R–ç6W'BF‚æWfW"æÖVBV—F†W"â6òWfW'’&öf–ÆP¦7&VFVB'&—fVBv—F‚6÷VæBæBf–'&F–öâöâÂFV6–FVB'’F†RFF&6RÂöâ§VW7F–öâF†R'VÆR6—2F†RW'6öâ†2Fòç7vW"à ¤—B—2†&ÖÆW72FöF’&V6W6Ræ÷F†–ær&VG2F†RF&ÆRâF†B—2æ÷B&V6öâFð¦ÆVfR—B(	BF†R&÷r—2w&—GFVâæ÷ræB&VBv†VæWfW"6öÖV&öG’'V–ÆG2F†R6öç7VÖW"À¦æB'’F†Vâæö&öG’—2Æöö¶–ærBF†—2âF†Rf÷W"FövvÆW2&RFVfVÇFVBöfb–âF†P¦–ç6W'BæB6¶VBf÷"W‡Æ–6—FÇ’öâF†Rf÷&Òâ&÷F‚†ÇfW2&RFW7FVC¢7&VFVBöf`§v†VâVæ6¶VBÂæB¢§7F–ÆÂöâv†Vâ6öÖV&öG’6—2–W2¢¢Â&V6W6RFVfVÇBF†@¦6ææ÷B&R÷fW'&–FFVâ—2æ÷BFVfVÇBæBF†R'VÆR—2&öfb÷"W‡Æ–6—FÇ§W6W"Ö6öçG&öÆÆVB"&F†W"F†â&öfb"à ¥6VÆV7B÷F–öç2Ö’æ÷r&R²fÇVRÂÆ&VÂÖ2vVÆÂ27G&–æw2â'G'VR&æ@¦&fÇ6R&–âG&÷F÷vâ—2F†R66†VÖFÆ¶–ærFòF†R7W7FöÖW#²F†RVÆWfVâ7G&–æp¦Æ—7G2Ç&VG’w&—GFVâ&RVçF÷V6†VBà ¥F†R%W6W2"6öÇVÖâföÆG2f÷W"&ööÆVç2–çFòöæR&VF&ÆR6VÆÂæB¶VW2F†P¦F—7F–æ7F–öâF†—2&W÷6—F÷'’¶VW2&VF—66÷fW&–æs¢¢¦'6VçB—2æ÷BfÇ6R¢¢â&÷p§v†÷6R6öÇVÖç2F–Bæ÷B6öÖR&6²&VG2$æ÷B6WB#²ÆÂf÷W"vVçV–æVÇ’öfb&VG0¢$æ÷F†–ær"â&÷F‚&R76W'FVBÂÆöærv—F‚F†RGvòÖ—†VB66W2à ¥F†B6Æ÷6W2F†RF†—&BæBÆ7BöbF†Rw&—FRÖöæÇ’FWf–6RF&ÆW2âÆÂF‡&VP¦W†V×F–öç2&RvöæRg&öÒFW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§6&F†W"F†â&Wv÷&FVBà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ“ƒ‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BGvòF&ÆW2æ÷F†–ær6†÷vVBÂæBw&öær&V6öâ–ââW†V×F–öâÆ—7@ ¦v7FUöÆöw6æBÆö6F–öå÷¦öæW6vW&R&÷F‚W†7W6VB–à¦FW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§62&æòvRF—7Æ—2F†—2"âöæR&V6öâv0§&–v‡BæBF†R÷F†W"v2fÇ6Rà ¢¢¦v7FUöÆöw6v2&–v‡Bâ¢¢F†RVæGö–çBW†—7FVBÂF†R6öÇVÖç2W†—7FVBÂæB&÷p§w&—GFVâF‡&÷Vv‚—Bv2–çf—6–&ÆRg&öÒF†RÖöÖVçB—Bv27&VFVC²F†RW†V×F–öà§6–B&f÷&Òv—F†÷WBvRFò&VBF†R&W7VÇBöâv÷VÆB&Rv÷'6RÂæ÷B&WGFW""À§v†–6‚—2G'VRæBFW67&–&W2F†Rw&öærf—‚âö'W6–æW72Ö'V–ÆFW"ö÷væW"÷v7FV—2F†P§vRâ—B&VÆöæw2&W6–FR&V6—W2æBF–Ç’6ÆW2&V6W6R—B—2F†RF†—&BçVÖ&W"–à§F†R6ÖR7VÒ(	BÆ–"÷6öæ&Öf÷&×VÆÖÆ–'&'’æ6§6Ç&VG’FVf–æW2v7FUö6÷7F÷fW ¦v7FUöÆöw6æB–çfVçF÷'•ö—FV×6ÂæB¶—F6†VâF†B¶æ÷w2—G2fööB6÷7BæBæ÷@¦—G2v7FR¶æ÷w2F†R6ÖÆÆW"†Æböbv†W&RF†RÖöæW’vVçBà ¢¢¦Æö6F–öå÷¦öæW6v2fÇ6Râ¢¢$æòvRF—7Æ—2Æö6F–öå÷¦öæW3²öæÇ’F†P¦vVæW&–2Æ—7BæB–ç6W'BW†—7B"(	Bö'W6–æW72Ö'V–ÆFW"÷&÷WFW6†2Æ—7FVBF†VÒF†P§v†öÆRF–ÖRÂæB—G2V×G’7FFR&VB$FBF†R&V2–÷R6÷fW"æBF†W’v–ÆÀ¦V"†W&R"&÷fRæòf÷&ÒÂöâvRF†BæWfW"†BöæRâ¢¤w&öær&V6öâ–ç6–FP¦âW†V×F–öâ—2v÷'6RF†âæòW†V×F–öâ¢¢Â&V6W6R—B—2v†BF†RæW‡BW'6öà§&VG2–ç7FVBöb6†V6¶–ærâö'W6–æW72Ö'V–ÆFW"ö÷væW"ö&V6Æ—7G2æB7&VFW2F†VÓ°§F†R&÷WFW2vR&VF—&V7G2F†W&RÂöâF†R&V6VFVçB6WBf÷"fV†–6ÆW2(	BöæRvRW ¦¶–æBöb&V6÷&B&F†W"F†â6V6öæBf–WrF†B6âG&–gBà ¦öÇ–vöåövVö§6öæ—2FVÆ–&W&FVÇ’æ÷BöâF†Rf÷&Òâ7F–ærvVô¥4ôâ–çFòFW‡B&÷€¦—2æ÷Bf÷&ÒÂæBæ÷F†–ær†W&RG&w2öÇ–vöâ÷"&VG2öæRà ¥Gvò6†V6·26Vv‡BF†–æw2öâF†Rv’Â&÷F‚v÷'F‚&V6÷&F–æs  ¢ÒF†R÷WFvR7&vÂ&V¦V7FVB$æ÷F†–ær—2F—7F6†VBæBæ÷F†–ær—2G&6¶VB–âF†P¢&6¶w&÷VæB"(	B&æ÷F†–ær—2"&VG22§–÷R†fRæò&V6÷&G2¢öâvRv†÷6R&VG0¢&Rf–Æ–ærâ&Wv÷&FVBFò$—BF—7F6†W2æö&öG’æBföÆÆ÷w2æö&öG’"âF†B—2F†P¢¢§F†—&B¢¢F–ÖRF†—26W76–öâF†Rf—‚v2F†Rv÷&F–ær&F†W"F†ââW†V×F–öâà¢ÒFW7G2÷6V&6‚Ö¶VW2×WçFW7Bæ§6&VgW6VB&÷F‚vW2VçF–ÂF†W’vW&R6V&6†&ÆRà¢v7FR6V&6†W2'’—FVÒæB'’F†R7W7FöÖW"w2÷vâv÷&Bf÷"v‡“²&V2'’æÖRæ@¢¶–æBâæ÷B'’6÷7B(	BçVÖ&W"—2æ÷B6V&6‚FW&Òà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ“ƒFW7G276–ærÂ#sr&WV—&VBtU@§&÷WFW2à ¢222##bÓ‚Ó‚(	BF†R7VRvRv2&öÖ—6–ærÆ–&6° ¥vVçBFò6Æ÷6RF†Rf–'&F–öâ×GFW&ç2FVBVæB(	BÆ—7Bv—F‚æòv’FòFBFò—B(	@¦æB6†V6¶VBv†B†Vç2Fò&÷r&Vf÷&R'V–ÆF–ærF†Rf÷&ÒÂv†–6‚—2æ÷rF†P¦†&—Bâf÷VæB6öÖWF†–ær&–vvW"F†âF†RÖ—76–ærf÷&Òà ¦ö7&VF÷"×7GVF–òöFWf–6RÖ7VW66–C¢$æ÷F†–ærÆ—2Âf–'&FW2÷"Ö÷fW2öâ—G2÷và®(	B¢¦7VRöæÇ’'Vç2v†Vâ6öÖWF†–ær–÷RFò6·2f÷"—B¢¢æB–÷W"FWf–6RÆÆ÷w0¦—Bâ"F†Rf—'7B6ÆW6R—2F†RtTåE2æÖF÷6—F–öâæBv2Çv—2G'VRâF†R6V6öæ@§6—27VR'Vç2â¢¤æ÷F†–ær&VG26÷VæEö7VW6÷"†F–5÷GFW&ç6ç—v†W&Râ¢ ¦w&W7&÷726W'fW"æ§6Â&÷WFW2öæBÆ–"öf–æG2F†R&V6÷&BvRÂF†RvVæW&–0¦–ç6W'BÂæBæò6öç7VÖW#²F†R6÷VæBæBf–'&F–öâF†RÆ–6F–öâ7GVÆÇ’Ö¶W0¦6öÖRg&öÒ†&F6öFVBÖöbf—fR¶–æG2–âV&Æ–2÷6Vç6÷'’ÖFWf–6RÖ6Æ–VçBæ§6(	@§7V66W72ÂW'&÷"Âv&æ–ærÂFÂ6ö×ÆWFR(	Bv†–6‚æWfW"Æöö·2&÷rWà ¥6ò7W7FöÖW"6÷VÆBFVf–æR7VRÂ&RFöÆB—Bv÷VÆBf—&Rv†VâF†W’F–B6öÖWF†–ærÀ¦æB—Bv÷VÆBæWfW"f—&Râ¢¥F†R6÷VæB7VRf÷&Ò†2&VVâ–âF†B÷6—F–öâF†Rv†öÆP§F–ÖR¢¢(	BF†Rf–'&F–öâÆ—7Bv2F†Rf—6–&ÆR†Æböb&ö&ÆVÒ&÷F‚†ÇfW2†Bà ¥F†R6÷’6—2v†BF†R&÷w2&Ræ÷s¢FVf–æ—F–öç2Âw&—GFVâF÷vâÂæ÷B–WB&VB'¦ç—F†–ærâæBv—F‚F†BG'VRöb&÷F‚ÂF†Rf–'&F–öâf÷&Ò—2†öæW7BÂ6ò—BW†—7G2à¥F†—2—2F†Rf÷W'F‚FVBVæBW†Ö–æVBF†—2vVV²æBF†Rf—'7Bv†W&RF†Rç7vW"v0¦Fö÷"&F†W"F†â7FGW2(	B&V6W6RF†RFö÷"w2æV–v†&÷W"v2Ç&VG’÷Vâà ¦Ç6ö&Æö6·26''’f÷&×2æ÷râF†BæVVFVBF‡&VRF†–æw2ÂæBF†RF†—&B—2F†RöæP§F†Bv÷VÆB†fR&÷GFVBV–WFÇ“  ¢Ò&÷WFW2÷6öæ&ÖÆ7C’×&÷WFW2æ6§6&VæFW'2f÷&Ô6&FVæFW"âÇ6öÆ—7Bv†Và¢F†R&Æö6²FV6Æ&W2f÷&ÒæBâVæGö–çBà¢ÒÆöE&VfW&Væ6W6vÆ·2Ç6öf÷&Òf–VÆG2â¢¤æöæRöbF†VÒ—2&VfW&Væ6P¢FöF’¢¢Âv†–6‚—2W†7FÇ’v†Vâ–6¶W"'&V·26–ÆVçFÇ’(	BF†Rf—'7BöæRFFV@¢v÷VÆB&VæFW"$æ÷F†–ærFò6†ö÷6R–WB"Fò7W7FöÖW"v—F‚&V6÷&G2âF†Bf–ÇW&P¢†2æ÷r6†—VBGv–6R–âF†—2f–ÆRÂöâ6†–ÆBf÷&×2æBöâF†R'F—7BvW2Âæ@¢&÷F‚vW&Rf÷VæBgFW'v&G2à¢ÒÆ–"÷6öæ&Öf÷&Ò×&V6†&–Æ—G’æ6§66VW2F†VÒÂ6òö’÷6Vç6÷'’ö†F–2×GFW&ç6 ¢6ÖRöfbF†RW†V×F–öâÆ—7Bâ—G27FFVB&V6öâv2&æòÇ6ö&Æö6²6'&–W2¢7&VFRf÷&Ò"(	BâW†7W6RF†B÷WFÆ—fW2—G2&V6öâ—2F†R6ÖRFVfV7B2vP¢FW67&–&–ær6&–Æ—G’—BFöW2æ÷B†fRà ¢¢¥GvòæWr6†V6·2Â&÷F‚fW&–f–VB'’'&V¶–ærF†VÒâ¢¢öæR76W'G2æò'VçF–ÖRf–ÆP¦÷WG6–FRF†R&V6÷&BvRw2÷vâ7W&f6RæÖW2V—F†W"F&ÆRÂ6ò–b6öÖV&öG’'V–ÆG0§F†R6öç7VÖW"F†R6÷’7F÷2&V–ærG'VR¦æBF†R'V–ÆB6—26òÂæÖ–ærF†Rf–ÆR¢(	@§&F†W"F†âÆVf–ærvRFVÆÆ–ær7W7FöÖW'2F†V—"7VW2Fòæ÷F†–ærgFW"F†W§7F'FVBv÷&¶–ærâF†R÷F†W"6†V6·2WfW'’Ç6öf÷&Òf–VÆBv–ç7@¦Æ–"÷6öæ&ÖÖ–w&F–öâÖ6öÇVÖç2æ6§6Â&V6W6R–ÆöBæÖ–ær6öÇVÖâF†B—2æ÷@§F†W&R—2&V¦V7FVB'’÷7Fu$U5Bv†–ÆRWfW'’7GV"–âF†R7V—FR66WG2—C¢F†P¦'WGFöâv÷&·2æBæ÷F†–ær6fW2Âv†–6‚—2†÷rÆÂæ–æWFVVâ&V6÷&Bf÷&×26†—V@¦'&ö¶Vâöæ6Rà ¥fW&–f–VC¢fW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂ“sRFW7G276–ærà ¥Gvò&Ww&—FW2F†R÷WFvR7&vÂf÷&6VBÂv÷'F‚&V6÷&F–ær&V6W6RF†Rv÷&F–ær'VÆR—0¦æ÷Bö'f–÷W2â$æ÷F†–ær†W&RÆ—2Âf–'&FW2÷"Ö÷fW2"æB$æ÷F†–ærÆ—2F†W6R ¦&÷F‚f–ÆVBFW7G2öæò×vRÖÆ–W2×v†Vâ×F†RÖFF&6RÖ—2ÖF÷vâçFW7Bæ§6(	B$æ÷F†–æp¦†W&R"&VG22§–÷R†fRæò&V6÷&G2¢öâvRv†÷6R&VG2&Rf–Æ–ærâ&Wv÷&FV@§Fò%w&—F–æröæRF÷vâFöW2æ÷BÖ¶R—BÆ’"Âv†–6‚6—2F†R6ÖRF†–ær&÷WBF†P¦fVGW&RæBæ÷F†–ær&÷WBF†R7W7FöÖW"w2&÷w2â&Wv÷&F–ær&VBFF–ærà¦W†V×F–öâÂF†R6ÖR6ÆÂ2F†R66÷VçF–ærÖW‡÷'G26÷’à ¢222##bÓ‚Ó‚(	B6VÆÆ–ær6öÖWF†–ærF†B—2æ÷B6W'f–6P ¤'W6–æW72'V–ÆFW"6÷VÆB&–6Rv÷&²æB†Bæòv’FòÆ—7B¢§F†–ær¢¢à¦'W6–æW75÷6W'f–6Uö6FÆöv6'&–W2öæRfÆB&–6Uö6VçG6æB¦GW&F–öåöÖ–çWFW6Âv†–6‚—26W'f–6S²ÖVçUö—FV×6—2ÖVçS²–çfVçF÷'•ö—FV×6 ¦—27Fö6²öâ†æBâ6V&6‚7&÷72ÆÂƒ‚Ö–w&F–öç2f÷"f&–çB÷"&–6R×F–W §F&ÆRf÷VæBöæÇ’w&÷wF…öW‡W&–ÖVçE÷f&–çG6Âv†–6‚—2ô"FW7F–ærâ6ò¦'W6–æW726VÆÆ–ærö&¦V7G2–â6—¦W2Â6öÆ÷W'2÷"6²6—¦W2†BFò&WG—RWfW'’öæP¦öbF†VÒöçFòWfW'’–çfö–6Rà ¦ÖW&6†çE÷&öGV7G6æBÖW&6†çE÷&öGV7E÷f&–çG66Æ÷6RF†BÂv—F‚F†R&V6÷&@§vRBö'W6–æW72Ö'V–ÆFW"ö÷væW"÷&öGV7G6æBF†RfW'6–öç22—G26†–ÆBà ¢¢¥F†R&–6R—2öâF†RfW'6–öâæBæ÷v†W&RVÇ6Râ¢¢&öGV7Bv—F‚Gvò6—¦W2BöæP§&–6R—2&öGV7Bv—F‚GvòfW'6–öç2F†B†VâFòw&VRâ&–6RöâF†R&Vç@¦2vVÆÂv÷VÆBv—fRGvòç7vW'2Fò'v†BFöW2F†—26÷7B"ÂæBF†RGvòv÷VÆ@¦F—6w&VRF†Rf—'7BF–ÖR6öÖV&öG’VF—FVBöæRâFW7G2ö×&öGV7BÖ—2×&–6VB×F‡&÷Vv‚Ö—G2×fW'6–öç2çFW7Bæ§6 ¦76W'G2æò6öÇVÖâöâÖW&6†çE÷&öGV7G6ÖF6†W2÷&–6WÆÖ÷VçGÆ6÷7BöæBF†@§F†Rf÷&ÒFöW2æ÷B6²f÷"öæR(	BfW&–f–VB'’FF–ær&–6Uö6VçG6FòF†RÖ–w&F–öà¦æBvF6†–ærf—fRFW7G2f–Âà ¢¢¤æÖVBÖW&6†çE÷&öGV7G6&F†W"F†âf–v‡F–ærf÷"F†Rv÷&Bâ¢¢&öGV7G6 ¦Ç&VG’W†—7G2æBÖVç26öÖWF†–ærVÇ6S¢—G2&öGV7Eö¶W–—26öç7G&–æVBFð¦'W6–æW75ö'V–ÆFW&Â7&VF÷%÷7GVF–öÂw&÷wF…÷7GVF–öæB6öæ&ööæVÂ6ò—@§&V6÷&G2v†–6‚4ôä$&öGV7Bâ÷&væ—¦F–öâVæ&ÆVBâGvòF&ÆW26ÆÆVB&öGV7G2À¦öæRöbF†VÒÖVæ–ær6öÖWF†–ærVÇ6RÂ—2†÷rF†RæW‡BW'6öâÆ÷6W2âgFW&æööâà ¢¢¥66÷RÂ7FFVB6òæö&öG’77VÖW2F†R&W7B'&—fVBv—F‚—Bâ¢¢F†—2—2¦6FÆöwVS¢v†B–÷R6VÆÂÂ–âv†–6‚f&–F–öç2ÂBv†B&–6RâF†W&R—2¢¦æò6'BÀ¦æò6†V6¶÷WBÂæòF‚6Æ7VÆF–öâæBæò6†—–ær¢¢âF†÷6RF÷V6‚ÖöæW’'VÆW0¦tTåE2æÖFv÷fW&ç2ÂæB†ÆbÖ'V–ÇB6†V6¶÷WB—2v÷'6RF†âæöæRâV÷FW2æ@¦–çfö–6W2Ç&VG’W†—7BFòF¶RÖöæW’f÷"F†W6Rà ¢¢¥F†RöæRF†–ærF†B6÷VÆB†fRÆöö¶VBf–æ—6†VBæB&VVâW6VÆW72â¢¢â–çfö–6P¦Æ–æR6âæ÷ræÖR6FÆöwVRfW'6–öâÂv†–6‚—2v†BÖ¶W2F†R6FÆöwVRv÷'F€¦†f–ær(	B÷F†W'v—6R—B—2Æ—7B–÷R&WG—Râ'WBf&–çB&÷r6—2$Æ&vR"À¢$&ÇVR"Â$&÷‚öb""ÂæBG&÷F÷vâöffW&–ærF‡&VRF–ffW&VçB&öGV7G2r$Æ&vR ¦—26öçG&öÂF†BÆöö·2Æ–¶R6†ö–6RæB—2æ÷BöæRâ$TdU$Tä4Uõ4õU$4U6w&Wrà¦÷F–öæÂ6VÆV7FÂW6VB'’W†7FÇ’öæRöb—G2æ–æR6÷W&6W2Â6òF†R–6¶W"VÖ&VG0¦ÖW&6†çE÷&öGV7G2†æÖR–æBV6‚÷F–öâ&VG2$ö²6†VÆb(	BÆ&vR"â–bF†RVÖ&V@¦FöW2æ÷B6öÖR&6²F†R&VB—2æ÷BÖö²æBF†Rf–VÆB&VæFW'2%vR6÷VÆBæ÷BÆö@§F†W6R§W7Bæ÷r"&F†W"F†âÆ—7BöbF¦V7F—fW2âfW&–f–VB'’FVÆWF–ærF†P¦6VÆV7FÆ–æRæBvF6†–ærF†RFW7Bf–Âà ¢¢¥v†WF†W"&öGV7B6â&R6öÆB—2f7B&÷WB—G26†–ÆG&Vâ¢¢Â6ò—B—26&@¦öâF†RFWF–ÂvR&F†W"F†â6öÇVÖâöâF†RÆ—7Bâf—fR7FFW2ÂæBV6‚6—0¦öæÇ’v†B—2¶æ÷vã¢&VBf–ÆVBÂæòfW'6–öç2ÂÆÂfW'6–öç2&6†—fVBÂfW'6–öç0§v—F‚æò&–6RÂæB&–6R÷"&ævRâ&Ææ²&–6R—2æ÷Bg&VR&öGV7B(	@¦f–æ—FTçVÖ&W&v–âÂf÷"F†R6ÖR&V6öâ2WfW'’÷F†W"F÷FÂ–âF†Bf–ÆRà ¦F÷FÄg&öÖ—2æ÷rvVçV–æVÇ’÷F–öæÂöâ6†–ÆB7V2ÂæBF†RfW'6–öç2F&ÆP¦FV6Æ&W2æöæRâFF–ærWF†R&–6W2öb6ÖÆÂÂÖVF—VÒæBÆ&vR&öGV6W2¦çVÖ&W"æö&öG’—2WfW"6†&vVBâFW7G2ö÷væW"×&V6÷&BÖÆ–æW2çFW7Bæ§6F—7F–æwV—6†W0¢&ÆVgB÷WB"g&öÒ'6WBFòVæFVf–æVB"Â6òF†RöÖ—76–öâ—2FV6—6–öâ&F†W"F†â¦và ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæB†W†—B’Â“s2FW7G276–ærÀ¦÷'†â×F&ÆR6†V6²BVçW6VBF&ÆW2(	BF†RGvòæWrF&ÆW2†fR&VBF‚Âv†–6€¦—2v‡’F†RÖ–w&F–öâ6÷VÆBæ÷B&R6öÖÖ—GFVBöâ—G2÷vâà ¢222##bÓ‚Ó‚(	BF†RF†—&B&÷r6Æ–Ö–ærv÷&¶W"ÂæBf÷&Òæ÷B'V–Ç@ ¥vVçBFò6Æ÷6RF†R&VfW&Væ6RÖæÇ—6—2FVBVæB(	BvRÆ—7F–æræÇ—6W2v—F‚æð§v’Fò7&VFRöæR(	BæB6†V6¶VBv†B†Vç2Fò&÷r&Vf÷&R'V–ÆF–ærF†Rf÷&Ð§F†Bv÷VÆBÖ¶RF†VÒâæ÷F†–ær†Vç2Fò—Bà ¦w&Wf÷"7&VF÷%÷&VfW&Væ6UöæÇ—6W6f–æG2F†R6öç7FçBÂöæR–ç6W'BÂæ@¢¢¦æò'VææW"Âæò7FGW2G&ç6—F–öâæBæò&VFW"¢¢âF†RVæGö–çBw&÷FP¦7FGW3¢'VWVVB&Â6òWfW'’&÷r6Æ–ÖVBv÷&²v—F–ærFò&R–6¶VBWæBæöæP¦WfW"v2â¢¥F†—&B–ç7Fæ6RöbF†B6†RF†—2vVV²¢¢ÂgFW"66÷VçF–æuöW‡÷'G6 §&W÷'F–ær'v†WF†W"V6‚öæRf–æ—6†VB"&÷WBf–ÆRæ÷F†–ær&öGV6VBæ@¦–çFVw&F–öåö¦ö'66Æ–Ö–ærv÷&¶W"F†BFöW2æ÷BW†—7Bà ¥7FGW2—2&Wf–Wu÷&WV—&VFæ÷r(	B–âF†R66†VÖw26†V6²6öç7G&–çBÂæBG'VP§Gv–6R÷fW"âæ÷F†–ærWFöÖFVBv–ÆÂF÷V6‚—BÂæBæÇ—6–ær&VfW&Væ6RÖFW&–Â—0¦W†7FÇ’v†BtTåE2æÖFWG2–âg&öçBöbW'6öã¢&÷fVææ6RÂ6öç6VçBæ@¦çF’Ö6ÆöæR6fWG’&R§VFvVÖVçG2&F†W"F†â¦ö'2à ¢¢¥F†Rf÷&Òv2FVÆ–&W&FVÇ’æ÷B'V–ÇBâ¢¢FF–æröæRv÷VÆBÆWB7W7FöÖW"VWVRà¦æÇ—6—2F†BæWfW"'Vç2æBvF6‚—B6—BF†W&RÂv†–6‚—2F†RFVfV7BF†—26W76–öà¦†2æ÷rf—†VBF‡&VRF–ÖW2âFVBVæB—2&WGFW"6Æ÷6VB'’FVÆÆ–ærF†RG'WF‚F†à¦'’FF–ærFö÷"öçFòæ÷F†–ærà ¢¢¥v†B&VÖ–ç2—2â÷væW"FV6—6–öâÂæ÷BâVæv–æVW&–æröæRâ¢ ¦ö7&VF÷"×7GVF–òövVæW&F–öâ÷&VfW&Væ6RÖæÇ—6—6—23"–çFòF†RvVæW&F–öâvP¦6''––ær6&–Æ—G“×&VfW&Væ6UöæÇ—6—6ÂæBF†RvVæW&F–öâf÷&Òw26&–Æ—G§–6¶W"FöW2æ÷BöffW"—B(	BF†RöÆ–7’6†V6²WfVâ7V6–ÂÖ66W2—@¢†6&–Æ—G’ÓÒ'&VfW&Væ6UöæÇ—6—2&’â6òF†RÆ–æ²æÖW26&–Æ—G’F†RvP¦—BÆæG2öâ6ææ÷BW&f÷&ÒâV—F†W"&VfW&Væ6RæÇ—6—2—2&öGV7BÂ–âv†–6‚66P¦—BæVVG26öÖWF†–ærF†B'Vç2—BÂ÷"—B—2æ÷BÂ–âv†–6‚66RF†R6–vç÷7B6†÷VÆ@¦vòâ&÷F‚&RFV6—6–öç2&÷WBv†BF†R&öGV7BFöW2à ¢¢¤öæRF†–ær6†V6¶VBæBf÷VæBæ÷BFò&R'Vrâ¢¢WfÇVFUöÆ–7–ÆWG0¦&VfW&Væ6UöæÇ—6—67BF†R&ö×B&WV—&VÖVçBæBF†Vâ&VG2&ö×BæÆVæwF† ¦öâF†RæW‡BÆ–æRÂv†–6‚Æöö·2Æ–¶R7&6‚öâÖ—76–ær&ö×Bâ—B—2æ÷C ¦6ÆVâ‚–&WGW&ç27G&–ær‡fÇVRÇÂ""–Â6òF†R&ö×B—2Çv—2BÆV7Bà¦V×G’7G&–ærâ&W÷'FVB†W&R&V6W6RF†RæW‡BW'6öâv–ÆÂ&VBF†÷6RGvòÆ–æW0§F†R6ÖRv’à ¦fW&–g“¦ÆVæ6†w&VVâÂ“SBFW7G276–ærà ¢222##bÓ‚Ó‚(	BæWGv÷&²6†V6²F†B6÷VÆBæWfW"†fR76V@ ¦fW&–g’ÖW‡FW&æÂ×&W÷6—F÷&–W6f–ÆVBöâF†R'&æ6‚†VBÂæBF†RÆör6–Bv†@¦†VæVBv—F†÷WBÖ&–wV—G“  £ât$ä”äs¢v—D‡V"’&FRÆ–Ö—B&V6†VC²&VÖ–æ–ær&VÖ÷FR6†V6·2&R–æFWFW&Ö–æFRà£âU%$õ#¢æWGv÷&²fW&–f–6F–öâ6öæf—&ÖVB¢¦æöæRöbR¢¢&Vv—7FW&VBF&vWG2Â6òF†—2'VâW7F&Æ—6†VBæ÷F†–ær&÷WBv†WF†W"F†W’W†—7Bà ¢¢¥F†R6†V6¶W"v2&–v‡BæB&V†fVB6÷'&V7FÇ’â¢¢—B&V6†VBF†R&FRÆ–Ö—B&Vf÷&P¦6öæf—&Ö–ær6–ævÆR&W÷6—F÷'’ÂæB&VgW6VBFò&W÷'B7V66W72öâ'VâF†@¦W7F&Æ—6†VBæ÷F†–ærâF†B—2F†R6ÖRF—66—Æ–æR2WfW'’Æ—7BÖ&6VB6†V6²†W&S ¦6†V6²6F—6f–VB'’âV×G’&W7VÇB—2v÷'6RF†â6†V6²F†Bf–Ç2à ¢¢¥F†Rv÷&¶fÆ÷r&âVæWF†VçF–6FVBâ¢¢æòFö¶VâÂv†–6‚ÖVç2cv—D‡V"§&WVW7G2â†÷W"6†&VB7&÷72WfW'’'VææW"öâF†R6ÖRFG&W72Âv–ç7B¢£P§F&vWG2¢¢â—B6÷VÆBæ÷B†fR76VB&VÆ–&Ç’Bç’ö–çBÂæBF†R&Vv—7FW ¦w&÷v–ærg&öÒæ–æWG’ÖöFB&V6÷&G2FòF†—2vVV²GW&æVB'VæÆ–¶VÇ’"–çFð¢&6W'F–â"à ¦67&—G2÷fW&–g’Ö÷Vâ×6÷W&6R×&Vv—7G'’æÖ§6†2&VBt•D…T%õDô´Tæ6–æ6R—Bv0§w&—GFVâ(	B—G2÷vâf–ÇW&RÖW76vRVæG2&6†V6²v—D‡V"f–Æ&–Æ—G’æB¢§F†P§Fö¶Vâ¢¢"âF†Rv÷&¶fÆ÷r6–×Ç’æWfW"76VBöæRâöæRVçc¦&Æö6²FöW2—BÂæ@§F†RW†—7F–ærW&Ö—76–öç3¢6öçFVçG3¢&VF—2Væ÷Vv‚f÷"F†RV&Æ–2&W÷6—F÷'¦ÖWFFF—B&VG2à ¥v÷'F‚7FF–ærÆ–æÇ’&V6W6RF†R6†R&V7W'3¢F†—2v2æ÷BfÆ·’6†V6²æ@¦æ÷B&B&V6÷&Bâ—Bv26†V6²v†÷6R§&V6öæF—F–öç2vW&RæWfW"ÖWB¢Âf–Æ–æp¦†öæW7FÇ’f÷"ÖöçF‡2rv÷'F‚öb66†VGVÆVB'Vç2æBöæÇ’&V6öÖ–ærf—6–&ÆRv†VâF†P§÷VÆF–öâw&Wr7BF†Rg&VRÆÆ÷væ6Râæ÷F†–ær&÷WBF†R&Vv—7G'’v2w&öærà ¦fW&–g“¦ÆVæ6†w&VVâÂ“SBFW7G276–ærà ¢222##bÓ‚Ó‚(	BöffÆ–æRF÷V6‡ö–çG2Â&VgW6VBGv–6RæBæ÷r'V–Ç@ ¥F†R&VgW6Âæ÷FR–âÆ–"÷6öæ&Öw&÷wF‚Ö7&VFR×7V72æ6§6æÖVB—G2÷và¦6öæF—F–öã¢¢$–böffÆ–æRF÷V6‡ö–çG2&RvçFVBÆFW"ÂF†R†öæW7BfW'6–öâ7F'G0§v—F‚6öÇVÖâ&V6÷&F–ærF†BW'6öâVçFW&VB—Bâ"¢F†B6öÇVÖâÆæFVBV&Æ–W §FöF’Â6òF†RfVGW&R—2'V–ÇB(	BæBF†RF‡&VR'G2F†BÖ¶R—B6fRÆæFV@§FövWF†W"&F†W"F†â–â6WVVæ6Rà ¢¢¥F†Rf÷&Òâ¢¢'W6–æW726â&V6÷&BF†R6öçfW'6F–öâBF†R6÷VçFW"ÂF†R†öæP¦6ÆÂÂF†RW'6öâv†òÖVçF–öæVBv†W&RF†W’†V&Böb–÷Râ—BFVÆ–&W&FVÇ’FöW2æ÷@¦öffW"&÷f–FW%ö¶W–Âæöç–Ö÷W5ö–F÷"W‡FW&æÅöWfVçEö–F¢F†÷6R–FVçF–g’§G&6¶VB6÷W&6RÂæBWGF–ærF†VÒöâ†æBÖVçG'’f÷&Ò—2öffW&–ærFòG&W72§G—VB&÷r2ÖV7W&VBöæRà ¢¢¥F†RVæGö–çB&V6÷&G2v†–6‚â¢¢G'VVf÷"ç—F†–ærF†Rf÷&Ò7V&Ö—G2Âæ@¢¢¦çVÆÆ(	Bæ÷BfÇ6V(	Bv†Vâ6ÆÆW"6—2æ÷F†–ær¢¢Â&V6W6RFVfVÇF–ærFð¦fÇ6Rv÷VÆB76W'BF†BWfW'’–çFVw&F–öâ×w&—GFVâ&÷r—2¦¶æ÷vâ¢Fò&P¦Ö6†–æR×&V6÷&FVBÂv†–6‚—26Æ–Ò&÷WB6ÆÆW'2F†—2VæGö–çB†2æWfW"ÖWBà ¢¢¥F†RgVææVÂW†6ÇVFW2—BÂæBF†—2—2F†R†ÆbF†BÖGFW'2â¢¢F†R%&V6†VB §7FvR6÷VçG2öæÇ’&÷w2F†B&Ræ÷B†æBÖVçFW&VBâWfW'’G&÷&FR&VÆ÷r—B—0¦6ö×WFVBv–ç7BF†BçVÖ&W"Â6òv—F†÷WBF†—2'W6–æW726÷VÆB&—6R—G2÷và§&V6‚æBÆ÷vW"—G2÷vâ&VçBG&÷Ööfb'’G—–ærâÓÒG'VV&F†W"F†à¦ÓÓÒfÇ6VÂ&V6W6RçVÆÂÖVç2&æö&öG’&V6÷&FVBv†–6‚"æBWfW'’&÷rw&—GFVà¦&Vf÷&RF†R6öÇVÖâW†—7FVB—2G&6¶VB2f"2ç–&öG’¶æ÷w2(	BG&VF–ærçVÆÂ0¦†æBÖVçFW&VBv÷VÆBW&6RF†Rv†öÆR†—7F÷'’g&öÒF†RgVææVÂà ¥F†RG—VBöæW2&R¢§&W÷'FVBÂæ÷BG&÷VB¢¢â6÷VçE7FvV&WGW&ç2†æDVçFW&VF ¦Æöæw6–FR6÷VçFâW†6ÇVF–ærF†VÒ6–ÆVçFÇ’v÷VÆB&R2Ö—6ÆVF–ær26÷VçF–æp§F†VÓ¢F†R'W6–æW72&V6÷&FVBF†÷6RöâW'÷6RæB—2VçF—FÆVBFò6VRF†VÒÂ§W7@¦æ÷B–ç6–FRÖV7W&VBf–wW&Rà ¢¢¥F‡&VRW†—7F–ær6†V6·2&VgW6VBF†R6†ævRÂæBV6‚v2&–v‡Bâ¢¢F†P¤w&÷wF‚Öf÷&×2FW7B6Vv‡BF†BF†R†æFÆW"vçG2G&6¶–æuö&6—5öGFW7FVFæBF†P¦f÷&Ò†Bæòf–VÆBf÷"—B(	Bf÷&ÒF†B7V&Ö—G2–çFòCF†R7W7FöÖW"6ææ÷@¦7BöâÂv†–6‚—2FVfV7BF†BFW7BÇ&VG’wV&G2f÷"6öçFVçBâF†P¦f÷&Ò×&V6†&–Æ—G’FW7B6Vv‡B—G2÷vâæ÷r×7FÆRW†V×F–öââæBF†RFW7BF†B†@§&VgW6VBF†—2f÷&ÒGv–6Rf–ÆVB'’æÖRà ¥F†BF†—&BöæRv2&Ww&—GFVâ&F†W"F†âFVÆWFVBÂæB—Bæ÷r76W'G2F†P¢¢¦–çf&–çB–ç7FVBöbF†R'6Væ6R¢£¢F†R6öÇVÖâW†—7G2ÂF†RgVææVÂW†6ÇVFW0§G—VB&÷w2æB7F–ÆÂ6÷VçG2çVÆÂöæW2ÂF†Rf÷&ÒöffW'2æòG&6¶VB×6÷W&6Rf–VÆBÀ¦æBF†RGFW7FF–öâ—2&W6VçBæBæ÷B&R×F–6¶VBâfW&–f–VB'’&VÖ÷f–ærV6‚ö`§F†÷6RF‡&VR&÷FV7F–öç2–âGW&â(	BWfW'’öæRf–Ç2ÂæBF†RgVææVÂöæRf–Ç2'¦æÖRà ¦fW&–g“¦ÆVæ6†w&VVâÂ¢£“SB¢¢FW7G276–ærà ¢222##bÓ‚Ó‚(	BâW†—7FVæ6R6†V6²F†Bv26¶–ærF†Rw&öærÖöGVÆP ¤FF–ær†æEöVçFW&VFFò7W7FöÖW"Ö¦÷W&æW’7FvRf–ÆVBfÆ–FF–öâÂv†–6€§GW&æVB÷WBFò&RF†RfÆ–FF–öâw2fVÇB&F†W"F†âF†R6öÇVÖâw2à ¦Æ–"÷6öæ&ÖÖ–w&F–öâÖ6öÇVÖç2æ6§6ç7vW'2GvòF–ffW&VçBVW7F–öç2à¦F&ÆT6öÇVÖç66—2v†–6‚6öÇVÖç2¢¦W†—7B¢¢(	B–æ6ÇVF–ærF†R##’FFVB'¦ÇFW"F&ÆV7&÷72F†RÖ–w&F–öç2âFW67&–&VD6öÇVÖç66—2v†–6‚6öÇVÖç26à¦&R¢¦FW67&–&VB¢¢ÂÖVæ–ærFV6Æ&VB–ç6–FR7&VFRF&ÆV&Æö6²v—F‚'6V@§G—S²—BFVÆ–&W&FVÇ’öÖ—G2F†R&W7BÂæB6—2v‡“¢¢&f÷&Òf–VÆBv—F‚¦ÖFR×WG—R—2v÷'6RF†âÖ—76–æröæR"¢à ¦Æ–"÷6öæ&Ö7W7FöÖW"Ö¦÷W&æW’æ6§6W6VBF†R6V6öæBFòç7vW"F†Rf—'7Bâ—G0¦fÆ–FFR‚–W†—7G26òæò6öÇVÖâ—2G—VBg&öÒÖVÖ÷'’ÂæB—Bv÷VÆB†fP§&W÷'FVB&VÂ6öÇVÖâ2Ö—76–ær(	B¢£3R6öÇVÖç27&÷72#"F&ÆW2W†—7Bv—F†÷W@¦&V–ærFW67&–&&ÆR¢¢ÂæBF†Rf—'7B7FvRFòæÖRöæRv÷VÆB†fR&VVâ&V¦V7FVBà¦6öæ&÷6÷VæEö76WG6ÆöæR†22öbF†VÒà ¤W†—7FVæ6RW6W2F&ÆT6öÇVÖç6æ÷râæ÷F†–ær–âF†Bf–ÆRæVVFVBG—RÂ6òF†P¦FW67&–&&ÆR†VÇW"vVçB÷WBv—F‚F†R7v—F6‚&F†W"F†â7F––ær&W6–FR—B2§6V6öæBv’Fò6²à ¥fW&–f–VB–â&÷F‚F—&V7F–öç2Â&V6W6RW&Ö—76—fR6†V6²F†B7F÷2&V¦V7F–æp¦ç—F†–ær—2F†Rö'f–÷W2v’Fò&f—‚"F†—2æBv÷VÆB†fR&VVâv÷'6S¢7FvP¦æÖ–ær6öÇVÖâF†BFöW2æ÷BW†—7B—27F–ÆÂ6Vv‡B'’æÖRÂæB7FvRæÖ–æp¦&VÂÇFW"F&ÆV6öÇVÖâ—2æ÷r66WFVBà ¢¢¤æBf—‚F†Bv2æ÷BÖFRâ¢¢F†Rf—'7B&VBöbF†—2Æöö¶VBÆ–¶R##’Ö6öÇVÖà¦&Æ–æB7÷B–âF†RÖöGVÆR—G6VÆbÂæBF†Rf—'7B–ç7F–æ7Bv2FòFV6‚—BFð¦FW67&–&RÇFW"F&ÆV6öÇVÖç2Föòâ&VF–ærF†R6öFR7F÷VBF†BâF†RöÖ—76–öà¦—2FVÆ–&W&FRÂFö7VÖVçFVBÂæB&÷FV7F—fS¢FW67&–&–ærF†÷6R3R6öÇVÖç2v÷VÆBW@§F†VÒ–çFòf÷&×2'V–ÇBg&öÒFW67&—F–öç2ÂæB†æEöVçFW&VF&V6†–ær7W7FöÖW ¦f÷&Ò—2W†7FÇ’F†Rw&öær÷WF6öÖRâF†Ræ'&÷rf—‚v2–âF†R6ÆÆW"Âæ÷BF†P¦ÖöGVÆRà ¦fW&–g“¦ÆVæ6†w&VVâÂ“C‚FW7G276–ærà ¢222##bÓ‚Ó‚(	Bv†–6‚’—2÷76–&ÆR†W&RÂæBF†R6öÇVÖâGvòfVGW&W2vW&Rv—F–æröà ¥Gvò–V6W2öbv÷&²ÂæBF†Rf—'7BFV6–FVBF†R6V6öæBà ¢¢¥&W6V&6†–ærv†B’6÷VÆB&RFFVB&öGV6VBâç7vW"&÷WB†VFW'2Âæ÷@¦ÖöFVÇ2â¢¢tTåE2æÖF&WV—&W2’6ÆÇ2F‡&÷Vv‚F†R&÷f–FW"vFWv’÷"à¦&÷fVBFFW"ÂæBfVGW&R×W7B6÷7BF†R7W7FöÖW"æ÷F†–ærâFövWF†W"F†÷6P§'VÆR÷WBWfW'’†÷7FVBÖöFVÂ’26†—VB6&–Æ—G“¢W"×Fö¶Vâ&–ÆÂ6ææ÷@§6—B&V†–æBg&VRFööÂÂæBg&VRF–W"—2&–6R6öÖV&öG’VÇ6R6â6†ævRâ6ð§F†RVW7F–öâ—2§v†–6‚’†2æòW"×W6R6÷7B¢ÂæBF†W&R&RGvòç7vW'2à ¢¢¥F†Rf—'7B—2F†BF†RÇVÖ&–ærÇ&VG’W†—7G2æB—27v—F6†VBöfbâ¢¢6—€¦FFW'2(	BöÆÆÖÂ÷VâvV%T’ÂF–g’ÂÆævfÆ÷rÂ$tfÆ÷rÂ7&vÃD’(	BÇW2F†P¦vFWv’—G6VÆbÂWfW'’öæR&W÷'F–ær6WGW×&WV—&VBVçF–Â6öæf–wW&VBÂv—F‚æòvP¦æ÷F–6–ær—G2'6Væ6RâF†R&VÆ—7F–2¦W&òÖ6÷7BfW'6–öâöb’†W&R—2¢¤öÆÆÖöà¦†&Gv&RF†R÷væW"Ç&VG’÷vç2¢¢ÂæBF†B—26öæf–wW&F–öâ&F†W"F†à¦Væv–æVW&–ærà ¢¢¥F†R6V6öæB—2'&÷w6W"×6–FR–æfW&Væ6R¢¢ÂæB—BÖ—'&÷'2F†Rf–FVò7vVWW†7FÇ“ §F†R6öç7G&–çBF†B&Æö6·26W'fW"×6–FRFööÇ2FöW2æ÷BÇ’Fò6öÖWF†–ær'Vææ–æp¦öâF†R7W7FöÖW"w2÷vâFWf–6Râ¢¥G&ç6f÷&ÖW'2æ§2¢¢ƒbÃ#c7F'2’æB¢¥vV$ÄÄÒ¢ ¢ƒ‚ÃSc’’Â&÷F‚fW&–f–VB6†RÓ"ãÂ&Vv—7FW&VBB¢£¢¢à ¤&÷F‚&RæVVG5÷6V7W&—G•÷&Wf–Wv&F†W"F†âFFW'2ÂæBF†R&V6öç2&R–à§F†—2Æ–6F–öâw2÷vâ†VFW'2Â&VB÷WBöb6W'fW"æ§6&F†W"F†â77VÖVBà¦6öææV7B×7&6æÖW27W&6RæB7G&—RæBæ÷F†–ærVÇ6RÂ6òÖöFVÂF÷væÆö@¦g&öÒ‡Vvv–ævf6Ræ6ò—2&VgW6VB(	BV—F†W"F†BÆ—7Bw&÷w2÷"F†RvV–v‡G2&R6W'fV@¦g&öÒ†W&RæBF†—2&öGV7B—2F†R&æGv–GF‚â¢¦7&÷72Ô÷&–v–âÔVÖ&VFFW"ÕöÆ–7– ¦—2æ÷B6WBç—v†W&R–âF†R6öFV&6R¢£¢4ôõ—2Â4ôU—2æ÷BÂ6òF†RvR—2æ÷@¦7&÷72Ö÷&–v–â—6öÆFVBÂ6†&VD'&”'VffW&—2Væf–Æ&ÆRÂæB×VÇF—F‡&VFVBt4Ð¦–æfW&Væ6R6ææ÷B'VââæB67&—B×7&2w6VÆbvv—F‚æò'VæFÆW"ÖVç2fVæF÷&V@¦'VæFÆRF†—2&ö¦V7BF†Vâ÷vç2âæöæRöbF†B&VgW6W2F†R–FV²—BÖ¶W2—Bà¦÷væW"FV6—6–öâ&÷WB6V7W&—G’÷7GW&Rà ¥vV$ÄÄÒ6'&–W2öæRÖ÷&R6öç7G&–çBF†BFV6–FW2—BÆöæS¢W6&ÆRÖöFVÂ—0¦‡VæG&VG2öbÖVv'—FW2B&W7BæBW7VÆÇ’6WfW&Âv–v'—FW2Âöæ6RW"FWf–6RÂöà§F†R7W7FöÖW"w26öææV7F–öââ¢¤g&VRF†B6÷7G26öÖV&öG’Gvòv–v'—FW2öbFF—0¦æ÷Bg&VRâ¢  ¢¢¥F†VâF†R6öÇVÖâGvò&VgW6VBfVGW&W2vW&Rv—F–æröââ¢¢w&÷wF…÷F÷V6‡ö–çG6 ¦æB6öæ&÷&ö×E÷FV×ÆFW6&÷F‚&VgW6Rf÷&Òf÷"F†R6ÖR&V6öã¢G—VB&÷p§v÷VÆB&R–æF—7F–æwV—6†&ÆRg&öÒG&6¶VB÷"7W&FVBöæRà¦Æ–"÷6öæ&Öw&÷wF‚Ö7&VFR×7V72æ6§66—26ò–â2Öç’v÷&G2æBæÖW2F†Rf—‚(	@¢'F†R†öæW7BfW'6–öâ7F'G2v—F‚6öÇVÖâ&V6÷&F–ærF†BW'6öâVçFW&VB—B"à ¦†æEöVçFW&VF—2F†B6öÇVÖâÂæB—B—2¢¦çVÆÆ&ÆRöâW'÷6R¢£¢G'VRÖVç2§W'6öâG—VB—BÂfÇ6RÖVç2—B'&—fVBG&6¶VB÷"7W&FVBÂæB¢¦çVÆÂÖVç0¦æö&öG’&V6÷&FVBv†–6‚¢¢âæ÷BçVÆÂFVfVÇBfÇ6Vv÷VÆBw&—FR6Æ–Ò&÷W@¦WfW'’W†—7F–ær&÷r(	BF†B—B—2¦¶æ÷vâ¢Fò&RÖ6†–æR×&V6÷&FVB(	BöâF†R7G&VæwF€¦öbæ÷F†–ærÂv†–6‚—2F†R6öÆÆ6RF†—2&W÷6—F÷'’¶VW2f–æF–ærÂ–çG&öGV6V@¦FVÆ–&W&FVÇ’à ¦FW7G2ö†æBÖVçFW&VB×7F—2×F‡&VR×7FFRçFW7Bæ§6–ç2F†Bv–ç7BF†P§vVÆÂÖ–çFVçF–öæVBF–G’×WâfW&–f–VBv–ç7B&÷Fƒ¢Ö¶–ær—Bæ÷BçVÆÂFVfVÇ@¦fÇ6Vf–Ç2'’æÖRÂæBFF–ær&6¶f–ÆÂf–Ç26W&FVÇ’Â&V6W6RâUDDP¦—2F†R6ÖR6Æ–Òw&—GFVâæ÷F†W"v’à ¤æ÷F†–ærw&—FW2F†R6öÇVÖâ–WBÂæBF†B—27FFVB&F†W"F†âvÆ÷76VBâ&Vf÷&R§F÷V6‡ö–çBf÷&Ò6†—2ÂGvòF†–æw2†fRFò†Vã¢F†Rf÷&Ò6WG2†æEöVçFW&VF §G'VRÂæBF†R¢¢%&V6†VB"7FvRöbÆ–"÷6öæ&Ö7W7FöÖW"Ö¦÷W&æW’æ6§67F÷0¦6÷VçF–ær†æBÖVçFW&VB&÷w22ÖV7W&VB¢¢(	BgVææVÂ'W6–æW72Ö¶W2FV6—6–öç2öà¦×W7Bæ÷BV–WFÇ’–æ6ÇVFRWf–FVæ6R6öÖV&öG’G—VBà ¤6öçF–æW"&W6WBÆæFVBÖ–B×F6²æBFW7G&÷–VBF†RÖ–w&F–öâÂF†R&W6V&6€¦Fö7VÖVçBæBF†R&Vv—7FW"VF—G2&Vf÷&RF†W’vW&R6öÖÖ—GFVBâÆÂF‡&VRvW&P§&Ww&—GFVââ6—‡F‚&W6WB–âGvVÇfR6†V6²Ö–ç2à ¥&Vv—7FW"B¢£¢¢ÂƒrÖ–w&F–öç2âfW&–g“¦ÆVæ6†w&VVâÂ¢£“C‚¢¢FW7G276–ærà ¢222##bÓ‚Ó‚(	B6öçF7G2ÂæBF†R6ÖRÆ—FW&ÂÖ—7F¶Rf÷"F†RF†—&BæBf÷W'F‚F–ÖP ¥F†—&B&V6÷&BG—RFò&V6öÖRf–ÆR6öÖV&öG’VÇ6Rw26ögGv&R÷Vç2ÂgFW ¦&öö¶–æw2&V6ÖR6ÆVæF"VçG&–W2æB66÷VçF–ærW‡÷'G2&V6ÖR55bâw&Wf÷ ¦d4$F7&÷726W'fW"æ§6ÂÆ–"öæB&÷WFW2öf÷VæBæ÷F†–ærÂ6ò¢¢$7W7FöÖW"`¤VçV—'’G&6¶W""(	B–B&öGV7B(	B6÷VÆB†öÆB7W7FöÖW"w2†öæRçVÖ&W"æ@¦öffW"æòv’FòvWB—B–çFòF†R†öæR–÷Rv÷VÆB&–ærF†VÒg&öÒâ¢  ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö7W7FöÖW'2ó¦–Bö6öçF7Ff÷"öæRÀ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö7W7FöÖW'2ö6öçF7G6f÷"F†RFG&W72&öö²âæòFWVæFVæ7’À¦æò6W'f–6RF†R÷væW"'Vç2ÂæòW"Ö7W7FöÖW"6÷7BâF†R7FF–2F‚—2FV6Æ&V@¦&Vf÷&RF†R&ÖWFW&—6VBöæRFVÆ–&W&FVÇ’&F†W"F†â'’ÇV6²à ¥Gvò§VFvVÖVçG2w&—GFVâ–çFòF†RÖöGVÆR&F†W"F†âÆVgB–×Æ–6—Bâ¢¤æÖRæ@¦æ÷F†–ærVÇ6R—2fÆ–Bd6&BæBW6VÆW72öæR¢¢(	B—B–×÷'G26öÖV&öG’–÷R7F–ÆÀ¦6ææ÷B6öçF7B(	B6ò6&BæVVG2âVÖ–Â÷"†öæRæBF†R&VgW6Â6—2v†–6€¦—2Ö—76–ærâæB¢¤â—2æ÷BwVW76VB¢£¢F†R&öGV7B7F÷&W2öæRæÖV6öÇVÖâÂæ@§G&VF–ærF†RÆ7Bv÷&B2fÖ–Ç’æÖR—2w&öærf÷"Ö÷7BöbF†Rv÷&ÆBÂ6òF†P§v†öÆRfÇVRvöW2–âF†Rf—'7B6ö×öæVçBæBF†R&W7B7F’V×G’à ¢¢¥F†VâF†R6ÖRÖ—7F¶RÂGv–6RÖ÷&Râ¢¢W66UFW‡Fv2w&—GFVà¦ç&WÆ6R‚ó²örÂ%Ã²"–(	Bv†–6‚–â¦f67&—BÆ—FW&Â—2§W7B#²&â–âd6&@§F†B—2v÷'6RF†â–â6ÆVæF"f–ÆS¢æ—2÷6—F–öæÂæB6VÖ–6öÆöâ×6W&FVBÀ§6òâVæW66VB6VÖ–6öÆöâ–â$6†'“²ÇFB"–×÷'G22fÖ–Ç’æÖRæBv—fVà¦æÖRâF†VâF†RFW7B76W'F–ærF†Rf—‚v2w&—GFVâv—F‚F†R6ÖRÆ—FW&Âæ@¦w&VVBv—F‚F†R'&ö¶Vâ6öFRâF†B—2F†R¢§F†—&B¢¢æB¢¦f÷W'F‚¢¢ö67W'&Væ6Rö`¦öæRGvòÖ6†&7FW"Ö—7F¶R7&÷72F‡&VRf–ÆW2à ¥6òF†RwV&B—2æòÆöævW"W"ÖÖöGVÆRâöæRFW7Bæ÷r76W'G2F†B¢¦&÷F‚¢ ¦6öæ&Ö6öçF7BÖ6&Bæ6§6æB6öæ&Ö6ÆVæF"Ö–çf—FRæ6§6W66R6VÖ–6öÆöâÂ¦6öÖÖæB&6·6Æ6‚ÂæBæÖW2v†–6‚öæRf–ÆVBâfW&–f–VB'’&Vw&W76–ærV6€¦ÖöGVÆR–âGW&ã¢F†R6ÆVæF"&Vw&W76–öâf–Ç2v—F‚&6ÆVæF"–çf—FRÆVfW2§6VÖ–6öÆöâVæW66VB"ÂF†R6öçF7B&Vw&W76–öâv—F‚&6öçF7B6&BÆVfW2§6VÖ–6öÆöâVæW66VB"âV6‚ÖöGVÆRw2÷vâFW7Bv÷VÆB†fR6Vv‡BöæÇ’—G2÷vâ6÷’À¦æBF†R6V6öæB6÷’v2w&—GFVâ¦gFW"¢F†Rf—'7Bv2f—†VBà ¥F†R÷WFvR7&vÂ6¶VBf÷"F†RæWrF÷væÆöBFò&RÆ—7FVB–âd”ÄUôDõtäÄôE6À§v†–6‚—2F†R†æBÖÖ–çF–æVBÆ—7BFFVBv†VâF†RF–'’6†—VBâF†BWG2—@§VæFW"F†R7G&–7FW"F÷væÆöB76W'F–öâ(	BS2Â&VF&ÆR&öG’Âæò¥4ôâ&Æö"Âæð§Æ6V†öÆFW"(	B&F†W"F†âF†RvR'VÆRÂv†–6‚—2F†RFW6–væVBF‚æBæ÷B§vV¶Væ–ærà ¦fW&–g“¦ÆVæ6†w&VVâÂ¢£“CB¢¢FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†Rf—'7BRÖ6öÖÖW&6R&V6÷&BÂæBF&ÆRæÖVBf÷"F†Rw&öærF†–æp ¦ÇVæ'‡öÇVæ&v27V&Ö—GFVBv—F‚F†R–ç7G'V7F–öâFòFB—BFòF†RÆ–6F–öâà¥fW&–f–VB¢¤Ô•B¢¢g&öÒv—D‡V"w2FWFV7FVBÆ–6Væ6Rf–VÆBÂ2ÃcS7F'2ÂC“Rf÷&·2À§W6†VBF†RF’—Bv27V&Ö—GFVBâ&Vv—7FW&VBB¢£’¢¢(	BæB—B—2F†R&Vv—7FW"w0¢¢¦f—'7BRÖ6öÖÖW&6R&V6÷&B¢¢Âv†–6‚—2&VÂv–âF†R6ÖRv’7VV6€§&V6övæ—F–öâv2à ¢¢¤—B6ææ÷B&RFFVB2FWVæFVæ7’ÂæBF†RÆ–6Væ6R—2æ÷Bv‡’â¢¢—B—2¤6ö×÷6W"6¶vRf÷"Æ&fVÃ²F†—2Æ–6F–öâ—2W‡&W726öÖÖöä¥2öâfW&6VÀ§6W'fW&ÆW72v—F‚æò'V–ÆB7FWâF÷F–ær—BÖVç2F†R÷væW"'Vç26V6öæ@¦Æ–6F–öâv—F‚—G2÷vâFF&6R(	Bâ–æg&7G'V7GW&RæB6÷7BFV6—6–öâÂæ÷B¦Æ–6Vç6–æröæRâ&V6÷&FVB&VfW&Væ6UööæÇ–f÷"F†B&V6öâà ¢¢¤6†V6¶–ærv†B'W6–æW72'V–ÆFW"Ç&VG’†2GW&æVBWF†RÖ÷&R–çFW&W7F–æp§F†–ærâ¢¢F†RF&ÆR6ÆÆVB&öGV7G6—2æ÷BÖW&6†çB6FÆöwVRBÆÃ¢—G0¦&öGV7Eö¶W–—26öç7G&–æVBFò'W6–æW75ö'V–ÆFW&Â7&VF÷%÷7GVF–öÀ¦w&÷wF…÷7GVF–öæB6öæ&ööæVÂ6ò—B&V6÷&G2§v†–6‚4ôä$&öGV7Bà¦÷&væ—¦F–öâ†2Væ&ÆVB¢âF†RÖW&6†çBÖf6–ærF&ÆW2&P¦'W6–æW75÷6W'f–6Uö6FÆövÂÖVçUö—FV×6æB–çfVçF÷'•ö—FV×6Âv—F‚V÷FW2æ@¦7W7FöÖW%ö–çfö–6W6öâF÷à ¥6ò'W6–æW72†W&R6â&–6R6W'f–6RæB–çfö–6Rf÷"—BÂæB†2¢¦æò&öGV7@¦6FÆöwVRv—F‚f&–çG2Âæò6'BÂæò6†V6¶÷WBÂæòF‚'VÆW2æBæò6†—–ær¢¢à¥F†B—2Æ&vW"vF†âF†R7V&Ö—76–öâ–×Æ–VBÂæB—B—2v÷'F‚¶æ÷v–ær&Vf÷&P¦ç–&öG’Æç2&÷VæBF†Rv÷&B'&öGV7G2"à ¥F†—&BF&ÆRF†—2vVV²v†÷6RæÖRö–çG26öÖWv†W&R—G26öÇVÖç2Fòæ÷B(	@¦6öæuöf–ævW'&–çG6†öÆG2FW67&—F–öç2&F†W"F†âVF–òÂ66÷VçF–æuöW‡÷'G6 §&öÖ—6VBf–ÆRæ÷F†–ær&öGV6VBÂæBæ÷r&öGV7G6æÖW24ôä$w2÷và¦Væ&ÆVÖVçB&F†W"F†âç—F†–ær7W7FöÖW"6VÆÇ2âæöæR—2'VrâÆÂF‡&VR&P§F†R¶–æBöbF†–ær6öÖV&öG’'V–ÆG2Æâöâà ¥v†BÇVæ"—2vVçV–æVÇ’vööBf÷"—2F†RÖöFVÃ¢f&–çG2Â&–6R'&V·2ÂF‚'VÆW0¦æBF—66÷VçB7F6¶–ær&RF†R†&B'Böb6VÆÆ–ærÂF†W’&Rv÷&¶VB÷WBæ@§FW7FVBF†W&RÂæB&VF–ærF†VÒ6÷7G2æ÷F†–æræBæVVG2æò6W'f–6R'Vææ–ærâ—G0§–ÖVçBæB&VgVæBF‡2&RW‡Æ–6—FÇ’÷WBöb66÷R(	BÖöæW’†W&RvöW2F‡&÷Vv€§F†RW†—7F–ær&÷f–FW"F‚ÂæB&VgVæG2&RöæRöbF†R6WfVâ÷væW"Ö&÷fÀ¦6FVv÷&–W2v†FWfW"â–×÷'FVBÆ–'&'’v÷VÆBÆÆ÷rà ¦fW&–g“¦ÆVæ6†w&VVâÂ“3"FW7G276–ærà ¢222##bÓ‚Ó‚(	B7V&Ö—GFVBFö7VÖVçBÂ76W76VB&F†W"F†â77VÖV@ ¤6fVBÔ…DÔÂ&6†—fRöbæWw6ÆWGFW"ÆæF–ærvRv27V&Ö—GFVBv—F‚F†P¦–ç7G'V7F–öâFòW6R—G2–æf÷&ÖF–öâ–âF†R&öGV7BæB–âF†R6ÆVFR6WGWâ—Bv0¦÷VæVB&Vf÷&Rç—F†–ærv2FöæRv—F‚—BÂv†–6‚6WGFÆVBF†RVW7F–öâV–6¶Ç’à ¢¢¥F†R&6†—fR—2#R´"æB—G2VçF—&Rf—6–&ÆRFW‡B—2ÃsCb6†&7FW'2¢¢(	B¦†VF–ærÂf÷W'FVVâ&W6÷W&6RF–ÆW26''––ærF—FÆRÂ6FVv÷'’æBöæRÖÆ–æP¦FW67&—F–öâV6‚ÂæBfö÷FW"&VF–ær*’##bF†R6öFRæWw6ÆWGFW&âæò6öFRÂæð¦FFÂæò7V6–f–6F–öâÂæòGF6†ÖVçBâWfW'’F–ÆR—2â÷WF&÷VæBÆ–æ²Fò§6W&FR†÷7FVB6—FRÂVÆWfVâöbF†VÒöâÆ÷f&ÆRæÂæB¢¦æöæRöbF†Rf÷W'FVVà¦—2&W÷6—F÷'’¢¢Â6òæöæR—26öÖWF†–ærF†—2&Vv—7FW"6â76W72f÷"Æ–6Væ6Rà ¥&Vv—7FW&VB¢¦&Æö6¶VB¢¢ÂöâF†R&VF–ærÇ&VG’Æ–VBFòF†R”ôäõ2wV–FS¢¦Fö7VÖVçBF†B—2g&VRFòf–WræB6'&–W2âW‡Æ–6—B6÷—&–v‡Bæ÷F–6R†0¦w&çFVBæ÷F†–ærâg&VR—2&–6RÂæ÷BÆ–6Væ6Râ&Vv—7FW"B¢£‚¢¢à ¢¢¥v†B6÷VÆB†öæW7FÇ’&RF¶Vâv26÷VçBÂæ÷B6VçFVæ6Râ¢¢V–v‡BöbF†P¦f÷W'FVVâ&W6÷W&6W2&R&÷WB6ÆVFR6öFRÂF†R6ÆVFRvVçB4D²÷"'V–ÆF–ær¦vVçG2âF†B—2FFVBÂ6†V6¶&ÆRö'6W'fF–öâ&÷WBv†W&RFWfVÆ÷W"æWw6ÆWGFW ¦&VÆ–WfW2—G27V'67&–&W'2rGFVçF–öâ—2Âæ@¦Fö72öÖ&¶WBó##bÓ‚Ó‚Õ5T$Ô•EDTBÕ$U4õU$4RÔ”äDU‚æÖF&V6÷&G2—BÆöærv—F€§6öÖWF†–ærÖ÷&RW6VgVÃ¢F&ÆRÖ–ærF†R7V&¦V7G2F†÷6RF–ÆW2æÖRv–ç7Bv†@§F†—2&W÷6—F÷'’Ç&VG’†2(	BF†RvVçB'VææW"ÂF†R6WfVâ÷væW"Ö&÷fÀ¦6FVv÷&–W2ÂF†R†÷W&Ç’66†VGVÆW"ÂF†R&÷fÂVWVRF†B&RÖ6·2F†RvFRÂæ@§F†R#2Ö6öÖÖæB&VÆV6R6†–ââæ÷F†–æröâF†BÆ—7B6ÖRg&öÒF†RFö7VÖVçBÂæ@§F†RF&ÆR6—26òÆ–æÇ’â¢¥F†R7V&¦V7G2&R7W'&VçBæBF†Rv÷&²—2Ç&VG¦†W&Râ¢  ¥w&—GFVâF÷vâFVÆ–&W&FVÇ’&F†W"F†âÆVgB–×Æ–6—C¢æöæRöbF†Rf÷W'FVVà¦FW7F–æF–öç2v2fWF6†VBFòW‡G&7B—G26öçFVçBâ&VF–ær6öÖV&öG’w2wV–FR–à¦÷&FW"FòÆ–gB—B—2W†7FÇ’v†BF†R&Vv—7FW"W†—7G2Fò&VgW6RÂæBvR&V–æp§V&Æ–6Ç’&V6†&ÆR—2æ÷Bw&çBà ¦fW&–g“¦ÆVæ6†w&VVâÂ“3"FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†RVæW†Ö–æVBVWVR—2V×G ¦FW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§66'&–VB¢§F†—'FVVâ¢¢VçG&–W2&VF–ær$äõB”U@¤U„Ô”äTB"âF†W&R&RæöæRÆVgBâV6‚æ÷r7FFW2v†Bv26†V6¶VBæBv†Bv0¦f÷VæBÂæBF†Rç7vW'2F—f–FR–çFòGvò¶–æG2F†BÖGFW"Ö÷&RF†âF†RVçG&–W2Fòà ¢¢¤Æ—7FVB6öÖWv†W&RÂ7&VF&ÆRæ÷v†W&Râ¢¢vRF—7Æ—2F†R&V6÷&G2æBæòf÷&Ð¦Ö¶W2öæRÂ6ò7W7FöÖW"6VW2âV×G’Æ—7Bv—F‚æòv’Fòf–ÆÂ—Bà ¢Ò7&VF÷%÷&VfW&Væ6UöæÇ—6W6—2&VæFW&VB@¢ö7&VF÷"×7GVF–òövVæW&F–öâ÷&VfW&Væ6RÖæÇ—6—6ÂæBF†RvVæW&F–öâf÷&Òw0¢6&–Æ—G’–6¶W"FöW2æ÷BöffW"&VfW&Væ6UöæÇ—6—6BÆÂ(	BF†RfÆ–FF÷ ¢WfVâ7V6–ÂÖ66W2—BâöæÇ’F—&V7Bõ5B7&VFW2öæRà¢Ò†F–5÷GFW&ç6—2&VæFW&VBöâö7&VF÷"×7GVF–òöFWf–6RÖ7VW62âÇ6ö ¢&Æö6²ÂæB¢¦æòÇ6ö&Æö6²–âF†Rv†öÆRf–ÆR6'&–W27&VFRf÷&Ò¢£²F†@¢vRw2öæRf÷&ÒÖ¶W26÷VæB7VW2à ¥F†R6V6öæBöæRv2FVÆÆ–ær7W7FöÖW"6öÖWF†–ærfÇ6Râ—G2V×G’7FFR&V@¢¢%–÷R†fRæ÷BFVf–æVBç’f–'&F–öâGFW&ç2–WB"¢(	Bv†–6‚6—2F†W’6–×Ç’†@¦æ÷Bv÷B&÷VæBFò—BÂv†VâF†W&R—2æòv’f÷"F†VÒFòFò—BBÆÂâ—Bæ÷r6—0§6òÂæB7FFW2F†RtTåE2æÖF÷6—F–öâv†–ÆR—B—2F†W&S¢f–'&F–öâ7F—2öf`§VçF–ÂöæRW†—7G2â¢¤vR–çf—F–ærâ7F–öâ—BFöW2æ÷BöffW"—2F†R6ÖP¦FVfV7B2vR6Æ–Ö–ær6&–Æ—G’—BFöW2æ÷B†fRâ¢  ¢¢¤F—7Æ–VBæ÷v†W&RBÆÂâ¢¢v7FUöÆöw6ÂÆö6F–öå÷¦öæW6æ@¦6Vç6÷'•öfVVF&6µ÷&öf–ÆW6V"öæÇ’–âF†RvVæW&–2$U4õU$4UôÔ(	BtUBF†@¦Æ—7G2æBõ5BF†B–ç6W'G2Âv—F‚æòvRç—v†W&Râ&V6÷&Bw&—GFVâF‡&÷Vv€§F†VÒ—2–çf—6–&ÆRg&öÒF†RÖöÖVçB—B—27&VFVBÂv†–6‚—2W†7FÇ’F†R6†RF†@¦ÖFRF†RÖ&¶WBÖ–çFVÆÆ–vVæ6RvRv÷'F‚f—†–ærâf÷&Òv÷VÆBÖ¶RF†Bv÷'6P§&F†W"F†â&WGFW"ÂæBF†RVçG&–W26’6òà ¢¢¥F†Rf÷W"&ö×BÖÆ–'&'’VæGö–çG2&R&V6†&ÆRöæÇ’'’’¢¢ÂæBF†R&V6öà¦—2æ÷r7FFVB&F†W"F†âÆVgB2â'6Væ6RâF†RÆ–'&'’w26–ævÆRf÷&Ò(	@¢$f–ÆÂF†RFV×ÆFR"(	B÷7G2Fò÷&ö×BÖÆ–'&'’ó§6ÇVr÷&VæFW&Â&öGV6W2&Wf–Wp§Fò&VBÂæB6fW2æ÷F†–ærâv†BF†÷6RvW2&VæFW"—27W&FVB6öçFVçB–à¦FF÷&ö×G2Ö6†B×&VfW&Væ6Ræ6§6Â6ò7W7FöÖW"ÖWF†÷&VB&÷r6fVB&W6–FR—@§v÷VÆB&R–æF—7F–æwV—6†&ÆRg&öÒF†R7W&FVB6WBöâF†RvRF†BÆ—7G2F†VÒà¥F†B—2F†R6ÖRö&¦V7F–öâÇ&VG’&V6÷&FVBf÷"w&÷wF‚F÷V6‡ö–çG2ÂæB—BvçG0§F†R6ÖRç7vW"f—'7C¢¢¦6öÇVÖâÖ&¶–ær&÷r27W7FöÖW"ÖWF†÷&VBâ¢  ¥GvòöbF†RF†—'FVVâGW&æVB–çFòf—†W3²F†R&W7BGW&æVB–çFò&V6öç26öÖV&öG’6à¦F—6w&VRv—F‚â&÷F‚&R&WGFW"F†â&æ÷B–WBW†Ö–æVB"Âv†–6‚—2æ÷FRF†@§7W'f—fW2–æFVf–æ—FVÇ’&V6W6Ræ÷F†–ær&÷WB—BWfW"f–Ç2à ¦fW&–g“¦ÆVæ6†w&VVâÂ“3"FW7G276–ærà ¢222##bÓ‚Ó‚(	BvRF†BæWfW"6†÷vVBv†B—BFöÆB–÷R—Bv÷VÆB6†÷p ¥v÷&¶–ærF†R$äõB”UBU„Ô”äTB"VWVR–âFW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§6âF†P¦f÷W"Ö&¶WBÖ–çFVÆÆ–vVæ6RVçG&–W2W†Ö–æVBFövWF†W"ÂæBF†RW†Ö–æF–öâf÷Væ@§6öÖWF†–ær&–vvW"F†âF†RVçG&–W2à ¢¢¦ò¢öÖ&¶WBÖ–çFVÆÆ–vVæ6V6–B%F†Rv÷&·76R7F'G2V×G’VçF–À¦÷&væ—¦F–öâ×66÷VBWf–FVæ6R—2&V6÷&FVBâ"¢¢F†BFVÆÇ27W7FöÖW"F†B&V6÷&F–æp¦Wf–FVæ6R6†ævW2v†BF†W’6VRâF†R†æFÆW"v2¢§7–æ6‡&öæ÷W2¢¢Â&VBæ÷F†–ærÀ¦æB&VæFW&VBF†R6ÖR7FF–2g&ÖWv÷&²6&G2v†WF†W"F†R÷&væ—¦F–öâ†BöæP¦6ö×WF—F÷"&V6÷&FVB÷"f÷W"‡VæG&VBâf÷W"VæGö–çG266WBõ5G2(	B6VvÖVçG2À¦6ö×WF—F÷'2Â6–væÇ2Â÷÷'GVæ—F–W2(	BæòvRF—7Æ–VBç’öbF†VÒÂæBæòf÷&Ð¦ç—v†W&R÷7G2FòF†VÒÂ6ò&V6÷&Bw&—GFVâF‡&÷Vv‚F†R’v2–çf—6–&ÆRg&öÐ§F†RÖöÖVçB—Bv27&VFVBà ¥F†RvR6÷VçG2F†R÷&væ—¦F–öâw2÷vâWf–FVæ6Ræ÷rÂæB&V6÷&BG—RF†B6÷VÆ@¦æ÷B&R&VB—2¢¦æÖVB¢¢&F†W"F†âföÆFVB–çFò¦W&òà ¢¢¤öæRW†V×F–öâ&V6öâFW67&–&VBf÷&ÒF†BFöW2æ÷BW†—7Bâ¢ ¦ö’öÖ&¶WBÖ–çFVÆÆ–vVæ6RöfWF6‚×6÷W&6Vv2W†7W6VBv—F‚.(
+fæBF†R6–væÂf÷&Ò—0§7F–ÆÂF†RöæÇ’v’ç—F†–ær—2w&—GFVâ"âF†W&R—2æò6–væÂf÷&Ó¢æòf÷&Ò7F–öâÀ¦æò7&VFR7V2Âæ÷F†–ær÷7G2Fòç’Ö&¶WBÖ–çFVÆÆ–vVæ6RVæGö–çBg&öÒvRà¥F†R6ÖRFVfV7B2vRFW67&–&–ær6&–Æ—G’—BFöW2æ÷B†fRÂ6—GF–ær–à§F†R&V6öâ6†V6²v2W†7W6VBà ¢¢¥F†VâF†R7&vÂÆWBF†RæWrvRÆ–RÂæBF†Bv2F†R&VÂf–æBâ¢¢–æ¦V7F–æp¦–âÆ6Röb&6÷VÆBæ÷B&R&VB"ÆVgBF†Rv†öÆR7V—FRw&VVââ4Ä”Õ5ôTÕE– ¦Æöö·2f÷"§v÷&G2¢(	B&æò"Â&æ÷F†–ær"Â'–WB"(	BæB¢¢$6ö×WF—F÷'3¢"6öçF–ç0¦æöæRöbF†VÒâ¢¢ç’vR&VæFW&–ær6÷VçG26÷VÆBFVÆÂ6öÖV&öG’F†W’†fRæöæRö`§6öÖWF†–ærGW&–ærF÷FÂ÷WFvRæBF†—27&vÂv÷VÆB72—Bà ¦4Ä”Õ5õ¤U$ö6Æ÷6W2F†BâæòvR&VæFW'2&&R$Æ&VÃ¢"FöF’Â6ò—B—2à¦FF—F–öâv—F‚æ÷F†–ærFò6ÆVâW&V†–æB—BÂæB—B—2FVÆ–&W&FVÇ’æ'&÷r(	B§GFW&âF†Bf—&VBöâÖöæW’v÷VÆB&R7v—F6†VBöfbv—F†–âvVV²à ¢¢¤æBF†Rf—'7BfW'6–öâöb4Ä”Õ5õ¤U$öÖF6†VBæ÷F†–ærBÆÂâ¢¢—G2Æöö¶†V@¦ƒò²åÆEÒ–&V¦V7FVB$6ö×WF—F÷'3¢â"&V6W6RF†R6VçFVæ6RÖVæF–ærgVÆÂ7F÷ ¦Æöö¶VBÆ–¶RFV6–ÖÂö–çBâ—B76VBÂv†–ÆRÖV7W&–ær¦W&òvW2(	BF†—2f–ÆRw0¦÷vâFVfV7BÂ–ç6–FRF†—2f–ÆRw2÷vâ6†V6²(	BæBF†RöæÇ’F†–ærF†Bf÷VæB—Bv0¦–æ¦V7F–ærF†R'Vrv–âæBvF6†–ær—B7F’w&VVââ¢¤6†V6²F†B†2æ÷B&VVà§'Vâv–ç7B&B–çWB—2æ÷B6†V6²Â†÷vWfW"6&VgVÆÇ’—Bv2w&—GFVââ¢  ¦fW&–g“¦ÆVæ6†w&VVâÂ“3"FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R6ÖRFVfV7BÂf÷VæB'’vVæW&Æ—6–ærF†RÆ7BöæP ¥F†R66÷VçF–ærW‡÷'Bv2öæR–ç7Fæ6Röb6†S¢&÷rw&—GFVâv—F‚7FGW0§F†B&öÖ—6W2&ö6W76–ærÂæBæ÷F†–ærF†B&ö6W76W2—Bâ&F†W"F†âv—BFòG&— ¦÷fW"F†RæW‡BöæRÂF†R6†Rv26V&6†VBf÷"(	BWfW'’F&ÆR–ç6W'FVBv—F‚¦FVfVÇB7FGW2F‡&÷Vv‚F†RvVæW&–2w&—FRVæGö–çG2ÂF†—'G’ÖöæRöbF†VÒà ¤Ö÷7BFVfVÇG2&R7F—fV÷"G&gFÂv†–6‚&R†öæW7B–æ—F–Â7FFW2§W'6öâ ¦6†ævW2'’VF—F–ærF†R&V6÷&BâGvòv÷&G2&öÖ—6RÖ6†–æS¢VWVVFæ@¦66†VGVÆVFâ¢¦–çFVw&F–öåö¦ö'6—2F†R÷F†W"VWVVFöæR¢¢ÂæBw&Wf–æG2F†P¦–ç6W'BÂF†RFVæçB×66÷VBÆ—7BÂæBæò'VææW"ç—v†W&R(	BæòvRÂæò7FGW0§G&ç6—F–öâÂæ÷F†–ærF†B&VG2—Bà ¤—G2FVfVÇB—2¢¦ÖçVÅ÷&WV—&VF¢¢æ÷rÂv†–6‚—2Ç&VG’–âF†R66†VÖw26†V6°¦6öç7G&–çBæB—2G'VS¢W'6öâ†2FòFòF†—2âöæRv÷&BÂæòÖ–w&F–öâÂæBF†P§&÷r7F÷26Æ–Ö–ærv÷&¶W"F†—27—7FVÒFöW2æ÷B†fRà ¢¢¥F†—2öæRv2Ç&VG’&V6÷&FVB2VæW†Ö–æVBÂæBF†B—2F†R'Bv÷'F€¦¶VW–ærâ¢¢FW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§6Æ—7FVB—B2¢$äõB”UBU„Ô”äTC §&W6÷W&6R–â$U4õU$4UôÔv—F‚æòvRâ"¢(	BöæRöbf÷W'FVVâ7V6‚VçG&–W2âF†P¦6öFV&6R†B†öæW7FÇ’w&—GFVâF÷vâF†B—BF–Bæ÷B¶æ÷rÂ&F†W"F†â77VÖ–ær—@§v2f–æRÂæBW†Ö–æ–ær—BFöö²FVâÖ–çWFW2æB6Æ÷6VB—BâF†RVçG'’æ÷r6—0§v†B—2G'VS¢æ÷F†–ær6öç7VÖW2–çFVw&F–öåö¦ö'6Â6òf÷&Òv÷VÆBÆWB6öÖV&öG§VWVRv÷&²F†Bv–ÆÂæWfW"'VâÂv†–6‚—2v÷'6RF†âæòf÷&Òà ¥F†—'FVVâ$äõB”UBU„Ô”äTB"VçG&–W2&VÖ–âÂæBF†W’&R&WGFW"VWVRöb&VÀ§v÷&²F†âF†R&W7BöbF†Rv—D‡V"6FVv÷'’7vVWà ¦fW&–g“¦ÆVæ6†w&VVâÂ“3"FW7G276–ærà ¢222##bÓ‚Ó‚(	B7FGW2æ÷F†–ær6÷VÆBGfæ6RÂæB6VÆÂF†B'Vç226öFP ¤6†V6¶–ærF†R&öGV7B&Vf÷&R6V&6†–ærv–âÂF†—2F–ÖR7&÷72WfW'’&V6÷&BG—S ¢¢§F†RÆ–6F–öâVÖ—GFVBæò55bBÆÂâ¢¢C…DÔÂ&W7öç6W2ÂÆ–âFW‡BÂöæP¥„ÔÂâæ÷F†–ærVÇ6Rà ¥F†BÖGFW'2&V6W6Rö'W6–æW72Ö'V–ÆFW"ö÷væW"ö66÷VçF–ærÖW‡÷'G66–B¢$&F6†W0¦öb–÷W"&V6÷&G2&W&VBf÷"â66÷VçFçB÷"66÷VçF–ær6ögGv&RÂæBv†WF†W ¦V6‚öæRf–æ—6†VBâ"¢66÷VçF–æuöW‡÷'G66'&–W2W‡÷'E÷G—VÂW&–öBÂ¦7FGW6æBf–ÆU÷W&Æâ¢¤æ÷F†–ærw&÷FRf–ÆU÷W&Æâæ÷F†–ærÖ÷fVB7FGW6 §7BVWVVFâ¢¢F†RöæÇ’6öFRF÷V6†–ærF†RF&ÆR—2F†RVæGö–çBF†B–ç6W'G0§F†R&WVW7Bâ6ò7W7FöÖW"6¶VBf÷"âW‡÷'BÂ6r%VWVVB"VæFW"6öÇVÖà§&öÖ—6–ærFò6’v†WF†W"—Bf–æ—6†VBÂæBF†Rç7vW"6÷VÆBæWfW"6†ævRà ¢¢¥F†Rf–ÆR—2'V–ÇBv†Vâ—B—26¶VBf÷"¢¢Âæ÷BVWVVBæB7F÷&VBâF†W&R—2æð§v÷&¶W"†W&RÂæB7FGW2öæÇ’v÷&¶W"6÷VÆBGfæ6R—2†÷rF†R&öÖ—6R6ÖRFð¦&Rw&—GFVâà ¥F‡&VRW‡÷'BG—W2&R6W'fVB(	B&–ÆÇ2Â6ÆW2Â–çfVçF÷'’(	Bæ@¦—&öÆÅ÷7VÖÖ'–æB¦÷W&æÅöVçG&–W6&R¢§&VgW6VB'’æÖR¢¢â&÷F‚æVV@¦66÷VçF–ær§VFvVÖVçBF†—26öFR†2æ÷B&VVâv—fVã¢v†B&VÆöæw2–â¦÷W&æÀ¦Æ–æRÂ†÷rw&÷72’&V6öæ6–ÆW2Fò6÷7BâwVW76–ærv÷VÆBWBw&öærf–wW&W2–âg&öç@¦öbâ66÷VçFçBÂv†–6‚—2v÷'6RF†âWGF–æræöæRÂæB&æ÷B7W÷'FVB"FVÆÇ0§6öÖV&öG’æ÷F†–ær&÷WBv†WF†W"Fòv—Bà ¢¢¤6VÆÂ—2æ÷Bf÷&×VÆÂæBF†B—26V7W&—G’&÷W'G’â¢¢fÇVR&Vv–ææ–æp¦ÖÂ¶ÂÖÂÂF"÷"6'&–vR&WGW&â—2W†V7WFVB'’W†6VÂÂ6†VWG2æ@¤Æ–'&Töff–6Röâ÷Vâ(	B6òæ÷FR7W7FöÖW"G—VB&V6öÖW26öFR'Vææ–æröâF†V— ¦66÷VçFçBw2Ö6†–æRâÆ–"÷6öæ&×&V6÷&BÖ77bæ6§6&Vf—†W27V6‚fÇVRv—F‚à¦÷7G&÷†RÂv†–6‚¢¦6†ævW2—B¢¢Â6òF†R6÷VçB—2&WGW&æVBæBF†R&÷WFR6VæG2—@¦–â†VFW"&F†W"F†â&Ww&—F–ær6öÖV&öG’w2&V6÷&G26–ÆVçFÇ’à ¢¢¤æBF†Rf—'7BfW'6–öâöbF†B'&ö¶RF†RW‡÷'B—Bv2&÷FV7F–ærâ¢¢Ö—2¦f÷&×VÆ×7F'B6†&7FW"Â6òWfW'’æVvF—fRÖ÷VçB6ÖR÷WB2rÓ"ãS(	BFW‡BÀ¦–âf–ÆRv†÷6Rv†öÆRW'÷6R—2f÷"â66÷VçFçBFò7VÒ—BâÆ–âçVÖ&W"—0¦W†V×Bæ÷rÂ'’âW†7BGFW&â&F†W"F†âW&Ö—76—fRöæS¢Ó¶6ÖGÂrö26Æ2r §7F–ÆÂf–Ç2—BâF†RFW7B6Vv‡BF†—2'’76W'F–ærF†R&V†f–÷W"æB×’&VF–æp§v†BF†BÖVçBÂæ÷B'’vö–ær&VBà ¥F‡&VRÖ÷&RF†–æw2F†R6†V6·26Vv‡BÂV6‚&VÂÖ&–wV—G’&F†W"F†âçV—6æ6S ¦66÷VçF–æuöW‡÷'G6†BæòÖVÖ&W"&VBöÆ–7’†FFVBÂSæ÷r“²F†RvR6÷’§w&÷FRFò&WÆ6RF†RöÆB&öÖ—6R6–B¢&æ÷F†–ær6—G2†W&Rv—F–ærFò&P§&ö6W76VB"¢Âv†–6‚F†R÷WFvR7&vÂ&VB26Æ–ÒF†BF†R7W7FöÖW"†2æð¦W‡÷'G2(	BÖ&–wV÷W2&F†W"F†âw&öærÂæB&Wv÷&FVB&F†W"F†âW†V×FVC²æBF†P¢%7FGW2"6öÇVÖâÂv†–6‚öâ6WfVâ÷F†W"vW2G&6·26öÖWF†–ærF†BÖ÷fW2Â—0¦Æ&VÆÆVB¢¢$6¶VBf÷""¢¢†W&R&V6W6Ræ÷F†–ærGfæ6W2—Bà ¦fW&–g“¦ÆVæ6†w&VVâÂ¢£“3"¢¢FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†RF–'’ÂæB7&vÂF†B§VFvVBf–ÆR2–b—BvW&RvP ¥F†RW"Ö&öö¶–ær6ÆVæF"F÷væÆöB6†—VB2†ÆbfVGW&Râ'W6–æW72vçG0§F†V—"vVV²–âF†V—"6ÆVæF"Âæ÷BFò6Æ–6²GvVçG’F–ÖW2à¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö&öö¶–æw2ö6ÆVæF&—2F†RF–'’à ¢¢¤öæR'V–ÆFW"Âæ÷BGvòâ¢¢F†RfVVBv2vö–ærFò76VÖ&ÆR—G2÷vâdUdTåBÆ–æW2À§v†–6‚—2†÷rGvò'V–ÆFW'2öböæRf÷&ÖBG&–gBVçF–Â6Æ–VçB66WG2F†RF÷væÆö@¦æB&V¦V7G2F†RfVVBâWfVçDÆ–æW6—2æ÷r6†&VBÂæBFW7B76W'G2F†R6ÖP¦&öö¶–ær&VæFW'2¢¦–FVçF–6ÆÇ’¢¢v†WF†W"F÷væÆöFVBÆöæR÷"–ç6–FRF†RF–'’à ¢¢¥v†B—BFöW2v—F‚&öö¶–ær6ÆVæF"6ææ÷B6†÷r—2F†Rö–çBâ¢¢—B6¶—2—@¦æB¦6÷VçG2¢—BÂæBF†R6÷VçB—2&WGW&æVB&F†W"F†âG&÷VB(	BfVVBF†@§V–WFÇ’öÖ—G2F‡&VRö–çFÖVçG2—2F–'’F†BÆ–W2'’&V–ær–æ6ö×ÆWFRÂæ@§F†R'W6–æW72†2æòv’Fòæ÷F–6RâF†R&÷WFR6VæG2F†RçVÖ&W"–â†VFW"âçVÆÆ ¦æBµÖ7F’F–ffW&VçBç7vW'2Föó¢f–ÆVB&VB—2&VgW6VBv—F€¦æ÷EööÆ—7F&F†W"F†â&VæFW&VB2'W6–æW72v—F‚æò&öö¶–æw2ÂæBF†R&÷WFP¦ç7vW'2S2–ç7FVBöb†æF–ær&6²âV×G’'WBW&fV7FÇ’fÆ–B6ÆVæF"à ¢¢¥F†VâF†R÷WFvR7&vÂf–ÆVBÂ6÷'&V7FÇ’ÂæBF†Rf—‚v2æ÷BFò&VÆ‚—Bâ¢ ¥F†R7&vÂ&WV—&W2WfW'’&÷WFRFò&VæFW"vRv—F‚…DÔÂÖ&¶W'2âF†—2&÷WFP§6W'fW2¦f–ÆR£²WGF–ærâ…DÔÂvR–çFòæ–76&WVW7Bv÷VÆB&RF†Rw&öæp§F†–ærÂ6ò—Bç7vW'2S2v—F‚Æ–â6VçFVæ6Rà ¥F†R…DÔÂ'VÆRv2Çv—2&÷‡’f÷"&‡VÖâ6â&VBv†B6ÖR&6²"Â6†÷6Và¦&V6W6RWfW'—F†–ær7&vÆVBVçF–Âæ÷rv2vRâ¢¥v–FVæ–ærF†B&÷‡’f÷"WfW'§&÷WFRv÷VÆB†fRvV¶VæVB—Bâ¢¢–ç7FVBF÷væÆöG26öÖR÷WBöbF†B÷VÆF–öà¦–çFò6W&FRÂ§7G&–7FW"¢76W'F–öã¢S2Â&öG’W'6öâ6â&VBÂæò¥4ôà¦&Æö"ÂæòÆ6V†öÆFW"ÂæBv÷&F–ærF†B6—2v†B7GVÆÇ’†VæVBâF†R6÷VçBö`§&÷WFW266÷VçFVBf÷"FöW2æ÷BfÆÂÂæBF†W6Rv–â6†V6²F†RvW2Fòæ÷B†fRà¦d”ÄUôDõtäÄôE6—2Æ—7FVB'’†æBæBFVÆ–&W&FVÇ’6†÷'BÂ&V6W6R&÷WFRFFV@§F†W&R7F÷2&V–ær6†V6¶VBf÷"vRÖ&¶W'2à ¥fW&–f–VBv–ç7B&B–çWC¢ç7vW&–ær¥4ôâ–ç7FVBöb6VçFVæ6Rf–Ç2Â§Æ6V†öÆFW"ÆV¶–ær–çFòF†RÖW76vRf–Ç2ÂæBV×G––ærd”ÄUôDõtäÄôE6f–Ç0§&F†W"F†â76–æröâæ÷F†–ærà ¢¢¤æ÷FRöâ†÷ræV&Ç’F†—2vVçBw&öærâ¢¢F†Rf—'7BGvò&ö&R'Vç2V&VBFð§6†÷rF†RæWr6†V6²76–æröâ&B–çWBÂæBF†R†öæW7B6öæ6ÇW6–öâÆöö¶VBÆ–¶P¢'F†R6†V6²FöW2æ÷Bv÷&²"â—BF–Bv÷&²(	B†VBÓ6v2G'Væ6F–ærF†R÷WGW@¦&Vf÷&RF†R7VÖÖ'’Æ–æRÂæBF†Rf—6–&ÆRÖF6†W2vW&RFW7B¦æÖW2¢6öçF–æ–ærF†P§v÷&B&f–Æ–ær"â&–çF–ærv†BF†R6†V6²†B7GVÆÇ’6öÆÆV7FVB6WGFÆVB—B–âöæP§'Vââ&ö&RF†BÆ–W2&÷WB6†V6²—2F†R6ÖRFVfV7BöæRÆWfVÂWÂæBF†P¦öæÇ’7W&R—2Æöö¶–ærBF†RFF&F†W"F†âBf–ÇFW&VBf–Wröb—Bà ¦fW&–g“¦ÆVæ6†w&VVâÂ¢£“#2¢¢FW7G276–ærà ¢222##bÓ‚Ó‚(	B&öö¶–ær–÷R6âWB–â6ÆVæF  ¥F†—'FVVçF‚7vVW73¢6ÆVæF"â6†V6¶–ærF†R&öGV7B&Vf÷&R6V&6†–ærVæFVB—@¦&Vf÷&RVW'’v2'Vâà ¦'W6–æW75ö&öö¶–æw6†27F'G5öFÂVæG5öFÂ7W7FöÖW"æB7FGW2âF‡&VP¦&öö¶–ærF&ÆW2Ââ’ÂvRâw&Wf÷"d4ÄTäD&ÂFW‡Bö6ÆVæF&ÂdUdTåF ¦÷"æ–767&÷726W'fW"æ§6ÂÆ–"öæB&÷WFW2öf÷VæB¢¦æ÷F†–ær¢¢Âæ@¦6¶vRæ§6öæ†2æò6ÆVæF"FWVæFVæ7’â'W6–æW726÷VÆBF¶R&öö¶–æræ@§7F–ÆÂ†fRFò&WG—R—B–çFòv†FWfW"F†W’7GVÆÇ’W6Rà ¢¢¤æò&W÷6—F÷'’v2æVVFVBâ¢¢$d2SSCRf÷"öæRWfVçB—2fWrÆ–æW2öbFW‡Bà¦Æ–"÷6öæ&Ö6ÆVæF"Ö–çf—FRæ6§6'V–ÆG2—C¢æòFWVæFVæ7’Âæò'VæFÆRÂæò6W'f–6P§F†R÷væW"'Vç2ÂæòW"Ö7W7FöÖW"6÷7BÂv÷&·2öffÆ–æRâv–ç7BF†—27vVWw2÷F†W ¦f–æF–æw2(	B6—‚&W÷6—F÷&–W26ÆV&VBöâÆ–6Væ6RæB&Æö6¶VBöâ&6†—FV7GW&R÷ ¦&æGv–GF‚(	BF†R6&–Æ—G’v÷'F‚6†—–æræVVFVBæ÷F†–ærF÷FVBBÆÂâF†B—0¦f–gF‚¶–æBöb&W7VÇC¢¢§F†Rvv2&VÂæBF†Rç7vW"v2æ÷B&W÷6—F÷'’¢¢À¦æB7vVWÆöö¶–æröæÇ’f÷"F†–æw2FòF÷BFöW2æ÷Bf–æB—Bà ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö&öö¶–æw2ó¦–Bö6ÆVæF&6W'fW2—BÂ÷&væ—¦F–öâ×66÷V@¦Æ–¶RWfW'’6–&Æ–ær&VBÂ&V6W6RF†R6W'f–6R¶W’'—76W2&÷rÆWfVÂ6V7W&—G’æ@§F†RFVæçBf–ÇFW"—2F†RöæÇ’&÷VæF'’âF÷væÆöB&F†W"F†ââVÖ–ÆV@¦–çf—FF–öâöâW'÷6S¢6VæF–ærÖ–Â—27W7FöÖW"6×–vâVæFW"tTåE2æÖFæ@¦æVVG2÷væW"&÷fÃ²†æF–ær6öÖV&öG’f–ÆRF†W’6¶VBf÷"—2æ÷Bâf–ÆV@§&VBç7vW'2S2æBÖ—76–ær&öö¶–ærCBÂ&V6W6Rç7vW&–ærCBFò&÷F‚v÷VÆ@§FVÆÂ'W6–æW72F†V—"&öö¶–ær—2vöæRGW&–ærâ÷WFvRà ¢¢¥F†R'G2öbF†R7V2F†Bf–Â6–ÆVçFÇ’&RFöæR&F†W"F†â&÷†–ÖFVBâ¢¢¦ÖÆf÷&ÖVBæ–76FöW2æ÷BW'&÷"(	BF†R6ÆVæF"FV6Æ–æW2—BÂ÷"–×÷'G2—BBF†P§w&öærF–ÖRÂæBF†R'W6–æW72f–æG2÷WBv†Vâæö&öG’'&—fW2â5$ÄböâWfW'’Æ–æP¦–æ6ÇVF–ærF†RÆ7BâföÆF–ærBsR¢¦ö7FWG2¢¢f–'VffW"æ'—FTÆVæwF†Â&V6W6P¦6÷VçF–ær6†&7FW'27Æ—G2×VÇF’Ö'—FR6†&7FW"–â†ÆbæBöæR66VçFVBæÖP¦FöW2—BâUD2v—F‚¦Â6–æ6RÆö6ÂF–ÖRv—F†÷WBeD”ÔU¤ôäV—2F†R6öÖÖöæW7@§v’â–çf—FRÆæG2â†÷W"÷WBâ7F&ÆRT”BÂ6òF÷væÆöF–ærGv–6R&WÆ6W2F†P¦VçG'’&F†W"F†âF÷V&ÆRÖ&öö¶–ærF†RF’ââVç&V6övæ—6VB7FGW27F—0¦DTåDD•dV²&öö¶–ærv—F‚æòVæBF–ÖR—2&VgW6VB'’æÖR&F†W"F†âv—fVâ¦wVW76VB†÷W"à ¢¢¤æBF†R'Vrv÷'F‚¶VW–ærâ¢¢W66UFW‡Fv2w&—GFVà¦ç&WÆ6R‚ó²örÂ%Ã²"–(	B–â¦f67&—BÆ—FW&ÂF†B—2§W7B#²&Â6ò—@¦6ö×–ÆW2Â'Vç2ÂæBVÖ—G2âVæW66VB6VÖ–6öÆöââ6Vv‡B'’&–çF–ærF†P¦vVæW&FVBf–ÆRÂæ÷B'’&VF–ærF†R6öFRâF†VâF†RFW7B76W'F–ærF†Rf—‚v0§w&—GFVâv—F‚¢§F†R6ÖRÆ—FW&Â¢¢Âw&VVBv—F‚F†R'&ö¶Vâ–×ÆVÖVçFF–öâÂæ@¦f–ÆVBv–ç7BF†R6÷'&V7BöæRâ'Vææ–ær—B6Vv‡BF†BâæV—F†W"v÷VÆB†fR6Vv‡@¦—G6VÆbÂv†–6‚—2F†Rv†öÆR&wVÖVçBf÷"Fö–ær&÷F‚à ¥F†RÖVÖ&W"×&VB×öÆ–7’6†V6²F†Vâ6Vv‡BF†RæWr&VC¢'W6–æW75ö&öö¶–æw6†Bæð§öÆ–7’6–væVBÖ–âÖVÖ&W"6÷VÆB&VBF‡&÷Vv‚âFFVBFòõ$tä•¤D”ôåõ$TEõD$ÄU6 §&F†W"F†âF†R6W'f–6R×&öÆRW66R†F6‚Â&V6W6R—B—2÷&F–æ'’v÷&·76RFF®(	B'W6–æW72w2÷vâö–çFÖVçG2Â6–&Æ–ærFò7W7FöÖW%÷&V6÷&G6(	BæBF†R†F6‚—0¦f÷"&—f–ÆVvRæBVF—BF&ÆW2âS÷&væ—¦F–öâ×66÷VBöÆ–6–W2æ÷rà ¥&Vv—7FW"Væ6†ævVBB¢£r¢¢âfW&–g“¦ÆVæ6†w&VVâÂ¢£“’¢¢FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R6FVv÷'’F†Bv2Ç&VG’'V–ÇBÂæBFW67&—F–öâ’æV&Ç’7FVBöà ¥GvVÆgF‚7vVW73¢WFöÖF–öââGvVÇfR6†RÓ"ã&W7VÇG2&÷fR"Ã7F'2(	@¦6öæGV7F÷&ƒ3"Ã’ÂG&–vvW"æFWfÂFw7FW&Â6FVæ6VÂ&vòÖWfVçG6à ¥F†—2Æöö¶VBÆ–¶RF†RÖ÷7B&öGV7B×&VÆWfçB6FVv÷'’–WBÂ&V6W6R&w&€¦FW67&–&–ærF†—26öFV&6R6—2âvVçB7F–öâ&VgW6VB'’F†R&÷fÂvFR†0¦æ÷F†–ærFò&R×'Vâ—Böæ6RF†R÷væW"&÷fW2ÂæB6W'fW&ÆW72'VçF–ÖR†2æð§&ö6W72'Vææ–ærv†Vâæò&WVW7B—2–âfÆ–v‡BâF†B—2W†7FÇ’v†BF†—26Æ72ö`§6ögGv&R—2f÷"à ¢¢¥F†Rv—26Æ÷6VBÂæB—Bv26Æ÷6VB†W&Râ¢¢6†V6¶VB&F†W"F†â77VÖVC¢à¦†÷W&Ç’fW&6VÂ7&öâBö’övVçG2÷66†VGVÆR÷F–6¶Â6V7&WBÖvFVBÂ&VF–æp¦vVçE÷66†VGVÆW67&÷72FVæçG2(	BFVÆ–&W&FVÇ’Vç66÷VBv—F‚F†R&V6öâ§7FFVB §Fò'V–ÆEFVæçEVW'–&F†W"F†â†æBÖ'V–ÇBFò6Æ—7BF†RwV&B(	BæB66÷–æp¦WfW'’'VâFòF†R÷&væ—¦F–öåö–Föâ—G2÷vâ&÷s²vVçE÷VæF–æuö7F–öç6 ¦†öÆF–ær&VgW6VB'Vâv—F‚—G2–çWG3²Æ–"÷6öæ&ÖvVçB×VWVRæ6§66ÆÆ–ærF†P¢¢§6ÖR'VææW"¢¢v–âöâ&÷fÃ²æBFW7Bà ¤—B—2Ç6ò&WGFW"f÷"F†—2W'÷6RF†âç’6æF–FFRÂ&V6W6RF†R&WV—&VÖVç@§v2æWfW"GW&&ÆRF—7G&–'WFVBW†V7WF–öââF†R6Æ76–f–6F–öâ—2&RÖFW&—fVBg&öÐ§F†R7F–öâG—R&F†W"F†â&VBöfbF†R&÷rÂ6–æ6R7F÷&VB6Æ76–f–6F–öâ—2¦6öÇVÖâF†R7V&¦V7B6âw&—FRâ&÷f–ær—2æ÷B'Vææ–ærÂæB&÷f–ær6öÖWF†–æp§Væ–×ÆVÖVçFVBw&—FW2Væ–×ÆVÖVçFVF&F†W"F†â&W÷'F–ær¦ö"2FöæRâ¦FV6—6–öâ—2ÖFRöæ6RÂ&V6W6R&÷f–ær6Æ–×2F†R&÷r÷WBöbv—F–ævf—'7Bà¤F÷F–ær6öæGV7F÷"÷"6FVæ6Rv÷VÆBWBF†R&÷fÂvFR–ç6–FRF†—&B×'G¦W†V7WF–öâVæv–æR(	BF†RöæRÆ6RtTåE2æÖFw2'VÆR—2†&FW7BFòVæf÷&6Rà ¢¢¤f÷W'F‚¶–æBöbV×G’&W7VÇC¢¦Ç&VG’'V–ÇB¢â¢¢v—F‚w&öærv÷&BÂw&öær–çFVç@¦æBw&öærÇF—GVFRÂF†B—2F†RgVÆÂ6WBF†—27vVW†2æVVFVBà ¢¢¤æBÖWF†öFöÆöv–6Âæ÷FRv÷'F‚Ö÷&RF†âF†R72â¢¢’&Vvâg&öÒF†@§&w&‚æBv2&VG’FòG&VBF†Rv2&VÂâF†R&w&‚v2G'VRv†Và§w&—GFVã²F†R&W÷6—F÷'’†2Ö÷fVB7B—BÂæBÆ–"÷6öæ&ÖvVçB×VWVRæ6§6—0§F†RVWVR—B6—2FöW2æ÷BW†—7Bâ7F–æröâ—Bv÷VÆB†fRÖVçB¢§&VÖ÷f–ær§v÷&¶–ærÂFW7FVB&÷fR'WGFöâ¢¢(	BF†R&w&‚WfVâ6—2æò'WGFöâ6†÷VÆ@§7VvvW7B÷F†W'v—6RâF†Rf–æF–ær6ÖRöæÇ’g&öÒ÷Væ–ærF†Rf–ÆW2–ç7FVBö`§G'W7F–ærFW67&—F–öâöbF†VÒà ¥F†B—2F†R6ÖRf–ÇW&RF†R6öæuöf–ævW'&–çG6&V6÷&BGW&æVBöâÂö–çF–ærF†P¦÷F†W"v“¢F†W&RÂFW67&—F–öâ&öÖ—6VB6&–Æ—G’F†R6öÇVÖç2F–Bæ÷B†fS°¦†W&RÂFW67&—F–öâFVæ–VBöæRF†R6öFRFöW2†fRâFW67&—F–öç2G&–gB–â&÷F€¦F—&V7F–öç2ÂæBæ÷F†–ærW†V7WFW2F†VÒV—F†W"v’à ¥&Vv—7FW"Væ6†ævVBB¢£r¢¢âfW&–g“¦ÆVæ6†w&VVâÂ“FW7G276–ærà ¢222##bÓ‚Ó‚(	B6FVv÷'’F†B––VÆG2FööÆ–ærÂæB&÷W'G’æ÷F†–ærv2†öÆF–æp ¤VÆWfVçF‚7vVW73¢æ–ÖF–öââFVâ&W7VÇG2&÷fRÃ7F'2ÂæB¢¦WfW'’öæP§'Vç2–âF†R'&÷w6W"¢¢(	BF†RvööB6†R'’72æ–æRw2'VÆRâ'’F†R7FæF&BF†P¦÷væW"6WBÂæöæRöbF†VÒVÆ–f–W2âæ–ÖRæ§6ƒs"Ã##"7F'2ÂF†RÖ÷7B×7F'&V@§&W÷6—F÷'’f÷VæBç—v†W&R–âF†—27vVW’ÂÖö§6Â7fræ§6ÂGvòæ§6ÂF†÷'fv ¦æBF†R&W7B&R¢¦Æ–'&&–W2f÷"'V–ÆF–ær÷W"÷vâ–çFW&f6R¢¢âF†W’v÷VÆBÖ¶P§F†W6RvW2æ–6W"âæöæR—26öÖWF†–ær7&VF÷"7GVF–ò7W7FöÖW"v÷VÆBWfW"6VP¦Æ—7FVB2fVGW&Rà ¥F†B—2F†—&B¶–æBöbV×G’&W7VÇBÂæBF†RF‡&VR&Rv÷'F‚¶VW–ærF—7F–æ7C ¢¢§w&öærv÷&B¢¢†F÷–3§—vÆÆÂv†W&RF†R6ögGv&RW†—7FVBVæFW ¦F÷–3§V&Æ—6†–æv’Â¢§w&öær–çFVçB¢¢‡—vÆÂ&VÖ÷fW'2Â7G&VÔ6’ÂæBæ÷p¢¢§w&öærÇF—GVFR¢¢(	B&VÂÂvVÆÂÖÆ–6Vç6VBÂvVÆÂ×6†VB6ögGv&RF†B—0¦–æg&7G'V7GW&Rf÷"W2&F†W"F†â&öGV7Bf÷"7W7FöÖW"â7vVW÷F–Ö—6–æp¦f÷"&Vv—7G&F–öç2FG2æ–ÖRæ§6öâ—G27F"6÷VçBÂæBF†R&Vv—7FW"F†Vâ†öÆG0¦¦f67&—Bæ–ÖF–öâÆ–'&'’–ç6–FR&öw&ÖÖRöbv÷&²&÷WB&öGV7G2F†@§6öÇfR7W7FöÖW"&ö&ÆV×2à ¢¢¥v†BF†R72&öGV6VB–ç7FVBâ¢¢6¶–ærv†WF†W"F†R&öGV7BæVVFVBà¦æ–ÖF–öâÆ–'&'’ÖVçB6†V6¶–ærv†B—BÇ&VG’FöW2ÂæBF†BGW&æVBWà§VæwV&FVB&÷W'G’&F†W"F†âFVfV7Bà ¤V–v‡B6Æ–VçB76WG27F'BÖ÷F–öââ¢¤ÆÂV–v‡B&W7V7B&VfW'2×&VGV6VBÖÖ÷F–öæÀ§6òæ÷F†–ær—2'&ö¶Vââ¢¢v†BF–Bæ÷BW†—7Bv2ç—F†–ær†öÆF–ær—BF†W&S ¦FW7G2öÖ÷F–öâÖ'&æB×7—7FVÒçFW7Bæ§676W'G2F†@¦V&Æ–2÷6öæ&ÖÆ–6F–öâ×V’æ7766'&–W2&VGV6VBÖÖ÷F–öâ&Æö6²(	BG'VRÂæ@¦&÷WBF†BöæRÆöFW"âæ–çF‚æ–ÖF–ærf–ÆRv—F‚æòwV&Bv÷VÆB†fRf–ÆV@¦æ÷F†–ærÂæBF†R7V—FRv÷VÆB†fR7F–VBw&VVâv†–ÆRF†RwV&çFVRV–WFÇ§7F÷VB&V–ærG'VRâF†B—2F†—26öFV&6Rw2FVfV7B6Æ72–â—G2W&W7Bf÷&Ó¢æ÷@¦6–væÂ&W÷'F–ær7V66W72fÇ6VÇ’Â'WBwV&çFVRv—F‚æò6–væÂBÆÂà ¦FW7G2öÖ÷F–öâ×&W7V7G2×F†R×&VGV6VBÖÖ÷F–öâ×6WGF–ærçFW7Bæ§6æ÷r76W'G2—B7&÷70¦WfW'’76WB–âV&Æ–2öÂæB76W'G2F†RÆ—7B—2æöâÖV×G’f—'7BÂ&V6W6R¦Æ—7BÖ&6VB6†V6²76W2'’&V–ærV×G’â¢¥fW&–f–VBF‡&VRv—2&Vf÷&R&V–æp§G'W7FVB¢£¢æWræ–ÖF–ærf–ÆRv—F‚æòwV&B†6Vv‡B’ÂF†RwV&B7G&—VBg&öÒ§&VÂf–ÆR†6Vv‡BæBæÖVB’ÂæBF†R÷VÆF–öâV×F–VBFò¦W&ò†6Vv‡B'’F†P¦æöâÖV×G’76W'F–öâ&F†W"F†â76–ær6–ÆVçFÇ’’à ¦tTåE2æÖFWG26÷VæG2Âfö–6Rææ÷Væ6VÖVçG2æB†F–72öfb'’FVfVÇB÷"VæFW ¦W‡Æ–6—BW6W"6öçG&öÂâÖ÷F–öâ—2F†R6ÖR¶–æBöbF†–ærÂæBF†R÷W&F–ær7—7FVÐ¦Ç&VG’6'&–W2F†RW6W"w2ç7vW"à ¥&Vv—7FW"Væ6†ævVBB¢£r¢¢&W÷6—F÷&–W2âfW&–g“¦ÆVæ6†w&VVâÂ¢£“¢¢FW7G0§76–ærà ¢222##bÓ‚Ó‚(	B6÷7BF†Bw&÷w2v†VâF†R7W7FöÖW"7V66VVG0 ¥FVçF‚7vVW73¢7G&VÖ–ærÂÆ–6Væ6RÖf—'7BÂÔ•BæB6†RÓ"ã'Vâ6W&FVÇ¦&V6W6RVÆ–f–W'26ææ÷B&Rõ"vBâ6—‚&W7VÇG2&÷fRƒ7F'2ÂæB72æ–æRw0§'VÆR6÷'FVBF†VÒöâ6–v‡C¢7'6ƒ#’ÃCR’Âf–FvV&æB&VCR×6W'fW&&RÖVF–§6W'fW'3²'‚×Æ–W&ƒ“3"’—26Æ–VçB×6–FR'WB'&÷w6W"Ç&VG’Æ—2÷&F–æ'§f–FVòÂ6ò—BV&ç2—G2Æ6RöæÇ’f÷"FF—fR7G&VÖ–ærv—F‚E$ÒÂv†–6‚F†—0§&öGV7BFöW2æ÷B†fRà ¢¢¢$6W'fW"F†R÷væW"'Vç2"v2†–F–ærGvòF–ffW&VçB6÷7G2ÂæBF†RF—7F–æ7F–öà¦ÖGFW'2â¢¢WfW'’6W'fW"×6–FR6æF–FFR6òf"(	Bv†—7W"æ7Âf÷6²Â7ÆVWFW"À¤v†÷7B(	B6÷7G26ö×WFR¢§W"f–ÆRÂöæ6R¢£¢G&ç67&–&Rf–FVòæBF†R6÷7B—2–@¦æBf–æ—6†VBâÖVF–6W'fW"6÷7G2¢¦&æGv–GF‚ÂW"f–WvW"ÂWfW'’F–ÖR¢¢â—B—0§F†RöæR6†Rv†W&RF†R&–ÆÂw&÷w2v—F‚F†R7W7FöÖW"w27V66W72(	B'W6–æW72v†÷6P¦WfVçBvöW2vVÆÂ—2Ö÷&RF†âöæRv†÷6RWfVçBæö&öG’vF6†VBÂæB—2v–âöà¦WfW'’&WÆ’à ¥F†R6†÷'F†æBF†—27vVW†2W6VB6–æ6RF†R7VV6‚×&V6övæ—F–öâ72v267W&FP¦æBv26öæ6VÆ–ærF†Bâf÷"&öGV7Bv†÷6R'VÆR—2F†BfVGW&R6÷7G2F†P¦7W7FöÖW"æ÷F†–ærÂW"×f–WvW"&æGv–GF‚—2F†RöæR6÷7BF†B6ææ÷B&R'6÷&&VB'¦'W––ær&–vvW"&÷‚öæ6Rà ¢¢¤æBF†R6FVv÷'’&öGV6VB6V6öæB6öæGV7B&Æö6²â¢¢–†Ö–Ç’õ7G&VÔ6(	BBÃ0§7F'2ÂfW&–f–VB6†RÓ"ãÂ6V6öæBÖÆ&vW7B&W7VÇB(	BÖöæ—F÷'2æBWFöÖF–6ÆÇ§&V6÷&G2Æ—fR7G&V×2g&öÒF–µFö²ÂGv—F6‚Â–÷UGV&RÂ&–Æ–&–Æ’ÂF÷W––âÂF÷W—Ræ@¤‡W–âWfW'’&V6÷&F–ær—26öÖV&öG’VÇ6Rw2'&öF67BÂF¶Vâv—F†÷WBF†V— ¦–çföÇfVÖVçBâtTåE2æÖB&WV—&W2F†—2&öGV7BFòVæf÷&6R&÷fVææ6RÂ6öç6VçBæ@¦çF’Ö6ÆöæR6fWG“²F†—2—2æ÷B&÷&FW&Æ–æR&VF–æröbF†B'VÆRÂ—B—2F†R66P§F†R'VÆRFW67&–&W2â&V6÷&FVB&Æö6¶VFÂöâ¢¦6öæGV7B&F†W"F†âÆ–6Væ6R¢¢(	BF†P§6ÖR6†R2vFW&Ö&·2×&VÖ÷fW"ÂÇ6òW&Ö—76—fRæBÇ6ò&Æö6¶VBà ¥v÷'F‚¶VW–ærf—6–&ÆRf÷"†÷r—B&W6VçG3¢ÆVv—F–ÖFRF÷–2ÂÆVv—F–ÖFR6V&6‚À¦6ÆVâW&Ö—76—fRÆ–6Væ6RÂ†–v‚7F'2ÂæB¢¦æ÷F†–ær–â—G2ÖWFFFfÆw2—B¢¢à¤öæÇ’F†RFW67&—F–öâFöW2âF†B—2F÷–3§—vÆÆv–â(	B6V&6‚FW&Ò&–v‡@¦f÷"F†R6&–Æ—G’æBw&öærf÷"F†R–çFVçB(	BæB—B—2F†R6öæ7&WFR&wVÖVç@¦v–ç7B67&VVæ–æröâÆ–6Væ6RæB7F'2æB6¶—–ærF†R&VF–ærÂv†–6‚—0¦÷F†W'v—6RF†Rf7FW7Bv’Fò'VâF†W6R76W2à ¥&Vv—7FW"B¢£r¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R&Æö6¶W"v26W'fW"×6–FR&Æö6¶W  ¤æ–çF‚7vVW73¢f–FVòÂÆ–6Væ6RÖf—'7Bâf÷W'FVVâÔ•B&W7VÇG2&÷fRÃ7F'2à¤Ö÷7B&R—F†öâ—VÆ–æW2(	BÖ÷f–W’Â&6¶w&÷VæG&VÖ÷fW"ÂWFö6Æ—ÂgVä6Æ—(	Bv—F€§F†RfÖ–Æ–"&Æö6¶W"â¢¥Gvò&RF–ffW&VçB6†R¢¢Â&÷F‚fW&–f–VBÔ•C ¢¢¥vV$b¢¢ƒ"ÃƒR7F'2ÂvV$6öFV724D²’æB¢¤g&VT7WB¢¢ƒ"ÃCbÂ6ö×ÆWFP¦'&÷w6W"VF—F÷"öâvV$6öFV72æBvV$uR’à ¢¢¥F†—2VÆ–f–W2F†R6öæ6ÇW6–öâg&öÒ726—‚â¢¢F†B72VæFVB&Æ–6Væ6Rv2F†P¦6öç7G&–çBv†VâF†—27vVW7F'FVBÂ&6†—FV7GW&R—2æ÷r"ÂöâF†R7G&VæwF‚öb6—€§W&Ö—76—fR&W÷6—F÷&–W2ÆÂ&Æö6¶VB'’F†—2'VçF–ÖRâWfW'’öæRöbF†÷6R6—‚æVVG0¢¢¦6W'fW"F†R÷væW"'Vç2¢¢(	B–æg&7G'V7GW&RF†W’’f÷"ÂVWVRÂæBF†P¦7W7FöÖW"w2ÖVF–ÆVf–ærF†R7W7FöÖW"w2Ö6†–æRà ¤vV$6öFV72Æ–'&'’†2æöæRöbF†B6†RâF†Rv÷&²†Vç2–âF†R'&÷w6W"F†P¦7W7FöÖW"Ç&VG’†3¢æòW"Ö7W7FöÖW"6÷7BÂæòVWVRÂæBæòWÆöBöbf–ÆP§F†Bv2æWfW"ÖVçBFòÆVfRF†V—"FWf–6RâF†B—2F†R6ÖR—"öb6öç7G&–çG0§F†—2&öGV7Bw2'VÆW2–×÷6Rç—v’Â6F—6f–VBf÷"g&VRà ¥6ò&6†—FV7GW&R—2F†R6öç7G&–çB¢¦f÷"6W'fW"×6–FRFööÇ2¢¢ÂæBF†W&R—26Æ70¦öb6æF–FFRf÷"v†–6‚—B—2æ÷BâF†R7vVW†Bæ÷BÆöö¶VBBF†B6Æ72VçF–À¦æ÷rÂöæÇ’&V6W6RWfW'’V&Æ–W"6FVv÷'’w2ÆVFW'2†VæVBFò&R—F†öâ(	Bv†–6€¦—2f7B&÷WBF†R6FVv÷&–W26†÷6VâÂæ÷B&÷WBv†BW†—7G2âvVæW&Æ—6F–öà¦G&vâg&öÒ6—‚6×ÆW2F†B6†&VB†–FFVâ&÷W'G“²F†R6V6öæBöæRF†—27vVW ¦†2†BFòvÆ²&6²ÂgFW"F†Räô54U%D”ôâ'VÆRà ¥v†BFöW2¢¦æ÷B¢¢6†ævRÂw&—GFVâ–çFò&÷F‚&V6÷&G2&F†W"F†âvÆ÷76VC ¥vV$6öFV72—2æ÷Bf–Æ&ÆRWfW'—v†W&RæB'&÷w6W"v—F†÷WB—B×W7B&R§FöÆB¢F†P¦fVGW&R—2Væf–Æ&ÆR&F†W"F†â6†÷vââVF—F÷"F†B6–ÆVçFÇ’FöW2æ÷F†–æs°§f–FVòv÷&²—2†Vg’öâ†öæRæBtTåE2æÖF&WV—&W2Öö&–ÆRFòv÷&³²F†P§fVæF÷&–ærFV6—6–öâVæFW"67&—B×7&2w6VÆbv—2F†R6ÖRöæRW†6Æ–G&ræVVG3°¦æBg&VT7WBv27&VFVBæ÷fVÖ&W"##RÂ6ò'&÷w6W"VF—F÷"w2&VÂ6÷7B(	B¶VW–æp§Wv—F‚6öFV2æB'&÷w6W"6†ævW2(	B—26÷7B—B†2æ÷B–B–WBà ¤6'&–VBf÷'v&Bf÷"F†R&VÖ–æ–ær6FVv÷&–W3¢¢¦6²v†W&R6æF–FFR'Vç2&Vf÷&P¦6¶–ærv†B—BFöW2â¢¢6Æ–VçB×6–FRæB6W'fW"×6–FR&Ræ÷BGvò–×ÆVÖVçFF–öç2ö`¦öæR6&–Æ—G’†W&R(	BF†W’&Rg&VRfVGW&RæBgVæFVBöæRà ¥&Vv—7FW"B¢£b¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF&ÆRv†÷6RæÖR&öÖ—6VB6öÖWF†–ær—G26öÇVÖç2Fòæ÷B†fP ¤V–v‡F‚7vVW73¢VF–òæB×W6–2ÂÆ–6Væ6RÖf—'7BâGvò&Vv—7FW&VBÂ&÷F‚fW&–f–V@¤Ô•B(	B¢§7ÆVWFW"¢¢ƒ#‚Ã3s’7F'2Â7FVÒ6W&F–öâ’æB¢§6VV²×GVæR¢¢ƒRÃS“RÂvòÀ¥6†¦Òw2&V6övæ—F–öâÆv÷&—F†Ò’â&÷F‚6''’F†R7Æ—BF†Bv†—7W%‚W7F&Æ—6†VC §F†R6öFR—2Ô•BæBF†R&WG&–æVBÖöFVÇ2&R6W&FVÇ’Æ–6Vç6VBÂæBF†RÖöFVÇ0¦&RF†R'BFö–ærF†Rv÷&²â&÷F‚&R÷WG6–FRF†—2'VçF–ÖRÂ6ò&÷F‚&R6W'f–6W0§F†R÷væW"'Vç2à ¢¢§6VV²×GVæR—2&Vv—7FW&VBÖ–æÇ’&V6W6RöbG&æW‡BFò—Bâ¢¢F†—2&W÷6—F÷'¦†2F&ÆR6ÆÆVB6öæuöf–ævW'&–çG6ÂæBF†R7V'7—7FVÒ&Vv—7G'’FW67&–&VB—@¦2&6¶–ærçF’Ö6ÆöæRÖF6†–ærâö–çF–ærâ6÷W7F–2f–ævW'&–çFW"B—B—2F†P¦ö'f–÷W2Ö÷fRæB—B—2w&öærà ¤—G26öÇVÖç2&R6öæu÷F—FÆVÂ7&VF÷%öæÖVÂ–FVçF—G–ÂÖööFÀ¦VF–Væ6U÷6–væÆÂ6öæ–5÷ÆWGFVÂæBf–ævW'&–çEö–FF†B—2¢¦Æ–âFW‡@¦f–VÆB6öÖV&öG’7WÆ–W2¢¢âæòVF–òÂæò†6‚Âæ÷F†–ærFW&—fVBg&öÒ&V6÷&F–ærà¥F†Rv÷&B&f–ævW'&–çB"–â—G2æÖRÖVç26öÖWF†–ærVçF—&VÇ’F–ffW&VçBg&öÒF†P§v÷&B&f–ævW'&–çB"–â6VV²×GVæRw2âw&Wf–æG2æòw&—FW"V—F†W"(	BF†RÖ–w&F–öâÀ§F†RFVæçB×66÷VBÆ—7BÂF†R&Vv—7G'’æ÷FRÂæBæò6öFRà ¥6ò6÷W7F–2ÖF6†–ær—2æWr7F÷&vRæBæWr6fWG’fÆ÷rÂæ÷B6öÇVÖâFFVBFð¦F&ÆRF†BÇ&VG’6÷VæG2&–v‡Bà ¢¢¥F†R&Vv—7G'’w2FW67&—F–öâv2F†R'BF†BÖ—6ÆVBÂæB—B—2f—†VBâ¢¢—B&V@¢¢$f–ævW'&–çG2W6VBFòFVÆÂöæR–V6Röbv÷&²g&öÒæ÷F†W""¢(	Bv†–6‚—2&V6—6VÇ§v†Bâ6÷W7F–2f–ævW'&–çBFöW2Â6ò—B&öÖ—6VBv†BF†R6öÇVÖç2Fòæ÷B†öÆBà¤—Bæ÷r6—2v†BF†RF&ÆR7GVÆÇ’7F÷&W2âF†RF&ÆR6ææ÷B&R&VæÖVBg&öÐ¦†W&S¢Ö–w&F–öâB—2g&÷¦VâæB&VæÖR—2FW7G'V7F—fRFF6†ævRÂv†–6€¦tTåE2æÖFWG2&V†–æB÷væW"&÷fÂÂ6òF†RFW67&—F–öâv2Ö÷fVBFòF†P¦6öÇVÖç2&F†W"F†âF†R÷F†W"v’&÷VæBà ¥F†—2—2F†R6öFV&6Rw2&V7W'&–ærFVfV7Bf÷VæBöæRÆ–W"÷WBg&öÒF†R6öFRâ¢¦FW67&—F–öâ¢6Æ–Ö–ær6&–Æ—G’F†BFöW2æ÷BW†—7B—2†&FW"Fò6F6‚F†â¦gVæ7F–öâF†BÆ–W2Â&V6W6Ræ÷F†–ærW†V7WFW2FW67&—F–öâ(	BæòFW7Bf–Ç2Âæð§vR'&V·2ÂæB—B&VG22Fö7VÖVçFF–öâöb6öÖWF†–ær&VÂf÷"2Æöær0¦æö&öG’÷Vç2F†R66†VÖà ¥F†R6fWG’ö–çB6—G2†VBöbF†RVæv–æVW&–æröæRæBF†R&Vv—7G'’Ç&VG’†@¦—B&–v‡C¢fÇ6R÷6—F—fR67W6W27&VF÷"öb6÷––ærÂ6òF†RfÆ÷rF†@¦6öç7VÖW2ÖF6‚—2F†R6fWG’Ö7&—F–6Â'BÂæ÷BF†RÖF6†W"ÂæBæ÷F†–ær6†÷VÆ@¦7BöâÖF6‚VçF–ÂF†BfÆ÷rW†—7G2à ¥&Vv—7FW"B¢£B¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†RV×G’6FVv÷'’v2F†Rw&öærv÷&@ ¥6WfVçF‚7vVW73¢V&Æ—6†–ærâF÷–3§V&Æ—6†–æv7Æ—G2&WGvVVâV&Æ—6†–æræ@¢¢§6¶vR¢¢V&Æ—6†–ær(	BÆW&æÂw&FÆR×Æ’×V&Æ—6†W"æB–çGV—BöWFò&RÆÀ¦&÷WB6†—–ær6ögGv&R&VÆV6W2âf–gF‚Ö&–wV—G’ÂÖ–ÆFW"F†âF†R&W7B&V6W6P§F†R&VÂ†—G27F–ÆÂ6—BBF†RF÷à ¢¢¤æBF†RF÷&W7VÇB—2v†B72F‡&VRvVçBÆöö¶–ærf÷"æB&W÷'FVB2'6VçBâ¢ ¥72F‡&VR6V&6†VBF÷–3§—vÆÆf÷"v’Fò†VÇ7&VF÷'2WBv÷&²¦&V†–æB ¦—vÆÂæBvWB–BÂf÷VæBf÷W"FööÇ2f÷"FVfVF–ær—vÆÇ2ÂæBw&÷FRF†P¦6FVv÷'’W2––VÆF–æræ÷F†–ærâ—Bv2æ÷BâV×G’6FVv÷'’â—Bv2F†Rw&öæp§v÷&C¢æö&öG’'V–ÆF–ærÖVÖ&W'6†—6ögGv&RFw2—B'—vÆÂ"(	BF†RV÷ÆRW6–æp§F†BFr&RF†RöæW2&VÖ÷f–ærF†VÒâ¢¦G'”v†÷7Bôv†÷7F¢¢ÂSBÃsƒ’7F'2ÂæöFRæ§2À§fW&–f–VB¢¤Ô•B¢¢ÂFW67&–&W2—G6VÆb2'V&Æ—6†–ærÂÖVÖ&W'6†—2Â7V'67&—F–öç2æ@¦æWw6ÆWGFW'2"ÂæBv2VæFW"F÷–3§V&Æ—6†–ævF†Rv†öÆRF–ÖRà ¤6'&–VB–çFòF†R7vVWFö7VÖVçB2'VÆRÂ&V6W6R—Bv–ÆÂ†Vâv–ã¢¢§v†Vâ¦6FVv÷'’6öÖW2&6²V×G’÷"†÷7F–ÆRÂ7W7V7BF†R6V&6‚FW&Ò&Vf÷&R6öæ6ÇVF–æp§F†R6ögGv&RFöW2æ÷BW†—7Bâ¢¢âV×G’&W7VÇB—2Wf–FVæ6R&÷WBfö6'VÆ'’@¦ÆV7B2ögFVâ2Wf–FVæ6R&÷WBF†Rv÷&ÆBà ¤v†÷7B—2Ç6òF†R7G&öævW7B6÷VçFW&W†×ÆR–WBFòF†Räô54U%D”ôâö'6W'fF–öà¦g&öÒ72f—fRâv†÷7B…&ò’—2æ÷B6–FR'W6–æW72Â—B—2†÷rF†R&ö¦V7B—0¦gVæFVBÂæBF†R6ögGv&R—27F–ÆÂÔ•BâGvò6ÆV"W†6WF–öç2÷WBöb6—‚FF§ö–çG2æ÷râF†RFVæFVæ7’7F—226öÖWF†–ærFò6V&6‚'“²&÷F‚Fö7VÖVçG26§Æ–æÇ’—B—2æ÷B6öÖWF†–ærFò6öæ6ÇVFRg&öÒà ¥v†B—27GVÆÇ’f–Æ&ÆS¢&V–æræöFRæ§2—2ÆW72W6VgVÂF†â—B6÷VæG2Â6–æ6P¤v†÷7B—2gVÆÂÆ–6F–öâv—F‚—G2÷vâFF&6RæBFÖ–â6Æ–VçB(	BF÷F–ær—@¦ÖVç2'Vææ–ær—BÂæ÷B–×÷'F–ær—BâF†R'BF†BæVVG2æòÆ–6Væ6R&W6öÇfVBæ@¦æò6W'f–6R'Vâ—2F†R¢¦ÖVÖ&W'6†—ÖöFVÂ¢¢(	BF–W'2ÂvFVB÷7G2Âv†BÖVÖ&W §6VW2&Vf÷&RæBgFW"––ærâF†B—2F†R–V6RF†—2&öGV7BFöW2æ÷B†fRà ¥&Vv—7FW"B¢£"¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R'VÆR'&ö¶Röâ—G2f—'7BFW7BÂv†–6‚—2F†RW6VgVÂ'@ ¥6—‡F‚7vVW72Â'VâÆ–6Væ6RÖf—'7B(	BÆ–6Vç6S¦Ö—F–âF†RVW'’&Vf÷&Rç¦76W76ÖVçBöbf—BÂv†–6‚—2v†BF†R&Wf–÷W2726öæ6ÇVFVBFòFòâF†RÖWF†ö@§v÷&·2â—BÇ6ò'&ö¶RF†R'VÆRF†BÖ÷F—fFVB—BÂ–âöæR6FVv÷'’à ¢¢¤F–v—FÂ6–vævR¢¢––VÆG2F‡&VRÔ•B&W7VÇG2&÷fR#7F'2æBæ÷F†–ærv÷'F€§&Vv—7FW&–æs¢fÇWGFW"VÖ&VFFW"ÂâæG&ö–B¶–÷6²Æö6¶F÷vâÂ3c2×7F §6–vævR4Õ2â†&Gv&RÖF¦6VçBVæ÷Vv‚F†B6–vævRv÷VÆB&RæWr&öGV7B&F†W §F†ââ–×&÷fVÖVçBFòâW†—7F–æröæRà ¢¢¥v†—FV&ö&BæBG&v–ær¢¢––VÆG2W†6Æ–G&röW†6Æ–G&vB¢£#’Ã“#r7F'2¢¢À§fW&–f–VB¢¤Ô•B¢¢(	BæBW†6Æ–G&r†2†÷7FVB6öÖÖW&6–Â&öGV7B@¦W†6Æ–G&ræ6öÒ&V†–æB—BÂW†7FÇ’Æ–¶RGvVçG’Â6&&öâæB†’äWfVçG2âF†R'VÆRv0§7FFVBgFW"F‡&VRFFö–çG2æB6öçG&F–7FVB'’F†Rf÷W'F‚Âv†–6‚—2&÷W@§v†BF‡&VRFFö–çG2&Rv÷'F‚â—B7F—2–âF†R7vVWFö7VÖVçB2vööBF†–æp§Fò§6V&6‚¢'’æBæ÷B26öÖWF†–ærFò6öæ6ÇVFRg&öÒâ&V6÷&F–ærF†BW‡Æ–6—FÇ¦ÖGFW'2Ö÷&RF†âF†R'VÆRF–C¢vVæW&Æ—6F–öâF†B7W'f—fW2–âFö7VÖVç@¦&V6W6Ræö&öG’vVçB&6²Fò6†V6²—B&VG2W†7FÇ’Æ–¶RöæRF†B†VÆBà ¥6ÖR&W7VÇB6WBÂ6ÖRöÆBÆW76öã¢÷FWFòö†—&–ær×v—F†÷WB×v†—FV&ö&G6BSÃ3s§7F'2—2¢¦Æ—7Böb6ö×æ–W2¢¢Âæ÷B6ögGv&Rà ¢¢¥F†R&÷GFÆVæV6²†2Ö÷fVBÂæBF†B—2F†Rf–æF–æröbF†RF’â¢¢W†6Æ–G&r—0§F†Rf—'7B6æF–FFR–âF†Rv†öÆR7vVWv†÷6RÆ–6Væ6RÂ6—¦RÂÖGW&—G’æB&öGV7@¦f—BÆÂ72âv†B7F÷2—B—2F†B—B—2&V7B6¶vRæBF†—2Æ–6F–öâ—0§6W'fW"×&VæFW&VBW‡&W72v—F‚¢¦æò'V–ÆB7FW¢¢æB67&—B×7&2w6VÆbvâW6–ær—@¦ÖVç2fVæF÷&–ær&V'V–ÇB'VæFÆR6W'fVBg&öÒF†—2÷&–v–â(	BW&Ö—GFVB'’F†R55 ®(	BæB÷væ–ær—G26—¦RæBWFFW2W&ÖæVçFÇ’â7WÇ’Ö6†–âFV6—6–öâf÷"F†P¦÷væW"ÂæBW‡Æ–6—FÇ’æ÷BÆ–6Væ6R&ö&ÆVÒÂ6òF†R&V6÷&BFöW2æ÷BFW67&–&R—@¦2öæRà ¤6÷VçF–ærF†—272v—F‚F†R7VV6‚×&V6övæ—F–öâ73¢öbF†Rf÷W"&W÷6—F÷&–W0¦FFVBv†÷6RÆ–6Væ6W2&RgVÆÇ’6WGFÆVBæBW&Ö—76—fR(	Bv†—7W"æ7Âv†—7W%‚À§f÷6²ÂW†6Æ–G&r(	B¢¦ÆÂf÷W"&R&Æö6¶VB'’F†—2'VçF–ÖR&F†W"F†â'’F†V— §FW&×2¢¢âÆ–6Væ6Rv2F†R&–æF–ær6öç7G&–çBv†VâF†—27vVW7F'FVBâ—B—2æ÷@¦ç’Ö÷&Rà ¥&Vv—7FW"B¢£¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF‡&VRf÷"F‡&VRÂæB'VÆRv÷'F‚Ö÷&RF†âF†R&W÷6—F÷&–W0 ¤f–gF‚7vVW73¢WfVçG2Â%5eæBF–6¶WF–ærâF÷–3¦WfVçBÖÖævVÖVçFGW&ç2÷W@§Fò&RÖ÷7FÇ’¢§6ögGv&RWfVçBF—7F6†W'2¢¢(	Bf÷W'F‚F÷–2ÖæÖRG&ÂgFW ¦F÷–3§÷6ÂF÷–3§66†VGVÆ–ævæBF÷–3§—vÆÆâf÷W"öbV–v‡B&W7VÇG2&÷fP£37F'2&RWfVçB'W6W2æBÆ—7FVæW"Æ–'&&–W2Â6ÇG7F6²÷6ÇFÖöærF†VÒà ¤öæR&VÂ†—BÂ†”WfVçG4FWbô†’äWfVçG6ƒ2Ã“ƒ7F'2ÂWfVçF'&—FRÇFW&æF—fR’Âæ@¦—G2FWFV7FVBÆ–6Væ6R—2¢¤äô54U%D”ôâ¢¢(	BF†RF†—&B–â&÷rà ¢¢¥F†B—2æ÷rF†RÖ÷7BW6VgVÂF†–ærF†—2v†öÆR7vVW&öGV6VBâ¢¢F‡&VP¦6FVv÷&–W2ÂF‡&VRÆVFW'2ÂF‡&VRÆ–6Væ6W2v—D‡V"6ææ÷B6Æ76–g“¢GvVçG’„5$ÒÀ£SRÃcb7F'2ÂGvVçG’æ6öÒ&V†–æB—B’Â6&&öâ†ÖçVf7GW&–ærÂ6&&öâæ×2’À¤†’äWfVçG2‡F–6¶WF–ærÂ†’æWfVçG2’âw&—GFVâW2'VÆR&F†W"F†âF‡&VP¦æV6F÷FW3  £â&ö¦V7B÷6—F–öæVB2'F†R÷Vâ×6÷W&6RÇFW&æF—fRFò‚"Âv—F‚†÷7FV@£â6öÖÖW&6–Â&öGV7B&V†–æB—BÂ†2W7VÆÇ’w&—GFVâÆ–6Væ6R7V6–f–6ÆÇ£âv–ç7B&V–ær&W6öÆB2†÷7FVB6W'f–6RâF†B—2v†BF†—2&öGV7B—2à ¥F‡&VR6öç6WVVæ6W2ÂÆÂöbv†–6‚6†ævR†÷rF†RæW‡B7vVW6†÷VÆB&R'Vâà¢¢¥7F"6÷VçBæB6FVv÷'’ÆVFW'6†—&VF–7BÆ–6Væ6RG&÷V&ÆRÂæ÷BÆ–6Væ6P§6fWG’¢¢(	BF†RÖ÷&RöÆ—6†VBF†RÇFW&æF—fR×FòÕ‚&ö¦V7BÂF†RÖ÷&RÆ–¶VÇ’¦6ö×ç’—2&÷FV7F–ær—Bâ¢¥&VBF†RÆ–6Væ6Rf—'7B¢¢Â&V6W6R67&VVæ–ær'’7F6°¦÷"7F'2æB6†V6¶–ærF†RÆ–6Væ6RgFW'v&G2ÖVç2Fö–ærF†Rf—BæÇ—6—2öà¦W†7FÇ’F†R&W÷6—F÷&–W2ÆV7BÆ–¶VÇ’Fò&RW6&ÆRâæB¢¤äô54U%D”ôâ—2æ÷@¢'Væ¶æ÷vâÂ&ö&&Ç’f–æR"¢¢(	B—BÖVç2v—D‡V"&VB&VÂÆ–6Væ6Rf–ÆRæB6÷VÆ@¦æ÷BÖF6‚—BFòç—F†–ær7FæF&BÂv†–6‚—2v†BÆw–W"×w&—GFVâ7W7FöÒÆ–6Væ6P¦Æöö·2Æ–¶Rg&öÒ÷WG6–FRà ¤æöæRöbF†RF‡&VR—2&Æö6¶VBÂæBÆÂF‡&VR&Rv÷'F‚&VF–ærf÷"F†V—"FöÖ–à¦ÖöFVÇ2Âv†–6‚æVVG2æòÆ–6Væ6R&W6öÇfVBâv†BæöæRöbF†VÒ—2Âöâ7W'&Vç@¦Wf–FVæ6RÂ—26öÖWF†–ærFòF¶R6öFRg&öÒà ¥&Vv—7FW"B¢£¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R6Æ÷6W7Bf—B¶VW2†f–ærF†Rv÷'7BÆ–6Væ6P ¤f÷W'F‚7vVW73¢ÖçVf7GW&–æræB–æGW7G&–Ââ2&W÷6—F÷&–W2&÷fR37F'0§W6†VB–âF†RÆ7B–V"Â7Æ—GF–ær6ÆVæÇ’–âGvòà ¢¢¤Ö÷7BöbF†R6FVv÷'’—2ÕEBæB&÷Fö6öÂÇVÖ&–ær¢¢(	BV×‚ƒbÃc3’ÂfW&æV×À¦ææö×ÂæöFRÖ÷7VÂæWW&öââ'&ö¶W'2f÷"FÆ¶–ærFòÄ72æB6Vç6÷'2â6÷'&V7FÇ§FvvVBæB—'&VÆWfçC¢'W6–æW72'V–ÆFW"†VÇ26öÖV&öG’'Vâ'W6–æW72Âæ÷B&VB¥6–VÖVç23râF†RU%†Æb—2FöÖ–æFVB'’F†RuÂfÖ–Ç’„U%æW‡BB3‚Ã#À¦ÖWF6g&W6‚’Âv†–6‚&V6†W2†÷7FVB&öGV7Bà ¢¢¦7&&æ÷2ö6&&öæ—2F†R6V6öæB6Æ÷6W7BÖf—B×v÷'7BÖÆ–6Væ6R–âF†—27vVWâ¢¢U%À¤ÔU2æBÕ2öâ¢¥7W&6RÂ÷7Fw&U5ÂÂG—U67&—BæB&V7B&÷WFW"¢¢(	BF†—0§&öGV7Bw2W†7B7F6²(	BæB—G2FWFV7FVBÆ–6Væ6R—2¢¤äô54U%D”ôâ¢¢â6ò—0¦GvVçG–‡÷GvVçG–ÂF†R6Æ÷6W7Bf—B–âF†R5$Ò6FVv÷'’ÂÇ6ò7W&6Ræ@¥G—U67&—BÂÇ6òv—F‚†÷7FVB6öÖÖW&6–Â&öGV7B&V†–æB—Bà ¥F†B—2æ÷B6ö–æ6–FVæ6RæB—B—2æ÷rw&—GFVâF÷vâv†W&RF†RæW‡B7vVWv–ÆÀ¦f–æB—C¢¢¦&ö¦V7Bv—F‚6ö×ç’&V†–æB—Bw&—FW2Æ–6Væ6R&÷FV7F–ær—@¦g&öÒ&V–ær&W6öÆB2†÷7FVB6W'f–6RÂv†–6‚—2W†7FÇ’F†RW6RF†—2&öGV7@§v÷VÆBÖ¶Röb—Bâ¢¢6V&6†–ær'’7F6²æBF†Vâ6†V6¶–ærF†RÆ–6Væ6RvÆ·2–çFð§F†BWfW'’F–ÖRâ&VF–ærF†RÆ–6Væ6Rf—'7BæBÆWGF–ærF†R7F6²FV6–FR&WGvVVà§v†B—2ÆVgB—2F†R6†VW"÷&FW"à ¢¢¤æBF†RFö2Ö6÷VçBwV&Bf—&VBöâG'VR6VçFVæ6Râ¢¢w&—F–ærF†Bf–æF–ærW §&öGV6VB#2&W÷6—F÷&–W2&÷fR37F'2W6†VB–âF†RÆ7B–V""Âv†–6‚F†P§&Vv—7FW"Ö6÷VçBGFW&â&VB26Æ–Ò&÷WB÷W"&Vv—7FW"æBf–ÆVBF†R&VÆV6P¦÷fW"â&Wv÷&F–ærF†R&÷6Rv÷VÆB†fR&VVâF†Rw&öærf—‚(	B6†V6²F†Bf—&W2öà§G'VR7FFVÖVçG2FöW2æ÷BvWBf—†VBÂ—BvWG2w&—GFVâ&÷VæBÂæBF†Vâ—B—0§G&–æ–ærV÷ÆRFòfö–B—B&F†W"F†âÖV7W&–ærç—F†–ærâF†RGFW&âæ÷p§&WV—&W2"¢§&Wf–WvVB¢¢&W÷6—F÷&–W2"à ¤æ'&÷v–ærGFW&â—2V–WBvV¶Væ–æröâ—G2÷vâÂ6ò—B6öÖW2v—F‚F†RF†–æp§F†B7F÷2—B&V–æröæS¢F†R6†V6²æ÷r¢§&VgW6W2Fò72–bF†BGFW&âÖF6†W0¦æ÷F†–ærBÆÂ¢¢âF‡&VR66W2vW&R'Vâ&Vf÷&RG'W7F–ær—B(	BF†R&Vv—7FW"6÷Vç@§w&öær†6Vv‡B’ÂF†R6Æ–Ò&Wv÷&FVB÷WBöbF†RFö7VÖVçBVçF—&VÇ’†6Vv‡B'’F†P¦æWrwV&B’ÂæBF†RG'VR6VçFVæ6R&÷WB6V&6‚&W7VÇG2†6÷'&V7FÇ’–væ÷&VB’à ¥&Vv—7FW"B¢£“’¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R6V&6‚FW&ÒF†Bv÷VÆB†fRv÷B—B&6·v&G0 ¥F†—&B7vVW73¢—vÆÂÂ7&VF÷"V6öæö×’Â7VV6‚&V6övæ—F–öâà ¢¢¦F÷–3§—vÆÆ—2—vÆÂ¦'—76–ær¢â¢¢F†—&BF÷–2ÖæÖRG&gFW ¦F÷–3§÷6‡÷7F772Â÷7Fw&W7BÂö‚Ö×’×÷6‚’æBF÷–3§66†VGVÆ–æv†7&öâÂæ÷@¦ö–çFÖVçG2’ÂæBF†Rf—'7BöæRv†W&RföÆÆ÷v–ærF†R&W7VÇG2v÷VÆB†fR&VVà¦7F—fVÇ’†&ÖgVÂ&F†W"F†âÖW&VÇ’v7FVgVÂâf—fR&W÷6—F÷&–W26''’F†RF÷–0¦&÷fR#7F'3²¢¦f÷W"W†—7BFòFVfVB—vÆÇ2¢¢(	BWfW'—vÆÂöÆFFW&B‚Ãƒ§7F'2ÆVG2F†R6FVv÷'’â7&VF÷"7GVF–òw2¦ö"—2Fò†VÇ7&VF÷'2WBv÷&°¢¦&V†–æB¢—vÆÂæBvWB–Bâ7vVWF†B&æ¶VB'’7F'2æB6¶—VBF†P§&VF–ærv÷VÆB†fR&W÷'FVBF†RÖ÷7B÷VÆ"çF’×—vÆÂFööÂöâv—D‡V"2F†P¦6FVv÷'’ÆVFW"f÷"&öGV7BF†B6VÆÇ2—vÆÇ2âæ÷F†–ær&Vv—7FW&VBÂæ@¦Æ–6Væ6R†Bæ÷F†–ærFòFòv—F‚—Bà ¢¢¦F÷–3¦7&VF÷"ÖV6öæö×–—2F†–âæB––VÆG2æ÷F†–ærâ¢¢f÷W"&W÷6—F÷&–W2&÷fP£S7F'2–âF†RÆ7B–V#¢7W'&–7VÇVÒÂvöövÆRÔG&—fR×ÇW2Ö7'—Fòf–FVð§ÆFf÷&ÒÂ×7F"&ö¦V7Bv—F‚c÷Vâ—77VW2ÂæB6öö¶&öö²f÷"¶W–V@¦†÷7FVB’F†BÇ6ò&f–æG2fW&–f–VBVÖ–Ç2"(	B&–6R&F†W"F†âÆ–6Væ6RÂæ@¦ÆVB×67&–ær6&–Æ—G’F†BÖVWG2F†—2&öGV7Bw26öç6VçB'VÆW2†VBÖöââF†P¦V×G’&W7VÇB—2&V6÷&FVBFVÆ–&W&FVÇ“¢&W6V&6‚F†BöæÇ’&W÷'G2†—G26ææ÷B&P¦F—7F–æwV—6†VBg&öÒ&W6V&6‚F†Bf÷VæBæ÷F†–æræB6–Bæ÷F†–ærà ¢¢¥7VV6‚&V6övæ—F–öâv2&VÂvâ¢¢32&ö¦V7G2&÷fR2Ã7F'2W6†VB–à§F†RÆ7B–V"ÂæBF†R&Vv—7FW"†VÆB¢¦æ÷F†–ærBÆÂ¢¢VæFW"—B7&÷72“P§&V6÷&G2(	Bv†–ÆR6F–öç2æBG&ç67&—G2&R7V&VÇ’7&VF÷"7GVF–òw2¦ö"æ@§F†R÷væW"æÖVB7VV6‚&V6övæ—F–öâW‡Æ–6—FÇ’âF‡&VRFFVBÂV6‚Æ–6Væ6RfW&–f–V@¦'’F†RFWFV7FVBÖÆ–6Væ6RÖWF†öC¢¢§v†—7W"æ7¢¢Ô•BƒS"Ã“sr7F'2’À¢¢§v†—7W%‚¢¢%4BÓ"Ô6ÆW6Rƒ#2Ãcr’Â¢§f÷6²Ö’¢¢6†RÓ"ãƒRÃcB’à ¢¢¤Æ–6Væ6R—2æ÷Bv†B6öç7G&–ç2ç’öbF†RF‡&VRÂæBF†R&V6÷&G26’6òâ¢¢F†—0¦—2W‡&W72öâfW&6VÂ6W'fW&ÆW72v—F‚æò'V–ÆB7FWâ2²²&–æ'’v—F€¦×VÇF’Öv–v'—FRvV–v‡G2Â—F†öâuR—VÆ–æRæBæF—fR&–æF–æw2&RæöæRö`§F†VÒF†–æw26W'fW&ÆW72gVæ7F–öâÆöG2âÆÂF‡&VR6—B@¦÷F–öæÅöFFW%ögFW%÷&Wf–Wv&V6W6RF÷F–ærF†VÒÖVç2F†R÷væW"'Vç2§6W'f–6R&V6†VBVæFW"F†Rf÷W"'VÆW2–âFö72ö&6†—FV7GW&RôU…DU$äÂÕ4U%d”4U2æÖF ®(	B–æg&7G'V7GW&RæB6÷7BÂæ÷BÆ–6Vç6–ærâGvògW'F†W"F†–æw2F†RÆ–6Væ6RFöW2æ÷@¦6÷fW"Âw&—GFVâ–çFòF†R&V6÷&G2&F†W"F†âÆVgBFò&Rf÷VæC¢v†—7W%‚w0§W&Ö—76—fRÆ–6Væ6RFöW2æ÷B&V6‚F†RÆ–væÖVçBæBF–&—¦F–öâÖöFVÇ2—@¦F÷væÆöG2B'VçF–ÖRÂv†–6‚&RF†R–V6W2Fö–ærF†Rv÷&³²æBF–&—¦F–öà¦GG&–'WFW27VV6‚FòæÖVBW'6öâÂv†–6‚VæFW"F†—2&öGV7Bw2&÷fVææ6Ræ@¦6öç6VçB'VÆW2—2G&gBf÷"‡VÖâFò6öæf—&ÒÂæWfW"V&Æ—6†VBÆ&VÂà ¥&Vv—7FW"B¢£“‚¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R&W÷6—F÷'’†B&VVâ&VæÖVBÂæB6—‚Æ–6Væ6W2vW&RwVW76W0 ¤†f–ær§W7Bw&—GFVâF†B6V&6‚f–ÇFW"—2æ÷BÆ–6Væ6RÂF†Rö'f–÷W2æW‡@§VW7F–öâv2v†WF†W"ç—F†–ær¦6÷VÆB¢fW&–g’öæRg&öÒ†W&Râ6öÖWF†–ær6âÂæB—@¦6†ævVB6—‚&V6÷&G2à ¢¢¦6V&6…÷&W÷6—F÷&–W6v—F‚Ö–æ–ÖÅö÷WGWC¢fÇ6V&WGW&ç2v—D‡V"w2FWFV7FV@¦Æ–6Væ6Râ¢¢F†RgVÆÂ&W÷6—F÷'’ö&¦V7B6'&–W2Æ–6Vç6Rç7G…ö–F(	Bv†Bv—D‡V §&VB÷WBöbF†R&ö÷BÄ”4Tå4Vf–ÆR(	B2F—7F–æ7Bg&öÒF†RÆ–6Væ6R¦f–ÇFW"¢À§v†–6‚öæÇ’6—2v†–6‚'V6¶WB&W÷6—F÷'’6÷'FVB–çFòâWfW'’&V6÷&B&W7F–æröâ¦fÖ–Ç’v2&R×&VBÂæB¢¦æöæRöbF†R6—‚v22&V6÷&FVB¢£¢v7&Ò¢¤Ô•B¢ ¢†&6²–çFòF†RF÷F–öâF‚’ÂfW&6VÂÖÆ'2÷6¶–ÆÇ2¢¤Ô•B¢¢ÂuBÕ6õd•E2¢¤Ô•B¢¢öà§F†R6öFRÂW'’¢¤uÂÓ2ã¢¢Â'&–v‡F&Vâ×7GVF–ò¢¤uÂÓ2ã¢¢6öæf—&ÖVB&F†W"F†à¦–æfW'&VBg&öÒ—G2F÷–2Æ—7BÂæBGvVçG’¢¤äô54U%D”ôâ¢¢(	Bv—D‡V"&VB—G0¦Æ–6Væ6Rf–ÆRæB6÷VÆBæ÷BÖF6‚—BFòç’¶æ÷vâÆ–6Væ6RÂv†–6‚—2f"&WGFW ¦ç7vW"F†â&V&VB–âæV—F†W"f–ÇFW""æBÖVç2F†R6ÖRF†–ærà ¢¢¤fööG–Õ&W7FW&çB6WGFÆVBF†R÷F†W"v’â¢¢—G2&W÷6—F÷'’ö&¦V7B†2¢¦æð¦Æ–6Vç6V¶W’BÆÂ¢¢Âv†–6‚—2v†Bv—D‡V"&WGW&ç2v†Vâ—Bf–æG2æòÆ–6Væ6P¦f–ÆS¢âW7F&Æ—6†VB'6Væ6RÂæ÷BâVç&VBf–VÆBâF†R&V6÷&BÖ÷fV@¦æVVG5öÆ–6Vç6U÷&Wf–Wv(i"&Æö6¶VFâ&W÷6—F÷&–W2FV6Æ&–æræòÆ–6Væ6RvVçBR(i £bÂæBfW&–g’ÖFö2Ö6÷VçG6(	BFFVB†÷W'2V&Æ–W"(	B6Vv‡BF†R7FÆRf–wW&R–à¦Fö72ö÷væW"õt„BÔ•2ÔÄTeBæÖF&Vf÷&R—B6÷VÆB6†—âF†B—2F†R6†V6²V&æ–ær—G0§Æ6Röâ—G2f—'7BÆ—fR6†ævRà ¢¢¤6Âæ6öÒv2æ÷B&VgW6VBâ—Bv2&VæÖVBâ¢¢–W7FW&F’w2æ÷FR&V6÷&FVBF†@¦&Wó¦6Æ6öÒö6Âæ6öÖ&WGW&æVBC#"æB6öæ6ÇVFVBF†R6W76–öâÆ6¶VBW&Ö—76–öâà¥F†R&W÷6—F÷'’—2æ÷r¢¦6Æ6öÒö6ÂæF—–¢¢(	B6ÖR&W÷6—F÷'’–B3S3cƒFÂ6ÖP£##7&VF–öâFFRÂCrÃsc‚7F'2âF†RC#"v267W&FS²F†R–æfW&Væ6Rv2æ÷Bà¤v—D‡V"w2ÖW76vR6—2¢'F†R&W6÷W&6RFöW2æ÷BW†—7B¢¦÷"¢¢–÷RFòæ÷B†fP§W&Ö—76–öâ"¢ÂæB—Bv2&VB2F†R6V6öæB6ÆW6R&V6W6RF†Bv2F†R6ÆW6P¦Ç&VG’7W7V7FVBâ¢¤&VgW6ÂF†BæÖW2Gvò6W6W2—2æ÷BWf–FVæ6Rf÷ §v†–6†WfW"öæR–÷R6ÖR–â&VÆ–Wf–ærâ¢¢—B—2æ÷r&V6÷&B“RÂ@¦æVVG5öÆ–6Vç6U÷&Wf–WvFW7—FR6ÆVâÔ•BBF†R&ö÷B(	B&V6W6Rv—D‡V"FWFV7G0§F†R§&ö÷B¢Æ–6Væ6RæBF†—2—2Ööæ÷&WòÂæB&ö¦V7G2–âF†—26FVv÷'§&÷WF–æVÇ’¶VWâVçFW'&—6RF—&V7F÷'’VæFW"6W&FR6öÖÖW&6–ÂFW&×2âF†R&ö÷@¦—2W7F&Æ—6†VC²F†R6¶vW2&Ræ÷BÂæBF¶–ær6öFRg&öÒöæRÖVç2&VF–ærF†@¦öæRà ¤ÖWF†öBæ÷FRf÷"v†öWfW"7vVW2æW‡C¢&Wó¦&WGW&ç2C#"f÷"ç’&W÷6—F÷'’æÖP¦6öçF–æ–ærF÷BâW6R÷&s¦ÇW2f–ÇFW"f÷"F†÷6Rà ¥&Vv—7FW"B¢£“R¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂbFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	B'V6¶WB—2æ÷Bw&çBÂæB†ÆbâF÷F–öâF€ ¥F‡&VR5$ÒæB6ö6–Â×66†VGVÆ–ær&W÷6—F÷&–W2vVçBöçFòF†R&Vv—7FW"g&öÒ§6V6öæBv—D‡V"7vVWÂæB6Æ÷6–ærF†R6÷VçG2&V†–æBF†VÒGW&æVBWGvò6†V6·0¦ÖV7W&–ærÆW72F†âF†W’6Æ–ÖVBà ¢¢¤6V&6‚f–ÇFW"—2æ÷BÆ–6Væ6Râ¢¢v7&Öv2&V6÷&FVB2W&Ö—76—fR&V6W6P¤v—D‡V"w2Æ–6Væ6R¦f–ÇFW"¢6÷'FVB—B–çFòF†RW&Ö—76—fR'V6¶WBÂæB—B6†—V@¦B÷F–öæÅöFFW%ögFW%÷&Wf–WvöâF†B&6—2à¦FW7G2ö÷Vâ×6÷W&6RÖÆ–6Væ6R×FW&×2çFW7Bæ§6&V¦V7FVB—BÂ6÷'&V7FÇ“¢f–ÇFW §&W÷'G2v†–6‚'V6¶WB&W÷6—F÷'’fVÆÂ–çFòÂæ÷Bv†B—G2WF†÷"w&çFVBà¥&VF–ærF†Rf–ÆR—G6VÆbv2&VgW6VB(	B’æv—F‡V"æ6öÒ÷&W÷2ô&æ4Föâ÷v7&ÒöÆ–6Vç6V ¦ç7vW'2¢£C2¢¢Fò6W76–öâ66÷VBFòF†—2&W÷6—F÷'’öæÇ’(	B6òF†R&V6÷&Bæ÷p§6—2F†RÆ–6Væ6R—2¢¦æ÷BW7F&Æ—6†VB¢¢æB6—G2BæVVG5öÆ–6Vç6U÷&Wf–WvâF†P§6ÖRC2—2v‡’6Âæ6öÒw2Æ–6Væ6R—27F–ÆÂ&V6÷&FVB2VçfW&–f–VB&F†W"F†à§&V6ÆÆVBà ¢¢¥F†RF÷F–öâ×F‚6†V6²6÷fW&VB†ÆbF†RF÷F–öâF‚â¢¢—G2æÖR6—0¢&WfW'—F†–ær–âF†RF÷F–öâF‚#²—G27FGW26WB†VÆ@¦÷F–öæÅöFFW%ögFW%÷&Wf–WvÆöæRâFFW%ö'V–ÇF(	BF†R7FGW2ÖVæ–ær6öFP¦g&öÒF†B&W÷6—F÷'’¦—2Ç&VG’†W&RæB6öÖWF†–ær6ÆÇ2—B¢ÂF†R7G&öævW ¦6öÖÖ—FÖVçBöbF†RGvò(	Bv2÷WG6–FRF†R÷VÆF–öâ—B6Æ–ÖVBFòÖV7W&RâF†P¦6÷fW&VB6WBvVçB¢£2(i"’¢¢âGvòæÖVBÖ'WBÖæ÷BÕ5E‚Æ–6Væ6W2„F–g’Â÷VâvV%T’¦&RÆÆ÷vÆ—7FVBW‡Æ–6—FÇ’&F†W"F†âFÖ—GFVB'’Æö÷6Væ–ærF†RGFW&âà ¢¢¥F†R&V6—&ö6ÂÖÆ–6Væ6R6÷VçB—2FW&—fVBæ÷rÂæB6÷VÆBæ÷B&RFW&—fVBF†P¦ö'f–÷W2v’â¢¢Fö72ö÷væW"õt„BÔ•2ÔÄTeBæÖFV÷FW2—BB6öÖV&öG’FV6–F–ærv†@¦Ö’ÆVvÆÇ’&RF÷FVBÂæB—B†BG&–gFVB¢£(i"¢¢v—F‚æ÷F†–ærvF6†–ærà¥6V&6†–ærF†RÆ–6Væ6R&÷6Rf÷"uÆ&W÷'G2¢£"¢£¢öæR&V6÷&Bw2Æ–6Væ6RFW‡@§&VG2¢&—BV&VB–âæV—F†W"F†RW&Ö—76—fRf–ÇFW"„Ô•BÂ6†RÓ"ãÀ¤%4BÓ2Ô6ÆW6R’æ÷"F†R&V6—&ö6Âf–ÇFW"„uÂÓ2ãÂuÂÓ2ãÂâââ’"¢(	Bf÷W §&V6—&ö6ÂÆ–6Væ6W2æÖVB–âF†R6÷W'6Röb6––ærF†R&W÷6—F÷'’—2–âæöæRö`§F†VÒâ6òF†R&Vv—7FW"7FFW2F†Rf7B–ç7FVBÂ–â¢§&WV—&VB¢¢&V6—&ö6ÄÆ–6Vç6V ¦f–VÆC¢Ö—76–ærfÆr—2G—RW'&÷"ÂæBfW&–g’ÖFö2Ö6÷VçG6&VgW6W2Fò'Và§F†R6÷VçBVæÆW72ÆÂ“B&V6÷&G2ç7vW"â÷F–öæÂv÷VÆB†fRÆWB6öÖV&öG’FBà¤uÂ&W÷6—F÷'’ÂöÖ—BF†RfÆrÂæBÆVfRF†Rf–wW&R6—GF–ærv†W&R—Bv2à ¢¢¤V6‚öbF†RF‡&VRæWr6†V6·2v2'Vâv–ç7B&B–çWB&Vf÷&R&V–ærG'W7FVBâ¢ ¥w&öærçVÖ&W"–â&÷6RÂG&÷VBfÆrÂâuÂ&V6÷&BfÆvvVBfÇ6RÂæBfwVP¦Æ–6Væ6R&öÖ÷FVBFòFFW%ö'V–ÇF(	BÆÂf÷W"f–ÂâF†Rf—'7BGFW&âw&—GFVà¦f÷"F†R&÷6R6Æ–ÒÖF6†VB¦æ÷F†–ær¢Â&V6W6RF†RFö7VÖVçBw&2&6''’ð§&V6—&ö6ÂÆ–6Væ6R"7&÷72Æ–æR'&V²æBF†RGFW&â†BÆ—FW&Â76R–à¦—C²—B&W÷'FVBw&VVâv†–ÆR6†V6¶–ær¦W&ò6Æ–×2â6÷VçF&ÆR6Æ–×2vVçBr(i"€¦öæÇ’gFW"F†Bv2f—†VBÂv†–6‚—2†÷r—Bv26Vv‡Bà ¥&Vv—7FW"B¢£“B¢¢&W÷6—F÷&–W2Â&V6—&ö6ÂÂRFV6Æ&–æræòÆ–6Væ6Rà¦fW&–g“¦ÆVæ6†w&VVâÂ“‚FW7G276–ærà ¢222##bÓ‚Ó‚(	BF†R÷VâVæB6Æ÷6VBÂæBF†R–âF†Bv2Æö÷6R'’Ö÷&RF†âF÷V&ÆP ¥–W7FW&F’w2VçG'’&V6÷&FVBF†—'FVVâ&÷WFW2F†R÷WFvR7&vÂ6÷VÆBæ÷B&VæFW"À§VæW†Ö–æVBÂv—F‚F†R6÷VçB–ææVB'6òF†R6WB6ææ÷Bw&÷rVææ÷F–6VB"âW†Ö–æ–æp§F†VÒf÷VæB6öÖWF†–ær&÷WBF†R–â—G6VÆbf—'7Bà ¢¢¥F†W&RvW&R6—‚Âæ÷BF†—'FVVââ¢¢F†R26ÖRg&öÒ'Vâ&Vf÷&RF†RÆ–2'VÆP§Föö²VffV7BæBv2æWfW"&RÖÖV7W&VBâ–â6WBBÖ÷&RF†âF÷V&ÆRF†R&VÀ¦f–wW&Rv÷VÆB†fR6Bw&VVâF‡&÷Vv‚¢§6WfVâ¢¢æWrf–ÇW&W2(	Bv†–6‚—2F†R6ÖP¦FVfV7B2F†R&&R6öçF–çVV—B&WÆ6VBÂöæÇ’V–WFW"Â&V6W6RçVÖ&W"F†@¦Æöö·2FVÆ–&W&FR–çf—FW2ÆW727W7–6–öâF†ââö'f–÷W2và ¢¢¤W†Ö–æ–ærF†R6—‚6Æ÷6VBÆÂöbF†VÒâ¢  ¢Òö'W6–æW72Ö'V–ÆFW"öF6†&ö&FæBö'W6–æW72Ö'V–ÆFW"ö6öçG&öÂÖ6VçFW&ç7vW ¢¢£S2æB&VæFW"&VÂvR¢¢(	B¢$'W6–æW72'V–ÆFW"—2FV×÷&&–Ç¢Væf–Æ&ÆR"¢âF†R7&vÂ6¶—VBWfW'’æöâÓ#Âv†–6‚ÖVçB¢¦—B†BæWfW ¢–ç7V7FVBF†RvW2w&—GFVâf÷"F†R7FFR—BW†—7G2FòFW7B¢¢âF†÷6R&RF†P¢vW2Ö÷7BÆ–¶VÇ’FòÖ¶R6Æ–Ò&÷WB7W7FöÖW"w2&V6÷&G2Â&V6W6RF†W’&P¢F†RöæW2v—F‚6öÖWF†–ærFòW‡Æ–ââS2&öF–W2&R&VBæ÷rÂv†Vâ&öG’6ÖP¢&6³²3"†2æ÷F†–ærFò&VBæBS—2F–ffW&VçB6†V6²w2&ö&ÆVÒà¢Òö7&VF÷"×7GVF–òö&–ÆÆ–ævæBöw&÷wF‚×7GVF–òö&–ÆÆ–æv&VF—&V7BFòö&–ÆÆ–ævÀ¢v†–6‚&VF—&V7G2v–âFòö'W6–æW72Ö'V–ÆFW"ö&–ÆÆ–ævÂv†–6‚F†R7&vÂ&VæFW'2à¢¢¤GvòÖ†÷6†–âv–ç7BöæRÖ†÷'VÆRâ¢¢F†R'VÆRföÆÆ÷w2F†R6†–âæ÷rÀ¢v—F‚6VVæ6WBÂ&V6W6R&VF—&V7BÆö÷v÷VÆB÷F†W'v—6R†ærF†R6†V6²F†@¢W†—7G2Fò7F÷F†–æw2vö–ærVææ÷F–6VBà¢Òö'W6–æW72Ö'V–ÆFW"ö'W6–æW76W6—23"Fòö6öçG&öÂÖ6VçFW&Â&W6öÇfVB'’F†P¢6ÖRGvòf—†W2FövWF†W"à¢ÒöWF‚ö6ÆÆ&6¶ç7vW'2¢$ôWF‚FVfW'&VB"¢Fò&WVW7B6''––æræòôWF€¢6öFRÂv†–6‚—26÷'&V7Bà ¢¢¥F†R–â—2æ÷r¦W&ò¢¢Â76W'FVB2FVWWVÂ‡Vç&V6†&ÆRÂµÒ–âWfW'’&÷WFR—0¦V—F†W"&VæFW&VB÷"ÆæG2öâvRF†Bv2â&÷fVB&F†W"F†â77VÖVC¢FF–æp¦öæRVç&VæFW&&ÆR&÷WFRFòF†R&Vv—7G'’f–Ç2F†R'VâÂæB&VÖ÷f–ær—B76W2à ¥v÷'F‚¶VW–ærF†R6†RöbF†—2âF†Rf–æF–ærv2æ÷B–âF†R6—‚&÷WFW2(	Bf—fRö`§F†R6—‚vW&R&V†f–ær6÷'&V7FÇ’ÆÂÆöærâF†Rf–æF–ærv2F†B¢§F†RçVÖ&W ¦wV&F–ærF†VÒv2w&öærÂæBw&öær–âF†RW&Ö—76—fRF—&V7F–öâ¢¢Âv†–6‚—2F†P¦öæÇ’F—&V7F–öâF†B7F—2V–WBà ¢222##bÓ‚Ó‚(	Bv—D‡V"6FVv÷'’7vVWÂæBF†R6V&6‚F†B&WGW&æVB÷7F770 ¥Gvò6FVv÷&–W27vWB&÷W&Ç’÷WBöb&÷Vv†Ç’f÷'G’6¶VBf÷"âÖWF†öBæBf–æF–æw0¦–âFö72öÖ&¶WBó##bÓ‚Ó‚Ôt•D…T"Ô4DTtõ%’Õ5tTUæÖF²F‡&VR&V6÷&G2FFVBà ¢¢¥F†Rf–ÆVB6V&6‚—2F†RW6VgVÂ†ÆböbF†RÖWF†öBâ¢¢F†Rf—'7BGFV×BW6V@¦g&VRFW‡B(	B&W7FW&çBõ"ö–çBÖöb×6ÆRõ"÷2–ã¦æÖRÆFW67&—F–öæ(	Bæ@§&WGW&æVB¢§÷7F772Â÷7Fw&W7BÂö‚Ö×’×÷6‚Â÷7FÂÂæöFR×÷7Fw&W2æ@§÷7Fw&W2Ö÷W&F÷"¢¢â7V'7G&–ærÖF6†–æröâ'÷2"â¦W&òöbV–v‡B&W7VÇG2vW&P§&VÆWfçBæBF†R6ÆÂ6÷7B&÷WBF†—'G’F†÷W6æBFö¶Vç2âF÷–3¦f–ÇFW'2f–æ@§F†R6FVv÷'“²g&VRFW‡Bf–æG2F†R7VÆÆ–ærâw&—GFVâF÷vâ6òF†RæW‡BW'6öâFöW0¦æ÷B7VæBF†R6ÖRF†—'G’F†÷W6æBFö¶Vç2F—66÷fW&–ær—Bà ¢¢¤f–æF–æröæS¢F†Rõ26FVv÷'’—2Ö÷7FÇ’6Æ÷6VBFòW2ÂöâÆ–6Vç6–ærâ¢¢ö`¦V–v‡FVVâö–çBÖöb×6ÆR&ö¦V7G2&÷fR#7F'2W6†VB–âF†RÆ7B–V"Â¢¦V–v‡@¦&R&V6—&ö6ÂæBWfW'’Æ&vRöæR—2¢¢(	BW'æW‡BB3‚ã&²Âg&Rö&öö·2ÂæW†õõ2À¦Æ¶6—"Âô4÷÷2Âf–WwF÷V6‚âF†B–æ6ÇVFW2¢§W'’¢¢ÂF†RöæÇ’W'÷6RÖ'V–Ç@§&W7FW&çB7—7FVÒ–âF†R6WBæB÷F†W'v—6RF†Rö'f–÷W26æF–FFRâ&V6—&ö6À¦Æ–6Væ6RG&–vvW'2öâæWGv÷&²W6RÂæBF†—2—2†÷7FVB&öGV7Bà ¥F†R&÷WFRF†B7F—2÷Vâ—2æ÷BF÷F–öâ'WBâ¢¦÷væW"Ö÷W&FVBFWÆ÷–ÖVç@§&V6†VBF‡&÷Vv‚âFFW"¢¢Âv†W&RF†Rö&Æ–vF–öâ6—G2v—F‚F†BFWÆ÷–ÖVç@§&F†W"F†âv—F‚F†—26öFV&6R(	BF†R'&ævVÖVçBU…DU$äÂÕ4U%d”4U2æÖFÇ&VG¦FW67&–&W2âf—fRöbF†RV–v‡FVVâ&RW&Ö—76—fRÂæBæöæRöbF†÷6Rf—fR—2§&W7FW&çB7—7FVÒà ¢¢¤f–æF–ærGvó¢f÷W"öbF†Rf—fR†VFÆ–æR7VV6‚&ö¦V7G2&Rfö–6R6Æöæ–ærâ¢ ¤uBÕ6õd•E2ƒc²Â6ÆöæW2g&öÒöæRÖ–çWFRöbVF–ò’Âf÷„5ÒÂ6÷7•fö–6RæBF–&P¦ÆÂW&Ö—76—fVÇ’Æ–6Vç6VBæBÆÂW6†VB&V6VçFÇ’(	BæBtTåE2æÖF6—2¦Væf÷&6P§&÷fVææ6RÂ6öç6VçBÂæBçF’Ö6ÆöæR6fWG’¢âF†W’&R&V6÷&FVB2¢¦öæR¢¢&V6÷&@§&F†W"F†âf÷W"Â&V6W6RF†W’÷6RöæRVW7F–öââæöæR—2VçW6&ÆS²ÆÂ&P§VçW6&ÆR¦2vVæW&ÂfVGW&R¢â6Æöæ–ærfö–6Rv†÷6R÷væW"†2&V6÷&FV@§W&Ö—76–öâ—2F†RÆVv—F–ÖFR66RæBF†RöæÇ’öæRÂæBF†RF–ffW&Væ6R—2¦7&VF÷%÷fö–6Uö6öç6VçG6&÷rÂæ÷BF—66Æ–ÖW"à ¢¢¥F†RöæRv÷'F‚W'7V–ær—2F†RöæRF†B'Vç2öffÆ–æRâ¢¢6†W'Ööæç†(	@¤6†RÓ"ãÂBã&²7F'2(	BFöW27VV6‚×Fò×FW‡BÂFW‡B×Fò×7VV6‚ÂF–&—¦F–öâæ@¥dBv—F‚¢¦æòæWGv÷&²6ÆÂBÆÂ¢¢âF†B—2F†R6ÖR6öÖÖW&6–Â&wVÖVçBF†@¦ÖFRF†R6Æ7VÆF÷"FööÇ2v÷'F‚'V–ÆF–æs¢æòW"Ö7W7FöÖW"6÷7BÂæBæò7W7FöÖW ¦VF–òÆVf–ærF†RÖ6†–æRâ—B—2Ç6òF†RöæÇ’†VFÆ–æR7VV6‚&ö¦V7B–âF†P§6†÷'FÆ—7Bæ÷B'V–ÇB&÷VæB6Æöæ–ærà ¢¢¥v†BF†W6RF‡&VR&V6÷&G26Æ–ÒÂ7FFVB&V6—6VÇ’â¢¢Æ–6Væ6RæBf—BÂg&öÒF†P¤v—D‡V"’Æ–6Væ6Rf–VÆBæBF†R&ö¦V7Bw2÷vâFW67&—F–öââ¢¤æ÷B6÷W&6R&VBâ¢ ¥F†R÷F†W"ƒ‚&V6÷&G2vW&R&VB&Vf÷&RF†W’vW&Rw&—GFVâÂæBw&—F–ærF‡&VRF†@§V–WFÇ’–×Æ–VBF†R6ÖR7FæF&Bv÷VÆB&RF†RFVfV7BF†—2&Vv—7FW"W†—7G2Fð§&WfVçBâV6‚6—26ò–â—G2÷vâÆ–6Væ6Rf–VÆBà ¢¢¤æBv†Bv2æ÷BFöæRâ¢¢F†R&WVW7BæÖVB&÷VæBf÷'G’6FVv÷&–W2æB6¶V@¦f÷"&ÆÂ&W÷6—F÷&–W2Bv—F‡V"æ6öÒ"âv—D‡V"†öÆG2‡VæG&VG2öbÖ–ÆÆ–öç3²F†W&R—0¦æò6ö×ÆWF–öâ7FFRf÷"F†BÂæB&Vv—7FW"6Æ–Ö–ærFò†fR7vWB—Bv÷VÆB&P§F†—26öFV&6Rw2&V7W'&–ærFVfV7BBF†RÆ&vW7B66ÆR–WBGFV×FVBâGvð¦6FVv÷&–W26÷7B6—‚6V&6†W2æBâgFW&æööâöb§VFvVÖVçBâf÷'G’—2&öw&ÖÖRÀ¦&W7BFöæR–âF†R÷&FW"F†R&öGV7B7GVÆÇ’æVVG2F†VÒà ¢222##bÓ‚Ó‚(	B7F÷'–&ö&BF†BFG2WÂæBwV–FRF†B6ææ÷B&R6÷–V@ ¢¢¥F†R”ôäõ2wV–FR6ææ÷Bvò–çFòF†R&öGV7BÂæBF†R&V6öâ—2öâ—G26÷fW"â¢ ¥7V&Ö—GFVB2DbFòFBFòF†RÆ–6F–öã¢¢%6Ö'FW"'W6–æW72v—F‚’(	BF†P§VÇF–ÖFR&ö×F–ærwV–FRf÷"VçG&W&VæWW'2"¢Âf÷W'FVVâvW2ÂæBF†R6÷fW"&VG0¢¢¤4õ•$”t…B*’##R”ôäõ2”ä2â¢¢—Bw&çG2æ÷F†–ærâg&VRF÷væÆöB—2&–6Rö`§¦W&òÂæ÷BÆ–6Væ6RÂæB6÷––ær—G2FW‡B–âv÷VÆB&RF†Rf–ÇW&RF†—2&Vv—7FW ¦W†—7G2Fò&WfVçBv—F‚&÷6R–ç7FVBöb6öFRà ¥GvòF†–æw26â&RF¶Vâg&öÒ—BÆVv—F–ÖFVÇ’ÂæB&÷F‚vW&RâF†R¢¦–çFVÆÆ–vVæ6R¢£ ¦†÷7F–ær6ö×WF—F÷"—27VæF–ærÖ&¶WF–ær'VFvWBFV6†–ær6ÖÆÂ'W6–æW76W2Fð§&ö×BÂv†–6‚6—2v†W&RF†BÖ&¶WB&VÆ–WfW2F†RfÇVR—2âæBF†R¢§FV6†æ—VW2¢ ®(	B&öÆR&ö×F–ærÂ7G–ÆRF&vWF–ærÂ&ö×B6†–æ–ærÂfWr×6†÷BÂ&öw&W76—fP¦Æ–W&–ær(	Bv†–6‚&R–æGW7G'’×7FæF&BÂ&VFFRF†RFö7VÖVçB'’–V'2æB&VÆöæp§Fòæö&öG’âv†B—2F†V—'2—2F†Rv÷&F–ærÂæBæöæRöb—B†2&VVâW6VBâ&Vv—7FW&V@¦2&Æö6¶VBv—F‚F†B&V6öæ–ærGF6†VBà ¢¢¥F†R7&VF÷"7GVF–òFööÂÂ'V–ÇB&F†W"F†âöffW&VBâ¢¢F†R7F÷'–&ö&B&ö×@¦6—&7VÆF–æröæÆ–æR&öGV6W2†æG6öÖRFö7VÖVçBv†÷6R6†÷BGW&F–öç2Fòæ÷B7VÐ§FòF†R'VçF–ÖRâF†B—2æ÷B6÷6ÖWF–3¢7&VF÷"&öö·26†ö÷BÂfö–6R'F—7Bæ@¦âVF—Bv–ç7BF†÷6RçVÖ&W'2æBf–æG2÷WBöâF†RF–ÖVÆ–æRF†BF†R6†÷BÆ—7@§v2F†—'G’6V6öæG2Æöærf÷"f–gFVVâ×6V6öæB6Æ÷Bà ¥6òF†R&—F†ÖWF–2—2F†R&öGV7BâÆÆö6FU6V6öæG6W6W2¢¦Æ&vW7B×&VÖ–æFW"¢ §&F†W"F†â&÷VæF–ærV6‚6†÷B–æFWVæFVçFÇ’(	BV–v‡B6†÷G2&÷VæFVB6W&FVÇ¦Æ÷6R÷"v–âWFòf÷W"6V6öæG2v–ç7BF†R'VçF–ÖRÂv†–6‚—2W†7FÇ’F†RFVfV7Bà¥F†RFW7B6†V6·2F†R&÷W'G’7&÷72æ–æRv·v&B'VçF–ÖW2æBF‡&VR6†÷B6÷VçG2À¦–æ6ÇVF–ærr6V6öæG2÷fW"‚6†÷G2Âv†W&R–æFWVæFVçB&÷VæF–ærfÆÇ2'Bà ¢¢¥v†B—2÷W'2æBv†B—2f–ÆÒw&ÖÖ"â¢¢F†R6†R(	B†öö²Â7V&¦V7BÂFVç6–öâÀ¦FVÖöç7G&F–öâÂÖW76vRÂ–öfbÂ6Æ–Ö‚ÂVæF–ær(	B—2–âWfW'’67&VVçw&—F–ærFW‡@¦f÷"f–gG’–V'2æB—2æö&öG’w2&÷W'G’â÷W'2—2F†R¢§vV–v‡F–ær¢£¢F†R†öö²æ@§F†RVæF–ærvWBÖ÷&RF†ââWfVâ7Æ—BÂ&V6W6RF†÷6RGvò6†÷G2FV6–FRv†WF†W §F†RÖ–FFÆR—2vF6†VBBÆÂâF†B—276W'FVB&F†W"F†â76W'FVB×Fó¢F†RFW7@¦6ö×&W2&÷F‚v–ç7BF÷FÂò6÷VçFà ¤—BÇ6ò&VgW6W2âæò'VçF–ÖRÂæò6†÷BÆ—7B(	BÆâ'V–ÇBöâwVW76VB'VçF–ÖR—0§v÷'6RF†âæöæRâæò–FVÂæò7V&¦V7B–çfVçFVBâæB'VçF–ÖRF†BÆVfW26†÷G0§VæFW"Gvò6V6öæG2vWG2FöÆB6òÂv—F†÷WBF†Rv&æ–ær6÷7F–ærF†R7VÒà ¢¢¤æ÷BFöæRÂæB6–BÆ–æÇ’&F†W"F†âÆVgBFòÆöö²FöæRâ¢¢F†R&WVW7BÇ6ð¦6¶VBFò–×&÷fRÆÂ&öGV7G2ÂFò&W6V&6‚'&V·F‡&÷Vv‚FV6†æöÆöw’v÷&ÆGv–FRÂæ@§Fò&Wf–Wr&ÆÂv—D‡V"&W÷6—F÷&–W2Bv—F‡V"æ6öÒF†BW'F–ç2Fò÷W ¦Æ–6F–öâ"âF†R&Vv—7FW"†öÆG2ƒ‚&V6÷&G2ÂV6‚öæR&VB&Vf÷&R—Bv2w&—GFVã°¤v—D‡V"†öÆG2‡VæG&VG2öbÖ–ÆÆ–öç2âF†W&R—2æòfW'6–öâöbF†BÆ7B—FVÒF†@¦f–æ—6†W2ÂæB7vVWF†B&WFVæG2Fòv÷VÆB&RF†—26öFV&6Rw2÷vâ&V7W'&–æp¦FVfV7BBF†RÆ&vW7B66ÆR—B†2–WB&VVâGFV×FVBâF†Rf÷'G’×Gvò6FÆöp§&öGV7G26â&R–×&÷fVBöæRBF–ÖRv–ç7B7FFVB7&—FW&–Âv†–6‚—2&VÀ§–V6Röbv÷&²v—F‚&VÂ6†RÂæB—B—2F†RæW‡BF†–ærv÷'F‚Fö–ærà ¢222##bÓ‚Ó‚(	Bæ–æRÖ÷&R&öGV7G2ÂF†—2F–ÖRg&öÒv†BF†RÖ&¶WB6ö×Æ–ç2&÷W@ ¥F†Rf—'7Bæ–æRvW&R'V–ÇBg&öÒv†B6ÖÆÂ'W6–æW72ö'f–÷W6Ç’æVVG2âF†W6Ræ–æP§vW&R'V–ÇBg&öÒFFVB7W'fW’f–wW&W2ÂæBV6‚öæR—2öæÇ’FVfVç6–&ÆRv†–ÆR—G0¦çVÖ&W"†öÆG2â6÷W&6W2–âFö72öÖ&¶WBó##bÓ‚Ó‚Õ$ôET5BÔtÕ$U4T$4‚æÖFÂv—F‚¤fV''V'’##r&Wf–WrFFRöâF†VÒà ¢¢¥F†RF‡&VRçVÖ&W'2F†BG&÷fRF†RFW6–vââ¢  ¢Ò¢£crRöb7&VF÷'2†B6öçG&7B÷"–ÖVçBF—7WFR–âF†R7B–V"¢¢„‡V%7÷@¢##R’ÂæBF†RfW&vR7&VF÷"V&ç2¢¢CCBÃ#“2¢¢„7&VF÷$•##b’âF†B—2¢Ö&¶WBv—F‚W'v÷&²&ö&ÆVÒæBæò'VFvWBf÷"Æw–W"âF†R7&÷vFVBç7vW ¢—26öçG&7B¦vVæW&F÷'2£²F†Rv—2F†RÖöÖVçB&Vf÷&R6öçG&7BW†—7G2à¢Ò¢£ƒ2Röb6ÖÆÂ'W6–æW76W26ÆÂ&VfW'&Ç2F†V—"&W7B7V—6—F–öâ6÷W&6RÂWg&öÐ¢cRS²ƒrRBFVâ7Ffb÷"fWvW"¢¢„Æö6Æ•##b’âF†R6†ææVÂÖ÷7B'W6–æW76W0¢&FRf—'7B—2F†RöæRÆÖ÷7Bæò6ögGv&RÖV7W&W2Â&V6W6R&VfW'&Â†2æð¢6Æ–6²FòGG&–'WFRà¢Ò¢£S"Röb'W–W'27v—F6‚'W6–æW726ögGv&R÷fW"–æVff–6–Væ7’Âæ÷B&–6R¢¢Âæ@¢F†RfVGW&RF†W’æVVB—2¢&'W&–VBÂÖ—76–ærÂ÷"öâF†RVçFW'&—6RF–W"BF‡&VP¢F–ÖW2F†R'VFvWB"¢â6ö×WF–æröâ'&VGF‚6ö×WFW2v†W&RF†R6ö×Æ–çB—2Â6ð¢F‡&VRöbF†W6R&RFVÆ–&W&FVÇ’æ'&÷rà ¢¢¤'W6–æW72'V–ÆFW"¢¢(	B&–6R&—6RÆææW"‡&–6–ærFööÇ26ö×WFR&–6S²æöæP¦ç7vW"¦†÷rÖç’7W7FöÖW'26â’ff÷&BFòÆ÷6R¢“²6ögGv&R7VæBVF—F÷"‡F†P¦6FVv÷'’w2÷vâ&öGV7G2FBFòF†R7F6²ÂF†—2öæRÖV7W&W2—B“²V–WBÖöçF‚66€¥Æâ†f÷&V67G2&ö¦V7BG&VæBÂF†—2æÖW2F†RÖöçF‚–÷R'Vâ÷WB’à ¢¢¤7&VF÷"7GVF–ò¢¢(	BFVÂÖVÖò&V6÷&FW#²ÆFR–ÖVçBW66ÆF–öâ†–çfö–6–ærFööÇ0§&W6VæBÂF†—2&–6W2F†RFVÆ’“²W6vR&–v‡G2W‡—'’†æòÖ–ç7G&VÒ7&VF÷"FööÀ§G&6·2Æ–6Væ6R¦VæB¢FFRÂæBF†Rf–ÇW&R—26–ÆVçB(	BF†R'&æB¶VW2W6–æp§F†Rv÷&²æBæö&öG’—2Fö–ærç—F†–ærw&öæröâW'÷6R’à ¢¢¤w&÷wF‚7GVF–ò¢¢(	B&VfW'&Â6÷W&6RG&6¶W#²&Wf–Wr&V6Væ7’66÷&R‡&Wf–WrFööÇ0¦÷F–Ö—6RF†RfW&vRv†–ÆRF†R7W'fW’6—2¢§&V6Væ7’¢¢—2v†BÖ÷fVB“²VçV—'¥&W7öç6R6Æö6²à ¢¢¥&öf—F&–Æ—G’Â7FFVB&F†W"F†â77VÖVBâ¢¢ÆÂæ–æR&RFWFW&Ö–æ—7F–3¢æð¦ÖöFVÂ6ÆÂÂæò&÷f–FW"ÂæòæWGv÷&²Â¢¦æòW"Ö7W7FöÖW"6÷7B¢¢âFööÂv—F‚§W"×W6R6÷7B6ææ÷B6—Böâg&VRF–W"æB7B2F†R&V6öâ6öÖV&öG’6–vç2WÀ§v†–6‚—2F†Rv†öÆR6öÖÖW&6–Â&wVÖVçBf÷"'V–ÆF–ærF†VÒF†—2v’à ¢¢¥v†W&RF†RFööÇ2&VgW6RFòç7vW"â¢¢&–6R&—6Röâ&–6RÇ&VG’&VÆ÷r6÷7@§&WGW&ç2æò&7W7FöÖW'2–÷R6âff÷&BFòÆ÷6R"f–wW&RBÆÂÂ&V6W6RF†W&R—0¦æ÷BöæR(	B—B6—2F†R&—6R—2æ÷BF†Rf—'7BÖ÷fRâÆFR–ÖVçB67'VW2æð¦–çFW&W7B&Vf÷&RF†RGVRFFRâF†R&W7öç6R×F–ÖRFööÂ7FFW2—G2'VÆR–âF†P¦÷WGWBæB6—2Æ–æÇ’¢&æ÷BÖV7W&VÖVçBöb–÷W"'W6–æW72"¢Â&V6W6R—B—2öæP¦W‡Æ–6—B77V×F–öâÆ–VBFòF†R7W7FöÖW"w2÷vâçVÖ&W'2ÂæBG&W76–ærF†B0¦FFv÷VÆB&RF†RÖ÷7B6ÆV&ÆRF†–æröâF†RvRæBF†RÆV7B†öæW7Bà ¢¢¥F‡&VRöb×’÷vâFW7BW‡V7FF–öç2vW&Rw&öær¢¢ÂæB'Vææ–ærF†VÒ—2v†Bf÷Væ@¦—C¢66‚Æâv†÷6Rf–wW&W2æWfW"7GVÆÇ’vVçBæVvF—fRv†–ÆRF†RFW7@¦76W'FVBÖöçF‚—B&â÷WC²Æ–6Væ6RW‡—'’76W'FVB2FV6VÖ&W"v†Vâ"9r3ãC@¦F—2ÆæG2–â¦çV'“²æB&W7öç6R×F–ÖRv76W'FVBBF÷V&ÆR—G2&VÂfÇVRà¥F†R6öFRv2&–v‡B–âÆÂF‡&VRâF†R6÷'&V7F–öç2&R–âF†RFW7Bv—F‚F†P¦&—F†ÖWF–27VÆÆVB÷WBÂ&V6W6RF†RæW‡BW'6öâv–ÆÂ÷F†W'v—6R&VFòF†R6ÖP§7V×2à ¢¢¤Ç6ò&Vv—7FW&VC¢fW&6VÂÖÆ'2÷6¶–ÆÇ6¢¢†f–æB×6¶–ÆÇ6’Â0¦æVVG5öÆ–6Vç6U÷&Wf–Wv(	B—G2Æ–6Væ6R†2æ÷B&VVâ&VBÂæBF†B—27FFVB&F†W §F†â77VÖVBg&öÒ6ö6–Â÷7BâF†R&V6öâ—B—2æ÷B6–×Ç’Æ÷r×&—6²FWfVÆ÷W §FööÆ–æs¢—G2÷WGWB—2¦â–ç7FÆÂ6öÖÖæBf÷"6öÖV&öG’VÇ6Rw26¶–ÆÂ¢Â6òF†P§F†–ærVæFW"&Wf–Wr—2æ÷BöæR&W÷6—F÷'’'WB6†ææVÂf÷"&&—G&'’öæW2Âæ@¦ç†fWF6†W2æBW†V7WFW2öâF†R7÷Bâ&V6÷&FVBv—F‚F†R&÷VæF'’F†Bæ÷F†–æp¦—B&V6öÖÖVæG2—2–ç7FÆÆVBv—F†÷WB—G2÷vâ&Vv—7FW"VçG'’à ¢¢¤æBvFW&Ö&·2×&VÖ÷fW&'&—fVBv–âÂæB7F—2&Æö6¶VBâ¢¢F†R67&VVç6†÷@¦FG2FWF–ÂF†B6öæf—&×2F†R÷&–v–æÂ&Wf–Wr&F†W"F†â6†æv–ær—C¢V²7F'2À§cãBãÂæBF&ÆRæÖ–ær3%ÂU„”bæB„Õ7&÷72ärÂ¥TrÂDbÂDô5‚Â…DÔÀ¦æBÖ&¶F÷vââ÷VÆ&—G’—2æ÷BÆ–6Væ6R&wVÖVçBæBv2æWfW"F†Rö&¦V7F–öâà ¢222##bÓ‚Ó‚(	BF†R÷WFvR7&vÂ†BæWfW"öæ6R÷VæVBF†RFÖ–â&V ¦FW7G2öæò×vRÖÆ–W2×v†Vâ×F†RÖFF&6RÖ—2ÖF÷vâçFW7Bæ§6÷Vç2v—F‚F†R6VçFVæ6P¢¢$WfW'’vRÂ&VæFW&VBv—F‚WfW'’FF&VBf–Æ–ærâ"¢—Bv2æ÷BWfW'’vRâ—@§v2#öb#cà ¢¢¥F†R6öçF–çVVF†B†–B—Bâ¢¢F†R7&vÂ6¶—VBç’&÷WFRF†BF–Bæ÷Bç7vW £#Âv—F‚&&R6öçF–çVVæBæò&V6÷&BâÖV7W&VC¢¢£C’&÷WFW26¶—VB¢¢ÂCbö`§F†VÒ&VF—&V7G2FòÆöv–âF†R7W7FöÖW"6W76–öâ6ææ÷B72ÂæBÆÖ÷7BÆÂö`§F†÷6RF†RFÖ–â&Vâ6òF†Rf–ÆRv†÷6Rv†öÆR¦ö"—26F6†–ærvRF†BFVÆÇ0§6öÖV&öG’F†W’†fRæò&V6÷&G2†BæWfW"&VæFW&VBöFÖ–æÂöFÖ–âöFF&6VÀ¦öFÖ–â÷W6W'6÷"öFÖ–â÷7—7FVÖ(	BF†RvW2â¢¦÷væW"¢¢÷Vç2GW&–ærà¦÷WFvRÂv†–6‚—2v†W&RF†BfÇ6R6Æ–ÒFöW2F†RÖ÷7BFÖvRÂ&V6W6RF†R÷væW ¦—2F†RW'6öâFV6–F–ærv†WF†W"ç—F†–ær†27GVÆÇ’&VVâÆ÷7Bà ¥F†RwV&B&W6–FR—BÂ&VæFW&VBãÒSÂ6—2†÷r×V6‚v2Æöö¶VBBæB6—0¦æ÷F†–ær&÷WBv†Bv2Ö—76VBâF†B—2F†R6†Rv÷'F‚&VÖVÖ&W&–æs¢÷VÆF–öà¦6†V6²F†B6ææ÷B6‡&–æ²ÖFWFV7B—2æ÷B÷VÆF–öâ6†V6²à ¢¢¥Gvò76W2æ÷r¢¢Â7W7FöÖW"æB÷væW"Â÷fW"F†R6ÖR&÷WFW2âF†R7GV"ç7vW'0¦W6W%÷&öÆW6v—F‚÷væW&æBDÔ”åôTÔ”Å6—26WBÆöæw6–FRF†R7W&6P§7GV'2Â6òF†RFÖ–âvFR&W6öÇfW2à ¢¢¥v†BF†R÷væW"72f÷VæBöâ—G2f—'7B'Vã¢æ÷F†–ærfÇ6Râ¢¢F‡&VRf–æF–æw2À¦ÆÂF†R6ÖR6VçFVæ6RÂÆÂF†RFF&6R6öç6öÆRw2÷vâ6fVB6&B(	B¢$æ÷F†–æp¦†W&R6—2–÷W"FF&6R—2V×G’â"¢F†B6&BW†—7G2Fò7F÷â÷væW"6öæ6ÇVF–æp¦W†7FÇ’F†RF†–ærF†—26†V6²‡VçG2f÷"Â6ò—B—2F†R÷÷6—FRöbÆ–RÂfÆvvV@¦öæÇ’&V6W6RF†RGFW&âÖF6†W2F†Rv÷&G2$æ÷F†–ær†W&R"ç—v†W&Râ—BvVçB–çFð¦äõEôô4Ä”Õô$õUEõ$T4õ$E6v—F‚F†B&V6öâÂv†–6‚—2v†BF†RW†7W6RÆ—7B—0¦f÷"â&W÷'F–ær—B2FVfV7Bf÷VæBv÷VÆB†fR&VVâF†RV7’w&—FR×WæBF†P§w&öæröæRà ¢¢¤66÷VçF–ærÂ&F†W"F†â&&R6¶—â¢¢&÷WFRæ÷r6÷VçG22Vç&V6†&ÆRöæÇ§v†Vâ¦&÷F‚¢6W76–öç2vW&R&VgW6VB(	BæV—F†W"6öö¶–R&V6†W2WfW'—F†–ærÂF†R÷væW ¦&V–ær&VF—&V7FVBv’g&öÒö&–ÆÆ–ævæBö66÷VçBò¦§W7B2F†R7W7FöÖW"—0¦g&öÒöFÖ–âò¦âÆ–6W2&R6÷fW&VBFöó¢ö'W6–æW72Ö'V–ÆFW"÷GWF÷&–Æ—23 §Fò÷GWF÷&–Ç2ö'W6–æW72Ö'V–ÆFW&æBö'W6–æW72Ö'V–ÆFW"÷&–6–æv3"Fð¦÷&–6–ævÂ&÷F‚öbv†–6‚F†R7&vÂ&VæFW'2Â6ò&VF—&V7Bv†÷6RFW7F–æF–öâv0§&VæFW&VB—2æ÷Bvà ¢¢¥F†—'FVVâ&÷WFW2&RÆVgBÂæBF†B—27FFVB&F†W"F†âG&W76VBWâ¢¢F†W§6—B&V†–æB6W76–öâF†—27&vÂFöW2æ÷BW7F&Æ—6‚ÂæBF†W’†fRæ÷B&VVà¦W†Ö–æVBöæR'’öæRâF†R6÷VçB—2–ææVB6òF†R6WB6ææ÷Bw&÷rv—F†÷WB6öÖV&öG¦&V–ærFöÆB(	Bv†–6‚—27G&–7FÇ’&WGFW"F†âF†R6öçF–çVVF†BG&÷V@¦f÷'G’Öæ–æR–â6–ÆVæ6RÂæB†öæW7FÇ’v÷'6RF†âW†Ö–æ–ærF†VÒâæW‡BW'6öã¢F†@¦—2F†R÷VâVæBöbF†—2à ¢222##bÓ‚Ó‚(	Bæ–æRæWr&öGV7G2ÂF‡&VRf÷"V6‚&öGV7BÆ–æP ¤'V–ÇBöâv†B—2Ç&VG’†W&R&F†W"F†âöâç—F†–æræWs¢F†Rg&VR×FööÂ'VçF–ÖRÀ§F†RÖöGVÆRÖ÷WGWB6fRF‚ÂF†R&V6÷&G2vW2ÂF†R6FÆörÂæBF†R÷WFvR7&vÀ§w&—GFVâF†—2Ö÷&æ–ær(	Bv†–6‚6÷fW&VBÆÂæ–æRF†RÖöÖVçBF†W’vW&R&Vv—7FW&VBÀ§v—F†÷WBÆ–æRFFVBFò—Bà ¢¢¥v‡’6Æ7VÆF÷'2æBæ÷BvVæW&F÷'2â¢¢F†Rf–gFVVâFööÇ2F†B6ÖR&Vf÷&R&P¦Ö÷7FÇ’÷WFÆ–æRæB67&—B'V–ÆFW'3¢v÷&G2–âÂ&WGFW"Ö÷&væ—6VBv÷&G2÷WBâv†B§6ÖÆÂ'W6–æW72—27GVÆÇ’7GV6²öâ—2&—F†ÖWF–2—BFöW2æ÷BG'W7B—G6VÆbFòFð®(	Bv†B&–6R6÷fW'2F†R6÷7BÂ†÷rÆöærF†R66‚Æ7G2Âv†WF†W"&VfW'&Â&Wv&@¦—2ff÷&F&ÆRÂv†WF†W"F†R7Æ—G2FBFò‡VæG&VBâF†÷6R†fRöæR&–v‡Bç7vW ¦æBâW‡Vç6—fRw&öæröæRà ¥6òÆÂæ–æR&RFWFW&Ö–æ—7F–2âæòÖöFVÂ6ÆÂÂæò&÷f–FW"ÂæòæWGv÷&²Â¢¦æð§W"Ö7W7FöÖW"6÷7B¢¢Â6ÖR–çWG2Fò6ÖR÷WGWBâFö72õ4„•õ$TD”äU52æÖF&V6÷&G0¦VÆWfVâ6FÆör&öGV7G2&VÖ÷fVBf÷"FW67&–&–ærv÷&²F†BF–Bæ÷BW†—7BÂæBF†P¦6†VW7Bv’æ÷BFò&WVBF†B—2Fò6†—F†–æw2F†B6ö×WFRà ¢¢¤'W6–æW72'V–ÆFW"¢¢(	B'&V²ÔWfVâæB'Vçv“²6†–gB&÷F6÷7BÆææW#²FW÷6—Bæ@¥–ÖVçB66†VGVÆRà¢¢¤7&VF÷"7GVF–ò¢¢(	B&FR6&B'V–ÆFW#²7Æ—B6†VWBæB7&VF—G3²&WW'÷6–æp¥ÆææW"à¢¢¤w&÷wF‚7GVF–ò¢¢(	B6×–vâ'VFvWB7Æ—C²&VfW'&Â&Wv&BÆææW#²föÆÆ÷rÕW ¥66†VGVÆRà ¢¢¥Gvò'VÆW2'VâF‡&÷Vv‚ÆÂöbF†VÒâ¢¢çVÖ&W"F†B6ææ÷B&R&VB—2¦æÖVB¢À¦æWfW"GW&æVB–çFòææ(	BçVÖ&W$g&öÖ&WGW&ç2çVÆÂæBWfW'’FööÂ6†V6·2&Vf÷&P¦Fö–ær&—F†ÖWF–2Â6òF†R7W7FöÖW"—2FöÆBv†–6‚&÷‚v2Vç&VF&ÆR&F†W"F†à§6†÷vâDææâæB66Rv—F‚æòç7vW"6—26ò&F†W"F†â&WGW&æ–ær¦W&ó¢¦'W6–æW72Æ÷6–ærÖöæW’öâWfW'’6ÆR†2¢¦æò¢¢'&V²ÖWfVâÂæB#6ÆW2æVVFVB §v÷VÆB&RF†RÖ÷7BFævW&÷W2÷76–&ÆR&÷VæF–æröbF†Bâ&÷Fv—F‚æòW‡V7FV@§6ÆW2&W÷'G2F†BF†RÆ&÷W"6†&R6ææ÷B&Rv÷&¶VB÷WBæB¢&—2æ÷B¦W&ò"¢à ¢¢¤wV&G26Vv‡BF‡&VRF†–æw2öâF†Rv’–â¢¢ÂV6‚&VÂ–çFVw&F–öâF†Rv÷&°§v÷VÆB÷F†W'v—6R†fR†ÆbÖFöæS  ¢ÒfW&–g’×&÷WFR×&Vv—7G'–&VgW6VBæ–æR&÷WFW2F†BW†—7FVB'WBvW&Ræ÷@¢6æöæ–6ÆÇ’&Vv—7FW&VBà¢ÒF†R6FÆör6VVBÖ–w&F–öâ##cs#Sƒ—2Æ–VBæB¢¦g&÷¦Vâ¢¢Â6òF†P¢æWr&öGV7G26÷VÆBæ÷B&RFFVBFò—BâF†W’&R6VVFVB'’æWrÖ–w&F–öà¢–ç7FVBÂæBF†RFW7BF†B6†V6¶VB&öæRÖ–w&F–öâ6VVG2WfW'’&öGV7B"æ÷r6·0¢v†WF†W"V6‚&öGV7B—26VVFVB¦ç—v†W&R¢(	Bv†–6‚—2F†R7GVÂwV&çFVRâ—@¢Ç6ò&VgW6W2Fò6÷VçBF†RvVæW&FVB7–æ2Ö–w&F–öâÂ&V6W6RF†BöæRöæÇ¢WFFW3¢&öGV7BÆ—7FVBF†W&RæBæ÷v†W&RVÇ6Rv÷VÆB&R&WF—&VB×&ööbæ@¢æWfW"7&VFVBà¢ÒfW&–g’ÖFö2Ö6÷VçG66Vv‡BÖ–w&F–öâ6÷VçBF†BÖ÷fVBƒ2(i"ƒBà ¢¢¤öæR77V×F–öâ6†V6¶VB&F†W"F†â7FVBöââ¢¢F†RW†—7F–ærFööÇ2W6P¦'6U÷6—F—fTçVÖ&W&Âv†–6‚&WGW&ç2çVÆÂÂæBçVÆÂ–â&—F†ÖWF–2v—fW2ææ(	@§6ò’W‡V7FVBDææöâF†R&–6–ærFööÂf÷"&÷6R–çWBæBvVçBFòf—‚—Bà¥7V&Ö—GFVB—C¢¦W&òö67W'&Væ6W2âF†RW†—7F–ærF‚Ç&VG’†æFÆW2—Bâæ÷F†–ærv0¦6†ævVBöâF†R7G&VæwF‚öbFVfV7B’†B&V6öæVB×’v’Fò&F†W"F†â6VVâà ¢222##bÓ‚Ó‚(	BÖÆf÷&ÖVB&öÆR&VB6÷VÆBF¶R÷WBWfW'’FÖ–âvP ¥FVâfö7W6VBÖ–çWFW2öâF†R7vVWÂæBF†RöæRF†–ærf÷VæB—2F†Rv÷'7B×Æ6V@¦–ç7Fæ6RöbF†RF’à ¢¢¦vWEW6W%&öÆW6—FW&FVBv†FWfW"6ÖR&6²â¢¢—B&VBW6W%÷&öÆW6æB&à¦f÷"†6öç7B&÷röb&÷w2–öâF†R'6VB&öG’â÷7Fu$U5Bç7vW'2¢£#v—F‚à¦ö&¦V7B¢¢–â6öÖRf–ÇW&RÖöFW2(	BâW'&÷"&öG’&F†W"F†â&÷rÆ—7B(	Bæ@¦f÷"ââæöföââö&¦V7BF‡&÷w2âF†—2—2F†RFÖ–âWF†÷&—¦F–öâFƒ²WfW'’FÖ–à§vR6ÆÇ2—Bâ&Vf÷&RF†R&÷WFR6fWG’æWBÆæFVBV&Æ–W"–âF†—2'&æ6‚F†@§F‡&÷r‡VærF†R&WVW7Bf÷&WfW"ÂæBgFW"—BF†R6ÖRF‡&÷r—2¢£SöâWfW'¦FÖ–âvRBöæ6R¢¢Âg&öÒFF&6RF†B—2ç7vW&–ærà ¥fW&–f–VB'’&VÖ÷f–ærF†RwV&BæBvF6†–ærG—TW'&÷#¢&÷w2—2æ÷B—FW&&ÆV@¦vWEW6W%&öÆW6öâöFÖ–æÂ&F†W"F†â'’&VF–ærF†R6öFRæB&V6öæ–ær&÷W@¦—Bà ¥F†Rf—‚f–Ç26Æ÷6VBÂv†–6‚—2F†RöæÇ’66WF&ÆRF—&V7F–öâ†W&S¢âVç&VF&ÆP§&öÆRÆ—7Bw&çG2æ÷F†–ærâ&÷sòç&öÆV&F†W"F†â&÷rç&öÆVf÷"F†R6ÖR&V6öâ(	@¦&vvVB'&’FVæ–W2–ç7FVBöbF‡&÷v–ærÂæBfÆ–B&÷rgFW"&BöæR—0§7F–ÆÂ†öæ÷W&VBà ¢¢¥Gvò6ÖÆÆW"6W6RÖ6Æ–×26÷'&V7FVBv†–ÆRF†W&Râ¢¢F†RF6†&ö&B6–B¢%6WGW §&WV—&VC¢F†R6W'f–6U÷&WVW7G2F&ÆR—2æ÷Bf–Æ&ÆR–WB"¢æBF†R6ÖRf÷ ¦FVÆ—fW&&ÆW2Âv†VæWfW"6fTÆ—7EF&ÆV&WGW&æVBæ÷BÖö²âS—2æ÷BÖ—76–æp§F&ÆRÂæBF†B6VçFVæ6R6VæG2â÷væW"Fò'VâÖ–w&F–öâF†B—2Ç&VG¦Æ–VBâ&÷F‚æ÷r6’F†Rf–wW&R6÷VÆBæ÷B&R&VBà ¢¢¥Gvò6–&Æ–ær&VG2vW&RÇ&VG’wV&FVB¢¢(	B7F÷&vR'V6¶WG2æBF†RvVç@¦7F—f—G’VWVR&÷F‚Fò'&’æ—4'&’‡&÷w2’ò&÷w2¢µÖâvWEW6W%&öÆW6v2F†P¦÷WFÆ–W"Âv†–6‚—2F†RW6VgVÂ6†RöbF†Rf–æF–æs¢F†RGFW&âv2¶æ÷vâ†W&Ræ@§F†RöæRÆ6R—Bv2Ö—76–ær—2F†RöæRF†BvFW2FÖ–æ—7G&F–öâà ¢222##bÓ‚Ó‚(	B7&vÂf÷"F†RvW2æö&öG’7&vÆVBÂæBF†R'&æ6‚—B&÷fVBVç&V6†&ÆP ¥6—‚–ç7Fæ6W2öbF†—2GFW&âvW&Rf÷VæB'’†æBFöF’âF†R6WfVçF‚v2f÷VæB'¦6†V6²Âv†–6‚—2F†Rö–çC¢F†RÆ7BGvòÆ—fVBöâ¢§vW27W7FöÖW"öæÇ’6VW0¦gFW"&W76–ær'WGFöâ¢¢ÂæBWfW'’7vVW–âF†—2&W÷6—F÷'’—77VW2tUG2à ¢¢¥Æ6V†öÆFW"ÆV¶vRÂWfW'—v†W&Râ¢ ¦FW7G2öæò×vRÖÆ–W2×v†Vâ×F†RÖFF&6RÖ—2ÖF÷vâçFW7Bæ§6Ç&VG’&VæFW'2S²vW0§v—F‚WfW'’&VBf–Æ–ærâ—Bæ÷rÇ6òf–Ç2öâçVÆÆÂVæFVf–æVFÂæææ@¦¶ö&¦V7Bö&¦V7EÖ–âf—6–&ÆRFW‡B(	BF†Rf÷W"F†–æw2¦f67&—BFV×ÆFP§&öGV6W2v†VâF†RfÇVR&V†–æB—B—2Ö—76–ærÂæBæöæRöbF†VÒv÷&BF†—0§&öGV7Bw26÷’v÷VÆBW6Râ—Bf÷VæBæ÷F†–æröâF†RtUBvW2Âv†–6‚—2v‡’—Bv0§&÷fVB&F†W"F†âG'W7FVC¢–æ¦V7F–ær&VfW&Væ6R”C¢çVÆÂæ–çFòöæR&VÂ6&@¦f–Ç2F†R'VâÂæB&VÖ÷f–ær—B76W2à ¢¢¤—G26VÆbÖ6†V6²6Vv‡BG&öâF†Rv’–ââ¢¢öv&VvW‚6'&–W2Æ7D–æFW† ¦&WGvVVâ6ÆÇ2Â6òF†R&V6övæ—F–öâFW7BÖF6†VB—G2f—'7B6VçFVæ6RÂ&W7VÖVBg&öÐ§F†Böfg6WBf÷"F†R6V6öæBÂæB&W÷'FVBF†BF†RGFW&â†B7F÷VBv÷&¶–ærà¥F†Rf–ÆRÇ&VG’†BF†—26†Rf÷"—G2÷F†W"GFW&â(	B4Ä”Õ5ôTÕE–æ@¦4Ä”Õ5ôTÕE•ôÄÆ(	BæBF†RæWröæRæ÷rföÆÆ÷w2—Bâ¢¥F†R6†V6²w&—GFVâFò&÷fP§F†R6†V6²v÷&·2—2v†B6Vv‡B—Bâ¢  ¢¢¤æBF†RvW2F†BvW&RæWfW"7&vÆVBBÆÂâ¢ ¦FW7G2öWfW'’×FööÂ×&W7VÇB×vR×7W'f—fW2ÖâÖ÷WFvRçFW7Bæ§6÷7G2FòÆÂ¢¦f–gFVVâ¢ ¦g&VRFööÇ2v—F‚F†R6W76–öâ&W6öÇfVBÂF†Rv÷&·76Rf÷VæBÂæBWfW'’w&—FP§&VgW6VB(	BF†R7FFR&VÂ7W7FöÖW"—2–âGW&–ærâ÷WFvRÂæBF†R7FFRv†W&R§&W7VÇBvR†2Ö÷7BFòvWBw&öæs¢F†RFööÂv÷&¶VBÂ6òF†W&R—2âç7vW"Fð§6†÷rÂæBF†R6fRF–Bæ÷BÂ6òF†W&R—2&BæWw2&W6–FR—BâDôôÅ6—2W‡÷6V@§F‡&÷Vv‚æÆö6Ç2ç6öæ&g&VUFööÇ6ÂföÆÆ÷v–ærF†R6ÖRGFW&à¦6öæ&FF&6TÖævVÖVçEvVÇ&VG’W6W2à ¢¢¥F†RvVæW&FVB7V&Ö—76–öâv2w&öærf—'7BÂæBF†Rf—‚v2Fò7F÷wVW76–ærâ¢ ¥F†Rf—'7BG&gB6†÷6RfÇVW2'’f–VÆBæÖR(	BçVÖ&W'2f÷"ö6÷7GÇ&–6WÇ&FWÎ(
+böÀ§&÷6R÷F†W'v—6R(	BæBv÷Bf—6—F÷'6ÂÆVG6æB7W7FöÖW'6w&öærÂ6òF†Rµ¦6Æ7VÆF÷"6÷'&V7FÇ’&VgW6VBv—F‚CæBF†—2f–ÆR&W÷'FVB—G2÷vâ&B–çW@¦2Ö—76–ærvRâWfW'’f–VÆBæ÷rvWG2#"&Âv†–6‚F†R6Æ7VÆF÷'2'6Ræ@§F†RFW‡BFööÇ266WBâW"ÖæÖR†WW&—7F–2—2F†–ærF†BG&–gG26–ÆVçFÇ’F†P¦ÖöÖVçB6öÖV&öG’FG2F†R6—‡FVVçF‚FööÂà ¢¢¥F†VâF†R7&vÂf÷VæBv†B†æB×FW7F–ær†BÖ—76VBâ¢¢&RÖ–æ¦V7F–ær–W7FW&F’w0¦&VfW&Væ6R”C¢çVÆÆFVfV7BF–B¢¦æ÷B¢¢f–ÂF†R'Vâ(	B&V6W6RF†R'&æ6‚—@¦Æ—fW2–âv2Vç&V6†&ÆRâ6fTÖöGVÆT÷WGWF&WGW&æVB6öFS¢'6WGW÷&WV—&VB& ¦f÷"¦WfW'’¢Vç6fVB÷WF6öÖRÂ–æ6ÇVF–ærF†—2öæS¢7B&W6öÇfVBv÷&·76RÂ7@¦v÷&¶–ær6öæf–rÂv—F‚öæÇ’F†Rw&—FW2f–Æ–ærâ6ò6VæEFööÅ&W7VÇFÇv—2Föö°¦—G26WGW'&æ6‚ÂæBF†R'F†—2—2öâ÷W"6–FR"v÷&F–ærFFVB–W7FW&F’†BæWfW ¦öæ6R&VæFW&VBâF†R6öFR—26fUöf–ÆVFæ÷rÂF†R'&æ6‚—2&V6†&ÆRÂæBF†P¦7&vÂ&—FW2öâF†RFVfV7B—Bv2w&—GFVâf÷"à ¥F†B—2F†R'Bv÷'F‚&VÖVÖ&W&–ærâ–W7FW&F’w2f—‚v2fW&–f–VB'’FW7BF†@¦76W'FVBF†R¦æWr¢v÷&F–ærV'2(	BæB—BF–BÂöâF†RöæRF‚F†BFW7BG&÷fRà¤—BæWfW"6¶VBv†WF†W"F†R÷F†W"F‚6÷VÆB†VâBÆÂà ¢222##bÓ‚Ór(	B%&VfW&Væ6R”C¢çVÆÂ"Âv†–6‚’WBF†W&P ¥6—‡F‚–ç7Fæ6RÂæBF†Rf—'7BöæRF†—26W76–öâw2÷vâv÷&²7&VFVBâv÷'F‚F†P¦VçG'’f÷"F†B&V6öâ&F†W"F†â—G26—¦Rà ¢¢¥v†B†VæVBâ¢¢Gvò6öÖÖ—G2V&Æ–W"Â6fTÖöGVÆT÷WGWF7F÷VBÖ–çF–ær¦&æFöÕUT”B‚–&VfW&Væ6Rf÷"v÷&²—B†Bæ÷B6fVBæB&WGW&æVBçVÆÆ–ç7FVBà¥F†Bv2&–v‡Bâ6VæEFööÅ&W7VÇF&–çFVBF†RfÇVRF‡&÷Vv‚7G&–ær‚âââ– §Væ6öæF—F–öæÆÇ’Â6òWfW'’Vç6fVBg&VR×FööÂ&W7VÇB&VæFW&VC  £â6fR&WV—&W266÷VçBFF&6R6WGWâ–÷W"÷WGWBv2vVæW&FVBæB—26†÷và£â&÷fRâ(
+b¢¥&VfW&Væ6R”C¢çVÆÂâ¢  ¤f—‚F†B7vVBÖ—6ÆVF–ærçVÖ&W"f÷"F†RÆ—FW&Âv÷&B&çVÆÂ"öâ¦7W7FöÖW"w267&VVââæ÷F†–ærö&¦V7FVBÂ&V6W6R¢¦æòFW7B&VæFW&VBF†BvR¢¢(	BF†P¦W†—7F–ær6÷fW&vR76W'FVBF†R¥4ôâ&öG’ÂæBF†RGvòvRÖÆWfVÂ76W'F–öç2–à¦62×ÆFf÷&Ò×Ww&FVvW&R6†V6¶–ærf÷"F†R&W6Væ6RöbF†R7G&–ær%&VfW&Væ6P¤”B"Âv†–6‚çVÆÆ6F—6f–W2à ¢¢¥F†RFW7B’w&÷FRFò6F6‚—Bv2—G6VÆbw&öærf—'7B¢¢ÂæBF†B—2F†RÖ÷&P§W6VgVÂ†Æbâ—G2f—'7BG&gB6¶VBf÷"FW‡Bö‡FÖÆv†–ÆR6ÆÆ–ærç6VæB†ö&¦V7B–À§v†–6‚6WG26öçFVçBÕG—S¢Æ–6F–öâö§6öæ(	BæBF†—2Æ–6F–öâç7vW'2¥4ôà§FòF†B&Vv&FÆW72öb66WFâ6òGvò76W'F–öç2&÷WBvR6öçFVçB76V@¦v–ç7B&öG’v—F‚æòvR–â—BâF†W’vVçBw&VVâ–ÖÖVF–FVÇ’Âv†–6‚—2F†RöæÇ§&V6öâ’Æöö¶VC¢6†V6²F†B76W2F†RÖöÖVçB–÷Rw&—FR—B†2æ÷B&VVâ6†÷và§Fòv÷&²âF†R…DÔÂ66R÷7G2f÷&Òæ÷rÂF†Rv’'&÷w6W"FöW2à ¢¢¥GvòÖ÷&RF†–æw2w&öæröâF†R6ÖR6&Bâ¢¢¢%6fR&WV—&W266÷VçBFF&6P§6WGW"¢7FFW26W6RÂæB—B—2fÇ6Rv†VæWfW"F†Rv÷&·76R—2f–æ—6†VBæ@§F†Rw&—FRf–ÆVBVæFW&æVF‚—B(	Bv÷&·76U÷Vç&VF&ÆVæB&V6÷&G5÷Væf–Æ&ÆV ¦&÷F‚'&—fR†W&RÂæB&÷F‚6VçBF†R7W7FöÖW"Fò6WGWvRv—F‚æ÷F†–æröâ—@§FòFòâF†W&R&RGvòÖW76vW2æ÷rÂæBv†–6‚öæR6†÷w2FWVæG2öâF†R6öFR&F†W §F†âöâF†R77V×F–öââæB¥4ôâ6ÆÆW"v÷B¢£#v—F‚ö³¢G'VV¢¢f÷"w&—FP§F†B7F÷&VBæ÷F†–ærÂv†–ÆRõ5B÷6W'f–6R×&WVW7G6æB6VæEv÷&·76U÷7E&W7VÇF ¦&÷F‚ç7vW"S2v—F‚ö³¢fÇ6Vf÷"F†R6ÖRf–ÇW&R(	BöæR&öGV7BÂöæR¶–æBö`¦f–ÇW&RÂGvòç7vW'2âæ÷rS2V—F†W"v’à ¢¢¥F†R÷WGWB7F–ÆÂ&VæFW'2–âWfW'’66R¢¢Â76W'FVBf—'7BÂ&V6W6Rg&VRFööÀ§F†BÆ÷6W2F†Rç7vW"—B§W7Bv÷&¶VB÷WBFò6fRf–ÇW&Rv÷VÆB&Rv÷'6P§&öGV7BF†âF†RöæRv—F‚F†R&BÆ&VÂà ¢222##bÓ‚Ór(	BF†RVWVRF†Bv2æ÷BF†W&P ¤f–gF‚–ç7Fæ6RÂæBF†Rf—'7BöæRF†B—2æ÷B&VB6öÆÆ6–ærâF†—2—2¢¢¦ÖV6†æ—6ÒFW67&–&VBFòF†R7W7FöÖW"F†Bv2æWfW"'V–ÇB¢¢Âv—F‚76–ærFW7@¦76W'F–ær—Bà ¢¢¥F†R6VçFVæ6Râ¢¢7W÷'B&WVW7Bv†÷6R–ç6W'Bf–ÆVBVæFVBC  £â%6WGW&WV—&VC¢F†R66÷VçBFF&6R—2æ÷B6öæf–wW&VBÂ6òF†R&WVW7BW6V@£âF†R6fRfÆÆ&6²VWVRâ&VfW&Væ6R”C¢ÇWV–Cæâ  ¥F†W&R—2æòfÆÆ&6²VWVRâ6V&6†VBf÷#¢æòF&ÆRÂæòf–ÆRÂæò–âÖÖVÖ÷'’7F÷&RÀ¦æ÷F†–ær66†VGVÆVBâF†R‡&6Rv2–âf—fR7G&–æw2(	BF†R7W÷'B&W7VÇBÂGvð¦F6†&ö&B6&G2ÂâFÖ–â6&BæB6W'f–6RÖÆ–fV7–6ÆRvR(	BæBWfW'’öæRö`§F†VÒFW67&–&VB6öÖWF†–ærF†BFöW2æ÷BW†—7Bà ¢¢¥v†B7GVÆÇ’†VæVBöâF†BF‚â¢¢F†R–ç6W'B†Bf–ÆVB¦æB¢F†P¦æ÷F–f–6F–öâVÖ–Â†Bf–ÆVBÂ6òæ÷F†–ærv27F÷&VBæBæ÷F†–ærv26VçBâF†P¦7W7FöÖW"v÷Bö³¢G'VVÂ…EE#Â&VfW&Væ6RçVÖ&W"ÂæBF†Rv÷&B'VWVR"âF†W§v÷VÆB&V6öæ&Ç’7F÷6†6–ær—Bâ¢¤7W÷'B&WVW7BF†B6–ÆVçFÇ’F—6V'2—0§v÷'6RF†âf÷&ÒF†B&VgW6W2Fò7V&Ö—BÂ&V6W6RF†R6V6öæBöæRvWG2&WG&–VB¢¢(	@¦æBF†—2v2F†RöæRvR6öÖV&öG’&V6†W2v†Vâ6öÖWF†–ær†2Ç&VG’vöæRw&öærà ¢¢¤FW7B76W'FVBF†Rf'&–6F–öâ¢¢Â'’æÖS¢¢%õ5B÷7W÷'B÷&WVW7BW6W2F†P§6fRfÆÆ&6²VWVRv—F‚&VfW&Væ6R”Bv†VâFF&6R—2Ö—76–ær"¢â—B6ÆV&V@§F†R7W&6RVçf—&öæÖVçBæB6†V6¶VBf÷"ö³¢G'VVæB&VfW&Væ6R”BâF†P¦wV&çFVR†Bw&VVâF–6²æBæò–×ÆVÖVçFF–öâÂv†–6‚—2F†—26öFV&6Rw27FFV@§&V7W'&–ærFVfV7B–â—G2W&W7Bf÷&Òà ¢¢¥F†R&VfW&Væ6RçVÖ&W"—2F†R'BF†BFöW2F†RFÖvRâ¢¢—B—2Ö–çFVB&Vf÷&P§F†R–ç6W'BæBw&—GFVâ–çFòF†R&÷r2&VfW&Væ6Uö–FÂ6òv†VâF†R&÷r—27F÷&V@¦—BvVçV–æVÇ’–FVçF–f–W2—B(	BæBv†VâF†R&÷r—2æ÷B7F÷&VB'WBF†RVÖ–ÂvVç@¦÷WBÂ—B—2–âF†RVÖ–Â&öG’Â6ò7W÷'B6â7F–ÆÂf–æB—Bâ&÷F‚&VÂÂ–à¦F–ffW&VçBÆ6W2ÂæBF†RÖW76vRæ÷r6—2v†–6‚âv†VâæV—F†W"†VæVB—@¦–FVçF–f–W2æ÷F†–ærç—v†W&RÂæB†æF–ær—B÷fW"—2F†R'FVf7BF†BÖ¶W0§6öÖV&öG’&VÆ–WfRF†W’†fR66R÷VââF†B66Ræ÷r&WGW&ç2¢¦æò&VfW&Væ6R@¦ÆÂ¢¢Âö³¢fÇ6VÂæBS2(	B6ò6ÆÆW"&VF–æröæÇ’F†R7FGW26öFR6ææ÷@§&V6÷&Bfæ—6†VB&WVW7B2f–ÆVBöæRà ¦Æ–"÷6öæ&×7W÷'BÖ÷WF6öÖRæ6§6†öÆG2F†Rf÷W"×v’FV6—6–öââ—G2FW7B76W'G0§F†RGvò7V66W72VæF–æw2¦f—'7B¢Â&V6W6RWfW'’&F–Bæ÷BvòF‡&÷Vv‚"76W'F–öà§v÷VÆB÷F†W'v—6R72v–ç7Bf÷&ÒF†B&VgW6W2WfW'—F†–ærà ¢¢¥F‡&VRÖ÷&R–çfVçFVB&VfW&Væ6W2Â7vWB–âF†R6ÖR72â¢¢õ5@¢÷6W'f–6R×&WVW7G6Ö–çFVBöæRv—F‚&æFöÕUT”B‚–öâGvòf–ÇW&R'&æ6†W2æBÂöà§F†R7V66W72'&æ6‚ÂfVÆÂ&6²Fò&æFöÕUT”B‚–v†VâF†R–ç6W'Bv÷&¶VB'WBF†P§&W&W6VçFF–öâF–Bæ÷B6öÖR&6²(	BF†R†&FW7BöbF†RF‡&VRFòæ÷F–6RÂ&V6W6P¦WfW'—F†–ærVÇ6R&÷WBF†R&WVW7Bv2f–æRâ6fTÖöGVÆT÷WGWFF–BF†R6ÖR–à§GvòÆ6W2ÂæB6VæEv÷&·76U÷7E&W7VÇF&–çFVBF†R&W7VÇBöâvRF†B†@¦Ç&VG’Â6÷'&V7FÇ’Â6–BF†Rv÷&²6÷VÆBæ÷B&R6fVBâÆÂæ÷rçVÆÂÂæBF†P§Vç6fVBvR&–çG2æò&VfW&Væ6Rà ¢¢¤Æ–çB&÷fVBF†R7vVWv26ö×ÆWFR¢¢–âöæRf–ÆS¢&VÖ÷f–ærF†RÆ7@¦&æFöÕUT”B‚–6ÆÂÆVgBF†R–×÷'BVçW6VBæBF†R'V–ÆB6–B6òâF†B—2¦&WGFW"6ö×ÆWFVæW726†V6²F†â×’÷vâ&VF–æröbF†Rf–ÆRà ¤f÷W"FW7G26†ævVBâV6‚76W'FVBF†RöÆB&V†f–÷W"ÂæBV6‚v2&VB&Vf÷&P¦&V–ærF÷V6†VB(	BöæRöbF†VÒÂ¢'7F–ÆÂ66WG2fÆ–B&WVW7B"¢Â—2&VÂwV&@¦v–ç7Bf—†–ærf–ÇW&RF‚'’'&V¶–ær7V66W72F‚Â6ò—B¶WB—G2¦ö"æ@¦Æ÷7BöæÇ’—G266WFæ6RöbF†Rv÷&B'VWVVB"à ¢222##bÓ‚Ór(	BvW6öÖRFVW6VV²vVçB&Wf–WvVC²F†Rç7vW"—2F†Bæ÷F†–æræVVG2FF–æp ¤FFVBFòF†R&Vv—7FW"öâ&WVW7Bâ¢¤&Æö6¶VB¢¢ÂæBF†RÖ÷&RW6VgVÂ†ÆböbF†P¦f–æF–ær—2F†BF†R&WVW7B—B6ÖRv—F‚v2Ç&VG’6F—6f–VBà ¢¢¤æòÆ–6Væ6RÂ6†V6¶VBF‡&VRv—2¢¢&F†W"F†â77VÖVC¢F†R&W÷6—F÷'’vR6†÷w0¦æòÄ”4Tå4Rf–ÆRÂF†R&W÷6—F÷'’’&WGW&ç2æòÆ–6Væ6Rf–VÆBÂæ@¦÷&W÷2öFVW6VV²Ö’övW6öÖRÖFVW6VV²ÖvVçBöÆ–6Vç6Vç7vW'2CBÂv†–6‚—2v†@¤v—D‡V"&WGW&ç2v†Vâ—BFWFV7G2æöæRâæòÆ–6Væ6R—2æ÷BW&Ö—76—fR'’FVfVÇBâ—@¦—2ÆÂ&–v‡G2&W6W'fVBÂæBæö&öG’†W&R6âw&çBv†BF†RWF†÷"†2æ÷Bà ¢¢¥Gvò6Æ–×2–âF†R—F6‚F–Bæ÷B7W'f—fR&VF–ærF†R&W÷6—F÷'’â¢¢—BFW67&–&V@§GvVçG’Æ–6F–öç3²F†R6öçFVçG2F&ÆRÆ—7G2#BâæBF†RöæRÖÖ–ÆÆ–öâ×Fö¶Và¦6öçFW‡Bv–æF÷r—27FFVBF†W&Rf÷"öæRFööÂw2FVW6VV²ÕET’VçG'’Âæ÷B2§&÷W'G’öbÖöFVÂ(	Bv÷'F‚&V–ærW†7B&÷WBÂ&V6W6RF†B—2&V6—6VÇ’F†R¶–æ@¦öbf–wW&RF†BvWG2&WVFVB–çFòÖ&¶WF–ær6÷’æBF†Vâ†2Fò&RFVfVæFVBà¦FVW6VV²ÕcBÕ&öæBFVW6VV²ÕcBÔfÆ6†&R&VfW&Væ6VB'’æÖR–âF†P§&W÷6—F÷'“²F†V—"&–6–ærÂFW&×2æBf–Æ&–Æ—G’vW&R¢¦æ÷B¢¢fW&–f–VB†W&RÂæ@¦6÷7B—26öç7G&–çBöbF†R6ÖRvV–v‡B2Æ–6Væ6Rà ¢¢¥F†W&R—2æ÷F†–ærFò–ç7FÆÂâ¢¢—B—2Fö7VÖVçFF–öâ(	B#B6WGWwV–FW2Âæð§'Vææ&ÆR6öFRÂæò–ç7FÆÆW"ÂæòvVçB6¶–ÆÂà ¢¢¤æBFVW6VV²Ç&VG’v÷&·2v—F†÷WBÆ–æRöb6öFR6†æv–ær†W&Râ¢ ¦Æ–"÷6öæ&Ö÷Vâ×vV'V’ÖFFW"æ6§66VæG2ÖöFVÃ¢&VF–æW72æÖöFVÆÂ&VBg&öÐ¦4ôä$ôõTåõtT%T•ôÔôDTÆâF†RÖöFVÂ—26öæf–wW&F–öâfÇVRÂæ÷B6öFRF‚À§6òFVW6VV²ÖöFVÂ6W'fVB&V†–æBF†R÷væW"w2÷vâ÷VâvV%T’÷"vFWv’—0§&V6†&ÆRFöF’âF†B—2F†R'&ævVÖVçBFö72ö&6†—FV7GW&RôU…DU$äÂÕ4U%d”4U2æÖF ¦FW67&–&W2ÂæBF†R&V6öâF†R&Vv—7FW"†26'&–VBFVW6VV²c22â÷F–öæÀ¦vFWv’ÖöFVÂfÖ–Ç’&F†W"F†â2FWVæFVæ7’6–æ6R&Vf÷&RF†—2à ¢¢¤6V6öæB7FÆRçVÖ&W"fVÆÂ÷WBöb—Bâ¢¢F†RFö2Ö6÷VçBwV&B&V¦V7FVBF†P§&VÆV6Rf÷"Fö72ö÷væW"õt„BÔ•2ÔÄTeBæÖF6––ær#ƒR&Wf–WvVB&W÷6—F÷&–W2"Âv†–6€¦—2v†B—B—2f÷"â6÷VçF–ærF†R&W7BöbF†B6VçFVæ6R'’†æBf÷VæBF†RæW‡@¦6ÆW6Rw&öærFöó¢—B6–B¢£"¢¢&W÷6—F÷&–W2FV6Æ&RæòÆ–6Væ6RÂæBF†R&Vv—7FW ¦†VÆB¢£B¢¢&Vf÷&RFöF’âF†Bf–wW&Rv2æWfW"6†V6¶VBÂ&V6W6P¦fW&–g’ÖFö2Ö6÷VçG2æÖ§6FVÆ–&W&FVÇ’ÆVfW2Æ–6Væ6RVW7F–öç2Fò‡VÖâ(	Bæ@§&–v‡FÇ’Âf÷"F†R–çFW'&WF—fRöæW2âv†WF†W"&V6—&ö6ÂÆ–6Væ6R&V6†W2†÷7FV@§&öGV7B—2§VFvVÖVçBâ†÷rÖç’&V6÷&G26’æòÆ–6Væ6Rv2FV6Æ&VB—2æ÷C²—@¦—2f7B&÷WBF†R&Vv—7FW"ÂæB—B—2æ÷rFW&—fVBæB6ö×&VBÆ–¶RF†R÷F†W ¦6÷VçG2âfW&–f–VB'’WGF–ærF†Rw&öærf–wW&R&6²æBvF6†–ær—Bf–Â&Vf÷&P§G'W7F–ærF†Rw&VVââF†R6VçFVæ6Ræ÷r&VG2ƒbæBRà ¢¢¤öæR6÷'&V7F–öâv÷'F‚&V6÷&F–ærÂ&V6W6RwV&BÖFR—Bâ¢¢F†R&V6÷&Bv2f—'7@¦f–ÆVB2&VfW&Væ6UööæÇ–Â&V6öæ–ærF†B&VF–ærV&Æ–2vRæVVG2æòÆ–6Væ6Rà¥F†B&V6öæ–ær—2G'VRæB—B—2æ÷Bv†BF†—2&Vv—7FW"v÷fW&ç2à¦FW7G2ö÷Vâ×6÷W&6RÖÆ–6Væ6R×FW&×2çFW7Bæ§6&VgW6VB—C¢&V6÷&Bv†÷6RÆ–6Væ6RFW‡@§6—2æ÷F†–ærv2FV6Æ&VB×W7B&R&Æö6¶VFâF†R'VÆR—2&–v‡BFò&R'6öÇWFR(	@§F†RÖöÖVçBâVæFV6Æ&VBÆ–6Væ6R6â6—BB&VfW&Væ6UööæÇ–ÂF†RÆ–æR&WGvVVà¦Ö’×&VBæBÖ’×F¶R&W7G2öâv†öWfW"÷Vç2F†RVçG'’æW‡Bâ¢¥F†R&V6÷&BÖ÷fVBÀ¦æ÷BF†R6†V6²â¢¢vV¶Væ–ær—Bv÷VÆBÇ6ò†fRæVVFVBFö7VÖVçFVB&V6öâ–à¦4T5U$•E•ôäõDU2æÖFÂv†–6‚—2F†R6V6öæB&V6öâæ÷BFòà ¢222##bÓ‚Ór(	BF†Rf÷W'F‚–ç7Fæ6RÂæBF†—2öæR—2v†BF†R7W7FöÖW"6VW0 ¥vVçBÆöö¶–ærf÷"—BFVÆ–&W&FVÇ’âF‡&VRf—†W2FöF’vW&RF†R6ÖR6öÆÆ6R–à§F‡&VRF–ffW&VçBÖöGVÆW2Â6òF†RVW7F–öâv2v†W&RVÇ6R—BÆ—fW2(	BæBF†P¦ç7vW"v2öæRÆ–W"gW'F†W"÷WBÂ–âF†R&VæFW&–ær&F†W"F†âF†R&VF–ærà ¢¢¦v÷&·76U&V6÷&D6&G6&WGW&æVB"&f÷"&VBF†Bf–ÆVBâ¢¢—B&WGW&ç2"& ¦f÷"F‡&VRVç&VÆFVB6—GVF–öç3¢vRv—F‚æò&V6÷&G26V7F–öâÂ&VBF†@¦f–ÆVBÂæB&VBF†B6÷VÆBæ÷B&RGFV×FVBâF†R&V6öæ–ær&÷fR—B—26÷Væ@¦æB—2¶WB(	B¢&&V6÷&G2Æ—7BF†B6ææ÷BÆöB6†÷VÆBÆVfRF†RFööÂW6&ÆP§&F†W"F†âF¶RF†RvRF÷vâv—F‚—B"¢âF†RÖ—7F¶R—2F†R6†ö–6Röb"&f÷ §F†RÖ–FFÆRöæRâ"&—2v†BvRv—F‚æò&V6÷&G26V7F–öâÆöö·2Æ–¶RÂ6ò¦7W7FöÖW"v—F‚GvVçG’6fVBÆVG26rF†Rf÷&ÒæBæ÷F†–ærVæFW"—BâöâvP§F—FÆVB&V6÷&G2ÂâV×G’vR—2æ÷BF†R'6Væ6Röb7FFVÖVçBà ¢¢¥F†RæV–v†&÷W&–ær&VæFW&W'2Ç&VG’†B—B&–v‡Bf÷"F†R66RF†W’6÷VÆB6VRâ¢ ¦&VæFW%&V6÷&D6&G6öâvVçV–æVÇ’V×G’Æ—7B6—2¢$æ÷F†–ær6fVB–WBâW6RF†P¦f÷&Ò&÷fRæB—Bv–ÆÂV"†W&Râ"¢F†B6VçFVæ6R—2G'VRgFW"7V66W76gVÀ§&VBæBfÇ6RgFW"f–ÆVBöæRÂæBæ÷F†–ærFöÆBF†VÒ'B(	BF†Rf–ÇW&P¦æWfW"&V6†VBF†R&VæFW&W"BÆÂà ¦&VæFW%&V6÷&G5Væf–Æ&ÆVæ÷r6—2F†RÆ—7B6÷VÆBæ÷B&RÆöFVBÂF†B—B—2÷W §6–FRÂæBF†Bæ÷F†–ær†2&VVâFVÆWFVBâ6WGW6öFW27F’6–ÆVçBÂ&V6W6R¦7W7FöÖW"v—F‚æòv÷&·76R–WB—2æ÷BÆöö¶–ærBf–ÇW&RæBF†RvR†2—G0¦÷vâ6WGW6&C²'vR6÷VÆBæ÷BÆöB"&ææW"öâ'&æBÖæWr66÷VçBv÷VÆB&R¦æWrfÇ6R7FFVÖVçB–âÆ6RöbF†RöÆBöæRà ¢¢¥Gvò6ÖÆÆW"F†–æw2f÷VæBöâF†Rv’–ââ¢¢ÖöGVÆT7'VBæÆ—7F76VB# ¦6''––æræöâÖ'&’7G&–v‡BF‡&÷Vv‚2&V6÷&G6Âv†–6‚&V6†VBæÖ–âF†P§&VæFW&W'2(	B&Vf÷&RF†—2Ö÷&æ–ærw2&÷WFR6fWG’æWBF†B‡VærF†R&WVW7BÂæ@¦gFW"—BSâ—B—2&VBf–ÇW&Ræ÷râæB&VDÖöGVÆU&V6÷&G6&W÷'FV@¦6WGW÷&WV—&VFf÷"WfW'’÷&væ—¦F–öâf–ÇW&RÂv†–6‚6–æ6RF†—2Ö÷&æ–æp¦–æ6ÇVFW2v÷&·76U÷Vç&VF&ÆV²öæÇ’vVçV–æRv÷&·76Uöæ÷E÷&VG–Ö2F†W&P¦æ÷rà ¢¢¥F†RFW7Bw26V6öæB†Æb—2F†R†ÆbF†BÖGFW'2â¢¢f÷"V6‚öbF†RGvòvP§6†W2—B76W'G2F†Rf–ÆVB&VB6—26ò(	BæBF†VâF†B§7V66W76gVÂ¢V×G§&VB7F–ÆÂ6—2$æ÷F†–ær6fVB–WB"æBFöW2æ÷B6’&6÷VÆBæ÷BÆöB"âv—F†÷W@§F†B—"ÂvRöÆöv—6–ærVæ6öæF—F–öæÆÇ’v÷VÆB72ÂæBF†B—2F†R6ÖP¦Æ–RFöÆB–âF†R6öÖÖöæW"F—&V7F–öâÂFòWfW'’7W7FöÖW"v†òvVçV–æVÇ’†2æ÷@§6fVBç—F†–ær–WBà ¢¢¤Æ–æRÖæWWG&Â–â6W'fW"æ§2¢¢Âv†–6‚7F—2BC3#¢Gvò&WGW&â"&&V6ÖRGvð¦6ÆÇ2ÂæBF†RæWrÖ&·WÆ—fW2–âÆ–"÷6öæ&ÖÖöGVÆRÖ7'VBæ6§6&W6–FRF†P§&VæFW&W'2—B&VÆöæw2v—F‚à ¢222##bÓ‚Ór(	B7W7FöÖW"v†ò†B–B6÷VÆB&R6†÷vâ—vÆÀ ¥F†—&B–ç7Fæ6RöbF†R6ÖR6öÆÆ6R–âöæRF’ÂæBF†RöæRF†BF÷V6†W2ÖöæW’à ¦vWD7W7FöÖW%–DVçF—FÆVÖVçF6·2GvòF&ÆW2v†WF†W"F†—27W7FöÖW"†öÆG2Æà§F†B÷Vç2F†—2&öGV7C¢&–ÆÆ–æuöVçF—FÆVÖVçG6ÂF†Vâ&–ÆÆ–æu÷7V'67&—F–öç6à¤&÷F‚&VG2vW&R–b‡&W7öç6Sòæö²’²âââÖv—F‚æòVÇ6Râ&VBF†Bf–ÆVBæ@¦&VBF†Bf÷VæBæ÷F†–ærVæFVB–âF†R6ÖRÆ6R(	B¢¤…EEC"¢¢ÂVæFW"F†P¦†VF–ær¢¢%Ww&FR&WV—&VB"¢¢Â&W6–FRÆ–æ²Fò&–6–ærÂv—F‚F†R6VçFVæ6P¢¢%–B66W72—2Æö6¶VBVçF–Â–ÖVçBWFFW26†÷râ7F—fR÷"G&–Æ–ærÆââ"  ¥6òGW&–ærâ÷WFvRöâ÷W"6–FRÂ––ær7W7FöÖW"v2FöÆBF†W’†Bæ÷B–Bà£C"—2Æ—FW&ÆÇ’–ÖVçB&WV—&VBâF†Rf—'7BF†÷Vv‡Böb6öÖV&öG’6†÷vâ—vÆÀ§F†W’Ç&VG’–B7B—2F†BF†W’†fR&VVâ6†&vVBw&öævÇ’ÂæBWfW'’VÆVÖVç@¦öbF†BvRw&VVBv—F‚F†VÒà ¤Æâ6âÆ—fR–âV—F†W"F&ÆRÂ6ò¢¦öæR¢¢6–ÆVçB&VB—2Væ÷Vv‚FòÖ¶RF†P¦6öæ6ÇW6–öâVæf÷VæFVB(	BF†R7V'67&—F–öâ&VBf–Æ–ærÆöæRv27Vff–6–VçBÂv—F€§F†RVçF—FÆVÖVçB&VBç7vW&–ær6÷'&V7FÇ’æBf–æF–æræ÷F†–ærà ¢¢¤æ÷s¢¢¢&VD&–ÆÆ–æv&WGW&ç2&÷w2÷"çVÆÆÂæWfW"µÖÂæBG&VG2# ¦6''––æræöâÖ'&’2f–ÆVBFöòâ–bV—F†W"&VB6ÖR&6²çVÆÂæBæV—F†W ¦f÷VæBÖF6‚ÂF†Rç7vW"—2S2VçF—FÆVÖVçE÷Vç&VF&ÆVv—F‚ÖW76vRF†@§6—2v†÷6RfVÇB—B—2æBFöW2æ÷BÖVçF–öâ–ÖVçBâv÷&·76U÷Vç&VF&ÆVæ@¦v÷&·76U÷Væf–Æ&ÆVg&öÒF†RFVæçB&W6öÇfW"ÆæBF†W&R2vVÆÂÂ&F†W"F†à¦&V–ærfÆGFVæVB–çFòWw&FU÷&WV—&VF2WfW'’÷&væ—¦F–öâf–ÇW&Rv2à ¢¢¥F†RvR†BFò6†ævRv—F‚—Bâ¢¢F†R†VF–ærv2†&F6öFVBÂ6òS2v÷VÆ@§7F–ÆÂ†fR&VæFW&VBVæFW"%Ww&FR&WV—&VB"âF†R&W7VÇBæ÷r6'&–W2†VF–ævÀ¦æB6W'fW"æ§2G&÷2F†R&–6–ærÆ–æ²v†Vâ—B—2&W6VçB(	BF†W&R—2æ÷F†–ærFò'W’à¥&W7VÇG2F†BvVçV–æVÇ’ÖVâWw&FR6''’æò†VF–æræB&RVçF÷V6†VBÂv†–6‚—0§v†BF†RFW7Bw276W'BæWVÂ‡Vç–Bæ†VF–ærÂVæFVf–æVB–—2f÷"à ¢¢¥F†RFW7B76W'G2F†R–BF‡2æBF†RvVçV–æRÓC"F‚f—'7B¢¢Â6òF†RF‡&VP£S266W2&Ræ÷Bw&VVâv–ç7B&VFW"F†B7F÷VB6†&v–ærç–&öG’à ¥Gvòæ÷FW2f÷"v†öWfW"—2æW‡BâF†Rf÷W"&öGV7F–öâÖ&¶W'0¦fW&–g’×&öGV7F–öâ×&öGV7BÖ6FÆöræÖ§6w&W2f÷"&R–çF7B(	B&÷F‚÷7Fu$U5@§F‡2ÂF†R7F—fRÖ÷"×G&–Æ–ærf–ÇFW"ÂæBF†RÆö6¶VBÖW76vRÂv†–6‚—27F–ÆÂF†P§FW‡BöbvVçV–æRC"âæB&–ÆÆ–æu&÷t÷Vç5&öGV7FÂv†–6‚&VgW6W2¦v÷&·76UöÖöçF†Ç–&÷rf÷"F†Rw&öærv÷&·76RÂ7F–ÆÂ&WGW&ç2—G2÷vâC#¢F†@¦—2&VÂç7vW"&÷WB&VÂ&÷rÂæ÷B&VBF†Bf–ÆVBà ¢¢¤6öçF–æW"&W6WBÆæFVBÖ–BÖ6†ævR¢¢æBWBF†RG&VR&6²öâc6SSc&Âf÷W ¦6öÖÖ—G2&V†–æBâ&V6÷fW&VB'’fWF6†–æræBf7BÖf÷'v&F–ær&F†W"F†â&W6WGF–æp¦†&Bâv÷'F‚&V6÷&F–ær&V6W6RF†Rf—'7BfW'6–öâöbF†—2f—‚v2w&—GFVâv–ç7@§F†R7FÆRf–ÆR(	Bv†–6‚†BæV—F†W"ÖWFFF–â—G26VÆV7G2æ÷ ¦&–ÆÆ–æu&÷t÷Vç5&öGV7F(	BæBF†RF6‚w2÷vâ76W'F–öâ—2F†RöæÇ’&V6öâ—@¦F–Bæ÷BÇ’6ÆVæÇ’öçFò6öFRF†B†BÖ÷fVBöâà ¢222##bÓ‚Ór(	B&VBF†Bf–ÆVB6÷VÆB†æB7W7FöÖW"6V6öæBv÷&·76P ¤f÷VæBv†–ÆR7vVW–ærf÷"F†R'6VçB×g2ÖV×G’6öÆÆ6RF†—26öFV&6R¶VW0§&öGV6–ærâF†—2öæR—2–âF†RFVæçB&÷VæF'’—G6VÆbÂv†–6‚Ö¶W2—BF†Rv÷'7@§Æ6R—B†2GW&æVBWà ¢¢¥v†B—Bv2â¢¢vWD7W7FöÖW%&–Ö'”÷&væ—¦F–öæÆöö·2–à¦÷&væ—¦F–öåöÖVÖ&W'6†—6ÂF†Vâ'W6–æW75öÖVÖ&W'6†—6ÂæB–bæV—F†W"†2§&÷r—B6ÆÇ26öæ&ö&ö÷G7G&ö7W7FöÖW%÷v÷&·76VFòÖ¶RöæRâ&÷F‚Æöö·W0§vW&Rw&—GFVâ2–b‡&W7öç6Sòæö²’²âââÖv—F‚æòVÇ6RÂ6ò'F†R&VBf–ÆVB ¦æB'F†W&R—2æò&÷r"fVÆÂF‡&÷Vv‚FòF†RF†—&B7FW–FVçF–6ÆÇ’à ¢¢¥v‡’—Bv2æ÷B6Vv‡B'’F†R%2&V–ær–FV×÷FVçBâ¢¢—B—2–FV×÷FVçB(	B'W@¦öæÇ’v–ç7B÷&væ—¦F–öåöÖVÖ&W'6†—6Âv†–6‚—B6†V6·2f÷"â7F—fP¦ÖVÖ&W'6†—&Vf÷&R7&VF–ærç—F†–ærâ—BæWfW"Æöö·2B'W6–æW75öÖVÖ&W'6†—6à¥6òf–ÆVB&VBöbF†Rf—'7BF&ÆRv26÷fW&VB'’66–FVçBÂæBf–ÆVB&V@¦öbF†R6V6öæBv2æ÷C¢7W7FöÖW"v†÷6RöæÇ’ÖVÖ&W'6†—Æ—fW2F†W&RÂöâ§&WVW7Bv†W&RF†B&VBf–ÆVBÂv2†æFVB'&æBÖæWrV×G’÷&væ—¦F–öâv†–ÆP§F†V—"&VÂöæR6BVçF÷V6†VBv—F‚WfW'’&V6÷&B–â—Bâg&öÒF†V—"6–FRF†P§&öGV7B†BÆ÷7BF†V—"'W6–æW72à ¢¢¥F†Rf—‚—2&VgW6ÂÂæ÷B&WG'’â¢¢&÷F‚&VG2×W7Bç7vW"&Vf÷&R'F†W&R—0¦æ÷F†–ærFòf–æB"—26öæ6ÇW6–öâç–öæRÖ’w&—FRv–ç7Bâ&VDÖVÖ&W'6†—6 §&WGW&ç2F†R&÷w2÷"çVÆÆÂæWfW"µÖÂf÷"W†7FÇ’F†B&V6öâ(	BæB—B&WGW&ç0¦çVÆÂf÷"#6''––ær6öÖWF†–ærF†B—2æ÷Bâ'&’FöòÂv†–6‚—2&VÀ¥÷7Fu$U5Bf–ÇW&RÖöFRæB&VB2&æòÖVÖ&W'6†—"&Vf÷&Rà ¢¢¤æBF†R6ÖR6öÆÆ6RöæRÆWfVÂWâ¢¢$æòv÷&·76R"æB&6÷VÆBæ÷B6†V6² §vW&R&÷F‚v÷&·76Uöæ÷E÷&VG–Â6öFRF†B&VG22f7B&÷WBF†R7W7FöÖW"à¥6öÖVöæRÖ–BÖ÷WFvRv2FöÆBF†W’†Bæòv÷&·76RæBöffW&VB'WGFöâFò7&VFP¦öæRâv÷&·76U÷Vç&VF&ÆV—2æ÷r6W&FS²6ÆÆW'2FW7F–æröæÇ’æö¶&P§VæffV7FVBÂv†–6‚—2æV&Ç’ÆÂ“RöbF†VÒà ¢¢¤W‡G&7FVBv†–ÆRf—†–ær¢¢ÂFòÆ–"÷6öæ&Ö7W7FöÖW"Ö÷&væ—¦F–öâæ6§6â6W'fW"æ§0¦6ÖRF÷vâCÆ–æW2æBF†R&F6†WB–âFW7G2÷6W'fW"×7Æ—BçFW7Bæ§6vVçBFòC30®(	B&VÆ÷rv†W&R—B7FööB&Vf÷&RF†—2Ö÷&æ–ærw26WfVâÖÆ–æR&—6Rf÷"F†R7–æ2&÷WFP§6fWG’æWBà ¢¢¥GvòW†—7F–ærwV&G26Vv‡BF†RÖ÷fR&Vf÷&RF†RFW7G2F–B¢¢Âv†–6‚—2v÷'F€§&V6÷&F–ær&V6W6R&÷F‚vW&Rw&—GFVâgFW"&V–ærfööÆVBöæ6Rà¦FW7G2öÖVÖ&W"×&VB×öÆ–6–W2çFW7Bæ§6&VgW6W2ç’gVæ7F–öâ†æFVBF&ÆRæÖP§F†B—BFöW2æ÷B¶æ÷rÂ6ò&VDÖVÖ&W'6†—6†BFò&R&Vv—7FW&VB&Vf÷&R—G2Gvð§F&ÆW26÷VÆBvòVæ6†V6¶VBâæBFW7G2öFF&6R×VW'’Ö6öçG&7BçFW7Bæ§6–ç2F†P¦FWFW&Ö–æ—7F–2ÖVÖ&W'6†—VW'’(	BW‡Æ–6—BF÷FÂ÷&FW"æBÆ–Ö—CÓÂv—F†÷W@§v†–6‚7W7FöÖW"–âGvò÷&væ—¦F–öç2fÆ—2&WGvVVâF†VÒW"&WVW7Bâ—G0¦76W'F–öç2æ÷r&VBF†Rv†öÆR'VçF–ÖR&F†W"F†â6W'fW"æ§2ÂW"F†Bf–ÆRw2÷và¦æ÷FRF†Bv†–6‚f–ÆR†öÆG2VW'’—2æ÷B'BöbF†R6öçG&7BÂæB6†V6²F†@¦&÷F‚F&ÆW2vòF‡&÷Vv‚öæR6†&VBVW'’&F†W"F†âV6‚6''––ær—G2÷vâà ¢222##bÓ‚Ór(	B&÷WFRF†Bf–Ç2æ÷rç7vW'2Â–ç7FVBöb†æv–æp ¦Fö72õ4„•õ$TD”äU52æÖF6'&–VBöæR÷Vâf–æF–ær6–æ6R2VwW7C¢&WVW7BFð¦öFÖ–âöFF&6Vv—F‚¦†VÇF‡’¢6FÆörF–Bæ÷B6ö×ÆWFRÂv†–ÆR&WVW7G2v†÷6P¦6FÆörf–ÆVBç7vW&VB–âÖ–ÆÆ—6V6öæG2â—Bv2æWfW"F–væ÷6VBâ—B—2æ÷rÂæ@§F†R6W6Rv2æ÷B–âF†B&÷WFRà ¢¢¤W‡&W72B–væ÷&W2F†R&öÖ—6Râ7–æ2†æFÆW"&WGW&ç2â¢¢†æFÆW"F†@§F‡&÷w2Â÷"v—G26öÖWF†–ærF†B&V¦V7G2ÂæWfW"&V6†W2æW‡B†W'&÷"–âæ÷F†–æp§w&—FW2&W7öç6RâF†R&WVW7B7F—2÷VâVçF–Âv†öWfW"—2BF†R÷F†W"Væ@¦v—fW2Wâ&ö&VBF—&V7FÇ’v–ç7BF†—2Æ–6F–öã¢Tä„äDÄTB$T¤T5D”ôæöâF†P§&ö6W72ÂæBæò&W7öç6RBÆÂF‡&÷Vv‚f—fR×6V6öæBFVFÆ–æRâF†W&R&R¢£##P¦7–æ2†æFÆW'2¢¢†W&RâöFÖ–âöFF&6Vv2v†W&R6öÖV&öG’†VæVBFò&P¦Æöö¶–ærÂæB—G2†VÇF‡’'&æ6‚—26–×Ç’F†RöæRv—F‚Ö÷&R6öFR–â—BFòf–Âà ¢¢¤7FÆÂ—2æ÷B6Æ÷rS¢¢Âv†–6‚—2v‡’F†—2v÷BÖöGVÆR&F†W"F†â§G'’ö6F6‚–âF†R†æFÆW"F†Bv2æ÷F–6VBâF†R7W7FöÖW"6VW27–ææW"Â6òF†W§&WG'’&F†W"F†â&W÷'BâF†R6W'fW&ÆW72gVæ7F–öâ—2&–ÆÆVBVçF–Â—G2÷và§F–ÖV÷WB&F†W"F†âVçF–ÂF†RW'&÷"âæB—BÆæFVBöâF†RvRâ÷væW"÷Vç0§v†VâF†W’Ç&VG’F†–æ²6öÖWF†–ær—2w&öærà ¢¢¤f—†VBB&Vv—7G&F–öââ¢¢Æ–"÷6öæ&Ö7–æ2×&÷WFR×6fWG’æ6§6F6†W0¦ævWB÷÷7B÷WB÷F6‚öFVÆWFR÷W6RöÆÆöæ6RÂ&Vf÷&RF†Rf—'7B&÷WFRW†—7G2Â6ð¦&V¦V7F–öâ&V6öÖW2æW‡B†W'&÷"–²FW&Ö–æÂ†æFÆW"&Vv—7FW&VBÆ7Bç7vW'0£S(	B'&æFVBvRÂ÷"¥4ôâVæFW"ö’ö(	Bv—F‚æòW'&÷"FW‡BæBæò7F6²–à¦—Bâw&W'2¶VWF†V—"&wVÖVçB6÷VçBÂ&V6W6RW‡&W72FV6–FW2v†B—2âW'&÷ ¦†æFÆW"'’6÷VçF–ær&ÖWFW'2ÂæBBÖ&wVÖVçB†æFÆW"w&VB–â£2Ö&wVÖVçBöæR6–ÆVçFÇ’7F÷2&V–æröæRæB7F'G2&V6V—f–ærF†RW'&÷"2&Wà¤W‡&W72&÷WFW'2&RÆVgBVçw&VB6òfW&–g’×&÷WFR×&Vv—7G'–6â7F–ÆÂvÆ°§F†V—"7F6·2â##R†æFÆW'26ææ÷B&R–æF—f–GVÆÇ’&VÖVÖ&W&VBÂæBF†R##gF‚vWG0§w&—GFVâ'’6öÖV&öG’v†òæWfW"&VBF†—2VçG'’à ¢¢¥F†RFW7Bw2f—'7B76W'F–öâ—2F†BF†RFVfV7BW†—7G2â¢¢âVçF6†VBW‡&W72@¦×W7B7FÆÃ²÷F†W'v—6RF†Rf÷W"76–ær66W2gFW"—Bv÷VÆB&Rw&VVâv–ç7@¦g&ÖWv÷&²F†BæWfW"†BF†R&ö&ÆVÒâF†Vã¢vRf÷"'&÷w6W"Â¥4ôâf÷"à¤’6ÆÆW"ÂæòW'&÷"FW‡B÷"7F6²–âV—F†W"Â7–æ6‡&öæ÷W2F‡&÷r6Vv‡BFöòÀ¦æB&W7öç6RÇ&VG’6VçBÆVgBÆöæR(	BSw&—GFVâ÷fW"v÷&²F†B7V66VVFV@¦—2v÷'6RF†âF†R7FÆÂâGvòÖ÷&R&VBF†R&VÂ&÷WFW"7F6³¢WfW'’&Vv—7FW&V@¦†æFÆW"w&VBÂFW&Ö–æÂ†æFÆW"Æ7Bà ¢¢¥F†RöæRF†–ær7F–ÆÂVæ¶æ÷vâ¢¢Â6–BÆ–æÇ’&F†W"F†â6Æ÷6VB÷fW#¢v†BÖFP¦öFÖ–âöFF&6VF‡&÷rv2æWfW"–FVçF–f–VBæBæòÆöævW"&W&öGV6W2(	B&×0¦–ç6–FRF†RgVÆÂ7V—FRÂC×27FæFÆöæRââVæ–FVçF–f–VBF‡&÷r—27F–ÆÂà§Væ–FVçF–f–VBF‡&÷râv†B6†ævVB—2F†B—B6âæòÆöævW"F¶R&WVW7BF÷và§v—F‚—BÂæB–b—B6öÖW2&6²—B'&—fW22Sv—F‚7F6²–âF†RÆör&F†W §F†â26–ÆVæ6Rà ¢¢¤öæR&F6†WBÖ÷fVBâ¢¢6W'fW"æ§6w&WrrÆ–æW2æBF†R6V–Æ–ær–à¦FW7G2÷6W'fW"×7Æ—BçFW7Bæ§6vVçBCcb(i"Cs2Âv—F‚F†R&V6öâw&—GFVâæW‡BFð¦—C¢&WV—&RÂöæR6ÆÂgFW"6öç7BÒW‡&W72‚–ÂæBf÷W"ÖÆ–æRFW&Ö–æÀ¦†æFÆW"ÂÆÂöbv†–6‚×W7B&R–âF†Bf–ÆR&V6W6RF†W’'&6¶WBWfW'’&÷WFP§&Vv—7FW&VB–â—BâWfW'—F†–ærVÇ6RvVçB–çFòF†RÖöGVÆRà ¢222##bÓ‚Ór(	B$v—D‡V"—2F÷vâ"—2æ÷B'F†R&W÷6—F÷'’—2vöæR  ¦W‡FW&æÂ×&W÷6—F÷'’Ö†VÇF†vVçB&VBöâ"3#"v—F‚F†—'G’Öf—fRÆ–æW2ö`¦U%$õ#¢v—D‡V"&WGW&æVBSBf÷"ââæÂæÖ–ær'W7BÖÆær÷'W7FÀ¦6–æG&W6÷&‡W2övW6öÖVæBöÆÆÖööÆÆÖÖöær÷F†W'2âæ÷F†–ærv2w&öærv—F€§F†R&Vv—7FW"âv—D‡V"w2’v2&WGW&æ–ærvFWv’F–ÖV÷WG2ÂæBF†R6†V6¶W §&W÷'FVBF†B2Wf–FVæ6R&÷WBF†R&W÷6—F÷&–W2à ¢¢¥v‡’F†—2öæRÖGFW&VBÖ÷&RF†âF†Ræö—6Râ¢¢F†Rö'f–÷W2&W7öç6RFò&V@¦W‡FW&æÂ×&W÷6—F÷'’Ö†VÇF‚'Vâ—2FòvòæB&VÖ÷fRF†RæÖVBVçG&–W2g&öÐ¦FFö÷Vâ×6÷W&6R×FööÇ2çG6â6†V6²F†B6ææ÷BFVÆÂ§F†—2&W÷6—F÷'’—2vöæR ¦g&öÒ¤v—D‡V"F–Bæ÷Bç7vW"¢FöW2æ÷BÖW&VÇ’f–ÂW6VÆW76Ç’(	B—B&wVW2f÷ ¦FVÆWF–ærV–v‡G’Öf—fR&V6÷&G2F†B&Rf–æRÂ–âF†RöæRÆ6Rv†W&RF†R&wVÖVç@¦Æöö·2WF†÷&—FF—fRà ¢¢¥F‡&VR÷WF6öÖW2æ÷rÂæ÷BGvòâ¢¢6öæf—&ÖVBÖVç2v—D‡V"ç7vW&VBæBF†Rç7vW §v2vööC²W'&÷"ÖVç2v—D‡V"ç7vW&VBæBF†Rç7vW"v2&B(	BCBÂCÀ¦F—6&ÆVBÂæòFVfVÇB'&æ6ƒ²–æFWFW&Ö–æFRÖVç2v—D‡V"F–Bæ÷Bç7vW"(	BW‡‚À§F–ÖV÷WBÂG&ç7÷'Bf–ÇW&RÂ&FRÆ–Ö—BâC#’æBW‡‚&R&WG&–VBGv–6Rv—F€¦&6¶öfbf—'7BÂ&V6W6RvFWv’F–ÖV÷WB—2W7VÆÇ’ÖöÖVçB&F†W"F†â§7FFS²&FRÆ–Ö—B—2æ÷B&WG&–VBÂ6–æ6R'W&æ–ærGFV×G2v–ç7B—BöæÇ¦FVWVç2—BâG&ç7÷'Bf–ÇW&W2vW&RföÆFVB–âFöò(	BâöffÆ–æR'VææW"W6VBFð§&W÷'BWfW'’&Vv—7FW&VB&W÷6—F÷'’2'&ö¶Vâà ¢¢¤æBF†R72†BFò&RF–v‡FVæVBBF†R6ÖRF–ÖRâ¢¢F÷væw&F–ærW‡‚Fò§v&æ–æröâ—G2÷vâv÷VÆB†fRGW&æVBF†—'G’Öf—fRfÇ6RW'&÷'2–çFò6–ÆVç@¦w&VVâÂv†–6‚—2F†—26öFV&6Rw2&V7W'&–ærFVfV7BvV&–ær—G2÷F†W"f6Râ6ò¦ÒÖæWGv÷&¶'VâF†B6öæf—&×2§¦W&ò¢F&vWG2æ÷rf–Ç2ÂæBF†R7VÖÖ'’Æ–æP§&W÷'G2F†R÷VÆF–öâ—B7GVÆÇ’&V6†VB&F†W"F†âF†RöæR—Bv2v—fVâà¥F†BÆ–æRÇ&VG’Æ–VBöâF†R&FRÖÆ–Ö—BF‚Âv†–6‚'&V·2÷WBöbF†RÆö÷ §'Gv’æBF†VâvVçBöâFò6Æ–Ò&WfW'’&Vv—7FW&VB&W÷6—F÷'’7F–ÆÂW†—7G2"à ¢¢¥fW&–f–VBv–ç7B7GV&&VB’&F†W"F†â&V6öæVB&÷WB¢¢Â6–æ6R6†V6°¦&÷WBf–ÇW&R†æFÆ–ærF†B†2öæÇ’&VVâ&VB—26†V6²æö&öG’†2'Vã¢F‡&VP£SG2Ööæræ–æWG’ÖöæRF&vWG2v&âæBW†—BæÖ–ærƒ‚öb“6öæf—&ÖVC²C@¦öâ'W7BÖÆær÷'W7F7F–ÆÂW†—G2²&FRÆ–Ö—BöâF†Rf—'7BF&vWBW†—G2f÷ ¦†f–ærW7F&Æ—6†VBæ÷F†–æs²æBF†RöffÆ–æR&VÆV6RÖ6†–âF‚—2Væ6†ævVBà ¢222##bÓ‚ÓB(	BF†R#BöÆ–7’ÖÆW72F&ÆW2&R6÷'&V7BÂæBæ÷r&÷f&Ç’6ð ¥F†R7W&6Rv÷&²6¶VBf÷"v26V&6‚f÷"v†B—2'&ö¶Vââv†B—Bf÷VæBv0¦&÷W'G’F†B—2&–v‡BæBVæFVfVæFVBÂv†–6‚—2F–ffW&VçB¶–æBöb&ö&ÆVÐ¦æBv÷'6RöæRÂ&V6W6RF†Rf—‚f÷"—BÆöö·2Æ–¶Rf—‚à ¢¢¥F†Rf–æF–ærâ¢¢&÷rÆWfVÂ6V7W&—G’—2Væ&ÆVBöâWfW'’F&ÆR–âF†—266†VÖà£#BöbF†VÒ6''’æòöÆ–7’BÆÂâ6V7W&—G’Gf—6÷"&VG2F†B2vÂæ@§F†Rö'f–÷W2&VÖVG’—2Fòw&—FRöÆ–6–W2â&÷F‚&VF–æw2&Rw&öærâ$Å2Væ&ÆV@§v—F‚¦W&òöÆ–6–W2FVæ–W2WfW'’&÷rFòæöææBFòWF†VçF–6FVF²F†P§6W'f–6R&öÆR'—76W2$Å2VçF—&VÇ’âWfW'’VW'’F†—2&öGV7BÖ¶W2vöW2F‡&÷Vv€¤W‡&W72†öÆF–ærF†R6W'f–6R¶W’Â6òFVç’ÖÆÂ—2æ÷Bv–âF†RvÆÂ(	B—B¦—2 §F†RvÆÂÂæB—B—2F†R7G&öævW7B7FFRf–Æ&ÆRâw&—F–æröÆ–6–W2Fò6F—6g§F†RGf—6÷"v÷VÆB÷Vâ#BF&ÆW2Fòç’6–væVBÖ–âW6W"öbç’÷&væ—¦F–öâÂ–à¦W†6†ævRf÷"æ÷F†–ærÂ&V6W6Ræ÷F†–ær—2&V–ærFVæ–VBF†Bç–&öG’vçFVBà ¢¢¥v‡’—B†VÆBâ¢¢6†V6¶VB&F†W"F†â77VÖVC¢æòf–ÆRVæFW"V&Æ–2ö÷ ¦6¶vW2öæÖW2÷&W7B÷cöÂ¢ç7W&6Ræ6ö†÷7BÂ÷"7&VFT6Æ–VçB†âF†P¦æöâ¶W’V'2öæÇ’–â6W'fW"×6–FRÖöGVÆW2âF†R'&÷w6W"vVçV–æVÇ’†2æò&÷WFP§Fò÷7Fu$U5BÂ6òF†RFVæçB&÷VæF'’—2F†R÷&væ—¦F–öåö–Ff–ÇFW"–âW‡&W70¦æBæ÷F†–ærFWVæG2öâöÆ–7’F†B—6âwBF†W&Rà ¢¢¥v†Bv2Ö—76–ærâ¢¢æ÷F†–ær6†V6¶VBF†R&æò&÷WFRFò÷7Fu$U5B"†ÆbâF†B—0§F†RÆöBÖ&V&–ær77V×F–öâÂ—B—2–çf—6–&ÆRg&öÒF†RFF&6R6–FRÂæBF†P¦f—'7B6Æ–VçB67&—BFòVW'’÷7Fu$U5BF—&V7FÇ’v÷VÆBvWBV×G’&W7VÇG2g&öÒ#@§F&ÆW2æB6VæBv†öWfW"w&÷FR—B7G&–v‡BFòF†RöÆ–7’VF—F÷"âF†RFF&6P¦6ææ÷Bv&â&÷WBF†—3²öæÇ’F†R6Æ–VçBG&VR6âà ¢¢¥v†Bv2FFVBâ¢¢67&—G2ö6Æ–VçB×6V7&WB×66âæ6§6ÂÇ&VG’–à¦fW&–g“¦ÆVæ6†Âæ÷rÇ6òf–Ç2–b'&÷w6W"f–ÆRæÖW2÷7Fu$U5BF‚Â¥7W&6R†÷7BÂ÷"7W&6R6Æ–VçB6öç7G'V7F÷"(	Bv—F‚F†R&V6öæ–ær–âF†P¦f–ÇW&RFW‡BÂ6òF†RW'6öâv†òG&—2—B&VG2v‡’&Vf÷&RFV6–F–ærv†BFòFòà¥F†R66âÇ6òF‡&÷w2öâ¦W&òf–ÆW2&VBÂ6–æ6RvÆ²F†B7F÷VBÖF6†–æp§v÷VÆB÷F†W'v—6R&W÷'B&÷F‚öb—G26†V6·2w&VVâ†f–ær&VBæ÷F†–ærÂv†–6‚—0§F†—26öFV&6Rw2&V7W'&–ærFVfV7BW†7FÇ’à ¢¢¥fW&–f–VBFò&—FRâ¢¢VæF–ærfWF6‚‚&‡GG3¢òóÇ&Vcâç7W&6Ræ6ò÷&W7B÷cö7W7FöÖW'2"– ¦6ÆÂFòV&Æ–2÷6öæ&ÖöæRæ§6f–Ç2F†R66ã²6òFöW2&&R7W&6R†÷7@§7G&–ærv—F‚æòfWF6‚&÷VæB—BâF†R&W7F÷&VBG&VR76W2æBæÖW2F†R6÷VçBö`¦f–ÆW2—B&VBà ¢¢¥7F–ÆÂ÷VâæB÷væW"ÖöæÇ’â¢¢ÆV¶VB×77v÷&B&÷FV7F–öâ—2F6†&ö&BFövvÆP¦–â7W&6RWF‚æBæòFööÂ†W&R6â6WB—BâF†Rf÷W"WF†÷&—¦F–öâgVæ7F–öç0¢†—5öFÖ–æÂ—5ö7W'&VçE÷W6W%öFÖ–æÂ†5÷66÷VÂ†5ö6ö×ç•ö66W76’W†—7@¦–âF†RÆ—fRFF&6RæBæ÷B–âç’Ö–w&F–öã²W‡÷'F–ærF†VÒæVVG2F†R7W&6P¤Ô56öææV7F÷"WF†÷&—¦VBÂv†–6‚—B—2æ÷Bà ¢222##bÓ‚ÓB(	BvFW&Ö&·2×&VÖ÷fW"&Wf–WvVBæB&VgW6V@ ¤FFVBFòF†R&Vv—7FW"öâ&WVW7BÂæB¢¦&Æö6¶VB¢¢âF†RæÖR7VvvW7G2&VÖ÷f–ær§†÷Föw&†W"w2f—6–&ÆRvFW&Ö&²â&VBg&öÒF†R&W÷6—F÷'’Â—BFöW26öÖWF†–æp¦VÇ6S¢—B7G&—2×VÇF’×fVæF÷"¢¤’&÷fVææ6RÖ&·2¢¢(	B3%6öçFVçB7&VFVçF–Ç2À¥7–çF„”BÖ6Æ727FF—7F–6ÂFW‡BvFW&Ö&·2Â–çf—6–&ÆRVæ–6öFRÖ&¶W'2Âæ@¤U„”bõ„ÕÖWFFF(	B7&÷72ärÂ¥TrÂvV%Â5drÂDbÂDô5‚ÂôEBÂ…DÔÂæ@¤Ö&¶F÷vââ—G2÷vâ6¶–ÆÂÖæ–fW7Bv—fW2F†RW'÷6R2¢&çF’ÖFWFV7B6ÆVâ¦÷WGWB"¢ÂæB—B6†—2&VfW&Væ6RFö7VÖVçBöâFVfVF–æröæR7V6–f–2fVæF÷"w0¦Ö&·2à ¢¢¥F†RÆ–6Væ6R—2Ô•BÂæBF†B—2F†Rö–çBöbF†—2VçG'’â¢¢F†W&R—2æòÆ–6Væ6P¦ö'7F6ÆRv†G6öWfW"âF†Rö'7F6ÆR—2÷W'2âtTåE2æÖF6—2Â–â2Öç’v÷&G3 ¢¦Væf÷&6R&÷fVææ6RÂ6öç6VçBÂæBçF’Ö6ÆöæR6fWG’¢â3%æB7–çF„”B¢¦&R¢ §F†R&÷fVææ6RÆ–W"â&öGV7BF†B6VÆÇ2&÷fVææ6RVæf÷&6VÖVçBæBÇ6ò6†—0¦&÷fVææ6R7G&—W"—2æ÷BöffW&–ærGvòfVGW&W2(	B—B—26öçG&F–7F–ær—G6VÆbÀ¦æBF†R6öçG&F–7F–öâvWG2F—66÷fW&VB'’v†–6†WfW"7W7FöÖW"&VÆ–VBöâF†Rf—'7@¦öæRâF†—2—2F†R&Vv—7FW"w2Ö÷7BW6VgVÂ6†S¢&W÷6—F÷'’v—F‚6ÆVâÆ–6Væ6P§F†B7F–ÆÂ6ææ÷B&RW6VBÂf÷"&V6öâF†B†2æ÷F†–ærFòFòv—F‚6÷—&–v‡Bà ¢¢¥F†RÆVv—F–ÖFR6Æ–6RÂ6¶æ÷vÆVFvVB&F†W"F†âfÆGFVæVBâ¢¢F†R&ö¦V7Bg&ÖW0¦—G6VÆb2&—f7’æB‡–v–VæRöâ6öçFVçB–÷R÷vâÂæBöæR'BöbF†B—2&VÃ §7G&—–æru26ö÷&F–æFW2÷WBöb–÷W"÷vâ†÷Föw&‚&Vf÷&RV&Æ—6†–ær—0§&—f7’‡–v–VæR7&VF÷'2vVçV–æVÇ’æVVBâF†B6Æ–6RFöW2æ÷B&WV—&RF†—2â—B—0¦ÖWFFFf–VÆBÂ—B6â&R'V–ÇBv–ç7BF†Rf–ÆW27W7FöÖW"Ç&VG’WÆöG2À¦æB'V–ÆF–ær—B6W&FVÇ’—2v†B¶VW2—Bg&öÒ'&—f–ær'VæFÆVBv—F€§&÷fVææ6R&VÖ÷fÂâF†R&Vv—7FW"VçG'’6—26òÂæBF†R6fWG’&÷VæF'’w&—GFVà¦v–ç7B—B—2F†Bç’gWGW&RU„”b×&—f7’fVGW&R7G&—2Æö6F–öâæBFWf–6P¦f–VÆG2öæÇ’æBÆVfW26öçFVçB7&VFVçF–Ç2–çF7Bà ¢¢¤æ÷B–ç7FÆÆVBç—v†W&Râ¢¢F†R&W÷6—F÷'’6†—2âvVçB×6¶–ÆÂ–ç7FÆÆW ¢†6¶–ÆÇ2÷&VÖ÷fRÖ’ÖÖ&·2öÂ–ç7FÆÂ×6¶–ÆÂç6†’â—Bv2æ÷B–ç7FÆÆVB–çFòF†—0§6W76–öâ÷"–çFòF†R&W÷6—F÷'’w26¶–ÆÇ2ÂæB&–ç7FÆÆ–ærF†B6¶–ÆÂ–çFòç¦vVçBW6VBöâF†—26öFV&6R"—2w&—GFVâ–çFò&Æö6¶VEW6W66òF†R&V6öà¦÷WFÆ—fW2v†öWfW"&VB—Bà ¢222##bÓ‚Ó2(	BWfW'’6öææV7F÷"&V6öæ6–ÆVBv–ç7Bv†BF†RÆ–6F–öâ7GVÆÇ’W6W0 ¤6öææV7F÷"&V–ærf–Æ&ÆR2FööÂ—2æ÷BF†R6ÖR2F†R&öGV7BFWVæF–æp¦öâ—BÂæBF†RGvòvW&RæWfW"w&—GFVâF÷vâFövWF†W"â&V6öæ6–ÆVC  §Â6öææV7F÷"Â7FFRÂv†BF†RÆ–6F–öâFöW2v—F‚—BÀ§ÂÒÒÒÂÒÒÒÂÒÒÒÀ§Â7G&—RÂÆ—fRÂ66÷VçB6÷6Â6†V6¶÷WBæB&–ÆÆ–ærâF‡&VRæWr&–6W27&VFVBFöF’âÀ§Â&W6VæBÂ6öæ&–æGW7G&–W2æ6öÖfW&–f–VBÂ6VæF–ærVæ&ÆVBÂVÖ–ÂFVÆ—fW'’âÀ§ÂfW&6VÂÂFVÒæB&ö¦V7B6öæ&Ö÷6&V6†&ÆRÂ†÷7F–ærâ¢¤æòVçb×f"FööÂW†—7G2¢¢Â6ò6WGF–ærF†RF‡&VR&–6Rf&–&ÆW2—2F†R÷væW"w27FWæB6ææ÷B&RFöæRg&öÒ†W&RâÀ§Âv—D‡V"Âv÷&¶–ærÂ'&æ6‚Â"æB4’f÷"F†—2&W÷6—F÷'’âÀ§ÂVÆWfVäÆ'2ÂWF†VçF–6FVBÂ¢§¦W&òvVçG2¢¢ÂæÖVB–âF†Rfö–6R&÷f–FW"&Vv—7G'’âÀ§Â6Æ÷VF–æ'’ÂWF†VçF–6FVBÂ¢¤g&VRÆâ¢¢ÂcBö&¦V7G2Âãc‚Röb7&VF—G2Â¢¤æ÷F†–ærâ¢¢æò6÷W&6Rf–ÆR&VfW&Væ6W2—BâÀ§Â6Æ÷VFfÆ&RÂWF†VçF–6FVBÂGvòÖVçF–öç2Â&÷F‚&Vv—7FW"VçG&–W2&F†W"F†â6ÆÇ2âÀ§Â&6SCBÂ6çfÂ†W”vVâÂ7W&6RÂ¢¦æVVBWF†÷&—6F–öâ¢¢Âæ÷BW6&ÆRg&öÒF†—26W76–öââÀ ¢¢¥Gvòf–æF–æw2v÷'F‚¶VW–ærâ¢  ¦FW67&—FV&VBFò&R&VfW&Væ6VB–âC26÷W&6Rf–ÆW2â—Bv2ÖF6†–ærF†P§v÷&B&FW67&—F–öâ"â&V6÷&FVB&V6W6Rw&WF†Bç7vW'2VW7F–öâ–÷RF–Bæ÷@¦6²—2†÷r7W'fW’VæG2W6öæf–FVçFÇ’w&öærà ¤6Æ÷VF–æ'’—2öâ¢¤g&VRÆâ¢¢æBF†RÆ–6F–öâFöW2æ÷BW6R—BâF†B—0§F†RvööBfW'6–öâöbF†Rg&VR×F–W"†¦&B–â4ÄTDRæÖB(	Bg&VRF–W"F†@¦æ÷F†–ær6†—2öâ6â6†ævRv—F†÷WB'&V¶–ærç—F†–ærâ—Bv÷VÆB7F÷&V–ærF†P¦vööBfW'6–öâF†RÖöÖVçBfVGW&R&W7FVBöâ—Bà ¢¢¥F†Rfö–6RvFRv26†V6¶VB&F†W"F†â77VÖVBâ¢¢VÆWfVäÆ'2—2fö–6P¦6Æöæ–ær6W'f–6RæBtTåE2æÖB&WV—&W2&÷fVææ6RÂ6öç6VçBæBçF’Ö6ÆöæP§6fWG’Â6òF†RF‚F†B6÷VÆB&V6‚—Bv2&VBVæBFòVæBâWfÇVFUöÆ–7– §&VgW6W2ç’fö–6R6&–Æ—G’v—F†÷WB&–v‡G2GFW7FF–öâÂ6öç6Vç@¦GFW7FF–öâÂæB6öç6VçB&÷rF†BW†—7G2Â—2GFW7FVBÂ—2æ÷B&Wfö¶VBæB†0¦æ÷BW‡—&VB(	B66÷VBFòF†R÷&væ—6F–öâæBF†RW6W"â–Ö—FF–öâÆæwVvR–â§&ö×B&÷WFW2Fò‡VÖâ&Wf–Wr&Vf÷&Rç’öbF†BâæB6öç6VçB&÷rF†B6÷VÆ@¦æ÷B&R§&VB¢&VgW6W2FöòÂ&F†W"F†â&V–ærG&VFVB2W&Ö—76–öâÂv†–6‚—2F†P§6ÖR'VÆRF†—26öFV&6RÆ–W2WfW'—v†W&RVÇ6RæBF†RöæRF†B—2V6–W7BFð¦vWB&6·v&G2à ¢222##bÓ‚Ó2(	BvVçG2'VâöâF†R7W7FöÖW"w266†VGVÆRÂæB7F–ÆÂ6ææ÷B&÷fRF†V×6VÇfW0 ¥VçF–Âæ÷ræ÷F†–ær&÷÷6VBv÷&²öâ66†VGVÆRâvVçG2'VâöâöæRæ÷rÂæBF†P§66†VGVÆR&VÆöæw2FòF†R¢¦7W7FöÖW"¢£¢6–ævÆRÆFf÷&Ò7&öâB3£UD2v÷VÆ@¦†fR&VVâ÷W"66†VGVÆRvV&–ærF†V—"æÖRÂæBGvò'W6–æW76W2vçBF†V—"vVV°§&Wf–WvVBöâF–ffW&VçBF—2à ¦vVçE÷66†VGVÆW6†öÆG26FVæ6RÂÆö6Â†÷W"ÂvVV¶F’÷"F’ÖöbÖÖöçF‚ÂæBF†P¦7W7FöÖW"w2F–ÖR¦öæRâö÷væW"övVçB×66†VGVÆV—2v†W&RF†W’6WB—Bà¦fW&6VÂæ§6öæ6'&–W2â†÷W&Ç’7&öâöçFòö’övVçG2÷66†VGVÆR÷F–6¶Â&V6W6P¥fW&6VÂ'Vç2æò&ö6W72&WGvVVâ&WVW7G2æB66†VGVÆRæVVG26öÖWF†–ærFò¶æö6²à ¢¢¥F†R6fWG’&÷W'G’7W'f—fW2ÂæBv2FW7FVBv–ç7BFVÆ–&W&FRGF6²öà¦—Bâ¢¢66†VGVÆVB'VâvöW2F‡&÷Vv‚F†R6ÖR'VææW"2ç’÷F†W"Â6ð¦FV6–FTW†V7WF–öæ7F–ÆÂ&VgW6W2F†R6WfVâvFVB6FVv÷&–W2v—F†÷WBâ&÷fÂà¥w&—F–ær—77VU÷&VgVæF7G&–v‡B–çFòF†R66†VGVÆW2F&ÆR(	B'—76–ærF†P¦ÆÆ÷vÆ—7BF†Rf÷&ÒVæf÷&6W2(	B&öGV6VB&VgW6VFÂæBF†R7F–öâv2VWVVBf÷ §F†R÷væW"v—F‚6FVv÷'’&VgVæG6&F†W"F†âW†V7WFVBâ¢¤66†VGVÆR6â7F'@§v÷&²â—B6ææ÷B&÷fR—Bâ¢  ¢¢¥F‡&VRF†–æw2F†R&—F†ÖWF–2vWG2&–v‡BÂæBF†W’&RF†RV7’öæW2FòvW@§w&öær–çf—6–&Ç’â¢¢F†R7W7FöÖW"w2Æö6Â†÷W"Âæ÷BF†R6W'fW"w2(	B$ÖöæF’B’ ¦—2F–ffW&VçB–ç7FçB–âV6¶ÆæBæBÆ—6&öââæWfW"Gv–6R–âöæRW&–öBÂ6òà¦†÷W&Ç’F–6²7F–ÆÂ&öGV6W2öæRF–Ç’'VââæBÖ—76VBW&–öB—2æ÷BÖFRW §F‡&VRV–WBF—2&öGV6RöæR'VâÂæ÷BF‡&VRÂ&V6W6R6F6†–ærWGW&ç2â÷WFvP¦–çFò'W'7Böbv÷&²BF†RÖöÖVçB6W'f–6R&WGW&ç2à ¢¢¥66†VGVÆVB'Vç2Fò&VÂv÷&²&F†W"F†â&W÷'F–ærVæ–×ÆVÖVçFVFâ¢ ¦6†V6µöFF÷VÆ—G–v2&Vv—7FW&VBv–ç7BF†RVWVR'VææW"Â'Vææ–ærF†R6ÖP£#"&V6÷&B6†V6·2F†R76—7FçBvR'Vç2â—G2Æ–Ö—B—27FFVB&F†W"F†à§W&VB÷fW#¢—B&WGW&ç26÷VçG2æBw&—FW2æòf–æF–æw2Â&V6W6RâVF—BG&–À¦67V×VÆF–ær6÷–W2öb7W7FöÖW"w2&V6÷&G2v÷VÆB&R6V6öæB7F÷&Rv—F€¦F–ffW&VçB&WFVçF–öââ66†VGVÆVB6†V6²FVÆÇ2â÷væW"§F†B¢6öÖWF†–æræVVG0¦GFVçF–öã²F†RvRFVÆÇ2F†VÒv†Bà ¢¢¥F‡&VRvFW26Vv‡BF†—26†ævRÂv†–6‚—2F†R7—7FVÒv÷&¶–æröâ—G2WF†÷"â¢ ¥F†RFVæçBwV&B&Æö6¶VBF†RF–6²w27&÷72×FVæçB&VBVçF–Â—Bv2FV6Æ&VB–à¦U„TÕEõEDU$å6v—F‚—G2&V6öâ(	Bæ'&÷vVBFòF†RW†7B6†RF†RF–6²—77VW2à¦fW&–g“¦Vçf&VgW6VBF†RæWr6V7&WBVçF–Â—Bv26Æ76–f–VBâæBfW&–g“¦Fö2Ö6÷VçG6 ¦6Vv‡BF†RÖ–w&F–öâ6÷VçBÖ÷f–ærƒ"(i"ƒ2–âGvò÷væW"Fö7VÖVçG2à ¢¢¤öæR6Æ–Ò6÷'&V7FVB&V6W6R—B7F÷VB&V–ærG'VRâ¢¢F†R6öçG&7BvFR&–çFV@¢&WFöæöÖ÷W2W†V7WF–öâ&VÖ–ç2F—6&ÆVB"öâWfW'’&VÆV6RâvVçG2æ÷r'Vâöâ§66†VGVÆRÂ6ò—B6—2v†B—2G'VR–ç7FVC¢66†VGVÆW26â7F'Bv÷&²'WB6ææ÷@¦&÷fR—BÂæBæòvFVB7F–öâW†V7WFW2v—F†÷WBâ&÷fÂ&V6÷&Bà ¢¢¥F†RF‡&VR7G&—R&–6W2W†—7Bâ¢¢7&VFVB–âF†RÆ—fR66÷VçBöâF†R÷væW"w0¦–ç7G'V7F–öâ(	B6öæ&÷v÷&·76UöÖöçF†Ç–C’Â6öæ&öÆÅ÷F‡&VUöÖöçF†Ç–C3’À¦6öæ&÷FVÕöÖöçF†Ç–Cs’Âv—F‚Æöö·W¶W—26òF†W’6â&Rf÷VæBv—F†÷WBF†P§6WGWF&ÆRâ7&VF–ær&–6R6†&vW2æö&öG“²—B—2–æW'BVçF–Â6†V6¶÷W@§6W76–öâæÖW2—BâF†R&VÖ–æ–ær7FW—2F†R÷væW"w3¢6WBF†RF‡&VRf&–&ÆW2–à¥fW&6VÂæB&VFWÆ÷’ÂæBF†R&–6–ærvR7v—F6†W2ÆFFW'2öâ—G2÷vâà ¢222##bÓ‚Ó2(	BF†RFF&6R6öç6öÆR6÷VÆB&W÷'BFF&6Rv—F‚æ÷F†–ær–â—@ ¥7vWBF†R3‚FÖ–âvW2v—F‚F†RFF&6RF÷vââF†—'G’×6WfVâ&W÷'BF†Rf–ÆV@§&VC²F†R÷WFvRF‚v2Ç&VG’6÷VæBWfW'—v†W&Râv†BF†R7vVWf÷VæB–ç7FV@§v2öæRvRF†B6â&W÷'Bâ¢¦–×÷76–&ÆR¢¢f–wW&Rà ¦öFÖ–âöFF&6V7VÖÖ&—6W2F†R6FÆörF‡&÷Vv‚ÆVæwF„öfÂv†–6‚&WGW&æVB ¦f÷"Ö—76–ær¶W’æBf÷"âV×G’Æ—7Bâ6ò6FÆör&W7öç6RF†RvRF–@¦æ÷BW‡V7B(	B&VæÖVB¶W’Â'F–Â&VBÂâ%2ç7vW&–ær#öâ—G2÷và¦–çFW&æÂf–ÇW&R(	B&VæFW&VB2¢£66†VÖ2ÂF&ÆW2ÂgVæ7F–öç2ÂöÆ–6–W2À£Æ–VBÖ–w&F–öç2¢¢â6öææV7FVB÷7Fw&W2†2æWfW"†Bæò66†VÖ2æBæð§F&ÆW2âF†B—"—2æ÷BÆ÷r6÷VçBÂ—B—2â–×÷76–&ÆRöæRÂæB—BV'2öà§F†RvRâ÷væW"÷Vç2v†VâF†W’Ç&VG’7W7V7B6öÖWF†–ær—2w&öærà ¦&V6öæ6–ÆTÖ–w&F–öç6F–BF†R6ÖRF†–æröæRÆ–W"WÂ6öW&6–ærâ'6Vç@¦Æ–VFÆ—7BFòµÖ&Vf÷&RF†R7VÖÖ'’6÷VÆB6VR—BÂ6ò'F†R6FÆör6–@¦æ÷F†–ær&÷WBÖ–w&F–öç2"æB&æòÖ–w&F–öâ†2WfW"&VVâÆ–VB"'&—fVB0§F†R6ÖRfÇVRà ¤&÷F‚F—7F–æwV—6‚'6VçBg&öÒV×G’æ÷s¢Ö—76–ærf–wW&R&VG2Væf–Æ&ÆVÂ¦vVçV–æVÇ’V×G’Æ—7B7F–ÆÂ&VG2ÂæBæò×66†VÖ2ÖæBÖæò×F&ÆW26'&–W26&@§6––ærF†Rf–wW&W2FW67&–&RF†R&W7öç6R&F†W"F†âF†RFF&6Rà ¢¢¤6÷'&V7F–öâFòÖ¶RÆ–æÇ’â¢¢F†Rf—'7BfW'6–öâöbF†—2æ÷FR6–BF†RvP§6†÷vVB¦W&÷2GW&–ærâ÷WFvRâ—BFöW2æ÷B(	Bâ÷WFvRf–Ç2F†R%2æBF†P§vR6÷'&V7FÇ’6—2$FF&6RÖævVÖVçBæVVG26WGW"âv†Bv27GVÆÇ§&W&öGV6VB—2F†Ræ'&÷vW"66Rv†W&RF†R6FÆörç7vW'2æBF†Rç7vW"—2æ÷@§v†BF†RvR77VÖVBâF†Rf—‚—2F†R6ÖS²F†RFW67&—F–öâv2w&öærà ¢¢¤æBâ÷Vâf–æF–ærF†B6ÖR÷WBöb—Bâ¢¢F†R†VÇF‡’Ö6FÆör&VæFW"7FÆÇ0§VæFW"F†RFW7B†&æW72(	Bæ÷B6Æ÷vÇ’ÂBÆÂÂGv–6RF‡&÷Vv‚V–v‡B×6V6öæ@¦FVFÆ–æW2(	Bv†–ÆRF†Rf–Æ–ærÖ6FÆör&VæFW'2–âF†R6ÖR&ö6W72ç7vW"–à¦Ö–ÆÆ—6V6öæG2â÷&FW&–ærÂF†RFÖ–âvFRÂF†R6V7F–öâFVfVÇBæBF†RVçf—&öæÖVç@¦&RÆÂ'VÆVB÷WBâ—B—2æ÷BW‡Æ–æVBÂ6ò—B—2w&—GFVâW–à¦Fö72õ4„•õ$TD”äU52æÖF2â÷Vâf–æF–ærÂæBF†RFW7Bf–ÆR6'&–W2æð¦†VÇF‡’×vR76W'F–öâ&F†W"F†âw&VVâöæRF†B6ææ÷B'Vâà ¢222##bÓ‚Ó2(	BGvòg&VRÔÄÄÒÔ’F—&V7F÷&–W2&Wf–WvVBæB&Vv—7FW&V@ ¤FFVBöâ&WVW7C¢Öæg7BövW6öÖRÖg&VRÖÆÆÒÖ—6æ@¦÷VâÖg&VRÖÆÆÒÖ’övW6öÖRÖg&VVÆÆÒÖ—6â&÷F‚vVçBF‡&÷Vv‚F†R&Vv—7FW"&F†W §F†â–çFòF†R&öGV7BÂv†–6‚—2v†B4ÄTDRæÖF&WV—&W2öbç’W‡FW&æÀ§&W÷6—F÷'’ÂæB&÷F‚Æ–6Væ6W2vW&R¢§&VBg&öÒF†R&W÷6—F÷'’w2÷vâÆ–6Væ6P¦f–ÆR¢¢&F†W"F†â77VÖVC  §Â&W÷6—F÷'’ÂÆ–6Væ6RÂ7FGW2À§ÂÒÒÒÂÒÒÒÂÒÒÒÀ§ÂÖæg7BövW6öÖRÖg&VRÖÆÆÒÖ—6Â43ÓãÂ&VfW&Væ6UööæÇ–À§Â÷VâÖg&VRÖÆÆÒÖ’övW6öÖRÖg&VVÆÆÒÖ—6ÂÔ•BÂ&VfW&Væ6UööæÇ–À ¤æV—F†W"Æ–6Væ6R&W7G&–7G2ç—F†–ærâ¢¥F†B—2F†RV7’†ÆbÂæB—B—2æ÷BF†P¦†ÆbF†BFV6–FW2F†—2â¢¢4ÄTDRæÖF¢¢$6÷7B—26öç7G&–çBöbF†R6ÖRvV–v‡@¦2Æ–6Væ6Râ†÷7FVB6W'f–6Rv—F‚g&VRF–W"—2&–6RÂæ÷BÆ–6Væ6RÂæB§6†—VBfVGW&R&W7F–æröâöæR7F÷2v÷&¶–ærv†VâF†RF–W"6†ævW2(	Bv†–6‚—0§F†RfVæF÷"w2FV6—6–öâÂæ÷BF†—2&ö¦V7Bw2â"¢WfW'’VçG'’–â&÷F‚F—&V7F÷&–W2—0¦W†7FÇ’F†Bâ6òF†W’&RvööB&W6V&6‚f÷"FV6–F–ærv†Bâ÷væW"Ö–v‡@¦6öæf–wW&RÂæBæ÷F†–ær–âF†VÒÖ’&V6öÖR6öÖWF†–ær7W7FöÖW"Öf6–ærfVGW&P¦FWVæG2öâà ¢¢¥GvòF†–æw2&V6÷&FVBF†B&VFW"6†÷VÆBvV–v‚â¢¢F†RÖæg7BÆ—7B—2V&Æ—6†V@¦'’Öæ–fW7Bæ'V–ÆBæBÆ–æ·2Fò—BF‡&÷Vv†÷WB(	B6öÖÖW&6–Â–çFW&W7B–âF†P¦Æ—7B&F†W"F†âFVfV7BÂ'WBv÷'F‚¶æ÷v–ærâæBF†R6V6öæB&W÷6—F÷'’—2F†P¦6öçFVçB7W&f6Röb†÷7FVB6W'f–6S¢g&VVÆÆÒææWFV'2RF–ÖW2–â—G0¥$TDÔRæBF†RFF—2&Vg&W6†VBg&öÒF†B6—FRÂ6ò—B—26æ6†÷Bö`§6öÖV&öG’VÇ6Rw26W'f–6R&F†W"F†âF†R6÷W&6Röb—G2÷vâf7G2à ¢¢¤öæRGFW&â–â—B—2W‡Æ–6—FÇ’&Æö6¶VBâ¢¢—B6†—0¦6öFRÖW†×ÆW2ö6ÆVFRÖ6öFRæÖFÂv†–6‚FVÆÇ2&VFW"Fòö–çB6ÆVFR6öFRB§F†—&B×'G’VæGö–çB'’6WGF–æråD…$õ”5ô$4UõU$ÆæBåD…$õ”5ôUD…õDô´Tæà¥F†B—2FWfVÆ÷W"w2÷vâ6†ö–6RöâF†V—"÷vâÖ6†–æS²—B—2æ÷BGFW&âf÷ §F†—2&W÷6—F÷'’Â&V6W6R&VF—&V7F–ærâ76—7FçB6VæG2v†FWfW"—2–âF†P§&ö×BFòF†B&÷f–FW"â—B—2–â&Æö6¶VEW6W66òF†R&V6öâ7W'f—fW2F†P§W'6öâv†òf÷VæB—Bà ¤&÷F‚&RÆ6VBVæFW"&W6V&6‚Æ"æB’v÷fW&ææ6R(	B&VF–ærF†VÒ—2&W6V&6‚À¦æBF†R6öæ6ÇW6–öâ&V6÷&FVBv–ç7BF†VÒ—2v÷fW&ææ6RâF†R&Vv—7FW"—2Bƒ@§&V6÷&G2ÂæBF†R–çFVw&F–öâÖ&VvVæW&FVBFòÖF6‚à ¢222##bÓ‚Ó2(	BF†RFFW‡÷'BÆVgB÷WB#öbF†RS&V6÷&BG—W0 ¦öÆVvÂ÷FW&×66—3¢¢%v†B–÷RWB–â7F—2–÷W'2â–÷R6âW‡÷'B—BBç§F–ÖRg&öÒ–÷W"FFvRâ"¢F†RW‡÷'B6÷fW&VB¢£3¢¢F&ÆW2âF†R&öGV7B¶VW0¢¢£S¢¢à ¤Ö—76–æs¢¢¦WfW'’w&÷wF‚7GVF–ò&V6÷&B¢¢(	BÆVG2Â6×–vç2ÂVF–Væ6Rw&÷W2À¦6öçF7B†—7F÷'’Â6öçfW'6–öç2ÂWFöÖF–öç2(	BæB¢¦WfW'’Æ–æR—FVÒ–ç6–FR§&V6÷&B¢¢Â–æ6ÇVF–ærv†B—2öââ–çfö–6RæBv†B†2&VVâ–Bv–ç7B—Bà ¥F†R6†'W7BöbF†÷6Rv2w&÷wF…ö6öçF7Eö6öç6VçG6ÂF†R&V6÷&B&÷f–ær6öÖV&öG¦w&VVBFò&R6öçF7FVBâ'W6–æW72F†BÆVfW2v—F†÷WB—BÆ÷6W2F†R&6—2öà§v†–6‚—B6öçF7G2—G2÷vâ7W7FöÖW'2ÂæBF†RW‡÷'BvfRæò6–vâç—F†–ærv0¦'6VçBà ¥F†R6W6Rv2÷&F–æ'’æB—2F†R&V6öâF†—2¶VW2†Væ–æs¢U…õ%D$ÄVv0¦76VÖ&ÆVB'’†æBg&öÒGvòöbF†RF‡&VRvR6öÆÆV7F–öç2ÂæBæ÷F†–ær6ö×&V@¦—Bv–ç7BF†RF†—&B÷"v–ç7BF†R6†–ÆG&Vââ—B—2FW&—fVBg&öÒÆÂöbF†VÐ¦æ÷rÂ6ò&V6÷&BG—RF†B6†—2v—F‚vR—2–âF†RW‡÷'BF†RF’—B6†—2à¦u$õuD…õD$ÄU6Ö÷fVBFòÆ–"öf÷"—B(	BF†RÖÆ—fVB–ç6–FRF†Rw&÷wF‚&÷WFW0§v†W&RF†RW‡÷'B6÷VÆBæ÷B&V6‚—BÂv†–6‚—2†÷rF†Rv÷VæVBà ¢¢¤âVç&VF&ÆRF&ÆR—2çVÆÆÂæ÷BµÖâ¢¢F†Rf–ÆRÇ&VG’æÖVBVç&VF&ÆP§F&ÆW2VæFW"Vç&VF&ÆVæB6WB6ö×ÆWFS¢fÇ6VÂæBF†Vâw&÷FRµÖ–çFð¦&V6÷&G6f÷"F†VÒ(	B6ò6öç7VÖW"&VF–ær&V6÷&G2æw&÷wF…ö6öçF7Eö6öç6VçG6 §&VB—B2F†R6öç6VçG2âF†B—2F†R&f–VÆB6ÆÆVBö²—2&VB2ö²"Ö—7F¶P¦öæRÆWfVÂF÷vâÂæBf÷"6öç6VçB&V6÷&BF†RF–ffW&Væ6R&WGvVVâµÖæBçVÆÆ ¦—2F†RF–ffW&Væ6R&WGvVVâ†f–ærW&Ö—76–öâæBæ÷Bà ¢¢¥fW&–f–VBâ¢¢ƒrFW7G276–ærÂ6†–âw&VVââF†RW‡÷'Bv2F÷væÆöFVBF‡&÷Vv€¤W‡&W72v—F‚GvòF&ÆW2f–Æ–æs¢S&V6÷&BG—W2&W6VçBÂF†RGvòæÖVBÂ&÷F€¦çVÆÆÂF†R&W7B6''––ær&÷w2â&WfW'F–ærFòF†RGvòÖ6öÆÆV7F–öâÆ—7Bf–Ç2F†P¦æWr6†V6²ÂæB6òFöW2WGF–ærµÖ&6²à ¢¢¤Ç6ò6†V6¶VBæB6÷VæBÂ&V6÷&FVB6ò—B—2æ÷B&R×7vWBâ¢¢F†R7Ffb÷'FÀ§&W÷'G2f–ÆVBW'6öæÂ&VBöâÆÂ6—‚vW2&F†W"F†â6†÷v–ærâV×G§66†VGVÆRÂæB÷7Fff—G6VÆb7FFW2æò6÷VçB—B6÷VÆBæ÷B7W÷'Bà ¢222##bÓ‚Ó2(	BV–v‡B7FÆRf–wW&W2–âF†RFö7VÖVçG2F†R÷væW"&VG0 ¦fW&–g“¦Fö2Ö6÷VçG6W†—7G2&V6W6Rf–wW&RG—VB–çFò&÷6R†2æ÷F†–æp§vF6†–ær—Bâ—B6†—VB6÷fW&–ærGvò6Æ–Ò6†W2(	BF†RÆVæwF‚öbF†R&VÆV6P¦6†–âÂæB&r$â76–ær"(	BæB¢¦V–v‡BÆ—fRf–wW&W2G&–gFVBVæFW&æVF‚—@¦ç—v’¢¢ÂÆÂöbF†VÒ–âF†RGvòFö7VÖVçG2â÷væW"&VG2FòFV6–FRv†WF†W"Fð¦ÆVæ6ƒ  §ÂFö7VÖVçBÂ6–BÂ—2À§ÂÒÒÒÂÒÒÒÂÒÒÒÀ§Â÷væW"õt„BÔ•2ÔÄTeBæÖFÂcb&Wf–WvVB&W÷6—F÷&–W2Âƒ"À§Â÷væW"õt„BÔ•2ÔÄTeBæÖFÂ3"F&ÆW27&VFVBÂ32À§Â÷væW"õt„BÔ•2ÔÄTeBæÖFÂ#’÷&væ—¦F–öâ×66÷VBÂ#À§Â4„•õ$TD”äU52æÖFÂsrÖ–w&F–öç2Âƒ"À§Â4„•õ$TD”äU52æÖFÂC“röÆ–6–W2ÂSRÀ§Â4„•õ$TD”äU52æÖFÂ“röÆ–6–W2òS’F&ÆW2Â#"òcBÀ§Â÷væW"ôõtäU"Õ5DU2æÖFÂ“röÆ–6–W2òS’F&ÆW2Â#"òcBÀ ¤WfW'’öæRv2&–v‡Bv†Vâw&—GFVââF†B—2F†Rv†öÆRö–çBÂæB—B—2v‡’FF–æp¦6†V6²f÷"öæR6†Röbf–wW&RFöW2æ÷BvF6‚F†R÷F†W'2à ¢¢¥F†RvFRæ÷rFW&—fW2f÷W"Ö÷&Râ¢¢&W÷6—F÷&–W2öâF†R÷Vâ×6÷W&6R&Vv—7FW"À¦Ö–w&F–öâf–ÆW2ÂF&ÆW27&VFVB'’F†RÖ–w&F–öç2ÂæB†÷rÖç’öbF†÷6R&P¦÷&væ—¦F–öâ×66÷VB(	BV6‚&VBg&öÒF†R&W÷6—F÷'’ÂV6‚æ6†÷&VBöâF†Ræ÷Và§‡&6RF†RFö7VÖVçG27GVÆÇ’W6R6ò6VçFVæ6R&÷WB6öÖV&öG’VÇ6Rw0§&W÷6—F÷&–W2—2æ÷BÖ—7&VB26Æ–Ò&÷WB÷W'2â6—‚6÷VçF&ÆR6Æ–×2&P¦6†V6¶VBv†W&RF†W&RvW&RGvòÂæBWfW'’öæRöbF†Rf÷W"v26öæf—&ÖVBFòf–Âöà§F†Rf–wW&R—B†B&VVâ6''––ærà ¢¢¥v†Bv2FVÆ–&W&FVÇ’æ÷BWFöÖFVBâ¢¢$†÷rÖç’Æ–6Væ6W2&V6‚†÷7FV@§&öGV7B"—2§VFvVÖVçB&V6÷&FVBB&Wf–WrF–ÖRÂæ÷B6öÖWF†–ær&RÖFW&—f&ÆRg&öÐ§F†R&Vv—7FW"Â6ò—B7F—2‡VÖâw2Fò¶VW(	BF†R6†V6²6÷VçG2F†Ræ–æP§&V6—&ö6ÂÆ–6Væ6W2æBÆVfW2F†R&VF–ærFòW'6öâà ¢¢¤öæRçVÖ&W"v2ÆVgBw&öæröâW'÷6Râ¢¢4„•õ$TD”äU52æÖF&V6÷VçG2'Vp§v†W&R'&ö¶Vâ'6W"'6r“öÆ–6–W2–ç7FVBöbC“r"â6÷'&V7F–ærC“rFòSP§v÷VÆBfÇ6–g’F†R†—7F÷'’(	BC“rv2G'VRF†BF’â—Bæ÷r6—2'v†W&RF†W&RvW&P§F†VâC“r"æBö–çG2BF†RÆ—fRf–wW&R&÷fR—BÂF†R6ÖR&–æ6—ÆRF†B¶VW0§F†—2ÆöræBF†RFFVBVF—G2÷WBöbF†R6†V6²VçF—&VÇ’âFö72öVF—G2ö—2æ÷p¦W†6ÇVFVB'’F‚Â&V6W6RF†÷6R6''’F†V—"FFR–âF†Rf–ÆVæÖR&F†W"F†â–à¦FFS¦Æ–æRF†RW†—7F–ærÖ&¶W"6÷VÆB6VRà ¢222##bÓ‚Ó2(	BâÆ–VBÖ–w&F–öâ6÷VÆB&RVF—FVBæBæ÷F†–ærv÷VÆBæ÷F–6P ¦67&—G2övVæW&FRÖÖVÖ&W"×&VB×öÆ–6–W2æ6§66'&–W2F†—2v&æ–ærÂ–â—G2÷và§v÷&G3¢¢$öæ6RÖ–w&F–öâ†2&VVâÆ–VB–â&öGV7F–öâ—B—2&V6÷&FVB2FöæP¦æBæWfW"&VBv–âÂ6òVF—F–ær—B6†ævW2F†R&WòæBæ÷F†–ærVÇ6R(	@§6–ÆVçFÇ’âWfW'’6†V6²–âF†—2&W÷6—F÷'’&VG2F†Rf–ÆRÂ6òF†W’v÷VÆBÆÂ70§v†–ÆR&öGV7F–öâ6Bv—F†÷WBF†RöÆ–6–W2â"¢—B&VgW6W2Fò¢§w&—FR¢¢âÆ–V@¦Ö–w&F–öâÂ&V6W6RF†R6öÖÖVçBÆöæR†Bæ÷B7F÷VBF†RÖ—7F¶R†Væ–æröæ6Rà ¤æ÷F†–ær7F÷VB†æBVF—BâFVÆWF–ærÆÂ¢£32¢¢7&VFRöÆ–7–7FFVÖVçG2g&öÐ¦##cs#ƒ#öÖVÖ&W%÷&VE÷öÆ–6–W2ç7Æ(	BâÆ–VBÖ–w&F–öâ(	BÆVg@¦çÒ'VâfW&–g“¦ÆVæ6†¢¦6ö×ÆWFVÇ’w&VVâ¢¢ÂÆÂGvVçG’×Gvò6öÖÖæG2âF†R&Wð¦æB&öGV7F–öâv÷VÆB†fRF—fW&vVBv—F‚æò6–væÂç—v†W&Rà ¦67&—G2÷fW&–g’ÖÆ–VBÖÖ–w&F–öç2æÖ§6–ç2F†R6öçFVçBöbWfW'’Ö–w&F–öâF†P§&W÷6—F÷'’FV6Æ&W2Æ–VBÂæB7W&6RöÆ–VBÖÖ–w&F–öâÖ6†V6·7V×2æ§6öæ ¦†öÆG2F†R†6†W2âVF—F–æröæRf–Ç2F†R'V–ÆBæBæÖW2F†RöæÇ’6÷'&V7Bf—ƒ §WBF†R6†ævR–âæWrÖ–w&F–öââFVÆWF–æröæRf–Ç2Föò(	BÖ–w&F–öâF†B†0§'Vâ6ææ÷B&RVâ×'Vâ'’&VÖ÷f–ærF†Rf–ÆRà ¢¢¥F†Rf—'7BfW'6–öâÆVgBF†R6ÖR†öÆRöæRf–ÆR÷fW"ÂæBv2v–FVæVB&Vf÷&R—@§6†—VBâ¢¢—B–ææVBöæÇ’F†RF‡&VRæÖW2–âÄ”TEôÔ”u$D”ôå6Â†æBÖ¶W@¦Æ—7BæÖ–ærF†RÖVÖ&W"×öÆ–7’Ö–w&F–öç2â'W@¦##cs#ƒ3÷7–æ5÷V&Æ—6†VEö6FÆöuöæÖW2ç7Æ—2vVæW&FVBÖ–w&F–öâ—G0¦vVæW&F÷"†2¦Ö÷fVB7B¢(	B—Bv–ÆÂæWfW"&R&Ww&—GFVâÂ6ò—B6âöæÇ’6†ævP¦'’†æBÂæB†æBVF—B6ææ÷B&V6‚&öGV7F–öââ—Bv2æ÷BöâF†RÆ—7Bà ¥6òF†R'VÆR—2–çfW'FVBâÖ–w&F–öâ—2¢§w&—F&ÆR¢¢öæÇ’v†–ÆRvVæW&F÷ §7F–ÆÂ÷vç2—BÂæBWfW'’vVæW&F÷"æÖW2—G27W'&VçB÷WGWB(	B6òF†R6WB—0¦FW&—fVB&F†W"F†â&VÖVÖ&W&VBâWfW'—F†–ærVÇ6R—2g&÷¦VâF†RÖöÖVçB—B—0§–ææVC¢¢£ƒÖ–w&F–öç2Âæ÷BF‡&VRâ¢¢&V–æröâÖ–æ—2FVÆ–&W&FVÇ’æ÷BW6V@¦2F†RFW7C²F†RÆ–6F–öâFWÆ÷—2öâÖW&vRæB7W&6RF"W6†—2§6W&FR7FWÂ6ò–æfW'&–ær—Bg&öÒv—B†—7F÷'’v÷VÆB&Rw&öær–â&÷F€¦F—&V7F–öç2à ¢¢¥&R×–ææ–ær'’†&—B—2&VgW6VBâ¢¢Ò×w&—FVFG2†6‚f÷"f–ÆRF†B†0¦æöæRæBv–ÆÂæ÷B6†ævRöæRf÷"g&÷¦VâÖ–w&F–öââv—F†÷WBF†BF†—2v÷VÆB&P¦6†V6·7VÒç–&öG’6÷VÆB&Ww&—FRÂv†–6‚—26†V6²F†B&W÷'G27V66W72f÷ §v†FWfW"—Bv2Æ7B6†÷vâ(	BæBæÖ–ærF†B&—6²–â6öÖÖVçBv†–ÆRÆVf–ær—@¦÷Vâ—2F†R6†RöbF†RFVfV7BÂæ÷BwV&Bv–ç7B—Bà ¢¢¥F†RV×G’ÖÆ—7B66R—2f–ÇW&RÂæ÷B72â¢¢âV×G’Ä”TEôÔ”u$D”ôå6 §v÷VÆBÖ¶RWfW'’76W'F–öâf7V÷W6Ç’G'VRæB&W÷'B7V66W72†f–ær–ææV@¦æ÷F†–ærÂ6ò—BW†—G2æöâ×¦W&ò–ç7FVBà ¢¢¥fW&–f–VBâ¢¢ƒ"FW7G276–ærÂ6†–âæ÷rGvVçG’×F‡&VR6öÖÖæG2âF†RFW7@§&VÖ÷fW2WfW'’öÆ–7’g&öÒg&÷¦VâÖ–w&F–öâæB&WV—&W2F†R6†V6¶W"Fòf–Ã°¦†æBÖVF—G2F†R7WW'6VFVBvVæW&FVBöæRF†Ræ'&÷rfW'6–öâÖ—76VBæB&WV—&W0¦&÷F‚F†R6†V6²¦æB¢F†R&VvVæW&FRFòf–Ã²æBFVÆWFW2f–ÆRæB&WV—&W2¦f–ÇW&Rv–ââ6†V6·7VÒf–ÆRæ÷F†–ær6ö×&W2Æöö·2W†7FÇ’Æ–¶RöæRF†B—0¦6ö×&VBà ¢222##bÓ‚Ó2(	BF‡&VRw&÷wF‚7GVF–òf÷&×2F†B6÷VÆBæWfW"6fP ¤f–ÆÂ–âV6‚w&÷wF‚7GVF–ò7&VFRf÷&ÒæB&W72F†R'WGFöââ¢¥F‡&VRöbV–v‡@¦6ÖR&6²C¢¢ÂæBÆÂF‡&VRf–ÆVBF†R6ÖRv“¢F†R†æFÆW"&WV—&V@§6öÖWF†–æræòf÷&Ò†Bf–VÆBf÷"Â6òF†R&VgW6ÂæÖVBf–VÆBF†R7W7FöÖW ¦6÷VÆBæ÷B6VRà ¢Ò¢¥6VvÖVçG2¢¢vçFVB6VvÖVçEöFVf–æ—F–öæÂâö&¦V7BâF†Rf÷&Ò6öÆÆV7G2æÖRÀ¢FW67&—F–öâæB7FGW2âWfW'’7V&Ö—76–öâf–ÆVBÂ6òF†RöæÇ’v’Fò7&VFP¢6VvÖVçBv2Fò†æBÖ7&gBâ…EE&WVW7B(	Bv†–6‚—2W†7FÇ’v†@¢Æ–"÷6öæ&Öw&÷wF‚Ö7&VFR×7V72æ6§6v2w&—GFVâFò7F÷à¢Ò¢¤W‡W&–ÖVçG2¢¢vçFVBGvòf&–çG2v†÷6RvV–v‡G27VÒFòöæRâF†Rf÷&ÒöffW&V@¢æòf&–çG2BÆÂà¢Ò¢¤6öç6VçG2¢¢fÆ–FFVB6†ææVÆv–ç7B6Æ÷6VBÆ—7BâF†Rf÷&Ò&VæFW&VB—B0¢g&VRFW‡BÆ&VÆÆVB&VÖ–ÂÂ6×2Â÷7BÂ†öæR"ÂæB¢¢'÷7B"†2æWfW"&VVâöà¢F†BÆ—7B¢¢(	B7W7FöÖW"v†òFöö²F†RÆ&VÂB—G2v÷&Bv÷@¢6öç6VçEöf–VÆG5÷&WV—&VFæÖ–æræòf–VÆBà ¥F†—2—2F†R—FVÕöæÖVFVfV7Bv–âÂæBF†R&V6öâ—B7W'f—fVB—2F†R6ÖS §F†RW†—7F–ærFW7G2÷7B&öG’76VÖ&ÆVB'’†æBÂæB&öG’–÷R76VÖ&ÆP§–÷W'6VÆb6ææ÷B&RÖ—76–ærf–VÆBà ¢¢¥F†Rf—†W2&Ræ÷B7–ÖÖWG&–6ÂÂ&V6W6RF†RF‡&VR6W6W2&Ræ÷Bâ¢  ¥6VvÖVçG3¢F†R†æFÆW"æ÷r'V–ÆG2F†RFVf–æ—F–öâg&öÒF†Rv÷&G2F†Rf÷&ÒÇ&VG¦6öÆÆV7G2Â7F÷&VB2²FW67&–&VEö3¢(
+bÖâ¢¤æ÷B¢¢¥4ôâ'VÆR&÷‚(	Bæ÷F†–ær–à§F†—2&öGV7B&VG26VvÖVçEöFVf–æ—F–öæ&6²Fòv÷&²÷WBv†ò—2–â6VvÖVçBÂ6ð¦'VÆR'V–ÆFW"v÷VÆBÆöö²Æ–¶Rf–ÇFW"F†R&öGV7BÆ–W2æBv÷VÆBæ÷B&P¦öæRâF†R6W&FR¶W’¶VW2F†B†öæW7Bf÷"v†öWfW"w&—FW2F†RWfÇVF÷"à ¤W‡W&–ÖVçG3¢GvòæÖVB6–FW2Â7Æ—BWfVæÇ’âF†R7Æ—B—2æ÷Bf–VÆBÂ&V6W6R§vV–v‡B7W7FöÖW"†2FòvWB&–v‡B—2vV–v‡BF†B7F÷2F†R6fRà ¤6öç6VçG3¢öæRÆ—7BÂW‡÷'FVBg&öÒF†R7V72ÖöGVÆRæB–×÷'FVB'’F†R†æFÆW"à¥Gvò6÷–W2öb'VÆR—2F†R6†RWfW'’G&–gB–âF†—26öFV&6R†2F¶Vâà ¢¢¥F†R6†V6²F†Bv2Ö—76–ærâ¢ ¦FW7G2öWfW'’Öw&÷wF‚Öf÷&ÒÖ6âÖ7GVÆÇ’×6fRçFW7Bæ§6'V–ÆG2—G2&öF–W2¢¦÷WBö`§F†R&VæFW&VB…DÔÂ¢¢(	BWfW'’–çWB'’æÖRÂWfW'’6VÆV7Bw2f—'7B&VÂ÷F–öâÀ¦WfW'’FW‡F&V(	BæB&WV—&W2w&—FRâ—BÇ6ò&VgW6W27V&Ö—76–öâF†BÆöw0¦âVF—BWfVçBæB6fW2æò&V6÷&BÂv†–6‚v÷VÆB÷F†W'v—6R6F—6g’'6öÖWF†–ærv0§w&—GFVâ"âFVÆWF–ærF†Rf&–çBf–VÆG2v–âf–Ç2—BÂæÖ–ærF†RVæGö–çBæ@§F†R&öG’—G2÷vâf÷&Ò&öGV6W2à ¢¢¥F‡&VRf–æF–æw2F†BvW&Ræ÷BFVfV7G2Â&V6÷&FVB6òF†W’&Ræ÷B&RÖ–çfW7F–vFVBâ¢ ¦6öç6VçEö&6—5öGFW7FVFÂ&–Ö'•öÖWG&–6æB76–væÖVçE÷Væ—F&Rf÷&Òf–VÆG0§v—F‚æòÖF6†–ær6öÇVÖâÂæBÆÂF‡&VR&RFVÆ–&W&FS¢F†R†æFÆW'2&÷WFRF†VÐ¦–çFò&÷f–FW%÷&W7öç6VæBÖWFFF§6öæ"W‡Æ–6—FÇ’â7vVWF†B77VÖW0¦WfW'’f÷&Òf–VÆB—26öÇVÖâ&W÷'G2F†W6RÂæBF†W’&R6÷'&V7B2F†W’&Rà ¢¢¥fW&–f–VBâ¢¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâÂs“RFW7G276–ærâÆÂV–v‡@¤w&÷wF‚7GVF–òf÷&×2æ÷r6fRv†BF†W’6öÆÆV7C²F†RW‡W&–ÖVçG2f÷&Òw&—FW2F†P¦W‡W&–ÖVçBÇW2Gvòf&–çB&÷w2BãRV6‚à ¢222##bÓ‚Ó2(	Bâ&÷fVBvVçB7F–öâ7GVÆÇ’'Vç0 ¦ö÷væW"övVçBÖ7F—f—G–6'&–VB6&B6––ær&÷f–ærv2æ÷Bv—&VBWÂæB—@§v2&–v‡C¢&÷f–ær†2FòFòGvòF†–æw2Â&V6÷&BF†RFV6—6–öâæB&R×'VâF†P¦7F–öâÂæBæ÷F†–ær&R×&âç—F†–ærâF†R'VææW"—26ÆÆVBW"&WVW7B'’F†P§vRvçF–ærv÷&²FöæRÂ6òâ&÷fÂ†Bæ÷v†W&RFòÆ—fRæBæ÷F†–ærFð¦6öç7VÖR—Bâ'WGFöâF†Bw&÷FR&÷fVFæB6†ævVBæ÷F†–ærVÇ6Rv÷VÆB†fP§FöÆBâ÷væW"F†V—"&VgVæBv2WF†÷&—6VBv†–ÆRæò&VgVæBW†—7FVBà ¢¢¥F†RVWVR—2—G2÷vâF&ÆRÂæBF†R&V6öâ—2öæR6öÇVÖââ¢ ¦vVçEö7F–öåöÆöw6FVÆ–&W&FVÇ’7F÷&W2æò–ÆöB(	BâVF—BG&–Â×W7Bæ÷@¦&V6öÖR6V6öæB6÷’öbF†RFFv—F‚F–ffW&VçB&WFVçF–öâ(	B6ò&VgW6VB&VgVæ@¦–â—B&V6÷&G2F†B&VgVæBv2&÷÷6VBæBæ÷Bv†–6‚öæRÂf÷"†÷r×V6‚à¥&R×'Vææ–æræVVG2F†R7F–öâw2–çWG2âF†Ræ–æWFVVâVçF—G•ò¦F&ÆW2g&öÐ¦Ö–w&F–öâ‚†fRF†R&–v‡B6†RæB¶W’öâVçF—G•ö–FÂv†–6‚†2æð¦÷&væ—6F–öââ6òvVçE÷VæF–æuö7F–öç6¢÷&væ—6F–öâ×66÷VBÂ†öÆF–ærF†P¦7F–öâÂ—G2–çWG2ÂæBF†R÷væW"w2FV6—6–öâà ¢¢¤&÷f–ær6·2F†RvFRv–ââ¢¢Æ–"÷6öæ&ÖvVçB×VWVRæ6§6'V–ÆG2F†P¦&÷fÂæB6ÆÇ2F†R6ÖR'VææW"F†B&VgW6VB—BÂv—F‚F†R6Æ76–f–6F–öà§&RÖFW&—fVBg&öÒF†R7F–öâG—R&F†W"F†â&VBöfbF†R&÷r(	B7F÷&V@¦6Æ76–f–6F–öâ—26öÇVÖâF†R7V&¦V7B6âw&—FRÂv†–6‚—2v‡¦FV6–FTW†V7WF–öæÇ&VG’&VgW6W2FòG'W7B&WV—&W5ö&÷fÆà ¢¢¤&÷f–ær—2æ÷B'Vææ–ærÂæBF†RvR6—2v†–6‚†VæVBâ¢¢&÷f–ærà¦7F–öâæ÷F†–ær–×ÆVÖVçG2w&—FW2Væ–×ÆVÖVçFVFæBF†R&÷r&VG2%–÷R&÷fV@§F†—2âæ÷F†–ær–âF†R&öGV7BW&f÷&×2—B–WBÂ6òæ÷F†–ær†2†VæVBæ@¦æ÷F†–ærv26†ævVBâ"F†B—2F†Rv†öÆRö–çC¢F†Rf–ÇW&R&V–ærfö–FVB—2§67&VVâ&W÷'F–ær¦ö"2FöæRv†Vâ—Bv2æ÷Bà ¢¢¤öæR†æFÆW"ÂFVÆ–&W&FVÇ’â¢¢&÷fU÷66†VGVÆVEö6öçFVçF6WG2öæP¦w&÷wF…ö6öçFVçE÷VWVV&÷rFò&÷fVBÂ66÷VB'’÷&væ—¦F–öåö–F–âF†P¦f–ÇFW"æBæ÷BöæÇ’'’–B(	BF†R6W'f–6R¶W’'—76W2&÷rÆWfVÂ6V7W&—G’Â6òF†@¦f–ÇFW"—2F†RFVæçB&÷VæF'’â÷7Fu$U5Bç7vW'2#v—F‚âV×G’'&’v†Vâ¦f–ÇFW"ÖF6†W2æ÷F†–ærÂv†–6‚—2v†Bæ÷F†W"÷&væ—6F–öâw2–BÆöö·2Æ–¶RÂ6ð¦âV×G’&W7VÇB—2f–ÇW&R†W&R&F†W"F†â7V66W72â&Vv—7FW&–ær†æFÆW ¦—2†÷r6&–Æ—G’&V6öÖW2&VÂÂ6òF†RÆ—7Bw&÷w2öæR&Wf–WvVBÆ–æRBF–ÖP§&F†W"F†âF‡&÷Vv‚vVæW&–2W†V7WF÷"F†B'Vç2v†FWfW"—B—2†æFVBà ¢¢¥Gvò6Æ–6·2'VâF†R7F–öâöæ6Râ¢¢'Vææ–æv—26Æ–Ó¢&÷f–ærÖ÷fW2F†P§&÷r÷WBöbv—F–ævv—F‚6öæF—F–öæÂWFFR&Vf÷&RF†R7F–öâ'Vç2Â6òF†P§6V6öæB6Æ–6²f–æG2æ÷F†–ærFòF¶Râ—B—27FFR&F†W"F†âÆö6²&V6W6R§'VâF†BF–W2'Bv’†2Fò&Rf—6–&ÆR2'7F'FVBæBF–Bæ÷Bf–æ—6‚"à ¢¢¥GvòF†–æw2f÷VæBv†–ÆRv—&–ær—Bâ¢¢&WV—&T7W7FöÖW&æ@¦&WV—&T'W6–æW74ÖævW&†ærF†R6–væVBÖ–âW6W"öfbF–ffW&VçB&÷W'F–W2Â6ð§&VF–æröæÇ’F†RvRw2öæRÖFRWfW'’VWVRVæGö–çBç7vW"6WGW÷&WV—&VF(	@¦S2F†BÆöö·2Æ–¶RâVæ6öæf–wW&VBFF&6RæB—2Ö—76–ær&÷W'G’æÖRà¤æBF†RvR&WGW&æVBV&Ç’öââV×G’ÆörÂv†–6‚v2&–v‡Bv†–ÆR—BöæÇ’&V@¦ÆöræBw&öæröæ6R—Bv2Ç6òv†W&Râ÷væW"FV6–FW2æB†æG2âvVçB¦¦ö#¢F†RöæR67&VVâv—F‚6öÖWF†–ærFò&W72†Bæ÷F†–æröâ—BBW†7FÇ’F†P¦ÖöÖVçBâ÷væW"†BæWfW"W6VBâvVçBâF†RV×G’Æör—26&Bæ÷rà ¢¢¥fW&–f–VBâ¢¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâÂsƒ’FW7G276–ærâF†RÆö÷v0¦G&—fVâF‡&÷Vv‚W‡&W73¢&÷÷6RÂVWVRÂ&÷fRÂæBF†Rw&÷wF…ö6öçFVçE÷VWVV §&÷r7GVÆÇ’6†æv–ærFò&÷fVBâ&÷F‚¶W’76W'F–öç2vW&R6öæf—&ÖVBFò&—FR(	@§&WÆ6–ærF†R&R×'Vâv—F‚&&R7FFRw&—FRf–Ç2v—F‚'F†R÷væW"&÷fVBæ@§F†R&V6÷&BF–Bæ÷B6†ævR"ÂæB&VÖ÷f–ærF†R7FFSÖWçv—F–æv6Æ–Òf–Ç2F†P§'VâÖöæ6R6†V6²à ¢¢¥7F–ÆÂG'VRÂæBv÷'F‚¶VW–ærG'VS¢¢¢æ÷F†–ær&÷÷6W27F–öç2öâ66†VGVÆRà¤â7F–öâ&V6†W2F†RVWVR&V6W6R6öÖV&öG’6¶VBf÷"—BâF†W&R—2æð¦&6¶w&÷VæBvVçBÂæBF†—26†ævRFöW2æ÷BFBöæRà ¢222##bÓ‚Ó2(	BF†RÆVvÂ÷6—F–öâ7FFVB2F—66Æ–ÖW"&F†W"F†âVæF–ær&Wf–Wp ¦÷&VF–æW76&W÷'FVBÆVvÅvW3¢&Wf–Wu÷&WV—&VFâ—B&VæFW&VB2$ÆVvÀ§vW3¢&Wf–Wr&WV—&VB"Â–âÆ—7B&W6–FR%–ÖVçB6öææV7F–öã¢Ö—76–ær"æ@¢$6†V6¶÷WC¢6WGW&WV—&VB"(	B—FV×26öÖV&öG’6Æ÷6W2'’Fö–ær6öÖWF†–ærâæö&öG¦6÷VÆB6Æ÷6RF†—2öæRâVÆ–f–VBÆVvÂ&Wf–Wr—2FV6—6–öâ&÷WBVævv–æp¦6÷Vç6VÂÂÖFR÷WG6–FRF†—2&W÷6—F÷'’æBv—F‚6÷7BÂæBæò6†ævRFòF†—0¦6öFRÖ÷fW2—Bà ¦Fö72õ4„•õ$TD”äU52æÖF†BÇ&VG’&V6†VBF†B6öæ6ÇW6–öâæBF¶VâF†R—FVÐ¦öfbF†R÷væW"w2Æ—7BÂf÷"W†7FÇ’F†B&V6öââF†R&VF–æW727W&f6R†Bæ÷@¦6Vv‡BWÂ6òF†RW&ÖæVçB÷Vâ—FVÒ†BÖ÷fVB&F†W"F†âvöæR(	B6ÖP§6VçFVæ6RÂF–ffW&VçBvRà ¤—Bæ÷r&W÷'G2V&Æ—6†VE÷v—F…öF—66Æ–ÖW&¢F†RvW2&RV&Æ—6†VBæBWfW'¦öæR6—2—B—2æ÷BÆVvÂGf–6RâF†B—2f–æ—6†VBÂæB†2æòæW‡B7FWà ¢¢¤FW&—fVBÂæ÷BFV6Æ&VBâ¢¢F†RöÆBfÇVRv2Æ—FW&Âæ÷F†–ær6÷VÆBÖ¶P¦fÇ6RâÆ–"÷6öæ&ÖÆVvÂ×÷6—F–öâæ6§6÷vç2F†RF—66Æ–ÖW"6VçFVæ6RÂÆVvÅvR‚– §&VæFW'2—BÂæBF†R7FGW2—26ö×WFVBg&öÒF†RvRÆ—7BæBF†R6VçFVæ6R(	B6ð¦FVÆWF–ærF†RF—66Æ–ÖW"6†ævW2v†B÷&VF–æW766—2âF‡&VRç7vW'2Âæ÷BGvó ¦âV×G’vRÆ—7B&WGW&ç2æõöÆVvÅ÷vW6&F†W"F†â76–ærf7V÷W6Ç’Âv†–6€¦—2F†R6†RF†—26öFV&6R¶VW2f–æF–ærâ6ÆÆW"F†Bf÷&vWG2Fò–æ¦V7BF†P§&VFW"vWG2Væ¶æ÷væÂæ÷BF†RvööBç7vW"à ¢¢¥F†RÆ–æRF†—2FöW2æ÷B7&÷72â¢¢G&÷–ær'&Wf–Wr&WV—&VB"æB76W'F–æp¢'&Wf–WvVB"&RF–ffW&VçB7G2ÂæBöæÇ’F†Rf—'7B†VæVBà¦ÆVvÅ&Wf–Wt&÷VæF'“¢æ÷EöGF÷&æW•÷&Wf–WvVF—2VçF÷V6†VBÂWfW'’ÆVvÂvR—0¦6†V6¶VBFò6Æ–ÒæòGF÷&æW’&Wf–WrÂFö72öÆVvÂôÄTtÅõ$Ud”Uuõ$UT•$TBæÖFæ@¦4õTå4TÅõ$Ud”Uuô%$”TbæÖF7F–ÆÂ†öÆBF†R&Wf–Wr—G6VÆbÂæBF†RæWrFW7Bf–Ç0¦–bV—F†W"Fö7VÖVçB—2FVÆWFVB÷"V×F–VB(	BF¶–ærâ—FVÒöfb6WGWÆ—7B×W7@¦æ÷BV–WFÇ’ç7vW"F†RVW7F–öâ—B6¶VBà ¦67&—G2÷6Öö¶RÖÆ—fR×&÷WFW2æÖ§6æ÷r76W'G2&÷F‚fÇVW2v–ç7BF†RÆ—fR6—FP§&F†W"F†âöæRâÆVvÅ&Wf–Wt&÷VæF'–—2F†R†Æb6öÖV&öG’6÷VÆBG&÷v—F†÷W@¦ç–&öG’æ÷F–6–ærÂæB—Bv2F†R†Æbæ÷F†–ærvF6†VBà ¢¢¥fW&–f–VBâ¢¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâÂssrFW7G276–ærâWfW'’&÷WFP§6W'f–ærÆVvÂFW‡Bv2&VæFW&VBæB6†V6¶VBf÷"F†RF—66Æ–ÖW"(	BF†R&÷WFW2&P§&VBöfbW‡&W72&F†W"F†âg&öÒÆ—7BÂ6òæWrÆVvÂvR—26÷fW&VBF†RF¦—B6†—2â&WÆ6–ærF†RF—66Æ–ÖW"v—F‚6VçFVæ6RF†BFöW2æ÷B6’&æ÷BÆVvÀ¦Gf–6R"f–Ç2#2FW7G2Â–æ6ÇVF–ærF†RæWröæRà ¢222##bÓ‚Ó2(	BF†R'F—7B7—7FVÒ'V–ÇBÂæB6öçG&7BF†Bv2&VF–ærGvòöbF‡&VRF—&V7F÷&–W0 ¤Ö–w&F–öâb7&VFVBV–v‡BF&ÆW2v—F‚&÷rÆWfVÂ6V7W&—G’æB–æFW†W2à¦&÷WFW2ö7&VF÷"Ö'F—7B×7—7FVÒ×&÷WFW2æ6§6v2F†RöæÇ’6öFRF†B&VBf—fRö`§F†VÒÂ6W'fW"æ§6æWfW"&WV—&VB—BÂ6ò—G2vW2CFVBæBF†RF&ÆW2vW&P¦æWfW"w&—GFVâ–â&öGV7F–öâ(	BF†W’&VB2§W6VB¢&V6W6Rf–ÆRW†—7FVBF†@§v÷VÆB†fRW6VBF†VÒÂ†Bç—F†–ærÆöFVB—BâF†RÖöGVÆRv2FVÆWFVBæ@¦Æ–"÷6öæ&Ö÷'†â×F&ÆW2æ6§6&V6÷&FVBF†R6†ö–6S¢'V–ÆBF†Rv÷&·76P§&÷W&Ç’g&öÒF†R&VÂ6öÇVÖç2Â÷"G&÷F†RF&ÆW2â—B—2'V–ÇBà ¢¢¤f—fRvW2¢¢ÂF‡&÷Vv‚F†R6ÖR&V6÷&B×vRÖ6†–æW'’2WfW'—F†–ærVÇ6RÂ6ð§F†W&R—2æò6V6öæB6öFRF‚FòfÆÂ÷WBöbW6RF†Rv’F†BÖöGVÆRF–C ¦ö7&VF÷"×7GVF–òö'F—7G6Â÷6÷VæBÖ–FVçF—G–ÂöÆ'VÒÖ7–6ÆW6À¦÷&ö×BÖ&ÇVW&–çG6Â÷f–FVò×G&VFÖVçG6âF†Rf÷W"6†–ÆG&Vâ&WV—&P¦'F—7E÷&öf–ÆUö–F(	B—B—2çVÆÆ&ÆR–âF†R66†VÖÂæB&÷rv—F†÷WBöæRv÷VÆ@¦&R–çf—6–&ÆRöâWfW'’vRÂ6–æ6RV6‚Æ—7G2'’÷&væ—6F–öâæB&VÆöæw2Fòæð¦'F—7Bà ¥F‡&VR6öÇVÖâ¶–æG2&RFVÆ–&W&FVÇ’'6VçBg&öÒF†Rf÷&×3¢F†R§6öæ"'VÆP¦&Æö6·2Â¶W—5öÆÆ÷vVF‡FW‡EµÒ’ÂæBf–FVõ÷G&VFÖVçG2çG&6µö–FâFW‡B–çW@§÷7F–ær–çFò§6öæ"÷"â'&’&öGV6W2f–ÆVB–ç6W'B÷"6†Ræ÷F†–æp§&VG2&6²à ¢¢¥F†R–6¶W"v2vö–ærFò&RFVBöâ'&—fÂâ¢¢F†R7&VF÷"vR&VæFW&W ¦6ÆÆVBf÷&Ô6&B‡vRÂ·ÒÂV’–(	B†&ÖÆW72v†–ÆRæò7&VF÷"vR†B§&VfW&Væ6Rf–VÆBÂw&öærF†RÖöÖVçBöæRF–BâÆÂf÷W"'F—7B–6¶W'2v÷VÆB†fP§&VB$æ÷F†–ærFò6†ö÷6R–WB(	BFBöæRf—'7B"Fò7W7FöÖW"v—F‚'F—7G2âF†@¦W†7Bf–ÇW&R—2&V6÷&FVB&÷fRÆöE&VfW&Væ6W6Âv†W&R—B6†—VBöâF†R÷væW §vW2âF†Ræbv2Ç6ò†æB×w&—GFVâÆ—7Böbf÷W"Æ–æ·26—GF–æröâv†B—0¦æ÷ræ–æRvW3²—B—2vVæW&FVBg&öÒF†RvW2F†V×6VÇfW2à ¢¢¤æ÷B6V6öæB&ö×BÆ–'&'’â¢¢7&VF÷%÷&ö×Eö&ÇVW&–çG6æ@¦6öæ&÷&ö×E÷FV×ÆFW6&÷F‚†öÆB&ö×BFW‡BÂæBF†RF–ffW&Væ6R—2æ÷@¦ö'f–÷W2Â6òF†RvR6—2—C¢F†RÆ–'&'’—2v†W&R&ö×BÆ—fW2Âv—F€§fW'6–öç2Â&÷fVææ6RæBÆ–6Væ6R7FGW3²&ÇVW&–çB—2'VÆRf÷"öæR'F—7B(	@§v†BG&6²æVVG2&Vf÷&R&ö×B—2w&—GFVâg&öÒ—BÂæB†÷rÆöær—BÖ’&Rà¥F†RÆ–'&'’†2æò6öÇVÖâf÷"V—F†W"à ¢¢¥F†R6öçG&7Bv2&VF–ærGvòöbF‡&VR'VçF–ÖRF—&V7F÷&–W2â¢ ¦67&—G2÷fW&–g’×7W&6RÖ6öçG&7BæÖ§666ç2F†R'VçF–ÖRf÷"F&ÆR&VfW&Væ6W0¦æBf–ÆVBç—F†–ærVæ6öçG&7FVBâ—B&VB6W'fW"æ§6æB&÷WFW2öæBæ÷@¦Æ–"ö(	Bv†–6‚—2'VçF–ÖRÂ—2v†W&RF†R&V6÷&BvW2æB&V6÷&B6†V6·2Æ—fRÀ¦æB—2F†R6ÖRF—&V7F÷'’F†R&öGV7F–öâFWÆ÷’vFRw&W2f÷"—G2–BÖ66W70¦Ö&¶W'2âv–FVæ–ær—B7W&f6VB¢§6WfVâ¢¢Ö÷&RF&ÆW2F†RÆ–6F–öâ&VG2æ@§F†—26öçG&7B†BæWfW"æÖVC¢F†RFWF–Â&÷w2VæFW"W&6†6R÷&FW'2Â7Fö6°¦6÷VçG2ÂG&ç6fW'2æBfVæF÷"–çfö–6W2ÂÇW2÷5öÖVçUöÖ—…ö—FV×6À¦V×Æ÷–VU÷vvU÷&FW6æB&Wf–Ww6à ¦%U4”äU55ôõU$D”ôå5õD$ÄU6Ç6òGW&æVB÷WBFò72F‡&÷Vv‚æò7&VFRÖ÷"Õ$Å0¦6†V6²BÆÂ(	B—BW†—7FVBöæÇ’Fò7F÷F†R'VçF–ÖR66âf–Æ–ærÂ6òF&ÆP¦6÷VÆB&RÆ—7FVB2&Wf–WvVBæBW†—7Bæ÷v†W&Râ—Bæ÷rvöW2F‡&÷Vv€¦fW&–g”W‡FVç6–öæv–ç7BF†Rf—fRÖ–w&F–öç2F†B7&VFR—G2ÖVÖ&W'2à ¢¢¥fW&–f–VBâ¢¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâÂsc’FW7G276–ærÂ÷'†à§F&ÆW2âF†Rf—fRvW2vW&R&VæFW&VBæB÷7FVBFòF‡&÷Vv‚W‡&W73¢V6€§&WGW&ç2#Â—G2f÷&Òö–çG2B&Vv—7FW&VBVæGö–çBÂF†R'F—7B–6¶W"6†÷w0¦&VÂ'F—7BÂ6fR&V6†W2F†R&–v‡BF&ÆR66÷VBFòF†R÷&væ—6F–öâÂæB¦6†–ÆBv—F‚æò'F—7Bw&—FW2æ÷F†–ærâ&÷F‚æWr6†V6·2vW&R6öæf—&ÖVBFò&—FR(	@¦F&ÆRÆ—7FVBVæFW"÷W&F–öç2F†BæòæÖVBÖ–w&F–öâ7&VFW2f–Ç2Âæ@¦G&÷–ærÆ–"ög&öÒF†R66âÖ¶W2—B72v†–ÆR&Æ–æBà ¢222##bÓ‚Ó2(	BF†R&–6–ær&W7G'V7GW&RÆ–VBÂæBöæRÆFFW"öâF†RvP ¦Fö72÷&–6–æró##bÓ‚ÓÕ$”4”ärÕ$U5E%T5EU$RæÖF&wVVBf÷"&–6–ær¢¦'&VGF‚¢ ®(	B†÷rÖç’öbF†RF‡&VRv÷&·76W2–÷RvWB(	B–ç7FVBöbFWF‚â—B—2Æ–VBà ¢¢¥F†RF‡&VRæWrÆç2â¢¢v÷&·76UöÖöçF†Ç–C’†ç’öæRv÷&·76R’À¦ÆÅ÷F‡&VUöÖöçF†Ç–C3’ÂFVÕöÖöçF†Ç–Cs’†ÆÂF‡&VRÇW2F†R7Ffb÷'FÂ’à¥F†W’Æ—fR–âÆ–"÷6öæ&×7G&—R×Æç2æ6§6æB6''’æò7G&—R&–6RVçF–ÂF†P¦÷væW"7&VFW2öæRÂ6òF†W’&VæFW"$æ÷B÷Vâf÷"6†V6¶÷WB–WB"æB6ææ÷B'&V°¦ç–&öG’w26†V6¶÷WBâ¢¥7F'FW"ò6÷&Rò&ò&RVçF÷V6†VBâ¢¢7G&—R&–6W2&P¦–Ö×WF&ÆRÂæBâW†—7F–ær7V'67&–&W"†2Fò¶VW––ærv†BF†W’w&VVBFòà ¢¢¢C’'W—2öæRv÷&·76RÂæ÷BF‡&VRâ¢¢4”ätÄUõtõ$µ54UõÄå6æ@¦&–ÆÆ–æu&÷t÷Vç5&öGV7F–âÆ–"÷6öæ&×–BÖ66W72æ6§6&Rv†BÖ¶RF†@§G'VS¢v÷&·76UöÖöçF†Ç–&÷r÷Vç2&öGV7BöæÇ’–`¦ÖWFFFçv÷&·76VæÖW2—Bâ&÷F‚ÖF6‚ö–çG2–à¦Æ–"÷6öæ&×–BÖVçF—FÆVÖVçBæ6§66ÆÂ—BÂæB&÷F‚6VÆV7G2æ÷r6²÷7Fu$U5@¦f÷"ÖWFFFâ&÷rv—F‚æò6†ö–6R&V6÷&FVBf–Ç26Æ÷6VBv—F€¦v÷&·76Uöæ÷Eö6†÷6VææB6VçFVæ6RFVÆÆ–ærF†R7W7FöÖW"Fò–6²(	BÆ—7F–æp§F†R¶W’v—F†÷WBF†—26†V6²v÷VÆB†fRÖFRC’'W’v†BC3’—2f÷"à ¢¢¤öæRÆFFW"öâF†R&–6–ærvRâ¢¢Æ—7F–ærWfW'’¶W’WBV–v‡BÆç2öâ—BÀ§Gvò&–6VBC’æBGvò&–6VBC3’Â6öçF–æ–ærF–ffW&VçBF†–æw2âF†Rö'f–÷W0¦†ÆbÖf—‚(	B†–FRF†RöÆBÆFFW"(	BV×F–W2F†RvRÂ&V6W6RF†RæWrÆç2†fP¦æò7G&—R&–6R–WBæBWfW'’6&Bv÷VÆB6’&æ÷B÷Vâ"â6òöffW&VEÆä¶W—6 §F¶W2Gvò'VÆW3¢7WW'6VFVBÆâG&÷2öfböæ6R—G2&WÆ6VÖVçB¢¦6â&P¦&÷Vv‡B¢¢ÂæB&WÆ6VÖVçB7F—2öfbVçF–Â—B6â&RÂf÷"2Æöær2ç’Æà¦—B&WÆ6W27F–ÆÂv÷&·2âF†RvR7v—F6†W2ÆFFW'2'’—G6VÆbv†VâF†R÷væW ¦7&VFW2F†R&–6W2ÂæBF†W&R—2æò7FFRv†W&Ræ÷F†–ær—2W&6†6&ÆRà ¥F†R&ç’"Â&F†W"F†â&—G2÷vâ&VFV6W76÷""Â—2FVÆ–&W&FS¢¶W–VBFò—G2÷vâÀ¦&òv†÷6R&–6Rf&–&ÆRvVçBÖ—76–ærv÷VÆBVÆÂÆÂF‡&VRöçFòF†RvP§Væ'W–&ÆR&W6–FR—B(	BGvòC3’Æç2Â'&—f–ærg&öÒÖ—66öæf–wW&F–öâà ¦FVÖ—2æ÷B†–FFVâÂ&V6W6Ræ÷F†–ær7WW'6VFW2–çFò—Bâ—BV'26––ær—@¦—2æ÷B÷Vâ–WBÂv†–6‚—2v†BWfW'’Vç&–6VBÆâFöW2â†–F–ærWfW'’Vç&–6V@§Æâv÷VÆB&RF–F–W"vR&÷Vv‡B'’Ö¶–ærÖ—76–ær&–6R–çf—6–&ÆRà ¢¢¥F†R&÷6RÖ÷fVBv—F‚F†R6&G2â¢¢%&ò6÷fW'2ÆÂF‡&VRf÷"C3’"v2w&—GFVà¦÷WB–âGvòÆ6W2æB&ò—2æ÷BöâF†RæWrvS²F†R7V66W76÷"—26ÆÆV@¢$ÆÂF‡&VR"Âv†–6‚v÷VÆB†fRÖFR—B$ÆÂF‡&VR6÷fW'2ÆÂF‡&VRf÷"C3’"âF†P§6VçFVæ6R—2æ÷rÆÂF‡&VR6÷7BC3’FövWF†W&ÂFW&—fVBg&öÒF†R6†VW7BöffW&V@§ÆâÖ&¶VB6÷fW'4ÆÅF‡&VVâ%v†–6‚Æâ6†÷VÆB’–6³ò"—2'V–ÇBg&öÒF†P§Æç2F†B&R7GVÆÇ’'W–&ÆRÂ6†VW7Bf—'7BÂæB6—2–BÆç2&Ræ÷@¦÷Vâ–WBv†VâæöæR&Rà ¢¢¥&òv–ç7B6÷&Râ¢¢&÷F‚÷VâÆÂF‡&VRv÷&·76W2Â6ògFW"F†RVwW7@§v–FVæ–ær&ò†Bæ÷F†–ærW†6ÇW6—fRâÆö6F–öç2&Rv†B6W&FRF†VÓ ¦”ä4ÅTDTEôÄô4D”ôå6v—fW26÷&R2æB&òVæÆ–Ö—FVBÂVæf÷&6VB@¦&÷WFW2÷6öæ&ÖÆ7C’×&÷WFW2æ6§3£sfâÆÅ÷F‡&VUöÖöçF†Ç––æ†W&—G2&òw0§VæÆ–Ö—FVB&F†W"F†âg&W6‚Ö–FFÆR'Vær(	BF†R&W7G'V7GW&RFö26—2—B¦—2 ¥&ò&VæÖVBBF†R6ÖR&–6RÂæBv—f–ær—BF‡&VRv÷VÆBÖ¶RF†R&VæÖR§&VGV7F–öâF—66÷fW&VBB7W7FöÖW"w2f÷W'F‚6—FRà ¢¢¥Gvò6†V6·2F†B†BvöæR&Æ–æBÂf÷VæB'’Ö÷f–ærF†RF&ÆRâ¢ ¦FW7G2öF6†&ö&B×6WGWÖFö2çFW7Bæ§6'6VB&–6RVçbf'2÷WBöb6W'fW"æ§6 §6÷W&6Rv—F‚&VvWƒ²F†RÖöÖVçBF†RF&ÆRÖ÷fVB—Bf÷VæB¦W&òÂæB&æòVçbf ¦—2Ö—76–ærg&öÒF†RFö2"v2G'VRöbâV×G’Æ—7Bâ—G2÷vâwV&B6Vv‡B—BÂæ@¦—Bæ÷r&VG2F†RF&ÆRö&¦V7BâFW7G2öFF&6R×VW'’Ö6öçG&7BçFW7Bæ§6–ææVB¦FöW4æ÷DÖF6†öâ÷7Fu$U5B6VÆV7B7G&–ærF†BF†RFFVBÖWFFF6öÇVÖà§v÷VÆB†fR6Æ—VB7Bà ¤Ç6ó¢ÖöGVÆRæW‡÷'G2Ò5E$•UõÄå6v—F‚öffW&VEÆä¶W—6‡VæröfbF†R6ÖP¦ö&¦V7BWBgVæ7F–öâ–çFòF†RÆâF&ÆRÂ6òö&¦V7BæVçG&–W6––VÆFVBæ–çF€¢'Æâ"F†R&–6–ærvRv÷VÆB†fRG&–VBFò&VæFW"âF†RF&ÆR—2æ÷rg&÷¦Vâæ@¦W‡÷'FVBVæFW"æÖRà ¢¢¥fW&–f–VBâ¢¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâÂsCRFW7G276–ærâF†R&–6–æp§vR&VæFW&VBVæFW"f—fRVçf—&öæÖVçG2(	Bæ÷F†–ær6öææV7FVBÂÆVv7’öæÇ’ÂÆVv7§v—F‚&òÖ—66öæf–wW&VBÂ'FÇ’7v—F6†VBÂgVÆÇ’7v—F6†VB(	BæBV6‚6†÷w2öæP¦6ö†W&VçBÆFFW"v—F‚æòGvòÆç2BF†R6ÖR&–6Râ6W'fW"æ§6C#"(i"CcP¦Æ–æW3²F†R&F6†WB6ÖRF÷vâFòCcbæBv26öæf—&ÖVBFòf–ÂBCc‚à ¢¢¥v†BF†R÷væW"7F–ÆÂ†2FòFó¢¢¢7&VFRF†RF‡&VR7G&—R&–6Rö&¦V7G0¢†5E$•Uõ$”4Uõtõ$µ54UôÔôåD„Å–C’Â5E$•Uõ$”4UôÄÅõD…$TUôÔôåD„Å–C3’À¦5E$•Uõ$”4UõDTÕôÔôåD„Å–Cs’’æB6WBF†VÒ–â&öGV7F–öââæ÷F†–ærVÇ6R—0¦æVVFVB(	BF†RvR7v—F6†W2öâ—G2÷vâà ¢222##bÓ‚Ó2(	BF†RF×F&vWB'VÆRÂ6†V6¶VBv–ç7B6Æ72æ÷F†–ær&VæFW'0 ¤tTåE2æÖC¢$Öö&–ÆRÆ–÷WG2×W7Bfö–B÷fW&fÆ÷ræBW6RÆ&vRVæ÷Vv‚F §F&vWG2â"¢¤&÷F‚'VÆW2†öÆBâ¢¢æV—F†W"v2&V–ær6†V6¶VBà ¦FW7G2öFW6–vâ×7—7FVÒçFW7Bæ§676W'FVBÒ×6öæ&×F¢CG†æ@¦Ö‚×v–GFƒ¢VV"–âV&Æ–2÷6öæ&ÖFW6–vâ×7—7FVÒæ776âF†RFö¶Vâ—0§&VÂâF†RöæÇ’6VÆV7F÷"6öç7VÖ–ær—B—2ç6öæ&ÖG2Ö'WGFöæÂæBF†P¦Æ–6F–öâæWfW"&VæFW'2öæS¢7&÷726—‚&W&W6VçFF—fRvW2F†R–çFW&7F—fP¦VÆVÖVçG2&RC2&&RÆ'WGFöãæÂCæ7F–öæÂ3’&&RÆ–çWCæÂBÇ6VÆV7Cæ ¦æB"ÇFW‡F&Væâæ÷BöæRç6öæ&ÖG2Ö'WGFöæà ¥F†R'VÆW2F†B7GVÆÇ’v÷fW&âF†÷6R6öçG&öÇ2Æ—fR–à¦V&Æ–2÷6öæ&ÖÆ–6F–öâ×V’æ776ÂæB†Bæ÷F†–ærvF6†–ærF†VÒâ7G&—WfW'¦Ö–âÖ†V–v‡Fg&öÒF†R6VÆV7F÷'2F†R&öGV7B&VæFW'2æBWfW'’6öçG&öÂ6öÆÆ6W0¢ÒÒv†–ÆRF†RFW6–vâ×7—7FVÒ76W'F–öâ7F—2w&VVâÂ&V6W6R—B—2&VF–ær¦F–ffW&VçBf–ÆR&÷WBF–ffW&VçB6Æ72à ¦FW7G2öÖö&–ÆR×'VÆW2Ö†öÆBÖöâ×v†BÖ—2×&VæFW&VBçFW7Bæ§667&W2F†R6öçG&öÇ2öf`§&VæFW&VBvW2æB6†V6·2F†R6W'fVB7G–ÆW6†VWBv–ç7BF†÷6RÂ&VgW6–ærFð¦76W'B&÷WB6VÆV7F÷"F†R6×ÆRFöW2æ÷B6öçF–ââ—BÇ6ò6†V6·2F†RGvð¦†ÇfW2öbF†R÷fW&fÆ÷r'VÆRF†BÖGFW"öâ†öæS¢F†R&öG’×W7Bæ÷B67&öÆÀ§6–FWv—2ÂæB&V6÷&BF&ÆRÒÒv–FW"F†âç’†öæRÒÒ×W7B67&öÆÂ–ç6–FP¦—G6VÆbÂ÷"—G26öÇVÖç2&R6–×Ç’Vç&V6†&ÆRà ¢¢¤öæR6÷'&V7F–öâv÷'F‚&V6÷&F–ærâ¢¢F†Rf—'7BGFV×BFò&÷fRF†RæWr6†V6°¦&—FW2FVÆWFVBF†RCg‚'VÆRæBF†R6†V6²7F–ÆÂ76VBÂv†–6‚&VBW†7FÇ’Æ–¶P¦6†V6²76–ærf÷"F†Rw&öær&V6öââ—Bv2æ÷C¢6V6öæB'VÆRv—fW2F†R6ÖP§6VÆV7F÷'2C‡‚Â6òF†RwV&çFVRvVçV–æVÇ’7F–ÆÂ†VÆBæBF†RW‡W&–ÖVçBv0§w&öær&F†W"F†âF†R6†V6²â&VÖ÷f–ær¦WfW'’¢Ö–âÖ†V–v‡FöâF†÷6R6VÆV7F÷'0¦f–Ç2—BÂæÖ–ærV6‚6öçG&öÂæB†÷rÖç’öbF†VÒ&RöâF†RvRâ&V–ærw&öæp¦&÷WBv†–6‚öbF†RGvòv2'&ö¶Vâ—2F†RV7’Ö—7F¶R†W&RÂæBv÷'F‚F†RW‡G&¦f—fRÖ–çWFW2—BFöö²Fòf–æB÷WBà ¥F†RöÆB76W'F–öâ—2¶WBæB&VæÖVBFòv†B—BFöW2ÒÒF†RFö¶Vâ—2F†R&–v‡@§Æ6Rf÷"F†RçVÖ&W"ÂæBFö¶VâV–WFÇ’6†ævVBFò#‚6†÷VÆB7F–ÆÂf–À§6öÖWF†–ærà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃs3rFW7G276–ærà ¢222##bÓ‚Ó2(	BF†RFö7VÖVçBF†R÷væW"&VG2FòFV6–FRv†WF†W"FòÆVæ6€ ¦Fö72ö÷væW"õt„BÔ•2ÔÄTeBæÖF6–B&çÒFW7F—2B3Cr76–æræBF†P¦V–v‡FVVâÖ6öÖÖæBfW&–g“¦ÆVæ6†6†–â—2w&VVâ"âF†R7V—FRv2BÃs32æBF†P¦6†–âB#â—G2'’×F†RÖçVÖ&W'2&Æö6²v27FÆR–âf—fRÖ÷&RÆ6W3¢#C"&÷WFW0¦v–ç7B#C‚Â3F&ÆW2v–ç7B3"Âcb&Wf–WvVB&W÷6—F÷&–W2v–ç7Bƒ"Â# ¦÷væW"&V6÷&BvW2v–ç7B#2à ¤WfW'’f–wW&Rv2&–v‡Bv†Vâ—Bv2w&—GFVââæöæR†Bç—F†–ærvF6†–ær—BÂv†–6€¦—2F†Rv†öÆRö–çC¢F†—2—2F†RFö7VÖVçB6öÖV&öG’&VG2FòFV6–FRv†WF†W"F†P§F†–ær—2&VG’ÂæB—Bv2FW67&–&–ær&W÷6—F÷'’F‡&VRvVV·2&V†–æBà ¦67&—G2÷fW&–g’ÖFö2Ö6÷VçG2æÖ§66†V6·2F†RGvò¶–æG2öb6÷VçF&ÆR6Æ–ÒÆ—fP¦Fö7VÖVçB6âÖ¶Râ6†–âÆVæwF‚×W7BÖF6‚fW&–g“¦ÆVæ6†â¢§76–ærFW7@¦6÷VçBÖ’æ÷B&R7FFVBBÆÂ¢¢÷WG6–FRvVæW&FVBFö7VÖVçBÒÒ—B—27FÆRF†P¦æW‡BF–ÖRç–&öG’FG2FW7BÂæBF†W&R—2æòfW'6–öâöb—B†æB×w&—GFVâf–ÆP¦6â¶VWG'VRà ¤f÷W"F†–æw2†BFò&R&–v‡Bf÷"F†R6†V6²Fò&Rv÷'F‚†f–ærÂæBF‡&VRöbF†VÐ§vW&Rw&öærf—'7Bà ¦Fö72ô„äDôdeõ$ôÕBæÖF—2vVæW&FVBæBVÖ&VG2F†R7&–çBÆörfW&&F–ÒÂ6ð¦WfW'’†—7F÷&–6Â#Ãs32FW7G276–ær"&VV&VB–â—BÒÒF†R6†V6²v2&VF–æp§F†R6ÖR†—7F÷'’Gv–6RæB6ÆÆ–ær—BÆ—fR6Æ–ÒâGvòVF—Bf–ÆW2÷Vâv—F€¢$FFS¢"æB%fW&–f–6F–öâFFS¢"Âv†–6‚Ö¶W2F†VÒ&V6÷&G2öbF’–âF†R6ÖP§v’F†R7&–çBÆör—3²6÷'&V7F–ærF†V—"6÷VçG2v÷VÆBÖ¶RF†VÒv÷'6R&V6÷&G2Â6ð§F†R'VÆR—2FFVBÖ&¶W"æV"F†RF÷&F†W"F†âÆ—7Böbf–ÆVæÖW2à¦Ãs36v2&VB2s36Â&V6W6RF†RGFW&âF–Bæ÷BÆÆ÷rF†÷W6æG0§6W&F÷"æBF†RW'&÷"V÷FVBçVÖ&W"æö&öG’†Bw&—GFVââæ@¦¢£#¢¢fW&–f–6F–öâ6öÖÖæG6æWfW"ÖF6†VBBÆÂÂ&V6W6RV×†6—26—G0¦&WGvVVâF†Rv÷&B&÷VæF'’æBF†RF–v—G2ÒÒ6ògFW"F†Rf—‚F†R6†V6²76V@¦†f–ærW†Ö–æVB¢§¦W&ò¢¢6Æ–×2â—B&VgW6W2F†Bæ÷s¢æò6Æ–Òf÷VæBç—v†W&R—0§&W÷'FVB2F†RGFW&ç2†f–ær7F÷VBÖF6†–ærÂæ÷B2WfW'—F†–ær&V–ærf–æRà ¤FF–ærF†R6†V6²FòF†R6†–âÖFRF†R6†–â#"6öÖÖæG2æBF†R6VçFVæ6R’†@¦§W7B6÷'&V7FVBw&öærv–âÂv†–6‚F†R6†V6²6Vv‡Böâ—G2f—'7B&VÂ'Vâà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæB7&÷72#"6öÖÖæG2à ¢222##bÓ‚Ó2(	BF†Rw&—FR†ÆböbF†R÷WFvR7&vÂÂv†–6‚f÷VæBæ÷F†–æp ¥F†RF†—&BöbF†R÷WFvR7&vÇ2ÂæBF†RöæRv—F‚F†Rv÷'7B6öç6WVVæ6R–b—@¦†Bf÷VæB6öÖWF†–æs¢v†B7W7FöÖW"—2FöÆBv†VâF†V—"&V6÷&B6÷VÆBæ÷B&P¢¢§w&—GFVâ¢¢âF†W’6Æ÷6RF†RF"&VÆ–Wf–ær—B6fVBà ¢¢¤æ÷F†–æræVVFVBf—†–ærâ¢¢WfW'’VæGö–çBF†B&V6†W2w&—FR&W÷'G2F†P¦f–ÇW&RÂ'’&VF—&V7F–ær&6²v—F‚÷&ö&ÆVÓÖ÷"ç7vW&–ærö³¢fÇ6VâF†B—0§v÷'F‚&V6÷&F–ær2&W7VÇB&F†W"F†âæöâÖWfVçBÒÒ—B—2F†R†ÆböbF†P¦Æ–6F–öâF†—27&–çB†2æ÷B†BFò6÷'&V7Bà ¥F†R6†V6²7F—2Â&V6W6RF†R6†R—BÆöö·2f÷"—2öæRÆ–æRv’Bç’F–ÖRà¤Ö¶–ærf–ÆVB–ç6W'B&VF—&V7B2F†÷Vv‚—B6fVBf–Ç2—B–â6—‡G’×6—‚Æ6W2à ¢¢¥v†B—BFöW2æ÷B6÷fW"—27FFVB&F†W"F†â–×Æ–VBâ¢¢sBVæGö–çG2&P¦7&VFR×6†VC²vVæW&–2&öG’ÇW2WfW'’FV6Æ&VBf÷&Òf–VÆBvWG2CöbF†VÒ0¦f"2w&—FRâF†R÷F†W"3B&V¦V7BV&Æ–W"öâfÆ–FF–öâöbF†V—"÷vâÒÐ¦6öç6VçB&WV—&VÖVçG2Â&÷f–FW"6öçG&7G2ÂÖ&¶WBÖ–çFVÆÆ–vVæ6R66÷&–ærÒÒæ@¦ÖöFVÆÆ–ærV6‚öæRw2fÆ–B–çWB—2F–ffW&VçB–V6Röbv÷&²à ¥F†BF—7F–æ7F–öâ—2F†Rv†öÆR&V6öâF†Rf–ÆRW†—7G2–âF†—26†RâF†Rf—'7@§fW'6–öâöbF†R&ö&R&W÷'FVB¢¢#sBöbsB&W÷'Bf–ÇW&R†öæW7FÇ’"¢¢Âv†–6‚v0§G'VRæBÖVæ–ævÆW73¢C"vW&R&V–ær&V¦V7FVB&Vf÷&RF†Rw&—FRÂ6ò—Bv0¦ÖV7W&–ærF†RfÆ–FF–öâF‚æB6ÆÆ–ær—BF†Rw&—FRF‚â‡VæG&VBW&6Vç@¦öâ6†V6²—2&V6öâFò6²v†B—B&V6†VBÂæ÷B&V6öâFòÖ÷fRöâà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃs32FW7G276–ærà ¢222##bÓ‚Ó2(	BF†R6ÖR7&vÂv–ç7BF†R’ÂæBf–VÆB6ÆÆVBö° ¥F†R6ö×æ–öâFòF†RvR7&vÃ¢WfW'’¥4ôâtUBÂv—F‚F†RFF&6Rç7vW&–æp¦æ÷F†–ærÂ&VF–ærv†B6öç7VÖW"öbF†R’—2FöÆB&F†W"F†âv†BvP§&VæFW'2à ¢¢¤f÷W"VæGö–çG2ç7vW&VBö³¢G'VVv—F‚âV×G’Æ—7Bâ¢¢F†W’vW&Ræ÷@¦6&VÆW72ÒÒF†W’WBF†R&VÂ÷WF6öÖR–â6V6öæBf–VÆBÂ6fVFÂÆVf–ærö¶ §FòÖVâ'F†R&WVW7Bv2†æFÆVB"âF†B—2FVfVç6–&ÆR6öçfVçF–öâæB—B—2æ÷@§F†RöæRF†R&W7BöbF†—2’W6W3¢c‚÷F†W"¥4ôâtUG2ç7vW"f–ÆVB&VBv—F€¦ö³¢fÇ6V÷"G‡‚âv÷'6RÂ7&VFT6†V6¶Æ—7D—FVÖ&WGW&ç2ö³¢fÇ6Vf÷"F†P§6ÖRGvò6WGW6öæF—F–öç2Æ—7D6†V6¶Æ—7D—FV×6F—&V7FÇ’&÷fR—B&W÷'FVB0¦ö³¢G'VVÂ6òöæRf–ÆRç7vW&VBöæRVW7F–öâGvòv—2FWVæF–æröâv†WF†W"–÷P§vW&R&VF–ær÷"w&—F–ærâf–VÆB6ÆÆVBö²—2&VB2ö²à ¢%F†R&VBf–ÆVB"—2æ÷rÇ6òF—7F–æwV—6†&ÆRg&öÒ'6WGWv2æWfW"FöæR"à¦6öFS¢'6WGW÷&WV—&VB&v2&WGW&æVBf÷"&÷F‚ÂæB6öç7VÖW"v÷VÆB&WG'’öæP¦æBæ÷BF†R÷F†W"à ¢¢¤æBF†Rf—'7BfW'6–öâöbF†R6†V6²v2ÖV7W&–ærf÷W"VæGö–çG2v†–ÆR&VF–æp¦2F†÷Vv‚—B6÷fW&VBF†R’â¢¢—B6¶—VBç—F†–ærv—F†÷WB§&÷w2÷&V6÷&G2ö—FV×2f–VÆBÂv†–6‚v2c2öbcrâ6÷VçF–ærÆÂöbF†VÒf÷Væ@¦ö’öw&÷wF‚öÖWG&–76ç7vW&–ærö³¢G'VV÷fW"&W7öç6R–âv†–6‚WfW'’f–wW&P§v2çVÆÂÒÒ†öæW7BW"f–VÆBÂæBF†RVçfVÆ÷R6–B7V66W72â—B&W÷'G0¦6÷VçG5&VFæ÷ræB—2fÇ6RöæÇ’v†Vâæ÷F†–ærBÆÂ6÷VÆB&R6÷VçFVBÂ&V6W6P¦'F–Â&VB—2Ç&VG’FW67&–&VB&V6—6VÇ’'’F†RçVÆÇ2à ¥&V–çG&öGV6–ær&÷F‚&Vw&W76–öç2f–Ç2F†R7&vÂ–âGvVÇfRÆ6W3²F†Bv2G&–V@§&F†W"F†â77VÖVBà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃs3FW7G276–ærà ¢222##bÓ‚Ó2(	B&VæFW&–ærWfW'’vRv—F‚F†RFF&6RF÷và ¦FW7G2÷6–væVBÖ–â×v÷&·76RÖ7&vÂçFW7Bæ§67&vÇ2v—F‚F†RFF&6Rç7vW&–æræ@¦V×G’Âv†–6‚—2F†R7FFRæWr7W7FöÖW"—2–ââæ÷F†–ær7&vÆVBv—F‚—@¦ç7vW&–æræ÷F†–ærBÆÂÂv†–6‚—2F†R7FFRWfW'–&öG’—2–âf÷"F†RfWrÖ–çWFW0¦–V"—B†Vç2ÒÒæBF†R7FFRv†W&RvR—2Ö÷7BÆ–¶VÇ’FòFVÆÂ6öÖV&öG§6öÖWF†–ærfÇ6R&÷WBF†V—"÷vâ&V6÷&G2â“rvW2&VæFW"–â—Bâf÷W"vW&P¦Ç––ærà ¢¢¥F†R&–ÆÆ–æræVÂFöÆB––ær7W7FöÖW"F†W’†BæòÆââ¢ ¦vWD&–ÆÆ–æuæVÅ7VÖÖ'–&WGW&æVB²7FGW3¢$æò7V'67&—F–öâ&V6÷&G0§&WGW&æVBâ"Â&÷w3¢µÒÖv†VâF†R&VBf–ÆVBÂæBF†B7G&–ær&VæFW'2öâF†P¦&–ÆÆ–ærvR27FFVÖVçB&÷WBF†R7W7FöÖW"w27V'67&—F–öââ6öÖV&öG’––æp¢C3’ÖöçF‚Âöâ&BF’f÷"F†RFF&6RÂv2FöÆBæò7F—fR–BÆâv0¦f÷VæBâF†B—2F†RöæRÆ6R–âF†R&öGV7Bv†W&R&V–ærw&öær–âF†BF—&V7F–öà¦6÷7G26æ6VÆÆF–öâ&F†W"F†â7W÷'BF–6¶WBà ¢¢¤ÆÂF‡&VRv÷&·76RF6†&ö&G26–B$æò7F—f—G’–WBâ"¢¢F†R&VB÷WF6öÖRv0¦G&÷VB&Vf÷&RF†R6&B6r—BÒÒv†–ÆR6÷VçDÆ&VÆöâF†R6ÖR6&BÇ&VG¦ç7vW&VB'Væf–Æ&ÆR"f÷"f–ÆVB6÷VçBÂ6òF†RGvò†ÇfW2öböæR6&@¦F—6w&VVB&÷WBv†Bf–ÇW&RÆöö·2Æ–¶Rà ¢¢¥Gvò6&B†VF–æw26öçG&F–7FVBF†V—"÷vâ&öF–W2â¢¢$æò&V2–WB"æB$æð¦6öç6VçB&V6÷&G2–WB"&–çFVB&÷fRFW‡BW‡Æ–æ–ærF†R&VB†Bf–ÆVBâ¦7W7FöÖW"6¶–×2†VF–æw2ÂæB7&VF÷"&VF–ærF†R6V6öæB6÷VÆB&V6öæ&Ç¦6öæ6ÇVFRW&Ö—76–öâF†W’†B&V6÷&FVBv2vöæRà ¥F†R7&vÂ—2FW7G2öæò×vRÖÆ–W2×v†Vâ×F†RÖFF&6RÖ—2ÖF÷vâçFW7Bæ§6Âv—F‚à¦W†7W6RÆ—7Bf÷"&÷6RF†BÖF6†W2F†RGFW&âæB—2æ÷B6Æ–Ò&÷WB&V6÷&G0¢ÒÒF†RV&æ–æw2F—66Æ–ÖW"Â&æ÷F†–ær—26VçBg&öÒ†W&R"Â&æ÷F†–ær†W&R†2&VVà§6VçB"âV6‚VçG'’6—2v‡’à ¥GvòvV¶æW76W2–âF†R6†V6²—G6VÆbÂ&÷F‚f÷VæB&Vf÷&RG'W7F–ær—Bâ—BW†7W6V@¦v–ç7BF†RÖF6†VBg&vÖVçB&F†W"F†âF†R7W'&÷VæF–ær6VçFVæ6RÂ6òF†P¦&–ÆÆ–æræVÂw2÷vâæWrf–ÇW&Rv÷&F–ær'&—fVB2&æ÷F†–ær†W&R"æBæòW†7W6P¦f÷"F†RgVÆÂ‡&6R6÷VÆBWfW"f—&RâæB—BW†Ö–æVBöæÇ’F†R¢¦f—'7B¢¢ÖF6‚öà¦V6‚vRÂ6òvRv†÷6R÷Væ–ær6fWG’7FFVÖVçB—2W†7W6VB6÷VÆB6''’§&VÂ6Æ–ÒgW'F†W"F÷vâæBæWfW"&RÆöö¶VBBÒÒ6†V6²vö–ær&Æ–æBW†7FÇ§v†W&RvR†2F†RÖ÷7BFò6’â&V–çG&öGV6–ærF†RF6†&ö&B&Vw&W76–öâæ÷p¦f–Ç2—B–â6—‚Æ6W3²F†Bv2G&–VB&F†W"F†â77VÖVBà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃs#‚FW7G276–ærà ¢222##bÓ‚Ó2(	B66âöbF†Rv†öÆRG&VRÂæBF‡&VR–6¶W'2F†BæWfW"v÷&¶V@ ¥7vWB3ÃC“Æ–æW2öb'VçF–ÖR7&÷72“rf–ÆW2f÷"F†Rf–ÇW&R6†W2F†—0§7&–çB†2&VVâf–æF–ærâÖ÷7B–ç7Fæ6W2öb&W7VÇBæö²ò&÷w2¢µÖGW&æVB÷W@§Fò&Rf–æRÒÒF†R÷WF6öÖRG&fVÇ2–âF†R&WGW&æVBö&¦V7BÂæ@¦Æ–"÷6öæ&Ö66‚×÷6—F–öâæ6§6æBF†R7&VF÷"7GVF–ò6öç6VçBÆ—7B&÷F‚Ç&VG§&V6öâ&÷WBF†Rf–ÇW&RW‡Æ–6—FÇ’Â–â6öÖÖVçG2Âv—F‚F†R&–v‡Bç7vW"âv†@§F†R66âf÷VæBv2VÇ6Wv†W&Rà ¢¢¥F‡&VR&VfW&Væ6R–6¶W'2öâÆ–æRf÷&×2†BæWfW"v÷&¶VBâ¢¢ÆöE&VfW&Væ6W6 §&VBvRæf÷&Òæf–VÆG6öæÇ’ÂæBÆ–æTf÷&Ô6&F6ÆÆVBf÷&Ôf–VÆFv—F‚à¦V×G’&VfW&Væ6W2ö&¦V7BÂ6òWfW'’&VfW&Væ6Rf–VÆBöâ6†–ÆBÆ–æRf÷&Ò&VæFW&V@¢$æ÷F†–ærFò6†ö÷6R–WBÒÒFBöæRf—'7B"&Vv&FÆW72öbv†BF†R'W6–æW72†Bà¥F†R6W'f–6R–6¶W"v†Vâw&—F–ærâ–çfö–6RÆ–æR—2F†RöæRF†BÖGFW'3¢—@§&VFFW2F†—27&–çB'’Æöærv’ÂæB'W6–æW72v—F‚gVÆÂ6W'f–6R6FÆöwVP§v2&V–ærFöÆBFòvòæBFB6W'f–6Rf—'7BâF†R7Fö6²–6¶W"öâ&V6—P¦–æw&VF–VçBæBF†RÖVçR–6¶W"öâv†B6öÆBvW&RÖ–æRÂFFVBÆ7BvVV²æ@¦'&ö¶Vâg&öÒF†RÖöÖVçBF†W’vW&Rw&—GFVâà ¥F†RFWF–Â†æFÆW"æWfW"ÆöFVB&VfW&Væ6W2BÆÂÂv†–6‚—2F†R÷F†W"†Æbö`¦—Bâ&÷F‚†ÇfW2&Rf—†VBÂæBF†R–çfö–6RÖÆ–æR–6¶W"v26†V6¶VBF‡&÷Vv‚F†P§&VæFW&VBvR&F†W"F†â'’&VF–ærF†R6öFRà ¢¢¤æB–6¶W"æ÷r†2F‡&VR7FFW2&F†W"F†âGvòâ¢¢f–ÆVB&VB6öÆÆ6V@§FòF†R6ÖRV×G’'&’26÷W&6Rv—F‚æ÷F†–ær–â—BÂ6ò'vR6÷VÆBæ÷BÆö@§–÷W"7W7FöÖW'2"æB'–÷R†fRæò7W7FöÖW'2"vW&RF†R6ÖR6VçFVæ6RÒÒæBF†P§6V6öæBöæRFVÆÇ2'W6–æW72Fò7&VFR&V6÷&G2—BÖ’Ç&VG’†fR‡VæG&VG2öbà ¤öæRæ÷FRöâF†RFW7B†&æW72âF†Rf—'7BfW'6–öâöbF†R–6¶W"76W'F–öâ6–@¢&ÇF†÷Vv‚F†R7GV"&WGW&ç2&÷w2f÷"WfW'’F&ÆR"ÂæBF†R7GV"F–Bæ÷C¢—@¦ç7vW'2f÷"&VçBæBÆ–æRF&ÆW2æB&WGW&æVBæ÷F†–ærf÷"F†RF&ÆW2&V†–æ@§F†R–6¶W'2âF†R7GV"v27G&VæwF†VæVB&F†W"F†âF†R6Æ–ÒvV¶VæVBÂ&V6W6P§F†R÷F†W"v’&÷VæB—26†V6²F†B76W2f÷"&V6öâVç&VÆFVBFòv†B—@§6—2à ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃs#BFW7G276–ærà ¢222##bÓ‚Ó2(	B&VæFW&–ærF†RF’vRÂv†–6‚æ÷F†–ær†BFöæP ¥F†RÆ&÷W"v÷&²6†—VBv—F‚GvòFW7Bf–ÆW2F†B&÷F‚76VBæBæV—F†W"ö`§v†–6‚†B'VâF†RvRâFW7G2÷v†BÖÖF’ÖÖFRçFW7Bæ§66ÆÇ2FW&—fVD6&F ¦F—&V7FÇ’v—F‚†æBÖ'V–ÇB&wVÖVçG3²FW7G2öÆ&÷W"Ö6÷7BçFW7Bæ§66ÆÇ0¦Æ&÷W$6÷7Df÷$F–F—&V7FÇ’âF†Rv—&–ær&WGvVVâF†VÒÒÒF†R†æFÆW"v—F–æp¦FW&—fVE&VG6ÂF‡&VF–ær—G2&W7VÇB–â2f÷W'F‚&wVÖVçBÒÒv2æWfW ¦W†V7WFVB'’ç—F†–ærÂæBÖ—7F¶Rç—v†W&RÆöær—BÆVfW2&÷F‚f–ÆW2w&VVà¦æBF†RvRv—F†÷WBf–wW&Röâ—BâF†B—2F†RFVfV7B6Æ72F†—2&W÷6—F÷'¦¶VW2f–æF–ærÂ'&—fVBBg&öÒF†R–ç6–FRà ¤—BFöW2v÷&²ÂæBæ÷r6öÖWF†–ær6—26òà¦FW7G2÷F†RÖF’×vR×&VæFW'2Ö—G2Ö÷vâÖf–wW&W2çFW7Bæ§6÷Vç0¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷6ÆW2ó¦–FF‡&÷Vv‚F†R&VÂ†æFÆW"æB&VG2F†R6&@¦öfbF†R&VæFW&VB…DÔÂâ'&V¶–ærF†Rv—&–ærÒÒG&÷–ærF†Rf÷W'F‚&wVÖVçBÒÐ¦f–Ç2F‡&VRöb—G26—‚6†V6·3²F†Bv2G&–VB&Vf÷&RG'W7F–ær—Bà ¥GvòF†–æw2—B76W'G2F†BF†RVæ—BFW7G26÷VÆBæ÷BâF†RW‡G&&VG2vò÷WBv—F€§F†R6W'f–6R¶W’Âv†–6‚'—76W2&÷rÆWfVÂ6V7W&—G’Â6ò¢§F†R÷&væ—¦F–öâf–ÇFW ¦–âF†RVW'’—2F†RöæÇ’F†–ær&WGvVVâöæR'W6–æW72æBæ÷F†W"w2—&öÆÂ¢¢ÒÐ¦6†V6¶VBv–ç7BF†RVW'’7G&–æw2F†B7GVÆÇ’ÆVgBÂæ÷Bv–ç7BF†R6öFRF†@¦'V–ÆG2F†VÒâæBF†R†÷W'2VW'’—2&÷VæFVBFòF†RF’&V–ærÆöö¶VBB&F†W §F†â&VF–ærWfW'’VçG'’'W6–æW72†2WfW"&V6÷&FVBÂv†–6‚—2†÷rvRvWG0§6Æ÷rv—F†÷WBç–&öG’æ÷F–6–ærà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃs#FW7G276–ærà ¢222##bÓ‚Ó2(	BF†RÆ&÷W"†ÆbÂæBf÷W"v—2—B—2æ÷B¶æ÷v&ÆP ¤V6‚F’VæFW"F–Ç’6ÆW2æ÷r6÷7G2—G2÷vâÆ&÷W#¢†÷W'2g&öÐ¦V×Æ÷–VU÷F–ÖUöVçG&–W6Â&FW2g&öÒV×Æ÷–VU÷vvU÷&FW6Â¦ö–æVBöâF†RFFP§F†R&FRv2–âf÷&6RâF†B6ö×ÆWFW2F†RfööBÖæBÖÆ&÷W"f–wW&RF†R&W7FW&ç@§66†VÖ†2†VÆB6–æ6RÖ–w&F–öâBæBæ÷F†–ær†2WfW"&öGV6VBà ¦Æ–"÷6öæ&ÖÆ&÷W"Ö6÷7Bæ6§6—2Ö÷7FÇ’&VgW6Ç2ÂæBF†B—2F†Rö–çBâÆ&÷W ¦f–wW&R—2çVÖ&W"'W6–æW72&–6W2v–ç7BÂæBF†Rö'f–÷W2fW'6–öâöbF†—0¦¦ö–â—26öæf–FVçFÇ’6†÷'B–âf÷W"v—3  ¢¢6†–gB7F–ÆÂ6Æö6¶VB–â†2æòVæBÂ6ò—G2†÷W'2&RVæ¶æ÷vâÂæ÷B¦W&ð¢¢6Æ&–VBW'6öâ6ææ÷B&RF—f–FVB–çFòF’'’×VÇF—Ç––ær†÷W'2ÒÒV–v‡@¢†÷W'2F–ÖW2*3BÃÖöçF†Ç’&FR—2Æ&÷W"6÷7BöbF†—'G’×GvòF†÷W6æ@¢¢6öÖV&öG’v—F‚æò&FRöâF†BFFR6÷7G2âVæ¶æ÷vâÖ÷VçBÂæ÷Bæ÷F†–æp¢¢'&V²ÆöævW"F†âF†R6†–gB—2&BFFÂæ÷BæVvF—fRv÷&° ¤V6‚—26÷VçFVBæBæÖVBFòF†R7W7FöÖW"Â&V6W6Rf–wW&RÖ—76–ærF‡&VRV÷ÆP§&VG2W†7FÇ’Æ–¶R6ö×ÆWFRöæRâv†Vâç—F†–ær—2Ö—76–ærF†Rv÷&F–ær6†ævW0§Fò&Æ&÷W"BÆV7B‚ÂÆVf–ærBÖ÷7B’"ÂæB6—2v†–6‚V÷ÆR—BÆVgB÷WBà ¥F†R6&B7F–ÆÂæWfW"6—2&öf—Bâ—B6—2fööBæBÆ&÷W"öæÇ’ÂæBF†B&Vç@¦æBVæW&w’&Ræ÷B–â—Bà ¥GvòÖV6†æ–6Âæ÷FW2âF†RFWF–Â†æFÆW"w&WrFW&—fVE&VG6†öö²Â&V6W6P¦†÷W'2æB&FW2&Ræ÷B6†–ÆG&Vâöb6ÆW27VÖÖ'“²—B†æG2F†RvR¢¢§66÷VB¢¢Æ—7BgVæ7F–öâ&F†W"F†âF†R7W&6R6öæf–rÂ6òvR6ææ÷Bw&—FP¦VW'’F†Bf÷&vWG2F†R÷&væ—¦F–öâf–ÇFW"ÒÒF†RöæRÖ—7F¶RF†Bv÷VÆBÆW@¦öæR'W6–æW72&VBæ÷F†W"w2—&öÆÂâæBf–æ—FTçVÖ&W&Ö÷fVBFð¦Æ–"÷6öæ&ÖçVÖ&W'2æ6§6¢F†RÆ&÷W"ÖöGVÆRæVVG2—BæBF†R&V6÷&BvW2æ÷p¦æVVBF†RÆ&÷W"ÖöGVÆRÂv†–6‚—2&WV—&R7–6ÆRâ—B—2&RÖW‡÷'FVBg&öÒ—G2öÆ@¦†öÖR&V6W6RVæ÷Vv‚ÖöGVÆW2–×÷'B—Bg&öÒF†W&RF†BÖ÷f–ærF†VÒv÷VÆB&P¦6‡W&âà ¥GvòÖ—7F¶W2v÷'F‚&V6÷&F–ærâF†RwV&BF†Bv27W÷6VBFòFBF†RæWr&WV—&P§&VB–b‚'6öæ&ÖÆ&÷W"Ö6÷7B"æ÷B–â6÷W&6R–ÒÒæBF†R6÷W&6RÇ&VG¦6öçF–æVBF†B7G&–ærÂ–âF†R6öÖÖVçBö–çF–ærBF†Rf–ÆRÂ6òF†R&WV—&Rv0¦æWfW"–ç6W'FVBâ6V6öæBF–ÖR–âGvò6†ævW2F†B6†V6²†2&VVâ6F—6f–VB'§&÷6R&÷WB—G6VÆbâæBFW7Bf—‡GW&RvfRöæRV×Æ÷–VR&÷F‚æò&FRæ@¦–×÷76–&ÆR†÷W'2ÂW‡V7F–ær&÷F‚Fò&R&W÷'FVC²F†R†÷W'26†V6²'Vç2f—'7BÂ6ð§F†Ræò×&FR66Rv2æWfW"&V6†VBæBF†R76W'F–öâf÷"—Bf–ÆVBâF†Rf—‡GW&P§v2w&öærÂæ÷BF†R6öFRà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃsRFW7G276–ærà ¢222##bÓ‚Ó2(	BF‡&VRÖ÷&R6÷–W2öbF†R6öæf–FVçB¦W&òÂ÷WG6–FRF†R&V6÷&BvW0 ¥F†RvVæW&Â7vVW&VG26öÇVÖâFVf–æ—F–öç2Â6ò—B6ææ÷B6VRç—F†–ærF†@§&VæFW'2F‡&÷Vv‚—G2÷vâf÷&ÖGFW"âF‡&VRF–Bà ¤7&VF÷"7GVF–òvVæW&F–öâ¦ö"v—F‚æò&öw&W72&W÷'FVB6†÷vVB¢£R¢¢Âv†–6€§&VG227F'FVBæB7FÆÆVB&F†W"F†âæ÷F†–ær†26–B–WBâæBF†Rw&÷wF€¥7GVF–ò6öçfW'6–öâF÷FÇ27VÖÖVBçVÖ&W"‡&÷rçfÇVRÇÂ––âGvòÆ6W2Â6ò§6ÆRv—F‚æòfÇVR&V6÷&FVB6÷VçFVB2¦W&òæBfæ—6†VB–çFòF†Rf–wW&RÒÒ§F÷FÂ6†÷'B'’†÷vWfW"Öç’6ÆW2&RVç&–6VBÂ&W6VçFVB2F†RfÇVRöbWfW'§6ÆRâF†Rf–wW&Ræ÷r7V×2öæÇ’F†R&÷w2F†B6''’fÇVRæB6—2†÷rÖç’—@¦ÆVgB÷WBÂ–âF†R’w26ö×WFVD÷fW&æB–âF†RÆ&VÂöâF†RF÷FÇ26&Bà ¢¢¥F†Rf—'7BfW'6–öâöbF†R6†V6²f–ÆVBöâ—G2÷vâ6öÖÖVçBâ¢¢—B6V&6†VBF†P§6÷W&6Rf÷"çVÖ&W"‡‚ÇÂ–æBÖF6†VBF†R6öÖÖVçBw&—GFVâF—&V7FÇ’&÷fRF†P¦f—‚Âv†–6‚V÷FW2F†RGFW&âFò6’v†B—B&WÆ6VBâ6öÖÖVçG2&R7G&—V@¦&Vf÷&RÖF6†–æræ÷rÒÒF†R6ÖRG&67&—G2÷fW&–g’Ö÷Vâ×6÷W&6R×&Vv—7G'’æÖ§6 ¦†—B&VF–ærG—RVæ–öâ÷WBöbf–ÆRv†÷6R6öÖÖVçB6öçF–æVB6VÖ–6öÆöââ§&VvW‚÷fW"6÷W&6R—2&VvW‚&÷6R6â6F—6g’à ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃc“’FW7G276–ærà ¢222##bÓ‚Ó2(	Bv†BF’ÖFRÂæBF†RvvR&FW2F†BvW&R&Æö6¶–ær—@ ¦V×Æ÷–VU÷vvU÷&FW6†B66†VÖÂ&÷rÆWfVÂ6V7W&—G’æBæòvRâF†B—2v‡¦Æ&÷W"6÷7B—2æ÷B6ö×WF&ÆRç—v†W&R–âF†—2&öGV7C¢†÷W'2&R&V6÷&FVBöà¦V×Æ÷–VU÷F–ÖUöVçG&–W6Â&FW2vW&Ræ÷B&V6÷&F&ÆRBÆÂâ—B6—G2VæFW"7Ff`¦æ÷rÂ26†–ÆBöbF†RW'6öâ—B&VÆöæw2FòÒÒF†R6ÖR&VÆF–öç6†—&V6—P¦–æw&VF–VçG2†fRFò&V6—Rà ¥v—F‚F†BVæ&Æö6¶VBÂV6‚F’VæFW"F–Ç’6ÆW27FFW2—G2÷vâfööB6÷7C¢æW@§6ÆW2öfbF†RF’ÂfööB6÷7Bg&öÒF†RÖVçRÖ—‚ÂæBF†R6†&Röb6ÆW2—@§&W&W6VçG2âF†R6&B¢¦FöW2æ÷B6ÆÂF†R&VÖ–æFW"&öf—Bâ¢¢–âfööB'W6–æW70¦Æ&÷W"—2F†R6V6öæBÖÆ&vW7B6÷7BgFW"fööBÂ6ò&w&÷72&öf—B"F†BV–WFÇ¦öÖ—G2vvW2—2æ÷Bâ&÷†–ÖF–öâÂ—B—2w&öærçVÖ&W"6öÖV&öG’Ö–v‡B&–6P¦v–ç7Bâ—B6—2&&Vf÷&RÆ&÷W""æB6—2v‡’Æ&÷W"—2æ÷B–â—BÂæBF†W&R—0¦FW7B76W'F–ærF†Rv÷&B&öf—BæWfW"V'2à ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö6÷7G66—2F†Ræ'&÷vW"G'VRF†–æræ÷s¢F†RfööBÖ6÷7@¦†Æb—2öâV6‚F’ÂæB6öÖ&–æ–ær—Bv—F‚Æ&÷W"–çFòöæRf–wW&RW"F’—0§7F–ÆÂæ÷B'V–ÇBà ¥F‡&VRF†–æw2–âF†RFW7B†&æW72vW&Rw&öæræBöæÇ’6†÷vVBW&V6W6R6†–Æ@§v—F‚&WV—&VB¦FFR¢'&—fVBâ&WV—&VD&öG–f–ÆÆVBWfW'’æöâÖçVÖW&–2&WV—&V@¦f–VÆBv—F‚F†Rv÷&B%6öÖWF†–ær"Â6òFFR6öÇVÖâv2÷7FVBF†R7G&–æp¥6öÖWF†–ærÒÒ66WFVB'’F†R7GV"Â&V¦V7FVB'’÷7Fw&W2Âv†–6‚ÖVç2F†R†&æW70§v2W†W&6—6–ærF‚æò&VÂ7V&Ö—76–öâF¶W2âæB'v–ÆÂæ÷BF¶RF†P¦÷&væ—¦F–öâg&öÒF†Rf÷&Ò"†æB×w&÷FR&öG’v—F‚—FVÕöæÖVv–ç7@¦t•D…ôÄ”äU5³Ö²FF–ær6†–ÆB6†ævVBv†–6‚vR6ÖRf—'7BÂ—G2f÷&Ò6·2f÷ ¦âÖ÷VçBæBFFRÂæBF†R7V&Ö—76–öâv2&V¦V7FVB&Vf÷&RF†RFVæçB6†V6²—@¦W†—7G2Fò'Vâ6÷VÆB†Vââ—B'V–ÆG2F†R&öG’g&öÒF†RvRw2÷vâf÷&Òæ÷rÀ§v†–6‚—2F†RÆW76öâF†—2f–ÆR†BÇ&VG’ÆV&æVBöæ6RæBÆ–VBWfW'—v†W&P¦W†6WBF†W&Rà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃc“rFW7G276–ærà ¢222##bÓ‚Ó2(	BF†R†ÆböbF†RVF—BF†Bæö&öG’v÷VÆB†fR&V@ ¢¥6VÆÆ–ær–÷W"v÷&²¢—2g&VRÂöâF†R÷væW"w2–ç7G'V7F–öââF†RöæÇ’vRF†BFöW0¦—B—2g&VRöæRÂ6ò7F'FW"fÆö÷"6†&vVBf÷"6öÖWF†–ær6–væVBÖ–â7W7FöÖW ¦Ç&VG’†BâFVâöbGvVçG’×F‡&VR&öGV7G2&Rg&VRæ÷rÂF‡&VR7F'FW"ÂV–v‡@¤6÷&RÂGvò&òà ¢¢¤æBF†RVF—B&Vf÷&RF†—2öæRf—†VBF†Rw&öær†Æbâ¢¢—BG&–ÖÖVBæ–æP¦6&–Æ—F–W6Æ—7G2Fòv†BF†V—"vR&VæFW'2æBÆVgBWfW'’7VÖÖ'–ÆöæRà¦6&–Æ—F–W6—2–çFW&æÂæBæö&öG’÷WG6–FRF†—2&W÷6—F÷'’6VW2—C²7VÖÖ'– ¦æB7W7FöÖW$÷WF6öÖV&R&–çFVBöâF†R6FÆör6&B7W7FöÖW"&VG2&Vf÷&P§––ærâ6ò%&öGV7G2Â6W'f–6W2ÂÆ–6Væ6W2Â'VæFÆW2Â&–6W2ÂFVÆ—fW'’f–ÆW2À§–ÖVçBÆ–æ·2ÂæB–÷W"&VgVæB÷6—F–öâ"7F–VBöâ&öGV7Bv†÷6RvRG&gG0¦öæRöffW"æB6fW2—BÂæW‡BFò6&–Æ—G’Æ—7BF†B†B&VVâ7WBFòF‡&VP¦†öæW7B—FV×2à ¥6WfVâ7VÖÖ&–W2&Ww&—GFVââ&W6V&6‚b&öFÖæòÆöævW"6Æ–×266÷&V@¦÷÷'GVæ—F–W2÷"Æ—fRW‡W&–ÖVçG3²öæR6öææV7FVB66÷VçBæòÆöævW"6—2f–ÆW0§7F’–âöæRÆ6RÂ&V6W6RöF6†&ö&F†öÆG2æöæS²ÆæF–ærvW2b&W7VÇG2æð¦ÆöævW"FW67&–&W2F‚F‡&÷Vv‚f÷&ÒÂ&öö¶–æræB–ÖVçC²6öææV7F–öà¤†VÇF‚æòÆöævW"öffW'2Æ–Ö—G2Â&WG&–W2Â6÷7G2æBv†W&R–÷R&R&V–æp¦ÖVçF–öæVBà ¦FW7G2÷F†RÖ6FÆörÖ6÷’Ö6Æ–×2Öæ÷F†–ær×Væ'V–ÇBçFW7Bæ§6—2F†RÆ—7Böb‡&6W0¦æò&öGV7BÖ’W6RæBF†R&V6öâV6‚öæR—2æ÷BF†W&RFò&öÖ—6RÒÒ'VæFÆW2À¦FVÆ—fW'’f–ÆW2Â–ÖVçBÆ–æ·2ÂUDÒÂ&VgVæB÷6—F–öâÂ66÷&VB÷÷'GVæ—F–W2À§fÆ–FF–öâ÷'FföÆ–òÂ&VfW'&ÂG&6¶–ærÂç7vW"ÖVæv–æRÂ&VæWvÂ&VÖ–æFW'2Â55`¦Ö–ærÂf–ÆR7F÷&vRâ—B&VG2F†R7W7FöÖW"Öf6–ærf–VÆG2Âæ÷BF†R–çFW&æÀ¦öæRÂv†–6‚—2F†RÖ—7F¶R—BW†—7G2Fò6F6‚à ¤—Bf÷VæBöæR’†BÖ—76VB'’†æC¢¤6öææV7FVB66÷VçG2¢7F–ÆÂöffW&VB'6fP¦6öææV7F–öç2Fò–ÖVçG2ÂVÖ–ÂÂV&Æ—6†–ærÂ¢¦f–ÆR7F÷&vR¢¢ÂæBæÇ—F–72"À¦gFW"F†R7F÷&vR&öGV7B—G6VÆb†B&VVâ&Ww&—GFVââ‡&6R÷WFÆ—f–ærF†P§F†–ær—BFW67&–&VB—2W†7FÇ’v†B†æB72Ö—76W2æBÆ—7B6F6†W2à ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃc“FW7G276–ærà ¢222##bÓ‚Ó2(	B÷Væ–ærÆÂGvVçG’×F‡&VR&öGV7G2æB&VF–ærv†BF†W’&VæFW  ¤WfW'’6FÆör&öGV7B÷VæVB2––ær7W7FöÖW"Âv—F‚—G2vR6ö×&VBFð§v†B—G2&÷r6Æ–×2â¢¥6—‚vW&Rö–çF–ærBF†Rw&öærvRæBF‡&VRÖ÷&RvW&P¦6Æ–Ö–ærv÷&²F†B—2æ÷B'V–ÇBç—v†W&Râ¢  ¥F†Rv÷'7Bv2¥V÷FW2Â–çfö–6W2bvWGF–ær–B¢ÂBö'W6–æW72Ö'V–ÆFW"ö&–ÆÆ–æv ¢ÒÒF†R7W7FöÖW"w2÷vâ4ôä$7V'67&—F–öâÂv—F‚%Ww&FS¢7F'FW""æB$ÖævP¦&–ÆÆ–ær÷'FÂ"öâ—Bâ&öGV7B&÷WB–çfö–6–ærF†V—"7W7FöÖW'26VçBF†VÒFò§vR&÷WB––ærW2â—BvöW2Fòö'W6–æW72Ö'V–ÆFW"ö÷væW"ö–çfö–6W6æ÷rà ¢¤f–ÆR7F÷&vR¢6Æ–ÖVBf–ÆR7F÷&vRÂfW'6–öç2Â&÷fÇ2æB&÷fVææ6RÂ@¦öF6†&ö&FâF†W&R—2æòf–ÆR7F÷&R7W7FöÖW"6âWÆöBFòç—v†W&R–âF†—0§&öGV7BÒÒF†RöæÇ’7F÷&vRF‚—2F†R6–væVBF÷væÆöBöb7&VF÷"7GVF–ð¦vVæW&F–öâ&W7VÇBÒÒæBF†RF6†&ö&B†öÆG2æòf–ÆW2BÆÂâ—B—2æ÷rv†@¦FöW2W†—7C¢ö66÷VçBöFFÂWfW'’¶–æBöb&V6÷&BF†R66÷VçB†öÆG2ÂF÷væÆö@¦öbÆÂöb—BÂæBâW&7W&R&WVW7Bà ¢¤'&æBb76WBÆ–'&'’¢ö–çFVBBF†RvVæW&–27&VF÷"7GVF–òv÷&·76R–æFW€§&F†W"F†âö7&VF÷"×7GVF–òö76WG6Âv†–6‚—2F†R76WB6FÆöwVRà¢¤Æöv–ç2ÂFVÒbW&Ö—76–öç2¢ö–çFVBBö66÷VçB÷6WGWÂv†–6‚&VæFW'2æò6&G0¦BÆÂÒÒö66÷VçF—2v†W&Râ÷&væ—¦F–öâ—27&VFVB÷"¦ö–æVBâ¤öæP¤6öææV7FVB66÷VçB¢ö–çFVBB÷&öGV7G6ÂF†RV&Æ–2Ö&¶WF–ær–æFW‚à ¢¢¤æB¥6VÆÆ–ær–÷W"v÷&²¢v2w&öærf÷"F†R6V6öæBF–ÖRâ¢¢F†R&Wf–÷W26†ævP¦Ö÷fVB—BöfbF†RvVæW&–26WGW6†V6¶Æ—7BæBöçFòö7&VF÷"×7GVF–òööffW'6À¦6†÷6Vâ&V6W6RF†RvR¦FVf–æ—F–öâ¢—2F—FÆVB$öffW"&V6÷&G2"â&VæFW&–ær—@§6†÷w2Gvò6&G2ÒÒ%v†BF†—2FööÂFöW2"æB$66W72"ÒÒv—F‚æò&V6÷&G2æBæð¦f÷&Òâ&VF–ærFVf–æ—F–öâ—2æ÷B&VF–ærvRÂæBF†R6†V6²F†BW†—7FV@¦6¶VBv†WF†W"F†R&÷WFR&W6öÇfVBæBv†WF†W"F†RÆâ÷VæVB—Bâ&÷F‚vW&RG'VRà¤—Bö–çG2Bö7&VF÷"×7GVF–òööffW'2ög&VVæ÷rÂv†–6‚G&gG2æB6fW2âöffW"À¦æBF†R6Æ–×2&R7WBFòF†C¢'VæFÆW2Â–ÖVçBÆ–æ·2æBFVÆ—fW'’f–ÆW2&P¦æ÷B'V–ÇBç—v†W&R–â7&VF÷"7GVF–òæBF†R&÷r6–BÆÂF‡&VRà ¥F‡&VR6&–Æ—G’Æ—7G2G&–ÖÖVBFòv†BF†V—"vR6†÷w2â¥&W6V&6‚b&öFÖ ¦6Æ–ÖVB÷÷'GVæ—G’66÷&–æræBfÆ–FF–öâ÷'FföÆ–ó²F†RvR7FFW2§F†W6—2Â&–6–ær÷6—F–öâæB'VÆR&÷WBæ÷B–çfVçF–ærFFâ¤ÆæF–ærvW2`¥&W7VÇG2¢6Æ–ÖVBUDÒ'V–ÆFW"æBÆæF–ær×vRf÷&×3²æV—F†W"W†—7G2â¤6öææV7F–öà¤†VÇF‚¢6Æ–ÖVBç7vW"ÖVæv–æRWf–FVæ6RæB&VfW'&ÂG&6¶–æs²—BÆ—7G26öææV7FV@§6W'f–6W2à ¦FW7G2öV6‚×&öGV7BÖFöW2×v†BÖ—B×6—2çFW7Bæ§6&VæFW'2ÆÂGvVçG’×F‡&VR2à¦VçF—FÆVB7W7FöÖW"æB&WV—&W2V6‚Fò6†÷r6&Böb—G2÷vâÒÒæ÷BF†P¦Æ–6F–öâg&ÖRÂæBæ÷BÆ6V†öÆFW"FW67&–&–ærv†B—Bv÷VÆBFòâvP¦æVVBæ÷B†fRf÷&Ó¢6WfW&Â&öGV7G2&R&W÷'G2ÂæBFVÖæF–ær'WGFöâö`§F†VÒv÷VÆB&RFVÖæF–ærF†Rw&öærF†–ærâF†R6&B67&R†2—G2÷vâwV&BÀ¦&V6W6R67&RF†B6–ÆVçFÇ’7F÷2ÖF6†–ær&W÷'G2WfW'’vR2†VÇF‡’À§v†–6‚—2†÷rF†Rf—'7B72F‡&÷Vv‚F†—2Æöö¶VBf–æRà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃcƒbFW7G276–ærà ¢222##bÓ‚Ó2(	BGvVçG’×F‡&VR6öÇVÖç2&W÷'F–ærçVÖ&W"æö&öG’&V6÷&FV@ ¥7F'FVB27vVWöbWfW'’&V6÷&B6öÇVÖâæBGW&æVB–çFòöæRf—‚–âF‡&VP¦†VÇW'2à ¦ÖöæW’‚–ÂVçF—G’‚–æBW&6VçB‚–ÆÂwV&FVBv—F€¦çVÖ&W"æ—4f–æ—FR„çVÖ&W"‡fÇVR’–âçVÖ&W"†çVÆÂ–—2æB—2f–æ—FRÂ6ò¦6öÇVÖâv—F‚æ÷F†–ær–â—B&–çFVB6öæf–FVçBf–wW&S¢Cãf÷"6W'f–6Rv—F€¦æò&–6RÂf÷"â—FVÒæö&öG’†B6÷VçFVBÂãVf÷"F&vWBæö&öG’†B6WBà¥GvVçG’×F‡&VR6öÇVÖç27&÷72F†R÷væW"æBw&÷wF‚&V6÷&BvW2F–B—Bà¦6÷VçEFW‡B‚–æBW&6VçEFW‡B‚––âÆ–"÷6öæ&Öw&÷wF‚×&V6÷&B×vW2æ6§6vW&R§6V6öæB6÷’öbF†R6ÖRfVÇBà ¤7F÷&VB7F–ÆÂ&VæFW'22âF†B—2F†Rö–çC¢'6VçBæB¦W&ò&P¦F–ffW&VçBf7G2æBF†R†VÇW'26âæ÷rFVÆÂF†VÒ'Bà ¥GvòÖ÷&RöbF†R6ÖR6†Rf÷VæBöâF†Rv’âÆ÷u7Fö6¶öâF†R'W6–æW72'V–ÆFW §6æ6†÷B&VBçVÖ&W"æ—4f–æ—FR„çVÖ&W"‡&÷rç&V÷&FW%öÆWfVÂ’–Âv†–6‚66WG2çVÆÂÀ§6òâ—FVÒv—F‚æò&V÷&FW"ÆWfVÂv26ö×&VBv–ç7BF‡&W6†öÆBöb¦W&òæ@¦ç’—FVÒv—F‚æòVçF—G’&V6÷&FVB6÷VçFVB2Æ÷r7Fö6²ÒÒF†R†VFÆ–æRf–wW&P§v2–æfÆFVB'’—FV×2æö&öG’†B6WBF‡&W6†öÆBf÷"à¦Æ–"÷6öæ&×&V6÷&BÖ6†V6·2æ6§66·2F†R6ÖRVW7F–öâ6÷'&V7FÇ’v—F€¦çVÖ&W"‡&÷rç&V÷&FW%öÆWfVÂ’â²GvòÖöGVÆW2ÂöæRVW7F–öâÂGvòç7vW'2ÂæBF†P§w&öæröæRv2öâF†RF6†&ö&BâæBF†R6VvÖVçG2vR&W÷'FVB#V÷ÆR"f÷"§6VvÖVçBæö&öG’†BWfÇVFVBà ¢¢¤æB'Vr’†B–çG&öGV6VBF†R6†ævR&Vf÷&Râ¢¢W&6VçB‚–×VÇF—Æ–W2'’À§6òWfW'’6öÇVÖâfVVF–ær—B†öÆG2g&7F–öââ’7F÷&VB&V6—Rv7FR2v†öÆP¦çVÖ&W"æBw&÷FR&æ÷F†–ær&VBF†—26öÇVÖâ&Vf÷&RÂ6òF†R6öçfVçF–öâ—26W@¦†W&R"ÒÒG'VR&÷WBF†R6öÇVÖâÂw&öær&÷WBF†R6öFV&6RÂ6–æ6RWfW'¦çVÖW&–2ƒrÃB–W&6VçB6öÇVÖâ–âÖ–w&F–öâB—2g&7F–öââRRv7FP¦F—7Æ–VB2SãRâF†R7W7FöÖW"7F–ÆÂG—W2S²F†RFW&—fR†öö²7F÷&W2ãRà ¦FW7G2öæòÖ6öÇVÖâÖ–çfVçG2ÖÖçVÖ&W"çFW7Bæ§6—2F†RvVæW&Â6†V6²â—B&VG2V6€¦6öÇVÖâw2f–VÆG2v—F‚&÷‡’&F†W"F†âwVW76–ærF†VÒÒÒF†Rf—'7BfW'6–öà§&ö&VBâÆÂÖV×G’&÷ræBÖ—76VBF†RÖVçRÖ&v–âÂv†–6‚öæÇ’Æ–W2v†VâF†P§&–6R—2&W6VçBæBF†R6÷7B—2æ÷BÒÒF†Vâ&VÖ÷fW2öæRçVÖW&–2f–VÆBBF–ÖP¦æB&WV—&W2F†R6öÇVÖâV—F†W"Fò6’—BFöW2æ÷B¶æ÷r÷"æ÷BFò&–çBf–wW&Rà¤—Bv26†V6¶VBv–ç7B&V–çG&öGV6VBçVÖ&W"‚–wV&B&Vf÷&R&V–ærG'W7FVBà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃcƒFW7G276–ærà ¢222##bÓ‚Ó2(	BF’w2F¶–æw2ÂæBÖVçRF†B7F÷VB6Æ–Ö–ærRÖ&v–à ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"öÖVçV†2%–÷R¶VW"6öÇVÖâF†B&W÷'FVBF†Rv†öÆP§6VÆÆ–ær&–6R2&öf—BÂBRÂf÷"WfW'’F—6‚âF†V÷&WF–6Åö6÷7Eö6VçG6—0¦–çFVvW"FVfVÇBæBæ÷F†–ærw&—FW2—BÂ6òWfW'’ÖVçR—FVÒ7W7FöÖW"†@¦VçFW&VB&VB26÷7F–æræ÷F†–ærFòÖ¶RÒÒöâF†R67&VVâ&W7FW&çBW6W2Fð¦FV6–FRv†BFò6†&vRâ¦W&ò—2&VB2&æWfW"6÷7FVB"æ÷rÂv†–6‚—2F†R6ÖP§&VF–ærÆ–"÷6öæ&×&V6÷&BÖ6†V6·2æ6§6Ç&VG’F¶W2v†Vâ—BfÆw2F—6‚v—F‚§&–6RæBæò6÷7BâF—6‚F†BvVçV–æVÇ’6÷7G2æ÷F†–ær—2æ÷B66R¶—F6†Và¦†2à ¦÷5÷6ÆW5÷7VÖÖ&–W6æB÷5öÖVçUöÖ—…ö—FV×6†fRvS ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷6ÆW6ÂF’BF–ÖRv—F‚v†B6öÆB2—G2Æ–æW2à ¤æBö'W6–æW72Ö'V–ÆFW"ö÷væW"ö6÷7G67F÷VB&öÖ—6–ærâ—G2&öG’6–BF†Rf–wW&W0§vW&R'v÷&¶VB÷WBg&öÒ–÷W"÷vâ&V6÷&G2&F†W"F†âVçFW&VB'’†æB"æB—G0¦V×G’7FFR6–BF†W’&V"öæ6R–÷R†fR6ÆW2æB6÷7G2&V6÷&FVB"ÒÒ'W@¦æ÷F†–ærw&—FW2F–Ç•÷&öf—E÷6æ6†÷G6Â6òF†W’v÷VÆBæ÷B†fRV&VB†÷vWfW ¦×V6‚'W6–æW72&V6÷&FVBâF†RvR—2¶WBÂ&V6W6RF†RF&ÆRæBF†P¦6Æ7VÆF–öâ&R&VÂv÷&²v÷'F‚Fö–æs²v†Bv2w&öærv2FVÆÆ–ær7W7FöÖW"—@§v2Ç&VG’†Væ–ærâ—Bæ÷r6—2v†–6‚†Æb—2&VG’æBv†–6‚—2æ÷B'V–ÇBà ¢¢¥F†R&WfW'6Röbf÷&Ò&V6†&–Æ—G’v2VæwV&FVBÂæB’vÆ¶VB7G&–v‡B–çFð¦—Bâ¢¢FW7G2öf÷&Ò×&V6†&–Æ—G’çFW7Bæ§66·2v†WF†W"WfW'’7&VFR×6†VBõ5@§&÷WFR6â&R&V6†VBg&öÒf÷&Òâæ÷F†–ær6¶VBF†R÷F†W"F—&V7F–öã¢vP¦FV6Æ&–ær“¦f÷"âVæGö–çBæö&öG’&Vv—7FW&VB&VæFW'2f÷&ÒF†B÷7G2Fð¦CBâF†RF–Ç’6ÆW2vRv2w&—GFVâF†Bv’ÒÒF†R6†–ÆBVæGö–çB—0§&Vv—7FW&VBWFöÖF–6ÆÇ’g&öÒF†R6†–ÆB7V2Â6òöæÇ’F†R&VçBv2Ö—76–ærÀ¦æBF†R÷Vä’vFRfÆvvVBF†R6†–ÆBv†–ÆR6––æræ÷F†–ær&÷WBF†R&VçBà¥F†R'WGFöâÆöö¶VBW†7FÇ’Æ–¶RF†Rv÷&¶–æröæW2à ¥F†R6†V6²f÷"—B†BFòÆV&âF†R6ÖRÆW76öâÆ–"÷6öæ&Öf÷&Ò×&V6†&–Æ—G’æ6§6 ¦F–C¢vRw2f÷&ÒÖ’FV6Æ&R—G2÷vâ7F–öæÂ6ò&VF–ærvRæ–ÆöæP§&W÷'FVBF†Rv÷&¶–ærF–ÖRÖ6Æö6²vR2'&ö¶Vââ6Æö6¶–ær–â÷7G2Fð¦ö’ö'W6–æW72÷F–ÖRÖVçG&–W2÷7F'FÂ&V6W6R—B—2'7F'BöæRæ÷r"&F†W"F†à¢&7&VFRF–ÖRVçG'’"à ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃcsrFW7G276–ærà ¢222##bÓ‚Ó2(	B&V6—RF†B6÷7G26öÖWF†–ærÂæBF÷FÂF†Bv26†÷'@ ¦&V6—Uö6&G66†—VBv—F‚vRâ&V6—Uö–æw&VF–VçG66†—VBv—F‚66†VÖÀ§&÷rÆWfVÂ6V7W&—G’Ââ–æFW‚æBæòv’FòFBöæRÂ6ò&V6—Rv2æÖRÂ§––VÆBæB&Æö6²öbÖWF†öBFW‡Bâ&V6—R6÷7F–ærÒÒF†RçVÖ&W"fööB'W6–æW70¦—27GVÆÇ’'W––ærÂæBv†BC3SÖÖÆö6F–öâ6ö×WF—F÷"6VÆÇ2ÒÒ6÷VÆBæ÷B&P§v÷&¶VB÷WBg&öÒç—F†–ærF†R&öGV7B†VÆBà¦Fö72ó##bÓ‚Ó"Õt„BÔTÅ4RÔ4âÕtRÕ4TÄÂæÖFæÖW2F†—2F&ÆRf—'7Bf÷"F†@§&V6öâà ¤–æw&VF–VçG2æ÷r†æröfb&V6—RÆ–¶R–çfö–6RÆ–æW2†æröfbâ–çfö–6RÂW6–æp§F†R6†–ÆBÖÆ–æRÖ6†–æW'’F†BÇ&VG’W†—7FVBâGvòF†–æw2&÷WB—B&P¦FVÆ–&W&FRâF†R6÷7B—2¢¦FW&—fVBÂæ÷B6¶VBf÷"¢£¢VçF—G’ÂVæ—B6÷7Bæ@§v7FR&Rf7G2W'6öâ¶æ÷w2ÂæBF†R6÷7B—2&—F†ÖWF–2÷fW"F†VÒÂ6ò6¶–æp¦f÷"&÷F‚v÷VÆBÆWBF†R7F÷&VBçVÖ&W"F—6w&VRv—F‚—G2÷vâ–çWG2âF†B—0¦FVÆ–&W&FVÇ’VæÆ–¶Râ–çfö–6RÆ–æRÂv†W&RÆ–æU÷F÷FÅö6VçG6—26¶VBf÷"æ@§7F÷&VBÂ&V6W6RÆ–æRF÷FÂ—2v†BF†R'W6–æW72FV6–FVBFò6†&vRæ@§&V6ö×WF–ær—Bv÷VÆB÷fW'w&—FRF—66÷VçBâæö&öG’F—66÷VçG2&V6—Rà ¦v7FU÷W&6VçF†Bæò&VFW"ç—v†W&RÂ6òF†R6öçfVçF–öâ—26WB†W&R&F†W §F†â–æ†W&—FVC¢RÖVç2RRÂw&—GFVâöâF†Rf–VÆBW'6öâG—W2–çFòÂæ@¦76W'FVBÒÒF†R÷F†W"&VF–æröbçVÖW&–2ƒrÃB–v÷VÆBGW&â7W7FöÖW"G—–ærP¦–çFòSRv7FRà ¢¢¥GvòFVfV7G26ÖR÷WBöbw&—F–ærF†RFW7G2f÷"—Bâ¢  ¦çVÖ&W"†çVÆÂ–—2æBçVÖ&W"‚""–—2ÂæB&÷F‚&Rf–æ—FRâÆ–æW46&F ¦wV&FVB—G2F÷FÂv—F‚çVÖ&W"æ—4f–æ—FR„çVÖ&W"‡&÷u·F÷FÄg&öÕÒ’–Â6òÆ–æP§v†÷6RÖ÷VçB†BæWfW"&VVâVçFW&VB6÷VçFVB2æ÷F†–æræBF†RF÷FÂ&–çFVB0¢%F÷FÂöbF†W6RÆ–æW2"v†–ÆR&V–ær6†÷'B'’†÷vWfW"Öç’vW&R&Ææ²ÒÒv—F‚F†P¦&Ææ²6VÆÂf—6–&ÆR–âF†R6ÖRF&ÆRâF†Bv2Æ—fRöâ–çfö–6W2ÂW&6†6P¦÷&FW'2Â7Fö6²6÷VçG2ÂG&ç6fW'2æBfVæF÷"–çfö–6W2âf–æ—FTçVÖ&W&&WÆ6W2F†P¦wV&BB&÷F‚6—FW2à ¤æBF†RFWF–ÂvR&VB—G26†–ÆB&÷w22Æ—7FVBæö²òÆ—7FVBç&÷w2¢µÖÂ6òà§Vç&VF&ÆRÆ–æRÆ—7B&VæFW&VB27V2æV×G–ÒÒ$æ÷F†–ær†2&VVâFFVBFòF†—0¦–çfö–6R–WB"ÒÒf÷"â–çfö–6Rv†÷6RÆ–æW26÷VÆBæ÷B&R&VBâF†R&VB÷WF6öÖP§G&fVÇ2æ÷rÂæBâVç&VF&ÆRÆ—7B6—26ò–ç7FVBà ¤6ÖÆÆW"öæRÂf÷VæB'’Ö¶–ærF†RÖ—7F¶S¢&VfW&Væ6Vf–VÆBæÖ–æræòVçG'¦–â$TdU$Tä4Uõ4õU$4U6&VæFW'2âV×G’–6¶W"&F†W"F†âf–Æ–ærâw&—F–æp¦g&öÓ¢&–çfVçF÷'’&&Vf÷&RF†R6÷W&6RW†—7FVB&öGV6VB6öçG&öÂF†BÆöö¶V@¦Æ–¶Rv’Fò6†ö÷6R6öÖWF†–æræBöffW&VBæ÷F†–ærÂæBæò6†V6²ö&¦V7FVBà¦FW7G2ö÷væW"×&V6÷&BÖÆ–æW2çFW7Bæ§6&VgW6W2FævÆ–ær6÷W&6Ræ÷rà ¥F†R÷Vä’vFR6Vv‡BF†RæWrVæGö–çBÂv†–6‚—2F†R6V6öæBF–ÖRF†—26W76–öà¦—B†2&VVâF†RF†–ærF†Bæ÷F–6VB&÷WFRv—F‚æò÷W&F–öâà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃcs2FW7G276–ærà ¢222##bÓ‚Ó2(	Bv–FVæVBv†BÆâ'W—2ÂæBvfRÆö6F–öç2Æ–Ö—@ ¥Gvò÷væW"FV6—6–öç2Æ–VBà ¢¢¥v–FVæVB&F†W"F†â&W&–6VBâ¢¢7&VF÷"7GVF–òÖ÷fW2F÷vâFò7F'FW"æ@¤w&÷wF‚7GVF–òF÷vâFò6÷&RÂ6òÆÂ6WfVâ&öGV7G2F†BGfW'F—6VBÆâF†P§6W'fW"&VgW6W2æ÷r÷VâöâF†RÆâF†W’æÖRâF†RGvòw&÷wF‚&öGV7G2Ö&¶V@¥7F'FW"Ö÷fVBFò6÷&RÂ&V6W6Rw&÷wF…÷7GVF–öFöW2æ÷B÷Vâ&VÆ÷r—BâÆÂ#0¦6FÆör&öGV7G2W†V7WFRà ¥F†R6öç6WVVæ6R—2w&—GFVâ–çFòÆ–"÷6öæ&×–BÖ66W72æ6§6&F†W"F†âÆVgBFð¦&RF—66÷fW&VC¢¢¥&òC3’æòÆöævW"÷Vç2v÷&·76R6÷&RC’FöW2æ÷Bâ¢¢F‡&VP§v÷&·76W2æBF‡&VR–BF–W'2Ö¶RF‡&VR×'Vær7V×VÆF—fRÆFFW"ÂæBÖ÷f–æp§Gvòv÷&·76W2F÷vâ7VæG2Gvò'Væw2âF†R7FfbæB66†VGVÆ–ærfVGW&W2&RF†P¦–çFVæFVBç7vW"æBF†W’Ç&VG’W†—7BÂv—fVâv’g&VRÂv–ç7BFWWG’BCR§W6W"âVçF–ÂF†W’Ö÷fRFò&òÂ&ò—2&–6VB&÷fRv†B—BVæ—VVÇ’÷Vç2à ¢¢¤Æö6F–öç2&RÆ–Ö—FVB'’ÆâÂæ÷B&–ÆÆVBW"Æö6F–öââ¢¢7F'FW"Â6÷&R2À¥&òVæÆ–Ö—FVBÂ–âÆ–"÷6öæ&×ÆâÖÆ–Ö—G2æ6§6ÂVæf÷&6VBv†VâÆö6F–öâ—0¦7&VFVBââFBÖöâv÷VÆB†fRæVVFVB7G&—R&–6Rö&¦V7Bæ÷F†–ær†W&R6à¦7&VFS²âÆÆ÷væ6RæVVG2F†R6÷VçBæBF†RÆâÂ&÷F‚Ç&VG’öâF†R&WVW7Bà ¦Æö6F–öäÆÆ÷væ6V&WGW&ç2F‡&VRç7vW'2&F†W"F†âGvòÂæBF†B—2F†R'@§v÷'F‚¶VW–ærâ6÷VçBF†B6÷VÆBæ÷B&R&VB&VgW6W2v—F‚'vR6÷VÆBæ÷B6†V6² ¦æBS2Âæ÷B'–÷R†fR†—B–÷W"Æ–Ö—B"æBC"ÒÒ&V6†&ÆR7FFRv†W&RF†P¦ö'f–÷W2Gvò×fÇVVBfW'6–öâFVÆÇ27W7FöÖW"FVf–æ—FRF†–æræö&öG’ÖV7W&VBà¦çVÆÆÖVç2VæÆ–Ö—FVBæB—2¶WBF—7F–æ7Bg&öÒÂv—F‚FW7Bf÷"—BÀ¦&V6W6R–æ6ÇVFVBÇÂ–æf–æ—G–v÷VÆBGW&âFVÆ–&W&FR¦W&ò–çFòæòÆ–Ö—B@¦ÆÂà ¢¢¥F‡&VR6÷–W2öbF†R6ÖRÆ—7B6öÆÆ6VB–çFòöæRâ¢¢F†RFWÆ÷’vFR†VÆB—G0¦÷vâG&ç67&—F–öâöb”EôTåD•DÄTÔTåEô´U•6ÂæBFW7B&W6öÇfVB—B'’'6–æp§V÷FVB7G&–æw2÷WBöbF†RvFRw26÷W&6Râv–FVæ–ærF†RÖÖVçBVF—F–ærF†P¦vFR'’†æC²FW&—f–ær—B–ç7FVB'&ö¶RF†R'6W"Âv†–6‚&W÷'FVBF†BF†P¦6†V6²†BvöæR&Æ–æBÒÒ6÷'&V7FÇ’Âf÷"&V6öâF†Bv2æ÷BFVfV7BâF†RÆ—7@¦—2”Eô44U55õ%TåD”ÔUôÔ$´U%6æ÷rÂ–×÷'FVB'’&÷F‚ÂæB—Bv26†V6¶V@¦v–ç7BFVÆ–&W&FVÇ’&Vf÷&ÖGFVBÖ–ær&Vf÷&R&V–ærG'W7FVBà ¦vWD7W7FöÖW%–DVçF—FÆVÖVçFÖ÷fVBFòÆ–"÷6öæ&×–BÖVçF—FÆVÖVçBæ6§6Âv†–6€§Föö²6W'fW"æ§2g&öÒC#BÆ–æW2FòCæB'6÷&&VBF†RöæRÆ–æRF†RÆâÖÆ–Ö—@¦FWVæFVæ7’FFVB&F†W"F†â&—6–ærF†R7Æ—B&F6†WBf÷"—BâGvòF†–æw2'&ö¶P¦öâF†RÖ÷fRæB&÷F‚&RF†R6ÖR6†S¢FW7G2öFF&6R×VW'’Ö6öçG&7BçFW7Bæ§6 §&VB6W'fW"æ§2ÆöæRæBf–ÆVBöâ6öFRF†Bv2&W6VçBÂ6÷'&V7BæB6†—V@¦öæRF—&V7F÷'’÷fW"ÒÒv†–6‚—2W†7FÇ’F†RfVÇBF†RÖ&¶W"6†V6²v2w&—GFVà¦f÷"gFW"âV&Æ–W"Ö÷fRöbF†—26ÖRgVæ7F–öâ'&ö¶R&öGV7F–öâFWÆ÷’v†–ÆP§F†R7V—FR7F–VBw&VVââ—B&VG2F†Rv†öÆR'VçF–ÖRæ÷râF†R6öç7BÇ6ò†BFò&P¦'V–ÇB&÷fR—G2f—'7BW6RÂ&V6W6R—BW6VBFò&R†ö—7FVB7–æ2gVæ7F–öææ@§F†RFW2ö&¦V7B&VG2—BBÖöGVÆRÆöBà ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃccFW7G276–ærà ¢222##bÓ‚Ó"(	B6WfVâ&öGV7G26öÆBöâÆç2F†R6W'fW"&VgW6W0 ¥7F'FVB2&÷WFRf—‚öâ%6VÆÆ–ær–÷W"v÷&²"Âv†–6‚ö–çFVB@¦ö7&VF÷"×7GVF–òöÆVæ6‚×&VF–æW76ÒÒ6W'fW"æ§2w2vVæW&–0¦ó§&öGV7BöÆVæ6‚×&VF–æW76ÂöæR6WGW6†V6¶Æ—7B6†&VB'’ÆÂF‡&VR&öGV7G0¦æBæ÷BWfVâ6–væVBÖ–âvFVBâF†R–FVçF–6ÂfVÇB†B&VVâf—†VBöâ'W6–æW70¤'V–ÆFW"w2W‡÷'G2&öGV7B6†ævRV&Æ–W"æBÖ—76VB†W&RÂ&V6W6RF†RGvò&÷w0§vW&R&VBvVV²'BæBæ÷F†–ær6ö×&VB&÷WFRFòv†BF†R&÷WFR&VæFW'2à ¤6†V6¶–ærF†RÆâF†B&öGV7B—26öÆBöâGW&æVBWF†RÆ&vW"fVÇBà¦vWD7W7FöÖW%–DVçF—FÆVÖVçFÖF6†W27V'67&–&W"w2Æå÷6ÇVrv–ç7@¦vWE–DVçF—FÆVÖVçD¶W—2‡&öGV7D¶W’–âF†R6FÆörFV6–FVBv†WF†W"&öGV7Bw0§–B66W72v2&VÂv—F‚†4Væf÷&6VE–D66W72‡&öGV7D¶W’–ÒÒv†WF†W"F†P¦fÖ–Ç’Væf÷&6W2¦ç—F†–ær¢â6WfVâöbf÷W'FVVâ–B&öGV7G2fVÆÂ–âF†Rv ¤7&VF÷"7GVF–òVæf÷&6W26÷&UöÖöçF†Ç’æB&õöÖöçF†Ç’v†–ÆRF‡&VRöb—G2&öGV7G0¦GfW'F—6VB7F'FW"ÂæBw&÷wF‚7GVF–òVæf÷&6W2&õöÖöçF†Ç’ÆöæRv†–ÆRf÷W"ö`¦—G2&öGV7G2GfW'F—6VB7F'FW"÷"6÷&Râ'W––ærF†RGfW'F—6VBÆâæB6Æ–6¶–æp§F†R&öGV7B&WGW&æVBC"Ww&FU÷&WV—&VBÂ&÷F‚†ÇfW2v÷&¶–ærW†7FÇ’0§w&—GFVâæBF—6w&VV–ær&÷WBF†R&–6Rà ¥v÷'F‚æÖ–ær2GFW&âÂ&V6W6R—B—2F†R6V6öæBF–ÖS¢F†—2—2F†R7V66W76÷ §FòÆäfÆö÷"ÓÓÒ&g&VR&âF†BöæRFVf–æVBfW&–f–VB66W722g&VR66W73²F†—0¦öæRFVf–æVB—B26öÖV&öG’Â6öÖWv†W&R–âF†RfÖ–Ç’Â&V–ær&ÆRFòvWB–ââ&÷F€¦&RG'VR7FFVÖVçG2&÷WB6öÖWF†–ær÷F†W"F†âv†BF†R7W7FöÖW"—2&V–ær6öÆBÀ¦æB&÷F‚&VB2&V6öæ&ÆRVçF–Â–÷R6²v†BVW7F–öâF†R6öFR—2ç7vW&–ærà¦ÆäfÆö÷$÷Vç5&öGV7F6·2F†RöæRF†R7W7FöÖW"—26¶–ærà ¥F†R6WfVâæ÷r&W÷'B6Æ÷6VBÂv†–6‚—2†öæW7B'WB—2æ÷Bv†W&RF†W’6†÷VÆB7F’à¥v†–6‚v’F†W’÷Vâ—2&–6–ærFV6—6–öâÒÒ&—6RF†RfÆö÷"Â÷"v–FVâv†B§Æâ'W—2ÒÒ6ò—B—2Æ—7FVB2v÷&²VWVRv—F‚æ÷FRW"&öGV7B&F†W"F†à¦FV6–FVB†W&Rà ¥Gvò&÷WFW2Ç6ò7F÷VB6öÆÆ–F–ærâ$7W7FöÖW"bVçV—'’G&6¶W""æB$&öö¶–æw2À¥7FfbbF’×FòÔF’"&÷F‚ö–çFVBBö'W6–æW72Ö'V–ÆFW"öF6†&ö&F²F†W’&RF†P¤5$ÒæBF†R÷W&F–öç2‡V"&W7V7F—fVÇ’Âæ÷BGWÆ–6FW2ÂæBæ÷rvòFð¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö7W7FöÖW'6æBö'W6–æW72Ö'V–ÆFW"ö÷væW&à ¦FW7G2ö6FÆör×&÷WFW2Övò×6öÖWv†W&R×&VÂçFW7Bæ§6÷Vç2WfW'’6FÆör&÷WFP¦v–ç7BF†R&ö÷FVBÆ–6F–öâ&F†W"F†â&VF–æp¦Æ–"÷6öæ&×&÷WFR×&Vv—7G'’æ6§6âF†R&Vv—7G'’—2†æBÖÖ–çF–æVBæB—2æ÷@¦6ö×ÆWFRÒÒ÷&VF–æW76—2Æ—fRV&Æ–2vRÂÆ–æ¶VBg&öÒF‡&VR67&VVç2Âv—F‚§Æ–âÖÆæwVvRF—FÆRÂæB—BV'2–âæöæRöbF†R&Vv—7G'’w2&÷WFR'&—2â¦6†V6²&VF–ærF†R&Vv—7G'’v÷VÆB†fR6ÆÆVBF†B6FÆör&÷r'&ö¶Vâv†–ÆRF†P§vRv2f–æRà ¦Fö72ó##bÓ‚Ó"Õt„BÔTÅ4RÔ4âÕtRÕ4TÄÂæÖF—2F†R&W6V&6‚F†B6ÖR÷WBöb—Bà¥Gvòf–æF–æw2v÷'F‚6''––ærf÷'v&BâF†R6WfVâ&Ræ÷B6WfVâÖ—7F¶W3¢F†P¦6FÆör&–6W2öâFWF‚ÆFFW"v†–ÆR”EôTåD•DÄTÔTåEô´U•6vFW2öâ'&VGF‚À¦æBF†BÖ—2Ç&VG’v÷&·76RÖ66W72ÖvV&–ærÆâ×F–W"6Æ÷F†–ærÒÐ§v†–6‚—2–æFWVæFVçBWf–FVæ6Rf÷"F†R&W7G'V7GW&R–à¦Fö72÷&–6–æró##bÓ‚ÓÕ$”4”ärÕ$U5E%T5EU$RæÖFÂF†—2F–ÖRg&öÒ'Vr&F†W §F†âg&öÒÖ&¶WB6ö×&—6öââæBÖ–w&F–öâB—26ö×ÆWFR&W7FW&çBÖ&v–à§66†VÖÂV–v‡FVVâF&ÆW2v—F‚FVâv÷&¶–ær&V6÷&BvW2Â6öÆBFöF’2Gvòv÷&G0¦–ç6–FRC’Æâv–ç7B6ö×&&ÆRBC3SW"Æö6F–öâW"ÖöçF‚à ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃcS2FW7G276–ærà ¢222##bÓ‚Ó"(	BVÆWfVâ&öGV7G2&VÖ÷fVBÂæBF†R&÷rF†Bv÷VÆB†fR¶WBV&Æ—6†–ærF†VÐ ¥F†R6FÆör†B3B&öGV7G2æB#F†B6÷VÆBæ÷B&R'VââV–v‡BöbF†÷6RvW&P¦öæÇ’Ö—6Æ&VÆÆVBæBvW&R÷VæVB–âF†R&Wf–÷W26†ævRâF†R&VÖ–æ–ærF†—'FVVà§vW&RÆöö¶VBBöæRBF–ÖRâVÆWfVâFW67&–&VBv÷&²F†BFöW2æ÷BW†—7C¢¢%&V6÷&G2Â&VæWvÇ2bW‡÷'G2"&öGV7Bö–çF–ærBF†R6W'f–6R6WGW6†V6¶Æ—7BÀ§6WfW&ÂæÖVBf÷"F&ÆW2æ÷F†–ærw&—FW2FòÂöæRv†÷6RÆ–fV7–6ÆRf–VÆB6–@¦fÆ–FF–öå÷&WV—&VFv—F‚æò7&—FW&–F†B6÷VÆBWfW"&RÖWBâF†÷6RVÆWfVâ&P¦vöæRâGvòvW&Rf—†VB–ç7FVB(	B%&W6V&6‚b&öFÖ"v2&–6VB&öVæFW ¦6öæ&ö–æGW7G&–W6Âv†–6‚Væf÷&6W2æòVçF—FÆVÖVçBÂ6òF†RÆâ&÷Vv‡Bæ÷F†–æp¦æBF†R&öGV7B6÷VÆBæWfW"÷Vã²—B—2g&VRæ÷râ%&V6÷&G2bW‡÷'G2"¶WBF†P§'BF†BW†—7G2æBG&÷VBF†R&öÖ—6W3¢—Bö–çG2@¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö66÷VçF–ærÖW‡÷'G6æBæòÆöævW"6Æ–×2&VæWvÀ§&VÖ–æFW'2÷"55b–×÷'BÖ–ærÂæV—F†W"öbv†–6‚—2'V–ÇBà ¢¢¥&VÖ÷f–ær&öGV7Bg&öÒF†R6öFRF–Bæ÷B&VÖ÷fR—Bg&öÒF†R6—FRâ¢ ¦÷6W'f–6RÖ6FÆöv&VG26W'f–6Uö6FÆöuö—FV×6v†W&R7FGW2Òv7F—fRvæ@¦ÖW&vW2F†÷6R&÷w2÷fW"F†R6öFRFVfVÇG2Â6òF†RFF&6Rv–ç2âÆÂVÆWfVâv÷VÆ@¦†fRvöæRöâ&V–ærV&Æ—6†VBVæFW"F†V—"öÆBæÖW2Âv—F‚&÷WFW27W7FöÖW"6÷VÆ@§7F–ÆÂ6Æ–6²â67&—G2övVæW&FRÖ6FÆör×7–æ2ÖÖ–w&F–öâæ6§66–B%WFFW2öæÇ’à¤æò&÷r—2–ç6W'FVB÷"FVÆWFVB†W&R"Âv†–6‚v2G'VRæBv2F†R&ö&ÆVÒâ—Bæ÷p¦Ç6ò&WF—&W2&÷w2F†R6FÆöræòÆöævW"Æ—7G2Âæ@¦##cƒ3ƒ÷7–æ5ö6FÆöu÷–Eö66W72ç7Æv2Ö÷fVB–çFòÄ”TEôÔ”u$D”ôå6 §W"F†B67&—Bw2÷vâ'VÆRà ¥F†RçVÖ&W"3Bv2w&—GFVâF÷vâ–âf—fRÆ6W2(	BF†RFWÆ÷’vFRGv–6RÂGvòFW7@¦f–ÆW2ÂæB†æB×w&—GFVâFö7VÖVçB(	BæB&VÖ÷f–ærVÆWfVâ&öGV7G2f–ÆVBÆÀ¦f—fRâæöæRöbF†VÒ¶æWrF†RçVÖ&W"–æFWVæFVçFÇ“²V6‚v2&WVF–ærF†P¦6FÆörâF†RvFRFW&—fW2—G26÷VçG2æ÷rÂæ@¦FW7G2÷V&Æ—6†VBÖ6FÆör×7–æ2çFW7Bæ§6f–Ç2–bÆ—FW&Â6öÖW2&6²à ¢¢¥Gvò6†V6·2vVçBf7V÷W2öâF†V—"÷vâ7V66W72¢¢Âv†–6‚—2v÷'F‚&V6÷&F–æp¦&V6W6R&÷F‚vW&R6÷'&V7FÇ’w&—GFVâæB&÷F‚7F–ÆÂ†BFò6†ævRâöæR&WV—&V@§F†R&öGV7F–öâ6FÆörFòÇv—26öçF–â&W7G&–7FVB&öGV7C²F†B&VG22¦&÷VæF'’6†V6²æB—2&VÆÇ’&WV—&VÖVçBF†B6öÖWF†–ær7F’Væf–æ—6†VBâF†P¦÷F†W"76W'FVBF†R'v‡’—2F†—26Æ÷6VBÂ†÷rFò’6²"6÷’V'2öâF†P§&VæFW&VB6FÆörvR(	BG'VRv†–ÆRç—F†–ærv26Æ÷6VBÂæB—Bf–ÆVBöâvP§F†Bv26÷'&V7Böæ6Ræ÷F†–ærv2âF†Rv÷&F–ær—2v†BF†R&öGV7F–öâvFP§&VG2Â6ò&VÆ†–ær—Bv÷VÆB†fRÆVgB—BVæwV&FVC²6FÆöt66W75&V6öææ@¦6FÆöu&WVW7DÆ&VÆ&RW‡÷'FVBæB6¶VBF—&V7FÇ’–ç7FVBÂv–ç7B&öGV7G0¦'V–ÇBFò&R6Æ÷6VBà ¦Fö72õ4ôä$õ$T4ôÔÔTäDTEõ$ôET5Eô4DÄôuó##bæÖF—2vVæW&FVBæ÷p¢†çÒ'VâvVã¦6FÆörÖFö6Â6†V6¶VB'’fW&–g“¦ÆVæ6†’âF†R†æB×w&—GFVà§fW'6–öâÆ—7FVB3B&öGV7G2VæFW"æÖW2F†R6öFR†B7F÷VBW6–æræB÷VæV@§v—F‚%4ôä$æW‡W26†&VB÷W&F–ær7–æR"(	B&WF—&VBV&Æ–2æÖRtTåE2æÖ@¦f÷&&–G2–âÆVæ6‚Fö72âæ÷F†–ær&VfW&Væ6VBF†Rf–ÆRÂv†–6‚—2v‡’æ÷F†–æp¦f–ÆVBà ¦÷Vå6÷W&6UFööÅ7FGW6W6–âFFö÷Vâ×6÷W&6R×FööÇ2çG6VæG2–à¦6F—6f–W2&V6÷&CÄ÷Vå6÷W&6T–çFVw&F–öå7FGW2Â7G&–æsæÂv†–6‚&VG22F†P¦6ö×–ÆW"wV&çFVV–ærWfW'’7FGW2†2Æ&VÂâ—B—2æ÷C¢çÒ'VâG—V6†V6¶ ¦—2'6R6†V6²÷fW"F†R'VçF–ÖRæ§6æBæ6§6f–ÆW2æBæWfW"6ö×–ÆW2F†@¦f–ÆRÂ6òF†R6ÆW6Rv2FV6÷&F–öââFFW%ö'V–ÇF†B&VVâ–âF†RVæ–öâæ@§F¶Vâ'’6—‚&V6÷&G2v—F‚æòÆ&VÂâfW&–g“¦÷Vâ×6÷W&6V6ö×&W2F†RGvòæ÷rÀ¦æBv26†V6¶VBv–ç7B&÷F‚Ö—76–ærÆ&VÂæB7W&–÷W2öæR&Vf÷&R&V–æp§G'W7FVBà ¦fVVG7GVF–òö÷VâÖVF—F&Vv—7FW&VBÂ6†RÓ"ã&VBg&öÒF†RÄ”4Tå4Rf–ÆR@¦Ö–æâ&W6V&6…ööæÇ–ÂæBF†R&V6öâ—2æ÷BF†R&W÷6—F÷'’w2Æ–6Væ6S¢F†P§&VæFW&W"—B6†—2—2dTTBw2÷vâ6Æ÷6VB×6÷W&6R&–æ'’Â&g&VRFòW6R"(	B§W&Ö—76–öâF†RfVæF÷"w&çG2æB6âv—F†G&r(	BæB—B'Vç2öâÆR6–Æ–6öà¦Ö4õ2öæÇ’Â6òæ÷F†–ær–âÆ–çW‚6W'fW&ÆW72gVæ7F–öâ6÷VÆB6ÆÂ—BâFööÂf÷ §F†R÷væW"w2ÆF÷Âv†–6‚—2F†R&÷VæF'¦Fö72ö&6†—FV7GW&RôU…DU$äÂÕ4U%d”4U2æÖFÇ&VG’G&w2à ¥fW&–f–VC¢çÒ'VâfW&–g“¦ÆVæ6†w&VVâVæBFòVæBÂÃcCRFW7G276–ærà ¢222##bÓ‚Ó(	BF†R6V&6‚vRæ÷F†–ærÆ–æ¶VBFð ¦÷6V&6†6†—VB–âF†R&Wf–÷W27&–çB&V6†&ÆRöæÇ’'’G—–ærF†RU$Âà¤æ÷F†–æröffW&VBF†Rv’–â(	BæòF6†&ö&B7F–öâÂæòæf–vF–öâÂæ÷F†–ærà ¥F†—2—2F†R6ÖRFVfV7B2÷&W6V&6‚ÖÆ"ö÷Vâ×6÷W&6Vg&öÒF†R÷F†W"6–FRâF†@¦öæRv2GvòÆ–æ·2ö–çF–ærB&÷WFRF†BF–Bæ÷BW†—7BÂæBF†RÆ–æ²6†V6¶W ¦6Vv‡B—BâF†—2—2&÷WFRF†BW†—7G2v—F‚æ÷F†–ærö–çF–ærB—BÂæB¢¦æð¦6†V6²6Vv‡B—B¢£¢WfW'’W†—7F–ærFW7B76VBÂ&V6W6R&÷WFRF†B&W6öÇfW2—0¦æ÷BF†R6ÖR2&÷WFR6öÖV&öG’6âvWBFòà ¤Æ–æ¶VBæ÷rg&öÒÆÂF‡&VR&öGV7BF6†&ö&G2æBg&öÒWfW'’÷væW"&V6÷&BvR(	@§F†RvR7W7FöÖW"—2öâ—2F†RöæRv†W&RF†W’&VÆ—6RF†W’6ææ÷Bf–æBF†P§&V6÷&BF†W’6ÖRf÷"à ¦FW7G2÷vR×&V6†&–Æ—G’çFW7Bæ§6—2FVÆ–&W&FVÇ’æ'&÷râæ÷BWfW'’&÷WFRæVVG2¦Æ–æ³¢FWF–ÂvR—2&V6†VBg&öÒ—G2Æ—7BÂâ’VæGö–çBg&öÒf÷&ÒÂ¦ÆVvÂÆ–2W†—7G2Fò&RÆ–æ¶VB¦g&öÒ¢VÇ6Wv†W&Râv†B—B6†V6·2—2F†R6ÖÆÂ6W@¦öbvW2F†B&RFW7F–æF–öâ–âF†V—"÷vâ&–v‡BÂv†W&R6öÖWF†–ær†2FòöffW §F†Rv’–âà ¥v†B6÷VçG22'&W6öÇfW2"ÖF6†W2æòÖFVBÖÆ–æ·2çFW7Bæ§6&F†W"F†â&V–æp¦FV6–FVBv–â(	BS2—26÷'&V7Bf÷"vRF†BæVVG27W&6R–ââVçf—&öæÖVç@§v—F‚æöæRÂæBöæÇ’CB÷"SÖVç2F†RÆ–æ²—2FVBà ¢222##bÓ‚Ó(	B6V&6‚Âv†–6‚F†—2&öGV7BF–Bæ÷B†fRBÆÀ ¦÷6V&6†f–æG2öæR&V6÷&BÖöærF†÷W6æG2Â7&÷72GvVÇfR&V6÷&BG—W2(	@¦&öö¶–æw2Â6W'f–6W2ÂÆö6F–öç2Â7FfbÂ–çfVçF÷'’ÂfVæF÷'2Â–çfö–6W2ÂÖVçRÀ§&V6—W2ÂfV†–6ÆW2ÂÆVG2Â6×–vç2à ¥VçF–Âæ÷rF†W&Rv2æ÷F†–ærâæò÷6V&6†&÷WFRÂæòG7fV7F÷&Âæò–æFW‚âà¦÷væW"v—F‚Gvò–V'2öb&öö¶–æw26÷VÆB÷VâF†R&öö¶–æw2vRÂ6VRF†RÖ÷7@§&V6VçB‡VæG&VBÂæB†fRæòv’Fòf–æBF†RöæRg&öÒÖ&6‚âWfW'’&V6÷&BvP¦†BF†R6ÖR†öÆRÂæB¢¦æöæRöbF†VÒÆöö¶VB'&ö¶Vâ¢¢Âv†–6‚—2v‡’—BvVç@§Vææ÷F–6VBVçF–Â&VF–ærÆ–v‡E$rw2&V6÷&BÖFRF†R'6Væ6Rö'f–÷W2à ¥v†B—B—2Â&V6—6VÇ“¢66RÖ–ç6Vç6—F—fR7V'7G&–ærÖF6†–ær7&÷72æÖVB6WBö`¦6öÇVÖç2W"F&ÆRÂ66÷VBFòöæR÷&væ—¦F–öâÂF‡&÷Vv‚÷7Fu$U5Bw2÷&f–ÇFW"à¤æ÷B&æ¶VBgVÆÂ×FW‡BÂæB—BFöW2æ÷B&WFVæBFò&Râ÷7Fw&W2gVÆÂ×FW‡B—2g&VP¦æB'V–ÇB–âÂæBG7fV7F÷&6öÇVÖâÇW2t”â–æFW‚7&÷72æ–æWFVVâF&ÆW2—0¦66†VÖ6†ævRv†÷6RfÇVR'&—fW2B66ÆRöæR'W6–æW72FöW2æ÷B&V6‚â§&W7FW&çB†2‡VæG&VG2öbÖVçR—FV×2Âæ÷BÖ–ÆÆ–öç2âF†R&V6öâ—2w&—GFVâF÷và¦&V6W6R'vRW6VB–Æ–¶R"&VG22Æ¦–æW72v—F†÷WB—Bà ¥F†R'BF†BÖGFW&VBÖ÷7BFòvWB&–v‡B—2F†RFVæçBf–ÇFW"â÷&væ—¦F–öåö–F ¦—2—G2÷vâFW&ÒÂæWfW"–ç6–FRF†R÷"‚–w&÷W(	B–ç6–FRF†Rw&÷W—B&V6öÖW2öæP¦ÇFW&æF—fRÖöærÖç’ÂæB&÷rÖF6†–æröâæÖRv÷VÆB6öÖR&6²&Vv&FÆW72ö`§v†–6‚'W6–æW72÷vç2—BâF†W&R—2FW7B76W'F–ærF†Bf÷"ÆÂGvVÇfRF&ÆW2à ¥F‡&VR÷F†W"F—7F–æ7F–öç2¶WC¢F&ÆRF†B6÷VÆBæ÷B&R&VB—2æ÷BF&ÆP§v—F‚æòÖF6†W3²FW&ÒVæFW"Gvò6†&7FW'2—2&VgW6VB&F†W"F†â&WGW&æ–æp¦WfW'—F†–æs²æBæò6V7&WB×6†VB6öÇVÖâ—26V&6†&ÆRÂ6†V6¶VB–æFWVæFVçFÇ’ö`§F†RgVæ7F–öâF†B—27W÷6VBFò6†V6²—Bà ¥Gvòöb×’÷vâÖ—7F¶W2Â&÷F‚F†R6ÖR6†R2&Vf÷&Râ&WV—&T7W7FöÖW&v0¦æWfW"76VBFòF†R&÷WFRÖöGVÆRÂ6òF†R&÷WFRv÷VÆB†fR&Vv—7FW&VBv—F€¦VæFVf–æVFÖ–FFÆWv&R(	BW‡&W7266WG2F†BæBf–Ç2B&WVW7BF–ÖRÂ6òF†P§vRv÷VÆB†fRSvB&F†W"F†âæWfW"W†—7F–ærâ&Vv—7G&F–öâ—2æ÷r6¶—V@§v†VâF†RvFR—2Ö—76–ærÂv†–6‚CG2f—6–&Ç’–ç7FVBà ¤æBF†R–æ¦V7F–öâFW7B76W'FVBF†R7V'7G&–ær&æW"v2'6VçBg&öÒF†R'V–Ç@§VW'’Âv†–6‚f–ÆVBv–ç7Bv÷&¶–ær6öFS¢W66–ærGW&ç2F†Rv†öÆR†÷7F–ÆRFW&Ð¦–çFòöæRÆ—FW&Â6V&6‚7G&–ærÂ6ò&÷&væ—¦F–öåö–BæW‚"7W'f—f–ær2§FW‡B ¦—26÷'&V7BâF†RFævW"—2F†RF÷BÖFVÆ–Ö—FVB÷W&F÷"f÷&ÒÂv†–6‚—2v†BF†P¦6†V6²FW7G2æ÷râF†—&BF–ÖRF†—26W76–öâF†R6†V6²v2w&öær&F†W"F†âF†P¦6öFRà ¢222##bÓ‚Ó(	Bæ–æRv&æ–æw2æö&öG’6÷VÆB7BöâÂæ÷r¦W&ð ¦fW&–g’ÖW‡FW&æÂ×&W÷6—F÷&–W6&–çFVBæ–æRv&æ–æw2öâWfW'’&VÆV6Rf÷ ¦ÖöçF‡3¢&Vv—7FW"&V6÷&G2v†÷6R&WõW&Æv2‡GG3¢òöv—F‡V"æ6öÒöâæö&öG¦7FVBöâF†VÒÂæBF†R&V6öâGW&æVB÷WBFò&RF†Bæö&öG’¦6÷VÆB¢à ¥F†W’vW&Ræ÷B&W÷6—F÷'’&V6÷&G2â$Æ–v‡E$r×7G–ÆR&VfW&Væ6R"À¢%fö–6V&÷‚×7G–ÆRfö–6R7–çF†W6—2"Â$÷VäfæròWFöæöÖ÷W2vVçBõ2×7G–ÆP§&VfW&Væ6W2"Â$vöFÖöFR×7G–ÆR×VÇF’ÖÖöFVÂ–çFW&f6R"(	BV6‚æÖVB¦vVç&R §&F†W"F†ââ'F–f7BÂv—F‚Æ–6Væ6Rf–VÆB&VF–ær&×W7B&RfW&–f–VB&Vf÷&P§W6R"âF†W&Rv2æ÷F†–ærFòfW&–g’â&Vv—7FW"öb&W÷6—F÷&–W26ææ÷B†öÆB§&V6÷&BF†BæÖW2æò&W÷6—F÷'’à ¤V–v‡B&R&VÖ÷fVBâöæRGW&æVB÷WBFò&R&VÃ¢¢¤Æ–v‡E$r—2„µTE2ôÆ–v‡E$v¢¢À¤Ô•BÂg&öÒF†RTÔäÅ##RW"(	Bæ÷r&V6÷&FVB&÷W&Ç’v—F‚fW&–f–VBÆ–6Væ6Rà ¥&VF–ær—B&öGV6VBf–æF–ærv÷'F‚Ö÷&RF†âF†R&V6÷&Bâ—B—2&VfW&Væ6R&F†W §F†âFFF–öâf÷"§&öGV7B¢&V6öâÂæ÷BÆ–6Væ6RöæS¢¢¦æ÷F†–ær–âF†—0§&öGV7B6â6V&6‚7W7FöÖW"w2÷vâ&V6÷&G2BÆÂâ¢¢æò÷6V&6†&÷WFRÂæð¦G7fV7F÷&ÂæògVÆÂ×FW‡B–æFW‚ç—v†W&R–âF†RG&VRâ6òF†Rf—'7BW6VgVÂ7FW—0¥÷7Fw&W2gVÆÂ×FW‡B÷fW"&V6÷&G2F†R'W6–æW72Ç&VG’÷vç2(	Bæ÷B6V6öæB–æFW€§F†—2&öGV7Bv÷VÆB†fRFò¶VW–â7FWv—F‚F†VÒà ¥F†RÆ6V†öÆFW"6†V6²—2æ÷r¢¦f–ÇW&R&F†W"F†âv&æ–ær¢¢âæ–æRv&æ–æw0§F†B&–çBWfW'’&VÆV6RæB6†ævRæ÷F†–ær&Rv÷'6RF†âæöæS¢F†W’G&–à§v†öWfW"&VG2F†RÆörFò6¶–Ò7BF†R6V7F–öâv†W&R&VÂ&ö&ÆVÒv÷VÆ@¦V"âfW&–f–VB'’ö–çF–ærF†RÆ–v‡E$r&V6÷&B&6²B‡GG3¢òöv—F‡V"æ6öÒö(	@§F†R&VÆV6Rf–Ç2à ¤öæR&ö6W726Æ—v÷'F‚&V6÷&F–ærâgFW"&÷f–ærF†RæWrf–ÇW&Rf—&W2Â’&à¦v—B6†V6¶÷WBÒÒFFö÷Vâ×6÷W&6R×FööÇ2çG6FòVæFòF†RFW7B×WFF–öâÂv†–6€¦Ç6òVæF–BF†R6WfVâFVÆWF–öç2æBF†RÆ–v‡E$r&Ww&—FR–âF†R6ÖRf–ÆRâF†P§v÷&²†BFò&R&VFöæRâ6÷’F†Rf–ÆRæW‡BF–ÖS²v—B6†V6¶÷WFFöW2æ÷B¶æ÷p§v†–6‚öb–÷W"6†ævW2v2F†RW‡W&–ÖVçBà ¢222##bÓ‚Ó(	BF†Rõ4”åBF—&V7F÷'’Â&Æö6¶VB6FVv÷'’'’6FVv÷' ¤â÷Vâ×6÷W&6RÖ–çFVÆÆ–vVæ6R&öö¶Ö&²F—&V7F÷'’6ÖR–âf÷"76W76ÖVçBâ&V6÷&FV@¦2&Æö6¶VBÂv—F‚F†R&V6öç2æÖVB–æF—f–GVÆÇ’&F†W"F†â2vVæW&À¦ö&¦V7F–öâÂ&V6W6RF‡&VRöb—G26FVv÷&–W2&R–æ6ö×F–&ÆRv—F‚v†BF†—0§&öGV7B—2–â7V6–f–2v—3  ¥F†R¢¦vVæW&F÷'2¢¢&öGV6R7–çF†WF–2–FVçF—G’Fö7VÖVçG2(	B7&VF—B6&BçVÖ&W'2À§6ö6–Â6V7W&—G’çVÖ&W'2ÂG&—fW"Æ–6Væ6W2Âd”ç2âÆFf÷&Ò†öÆF–ær&VÂ7W7FöÖW §&V6÷&G2†2æò†öæW7BW6Rf÷"FööÂF†BÖçVf7GW&W2f¶RöæW2à ¥F†R¢¦FFGV×2¢¢6W'fR'&V6†VBW'6öæÂFFâ'V–ÆF–æröâ7FöÆVâ&V6÷&G2v÷VÆ@¦6öçG&F–7BF†R6öç6VçBæB&÷fVææ6R'VÆW2F†—2&öGV7BVæf÷&6W2öâ—G2÷và¦7&VF÷'2(	BF†R6ÖR'VÆW27&VF÷%÷fö–6Uö6öç6VçG6W†—7G2Fò–×ÆVÖVçBà ¥F†R¢§V÷ÆR×6V&6‚¢¢6FVv÷'’76VÖ&ÆW2&öf–ÆRöbæÖVB–æF—f–GVÂg&öÐ§66GFW&VB6÷W&6W2Âv†–6‚—2F†R÷÷6—FRöb&öGV7Bv†W&RWfW'’F&ÆR—0§66÷VBFòöæR÷&væ—¦F–öâæBöæR÷væW"à ¥F†R&W7B(	BÖ2Â6V&6‚Væv–æW2ÂG&ç6ÆF–öâ(	B&R÷&F–æ'’V&Æ–26W'f–6W2F†@¦æVVBæò&Vv—7FW"VçG'’FòW6Rà ¥F†W&R—2W†7FÇ’öæR—FVÒ–âF†BF—&V7F÷'’F†—2&öGV7BæVVG2ÂæB—B—0¦Ç&VG’†W&RæB'V–ÇB&WGFW"âÆ–"÷6öæ&ÖÆV¶VB×77v÷&Bæ6§66ÆÇ2†fR¤&VVâvæVBF‡&÷Vv‚F†R²Öæöç–Ö—G’&ævR“¢f—fR†W‚6†&7FW'2öb4„Ó¦F–vW7BÂæWfW"F†R77v÷&BæBæWfW"—G2gVÆÂ†6‚âF†B—2F†R&–v‡B6†Rf÷ §F†Rv†öÆR6FVv÷'’ÂæB—B—2v‡’F†R&W7BöbF†R6FVv÷'’—2æ÷BæVVFVBà ¢222##bÓ‚Ó(	Bf—fRFVBÖöGVÆW2ÂæBF†R66†VÖF†W’vW&R†öÆF–ærW  ¦67&—G2÷&W÷'B×Vç&VfW&Væ6VBÖÖöGVÆW2æÖ§66·2v†–6‚ÖöGVÆW2VæFW"Æ–"öæ@¦&÷WFW2ö&RæÖVB'’æ÷F†–ærâF†—2'VçF–ÖR†2æò'VæFÆW"ÂæòG–æÖ–2–×÷'@¦æBæò6öFRvVæW&F–öâÆVgBÂ6òF†RöæÇ’v’–çFòÖöGVÆR—2Æ—FW&Â&WV—&P®(	Bv†–6‚Ö¶W2Vç&VfW&Væ6VBÖVâ§Vç&V6†&ÆR¢Âæ÷BÖW&VÇ’VçW6VBà ¤’†BfÆvvVBGvòFVB†öÖWvRÖöGVÆW2F‡&VRF–ÖW27&÷72F†—2&ö¦V7BæBÆVg@§F†VÒV6‚F–ÖRÂ&V6W6Ræ÷F–6–ær—2g&VRæBFVÆWF–æræVVG26öÖV&öG’Fò&R7W&Rà¥F†R6†V6²f÷VæB¢¦f—fR¢¢ÂsS‚Æ–æW3  ¢ÒÆ–"÷6öæ&Ö6ö†W6—fRÖ†öÖWvRæ6§6ÂÆ–"÷6öæ&ÖGfæ6VBÖ'V–ÆFW"Ö†öÖWvRæ6§6 ¢ÒÆ–"ö÷Vâ×6÷W&6R×6ögGv&RÖ6FÆöræ6§6 ¢ÒÆ–"÷6öæ&ÖV6÷7—7FVÒ×&Vv—7G'’æ6§6(	Bæ÷FRF†RæV"×Gv–à¢6öæ&ÖV6÷7—7FVÒÖÖæ–fW7Bæ6§6¦—2¢W6VBÂv†–6‚—2†÷rFVBf–ÆR†–FW0¢Ò&÷WFW2ö7&VF÷"Ö'F—7B×7—7FVÒ×&÷WFW2æ6§6  ¥F†BÆ7BöæR—2v÷'6RF†âFVBâ—B&Vv—7FW'2ö7&VF÷"×7GVF–òö'F—7G6æ@¦f—fR’VæGö–çG2ÂæB6W'fW"æ§6æWfW"&WV—&VB—B(	B6òF†÷6R&÷WFW2CFVBà¤—G2–ÆöB—2D4„ô´U•5õDTÕÄDV¢†&F6öFVB–çfVçFVB'F—7Bv—F‚¦&6·7F÷'’ÂF†VÖW2æB6ö'&–WG’&2âv—&–ær—BWv÷VÆB†fR6†—VBf'&–6FV@¦6öçFVçB–çFò&öGV7Bv†÷6R÷vâ&÷WBvR6—2—BFöW2æ÷B–çfVçB7F—f—G’à ¢¢¤FVÆWF–ær—B&RÖ÷'†æVBf—fRF&ÆW2¢¢(	B7&VF÷%ö'F—7E÷&öf–ÆW6À¦7&VF÷%öÆ'VÕö7–6ÆW6Â7&VF÷%÷&ö×Eö&ÇVW&–çG6Â7&VF÷%÷6öæ–5÷&öf–ÆW6À¦7&VF÷%÷f–FVõ÷G&VFÖVçG6âF†BÖöGVÆRv2F†V—"öæÇ’&VFW"ÂæB6–æ6Ræ÷F†–æp¦ÆöFVB—BÂF†W’vW&RæWfW"7GVÆÇ’w&—GFVâ–â&öGV7F–öâV—F†W"âF†W’&VB0§W6VBöæÇ’&V6W6Rf–ÆRW†—7FVBF†B§v÷VÆB¢†fRW6VBF†VÒÂ†Bç—F†–æp¦ÆöFVB—BâÆÂf—fR&V6÷&FVB2¶VWv—F‚F†R&V6öâÂ6òF†R&VÂ6†ö–6R(	@¦'V–ÆBF†R'F—7Bv÷&·76R&÷W&Ç’Â÷"G&÷F†RF&ÆW2(	B—2ÖFRöâW'÷6Rà ¥Gvò6†V6·26ö×÷6–ær—2F†Rö–çC¢FVÆWF–ærFVB6öFR7W&f6VBFVB66†VÖÂæ@¦æV—F†W"&W÷'B6÷VÆB†fRf÷VæBF†—2ÆöæRà ¤öæR'Vr6Vv‡B–âF†RæWr67&—B&Vf÷&R—B6†—VC¢F†—2f–ÆRw2÷vâ†VFW"æÖW0§GvòöbF†RÖöGVÆW2—B&W÷'G2öâÂ6ò6öÖÖVçBv÷VÆB†fR6÷VçFVB2§&VfW&Væ6Râ67&—G2÷&W÷'BÖ÷'†â×F&ÆW2æÖ§66†—VBv—F‚W†7FÇ’F†B'Vp¦öæ6Râ6öÖÖVçG2&R7G&—VB&Vf÷&RÖF6†–æræ÷rà ¢222##bÓ‚Ó(	BF†R'VææW"ÂæBF†RvFRF†B6÷VÆB&RvÆ¶VB7@ ¦Æ–"÷6öæ&ÖvVçB×'VææW"æ6§6¦ö–ç2F†RGvò†ÇfW2F†BW†—7FVB6W&FVÇ“¢F†P¦WF†÷&—G’ÖöGVÆRF†B6—2v†BâvVçBÖ’FòÂæBF†R6†V6·2F†B&Rv÷&²à¦vVçB6âFòâ6Æ76–g’ÂFV6–FRÂ'VâÂ&V6÷&B(	BöæRF‚à ¤—B6Æ÷6W2&VÂ†öÆRâV6‚76—7FçBvR6ÆÆVB6Æ76–g”7F–öæ—G6VÆbæ@§F†VâF–BF†Rv÷&²&Vv&FÆW72öbF†Rç7vW"âF†B—2vFR–÷RvWB7B'’æ÷@§&VF–ærF†R&WGW&âfÇVRÂæBæ÷F†–ær–âF–fb6†÷w2—Bâæ÷r6¶—–ærF†RvFP¦ÖVç2æ÷B6ÆÆ–ærF†R'VææW"Âv†–6‚—2f—6–&ÆRâF†W&R—2FW7BF†Bf–Ç2–`¦6Æ76–g”7F–öæ&VV'2–âF†÷6R&÷WFW2à ¥&Vv—7FW&–ær†æFÆW"—2æ÷BW&Ö—76–öâV—F†W"(	B†æFÆW"&Vv—7FW&VBVæFW ¦FVÆWFUö7W7FöÖW%÷&V6÷&G67F–ÆÂvWG2&VgW6VBÂ&V6W6RF†RæÖR—26Æ76–f–V@¦&Vf÷&RF†R†æFÆW"—2&V6†VBà ¥F‡&VRF—7F–æ7F–öç2F†R'VææW"¶VW2F†B6–×ÆW"fW'6–öâv÷VÆB6öÆÆ6Rà¢$ÆÆ÷vVBæBVæ–×ÆVÖVçFVB"—2æ÷B'&VgW6VB"(	BF†W’6VæB6öÖV&öG’FòF–ffW&Vç@¦f–ÆW2â†æFÆW"F†BF‡&÷w2—2f–ÆVB'VâÂæ÷B7&6†VBvRÂæB—G0¦ÖW76vRvöW2F‡&÷Vv‚F†R&VF7F–öâ&÷VæF'’&V6W6R†æFÆW"FÆ·2Fò7W&6Rà¤æB&V6÷&FW"F†BF‡&÷w2FöW2æ÷BVæFò'VâF†B7V66VVFVC¢F†Rv÷&°¦†VæVBÂæBÆ÷6–ærF†Ræ÷FR&÷WB—B—2v÷'6RF†âæ÷F†–ær'WBf"&WGFW"F†à¦Æ÷6–ærF†Rv÷&²à ¢¢¥'Vç2&Ræ÷BW'6—7FVBÂæBF†R&V6öâ—2&6†—FV7GW&Ââ¢¢VçF—G•ö7F–öå÷'Vç6 ¦—266÷VB'’VçF—G•ö–F²VçF—F–W6†2æò÷&væ—¦F–öåö–FâF†Ræ–æWFVVà¦vVçBF&ÆW266÷R'’VçF—G’ÖVÖ&W'6†—v†–ÆRWfW'’÷F†W"F&ÆR–âF†—2&öGV7@§66÷W2'’÷&væ—¦F–öâÂæBF†W&R—2æò¦ö–â&WGvVVâF†VÒâw&—F–ærà¦÷&væ—¦F–öâw2'VâF†W&Rv÷VÆBÖVâ–çfVçF–ærâVçF—G’W"÷&væ—¦F–öâ÷ ¦ÆVf–æräõBåTÄÂf÷&V–vâ¶W’çVÆÂ(	B&÷F‚–çf—6–&ÆRgFW'v&G2Â&V6W6RF†P§&÷w2v÷VÆBW†—7BæBÆöö²&–v‡BâF†R&V6÷&FW"—2–æ¦V7F&ÆRæB6†—2V×G’Âæ@¦Fö72õ4„•õ$TD”äU52æÖF&V6÷&G2F†R6†ö–6RF†BæVVG2Ö¶–ærà ¢222##bÓ‚Ó(	Bv†W&RV÷ÆRfÆÂ÷WBÂæBF†R&FR—B&VgW6W2Fò–çfVç@ ¦öw&÷wF‚×7GVF–òö¦÷W&æW–6÷VçG2†÷rÖç’V÷ÆR&RBV6‚7FvRöbF†P¦7W7FöÖW"¦÷W&æW’æBv†W&RF†RçVÖ&W"G&÷2âF†R76—7FçBvW26’v†B—0¦'&ö¶Vã²'W6–æW726â†fRæ÷F†–ær'&ö¶VâæB7F–ÆÂ&RÆ÷6–ærWfW'–&öG’&WGvVVà¦VçV—'’æB&öö¶–ærÂæBæò6†V6²–âF†—2&öGV7Bv÷VÆB†fRÖVçF–öæVB—Bà ¥F†R–çFW&W7F–ær'B—2v†–6‚G&÷2&R&VÂà ¦w&÷wF…÷F÷V6‡ö–çG6Âw&÷wF…öÆVG6æBw&÷wF…ö6öçfW'6–öç6V6‚6''¦ÆVEö–FÂ6ò6öçfW'6–öâG&6W2&6²FòF†RÆVB—B6ÖRg&öÒâF†B—2¦gVææVÃ¢öæRW'6öâÖ÷f–ærF‡&÷Vv‚7FvW2ÂæBF†RG&÷&WGvVVâF†VÒ—2¦ÖV7W&VÖVçBà ¦'W6–æW75ö&öö¶–æw6æB&Wf–Ww66''’æòÆVEö–Fâ&öö¶–ær—2æ÷BÆ–æ¶VBFð§F†RÆVBF†B&öGV6VB—BÂæB&Wf–Wr—2Æ–æ¶VBFò7W7FöÖW"âWGF–ærF†VÒ–à§F†R6ÖR6öÇVÖâæB6ÆÆ–ærF†RF–ffW&Væ6R6öçfW'6–öâ&FRv÷VÆB–çfVçB§&VÆF–öç6†—F†R66†VÖFöW2æ÷B†fR(	BæB—Bv÷VÆBÆöö²W†7FÇ’Æ–¶R&VÀ¦çVÖ&W"Âv†–6‚—2F†Rf–ÇW&RF†—26öFV&6R¶VW2&öGV6–ærâ6ò7FvW26''’¦Æ–æ¶VFfÆrÂ6†V6¶VBv–ç7BF†R66†VÖ&F†W"F†âG'W7FVBÂæBâVæÆ–æ¶V@§7FvR&W÷'G26÷VçBæB6—2öâ67&VVâF†B—B—2öæRà ¦G&÷&FV—2çVÆÆ&F†W"F†âv†W&RF†W&R—2æò&VÆF–öç6†—âF†÷6RGvð§&VæFW"F–ffW&VçFÇ’æBÖVâ÷÷6—FRF†–æw3¢v÷VÆB&–çB#RÆ÷7B"f÷"¦6ö×&—6öâF†Bv2æWfW"gVææVÂà ¤öæR&ö6W72æ÷FRÂ&V6W6R—B6÷7BF–ÖRâF†R6öçF–æW"&W6WBFò6†V6¶÷WBg&öÐ§6WfW&Â6öÖÖ—G2&6²Ö–B×7&–çBÂæB’w&÷FRvRv–ç7Bf–ÆW2F†BvW&Ræ÷@§F†W&Râv—B7FGW66†÷v–æröæÇ’GvòVçG&6¶VBf–ÆW2v–ç7BâöÆB„TBv2F†P§FVÆÂâF†—2†2æ÷r†VæVBGv–6R–âF†—26W76–öâ(	Bv÷'F‚6†V6¶–ærv—BÆörÓ ¦&Vf÷&RVF—F–ærgFW"ç’và ¢222##bÓ‚Ó(	B4B–çFW&7F–öâÂæBö–çF–ær6ÆVFRBv†BF†—2&W÷6—F÷'’¶æ÷w0 ¥F†RFWF‚Æ–W"Ö÷fVB6&G3²æ÷r—BÆ–v‡G2F†VÒâ6ögB†–v†Æ–v‡BG&6·2F†P§ö–çFW"7&÷72V6‚6&BÂæBV6‚v÷&·76R6F6†W2—G2÷vâ6öÆ÷W"(	B'W6–æW70¤'V–ÆFW"w&VVâÂ7&VF÷"7GVF–òf–öÆWBÂw&÷wF‚7GVF–òÖ&W"(	B6òF†RÖ&²ÂF†P¦&6¶G&÷æBF†RÆ–v‡BöâF†R6&Bf–æÆÇ’w&VRâF†RW"×&öGV7B&6¶G&÷2ÆVà§F†R6ÖRv’â7F–öç2v–æVB&W72F†BÖ÷fW2F÷v&BF†RvRÂ–ç6–FRF†P§W'7V7F—fRF†R6&G2Ç&VG’6—B–âà ¤—B6÷7G2æ÷F†–ærW‡G&W"g&ÖRâ6öæ&ÖFWF‚æ§6Ç&VG’6ö×WFVBF†Rö–çFW §÷6—F–öâf÷"F†RF–ÇBÂ6òF†R7÷FÆ–v‡Bw&—FW2GvòÖ÷&R7W7FöÒ&÷W'F–W2g&öÐ¦çVÖ&W'2—B†BâFW7G2öFWF‚Ö–çFW&7F–öâçFW7Bæ§6f–Ç2–b6V6öæ@¦ö–çFW&Ö÷fVÆ—7FVæW"V'2à ¥v†BF†BFW7B&VÆÇ’&÷FV7G2—2F†RW†—G2âWfW'’VffV7B†2FòF—6V"VæFW §&VGV6VBÖ÷F–öâÂVæFW"F†RW6W"w2÷vâÖ÷F–öâ7v—F6‚Âöâ6ÖÆÂ67&VVç2ÂæB–à§&–çB(	BæB7F’öfbv÷&²67&VVç2VçF—&VÇ’âV6‚æWrVffV7B—2öæRÖ÷&RF†–æp§F†B6âf÷&vWBöæRöbF†÷6RÂæBf÷&v÷GFVâW†—B—2–çf—6–&ÆRFòv†öWfW"FFV@¦—BÂ&V6W6RF†W’&Ræ÷BF†RW'6öâv—F‚fW7F–'VÆ"F—6÷&FW"÷"F†R†öæRà ¤öæR6÷'&V7F–öã¢F†R&–çB6†V6²&VBöæÇ’F†Rf—'7BÖVF–&–çF&Æö6²æ@§&W÷'FVBF†R7÷FÆ–v‡B2&–çF–ærv†Vâ—BFöW2æ÷BâF†R6†V6²v2w&öærÂæ÷@§F†R552à ¢¢¦4ÄTDRæÖFv2öæRÆ–æS¢tTåE2æÖFâ¢¢WfW'’6W76–öâ–æ†W&—FVBF†R'VÆW2æ@¦æöæRöbF†R67V×VÆFVBf7G2(	BF†RvVçB&÷fÂ'VÆRÂF†R&Vv—7FW"ÂF†P§&V7W'&–ærÖFVfV7BGFW&âÂF†R†æFöfb&ö×BF†B—2&VvVæW&FVBöâWfW'§&VÆV6Râ—Bæ÷rö–çG2BÆÂöbF†VÒÂ6òæWr6W76–öâ7F'G2v—F‚v†BF†—0§&W÷6—F÷'’†2ÆV&æVB–ç7FVBöb&VF—66÷fW&–ær—Bà ¢¢¥F†R&Vv—7FW"vRæ÷r6—2v†W&RV6‚&W÷6—F÷'’ÆæG2â¢¢—BÆ—7FVBÆ–6Væ6RÀ§&—6²æB&VgW6Ç2æBæWfW"æÖVBF†R&öGV7BÂ6ò—Bç7vW&VB&Ö’vRW6RF†—3ò ¦æBæ÷B'v†B—2—Bf÷#ò"(	BæBF†R6V6öæB—2F†RVW7F–öâ6öÖV&öG’÷Væ–ærF†@§vR—2W7VÆÇ’6¶–ærâÆÂs&V6÷&G2&RÆ6VC¢cv–ç7B&öGV7BÂæB §v—F‚7FFVB&V6öâF†W’&Ræ÷B†f—fR&Æö6¶VBÂöæRÆ–6Væ6RVç&W6öÇfVBÂF‡&VP¦'V–ÆB×F–ÖRFööÆ–ærÂöæRF†B6ææ÷B'VâöâF†—27F6²’à ¢222##bÓ‚Ó(	B&V'&æC¢æWrÆWGFRÂæBF†RÖ&·2F†BæWfW"ÖF6†VB—@ ¤æWr6öÆ÷W'27&÷72F†RFW6–vâ7—7FVÒÂæBöæRf–æF–ærF†B6ÖR÷WBöbFö–ær—Bà ¢¢¥F†RÆöv÷2æBF†RÆWGFR†BæWfW"&VVâF†R6ÖR6öÆ÷W'2â¢ ¦Ò×6öæ&Ö'V–ÆFv23VV3††ÂÖ–çBw&VVã²'W6–æW72Ö'V–ÆFW"ÖÖ&²×c2ç7fvv0¦&ÇVR×FòÖ7–âw&F–VçBöb3#Sc4T&æB3d#dCFâ7&VF÷"7GVF–òw2Fö¶Vâv2¦Æ–Æ2æB—G2Ö&²&â&ÇVRF‡&÷Vv‚f–öÆWBFò–æ²âw&÷wF‚7GVF–òw2Fö¶Vâv0¦Ö&W"æB—G2Ö&²v2FVÂF‡&÷Vv‚w&VVâFòÆ–ÖRâWfW'’&öGV7BÖ&²F—6w&VV@§v—F‚F†R6öÆ÷W"F†R&öGV7B—2æÖVB'’WfW'—v†W&RVÇ6R–âF†R–çFW&f6Rà ¤æ÷F†–ær6Vv‡B—B&V6W6RF†RGvòÆ—fR–âF–ffW&VçBf÷&ÖG2âF†R7G–ÆW6†VWBw0§'VÆRF†BFö¶Vâ—2FV6Æ&VB–âW†7FÇ’öæRÆ6R—2G'VR(	Bf÷"552ââ5dp§6W'fVB2Æ–Ör7&3æ–æ†W&—G2æò7W7FöÒ&÷W'F–W2g&öÒF†RvRVÖ&VFF–ær—BÀ§6òF†R†W‚—2w&—GFVâ–çFòF†Rf–ÆRÂæB†W‚w&—GFVâ–çFòf–ÆR—26÷’à¤V–v‡FVVâÖ&·2vW&R&V6öÆ÷W&VBæBFW7G2ö'&æB×ÆWGFRçFW7Bæ§6æ÷r6†V6·2F†P¦6÷–W2à ¥F†R6ÖRF—6w&VVÖVçBv2–âF†VÖRÖ6öÆ÷&Âv†–6‚–çG2F†RÖö&–ÆRFG&W72&# ¦4dc„cF‡v&Òöfb×v†—FR’v–ç7B4cdctd6†6ööÂ’Æ–v‡B7W&f6RÂæ@¦33#&v–ç7B3CS&F&²vRâæV—F†W"v2w&öærVæ÷Vv‚FòÆöö°¦'&ö¶Vã²&÷F‚6†÷vVB26VÒ&÷fRF†RvRöâ†öæRà ¢¢¤6öçG&7Bv2ÖV7W&VBÂæ÷BW7F–ÖFVBâ¢¢FW‡BÓ6(	BF†RV–WB7W÷'F–ærÆ–æP§VæFW"†VF–ærÂF†RFW‡BÖ÷7BögFVâ&VBöâ†öæR÷WFFö÷'2(	Bv2Rã£Âv†–6€¦6ÆV'2æBæ÷Bâ—B—2æ÷rrã#£âÆÂF‡&VRFW‡BFö¶Vç26ÆV"v–ç7@§F†RæWr&6¶w&÷VæBÂæBv†—FRöâF†RæWr66VçB—2Rã£à ¥F†RöæR7&÷72ÖfÖ–Ç’w&F–VçB—2öâF†R&VçBæBÆFf÷&ÒÖ&·2öæÇ’â§6–væGW&RF†BV'2öâWfW'’&öGV7B—2æ÷B6–væGW&RÂæBF‡&VR&öGV7G0§–çFVBF†R6ÖRf–öÆWBv÷VÆB&RF–F–W"v†–ÆRFVÆÆ–ær7W7FöÖW"æ÷F†–ær&÷W@§v†–6‚v÷&·76RF†W’&R–âà ¢222##bÓ‚Ó(	BöæR&VF7F–öâ&÷VæF'’ÂæBF†R6–æ²F†B&÷fVB—Bv2æVVFV@ ¦&VF7E6Vç6—F—fUFW‡FÆ—fVB–â6W'fW"æ§2Âv2Æ–VBBf÷W"6ÆÂ6—FW2(	BÆÀ¦&÷VæB7W÷'B&WVW7G2æBVÖ–Âf–ÇW&W2(	BæBv2æÖVBÆ–¶R&÷VæF'’v†–ÆP¦&V–ærW6VBÆ–¶R†VÇW"â—G2GFW&ç26÷fW&VB7G&—R×6†VB¶W—2ÂÆöærF–v—@§'Vç2æB77v÷&C¢fÇVVâF†B6÷fW'27W7FöÖW"7F–ær6&BçVÖ&W"–çFò§7W÷'BÖW76vRÂv†–6‚—2v†B—Bv2w&—GFVâf÷"à ¤—BF–Bæ÷B6÷fW"F†RF†–ærÖ÷7BÆ–¶VÇ’FòÆV²g&öÒF†—2FWÆ÷–ÖVçBâ7W&6P§6W'f–6R×&öÆR¶W’—2¥uC¢æ÷B6µö×6†VBÂæòÆöærF–v—B'VâÂæB—B'—76W0§&÷rÆWfVÂ6V7W&—G’âF†RGFW&ç2æ÷rÆVBv—F‚¥uG2ÂF†VâWF†÷&—¦F–öâ†VFW'2À¥U$ÂVW'’7&VFVçF–Ç2Â7G&—RÂ&W6VæBÂ÷7Fw&W26öææV7F–öâ7G&–æw2Â76–væV@§6V7&WG2ÂæB6&BÖÆ–¶RçVÖ&W'2Æ7B&V6W6R—B—2F†RÆö÷6W7Bà ¦Æ–"÷6öæ&×&VF7F–öâæ6§6—2æ÷rF†RöæÇ’FVf–æ—F–öâÂæ@¦FW7G2÷&VF7F–öâÖ&÷VæF'’çFW7Bæ§666ç2WfW'’'VçF–ÖRf–ÆRf÷"6öç6öÆR6ÆÇ0§F†B&–çBW'&÷"×6†VBFW‡Bv—F†÷WBvö–ærF‡&÷Vv‚—Bà ¤6V6öæBF†–ærv26Vv‡BÂF†—2F–ÖR'’F†R&VÆV6R&F†W"F†â'’ÖRâF†P¦¶–Ö’Ö³2Ö–âÖ2&V6÷&BvVçB–âv—F‚&WõW&Ã¢‡GG3¢òöv—F‡V"æ6öÒö¶–Ö’Ö³2Ö–âÖ6(	Bà¦÷væW"F‚v—F‚æò÷væW"&V†–æB—BâF†R67&VVç6†÷B—B6ÖRg&öÒ6†÷vVBF†P§&W÷6—F÷'’æÖRæBæ÷B—G2÷væW"ÂæB’6ö×ÆWFVBF†RU$Â–ç7FVBöbÆöö¶–ær—@§WâfW&–g’ÖW‡FW&æÂ×&W÷6—F÷&–W6&W6öÇfW2WfW'’&Vv—7FW&VB&W÷6—F÷'’v–ç7@§F†Rv—D‡V"’æBf–ÆVBF†R"â—B—2f&VVD¶†âÖFWbö¶–Ö’Ö³2Ö–âÖ6à ¥v÷'F‚¶æ÷v–ærf÷"æW‡BF–ÖS¢F†B6†V6²'Vç2v—F‚ÒÖæWGv÷&¶–â4’æBv—F†÷W@¦—B–âfW&–g“¦ÆVæ6†Â6òw&öærU$Â76W2WfW'’Æö6ÂvFRâF†R&Vv—7FW"w0§v†öÆRö–çB—2F†B—G2f7G2&R6†V6¶VB&F†W"F†â&V6ÆÆVBÂæBF†—2öæRv0§&V6ÆÆVBà ¢¢¤—Bf÷VæBöæRöâ—G2f—'7B'Vââ¢¢&W÷'DFVw&FVE&FTÆ–Ö—F–çFW'öÆFVBF†P¦6Vv‡BW'&÷"7G&–v‡B–çFò6öç6öÆRæW'&÷&âF†R&FRÆ–Ö—FW"6ÆÇ0¦6öæ&ö6öç7VÖU÷&FUöÆ–Ö—F÷fW"÷7Fu$U5Bv—F‚F†R6W'f–6R×&öÆR¶W’Â6òF†P¦W'&÷"—BFVw&FW2öâ—27W&6RW'&÷"6''––ærF†RU$Â—Bf–ÆVBFò&V6‚(	@¦æBF†BU$Â6'&–W2â–¶W–&ÖWFW"â—B&–çFVBF†R7&VFVçF–Â–çFòF†P¦ÆöröâW†7FÇ’F†RF‚F¶Vâv†VâF†RFF&6R—2Ç&VG’7G'VvvÆ–ærà ¥GvòF†–æw2&÷WB†÷rF†—2vVçBÂ&÷F‚v÷'F‚æ÷B&WVF–ærâWfW'’GFW&â†2¦&Væ–vâ7G&–ær—B×W7BÆVfR–çF7BÂ&V6W6R&VF7F÷"F†BVG2WfW'—F†–æp§76W2F†R&VF7F–öâFW7G2æBFW7G&÷—2WfW'’W'&÷"ÖW76vR–âF†R&öGV7Bà ¤æBv†–ÆRv—&–ærF†R6FÆör&÷WFRw26öç6öÆRæW'&÷&F‡&÷Vv‚F†R&÷VæF'’ÂF†P¦&WV—&VF–Bæ÷BÆæB(	BF†Rf–ÆRFöW2æ÷B7F'Bv—F‚'W6R7G&–7B#¶Âv†–6‚—0§v†BF†RVF—Bæ6†÷&VBöââF†RÖöGVÆR7F–ÆÂÆöFVBÂ&V6W6RF†R&VfW&Væ6R6—G0¦–ç6–FR6F6‚F†BöæÇ’'Vç2–âFW7BÖöFRâ6Vv‡B'’w&W–ærf÷"F†R–×÷'@§&F†W"F†â'’ç—F†–ærf–Æ–ærà ¢222##bÓ‚Ób(	BF†R76—7FçBÂW‡FVæFVBFòÆÂF‡&VR&öGV7G0 ¥GvVçG’6†V6·2æ÷s¢æ–æR'W6–æW72'V–ÆFW"Âf—fR7&VF÷"7GVF–òÂ6—‚w&÷wF€¥7GVF–òÂöæRvRV6‚Bö'W6–æW72Ö'V–ÆFW"ö÷væW"ö76—7FçFÀ¦ö7&VF÷"×7GVF–òö76—7FçFÂöw&÷wF‚×7GVF–òö76—7FçFâ6ÖRVæv–æRÂvFVB'§F†R6ÖRv÷&·76RÖ66W72'VÆR2F†R&W7BöbV6‚v÷&·76Rà ¥F†R7&VF÷"æBw&÷wF‚6†V6·2&RF†R–çFW&W7F–ær†ÆbÂ&V6W6R6WfW&ÂVæf÷&6P§'VÆW2F†—2&öGV7BÇ&VG’†öÆG2—G6VÆbFòæB†BæWfW"Æöö¶VBBâfö–6P¦6öç6VçBF†B†2W‡—&VB÷"&VVâv—F†G&vâv†–ÆRF†R&V6÷&B7F–ÆÂ&VG20¦GFW7FVB(	BâW‡—&VB6öç6VçB—2–æF—7F–æwV—6†&ÆRg&öÒÆ—fRöæRVçF–À§6öÖV&öG’6†V6·2ÂæBæ÷F†–ærv26†V6¶–ærâ6öç6VçBÖ&¶VBGFW7FVBv—F‚æð¦Wf–FVæ6R&VfW&Væ6R&V†–æB—BâÇ—&–72÷&–v–æÆ—G’ÆVgBVç&W6öÇfVBöâG&6°¦†VF–ærf÷"&VÆV6Râ6öçFVçBVWVVBFòvòFò7W7FöÖW'2v—F†÷WB&÷fÂÂv†–6€¦—2F†R66RtTåE2æÖBw2÷væW"Ö&÷fÂ'VÆRW†—7G2f÷"æBF†R66Rv†W&R—@¦vWG2f÷&v÷GFVââ6öçF7B6öç6VçBv—F†G&vâv†–ÆRF†R&V6÷&B6—G2–âF†R6ÖRÆ—7@¦2F†RÆ—fRöæW2à ¥F†÷6RvW&RÆÂ6VçFVæ6W2–âtTåE2æÖBv—F‚F&ÆW2VæFW&æVF‚æBæ÷F†–æp¦6ö×&–ærF†RGvòà ¥&VæÖVBöâF†Rv“¢6öæ&Ö'W6–æW72Ö6†V6·2æ6§6&V6ÖP¦6öæ&×&V6÷&BÖ6†V6·2æ6§6æBF†R&÷WFRÖöGVÆRG&÷VB'W6–æW72Ög&öÒ—G0¦æÖRÂ&V6W6R&÷F‚†B7F÷VB&V–ær&÷WBöæR&öGV7Bà ¥F†R&†2FW7B66Rf÷"WfW'’6†V6²"76W'F–öâV&æVB—G6VÆb–ÖÖVF–FVÇ’(	@¦VÆWfVâæWr6†V6·2ÆæFVBv—F‚æò66W2æB—Bf–ÆVB&F†W"F†âÆWGF–ærF†VÐ§F‡&÷Vv‚VçFW7FVBà ¢222##bÓ‚Ób(	BF†R'W6–æW7276—7FçBÂæBF†Rf—'7BF†–ærF†BFöW2v÷&° ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö76—7FçF'Vç2æ–æR6†V6·2÷fW"â÷væW"w2÷và§&V6÷&G3¢F—6†W26VÆÆ–ærf÷"ÆW72F†âF†W’6÷7BÂF—6†W2v—F‚&–6RæBæð§&V6÷&FVB6÷7BÂ7WÆ–W"–çfö–6W27BGVRÂ6W'f–6W2v—F‚æò&–6RÂ&öö¶–æw2v—F€¦æòv’Fò&V6‚F†R7W7FöÖW"Â7Fö6²B—G2&V÷&FW"ÆWfVÂÂfV†–6ÆR&Vv—7G&F–öç0¦W‡—&–ærv—F†–âF†—'G’F—2Â7Ffbv—F‚æò6öçF7BFWF–Ç2ÂÆö6F–öç2v—F‚æð¦FG&W72à ¤ÆÂöb—B—2&—F†ÖWF–2÷fW"&÷w2F†R'W6–æW72Ç&VG’†2âæòÖöFVÂ6ÆÂÂæð§&÷f–FW"Âæ÷F†–ærÖWFW&VB(	Bv†–6‚—2F†R&V6öâ—B6â'VâöâWfW'’vRÆö@§v—F†÷WB6÷7F–ærç–öæRç—F†–ærÂæ÷BÆ–Ö—FF–öâv÷&¶VB&÷VæBà ¤—B6öç7VÇG2Æ–"÷6öæ&ÖvVçBÖWF†÷&—G’æ6§6&F†W"F†â77VÖ–ærâ&VF–æp§&V6÷&G2æB&W÷'F–ær—26VÆb×6W'fRFöF“²–b6†V6µöFF÷VÆ—G–WfW"Ö÷fW0¦öçFòF†R6Vç6—F—fRÆ—7BÂF†RvR7F÷2–ç7FVBöb6öçF–çV–ærVæFW"à¦77V×F–öâw&—GFVâF÷vâöæ6Rà ¥GvòF†–æw2—BFVÆ–&W&FVÇ’FöW2æ÷BFòÂ&÷F‚öbF†VÒF†R6ÖRÖ—7F¶R–à¦F–ffW&VçB6Æ÷F†W2â—BFöW2æ÷B†–FR6†V6·2F†Bf÷VæBæ÷F†–ær(	B'vRÆöö¶VBæ@¦—B—2f–æR"æB'vRF–Bæ÷BÆöö²"×W7Bæ÷B&VæFW"–FVçF–6ÆÇ’âæB—BFöW2æ÷@¦6÷VçBâVç&V6†&ÆRF&ÆR2¦W&òf–æF–æw3²F†R†VFÆ–æR6—2†÷rÖç’6†V6·0¦6÷VÆBæ÷B'Vâ&F†W"F†â&÷VæF–ærF†VÒF÷vâ–çFò6ÆVâ&–ÆÂöb†VÇF‚à ¤æò6öÇVÖâ—2G—VBg&öÒÖVÖ÷'’âfÆ–FFR‚–6†V6·2ÆÂf÷'G’ÖöFBv–ç7@¦7W&6RöÖ–w&F–öç2öÂ&V6W6R6WfVçFVVâ÷væW"f÷&×2öæ6R6†—VB6VæF–æp¦W6W%ö–FFòF&ÆW2F†BFòæ÷B†fR—BæBWfW'’6fRf–ÆVB–â&öGV7F–öà§v†–ÆRF†RFW7G276VBv–ç7B7GV"âV6‚6†V6²Ç6ò†2öæR&÷r—B×W7B6F6€¦æBöæR—B×W7BÆVfRÆöæRÂ6–æ6R&VF–6FRF†BV–WFÇ’7F÷2ÖF6†–æp§&W÷'G2&æ÷F†–ærFòf—‚"Âv†–6‚—2F†Rç7vW"â÷væW"Ö÷7BvçG2Fò&VÆ–WfRà ¢222##bÓ‚Ób(	BF†R6V7W&—G’ÖFVf–æW"&Æ7B&F—W2ÂÖV7W&V@ ¥GvVÇfR4T5U$•E’DTd”äU"gVæ7F–öç2&R6ÆÆ&ÆR'’ç’6–væVBÖ–âW6W"÷fW ¦÷&W7B÷c÷'2öâ4„•õ$TD”äU526–BF†—2v2Væ6†ævVBFVÆ–&W&FVÇ’Â&V6W6P§&Wfö¶–ærU„T5UDR6âGW&âv÷&¶–ær$Å2öÆ–7’–çFòFVæ–ÂæBfW&–g––ærF†@¦æVVG2FF&6R6öÖV&öG’6â'&V²â&–v‡B&÷WBF†RÆ7BÖ–ÆRÂw&öærF†@¦æ÷F†–ær6÷VÆB&RÆV&æVBf—'7B(	BF†RÖ–w&F–öç26’v†–6‚öÆ–6–W26ÆÂv†–6€¦gVæ7F–öç2à ¦67&—G2÷&W÷'B×6V7W&—G’ÖFVf–æW"ÖW‡÷7W&RæÖ§66ö×WFW2—Bâ—5ö÷&uöÖVÖ&W&—0¦6ÆÆVB'’“röÆ–6–W27&÷72S’F&ÆW3²F†B—2F†RçVÖ&W"F†BÖ¶W2&Wf–Wp¦'&æ6‚F†RöæÇ’&W7öç6–&ÆRv’FòG'’F†R6†ævRâöæRgVæ7F–öâÀ¦6öæ&ö†5ö÷&u÷&öÆVÂ—26ÆÆVB'’æ÷F†–æræB—2F†RöæÇ’6fR'Bà ¥F†Rf–æF–æræö&öG’v2Æöö¶–ærf÷#¢f÷W"öbF†RGvVÇfR(	B—5öFÖ–æÀ¦—5ö7W'&VçE÷W6W%öFÖ–æÂ†5÷66÷VÂ†5ö6ö×ç•ö66W76(	B&RFVf–æVB'’æð¦Ö–w&F–öââF†W’W†—7B–â&öGV7F–öâæBæ÷B–âfW'6–öâ6öçG&öÂÂ6òæö&öG’6à§&Wf–WrF†VÒ'’&VF–ærF†—2&W÷6—F÷'’âF†B—2v÷'6RF†âF†Rw&çBà ¢¢¥F†Rf—'7BfW'6–öâöbF†—2&W÷'Bv26öæf–FVçFÇ’w&öærâ¢¢—G2öÆ–7’GFW&à¦6÷VÆBæ÷B&VBV÷FVB×VÇF’×v÷&BöÆ–7’æÖRÂv†–6‚—2Ö÷7BöbF†VÒÂ6ò—B6p£“öÆ–6–W2–ç7FVBöbC“ræB6–B6—‚öbF†W6RgVæ7F–öç2vW&R6fRFòÆö6°¦F÷vâ(	B–æ6ÇVF–æröæW2v—F‚F÷¦Vç2öbFWVæFVçG2â7F–æröâ—Bv÷VÆB†fRÆö6¶V@¦7W7FöÖW'2÷WBöbF†V—"÷vâ&V6÷&G2â—Bæ÷r'Vç2Gvò–æFWVæFVçB6†V6·2æB¦F—6w&VVÖVçB&WGvVVâF†VÒf–Ç2F†R&VÆV6Rà ¤–b–÷RF¶RöæRF†–ærg&öÒF†—2VçG'“¢F†R&W÷'BÆöö¶VBf–æ—6†VBæB&V@§ÆW6–&Ç’B“öÆ–6–W2âæ÷F†–ær&÷WB—G2÷WGWB7VvvW7FVB—Bv2&Æ–æBà ¢222##bÓ‚Ób(	B6–æVÖF–2V&Æ–27W&f6W0 ¤WfW'’V&Æ–2&÷WFR—2æ÷röâöæRöbGvòÆ—7G2v—F‚&V6÷&FVB&V6öã¢GvVçG’&P¦6–æVÖF–2g&öçBFö÷'2ÂVÆWfVâ7F’6ÆÒâF†RVÆWfVâ&RF†R6WfVâÆVvÀ¦Fö7VÖVçG2ÂF†R66W76–&–Æ—G’vRÂæBF†RF‡&VRÆVæ6‚×&VF–æW726†V6¶Æ—7G2(	@§6öÖV&öG’÷Vç2&VgVæBöÆ–7’Fò6†V6²FW&ÒÂæB&ÆÆ‚FöW2æ÷B†VÇF†VÐ¦f–æB—Bà ¦ö†VÇæB÷&ö×BÖÆ–'&'–Ö÷fVBFòF†RÖ&¶WF–ær7W&f6Râ&÷F‚&R&V6†V@¦&Vf÷&R6–væ–ærW2ögFVâ2gFW"æBvW&R&VæFW&–ærF†RÆ–â÷W&F–öæÀ¦g&ÖRà ¥F†R&6¶G&÷—2öæR'VÆRöâç6öæ&×7FvS£¦&Vf÷&V&F†W"F†âÖ&·Wöà¦V–v‡FVVâvW2(	BF‡&VR6öÆ÷W"f–VÆG2–âF†R&öGV7B‡VW2÷fW"'VÆVBw&–BÀ§&ÆÆ†VB'’F†R67&öÆÂf&–&ÆRF†RFWF‚67&—BÇ&VG’w&—FW2âæò–ÖvP¦f–ÆW2ÂæòÆ–'&'’Âæ÷F†–ærf÷"F†R55Fò&VgW6Rà ¤æ÷Bö'f–÷W2æBv÷'F‚¶VW–æs¢¢Ö–æFWƒ¢Óv—F‚—6öÆF–öã¢—6öÆFVöâF†P§7FvR—2F†RöæÇ’6öÖ&–æF–öâF†Bv÷&·2âB¢Ö–æFWƒ¢â'6öÇWFVÇ§÷6—F–öæVB6WVFòÖVÆVÖVçB–çG2÷fW"–âÖfÆ÷rFW‡C²v—F†÷WBF†R—6öÆF–öâÂÓ ¦fÆÇ2&V†–æBF†R&öG’&6¶w&÷VæBæBF—6V'2à ¥F†R76WBfW'6–öâFö¶VâÆ—fW2–âf÷W"f–ÆW2æBF†R6W'f–6Rv÷&¶W"66†W2'’—Bà¥F‡&VRvW&RWFFVBæBöæRv2æ÷C²âW†—7F–ærFW7B6Vv‡B—Bà ¢222##bÓ‚Ób(	BF†RvVçB&÷fÂ'VÆR26öFP ¦Æ–"÷6öæ&ÖvVçBÖWF†÷&—G’æ6§6–×ÆVÖVçG2F†R6WfVâ6FVv÷&–W2g&öÒtTåE2æÖ@§ÇW2F†RFVfVÇBâF†Ræ–æWFVVâvVçBF&ÆW2†fRW†—7FVB6–æ6RÖ–w&F–öâ€§v—F‚æ÷F†–ær'Vææ–ærv–ç7BF†VÒÂ6òF†R&VÆV6RvFRw2&æò'VçF–ÖR"Æ–æRv0§F†Rv†öÆRwV&çFVR(	BwV&çFVRF†BW‡—&W2F†RÖöÖVçB6öÖV&öG’'V–ÆG2öæRà ¤f÷W"FV6—6–öç2F†BÆöö²&6·v&G2VçF–Â–÷R6VRv‡’âF†RFVfVÇB—2FVç’à¥6Vç6—F—fRGFW&ç2&R6†V6¶VB&Vf÷&RF†RÆÆ÷vÆ—7BÂ&V6W6RFVÆWFUöG&gEö6öçFVçF ¦ÖF6†W2&÷F‚âF†R&÷rw2÷vâ&WV—&W5ö&÷fÆ6öÇVÖâ—2–væ÷&VBÂ&V6W6R—B—0§w&—F&ÆRæB6fWG’&÷W'G’F†RvVçB6âVF—B—2æ÷BöæRâæBâ&÷fÀ¦×W7BæÖRW'6öâÂ&Rf÷"F†B7F–öâÂæBæ÷B6öÖRg&öÒF†R&WVW7FW"à ¥F†R&VÆV6R6†V6·2ÆÂöb—BâfW&–f–VB'’fÆ—–ærF†RVç&V6övæ—6VBÖ7F–öà¦FVfVÇBFòÆÆ÷r(	BF†R&VÆV6Rf–Ç2à ¥F†W&R—27F–ÆÂæò'VçF–ÖRâF†B—2F†RæW‡BF†–ærÂæB—B6†÷VÆB&R'V–ÇBFð¦6ÆÂFV6–FTW†V7WF–öæ&F†W"F†â&÷VæB—Bà ¢222##bÓ‚Ób(	BGvVçG’Öf—fR&W÷6—F÷&–W2ÂÆ–6Væ6W2fW&–f–V@ ¥&VBöfbV6‚&W÷6—F÷'’&F†W"F†â&V6ÆÆVBÂv†–6‚ÖGFW&VC¢f—fRGW&æVB÷W@§&V6—&ö6Â„uÂÂuÂÂõ4Â’ÂGvòFV6Æ&VBæòÆ–6Væ6RBÆÂÂGvò6÷VÆBæ÷B&P¦6öæf—&ÖVBâ&V6ÆÆ–ærF†VÒv÷VÆB†fRWBf÷W"–âF†RF÷F–öâF‚w&öævÇ’à ¥Gvò&Æö6·2F†B6ææ÷B&RÆ–gFVBg&öÒ–ç6–FRF†—2&ö¦V7C¢&W÷6—F÷'’v—F‚æð¦Æ–6Væ6R—2ÆÂ&–v‡G2&W6W'fVBÂ6òF†W&R—2æ÷F†–ærFòWF†÷&—6Rà ¥Gvò6÷'&V7F–öç2FòV&Æ–W"&V6öæ–ærÂ&÷F‚Ö–æRâF†RtTåE2æÖBçF’Ö6ÆöæR'VÆP§6—G2&W6–FR&÷fVææ6RæB6öç6VçBæB—2–×ÆVÖVçFVB'’6öæuöf–ævW'&–çG6æ@¦7&VF÷%÷fö–6Uö6öç6VçG6(	B—B&÷FV7G27&VF÷'2g&öÒ&V–ær6ÆöæVBÂæ÷BF†—0§&ö¦V7Bg&öÒ&VF–ær÷Vâ×6÷W&6R6öFRâæB6†RÓ"ãW&Ö—G2FW&—fF—fRv÷&·0¦6öÖÖW&6–ÆÇ“²GG&–'WF–öâ—2F†Rö&Æ–vF–öâÂæ÷B&ö†–&—F–öâà ¦FW7G2ö÷Vâ×6÷W&6RÖÆ–6Væ6R×FW&×2çFW7Bæ§6&VG2F†RÆ–6Væ6R6VçFVæ6R&F†W"F†à§F†R&—6²F–W"Â&V6W6R6†V6²ÖÆ–6Vç6R×&—6²æÖ§6w&W2f÷"&wÂ"æB÷F†W'v—6P§G'W7G2Gvò†æB×G—VBf–VÆG2(	BæBæV—F†W"õ4ÂÓ2ãæ÷"$æöæRFV6Æ&VB ¦6öçF–ç2—Bà ¦Fö72öv—F‡V"×&F"ôt•D…T%õ$D%õ$ôET5Eô”åDTu$D”ôåôÔæÖF—2æ÷rvVæW&FVBW §&W÷6—F÷'’g&öÒF†R&Vv—7FW"–ç7FVBöb&V–ærf÷W"6VçFVæ6W2F†BæÖVBæöæRö`§F†VÒà ¢222##bÓ‚Ó(	B&–6–ær7G'V7GW&RÂæÇ—6VBæ÷BÆ–V@ ¥F†R7W'&VçBÆ—7B(	Bg&VRò7F'FW"Crò6÷&RC’ò&òC3’(	B&–6W2FWF‚âF†P§&öGV7Bw26†R—2'&VGFƒ¢F‡&VRv÷&·76W2ÂV6‚&WÆ6–ærF–ffW&VçBFööÂà¥F†R§VÇ’7W'fW’WG2F†R7F6²&V–ær&WÆ6VBBCsr„¦ö&&W"C#’²öF–C3’°¤'&WfòC’’ÂæBF†R7W'&VçB&–6RÆ—7BæWfW"6—26òà ¦Fö72÷&–6–æró##bÓ‚ÓÕ$”4”ärÕ$U5E%T5EU$RæÖF&V6öÖÖVæG2g&VRCòöæP§v÷&·76RC’òÆÂF‡&VRC3’òFVÒCs’Âv—F‚C’6†÷6Vâ7V6–f–6ÆÇ’6òæð¦W†—7F–ær6÷&R7W7FöÖW"—2Ö÷&Rà ¤æ÷F†–ær—2Æ–VBâ5E$•UõÄå6—2Væ6†ævVBâ&–ÆÆ–ær—2÷væW"Ö&÷fV@§VæFW"tTåE2æÖBÂæBF‡&VRF†–æw2†fRFò&RG'VRf—'7C¢F†R÷6—F—fP§7V'67&–&VB×W6W"FW7B†2æWfW"&VVâ'Vâ–â&öGV7F–öâÂF†RæWr7G&—R&–6P¦ö&¦V7G2Fòæ÷BW†—7BÂæB$ÆÂF‡&VR"æB%FVÒ"æVVBVçF—FÆVÖVçB¶W—2F†@§F†R6FÆör&W6öÇfW2v–ç7B(	B6òF†—2—26öFR6†ævRÂæ÷BöæÇ’7G&—RöæRà ¥F†RFö7VÖVçBFöW2æ÷B6Æ–ÒF†W6R&–6W26öçfW'B&WGFW"âæò–B6–vçW†0¦6ö×ÆWFVBÂ6òF†W&R—2æò6öçfW'6–öâFFÂæB–çfVçF–æröæRv÷VÆB&RF†P¦f–ÇW&RF†—2&W÷6—F÷'’¶VW26F6†–ærà ¢222##bÓ‚Ó(	BF‡&VRÆö÷†öÆW2–âF†RFVæçBwV&BÂæöæRöbF†VÒÆ—fP ¤‡VçFVB&F†W"F†âG&—VB÷fW"âÆÂF‡&VRvW&RF†R6ÖR6†S¢6†V6²F†@§&W÷'G26÷fW&vR—BFöW2æ÷B†fRà ¥F†R¶æ÷vâ×F&ÆW2FW7B66ææVB6W'fW"æ§6æB&÷WFW2öæBæ÷BÆ–"öÂv†–6€¦Ç6ò—77VW2÷7Fu$U5B&WVW7G2âF&ÆRVW&–VBg&öÒÆ–"öæB7&VFVB'’æð¦Ö–w&F–öâv÷VÆB†fR&VVâ–çf—6–&ÆRFòF†RFW7BæBvfVBF‡&÷Vv‚'’F†RwV&Bà¤æ÷F†–ærv27GVÆÇ’w&öær(	B6—‚Æ—FW&ÂF&ÆRæÖW2–âÆ–"öÂÆÂ&V6övæ—6VB(	@¦'WBF†R66â6÷VÆBæ÷B†fR6–B6òâv–FVæVBÂF†Vâ6öæf—&ÖVB'’ÆçF–ær¦Æ–"öf–ÆRVW'––ærF&ÆRæòÖ–w&F–öâ7&VFW2æBvF6†–ær—Bf–Âà ¦–ç7V7B‚–&WGW&æVB²ÆÆ÷vVC¢G'VRÂVç&V6övæ—6VC¢F&ÆRÖæB–ç7FÆÂ‚– §&VBöæÇ’æÆÆ÷vVFâF†R6öÖÖVçB6–B&ÆÆ÷r—BæB6’6ò#²—BÆÆ÷vVBæBF–@¦æ÷B6’âæ÷r&W÷'FVBöæ6RW"F&ÆRæÖRÂæ÷Böæ6RW"&WVW7BÂ&V6W6R§v&æ–ærF†B&–çG2öâWfW'’vRÆöB—2öæRæö&öG’&VG2à ¦–ç7FÆÂ‚–v2wV&FVB'’ÖöGVÆRÖÆWfVÂ–ç7FÆÆVF&ööÆVâF†B–væ÷&VBF†P§F&vWBÂ6òF†Rf—'7B–ç7FÆÂç—v†W&RÖFRWfW'’ÆFW"öæR6–ÆVçBæòÖ÷âF†P¦æWrFW7B–ç7FÆÆVBöçFò—G2÷vâ66÷Rö&¦V7BÂv÷BfÇ6VÂW†W&6—6VBà§Vçw&VBfWF6†æB76VB(	B–â—6öÆF–öââ—Bf–ÆVB–âF†RgVÆÂ7V—FRöæÇ¦&V6W6RF†RFW7B76W'G2F†R&WGW&âfÇVRâG&6¶–ærF&vWG2–âvVµ6WF—0¦&÷F‚Ö÷&R6÷'&V7BæBv†B¶VW2F†BFW7B†öæW7Bà ¥F†RwV&B7F–ÆÂÆÆ÷w2âVç&V6övæ—6VBF&ÆRâf–Æ–ær6Æ÷6VBF†W&RG&FW2§V–WB†öÆRf÷"â÷WFvRÂæB7FÆRvVæW&FVBÆ—7B—2Æ–¶VÆ–W"WfVçBF†â¦ÖÆ–6–÷W2öæRà ¢222##bÓ‚Ó(	BG&FW2’×FööÂwV–FRÂæBF†RÖöæW’F&ÆRF†Bö–çG2F†Rw&öærv ¤æÇ—6VB¢%F†RF÷"’FööÇ2f÷"G&FW2'W6–æW72÷væW'2"¢…&öf—F&ÆRG&F–RÀ£##b’(	BÆVBÖvæWB–ÖVBBW†7FÇ’F†R'W6–æW72'V–ÆFW"7W7FöÖW"â&V6÷&FV@¦–âFö72öÖ&¶WBó##bÓ‚ÓÕE$DU2Ô’ÕDôôÂÕ5D4²æÖFâ—G2v÷&F–ær7F—2÷WBö`¦÷W"6÷“²—B—26öÖVöæRVÇ6Rw2'&æBâF†RÖ&¶WBf7G2G&ç6fW"à ¤VÆWfVâF—7F–æ7B&öGV7G2Â¢¢C#“röÖöçF‚¢¢BVçG'’–BF–W'2æB¢¢C#b¢¢BF†P¦fÆö÷"öæ6Rg&VRF–W'2&RW6VBâF†B—26V6öæB6ö×WF—F÷"7F6²Â7V6–f–2Fð§G&FW2Â&W6–FRF†RvVæW&Æ—7BCsrÇ&VG’&V6÷&FVBâF†RCsr7F—2F†R†VFÆ–æP¦&V6W6R—B—2F†R6†VW7B7&VF–&ÆRöæRæBF†W&Vf÷&RF†R†&FW7BFòF—7WFRà ¥F†Rf–æF–ærv÷'F‚7F–æröâ6ÖRg&öÒ6†V6¶–ærF†R66†VÖ&F†W"F†âF†RwV–FRà¢¢¤WfW'’ÖöæW’F&ÆR–âF†—2&öGV7Bö–çG2÷WGv&Bâ¢¢fVæF÷%ö–çfö–6W6À¦W&6†6Uö÷&FW'6æB&–ÆÅ÷–ÖVçE÷&V6÷&G6&RÖöæW’F†R'W6–æW72÷vW3°¦–ÖVçG6æBW&6†6W6&R4ôä$w2÷vâ7G&—R&–ÆÆ–ærâF†W&R—2æð¦66÷VçG2×&V6V—f&ÆRF&ÆRÂ6ò'W6–æW726â&V6÷&Bv†B—B÷vW2—G27WÆ–W'0¦æB6ææ÷B&V6÷&Bv†B—G27W7FöÖW'2÷vR—Bà ¤æ÷F†–æröâ67&VVâÆ–W2&÷WBF†—2(	BF†RW†—7F–ær6†V6²—2Æ&VÆÆVB%7WÆ–W ¦–çfö–6W27BGVR"â'WBF†RwV–FRw2VçF—&R66‚ÖfÆ÷r6V7F–öâ—2&÷WBF†P§&V6V—f&ÆR6–FRÂæBf÷"G&FW2'W6–æW72F†B6–FR—2F†R'W6–æW72âF‡&VRö`¦—G2GvVÇfRFööÇ2&RF÷vç7G&VÒöbF†BöæRÖ—76–ærF&ÆRà ¤Ç6ò6÷'&V7FVB4ÄTDRæÖBÂv†–6‚7F–ÆÂ6–BF†W&R—2æòvVçB'VçF–ÖRâF†W&R—0¦öæS²v†BF†W&R—2æ÷B—2ç—F†–ærF†B&R×'Vç2â7F–öâgFW"&÷fÂÂæ@§F†B—2æ÷rv†B—B6—2à ¢222##bÓ‚Ó(	B66÷VçG2&V6V—f&ÆRÂF†R6–FRöbF†RÖöæW’F†Bv2Ö—76–æp ¤WfW'’ÖöæW’F&ÆR–âF†—2&öGV7Bö–çFVB÷WGv&BâfVæF÷%ö–çfö–6W6À¦W&6†6Uö÷&FW'6æB&–ÆÅ÷–ÖVçE÷&V6÷&G6&Rv†BF†R'W6–æW72÷vW3°¦–ÖVçG6æBW&6†6W6&R4ôä$w2÷vâ7G&—R&–ÆÆ–ærâ'W6–æW726÷VÆ@§&V6÷&B&–ÆÂ—B†BFò’æB†Bæ÷v†W&RFò&V6÷&B&–ÆÂ—B†B6VçBà ¦7W7FöÖW%ö–çfö–6W6æB7W7FöÖW%ö–çfö–6U÷–ÖVçG6Âv—F€¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷&V6V—f&ÆW6÷fW"F†VÒâ7W7FöÖW'6vWG2vRFöòÒÐ¦—B†BF&ÆRÂ&÷rÆWfVÂ6V7W&—G’æBæòv’–âÂæB&öö¶–æw27F÷&R¦7W7FöÖW"w2æÖR2g&VRFW‡B&F†W"F†âö–çF–ærB—BÂ6òâ–çfö–6R†@¦æö&öG’Fò&RFG&W76VBFòà ¥–ÖVçG2&V6V—fVB&R&÷w2Âæ÷BâÖ÷VçE÷–Eö6VçG66öÇVÖââFVæ÷&ÖÆ—6V@§F÷FÂ7F÷2&V–ærG'VRF†Rf—'7BF–ÖR6öÖV&öG’&V6÷&G2–ÖVçBv—F†÷W@§WFF–ær—Bà ¤æòÆ–æRÖ—FV×2F&ÆRÂFVÆ–&W&FVÇ’âF†R÷væW"×vRg&ÖWv÷&²&VæFW'2öæR6†–Æ@§W"vRÂæB&WGvVVâÆ–æR—FV×2æB–ÖVçG2&V6V—fVB—B—2–ÖVçG2F†@¦ç7vW"'v†ò÷vW2ÖRv†B"âÆ–æRF&ÆRv—F‚æòvR—266†VÖæ÷F†–ær6à§&V6‚ÂæBF†W&R—2Væ÷Vv‚öbF†BÇ&VG’à ¥Gvò6†V6·3¢7W7FöÖW%ö–çfö–6W5ö÷fW&GVVf—&W2öæÇ’öâ6VçFÂ&V6W6RG&g@¦æö&öG’†26VVâ—2æ÷BÆFRæB6÷VçF–ær—Bv÷VÆBWB–çfVçFVB&W77W&Röâ¦çVÖ&W"&VB2&VÂÖöæW’â7W7FöÖW%ö–çfö–6W5÷6VçE÷v—F†÷WEöGVUöFFV6F6†W2F†P§&÷rF†Rf—'7B6†V6²7G'V7GW&ÆÇ’6ææ÷B6VRÒÒâ–çfö–6Rv—F‚æòGVRFFRæWfW ¦vöW2÷fW&GVRÂ6ò—BÆVfW2WfW'’6†6RÆ—7B–â6–ÆVæ6Rà ¤f÷W"vFW26Vv‡BF†–æw2öâF†Rv’F‡&÷Vv‚ÂÆÂ6÷'&V7FÇ“¢F†RÆ–æW2FW7@¦6÷VçFVBBvW2æBf÷VæBRÂF†R&V6÷&BÖ6†V6·2FW7B&VgW6VB6†V6²v—F‚æð¦f—‡GW&R&÷f–ær—B6F6†W2æB–væ÷&W2ÂF†R7W&6R6öçG&7B&VgW6VBF&ÆW2F†P§'VçF–ÖR&VfW&Væ6VBÂæBF†R÷Vä’6öçG&7B&VgW6VBVç&Vv—7FW&VB&÷WFW2à ¥F†RÆ–æW2FW7B76W'FVBF†R7G&–ær$fÆ÷W""f÷"WfW'’vRÂv†–6‚†VÆBv†–ÆRÆÀ¦f÷W"Æ–æRF&ÆW2vW&R7Fö6²Æ–æW2v—F‚â—FVÕöæÖVâ–ÖVçG2†fRFFRÂà¦Ö÷VçBÂÖWF†öBæB&VfW&Væ6RÂ6òöæR6†&VBÖ&¶W"v÷VÆB†fR&W÷'FVB§v÷&¶–ærvR'&ö¶VââWf–FVæ6R—2æ÷rFV6Æ&VBW"F&ÆRÂæBvRv†÷6RF&ÆP¦†2æöæRf–Ç2&F†W"F†â76–ærV–WFÇ’à ¢222##bÓ‚Ó(	BÖöæW’GVR–âæB÷WBÂv†–6‚—2æ÷Bf÷&V67@ ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"öÖöæW’ÖGVVÂ÷fW"Æ–"÷6öæ&Ö66‚×÷6—F–öâæ6§6à¥Væ&Æö6¶VB'’66÷VçG2&V6V—f&ÆS¢v—F‚–çfö–6W2÷vVBFòF†R'W6–æW72æB&–ÆÇ0¦÷vVB÷WBÂ&÷F‚6''––ærGVRFFW2ÂÖöæW’–âæB÷WB'’W&–öB—2&—F†ÖWF–0¦÷fW"F†R÷væW"w2÷vâ&÷w2âæòÖöFVÂÂæò&÷f–FW"Âæ÷F†–ærÖWFW&VBâFööÂ6—‚ö`§F†RGvVÇfR–âF†RG&FW2wV–FR—2fÆöB÷"&Wv—6RBCC’ÖöçF‚à ¢¢¤—B—2æ÷Bf÷&V67BÂæBF†RæÖ–ær—2F†R7V'7Fæ6R&F†W"F†â6fVBâ¢ ¤f÷&V67B&VF–7G2&WfVçVRæö&öG’†2&öÖ—6VBâF†—2FG2Wv†B†2&VVà§&öÖ—6VB–â&÷F‚F—&V7F–öç2ââ÷væW"FV6–F–ærv†WF†W"—&öÆÂ6ÆV'26ææ÷@§FVÆÂâW‡G&öÆFVBçVÖ&W"g&öÒ6÷VçFVBöæRöæ6RF†W’&R–âF†R6ÖP¦6öÇVÖâÂ6òF†W&R—2æòW‡G&öÆFVBçVÖ&W"à ¥F‡&VRF†–æw2—B&VgW6W2FòFó  ¤&÷rv—F‚æòGVRFFR—2W†6ÇVFVB¢¦æB&W÷'FVB¢¢Â&÷fRF†RF÷FÇ2&F†W §F†â–âfö÷Fæ÷FRâG&÷–ær—B6–ÆVçFÇ’v÷VÆBÖ¶RWfW'’f–wW&RÆöö²6ö×ÆWFP§v†–ÆR&V–ær6†÷'B'’âVæ¶æ÷vâÖ÷VçBÂv†–6‚—2F†R6†RöbÖ÷7BöbF†P¦FVfV7G2f÷VæB–âF†—2&W÷6—F÷'’à ¥F†W&R—2æò6Æ÷6–ær&Ææ6RâæòF&ÆR†öÆG2F†R&æ²&Ææ6RÂ6òF†—2&W÷'G0¦Ö÷fVÖVçBâ÷6—F–öâ6ö×WFVBg&öÒâ÷Væ–ær&Ææ6Röb¦W&òv÷VÆB&VB2F†P¦ÖöæW’F†R'W6–æW72†2à ¤âVç&VF&ÆR–ÖVçG2F&ÆR6÷VçG22Væf–Æ&ÆR&F†W"F†â&W÷'F–ærw&÷70¦2æWBâ÷fW'7FF–ærÖöæW’6öÖ–ær–â—2F†Rw&öærF—&V7F–öâFò&Rw&öær–âà ¥Gvò&—F†ÖWF–2G&2†fRFW7G2&V6W6R&÷F‚v÷VÆB†fR&VVâ6–ÆVçC¢à¦–çfö–6R–B–âgVÆÂv†÷6R7FGW2v2æWfW"6†ævVBöfb'6VçB"G&÷2÷W@¦–ç7FVBöb6÷VçF–ærBgVÆÂfÇVRÂæBâ÷fW'–ÖVçB6Æ×2B¦W&ò–ç7FVBö`¦vö–æræVvF—fRæBV–WFÇ’&VGV6–æræ÷F†W"–çfö–6Rw2F÷FÂà ¢222##bÓ‚Ó(	BF†R–ÖVçBf÷&ÒF†B6÷VÆBæWfW"6fP ¦7W7FöÖW%ö–çfö–6U÷–ÖVçG66†—VBv—F‚v÷&¶–ærf÷&ÒÂv÷&¶–ær'WGFöâæ@¦æòv’Fò6fR&÷râF†R6†–ÆBõ5B†æFÆW"&VB&Wæ&öG’æ—FVÕöæÖV ¦F—&V7FÇ’Âv†–6‚v2G'VRöbF†Rf÷W"Æ–æRF&ÆW2F†BW†—7FVBv†Vâ—Bv0§w&—GFVâ(	BÆÂ7Fö6²Æ–æW2v—F‚â—FVÒæÖRâ–ÖVçB†2FFRÂâÖ÷VçBÂ¦ÖWF†öBæB&VfW&Væ6RâWfW'’7V&Ö—76–öâ6ÖR&6²Ö—76–æu÷&WV—&VFæÖ–ær¦f–VÆB—G2f÷&ÒæWfW"6·2f÷"à ¥F†RFW7B7V—FR76VB&V6W6RWfW'’66R÷7FVB—FVÕöæÖV&Vv&FÆW72öbv†–6€§vR—Bv2FW7F–ærâF†BöæR6†&VB&öG’ÖVçBF†RGvò÷væW'6†—FW7G2vW&P¦Ç6ò76–ærf7V÷W6Ç’öâF†—2vS¢&÷F‚vW&R&V–ær&V¦V7FVBBF†R&WV—&V@¦6†V6²Æöær&Vf÷&R&V6†–ærF†R&VçBÖ÷væW'6†—6†V6²F†W’W†—7BFò&÷fRà ¥&WV—&VBf–VÆG2æ÷r6öÖRg&öÒF†R6†–ÆBw2÷vâf÷&ÒFV6Æ&F–öâÂæBF†RFW7G0¦'V–ÆBV6‚7V&Ö—76–öâg&öÒF†R6ÖRFV6Æ&F–öââGvòæWr66W3¢÷7BW†7FÇ§v†BvRÖ&·2&WV—&VBæB76W'B—B6fW2ÂæBG&÷öæR&WV—&VBf–VÆBæ@¦76W'B—BFöW2æ÷Bà ¥F†—&BF–ÖR–âF†—2&VF†BöæR6†Rv277VÖVBf÷"ÆÂ6†–ÆG&Vâ(	BgFW"F†P¢$fÆ÷W""Wf–FVæ6RÖ&¶W"âF†RGFW&â—2v÷'F‚æÖ–æs¢†VÇW"w&—GFVâv†Vâ§6WB†BöæRÖVÖ&W"Væ6öFW2F†BÖVÖ&W"w26†R2F†R'VÆRà ¢222##bÓ‚Ó(	B–çfö–6RÆ–æR—FV×2ÂæB&V6÷&BF†B6â†öÆBGvò¶–æG2öb6†–Æ@ ¦vRæÆ–æW6v26–ævÆRö&¦V7BÂv†–6‚v2&–v‡Bv†–ÆRWfW'’&V6÷&Bv—F€¦6†–ÆG&Vâ†BW†7FÇ’öæR¶–æBââ–çfö–6R†2Gvó¢v†B—2öâ—BÂæBv†B†0¦&VVâ–Bv–ç7B—Bâ6†–ÆG&Väöb‡vR–æ÷&ÖÆ—6W2V—F†W"6†RÂ6òF†Rf÷W ¦W†—7F–ærFV6Æ&F–öç2&RVçF÷V6†VBà ¦7W7FöÖW%ö–çfö–6UöÆ–æW6v2FVÆ–&W&FVÇ’ÆVgB÷WBöbF†R&V6V—f&ÆW2Ö–w&F–öà¦&V6W6RF†Rg&ÖWv÷&²&VæFW&VBöæR6†–ÆBæB–ÖVçG2†BF†R6Æ÷BâF†W&R—0§6öÖWv†W&RFòWB—Bæ÷rà ¤Æ–æRF÷FÇ2&R7F÷&VB&F†W"F†âFW&—fVBÂv†–6‚—2F†R÷÷6—FRöbF†R6†ö–6P¦ÖFRf÷"–ÖVçG2ÂæBF†RGvò&RF–ffW&VçB¶–æG2öbçVÖ&W"âv†B†2&VVâ–@¦—2f7B&÷WB÷F†W"&÷w2Â6òFW&—f–ær—B¶VW2—BG'VRâÆ–æRF÷FÂ—2v†@§F†R'W6–æW72FV6–FVBFò6†&vR(	BVçF—G’F–ÖW2&–6R—BÖ’†fRF—66÷VçFV@¦æB&÷VæFVB—G2÷vâv’â&V6ö×WF–ær—Böâ&VBv÷VÆB÷fW'w&—FRF†BFV6—6–öâà ¥F‡&VRf–ÇW&W2öâF†Rv’F‡&÷Vv‚ÂÆÂ&VÃ  ¥F†RæWr6†–ÆBv2FV6Æ&VBBö’ö'W6–æW72ö–çfö–6RÖÆ–æW6Âv†–6€¦fVæF÷%ö–çfö–6UöÆ–æW6Ç&VG’÷væVBâGvòõ5B†æFÆW'2öâöæRF‚—2æ÷B¦GWÆ–6FR×&÷WFRW'&÷"(	BW‡&W72&Vv—7FW'2&÷F‚æBF†Rf—'7Bv–ç2Â6òWfW'¦–çfö–6RÆ–æRv÷VÆB†fR&VVâfÆ–FFVBv–ç7BfVæF÷"–çfö–6RæBw&—GFVâFð§F†RfVæF÷"F&ÆRâæ÷F†–ærv÷VÆB†fRW'&÷&VBâF†W&R—2æ÷rFW7BF†BæòGvð¦6†–ÆG&Vâ6†&RâVæGö–çBà ¦Æ–"÷6öæ&Öf÷&Ò×&V6†&–Æ—G’æ6§6&VBvRæÆ–æW2æ–Âv†–6‚&V6öÖW0¦VæFVf–æVFv–ç7Bâ'&’âWfW'’6†–ÆBVæGö–çBÆVgBF†R&V6†&ÆR6WB@¦öæ6RæBv2&W÷'FVB2†f–æræòf÷&Òv†–ÆR—G2f÷&Òv2öâ67&VVâà ¥F†RÆ–æW2FW7B—FW&FVBvW2æB&VBvRæÆ–æW6Â6ò—Bv÷VÆB†fRFW7FVBF†P¦f—'7B6†–ÆBöbV6‚&V6÷&BæB6¶—VBF†R&W7Bâ—B—FW&FW2‡&V6÷&BÂ6†–ÆB§—'2æ÷rà ¢222##bÓ‚Ó(	BV÷FRFò–çfö–6RÂæBF†R'WGFöâF†B×W7Bæ÷Bf—&RGv–6P ¦V÷FW6†BF&ÆRÂ&÷rÆWfVÂ6V7W&—G’æBæòvRà¦7W7FöÖW%ö–çfö–6W2çV÷FUö–Fv26öÇVÖâæ÷F†–ærWfW"w&÷FRâF†R7FW&WGvVVà¢'F†W’6–B–W2"æB'F†W’†fR&VVâ&–ÆÆVB"v2F†RöæRâ÷væW"FöW2BÒÀ§&WG—–ærf–wW&W2F†W’Ç&VG’w&VVBà ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"÷V÷FW6ÂæB6öçfW'B7F–öâF†B&öGV6W2G&g@¦–çfö–6Rv—F‚â÷Væ–ærÆ–æRà ¢¢¥F†—2—2F†R÷væW"7F–ærÂæ÷BâvVçBâ¢¢Æ–"÷6öæ&ÖvVçBÖWF†÷&—G’æ6§6 ¦v÷fW&ç2v†B'Vç2v—F†÷WBW'6öã²W'6öâ&W76–ær'WGFöâF†W’6â6VR—0§F†RW'6öââ&÷WF–ærF†—2F‡&÷Vv‚F†R'VææW"v÷VÆB6Æ76–g’F†R÷væW"w2÷và¦6Æ–6²2âVç&V6övæ—6VBvVçB7F–öâæB&VgW6R—B(	BF†RvFRÖ—6f—&–ær&F†W §F†âv÷&¶–ærâv÷'F‚w&—F–ærF÷vâÂ&V6W6RF†R÷÷6—FRÖ—7F¶R—2F†RöæRF†@¦ÖGFW'2æBF†RF—7F–æ7F–öâ—2V7’Fò&ÇW"à ¤f÷W"&VgW6Ç2ÂV6‚öbv†–6‚&–ÆÇ26öÖV&öG’w&öævÇ’–bÖ—76VC  ¤öæÇ’â66WFVBV÷FR6öçfW'G2â%6VçB"—2F†R7FFRv†W&RF†Rç7vW"—27F–ÆÀ¦÷WG7FæF–ærÂæB&–ÆÆ–ærf÷"v÷&²æö&öG’w&VVBFò—2v÷'6RF†âæ÷B&–ÆÆ–ærà ¤V÷FRv—F‚æò7W7FöÖW"÷"æòÖ÷VçB&VgW6W2&F†W"F†â&öGV6–ærâ–çfö–6P¦FG&W76VBFòæö&öG’Â÷"f÷"æ÷F†–ærà ¥F†R6ÖRV÷FR6ææ÷B&R–çfö–6VBGv–6RâF÷V&ÆR7V&Ö—B÷"&Vg&W6‚&–ÆÇ2öæP¦¦ö"Gv–6RÂæBF†R6V6öæB–çfö–6RÆöö·2W†7FÇ’2ÆVv—F–ÖFR2F†Rf—'7BâF†P¦6†V6²F†B&6·2—B&VG2W†—7F–ær–çfö–6W2f—'7B(	BæB¢¦âVç&VF&ÆRÆ—7B—0¦æ÷BâV×G’öæR¢¢Â6òf–ÆVB&VB&VgW6W2&F†W"F†â6öçfW'F–ærà ¤æòGVRFFR—26WBâ–ÖVçBFW&×2&R&V6÷&FVBæ÷v†W&R–âF†—2&öGV7BÂ6òç¦FFRv÷VÆB&R–çfVçFVBÂæB7W7FöÖW%ö–çfö–6W5ö÷fW&GVVv÷VÆBF†Vâ6†6R¦FVFÆ–æRæö&öG’w&VVBFòâF†R6VçB×v—F†÷WBÖGVRÖFFR6†V6²6F6†W2F†Rv ¦–ç7FVBÂv†–6‚—2v†B—B—2f÷"à ¥F†R÷Væ–ærÆ–æR—2w&—GFVâ&W7BÖVff÷'BgFW"F†R–çfö–6Râf–Æ–ærF†Rv†öÆP¦6öçfW'6–öâöæ6RF†R–çfö–6RW†—7G2v÷VÆBÆVfRF†R÷væW"Væ&ÆRFò&WG'’À¦&V6W6RF†RGWÆ–6FR6†V6²v÷VÆBF†Vâ&VgW6Rà ¢222##bÓ‚Ó"(	B6†6RG&gG2ÂæBF†R6VçFVæ6W2G&gBÖ’æ÷B6öçF–à ¦ö'W6–æW72Ö'V–ÆFW"ö÷væW"ö6†6RÖG&gG6âFööÂf—fRöbF†RGvVÇfR—2$6ÆVFRf÷ ¦÷fW&GVR–çfö–6W2"(	BF†RÖW76vRâ÷væW"WG2öfbÂ&V6W6Rw&—F–ær—Bv†–ÆP¦ææ÷–VB—2†÷r7W7FöÖW"&VÆF–öç6†—VæG2à ¥F†R7Æ—B—B&W7G2öâv26†V6¶VBv–ç7BÆ–"÷6öæ&ÖvVçBÖWF†÷&—G’æ6§6 §&F†W"F†â77VÖVBÂæB76W'FVB–âF†RFW7C¢G&gE÷&WÇ–—26VÆb×6W'fR(	@¢$—Bw&—FW2&WÇ’W'6öâ7F–ÆÂ†2Fò6VæB"(	Bv†–ÆR6VæEö–çfö–6U÷&VÖ–æFW&À¦VÖ–Åö7W7FöÖW&æB6†6Uö÷fW&GVUö–çfö–6VÆÂfÆÂF‡&÷Vv‚FòVç&V6övæ—6VF ¦æB7F÷BF†R÷væW"â6òF†—2G&gG2æB7F÷2âF†RvR6—26ò–â—G2÷và§v÷&G2Âæ÷BöæÇ’–â6öÖÖVçBà ¢¢¤æòÖöFVÂ6ÆÂâ¢¢76VÖ&ÆVBg&öÒF†R÷væW"w2÷vâ&÷w2Âv†–6‚¶VW2—Bg&VR(	@¦'WBF†B—2æ÷BF†RÖ–â&V6öââFV×ÆFR6ææ÷B†ÆÇV6–æFR–ÖVçBF†@§v2æWfW"ÖFRâv†B—B6÷7G2—2&ævS¢F†W6R&VBÆ–¶Rf÷&×2Â&V6W6RF†W¦&RÂæBF†RvR6—2F†BFöòà ¥F†R–çFW&W7F–ær'Bv2FV6–F–ærv†BG&gBÖ’æ÷B6’âF‡&VRF†–æw2F†P¦ö'f–÷W2fW'6–öâv÷VÆB†fR–çfVçFVBÂV6‚v—F‚FW7BF†Bw&W2WfW'’7FvP¦f÷"—C  ¢¢¤†÷rÖç’&VÖ–æFW'2†fRÇ&VG’&VVâ6VçBâ¢¢æ÷F†–ær&V6÷&G2F†Bâ$2vP¦†fRÇ&VG’&VÖ–æFVB–÷RGv–6R"—26Æ–ÒF†B6â&RfÇ6RFòF†R7W7FöÖW"w0¦f6Rà ¢¢¥–ÖVçBFW&×2Â–çFW&W7BÂ÷"ÆFRfVRâ¢¢æòF&ÆR†öÆG2F†VÒâG&gBæÖ–æp¦fVRF†R'W6–æW72æWfW"w&VVB—2FW&Ò—B6ææ÷BVæf÷&6Rà ¢¢¤ç’F‡&VBöbÆVvÂ7F–öâÂ6öÆÆV7F–öâ÷"7&VF—B&W÷'F–ærâ¢¢F†B—2§7FFVÖVçBF†R'W6–æW72—2†VÆBFòââ÷væW"6âw&—FR—BF†V×6VÇfW3²G&g@§F†B'&—fW2&R×w&—GFVâ–çf—FW26VæF–ær—BVç&VBà ¥Gvò÷F†W"&VgW6Ç2âF†RÖ÷VçB—2v†B—2÷WG7FæF–ærgFW"–ÖVçG2ÂæWfW"F†P¦–çfö–6RF÷FÂ(	B6†6–ærF†RgVÆÂÖ÷VçBgFW"'B–ÖVçB—2F†Rf7FW7Bv§FòÆ÷6R7W7FöÖW"ÂæBF†W&R—2FW7BF†BF†RF÷FÂFöW2æ÷BV"âæB–`§F†R–ÖVçG2F&ÆR6ææ÷B&R&VBÂ¢¦æòG&gB—2w&—GFVâBÆÂ¢¢Â&V6W6P¦WfW'’f–wW&Rv÷VÆB&RöæRF†BÖ–v‡BÇ&VG’†fR&VVâ–Bà ¤â–çfö–6RF†B6ææ÷B&RG&gFVB—2Æ—7FVBv—F‚F†R&V6öâ&F†W"F†à¦öÖ—GFVBâ6†÷'FW"Æ—7Bv—F‚æòW‡ÆæF–öâ&VG22ÆW72FV'Bà ¥F†RÖW76vR—2&VFöæÇ’FW‡F&V&F†W"F†â6÷’'WGFöã¢F†R55—0¦67&—B×7&2w6VÆbvv—F‚æò'VæFÆW"Â6ò'WGFöâv÷VÆBæVVB–æÆ–æR67&—BÂæ@§6VÆV7F–ærFW‡B6ææ÷Bf–Â6–ÆVçFÇ’F†Rv’6Æ—&ö&B6ÆÂ6âà ¢222##bÓ‚Ó"(	B6÷VçF–ærv†B—2ÆVgBÂæB6÷'&V7F–ærv†Bv26–B&÷WB—@ ¦Fö72ö÷væW"õt„BÔ•2ÔÄTeBæÖFæBFö72ö÷væW"ôõtäU"Õ5DU2æÖFà ¥F†R6÷VçB—2GvòçVÖ&W'2&V6W6R&6ö×ÆWFVÇ’FöæR"ÖVç2GvòF†–æw2â6†—–æp§v†BW†—7G2—2¢¦f÷W"7FW2ÂÆÂ÷væW"ÖöæÇ’¢¢(	Bæò&W÷6—F÷'’×6–FRv÷&²&VÖ–ç2À§v†–6‚v2fW&–f–VB&F†W"F†â77VÖVC¢æòDôD÷2ÂæòVæ–×ÆVÖVçFVBF‡2Â3Cp§FW7G276–ærÂF†RV–v‡FVVâÖ6öÖÖæB6†–âw&VVâà ¤'V–ÆF–ærWfW'—F†–ærF—67W76VB†2¢¦æò7FW6÷VçB¢¢ÂæBV÷F–æröæRv÷VÆB&P§F†RÖ÷7BÖ—6ÆVF–ærF†–ær–âV—F†W"Fö7VÖVçBâF†RÆ—7B—2÷VâÖVæFVBÂ‚öbc`§&Wf–WvVB&W÷6—F÷&–W26ææ÷B&R–æ6÷'÷&FVBBÆÂöâÆ–6Væ6Rw&÷VæG2Âæ@¢&gVÆÇ’WFöæöÖ÷W2"6öçG&F–7G2F†R6WfVâ÷væW"Ö&÷fÂ6FVv÷&–W2F†B&RÇ6ð¦â–ç7G'V7F–öââ7FFVBÆ–æÇ’&F†W"F†â'6÷&&VB–çFòâW7F–ÖFRà ¥F†Rf÷W"÷væW"7FW2&Rw&—GFVâFò&R'Vã¢F†RW†7B5ÂÂF†RF6†&ö&BF‚À¦æB†÷rFòFVÆÂ—Bv÷&¶VBâ—FVÒB–â'F–7VÆ"(	BöæRU„T5UDV&Wfö¶Röâ§&Wf–Wr'&æ6‚(	B—2F†RöæÇ’'BöbF†RGf—6÷"w2&VÖVF–F–öâF†—2&W÷6—F÷'¦6â6ÆÂ6fRöâ—G2÷vâWf–FVæ6RÂæBF†RÖ–w&F–öâ—2FVÆ–&W&FVÇ’¢¦æ÷B¢ §w&—GFVâÂ&V6W6RÖ–w&F–öâ†W&R'Vç2öâFWÆ÷’æB6†—–ær—Bv—F†÷WBF†P¦'&æ6‚FW7Bv÷VÆB&R7F–ær7BF†RWf–FVæ6Rà ¦4„•õ$TD”äU52æÖF7F–ÆÂ6Æ–ÖVBF†R'VææW"W'6—7G2æ÷F†–ærâF†B7F÷V@¦&V–ærG'VRv†VâvVçEö7F–öåöÆöw6v2v—&VBâ6÷'&V7FVB(	BæBF†R6÷'&V7F–öà¦æÖW2F†RvF†B—27GVÆÇ’7F–ÆÂ÷VâÂv†–6‚—2F†Bæ÷F†–ær&R×'Vç2à¦7F–öâgFW"&÷fÂà ¢¢¥F†Bv—2FVÆ–&W&FVÇ’æ÷B&V–ær6Æ÷6VBâ¢¢æò†æFÆW"–âF†—2&W÷6—F÷'§W&f÷&×2&VgVæBÂ–÷WB6†ævRÂöÆ–7’V&Æ–6F–öâ÷"7W7FöÖW"6VæBÂ6ð¦VWVR÷fW"F†R6WfVâvFVB6FVv÷&–W2v÷VÆB&RF†Rg&ÖRöbÖV6†æ—6Òv—F€¦æò6öçFVçG2ÂæBF†R&÷fÂ67&VVâv÷VÆBv–â'WGFöâv†÷6RöæÇ’VffV7Bv0§Fò6†ævRv÷&B–âÆörâF†R'VææW"Ç&VG’&W÷'G2Væ–×ÆVÖVçFVFÂv†–6‚—0§F†R†öæW7Bç7vW"VçF–Â†æFÆW"W†—7G2â'V–ÆBvFVB6&–Æ—G’f—'7BÂF†Và§F†R&÷fÂF‚—BæVVG2à ¢222##bÓ‚Ó"(	BF†Rf—'7B&W÷6—F÷'’F†B—27GVÆÇ’–ç7FÆÆV@ ¥F†R&Vv—7FW"†Bcb&Wf–WvVB&W÷6—F÷&–W2æBæòv’Fò6’ç’öbF†VÒv2–à§W6Râ—G2Ö÷7BGfæ6VB7FGW2v2÷F–öæÅöFFW%ögFW%÷&Wf–Wv(	B'–÷RÖ¦'V–ÆBöæR"(	B6òcb&Wf–WvVBv—F‚æ÷F†–ær'V–ÇBæBcb&Wf–WvVBv—F‚WfW'¦FFW"'V–ÇBvW&R–æF—7F–æwV—6†&ÆRâfö6'VÆ'’F†B6ææ÷BW‡&W72F†P¦f–æ—6†VB7FFRÖ¶W2F†Rv÷&²Æöö²W&ÖæVçFÇ’VæFöæRà ¦FFW%ö'V–ÇFFFVBÂæBöÆÆÖÖ÷fVBFò—BÂ&V6W6RF†W&R—2æ÷râFFW"à ¢¢¤æ÷F†–ær–âF†—2&öGV7B6ÆÆVBÖöFVÂâ¢¢Æ–"ö÷F–öæÂÖ’ÖvFWv’æ6§66—0§6ò–â—G2÷vâf—'7BÆ–æS¢%F†—2—2&VF–æW72DUDT5Dõ"öæÇ’â—BæWfW"Ö¶W0¦æWGv÷&²6ÆÇ2â"WfW'’$’"7W&f6R†W&Rv2&—F†ÖWF–2÷fW"F†R÷væW"w2&÷w2(	@§v†–6‚—2v‡’F†R&V6÷&B6†V6·2æBF†R6†6RG&gG26â&RG'W7FVBÂæBv‡§F†W’6÷7Bæ÷F†–ærâÆ–"÷6öæ&ÖöÆÆÖÖFFW"æ6§6—2F†Rf—'7BF†–ærF†@¦6ÆÇ2öæRà ¤öÆÆÖf—'7Bf÷"F‡&VR&V6öç2F†B&Rf7G2&F†W"F†â&VfW&Væ6W3¢Ô•B÷vW0¦æ÷F†–ær'WBGG&–'WF–öâÂÆö6Â'VçF–ÖR6÷7G2æ÷F†–ærW"6ÆÂÂæB—BæVVG2æð¦¶W’Â6òF†W&R—2æò6V7&WBFòÆV²à ¢¢¥F†R6öç7G&–çB7FFVB&Vf÷&Rç—F†–ærVÇ6S¢¢¢F†—2Æ–6F–öâFWÆ÷—20§6W'fW&ÆW72gVæ7F–öç2Â6òÖöFVÂöâF†R÷væW"w2÷vâÖ6†–æR—2æ÷B&V6†&ÆP¦g&öÒ—BÂæBÆö6Æ†÷7F–â&öGV7F–öâÖVç2F†RgVæ7F–öâw2÷vâ6öçF–æW"âF†P§&VF–æW726†V6²æÖW2F†B66R'’†÷7B&F†W"F†âÆWGF–ær—B'&—fR2§F–ÖV÷WBâ—B—2vVçV–æVÇ’W6VgVÂf÷"6VÆbÖ†÷7FVBFWÆ÷–ÖVçB÷"&V6†&ÆP¦†÷7BÂæBÖ—6ÆVF–ærf÷"ÆF÷(	B6ò—B6—2v†–6‚à ¤öfb'’FVfVÇBÂæBæòvRÖ’FWVæBöâ—BâÖöFVÂ&V–ærVæf–Æ&ÆR×W7@¦æWfW"&RF†RF–ffW&Væ6R&WGvVVâvRv÷&¶–æræBvRf–Æ–ærà ¥F‡&VRFVfV7G2f÷VæB–âF†Rw&—F–ærÂÆÂÖ–æS  ¥F†RFFW"†Bæ6F6‚‚‚’ÓâVæFVf–æVB–öâF†RfWF6‚Âv†–6‚7vÆÆ÷vVBF†P¦&÷'B&Vf÷&RF†R†æFÆW"6÷VÆB6Æ76–g’—B(	BF–ÖV÷WB&W÷'FVB0¢'Vç&V6†&ÆR"Â6VæF–ær6öÖV&öG’Fò6†V6²æWGv÷&²f÷"ÖöFVÂF†Bv2ÖW&VÇ§6Æ÷rà ¦–çFVw&F–öå7FGW6v26†V6¶VBf÷"&W6Væ6RæBæWfW"f÷"fÇVRÂ6òG—ð§v÷VÆB†fR&V6öÖR&V6÷&Bæö&öG’6÷VÆBf–ÇFW"öââ—B—2æ÷r&VBg&öÒF†RG—P§Væ–öâ–âF†R6ÖRf–ÆRà ¥F†BVæ–öâ'6RF†Vâ&W÷'FVBWfW'’7FGW2'WBF†Rf—'7BGvò2–çfÆ–BÀ¦&V6W6R¢¦6VÖ–6öÆöâ–ç6–FRF†R6öÖÖVçBW‡Æ–æ–ærF†RæWr7FGW2VæFVBF†P¦æöâÖw&VVG’ÖF6‚â¢¢6ÖR6Æ722F†RöÆ–7’'6W"F†Böæ6R&VB“öÆ–6–W0§v†W&RF†W&RvW&RC“s¢&VvW‚÷fW"6÷W&6RF†B&÷6R6âFW&Ö–æFRV&Ç’à¤6öÖÖVçG2&R7G&—VBf—'7Bæ÷rà ¦FFW%ö'V–ÇFÇ6ò†2FòæÖRÖöGVÆRF†BW†—7G2Â6†V6¶VBöâF—6²â—B—0§F†RöæR7FGW2F†B6Æ–×26öÖWF†–ær&÷WBF†—2&W÷6—F÷'’&F†W"F†â&÷W@§F†RW7G&VÒ&ö¦V7BÂ6ò—B—2F†RöæRF†B6â&RfÇ6Rv—F†÷WBç–&öG¦æ÷F–6–ærâ&÷F‚æWr6†V6·2vW&RfW&–f–VB'’'&V¶–ærF†VÒà ¢222##bÓ‚Ó"(	BöæRFFW"6öçG&7BÂF‡&VRÖ÷&RFFW'2ÂæB†÷rFò&V6‚F†VÐ ¦Æ–"÷6öæ&×6W'f–6RÖFFW"æ6§6†öÆG2v†BÆÂf÷W"†fR–â6öÖÖöââF†RöÆÆÖ¦FFW"6'&–VB—B–æÆ–æS²f÷W"6÷–W2v÷VÆB&Rf÷W"6†æ6W2f÷"öæRFò&P§V–WFÇ’ÆW726&VgVÂÂæBF†R6&VÆW72öæRv÷VÆB&RF†RöæRæö&öG’&R×&VBà¤V6‚FFW"æ÷r÷vç2öæÇ’—G26ÆÂ6†Rà ¥F†R&Vf7F÷"–ÖÖVF–FVÇ’&÷fVBF†Rö–çBâÖ÷f–ærF†R&6RU$ÂöçFòF†R6†&V@§&VF–æW72ö&¦V7BÆV¶VB—B(	B&6RU$Â6â6''’Fö¶Vâ–â—G2VW'’7G&–æp¦æB&VF–æW72—2&VæFW&VBöçFòvRâF†RW†—7F–æröÆÆÖFW7Bf–ÆVBv—F†–à§6V6öæG2â—B—26'&–VBæöâÖVçVÖW&&Ç’æ÷rÂ6ò÷7D§6öæ6â&VB—Bæ@¦¥4ôâç7G&–æv–g–6ææ÷Bâ÷VâvV%T’w2’¶W’vWG2F†R6ÖRG&VFÖVçBà ¢¢¤ÆævfÆ÷r¢¢„Ô•B“¢6ÆÇ2fÆ÷r'’–BÂ6òF†RfÆ÷r7F—2F†R÷væW"w2Fò6†ævP§v—F†÷WBFWÆ÷’†W&RâF†R–B—2fÆ–FFVB2Æ–â–FVçF–f–W"&Vf÷&R—@¦VçFW'2F†R&WVW7BF‚(	BfÇVR6öçF–æ–ær6Æ6‚FG&W76W2F–ffW&Vç@¦VæGö–çBöâF†R6ÖR†÷7BÂv—F‚F†—26W'fW"Ö¶–ærF†R&WVW7Bà ¢¢¤÷VâvV%T’¢£¢F†RÆ–6Væ6R&Wf–Wr—Bv2v—F–æröâ—2FöæRÂ&VBg&öÒF†P§&W÷6—F÷'’&F†W"F†â&V6ÆÆVBâ%4BÓ2Ô6ÆW6R–â7G'V7GW&Rv—F‚öæRFFV@¦6öæF—F–öâ(	B'&æF–ærÖ’æ÷B&RÇFW&VBW†6WBVæFW"f–gG’VæBW6W'2Âv—F€§w&—GFVâW&Ö—76–öâÂ÷"VæFW"âVçFW'&—6RÆ–6Væ6Râ¢¥F†B&–æG2&VF—7G&–'WF–öà¦æBFWÆ÷–ÖVçBv—F‚'&æF–ærÇFW&VBâ—BFöW2æ÷B&W7G&–7B6ÆÆ–ærF†R…EE¦g&öÒ6W&FR6ögGv&R¢¢Âv†–6‚—2ÆÂF†RFFW"FöW2â—BFöW2&–æBF†R÷væW ¦–bF†W’FWÆ÷’æB&V'&æB—BF†V×6VÇfW2ÂæBF†B—2&V6÷&FVBà ¢¢¤7&vÃD’¢¢„6†RÓ"ã“¢F†RöæRFFW"F†BÖ¶W2F†—26W'fW"fWF6‚U$À§6öÖV&öG’7WÆ–VBÂv†–6‚—2&WVW7Bf÷'v&FW"–bF†RF&vWB—2Væ6†V6¶VBâ—@§&VgW6W2Æö÷&6²ÂÆ–æ²ÖÆö6ÂÂ6Æ÷VBÖÖWFFFæBF†R&—fFR•cB&ævW2Âæ@§&VgW6W2U$Â6''––ær7&VFVçF–Ç2â7FFVBÆ–Ö—C¢F†÷6R6†V6·2&VBF†RU$Â0§w&—GFVâÂæBV&Æ–2†÷7FæÖRF†B&W6öÇfW2Fò&—fFRFG&W72—2F†R66P§F†W’6ææ÷B6VRg&öÒ†W&Rà ¦Fö72ö&6†—FV7GW&RôU…DU$äÂÕ4U%d”4U2æÖFç7vW'2F†R6öææV7F—f—G’VW7F–öâF†@¦v÷fW&ç2ÆÂöbF†VÒâF‡&VR&÷WFW2Â–â÷&FW#¢GVææVÂ„6Æ÷VFfÆ&RGVææVÂ÷ ¥F–Ç66ÆRgVææVÂÂg&VRBF†—266ÆRÂæò&6†—FV7GW&R6†ævR’Â†÷7BF†P§6W'fW"6âÇ&VG’&V6‚Â÷"'Vææ–ærF†—2Æ–6F–öâ&W6–FRF†R6W'f–6W2öà¦öæRæWGv÷&²âF†RF†—&B—2F†RöæÇ’öæRF†BÇ6òVæ&Æö6·2F†Rv–FW"VW7F–öâ(	@¤F–g’—2—F†öâÂ6†Gvö÷B—2&–Ç2ÂF7G”–væ—FW"—2…ÂæBæöæRöbF†VÒ6à¦WfW"&R&WV—&VB–çFò6öÖÖöä¥2W‡&W72&Vv&FÆW72öbÆ–6Væ6Râ0¦æV–v†&÷W&–ær6W'f–6W26ÆÆVBF‡&÷Vv‚FFW'2ÂÆÂöbF†VÒ&V6öÖR&V6†&ÆRà ¥F†RFö7VÖVçB6—2F†R'BV÷ÆR6¶—¢GVææVÂÖ¶W26W'f–6R&V6†&ÆR'¦WfW'–&öG’ÂæBöÆÆÖæB7&vÃD’†fRæòWF†VçF–6F–öâöbF†V—"÷vâà ¦FW7G2÷6W'f–6RÖFFW'2çFW7Bæ§6'Vç2F†R6ÖR'VÆW2v–ç7BWfW'’FFW"æ@¦76W'G2F†RÆ—7BÆVæwF‚Â6òFF–æröæRv—F†÷WBFF–ær—BF†W&Rf–Ç2âF†P§Æ–âÖÆæwVvRvFR6Vv‡B&VæGö–çB"–âF†RæWrvR6÷“²&Ww&—GFVâ&F†W §F†âW†V×FVBà ¢222##bÓ‚Ó"(	BGvòÖ÷&RFFW'2ÂöæR&Wf–WrF†BVæFVB–âæð ¥6V7&WG2Ö÷fVB–çFòÆ–"÷6öæ&×6W'f–6RÖFFW"æ6§6â÷VâvV%T’6F—6f–VBF†P§&WV—&VB6†V6²ÂFVÆWFVBF†R&÷W'G’æB&VFVf–æVB—BæöâÖVçVÖW&&Ç’'’†æB(	@§v†–6‚v÷&¶VBÂæBv2öæRf÷&v÷GFVâÆ–æRv’g&öÒ¶W’öâvRF†RÖöÖVçB§6V6öæBFFW"æVVFVBöæRâF‡&VRF–Bâ—B—2FV6Æ&F–öâæ÷rÂæBf÷&vWGF–ær—@¦ÖVç2F†R¶W’—2æ÷B&VBBÆÂ&F†W"F†â&VBæB&VæFW&VBà ¢¢¤F–g’¢¢(	BÆ–6Væ6R&VBg&öÒF†R&W÷6—F÷'’âÖöF–f–VB6†R"ãv—F‚GvòFFV@¦6öæF—F–öç3¢æò÷W&F–ær×VÇF’×FVæçBVçf—&öæÖVçBg&öÒF†R6÷W&6Rv—F†÷WB¦6öÖÖW&6–ÂÆ–6Væ6RÂæBæò&VÖ÷f–ærF†RÄôtò÷"6÷—&–v‡Bg&öÒF†RF–g’6öç6öÆRà¤6ÆÆ–ær6VÆbÖ†÷7FVBF–g’w2’—2W&Ö—GFVBæBF†B—2ÆÂF†RFFW"FöW2à ¥F†R&÷VæF'’—2æ÷Bö'f–÷W2æB—2&V6÷&FVB2&Æö6¶VBW6S¢¢¥4ôä$—2—G6VÆ`¦×VÇF’×FVæçBâ¢¢F†B—2f–æRv†–ÆRV6‚÷væW"ö–çG2F†RFFW"BF†V—"÷và¤F–g’(	B4ôä$—2F†R×VÇF’×FVæçBF†–ærÂF–g’—2æ÷Bâ—B7F÷2&V–ærf–æRF†P¦ÖöÖVçB4ôä$'Vç2öæR6†&VBF–g’æB6W'fW27W7FöÖW'2g&öÒ—BÂv†–6‚—0¦W†7FÇ’F†R6öæF—F–öââ6öÖV&öG’FF–ærF†B26öçfVæ–Væ6RÆFW"v÷VÆBæ÷@¦f–æB—B÷WBg&öÒF†R6öFRà ¢¢¥$tfÆ÷r¢¢(	BÆ–â6†RÓ"ãÂæBF†R&Wf–Wr—Bv27GVÆÇ’v—F–æröâv0§6V7W&—G’Âv†–6‚v2F†R&–v‡BVW7F–öã¢VæÆ–¶RÖöFVÂ÷"7&vÆW"F†—2öæR—0¦&÷WBF†R'W6–æW72w2÷vâFö7VÖVçG2â6ÖRç7vW"2öÆÆÖ(	BF†R÷væW"w2÷và¦–ç7Fæ6RÂF†R÷væW"w2÷vâf–ÆW2Âæ÷F†–ær6VçBFòF†—&B'G’âv†B&VÖ–ç2—0¦&÷VæF'’F†RFFW"Væf÷&6W2'’öÖ—76–öã¢¢¦—B&WG&–WfW2æB—BFöW2æ÷@§WÆöBâ¢¢vRW6†–ær7W7FöÖW"&V6÷&G2–çFò6V&6‚–æFW‚v÷VÆB&R6V6öæ@¦6÷’öb7W7FöÖW"FFv—F‚F–ffW&VçB&WFVçF–öâVæFW"F–ffW&VçB66W72'VÆW2à ¤—BÇ6ò6W&FW2'6V&6†VBæBf÷VæBæ÷F†–ær"g&öÒ'F†R6V&6‚f–ÆVB"Âæ@¦¶VW2ÖF6†VB76vW26W&FRg&öÒF†R¦ö–æVBFW‡B6ò6ÆÆW"6†÷v–ærà¦ç7vW"6â6†÷rv†W&R—B6ÖRg&öÒâ6÷W&6R—BFöW2æ÷B¶æ÷r—2çVÆÆÂæWfW ¦–çfVçFVBà ¢¢¦ã†â(	B&Wf–WvVBÂæBF†Rç7vW"—2æ÷B–WBâ¢¢F†R7W7F–æ&ÆRW6RÆ–6Vç6P§W&Ö—G2–çFW&æÂ'W6–æW72W6RæB&W7G&–7G2g&VRÖöbÖ6†&vRæöâÖ6öÖÖW&6–À¦F—7G&–'WF–öââöâF†RF‡&VRVW7F–öç2F†BFV6–FR÷W"66R—B—26–ÆVçC¢†÷7F–æp¦'&ævVÖVçG2Â6VÆbÖ†÷7F–ærf÷"–çFW&æÂWFöÖF–öç26ÆÆVBg&öÒ6W&FP§6ögGv&RÂæBv†WF†W"F†B6†ævW2v†VâF†R6ÆÆ–ær&öGV7B—26öÖÖW&6–Â60§v†÷6R7W7FöÖW'2æWfW"F÷V6‚ã†ââ&VF–ærF†BF†—2—2Æ–æÇ’–çFW&æÂW6R—0¦f–Æ&ÆRæBÖ’vVÆÂ&R&–v‡B(	B'WB—B—2&VF–ærÂæBF†—2&Vv—7FW"FöW0¦æ÷B&V6÷&B&VF–æw22f–æF–æw2â—B7F—2÷WBöbF†RFFW"6WBâF†BÖ¶W2—@§F†R6V6öæB—FVÒÂgFW"F†Rf÷W"÷væW"7FW2ÂF†BæVVG26öÖVöæRv—F‚WF†÷&—G§Fòç7vW"&F†W"F†âÖ÷&Rv÷&²†W&Rà ¥6—‚FFW'2æ÷rÂÆÂöâöæR6öçG&7BÂÆÂöfb'’FVfVÇBÂæöæRFWVæFVBöâà ¢222##bÓ‚Ó"(	B7&÷72×FVæçBw&—FR&V†–æBöæRVçf—&öæÖVçBf&–&ÆP ¤6¶VBv†BVÇ6RæVVG2Fò&Röâ&Vf÷&R–BW6vRÂæBvVçBFòÆöö²&F†W"F†à§&V6ÆÂâF†Rç7vW"†B†öÆR–â—Bà ¦4ôä$ôÄÄõuôÔåTÅôõ$uô”C×G'VV66WG2â÷&væ—¦F–öåö–F7G&–v‡Bg&öÒF†P§&WVW7B&öG’v—F‚¢¦æòÖVÖ&W'6†—6†V6²¢¢(	BæBF†W&R6ææ÷B&RöæRÂ&V6W6RF†P¦'&æ6‚W†—7G2Fòv÷&²v—F†÷WB&W6öÇfVB6W76–öââv†–ÆR—B—2öâÂç’&WVW7@¦æÖW2ç’÷&væ—¦F–öâæBWfW'’÷væW"×&V6÷&Bw&—FRF†B&W6öÇfW2F‡&÷Vv‚—@§w&—FW2–çFòv†–6†WfW"FVæçBF†R&öG’6¶VBf÷"à ¤—Bv2vFVBöâF†Rf&–&ÆRÆöæRâöæRw&öærfÇVR–â&öGV7F–öâF6†&ö&@§v27&÷72×FVæçBw&—FR†öÆRÂ—BV&VB–âæòFö7VÖVçFF–öâÂæBæ÷F†–ær–à§F†R&VÆV6R6†–âÆöö¶VBB—BâF†R6öFRæ÷r6†V6·2äôDUôTåfæBdU$4TÅôTåf ¦2vVÆÂÂ6òF†RfÆr—2–æW'B–â&öGV7F–öâ&Vv&FÆW72öb—G2fÇVR(	B¦6öçfVæ–Væ6R6öÖV&öG’6â7v—F6‚öâ–â&öGV7F–öâ—2æ÷B6öçfVæ–Væ6RâfW&–f–V@¦'’&VÖ÷f–ærF†RwV&BæBvF6†–ærF†RFW7Bf–Âà ¢¢¦çÒ'VâfW&–g“¦Vçfv27FÆRæBæ÷B–âF†R&VÆV6R6†–ââ¢¢6WfVâöb—G0§GvVÇfR'&WV—&VB"æÖW2vW&R&VB'’æ÷F†–æs¢5E$•Uõ$”4Uõ5D%DU&æ@¦g&–VæG2Âv†÷6R&VÂæÖW2ÆÂVæBôÔôåD„Å–â—Bf–ÆVBöâWfW'’'VâÂ6òç–&öG§v†ò&â—Bv÷VÆB†fR6†6VBV–v‡Bf&–&ÆW2F†BFòæ÷BW†—7Bâ7FÆR6†V6²—0§v÷'6RF†âæöæR(	B—BFV6†W2V÷ÆRF†R÷WGWB—2æö—6Rà ¥&Ww&—GFVâFòFW&—fRg&öÒ6÷W&6RâWfW'’æÖRF†R6öFR&VG2×W7B&R6Æ76–f–VB0§&WV—&VBÂ&F6†WBÂFWfVÆ÷ÖVçBÖöæÇ’Â÷F–öæÂ6&–Æ—G’÷"ÆFf÷&Ò×&÷f–FVBÀ¦æB—Bf–Ç2–â&÷F‚F—&V7F–öç3¢âVæ6Æ76–f–VBf&–&ÆRÂæB6Æ76–f–6F–öà¦f÷"f&–&ÆRæ÷F†–ær&VG2âæ÷r–âF†R6†–âà ¤—BÇ6ò6Vv‡B—G6VÆbâF†R67&—BÆ—fW2VæFW"67&—G2öÂv†–6‚—B66ç2Â6ð¦WfW'’æÖR–â—G2÷vâÆ—7G26÷VçFVB2'W6VB"'’&V–ærÆ—7FVB(	BF†R7FÆRÖæÖP¦6†V6²6÷VÆBæWfW"f—&RÂv†–6‚—2F†RW†7B6†V6²F†Bv÷VÆB†fR6Vv‡@¦5E$•Uõ$”4Uõ5D%DU&â—BW†6ÇVFW2—G6VÆbæ÷rÂfW&–f–VB'’&VæÖ–ærâVçG'¦æBvF6†–ær&÷F‚W'&÷'2V"à ¤f–gG’ÖV–v‡Bf&–&ÆW2&VBÂFVâ&WV—&VBâFö72ö÷væW"õt„BÔÕU5BÔ$RÔôâæÖF6—0§v†–6‚ÂæBv†B'&V·2v—F†÷WBV6‚à ¢222##bÓ‚Ó"(	BÆÂFVâ&WV—&VBf&–&ÆW2vW&RÇ&VG’6WBÂæBâFFW"F–B—G2f—'7Bv÷&° ¤6¶VBFò6WBF†RFVâ&WV—&VBf&–&ÆW2ÂæB6÷VÆBæ÷C¢F†W’&R6V7&WG2†VÆB–à¥fW&6VÂÂæ÷B–âF†R&W÷6—F÷'’ÂæBtTåE2æÖBf÷&&–G26öÖÖ—GF–ærF†VÒâ6¶–æp§&öGV7F–öâGW&æVB÷WBFò&R&WGFW"F†â6WGF–ærç—F†–ær(	Bö’÷&VF–æW76 §&W÷'G26öæf–wW&F–öâ7FGW2v—F†÷WBÆV¶–ærfÇVW2ÂæB—B6—2WfW'’öæR—0¦Ç&VG’6öæf–wW&VBâ7W&6RÂ7G&—RÂF†R7G&—RvV&†öö²Â&W6VæBæBFÖ–à§&÷FV7F–öâÆÂ6öæf–wW&VFÂÖ—76–ævV×G’f÷"WfW'’6W'f–6RÂÆÂF‡&VR–@§Æç2B6†V6¶÷WC¢Væ&ÆVFâvöövÆR6–vâÖ–â—2FVfW'&VFÂFVÆ–&W&FVÇ’à ¥6òF†W&Rv2æ÷F†–ærFò6WBâv†B—2ÆVgB—2F†RÆV¶VB×77v÷&B&F6†WBæBF†P§–B6–vçWæö&öG’†2'Vâà ¢¢¥6—‚FFW'2W†—7FVBæBæ÷F†–ær6ÆÆVBF†VÒ¢¢(	BöæR7FWg&öÒÖöGVÆP¦æ÷F†–ær&VfW&Væ6W2âF†R&VF–æW72vR&W÷'FVBv†WF†W"F†W’vW&R6öæf–wW&VBæ@¦æòfVGW&RWfW"6¶VBF†VÒf÷"ç—F†–ærà ¦õ5Bö’öÖ&¶WBÖ–çFVÆÆ–vVæ6RöfWF6‚×6÷W&6V—2F†Rf—'7BF†BFöW2v÷&²âWfW'¦Ö&¶WB–çFVÆÆ–vVæ6R7W&f6RFWVæFVBöâ6öÖV&öG’†f–ærF†RvR÷Vâ–âæ÷F†W §F#²F†—2—2F†RF–ffW&Væ6R&WGvVVâ&V6÷&F–ærv†B–÷Rf÷VæBæBvö–ærFòÆöö²à ¢¢¤—BfWF6†W2æB—B7F÷2â¢¢æ÷F†–ær—2w&—GFVâ(	Bæò7VÖÖ'’Âæò6–væÂG—RÂæð¦6öæf–FVæ6Râ6–væÂ—2Wf–FVæ6R6öÖV&öG’§VFvVBÂæB7VÖÖ'’F†—26W'fW ¦–çfVçFVBv÷VÆBVçFW"F†R&V6÷&B–æF—7F–æwV—6†&ÆRg&öÒöæRâ÷væW"w&÷FRâF†P§FW7B76W'G2F†R†æFÆW"6öçF–ç2æò–ç6W'BÂæò&V6÷&DWfVçFÂæòF&ÆRæÖRÀ¦æBæöæRöbF†Rf—fRf–VÆG2F†R6–væÂf÷&Ò&WV—&W2à ¤âVæ6öæf–wW&VB7&vÃD’ç7vW'2#v—F‚fWF6†VC¢fÇ6VæB6—2Fò7FRF†P§FW‡B–ç7FVBâS2v÷VÆBÖ¶Râ÷F–öæÂ6&–Æ—G’Æöö²Æ–¶R'&ö¶VâöæRÀ¦æBF†—2vRv÷&¶VB&Vf÷&RF†RFFW"W†—7FVBà ¥F†Rf÷&Ò×&V6†&–Æ—G’6†V6²fÆvvVB—B(	B6÷'&V7FÇ’'’—G2÷vâ'VÆRæBw&öævÇ¦f÷"F†—266RÂ6–æ6R—BÖF6†W27&VFR×6†VBõ5G2æBF†—2öæR7&VFW0¦æ÷F†–ærâ&V6÷&FVBv—F‚F†B&V6öâ&F†W"F†â¦ö–æ–ærF†Rf÷W"$äõB”U@¤U„Ô”äTB"VçG&–W2&W6–FR—BÂ&V6W6RF†—2öæR†2&VVâW†Ö–æVBà ¢222##bÓ‚Ó"(	B4’v2'Vææ–ærF–ffW&VçB6WBöbFW7G2ÂæBæö&öG’6÷VÆB6VR—@ ¤4’f–ÇW&RöâFFfFF†Bv÷VÆBæ÷B&W&öGV6RÆö6ÆÇ’ÂVæFW"4’w2W†7@¦Öö6†6öÖÖæBÂv—F‚F†R&÷‡’æBfW&6VÂf&–&ÆW27G&—VBÂæBv–ç7BF†P¦ÖW&vR6öÖÖ—Bâ&R×'Vææ–ærF†R6ÖR¦ö"öâF†R6ÖR4„v—F‚æò6†ævR76VBà¥6ò—Bv2fÆ·’Âæ÷B&VÂf–ÇW&R(	BæB6†6–ær—Bf÷VæBGvòF†–æw2v÷'F€¦Ö÷&RF†âF†RfÆ¶Rà ¢¢¤f÷W"FW7Bf–ÆW2æWfW"&â–â4’â¢¢—G2–çfö6F–öâ76VB'FW7G2ò¢¢ò¢æ§2&öà§F†R6öÖÖæBÆ–æRÂæBvÆö"F†W&R÷fW'&–FW2F†R7V2Æ—7BâçÒFW7FÇ6ð§76VB'FW7G2ò¢¢ò¢æÖ§2&â6ò'&æBÖ76WG6Â'&æB×&Vv—7G'–Â'&æB×&÷WFW6 ¦æBÆFf÷&Ò×&W&âÆö6ÆÇ’æBvW&R–çf—6–&ÆRFòF†RvFRWfW'–öæRG'W7G2à¥F†W’vW&Rw&VVâV—F†W"v’Âv†–6‚—2W†7FÇ’v‡’—BvVçBVææ÷F–6VC¢¢¦6†V6°§F†BFöW2æ÷B'VâæB6†V6²F†B76W2Æöö²–FVçF–6Âg&öÒ÷WG6–FRâ¢  ¢¢¥F†R7V—FR&VÆ–VBöâÖö6†w2#×2FVfVÇBâ¢¢F†R6Æ÷vW7BFW7BÆö6ÆÇ’—0£sCF×2ÂæB6WfW&Â—FW&FRÆÂ#C"&Vv—7FW&VB&÷WFW2Â6òF†W’66ÆRv—F‚F†P§&öGV7Bâ6Æ÷vW"'VææW"GW&æVBF†B–çFòf–ÆVB&VÆV6Röâ6öÖÖ—BF†Bv0¦f–æRà ¦æÖö6†&2æ§6öææ÷r÷vç2F†R7V2Æ—7BÂF†R6WGWf–ÆRÂF†RF–ÖV÷WBæ@¦ÒÖW†—FÂæB&÷F‚çÒFW7FæBF†Rv÷&¶fÆ÷r–æ†W&—B—B&F†W"F†â&W7FF–æp¦—BâS×2—2vVæW&÷W2Væ÷Vv‚Fò'6÷&"'VææW"f&–æ6RæB&÷VæFVBVæ÷Vv‚Fð§7F–ÆÂ6F6‚†æs²6WfW&ÂFW7G2Ç&VG’6WBF†V—"÷vâW‡Æ–6—BF–ÖV÷WG2à ¦FW7G2ö6’×'Vç2×F†R×6ÖR×FW7G2çFW7Bæ§6f–Ç2–bF†Rv÷&¶fÆ÷r76W27V2vÆö ¦÷"ÒÖf–ÆVv–âÂ–bF†R6öæf–r7F÷2ÖF6†–ærV—F†W"W‡FVç6–öâÂ÷"–bF†P§F–ÖV÷WBG&–gG2÷WG6–FRF†R&ævRâfW&–f–VB'’&W7F÷&–ærF†RöÆBvÆö"æ@§vF6†–ær—Bvò&VBà ¥F†RfÆ¶R—G6VÆb—2æ÷r×V6‚ÆW72Æ–¶VÇ’Â'WBF†R&V6öâFòf—‚F†—2v2æ÷BF†P¦fÆ¶Râ—Bv2F†BF†R&VÆV6RvFRv2V–WFÇ’æ'&÷vW"F†âF†RöæRV÷ÆP§vW&R'Vææ–ærà ¢222##bÓ‚Ó"(	B6V&6‚6÷VÆBæ÷Bf–æBF†RÖöæW ¥6V&6‚6÷fW&VBGvVÇfRF&ÆW2æBæöæRöbF†R&V6÷&G2FFVB6–æ6R—Bv2w&—GFVâà¦7W7FöÖW'6ÂV÷FW6æB7W7FöÖW%ö–çfö–6W6vW&RÆÂ–çf—6–&ÆS¢â÷væW"v†ð§&—6VBâ–çfö–6R6÷VÆBæ÷Bf–æB—BÂæB¢¦âV×G’&W7VÇB&VG2W†7FÇ’Æ–¶P¢'–÷R†fRæò–çfö–6W2"¢¢(	BF†—26öFV&6Rw2&V7W'&–ærf–ÇW&RÂö–çFVBBF†RöæP§vRv†÷6RVçF—&R¦ö"—2f–æF–ærF†–æw2à ¥6—‚F&ÆW2FFVBâF†RF‡&VRÖöæW’&V6÷&G2ÂÇW2W&6†6Uö÷&FW'6À¦Ö–çFVææ6UöÆöw6æB&–ÆÅ÷–ÖVçE÷&V6÷&G6Âv†–6‚†öÆBòçVÖ&W"Â¦FW67&—F–öâæB–ÖVçB&VfW&Væ6R(	BF†–æw2â÷væW"7GVÆÇ’G—W2à ¥6—‚FVÆ–&W&FVÇ’ÆVgB÷WBÂV6‚v—F‚&V6öâ&F†W"F†â6–ÆVæ6S¢66†VGVÆW0¦æBF–ÖRVçG&–W2&Rf÷VæB'’W'6öâæBFFRÂ&öf—B6æ6†÷B—2FFRæ@¦çVÖ&W'2Ââ66÷VçF–ærW‡÷'B—2W&–öBæBf–ÆRÂæB6÷VçG2æBG&ç6fW'0¦&Rf÷VæB'’Æö6F–öâæBFFRâæöæR†2FW‡B6V&6‚FW&Òv÷VÆBÖF6‚à ¥F†RÆ—7B&÷GFVB&V6W6Ræ÷F†–ær6ö×&VB—Bv–ç7BF†RvW2F†BW†—7Bà¦FW7G2÷6V&6‚çFW7Bæ§6æ÷r&WV—&W2WfW'’÷væW"&V6÷&BvRw2F&ÆRFò&RV—F†W §6V&6†&ÆR÷"æÖVB–âäõEõ4T$4„$ÄVv—F‚&V6öâÂ6òFF–ærvRf÷&6W0§F†RFV6—6–öââ—BÇ6òæÖW27W7FöÖW'6ÂV÷FW6æB7W7FöÖW%ö–çfö–6W6 ¦W‡Æ–6—FÇ’(	B6÷VçBÖ&6VB6†V6²v÷VÆB72v–âF†RæW‡BF–ÖR6öÖWF†–ær—0¦FFVBæBf÷&v÷GFVâÂv†–6‚—2W†7FÇ’†÷rF†—2†VæVBà ¥fW&–f–VB'’&VÖ÷f–ærâW†6ÇW6–öâæBvF6†–ær—Bf–Âà ¢222##bÓ‚Ó"(	BF†R÷væW"F6†&ö&B6†÷vVBöæR6–FRöbF†RÖöæW ¥Gvòv2Â&÷F‚F†R6ÖR6†R2F†R6V&6‚öæRÂf÷VæB'’6†V6¶–ær&F†W"F†à¦77VÖ–ærà ¦÷W&F–öç57VÖÖ'–6÷VçFVBfVæF÷%ö–çfö–6W6VæFW"F†RÆ&VÂ¢¢$–çfö–6W2"¢¢æ@¦F–Bæ÷B6÷VçB7W7FöÖW%ö–çfö–6W6BÆÂââ÷væW"÷Væ–ærF†V—"÷vâF6†&ö&@§6rv†BF†W’÷vVB7WÆ–W'2æBæ÷F†–ær&÷WBv†B7W7FöÖW'2÷vVBF†VÒ(	BF†P¦÷WGv&BÖöæÇ’&–2F†R66†VÖ†B&Vf÷&R66÷VçG2&V6V—f&ÆRW†—7FVBÂ7F–ÆÀ§6—GF–ær–âF†R7VÖÖ'’â&÷F‚6–FW2&R6÷VçFVBæ÷rÂæB&÷F‚&RÆ&VÆÆVB'¦F—&V7F–öã¢$&–ÆÇ2–÷R÷vR"æB$–çfö–6W2–÷R†fR6VçB"âF†R&&Rv÷&@¢$–çfö–6W2"—2æòÆöævW"W6VBf÷"V—F†W"Â&V6W6Rv—F‚Gvò6–FW2öâ67&VVâ—@§&VG22v†–6†WfW"öæR–÷RvW&RÆöö¶–ærf÷"à ¤æöæRöbF†RÖöæW’vW2vW&RÆ–æ¶VBg&öÒ—Bâ7W7FöÖW'2ÂV÷FW2Â&V6V—f&ÆW2À¦ÖöæW’GVRæB6†6RG&gG2vW&RÆÂ&V6†&ÆRöæÇ’'’¶æ÷v–ærF†RU$Âà ¤öæRF†–ærv÷'F‚&V6÷&F–ær&÷WB†÷rF†—2v2f÷VæC¢F†Rf—'7B†&æW72&V@¦$õUDUõ$Tt•5E%–VçG&–W22çF†v†VâF†Rf–VÆB—2ç&÷WFVÂæB&W÷'FVBÆÀ§6—‡FVVâ&V6÷&BÖ6†V6²f—‚Æ–æ·22'&ö¶VââF†W’vW&RÆÂf–æRâF‡&VRF–ÖW2æ÷r¦6†V6²†2&VVâw&öær&F†W"F†âF†R6öFRÂ6òF†R&VfÆW‚öb6öæf—&Ö–ærF†P¦†&æW72&Vf÷&R&VÆ–Wf–ærâÆ&Ö–ær&W7VÇB¶VW2V&æ–ær—G2¶VWà ¦FW7G2ö÷væW"ÖF6†&ö&B×&V6‚çFW7Bæ§6f–Ç2–bÖöæW’vR7F÷2&V–ærÆ–æ¶VBÀ¦–bV—F†W"–çfö–6RF&ÆR7F÷2&V–ær6÷VçFVBÂ–bF†W’6†&RÆ&VÂÂ÷"–b¦Æ&VÂ7F÷26––ærv†–6‚F—&V7F–öâF†RÖöæW’vöW2âfW&–f–VB'’&VÖ÷f–ærÆ–æ°¦æBfÆGFVæ–ærÆ&VÂÂæBvF6†–ær&÷F‚f–Âà ¢222##bÓ‚Ó"(	Bf—fR66÷VçBvW2æö&öG’6÷VÆB&V6‚ÂæB7&vÂF†BÆ–V@ ¤gFW"Gvò†æBÖ¶WBÆ—7G2GW&æVB÷WB7FÆRÂvVçBÆöö¶–ærf÷"F†RvVæW&ÂfW'6–öà§&F†W"F†âF†—&B–ç7Fæ6Rà ¤6÷W&6R66âöbWfW'’&Vv—7FW&VBvR&÷WFRv–ç7BWfW'’Æ–æ²6öç7G'V7@§&W÷'FVBSrVæÆ–æ¶VBâ¢¤—Bv2w&öærâ¢¢÷GWF÷&–Ç6'V–ÆG2—G2f÷W"7V'vP¦Æ–æ·2g&öÒÆ—7BÂ6òF†RÆ—FW&ÂF‚æWfW"V'2–â6÷W&6R(	BF†R66à¦6ÆÆVBF†VÒVç&V6†&ÆRv†–ÆR÷GWF÷&–Ç6&VæFW'2ÆÂf÷W"â&VæFW&VB…DÔÂ—0§F†RöæÇ’†öæW7Bç7vW"Fò&6â6öÖV&öG’vWB†W&R"à ¤&VæFW&VB7&vÂv2&WGFW"æB7F–ÆÂæ÷BG'W7Gv÷'F‡“¢—B&W÷'FV@¦ö÷væW"övVçBÖ7F—f—G–Vç&V6†VBÂv†–6‚—2Æ–æ¶VBg&öÒöF6†&ö&F(	BF†P§7GV&&VB6W76–öâFöW2æ÷B&VæFW"F†R6–væVBÖ–âvW2Â6òF†R7&vÂVæFW"×&V6†W0¦æBv÷VÆB†fR&öGV6VBc"6Æ–×2ÂÖ÷7BöbF†VÒfÇ6Râ¢¤æ÷B6†—VBâ¢¢6†V6°§F†B7&–W2vöÆb—2F†RF†–ærF†BFV6†W2V÷ÆRFò–væ÷&R6†V6·2Âv†–6‚—2F†P§6ÖRF—6V6R26†V6²F†BæWfW"f—&W2à ¥v†B7W'f—fVBfW&–f–6F–öâv2&VÂâö66÷VçFÆ–æ¶VBö66÷VçB÷6WGWæ@¦æ÷F†–ærVÇ6RÂ6ò¢§&öf–ÆRÂ6V7W&—G’Â&VfW&Væ6W2Âv÷&·76W2æB–çFVw&F–öç0§vW&R&Vv—7FW&VBÂ&VæFW&VBÂæB&V6†&ÆRöæÇ’'’G—–ærF†RU$Â¢¢(	BF†R÷6V&6† ¦FVfV7BÂf—fRF–ÖW2÷fW"Â–æ6ÇVF–ærF†RvR6öÖV&öG’vöW2Æöö¶–ærf÷"gFW"§6V7W&—G’66&Rà ¤f—†VBÂæBFFVBFòFW7G2÷vR×&V6†&–Æ—G’çFW7Bæ§6Âv†–6‚fWF6†W2F†RvP¦æB&VG2—G2&VæFW&VBÆ–æ·2âF†RÆ–æ·2&R'V–ÇBg&öÒ44õTåEõ4T5D”ôå6Â6ð¦f—†–ærf—fRVç&V6†&ÆRvW26÷7BF‡&VRÆ–æW2öb6W'fW"æ§6&F†W"F†à§F†—'FVVã²F†R6V–Æ–ærÖ÷fVBCs"(i"CsRv—F‚F†B&V6öâà ¥F†RvVæW&Â6†V6²—27F–ÆÂv÷'F‚'V–ÆF–ærâ—BæVVG26W76–öâF†B&VæFW'2F†P§6–væVBÖ–âvW2ÂæBVçF–Â—B†2öæR—Bv÷VÆB&W÷'BÖ÷&Ræö—6RF†âf–æF–æw2à ¢222##bÓ‚Ó"(	BF†RFVæçBwV&B6÷VÆBæ÷B6VRF†R&V6V—f&ÆW2F&ÆP ¤'V–ÆF–ærF†RWF†VçF–6FVB7&vÂ7W&f6VBF†—2Âv†–6‚—2v÷'F‚Ö÷&RF†âF†P¦7&vÂv3¢F†RFVæçBwV&Bw2÷vâv&æ–ærf—&VBÂf÷"&VÂÂöà¢¢¦7W7FöÖW%ö–çfö–6W6¢¢(	BF†R&VçBF&ÆRöbF†RVçF—&R66÷VçG2×&V6V—f&ÆP¦fVGW&Râ—Bv2–âæV—F†W"DTäåEõ44õTEõD$ÄU6æ÷"tÄô$ÅõD$ÄU6Â6ð¦Æ–"÷6öæ&×FVæçBÖwV&Bæ6§66÷VÆBæ÷B6†V6²6–ævÆRVW'’v–ç7B—Bâ—B†@¦&VVâF†Bv’6–æ6RF†RF&ÆRv27&VFVBà ¥F†R6W6R—2&VvW‚FW&Ö–æF÷"âvVæW&FR×FVæçB×66÷VB×F&ÆW2æ6§6&WV—&VB¤5$TDRD$ÄR&öG’FòVæBv—F‚¢¦Æ–æRÖ–æ—F–Â¢¢–ÂæB5$TDRD$ÄR–ç6–FP¦FòBBâââBF&Æö6²—2–æFVçFVBâ–çFVw&F–öå÷7FGW6W6VæG2“¶ÂæWfW §FW&Ö–æFVBÂæBF†RæöâÖw&VVG’ÖF6‚&âöâFòF†RæW‡BÆ–æRÖ–æ—F–Â“¶(	@£2ÃC3"6†&7FW'2ÆFW"Â¢¦–âF–ffW&VçBÖ–w&F–öâf–ÆR¢¢Â7vÆÆ÷v–æp¦7W7FöÖW%ö–çfö–6W6v†öÆRâF†RvVæW&F÷"¦ö–ç2WfW'’Ö–w&F–öâ–çFòöæR7G&–ærÀ§6òæ÷F†–ær7F÷VB—B7&÷76–ærF†R&÷VæF'’à ¢¢¤—Bv2–çf—6–&ÆR&V6W6RfW&–g“§FVæçB×F&ÆW6&VvVæW&FW2æB6ö×&W2â¢¢¦vVæW&F÷"fW&–f–VB'’&R×'Vææ–ærF†R6ÖRvVæW&F÷"w&VW2v—F‚—G6VÆbv†FWfW ¦—G2'6W"FöW2âWfW'’&VÆV6R76VBv†–ÆRF†RwV&Bv2&Æ–æBFòÖöæW§F&ÆRà ¥F‡&VR6†ævW2âF†RFW&Ö–æF÷"FöÆW&FW2–æFVçFF–öââ&öG’6öçF–æ–æræ÷F†W ¦7&VFRF&ÆVæ÷rF‡&÷w2Â&V6W6RF†BÖF6‚6öç7VÖVB7B—G2÷vâVæB(	Bæ@§F†Bf—&W2öâW†7FÇ’F†R66RF†B6W6VBF†—2ÂfW&–f–VB'’&W7F÷&–ærF†RöÆ@§FW&Ö–æF÷"âæBâ–æFWVæFVçB66âÂFVÆ–&W&FVÇ’æ÷B6†&–ærF†RGFW&âÀ¦76W'G2WfW'’F&ÆRÖ–w&F–öâFV6Æ&W2v26Æ76–f–VBà ¥F†R–æFWVæFVçB66â&W÷'FVBF&ÆR6ÆÆVB¢¦Fö¢¢öâ—G2f—'7B'VâÂg&öÒF†P§v÷&G2&7&VFRF&ÆRFò"–â6öÖÖVçBâ6öÖÖVçG2&R7G&—VBæ÷r(	BF†R6ÖP¦ÆW76öâ2F†R6VÖ–6öÆöâF†Böæ6R'&ö¶RF†RÆ–6Væ6R×Væ–öâ'6W"â7&÷72Ö6†V6°§F†B&W÷'G2†çFö×2—2öæRV÷ÆR7v—F6‚öfbà ¤Ç6ò7W&f6VC¢¢¦&öGV7EöÖöGVÆW6—2VW&–VBGv–6Rg&öÒ6W'fW"æ§6æB7&VFV@¦'’æòÖ–w&F–öââ¢¢6ÖR6Æ722F†Rf÷W"WF†÷&—¦F–öâgVæ7F–öç2(	B66†VÖ–à§F†RÆ—fRFF&6RæBæ÷B–âfW'6–öâ6öçG&öÂâ&V6÷&FVB–â4„•õ$TD”äU52æÖF §&F†W"F†âwVW76VBBÂ&V6W6R–çfVçF–ærFVf–æ—F–öâF†BÖ’æ÷BÖF6€§&öGV7F–öâ—2v÷'6RF†âF†Rvà ¢222##bÓ‚Ó"(	B&V6†–ærF†RvW2æö&öG’6÷VÆB&V6ƒ¢F÷vâFò#` ¥v÷&¶VBF†RVç&V6†&ÆRÆ—7B&F†W"F†âFF–ær6†V6²F†Bv÷VÆB†fR&W÷'FV@¦—Bf÷&WfW"âWF†VçF–6FVB7&vÂÂF‡&VR7G'V7GW&Âf—†W2ÂæBF†RçVÖ&W"vVç@£(i"#bà ¢¢¤VÆWfVâ÷væW"&V6÷&BvW2â¢¢F†R÷væW"F6†&ö&B6'&–VBVÆWfVâ†æB×w&—GFVà¦Æ–æ·2æB†BfÆÆVâVÆWfVâvW2&V†–æC¢W&6†6R÷&FW'2Â7Fö6²6÷VçG2À§G&ç6fW'2Â7WÆ–W"–ÖVçG2Â66÷VçF–ærW‡÷'G2Â6÷7G2ÂÖ–çFVææ6RÂÖVçRÀ§&V6—W2ÂfV†–6ÆW2æBfVæF÷'2âvVæW&FVBg&öÒÄÅôõtäU%õtU6æ÷r(	BF†R6ÖP¦Æ—7BF†BFVf–æW2F†RvW2Â6ò—B6ææ÷BfÆÂ&V†–æBv–âà ¢¢¥6WfVçG’×F‡&VR&öGV7BvW2¢¢Â7&÷72ÆÂF‡&VRv÷&·76W2Â&Vv—7FW&VBæ@§&VæFW&–æræB&V6†&ÆRöæÇ’'’G—–ærF†RU$Ââ6ÖR6W6S¢†æB×w&—GFVâÆ–æ°¦Æ—7G2&W6–FRF†R&Vv—7G'’F†BFVf–æW2F†R&÷WFW2âF†R&öGV7BF6†&ö&G2æ÷p¦6''’v÷&·76R–æFW‚vVæW&FVBg&öÒ$õUDUõ$Tt•5E%–'’&öGV7D÷væW&à ¤'W6–æW72'V–ÆFW"æVVFVB—BGv–6S¢6öæ&Ö'W6–æW72Ö6öçG&öÂ×ÆæR×&÷WFW2æ6§6 ¦–çFW&6WG2tUBö'W6–æW72Ö'V–ÆFW"öF6†&ö&F&Vf÷&RF†RW"×6ÇVr†æFÆW"Â6ð¤7&VF÷"7GVF–òæBw&÷wF‚7GVF–òv÷BF†R–æFW‚æB'W6–æW72'V–ÆFW"F–Bæ÷Bà¤—B—2öâ&÷F‚'&æ6†W2F†W&R(	B–æ6ÇVF–ærF†Röæ&ö&F–æröæRÂ6–æ6Râ÷væW"v†ð¦†2æ÷B7&VFVB'W6–æW72–WB—2W†7FÇ’F†RW'6öâv†ò6ææ÷Bf–æBç—F†–ærà ¢¢¥F†RÆ–âÖÆæwVvRvFR6Vv‡BF†R–æFW‚–ÖÖVF–FVÇ’¢¢Âv†–6‚—2F†R7—7FVÐ§v÷&¶–æs¢—B&VæFW'2&Vv—7G'’F—FÆW2ÂæBF‡&VRöbF†÷6R6''’&Æ–fV7–6ÆR"æ@¢'&VF–æW72"âF†R&W7BöbF†RÆ–6F–öâÇ&VG’6ÆÇ2F†÷6RvW2&öFÖæ@¥6WGW6†V6¶Æ—7B–â—G2÷vâÆ–æ·2(	BF†RÆ–âæÖRW†—7FVBæBF†R–æFW‚v0§&VF–ærF†Rw&öærf–VÆBâÆ–å&÷WFUF—FÆVæ÷r7WÆ–W2—Bà ¥GvòfÇ6RÆ&×2&Rv÷'F‚&V6÷&F–ærâ6÷W&6R66âöbÆ–æ²6öç7G'V7G2&W÷'FV@£SrVç&V6†&ÆS²÷GWF÷&–Ç6'V–ÆG2—G2Æ–æ·2g&öÒÆ—7BÂ6òF†RÆ—FW&Ç2æWfW ¦V"âæBF†Rf—'7B7&vÂ&W÷'FVBc"Â&V6W6R7GV&&VB6W76–öâFöW2æ÷@§&VæFW"6–væVBÖ–âvW2âæV—F†W"v26†—VB26†V6²à ¥F†R#bF†B&VÖ–â&RÖ÷7FÇ’ÆVv—F–ÖFS¢÷6—FVÖç†ÖÆæB÷&ö&÷G2çG‡F&P¦Ö6†–æRVæGö–çG2ÂöÆöv÷WFæBöWF‚ö6ÆÆ&6¶&R&VF—&V7BF&vWG2À¦÷&W6WB×77v÷&F'&—fW2'’VÖ–ÂÂæBF†R÷FW&×6æBö6öö¶–W6fÖ–Ç’&P¦Æ–6W2öbF†R6æöæ–6ÂöÆVvÂò¦vW2F†Rfö÷FW"Ç&VG’Æ–æ·2âF†W’6†÷VÆ@¦&RFV6Æ&VB&F†W"F†âÆ–æ¶VBÂv†–6‚—2F†R6†V6²7F–ÆÂv÷'F‚'V–ÆF–ærà ¢222##bÓ‚Ó"(	BF†RFV6Æ&F–öâ6†V6²ÂæBGvVÇfRÖ÷&RvW2æö&öG’6÷VÆB&V6€ ¦FW7G2öWfW'’×vRÖ—2×&V6†&ÆRçFW7Bæ§6ââWF†VçF–6FVB7&vÂg&öÒFVâ&ö÷G2À¦föÆÆ÷v–ær&VæFW&VBÆ–æ·2Â6ö×&–ærv†B—B&V6†W2v–ç7BWfW'’&Vv—7FW&V@§vR&÷WFRâç—F†–ærVç&V6†VB×W7B&RFV6Æ&VBv—F‚&V6öâÂæB¢¦¦FV6Æ&F–öâf÷"vRF†BGW&ç2÷WBFò&R&V6†&ÆRf–Ç2Föò¢¢(	B7FÆP§&V6öâ—2†÷rF†—2Æ—7Bv÷VÆB&÷BF†R6ÖRv’F†R†æB×w&—GFVâÆ–æ²Æ—7G2—@§&WÆ6VBF–Bà ¤—Bf÷VæBGvVÇfRöâ—G2f—'7B'VâÂæBF†R&–v‡Bç7vW"f÷"ÆÂGvVÇfRv2Fð¦Æ–æ²F†VÒ&F†W"F†âFV6Æ&RF†VÒâ¢¥FVâFÖ–âvW2¢¢(	BFF&6RÖævVÖVçBÀ¦Ö–w&F–öç2Â÷&væ—¦F–öç2ÂVÖ–ÂÂ—VÆ–æW2ÂFWÆ÷–ÖVçG2ÂVF—BÂ7—7FVÒFW6–và¦–çFVÆÆ–vVæ6RÂÖöFVÂ6fWG’æBF†R&ö×BÆ–'&'’âF†RFÖ–â–æFW‚6'&–VB6&G0¦f÷"F†RvW26öÖV&öG’F†÷Vv‡BöbÂv†–6‚—2F†R6ÖR†æBÖ¶WBÆ—7BF†B†@¦fÆÆVâ&V†–æBWfW'—v†W&RVÇ6S²—B—2vVæW&FVBg&öÒF†R&Vv—7G'’æ÷rà¦öæ÷F–f–6F–öç6æBöÖ&¶WBÖ–çFVÆÆ–vVæ6V&RöâF†R7W7FöÖW"F6†&ö&Bà ¤—BÇ6ò6Vv‡B—G2÷vâ7FÆRFV6Æ&F–öâ–ÖÖVF–FVÇ“¢ö'W6–æW72Ö'V–ÆFW"öÆöv–æ §v2Æ—7FVB2VæÆ–æ¶VBæB—2&V6†&ÆRâ&VÖ÷fVBà ¥F‡&VRwV&G2öâF†R6†V6²—G6VÆbÂ&V6W6R7&vÂF†B6–ÆVçFÇ’7F÷27&vÆ–æp§&W÷'G26ÆVâ&–ÆÂöb†VÇF‚â—B76W'G2—BfWF6†VBÖ÷&RF†âvW2æ@§&V6†VBÖ÷&RF†âSF‡2Â6ò'&ö¶Vâ6W76–öâf–Ç2Æ÷VFÇ’&F†W"F†à§&W÷'F–æræ÷F†–ærVç&V6†&ÆRà ¢¢¤öæR'VröbÖ–æRÂv÷'F‚&V6÷&F–ærâ¢¢F†RFW7B&WÆ6VBvÆö&ÂæfWF6†v—F‚¥7W&6R7GV"æB&W7F÷&VBöæÇ’F†RVçf—&öæÖVçBâF†R7GV"ÆV¶VB–çFòWfW'’f–ÆP§F†B&âgFW"—BÂæBFVâ6–vâÖ–âFW7G2f–ÆVB(	BF†W’v÷B7W&6RF†@¦ç7vW&VBWfW'’WF‚6ÆÂ7V66W76gVÆÇ’Â6ò&VgW6ÂFW7B6r&VF—&V7Bà¦FW7G2÷6WGWÖVçbæ6§6–ç7FÆÇ2âöffÆ–æRf—&WvÆÂöâF†B†æFÆS²WGF–ær—@¦&6²&W7F÷&W2—Bâf—†VBÂæBF†R&V6öâ—2–âF†RgFW&†öö²à ¥F†—'FVVâFV6Æ&F–öç2&VÖ–âÂÆÂvVçV–æS¢GvòÖ6†–æRVæGö–çG2Âf—fP§&VF—&V7BÖ÷"ÖVÖ–ÂF&vWG2ÂæB6—‚Æ–6W2öbF†R6æöæ–6ÂöÆVvÂò¦vW2F†P¦fö÷FW"Ç&VG’Æ–æ·2öâWfW'’vRà ¢222##bÓ‚Ó"(	BvöâÆVB&V6öÖW27W7FöÖW  ¦w&÷wF…öÆVG6æB7W7FöÖW'6†öÆBF†R6ÖRf÷W"f–VÆG2(	BæÖRÂVÖ–ÂÂ†öæRÀ§6÷W&6R(	BæBæ÷F†–ær¦ö–æVBF†VÒâÆVBF†B6Æ÷6VB†BFò&R&WG—VB&Vf÷&R—@¦6÷VÆB&RV÷FVB÷"–çfö–6VBâF†B6VÒ—2v†BF†R&öæR7—7FVÒ"6Æ–Ò—0¦7GVÆÇ’&÷WC¢w&÷wF‚7GVF–òf–æG2F†Rv÷&²Â'W6–æW72'V–ÆFW"&–ÆÇ2—Bà ¦w&÷wF…öÆVG2æ7W7FöÖW%ö–FFFVBÂæBõ5@¢ö’öw&÷wF‚×7GVF–òöÆVG2ó¦ÆVD–Bö7W7FöÖW&÷fW"—Bâ&÷F‚F&ÆW2&VÆöærFòF†P§6ÖR÷&væ—¦F–öâÂ6òF†—27&÷76W2&öGV7B&÷VæF'’æBæ÷BFVææ7’öæR(	@¦æBWfW'’&VBæBw&—FR7F–ÆÂ6'&–W2F†R÷&væ—¦F–öâ&F†W"F†âG'W7F–æp§F†Bà ¥F†R6öÇVÖâ—2æ÷BöæÇ’¦ö–ââ¢¥v—F†÷WB—BF†W&R—2æòv’FòFVÆÂÆVB†0¦Ç&VG’&VVâ6öçfW'FVB¢¢ÂæB6V6öæB&W727&VFW2Gvò7W7FöÖW'2v—F‚F†R6ÖP¦æÖRæBæòv’Fò¶æ÷rv†–6‚—2&VÂâ7W7FöÖW%ö–çfö–6W2çV÷FUö–FFöW2F†P§6ÖR¦ö"öæR7FWÆFW"à ¤f—fR&VgW6Ç2ÂV6‚öbv†–6‚ÆVfW2&V6÷&B6öÖV&öG’†2FòVçFævÆR–bÖ—76VBà¤öæÇ’¢§vöâ¢¢ÆVB6öçfW'G2(	B'VÆ–f–VB"—26öÖV&öG’Æöö¶–ær&öÖ—6–ærÂv†–6€¦—2æ÷Bw&VVÖVçBÂæB—B—2F†R6ÖRF—7F–æ7F–öâ2'6VçB"v–ç7B&66WFVB"öà¦V÷FRâÆVBv—F‚æòæÖR†2æ÷F†–ærFòFG&W72âÆVBv—F‚æòVÖ–Â¦æB ¦æò†öæR†2æ÷v†W&RFò6VæBâ–çfö–6RÂv†–6‚—2F†RöæÇ’&V6öâFò7&VFR¦7W7FöÖW"BÆÂââÇ&VG’ÖÆ–æ¶VBÆVB&VgW6W2âæB7W7FöÖW"v—F‚F†R6ÖP¦VÖ–Â&VgW6W2ÂÖF6†VBöâVÖ–Â&F†W"F†âæÖR&V6W6RGvòV÷ÆR6†&RæÖP¦æBGWÆ–6FR&÷r—2v†B6öÖV&öG’f–æG2ÖöçF‡2ÆFW"v—F‚†ÆbF†R–çfö–6W0¦v–ç7BV6‚à ¥F†RGWÆ–6FR6†V6²&VG2W†—7F–ær7W7FöÖW'2f—'7BÂ6ò¢¦f–ÆVB&VB&VgW6W0§&F†W"F†â6öçfW'F–ær¢¢(	BâVç&VF&ÆRÆ—7B—2æ÷BâV×G’öæRà ¥Gvò6†V6·26Vv‡BF†–æw2Â&÷F‚6÷'&V7FÇ’âF†RÖ–w&F–öâÖ6öÇVÖâFW7BW6V@¦FW67&–&VD6öÇVÖç6Âv†–6‚FVÆ–&W&FVÇ’öÖ—G2ÅDU"ÖFFVB6öÇVÖç2&V6W6R—@¦6ææ÷B&VBF†V—"G—S²†46öÇVÖæ¶æ÷w2F†VÒâæBF†RöÆ–7’66â6Vv‡B¦Æ—FW&ÂF&ÆRæÖR76VBF‡&÷Vv‚&VB†VÇW"Âv†–6‚†–FW2F†RF&ÆRg&öÒF†P¦ÖVÖ&W"×öÆ–7’6†V6²(	BWfW'’÷F†W"6ÆÂ–âF†Bf–ÆRvöW2F‡&÷Vv‚D$ÄU6Âæ@¦æ÷r6òFöW2F†—2öæRà ¢222##bÓ‚Ó"(	BGvò6öçfW'6–öç2v—F‚æò'WGFöâÂöæRöbF†VÒÖ–æRg&öÒGvò7&–çG2vð ¥vVçBFò6†V6²F†RÆVB6öçfW'6–öâv2&W76&ÆRæBf÷VæB—Bv2æ÷B(	Bæ@¦æV—F†W"v2GW&æ–ærâ66WFVBV÷FR–çFòâ–çfö–6RÂ'V–ÇBGvò7&–çG0¦V&Æ–W"ÂFW7FVBÂFö7VÖVçFVBÂæB6†—VBv—F‚¢¦æòv’f÷"â÷væW"Fò&W70¦—B¢¢à ¥F†R&V6öâæ÷F†–ær&W÷'FVB—C¢7&VFU6†VE&÷WFW66¶—2&÷WFW2v—F‚F€§&ÖWFW"ÂæB&÷F‚6öçfW'6–öç2&Rþ(
+bó¦–Bþ(
+fâF†RöæR6†V6²F†B6·2&FöW0§F†—2VæGö–çB†fRf÷&Ò"æWfW"6rV—F†W"öbF†VÒâ6òF†RVæGö–çG2v÷&¶VBÀ§F†RFW7G276VBÂF†RFö72FW67&–&VBF†VÒÂæBF†RfVGW&RF–Bæ÷BW†—7Bf÷ ¦ç–&öG’v—F†÷WBâ’6Æ–VçBà ¦&÷t7F–öæöââ÷væW"vRFV6Æ&F–öâf—†W2—BvVæW&ÆÇ’&F†W"F†âFF–æp§Gvò'WGFöç2â&÷rF†B6âF¶RF†R7F–öâ&VæFW'2f÷&Ó²&÷rF†B6ææ÷@¢¢§6—2v‡’–âF†R6ÖR6öÇVÖâ¢¢(	B%v—F–æröâF†V—"ç7vW""f÷"6VçBV÷FRÀ¢$æò7W7FöÖW"öâF†—2V÷FR"(	B&F†W"F†â6†÷v–ær'WGFöâF†Bv÷VÆB&VgW6P§v†Vâ&W76VBâ'WGFöâF†B&VgW6W2FV6†W2V÷ÆRF†R&öGV7B—2'&ö¶Vâà ¦FW7G2÷&÷rÖ7F–öç2Ö&R×&W76&ÆRçFW7Bæ§66·2F†RVW7F–öâF†R66â6ææ÷C¢—@¦6†V6·2WfW'’FV6Æ&VB7F–öâ÷7G2Fò&÷WFRF†R6W'fW"&Vv—7FW'2ÂF†BV6€¦FV6Æ&W2&V6öâgVæ7F–öâæBÆ&VÂÂF†BF†RV÷FW27F–öâöffW'2—G6VÆböà¦â66WFVBV÷FRv—F‚7W7FöÖW"æBâÖ÷VçBæB&VgW6W2F†Rf÷W"v—2—B6à¦&Rw&öærÂæBF†BÖÆf÷&ÖVB&÷r6ææ÷BF¶RF†RvRF÷vâà ¤—BÇ6ò76W'G2Â2FW7B&F†W"F†â2föÆ¶Æ÷&RÂF†B7&VFU6†VE&÷WFW6 §7F–ÆÂW†6ÇVFW2&ÖWFW&—6VB&÷WFW2(	B6ò–bF†BWfW"6†ævW2ÂF†RW†V×F–öà§F†—2FW7BW†—7G2Fò6÷fW"6âvòv—F‚—Bà ¥F†RÆVG2vRW6W2F–ffW&VçB&VæFW&W"æB7F–ÆÂ†2æò'WGFöââ&V6÷&FVB†W&P§&F†W"F†â†ÆbÖ'V–ÇBà ¢222##bÓ‚Ó"(	BF†R6ö×WF—F÷"f–wW&RöâF†R&–6–ærvRv2w&öæp ¥&W6V&6†VBF†R6ö×&—6öâ6WBv–ç7BÆ—fR##b&–6–ær&F†W"F†âF†R§VÇ§6æ6†÷BÂæBF†R†VFÆ–æRf–æF–ær—26÷'&V7F–öâF†BvöW2v–ç7BW2à ¢¢¢Csrv2¦ö&&W"w2æçVÂ&–6RFFVBFòöF–w2ÖöçF†Ç’öæRâ¢¢æ÷B7F6°¦ç–&öG’—2V÷FVBâöâÖöçF†Ç’&–ÆÆ–ær(	Bv†–6‚—2v†BæWr7W7FöÖW"F¶W2(	@¤¦ö&&W"6÷&R—2C3’ÂöF–Ö÷fW"C3’Â'&Wfò7F'FW"C“¢¢¢Cƒr¢¢âF†R&–6–ærvP¦†B&VVâFVÆÆ–ær7W7FöÖW'2Csrf÷"GvòvVV·2à ¥F†RfVW2F†R§VÇ’F&ÆRæWfW"&V6÷&FVBÖGFW"Ö÷&RF†âF†R7F–6¶W"&–6W2à¢¢¥öF–Ö÷fW"F¶W2RRöbWfW'’F–v—FÂ6ÆR¢¢Â6ò—B6÷7G2Ö÷&RF†â6†¶W"@¦&÷WBCÃöbÖöçF†Ç’6ÆW2â¢¤'&Wfò7F'FW"WG2'&Wfòw2Æövòöâ–÷W"VÖ–Ç2¢ §VæÆW72–÷R’C’Fò&VÖ÷fR—BÂæB†2æòWFöÖF–öâVçF–Â7FæF&BBC‚â§v÷&¶–ær7F6²(	BVæ'&æFVBÂv—F‚WFöÖF–öâÂÖöçF†Ç’(	B—2¢¢CR¢¢à ¤v–ç7BCƒr÷W"ÆÂ×F‡&VRBC3’—2CRRöbF†R7F6³²v–ç7BCR—B—23rRà¥F†R&V6öÖÖVæFF–öâFöW2æ÷B6†ævRÂ&V6W6RC’òC3’òCs’v26†÷6Vâ6òæð¦W†—7F–ær7W7FöÖW"—2Ö÷&RâF†R6ö×&—6öâ—B&W7G2öâ—26–×Ç’7G&öævW"F†à¦—Bv2ÂæBæ÷r6—2&ÖöçF†Ç’&–ÆÆ–ær"÷WBÆ÷VBà ¦Fö72öÖ&¶WBó##bÓ‚Ó"ÔÔ$´UBÔTD•BæÖFÇ6ò6W&FW2v†BvR6â6Æ–Òg&öÐ§v†BvR6ææ÷BâvRF¶RæòW&6VçFvRöb7W7FöÖW"w26ÆW2Âv†–6‚v–ç7@¥öF–w2RR—2F†RÆ&vW7B&VÂ6÷7BF–ffW&Væ6R(	B¢¦æBvR6ææ÷B6’—B–à¦Ö&¶WF–ærVçF–Â–B6–vçW†26ö×ÆWFVB–â&öGV7F–öâ¢¢Â&V6W6RVçF–ÂF†Và§F†W&R—2æòWf–FVæ6R÷W"÷vâ–ÖVçBF‚v÷&·2âæB¦ö&&W"6öææV7BBC’'W—0§&÷WF–æræBf–VÆBF†—2&öGV7BFöW2æ÷B†fS²&–6–ærv–ç7BF†Bv÷VÆ@¦&R6VÆÆ–ær6öÖWF†–ærvR6ææ÷BFVÆ—fW"à ¥GvòwV&G26ÖR÷WBöb—BâFW7G2÷&–6–ærÖ6Æ–ÒÖÖF6†W2×&W6V&6‚çFW7Bæ§6F–W0§F†Rf–wW&Röâ67&VVâFòF†RVF—BF†BW7F&Æ—6†W2—BÂ&WV—&W2F†R&–ÆÆ–æp§W&–öBFò&RæÖVB(	BF†B&V–ærF†RW†7BW'&÷"(	BæB&WV—&W2F†RVF—BFð¦6—FR6÷W&6W2âæBâW†—7F–ærFW7B–ææVBF†RÆ—FW&Â7G&–ær$§VÇ’##b"Â6ð¢¢§&R×7W'fW––ærF†RÖ&¶WB'&ö¶RF†RFW7BF†BW†—7G2Fò¶VWF†R6Æ–Ò†öæW7B¢¢à¤—B&VG2F†RFFRg&öÒF†RVF—Bæ÷rà ¥F†Rf—'7BfW'6–öâöb×’÷vâ6†V6²ÖF6†VBç’"DâÖöçF‚"æB6Vv‡B"C3’¦ÖöçF‚f÷"F†R'W6–æW726–FR"(	BW"×&öGV7Bf–wW&R–âF†R6ÖR6VçFVæ6Rà¥F–v‡FVæVBFòF†R6VçFVæ6RF†BF÷FÇ2F†R7F6²à ¢222##bÓ‚Ó"(	BFv2ÆVf–ær6&G2&÷FFVBÂæBF†R6†V6²Æöö¶VBBF†Rw&öærf–ÆP ¤VF—FVBF†RFWF‚v–ç7B##b&7F–6R&Vf÷&R6†æv–ærç—F†–ærÂF†R6ÖRv§F†R&–6–ær6Æ–Òv2VF—FVBâf–æF–æw2æB6÷W&6W2–à¦Fö72öFW6–vâôDUD‚ÔäBÔ4õ$RÕtT"Õd•DÅ2æÖFà ¤Ö÷7Böb—B†VÆBWâFWF‚—25524B&F†W"F†âvV$tÂÂv–ÆÂÖ6†ævV—266÷V@§Fòç6öæ&×7FvV6òv÷&²67&VVç2&VæFW&–ær‡VæG&VG2öb6&G2’æ÷F†–ærÀ§ö–çFW"v÷&²—2öæRFVÆVvFVB76—fRö–çFW&Ö÷fV6öÆW66VB–çFò6–ævÆP¦&WVW7Dæ–ÖF–öäg&ÖVÂVçG&æ6RW6W2–çFW'6V7F–öäö'6W'fW&&F†W"F†â§67&öÆÂ†æFÆW"ÂæB&VGV6VBÖ÷F–öâæB&–çB&R&÷F‚†æFÆVBâF†R##b6†–g@§F†R&W6V&6‚FW67&–&W2(	BFWF‚F†Bç7vW'2F†R7W'6÷"æBF†R67&öÆÂ÷6—F–öà¦–ç7FVBöb†W&òö&¦V7BW&f÷&Ö–ær(	B—2Ç&VG’v†B6öæ&ÖFWF‚æ§6FöW2à¤æ÷F†–æræVVFVBFF–ærà ¢¢¤öæR'VÆRF–Bæ÷B†öÆBâ¢¢V&Æ–2÷6öæ&ÖÆ–6F–öâ×V’æ776F–ÇFV@¦ç6öæ&×&öGV7Föâ¦†÷fW&v—F‚æòö–çFW"vFRâFöâF÷V6‚67&VVà¦ÆF6†W2¦†÷fW&öçFòF†RFVBVÆVÖVçBVçF–ÂF†RæW‡BFÆæG26öÖWv†W&P¦VÇ6RÂ6òF†B—2æ÷B†÷fW"VffV7B(	BF†R6&B&÷FFW2æB7F—2&÷FFVBà ¤æ÷F†–ærv2f—6–&Ç’'&ö¶VâÂv†–6‚—2F†R'Bv÷'F‚¶VW–ærâ6÷'&V7BÂvFV@¦&öG’ç6öæ&Ö†öÖR×c2ç6öæ&×&öGV7C¦†÷fW&6BöâF÷öb—BæBvöâöà§7V6–f–6—G’â'WBF†B'VÆR—266÷VBFò&öG’6Æ72ÂæBç6öæ&×&öGV7F §&VæFW'2öâW†7FÇ’öæRvS¢¢§F†RwV&çFVR†VÆB&V6W6Röbv†W&RF†R6&@§&VæFW&VBÂæ÷B&V6W6Röbv†BF†R6&Bv2â¢¢F†Rf—'7B7V6‚6&Böâç’÷F†W §vR'&–æw2F†R7GV6²F–ÇB&6²v—F‚WfW'’6†V6²7F–ÆÂw&VVââF†R6ÖÆÂ×67&VVà¦fÆÆ&6²†BF†R6ÖR6†R(	B—B&VGV6VBF†RF–ÇB'WBv27F–ÆÂ¦†÷fW&Ö&÷VæBÀ¦æBv–GF‚—2æ÷Bö–çFW"à ¦FW7G2öÖ&¶WF–ærÖFWF‚×7W&f6RçFW7Bæ§676W'G2F†—2vFRW†—7G2Â'’&VF–æp¦6öæ&ÖFW6–vâ×7—7FVÒæ776æBöæÇ’F†Bf–ÆRâ—Bv2G'VRÂæBG'VR&÷WBF†P§w&öærf–ÆR(	BF†R÷F†W"7G–ÆW6†VWB—2Æ–æ¶VB'’F†R6ÖRg&ÖRæBÆöFVBgFW ¦—BÂ6òBWVÂ7V6–f–6—G’F†RVævFVB'VÆRv–ç2à ¦FW7G2÷ö–çFW"ÖvFVBÖFWF‚çFW7Bæ§6æÖW2æòf–ÆRâ—B&VG2F†R7G–ÆW6†VWBÆ—7@¦÷WBöbÆ–"÷6öæ&×vRÖg&ÖRæ6§6æB†öÆG2WfW'’6W'fVB6†VWBFòF†R6ÖP§'VÆRÂ6òF†—&B7G–ÆW6†VWB—26÷fW&VBv—F†÷WBç–öæR&VÖVÖ&W&–ærâ—BvÆ·0¦ÖVF–æW7F–ær&F†W"F†âÖF6†–ærFW‡BÂ&V6W6Rv†WF†W"6VÆV7F÷"—26fP¦FWVæG2VçF—&VÇ’öâv†B—B—2æW7FVB–ç6–FRâ—Bf–Ç2v†Vâ—Bf–æG2¦W&ò4@¦†÷fW"'VÆW2÷"fWvW"F†âGvò7G–ÆW6†VWG2Â6–æ6R6†V6²wV&F–æræ÷F†–ær&VG0¦W†7FÇ’Æ–¶R6†V6²f–æF–æræ÷F†–ærw&öærâfW&–f–VB'’WGF–ærF†R÷&–v–æÀ§'VÆR&6²æB6öæf—&Ö–ær—Bf–Ç2'’æÖRà ¥F†RÆ7B76W'F–öâ—2F†RöæRF†BvVæW&Æ—6W3¢4B†÷fW"'VÆR66÷VBFò&öG¦6Æ72×W7B7F–ÆÂ6''’—G2÷vâö–çFW"vFRâ7V6–f–6—G’—2f–æRv’Fòv–â¦666FRæBö÷"v’Fò†öÆB6fWG’wV&çFVRà ¢222##bÓ‚Ó"(	BF†RÆVB6öçfW'6–öâf–æÆÇ’†2'WGFöà ¥&V6÷&FVBGvòVçG&–W2&÷fR2†ÆbÖ'V–ÇBÂæB—B—2'V–ÇBæ÷rà ¦öw&÷wF‚×7GVF–òöÆVG6—26GW&Rf÷&Ò(	B6öÖWv†W&RFòw&—FRÆVBF÷vâÂv—F€¦æòÆ—7BöbF†RöæW2Ç&VG’w&—GFVâ(	B6òF†R6öçfW'6–öâw2'VÆW2ÂVæGö–çBÀ¦GWÆ–6FRwV&G2æBÖ–w&F–öâvW&R&V6†&ÆRöæÇ’'’â’6Æ–VçBâF†B—0¦æ÷Bv†B6ÖÆÂ'W6–æW72÷væW"†2à ¦öw&÷wF‚×7GVF–òöVçV—&–W6Æ—7G2F†RV÷ÆRv†ò†fR6öÖRFò–÷RæB6'&–W2F†P¦'WGFöâF†BÖ¶W2öæR7W7FöÖW"âæÖVBf÷"v†B—B†öÆG2&F†W"F†âf÷"F†P§F&ÆRÂ–âF†Rv÷&G2F†RF÷FÇ26&BöâF†—2&öGV7BÇ&VG’W6W2à ¥F†R&÷rF†B6ææ÷B6öçfW'B6—2v‡’&F†W"F†â6†÷v–ær'WGFöâF†B&VgW6W2à¢¢¥F†R&V6öâ—2&V6öäæ÷D6öçfW'F–&ÆV—G6VÆb(	BF†RVæGö–çBw2÷vâgVæ7F–öâÂæ÷@¦6V6öæB6÷’öbF†R'VÆW2â¢¢Gvò–×ÆVÖVçFF–öç2öb&6âF†—26öçfW'B"G&–gBÀ¦æBF†RöæRöâF†RvRG&–gG26–ÆVçFÇ“¢—BöæÇ’WfW"6†÷w2÷"†–FW2'WGFöâÀ§6òæö&öG’f–æG2÷WBVçF–Ââ÷væW"&W76W2öæRF†Bf–Ç2âF†B'VÆRæVVG2F†P¦7W7FöÖW"Æ—7BÂ6òF†RvRÆöG2—BÂæBf–ÆVB&VB7F—2çVÆÆ–ç7FVBö`¦&V6öÖ–ærâV×G’'&’(	BâVç&VF&ÆR7W7FöÖW"Æ—7B—2æ÷B&æòGWÆ–6FW2"à ¥F†RVæGö–çBç7vW&VBWfW'’F‚v—F‚¥4ôââf÷&Ò÷7Bv÷VÆB†fR6†÷vâF†P¦÷væW"vÆÂöbVæ7GVF–öâæBÆ÷7BF†R7W7FöÖW"F†W’†B§W7B7&VFVC¢§v÷&¶–ærVæGö–çBF†B&VG227&6‚â—B&VF—&V7G2'&÷w6W"FòF†R7W7FöÖW ¦—BÖFRÂ÷"&6²v—F‚÷&ö&ÆVÓÖv†Vâ—B&VgW6VBà ¦FW7G2÷&÷rÖ7F–öç2Ö&R×&W76&ÆRçFW7Bæ§6¢¦æÖW2F†—2W†7BFVfV7B–â—G2÷và¦†VFW"6öÖÖVçB¢¢æBF†Vâ—FW&FVBÄÅôõtäU%õtU6æBæ÷F†–ærVÇ6RÂ6òF†P¦ÆVB7F–öâ6÷VÆB&R'6VçB÷"Ö—2×v—&VBv—F‚WfW'’76W'F–öâ76–ærâ—B&VG0¦&÷F‚&VæFW&W'2æ÷ræB76W'G2&÷F‚FV6Æ&Râ7F–öâÂ6òF†—&B6öÆÆV7F–öà¦6ææ÷BV–WFÇ’æ'&÷rv†BF†Rf–ÆRÖVç2à ¥Gvò6†V6·26ÖR÷WBöb'V–ÆF–ær—Bâ&÷F‚&VæFW&W'27V'7F—GWFRöâF†RÆ—FW&À¦¦–FÂ6òâ7F–öâFV6Æ&VBv—F‚F†R&÷WFRw2÷vâ&ÖWFW"æÖR(	B¦ÆVD–F(	@§76W2WfW'’÷F†W"6†V6²†W&RæB÷7G2FòÆ—FW&Â#¦ÆVD–B&F‚v†Và§&W76VC²F†B—2æ÷r76W'FVBâæB&÷WFR6†W2&R6ö×&VBv—F‚&ÖWFW ¦æÖW2æ÷&ÖÆ—6VB&F†W"F†â'’7G&–ærÂv†–6‚—2v†BÆWBF†R6†V6²6÷fW"Gvð§&÷WFW2v†÷6R&ÖWFW'2&RæÖVBF–ffW&VçFÇ’âfW&–f–VB'’Ö—2ÖFV6Æ&–ærF†R–@¦æB'’&VÖ÷f–ærF†R7F–öâÂæB&÷F‚vW&R6Vv‡B'’æÖRà ¢222##bÓ‚Ó"(	BF&ÆRVW&–VB'’F†R6öFRæB7&VFVB'’æòÖ–w&F–öà ¦fW&–g“¦÷'†â×F&ÆW66·2v†–6‚F&ÆW2F†RÖ–w&F–öç27&VFRF†Bæ÷F†–æp§VW&–W2âF†B—2F†R†&ÖÆW72F—&V7F–öâ(	BVçW6VB66†VÖ6÷7G26öægW6–öââF†P¦FævW&÷W2öæRvVçBVæ6¶VC¢F&ÆRF†RÆ–6F–öâVW&–W2F†BæòÖ–w&F–öà¦7&VFW2—2fVGW&RF†B6ææ÷Bv÷&²Â–â&öGV7F–öâÂf÷&WfW"à ¦6W'fW"æ§66÷VçFVB&öGV7EöÖöGVÆW6öâGvòFÖ–â7W&f6W2â¢¤æòÖ–w&F–öâ†0¦WfW"7&VFVB—Bâ¢¢F†RæÖRv2w&—GFVâ–â'VÆ²6öÖÖ—B–â§VÇ’##bæBæWfW ¦&6¶VBÂ6ò&÷F‚6&G2†fRÇv—2&VæFW&VB'Væf–Æ&ÆRVçF–Â7W&6RF&ÆW0¦&RÖ–w&FVB"(	BÖW76vR&öÖ—6–ærÖ–w&F–öâF†Bv2æWfW"6öÖ–ærâF†P¦6FÆör—BvçFVB—26öæ&öÖöGVÆU÷&Vv—7G'–Âv†–6‚Ö–w&F–öâ‚7&VFW2æ@§6VVG2ÂæBv†–6‚—2Ç&VG’6Æ76–f–VBvÆö&Âà ¦FW7G2÷FVæçBÖ—6öÆF–öâçFW7Bæ§66öÖW26Æ÷6RæB7FFW2—G2÷vâÆ–Ö—B†öæW7FÇ“ ¦÷&W7B÷còG·F&ÆWÖ—2&W6öÇfVBB'VçF–ÖRæB6ææ÷B&R6†V6¶VBg&öÒF†W&Rà¥G'VR(	B'WBF†R&Æ–æB7÷B—2v–FW"F†âF†R6VçFVæ6Rà¦6fT6÷VçEF&ÆR†6öæf–rÂ'&öGV7EöÖöGVÆW2"–76W27G&–ærÆ—FW&ÂÂ¶æ÷v&ÆR@§&W7BÂ–çf—6–&ÆRöæÇ’&V6W6R†VÇW"'V–ÆG2F†RU$Âà ¦FW7G2öWfW'’ÖFV6Æ&VB×F&ÆRÖW†—7G2çFW7Bæ§66·2F†RVW7F–öâöbFV6Æ&F–öç0§&F†W"F†âöb&WVW7BU$Ç3¢&W7BF‡2ÂF&ÆS¦&÷W'F–W2Â76–væÖVçG2À¦†VÇW"6ÆÇ2ÂæBF†RD$ÄU6Ö2&÷WFRf–ÆW2W6RFò¶VWÆ—FW&ÂæÖW2÷WBö`¦6ÆÂ6—FW2(	BF†R6ÖR–æF—&V7F–öâF†B†–BF†—2öæRâ7&÷72F†Rv†öÆR'VçF–ÖR—@¦f÷VæBW†7FÇ’öæR&ö&ÆVÒâ—B6W&FVÇ’76W'G2—B7F–ÆÂf–æG2FV6Æ&F–öç0¢§F‡&÷Vv‚–æF—&V7F–öâ¢Âv—F†÷WBv†–6‚—B6–ÆVçFÇ’FVw&FW2–çFòGWÆ–6FRö`§F†R6†V6²F†BÇ&VG’76W2à ¢222##bÓ‚Ó"(	Bv†B7G&VÖ–ærVæv–æRFöW2æBFöW2æ÷B6’&÷WB&V6÷&BÆ—7@ ¥&ö×FVB'’7G&VÖ–ærÖVæv–æRW‡Æ–æW"âGvòöb—G26—‚6öæ6WG2FW67&–&P§6öÖWF†–ærG'VR†W&S²F†R÷F†W"f÷W"&R&VæFW&–ær&6†—FV7GW&Rf÷"¦6öçF–çV÷W24Bv÷&ÆBÂæB&÷'&÷v–ærF†V—"fö6'VÆ'’f÷"Æ—7Böb–çfö–6W2v÷VÆ@¦&RF¶–ærF†RV&æ6Röb&–v÷W"v—F†÷WBF†R7V'7Fæ6Râw&—GFVâWF†Bv’–à¦Fö72öFW6–vâõ5E$TÔ”ärÔäBÕ$T4õ$BÔÄôD”äræÖF&F†W"F†â26—‚ÖV@§&–æ6—ÆW2à ¢¢¥F†RÆöB¦öæRF–Bæ÷B¶æ÷rF†R6—¦RöbF†RÖâ¢¢WfW'’÷væW"æB7&VF÷ §&V6÷&BvR&VBÆ–Ö—CÓæB6F–öæVBF†RF&ÆRG·&÷w2æÆVæwF‡Ò&V6÷&G6à¥VæFW"F†R6F†B—2&–v‡Bâ÷fW"—BÂF†RvR7FFW2F÷FÂ—BæWfW"ÖV7W&V@®(	B'W6–æW72v—F‚#S7W7FöÖW'2—2FöÆB—B†2Âv—F‚æ÷F†–æröâ67&VVà§7VvvW7F–ær÷F†W'v—6Râæ÷BG'Væ6FVBÆ—7C¢w&öærçVÖ&W"Â&W6VçFVB0¦6öæf–FVçFÇ’2&–v‡BöæRâF†R&÷r6÷VçBv2æWfW"F†R&V6÷&B6÷VçBà ¥&VF–æröæR&÷r7BF†RvR6WGFÆW2&—2F†W&RÖ÷&R"f÷"g&VRÂæBâW†7@¦6÷VçB—2–Bf÷"öæÇ’öæ6RF†Rf—'7B&VB6†÷w2—Bv–ÆÂ6’6öÖWF†–æræWr(	B6ð¦â66÷VçBVæFW"F†R67F–ÆÂ6÷7G2öæRVW'’âf–ÆVB6÷VçB7F—2çVÆÂæ@§F†R6F–öâ6—2&Ö÷&RF†â"ÂF†RfÆö÷"F†Rf—'7B&VBW7F&Æ—6†VB&F†W §F†âçVÖ&W"–çfVçFVBFòf–ÆÂF†RvâF†R6F–öâ—2—G2÷vâW‡÷'FV@¦gVæ7F–öâÂ&V6W6RF†RFVfV7B—26VçFVæ6RæB6VçFVæ6R6â&R6†V6¶VBv—F†÷W@¦FF&6Rà ¢¢¤ÆWfVÂöbFWF–ÂÂÆ–VBâ¢¢F†R÷væW"vW26VÆV7FVB¦¢3r6öÇVÖç2fWF6†V@§Fò&VæFW""âæ÷rS2âF†Rf–VÆBÆ—7B6ææ÷B&R&VBöfbF†RFV6Æ&F–öâ(	@¦6öÇVÖç2&RfÇVS¢‡&÷r’Óâ(
+fÂF†R&VæFW&W"&V6†W2f÷"&÷ræ–FÂæB&VgW6À§'VÆW2&VBf–VÆG2æò6öÇVÖâ6†÷w2(	B6ò—Bv2FW&—fVBGvòv—2æBVæ–öæVC §'Vææ–ærV6‚gVæ7F–öâv–ç7B&V6÷&F–ær&÷‡’ÂæB&VF–ærF†R&÷W'F–W0§F¶VâöfbF†R&ÖWFW"–âF†RgVæ7F–öâ6÷W&6Râ¢¤&÷F‚vW&RæVVFVBâ¢¢F†P§'VçF–ÖR&ö&RÆöæRÖ—76VB7W7FöÖW%ö–FöâV÷FW2Â&V6W6RF†R&VgW6Â'VÆP§&WGW&ç2V&Ç’öâç’7FGW2F†B—2æ÷B66WFVFæBæWfW"&V6†W2F†RÆ–æP§F†B&VG2—Bà ¥F†R6†V6²FVÆ–&W&FVÇ’FöW2æ÷B&WVBF†BFW&—fF–öâ(	B6†V6²F†B&V'V–ÆG0§F†RÆ—7BF†Rv’F†RÆ—7Bv2'V–ÇBw&VW2v—F‚—G6VÆb'’6öç7G'V7F–öâÂv†–6‚—0§F†RFVæçB×F&ÆW2FVfV7BW†7FÇ’â—BFW7G2F†R&÷W'G’–ç7FVC¢v—fR6öÇVÖà¦gVæ7F–öâ&÷r6öçF–æ–æröæÇ’v†BF†R6VÆV7B6¶VBf÷"ÂæB6VRv†B—@§&V6†W2f÷"âæB6W&FVÇ’ÂF†BWfW'’6VÆV7FVBf–VÆB—26öÇVÖâF†P¦Ö–w&F–öç27&VFRÂ&V6W6R÷7Fu$U5B&V¦V7G2âVæ¶æ÷vâ6öÇVÖâ'’&V¦V7F–ærF†P§v†öÆRVW'’(	BöæRG—òGW&ç2–çFòvR&W÷'F–ær—G6VÆb2Væ6öæf–wW&VBà ¥v–ær7BF†Rf—'7B—27F–ÆÂæ÷B'V–ÇBâF†RÆ—7Bæ÷r6—2F÷FÂW†—7G0¦&W–öæBF†R6æB7F–ÆÂöffW'2æòv’Fò&V6‚—Bâ6––ær6ò—2&WGFW"F†âF†P§&Wf–÷W26–ÆVæ6RæB—2æ÷BF†R6ÖR2&V–ærf–æ—6†VBà ¢222##bÓ‚Ó"(	BF†RVçf—&öæÖVçB6†V6²6÷VÆBæ÷B&W÷'BæÖR—B†BæWfW"†V&Bö` ¦67&—G2÷fW&–g’ÖVçbæÖ§6W†—7G2Fò†öÆBöæRÆ–æS¢WfW'’f&–&ÆRF†R6öFR&VG0¦—26Æ76–f–VBÂæBWfW'’6Æ76–f–VBæÖR—2&VBâ—Bf÷VæBæÖW2Gvòv—2(	@¦&ö6W72æVçbå†ÂæB&&R7G&–ærÆ—FW&Ç2Â&V6W6RF†—26öFV&6RFV6Æ&W26öÖP§f&–&ÆW2'’æÖR&F†W"F†â&V6†–ærf÷"F†VÒâF†RÆ—FW&Â72&VC  ¦§0¦–b†6æF–FFTæÖW2æ†2†ÖF6…³Ò’’W6VBæFB†ÖF6…³Ò“°¦  ¢¢¤Æ—FW&Âv2&V6÷&FVBöæÇ’–b—Bv2Ç&VG’6Æ76–f–VBâ¢¢æÖRF†Rf–ÆP¦†BæWfW"†V&Böbv26¶—VB&F†W"F†âfÆvvVBÂ6ò&ÆÂ6Æ76–f–VB"v2G'VP¦'’6öç7G'V7F–öâ(	B—B6÷VÆBæ÷B†fR6öÖR÷WBç’÷F†W"v’à ¥F†—'FVVâæÖW26B–âF†BvÂæBF†W’vW&Ræ÷B–æ6–FVçFÂâF†RÆâF&ÆR–à¦6W'fW"æ§6FV6Æ&W2—G2&–6Rf&–&ÆW22Vçc¦æBVçdÆ–6W3¦fÇVW2Âæ@¦Æ–"÷6öæ&×&VF–æW72æ6§6&W6öÇfW2V6‚&–Ö'’æÖRæBF†Vâ—G2Æ–6W2@¦Æ–æR3â¢¥F†RF‡&VRf&–&ÆW2F†BvFRWfW'’–BÆâvW&R–çf—6–&ÆRFòF†P¦Vçf—&öæÖVçB6†V6²v†–ÆR—B&W÷'FVB7V66W72öâWfW'’FWÆ÷’â¢  ¥F†Rf–ÇFW"†B&VÂW'÷6R(	Bç’6†÷WG’7G&–ærÆ—FW&Âv÷VÆB÷F†W'v—6RÆöö°¦Æ–¶Rf&–&ÆR(	B6òF†Rf—‚—2æ÷B&VÖ÷f–ær—B'WBFF–ær72F†BæVVG2æð¦ÆÆ÷rÖÆ—7C¢¶W’Æ—FW&ÆÇ’æÖVBVçf—2æ÷BÖ&–wV÷W2âF†R6÷VçBvVçBS‚(i"sà ¥GW&æ–ær—Böâ7W&f6VBV–v‡BÖ÷&RæÖW2g&öÒ67&—G2÷6VVB×7G&—R×&öGV7G2æÖ§6À§v†–6‚—2¢¦FVÆWFVB&F†W"F†â6Æ76–f–VB¢¢â—Bv2&VfW&Væ6VBöæÇ’g&öÐ¦&6†—fRöÂ&–çFVBF†R&WF—&VBV&Æ–2æÖW2ÂæBV÷FVBCž(	3RòC#’òCCž(	3S’ð¢Csž(	3“’v–ç7BÆ—fRÆç2öbCròC’òC3’â6Æ76–g––ær—G2f&–&ÆW2v÷VÆ@¦†fR&V6÷&FVBf–7F–öã²F†R†öæW7B&VB—2F†Bç–öæRv†ò&â—Bv÷VÆB†fP¦&VVâFöÆBFò'V–ÆBF†Rw&öær6FÆöwVRVæFW"æÖW2vRFòæ÷BW6Rà ¦FW7G2öVçbÖ6†V6²Ö6â×&W÷'BÖÖæÖRÖ—BÖFöW2Öæ÷BÖ¶æ÷rçFW7Bæ§6wV&G2F†R&÷W'G§&F†W"F†âF†RÆ–æS¢—Bw&—FW2ÖöGVÆRFV6Æ&–ærâVæ6Æ76–f–VBVçc¦æÖRÀ§'Vç2F†R67&—BÂæB&WV—&W2—BFòf–Â¦æBFòæÖRF†Rf&–&ÆR¢â–bF†BWfW ¦6öÖW2&6²6ÆVâÂF†RÆ—FW&Â72†2&VVâ&RÖvFVBæBF†R&Æ–æB7÷B—2÷Vâà ¥v÷'F‚7FF–ærÆ–æÇ’Â6–æ6RF†R6Æ76–f–6F–öâ—2†öæW7B'WBV7’Fð¦Ö—7&VC¢V6‚&–6Rf&–&ÆR—2vVçV–æVÇ’÷F–öæÂ(	BÖ—76–æröæRÖ¶W2F†@§Æâ&W÷'B6WGW÷&WV—&VBÂ7FFVBfÆÆ&6²(	Bv†–6‚ÖVç2¢¦—B—2÷76–&ÆRFð§6WBÆÂFVâ'&WV—&VBf÷"–BW6vR"f&–&ÆW2æB7F–ÆÂ6VÆÂæ÷F†–ærâ¢¢F†P§FVâ6÷fW"F†RÖ6†–æW'’öb6†&v–ærÂæ÷BF†RW†—7FVæ6Röbç—F†–ærFò6†&vRf÷"à ¢222##bÓ‚Ó"(	Bv†BF†RÆ—fR7G&—R66÷VçB7GVÆÇ’6öçF–ç0 ¤6†V6¶VB&VBÖöæÇ’v–ç7B67EóE%7£D·FÄUS6ÄâÆÂF‡&VRGfW'F—6VBÆç0¦†fRâ7F—fR&–6Röââ7F—fR&öGV7B6†&v–ærW†7FÇ’F†RGfW'F—6V@¦Ö÷VçC¢7F'FW"sÂ6÷&R“Â&ò3“âF†R&–6R–G2&Ræ÷rw&—GFVâ–çFð¦Fö72ö÷væW"ôõtäU"Õ5DU2æÖF&W6–FRF†Rf&–&ÆRV6‚&VÆöæw2–â(	BF†W’&Ræ÷@§6V7&WG2ÂF†W’G&fVÂFòF†R'&÷w6W"B6†V6¶÷WBà ¥6ò7FW—2æ÷B&Æö6¶VBöâ7G&—R6öæf–wW&F–öââv†B—B&÷fW2—2v†WF†W ¢¦÷W"¢6†V6¶÷WBÂvV&†öö²æBVçF—FÆVÖVçBF‚v÷&·2VæBFòVæBÂv†–6‚æòÖ÷Vç@¦öb&VF–ærW7F&Æ—6†W2à ¥Gvòf–æF–æw2g&öÒF†R6ÖRÆöö²âöæR×F–ÖR¢¢C“r'W6–æW72'V–ÆFW"6WGW §&–6R—2Æ—fRæB6VÆÆ&ÆR¢¢öââ7F—fR&öGV7BÂv†–ÆRF†RÆ–6F–öà¦FVÆ–&W&FVÇ’FöW2æ÷BöffW"F†BÆâ(	Bæ÷F†–ær—2'&ö¶VâÂ'WBF†R&–6RW†—7G0¦–bf&–&ÆR—2WfW"ö–çFVBB—BâæBÆ–"÷6öæ&Ö&–ÆÆ–æræ6§66Æ–ÖVBF†P§F‡&VR&WF—&VBÆç2vW&R7F—fR&–6W2öâ&6†—fVB&öGV7G3²¢§F†B—2æòÆöævW §G'VR¢¢(	BÆÂF‡&VR&VB–æ7F—fRöâ&÷F‚âF†RwV&B7F—2Â&V6W6R7G&—R&VÆÇ¦FöW2æ÷B6ÆV"&–6Rw27F—fRfÆrv†Vâ—G2&öGV7B—2&6†—fVBÂ'WBF†P¦6öÖÖVçBæ÷rFW67&–&W26†RF†B6÷VÆBö67W"&F†W"F†âöæRF†BFöW2à ¢222##bÓ‚Ó"(	BGvò6†V6·2öbF†R6ÖR'VÆRÂæBF†R÷F–Ö—7F–2öæRv2öâF—7Æ ¥v†WF†W"Æâ6â7GVÆÇ’&R6öÆB—26¶VB–âGvòÆ6W3¢Æ–"÷6öæ&Ö&–ÆÆ–æræ6§6 ¦B6†V6¶÷WBÂv†W&RF†R¶W’—2Çv—2&W6VçBÂæB67&—G2÷fW&–g’×7G&—RÖVçbæÖ§6 ¦–âF†R&VÆV6R6†–âÂv†W&R—BW7VÆÇ’—2æ÷Bà ¢¢¥F†W’F—6w&VVBâ¢¢F†R'VçF–ÖRwV&BW‡æG2F†R7G&—R&öGV7BæB&VgW6W0¦&–6U÷&öGV7Eö&6†—fVFÂ&V6W6R&6†—f–ær&öGV7BFöW2æ÷B6ÆV"—G2&–6W2p¦7F—fRfÆr(	B&–6Ræ7F—fVÆöæR&VG2G'VRæBöæÇ’F†R&öGV7B6—0¦÷F†W'v—6RâF†R&VÆV6R6†V6²&VB&–6Ræ7F—fVæB7F÷VBÂ6ò—Bv÷VÆB72¦6öæf–wW&F–öâF†R'Vææ–ær6W'fW"&V¦V7G2âF†R&VÆV6R÷WGWB—2v†BV÷ÆP§&VBÂv†–6‚WBF†RÖ÷&R÷F–Ö—7F–2öbF†RGvòöâF—7Æ’à ¥F†R6V6öæBFVfV7Bv2–âF†R7VÖÖ'’âF†RÆ7BÆ–æR&VB¢%7G&—R6öæf–wW&F–öà§fW&–f–VBv–ç7BF†RFWÆ÷–VB6W'fW""¢v†WF†W"÷"æ÷BF†RÆ—fR6ö×&—6öâ&â(	@¦æB—BæWfW"'Vç2–â4’Â&V6W6R5E$•Uõ4T5$UEô´U–—2æ÷BF†W&Râ6òWfW'§&VÆV6RVæFVBv—F‚6VçFVæ6R6––ærF†RÖ÷VçG2†B&VVâ6†V6¶VBv–ç7B7G&—P§v†–ÆRF†Rµ4´•ÖGvòÆ–æW2&÷fR6–BF†W’†Bæ÷Bâ¢¥F†R6¶—v2†öæW7Bæ@§F†R7VÖÖ'’÷fW'w&÷FR—Bâ¢  ¤&÷F‚f—†VC¢F†R&VÆV6R6†V6²W‡æG2F†R&öGV7BæB&VgW6W2â&6†—fVBöæRÀ¦æBF†R7VÖÖ'’æ÷ræÖW2v†–6‚†Æb&ââöffÆ–æR'Vç26’Æ–æÇ’F†BÆ—fP§&–6W2vW&Ræ÷B6ö×&VBæBö–çBBF†RwV&BF†BFöW26ö×&RF†VÒà ¦FW7G2÷7G&—RÖ6†V6·2Öw&VR×v—F‚ÖV6‚Ö÷F†W"çFW7Bæ§6†öÆG2F†R—"FövWF†W"â—@§&WV—&W2&÷F‚f–ÆW2FòW‡æBF†R&öGV7BæB&÷F‚Fò&VgW6Râ&6†—fVBöæRÂ6ð¦æV—F†W"6âV–WFÇ’&V6öÖRF†RÆVæ–VçBöæRv–ââ—BÇ6ò&WV—&W2F†R7VÖÖ'§Fò&R6öæF—F–öæÂÂæB&WV—&W2F†RfÆrFò&R6WBöâF†R7V66W72F‚&F†W §F†âv†VâF†R¶W’—2f÷VæB(	B6WGF–ær—BV&Ç’v÷VÆB&W7F÷&RF†R÷&–v–æÂ6Æ–Ð¦–âæWrÆ6RâF†W6R&R6÷W&6R76W'F–öç2&V6W6RF†RöæÆ–æR†ÆbæVVG2Æ—fP§6V7&WBÂæBFW7BF†B7WÆ–VBöæRv÷VÆBÖVâV—F†W"6V7&WB–âF†P§&W÷6—F÷'’÷"æWGv÷&²6ÆÂ–âF†R7V—FRà ¢222##bÓ‚Ó"(	BF†R6ÖR÷fW&6Æ–ÒÂöæR67&—B÷fW"ÂæB6†V6²f÷"F†R6Æ70 ¤†f–ærf÷VæB—B–âfW&–g’×7G&—RÖVçbæÖ§6Â’7vWBF†R&VÆV6R6†–âf÷"F†P§6†R&F†W"F†â77VÖ–ær—Bv2öæRÖöfbâ—Bv2æ÷Bà ¦fW&–g’Ö÷Vâ×6÷W&6R×&Vv—7G'’æÖ§6&–çFVBæWGv÷&²fW&–f–6F–öã¢F—6&ÆVFæ@§F†VâÂöâ—G2Æ7BÆ–æRÂ¢$÷Vâ×6÷W&6RæBW‡FW&æÂ&W÷6—F÷'’6öçG&öÇ0§fW&–f–VBâ"¢F†R&VÆV6R6†–âFöW2æ÷B72ÒÖæWGv÷&¶Â6ò¢§F†R&VÆV6RÆöp¦VæFVBv—F‚F†Rv÷&B'fW&–f–VB"v†–ÆRæ÷F†–ær†B6öæf—&ÖVBF†Bç’öbF†Rs §&Vv—7FW&VBv—D‡V"F&vWG27F–ÆÂW†—7G2â¢  ¤Ö–ÆFW"F†âF†R7G&—R66R–âöæR&W7V7C¢F†RæWGv÷&²†Æb—2æ÷BVç'VâÂ—@¦†2—G2÷vâv÷&¶fÆ÷r†W‡FW&æÂ×&W÷6—F÷'’Ö†VÇF‚ç–ÖÆ’â6òF†R7VÖÖ'’æ÷p¦æÖW2—BÂv†–6‚—2Ö÷&RW6VgVÂF†â&&RVÆ–f–6F–öâ(	BF†RVW7F–öâ&VFW ¦†2BF†Bö–çB—2'F†Vâv†òFöW26†V6²"à ¦FW7G2öæòÖ6†V6²Ö6Æ–×2ÖÖ÷&R×F†âÖ—B×&âçFW7Bæ§66÷fW'2F†R6Æ72–ç7FVBöbF†P§Gvò–ç7Fæ6W2â—B&VG2F†R67&—BÆ—7B÷WBöbfW&–g“¦ÆVæ6†&F†W"F†à§&W7FF–ær—BÂ6ò67&—BFFVBFòF†R6†–â—26÷fW&VBv—F†÷WBç–&öG§&VÖVÖ&W&–æs²—B6VÆV7G2F†RöæW2F†B6âFV6Æ–æR'BöbF†V—"v÷&²Â'’F†V— ¦÷vâ÷WGWC²æB—B&WV—&W2F†V—"fW&–f–6F–öâ7VÖÖ'’FòæÖRF†R&VGV6VB66÷Rà¤F†—&B67&—B6ææ÷B'&—fRv—F‚F†R6ÖR6†Rà ¥F†R7vVWÇ6òf÷VæBF†R†öæW7B66W2Âv†–6‚—2v÷'F‚&V6÷&F–æs¢fW&–g“¦F&À¦fW&–g“¦–ÂfW&–g“¦ÖVÖ&W"×öÆ–6–W6ÂfW&–g“¦FVf–æW"ÖW‡÷7W&VæBF†R&W7@¦V—F†W"æVVBæò7&VFVçF–Ç2÷"f–Â&F†W"F†âFVw&FRâGvò67&—G2†BF†P¦FVfV7BæBF†R÷F†W"VÆWfVâF–Bæ÷Bà ¢222##bÓ‚Ó"(	BF†RF–ffW&VçF–F÷'2&V6‚F†R7W7FöÖW"Â&÷VæBFòF†R6öFP ¥F†RÖ&¶WBVF—Bv÷&¶VB÷WBv†B—2vVçV–æVÇ’F–ffW&VçB&÷WBF†—2&öGV7Bæ@§F†VâæöæRöb—Bv2öâF†R6—FRâF‡&VRf–æF–æw26B–à¦Fö72öÖ&¶WBó##bÓ‚Ó"ÔÔ$´UBÔTD•BæÖFæBF†R†öÖRvR6–Bæ÷F†–ær&÷W@¦ç’öbF†VÒà ¤V6‚v2fW&–f–VBv–ç7BF†R6öFR&Vf÷&R—Bv2w&—GFVâ26÷’Âæ÷BgFW#  ¢Ò¢¤öæR&V6÷&BÂæ÷BF‡&VRâ¢¢F†R6†–â—2&W76&ÆRVæBFòVæB(	BÆVB&V6öÖW0¢7W7FöÖW"ÂV÷FR&V6öÖW2â–çfö–6RÂâ–çfö–6R&V6öÖW2&VÖ–æFW"G&gBà¢—BöæÇ’&V6ÖRG'VRF†—2vVV³²&÷F‚6öçfW'6–öç2†B6†—VBv—F‚æò'WGFöâà¢Ò¢¤æ÷F†–ær—2–çfVçFVBâ¢¢Æ–"÷6öæ&Ö6†6RÖG&gG2æ6§6Ö¶W2æòæWGv÷&²6ÆÀ¢æBÆöG2æò&÷f–FW"à¢Ò¢¤—B6—2v†Vâ—BFöW2æ÷B¶æ÷râ¢¢F†R66‚÷6—F–öâW†6ÇVFW2VæFFVB&÷w0¢¦æB&W÷'G2F†VÒ£²âVç&VF&ÆRF&ÆR&VæFW'2Væf–Æ&ÆR&F†W"F†â¦W&ó°¢æB6VBÆ—7Bæ÷ræÖW2—G2F÷FÂ&F†W"F†â—G2vRà ¦FW7G2÷F†RÖ6Æ–×2Ööâ×F†RÖ†öÖR×vRÖ&R×G'VRçFW7Bæ§6&–æG2V6‚6VçFVæ6RFòF†P¦&V†f–÷W"VæFW&æVF‚—Bâ6Æ–ÒöâÖ&¶WF–ærvR—2&öÖ—6RÂæBF†—0§&W÷6—F÷'’w2v†öÆR†—7F÷'’—27FFVÖVçG2F†BvW&RG'VRv†Vâw&—GFVâæBV–WFÇ§7F÷VB&V–ærâ–b6öÖV&öG’v—&W2ÖöFVÂ–çFòF†R6†6RG&gG2÷"Ö¶W2F†R66€§÷6—F–öâ6÷VçBâVæFFVB–çfö–6R2GVRFöF’ÂF†R6Æ–Òf–Ç2&Vf÷&R¦7W7FöÖW"f–æG2÷WB(	BfW&–f–VB'’FF–ærfWF6†FòF†RG&gG2æBvF6†–ærF†P¦6Æ–Òvò&VBà ¢¢¤—BFVÆ–&W&FVÇ’FöW2æ÷Bw&Wf÷"6öÖÖVçG2â¢¢Æ–"÷6öæ&Ö6†6RÖG&gG2æ6§6 ¦6öçF–ç2F†RÆ–æR"¢¤æòÖöFVÂ6ÆÂâ¢¢"ÂæB6†V6²ÖF6†–ærF†Bv÷VÆB72öà§F†R6öÖÖVçBv†–ÆRF†Rf–ÆRF–Bv†FWfW"—BÆ–¶VBVæFW&æVF‚â—B76W'G2F†P¦'6Væ6RöbfWF6‚†Âöbç’vFWv’÷"FFW"&WV—&RÂæBöb&÷f–FW"æÖW2à ¤öæR6Æ–Ò—26†V6¶VBÖ÷&R7G&–7FÇ’F†â—B&VG2â%G—R—Böæ6R"v÷VÆB&P§6F—6f–VBÂ'’WfW'’7G'V7GW&ÂFW7BÂ'’6öçfW'6–öâF†B7&VFVB&Ææ°¦7W7FöÖW"æBÖFRF†R÷væW"f–ÆÂ—B–â(	B6òF†RFW7B6öçfW'G2&VÂÆVBæ@¦76W'G2æÖRÂVÖ–ÂÂ†öæRæB6÷W&6RÆÂ'&—fRâF†R6÷W&6R–â'F–7VÆ# ¦Æ÷6–ær—BÖVç2F†R÷væW"6ææ÷B&VÖVÖ&W"v†W&RF†R7W7FöÖW"6ÖRg&öÒÂv†–6‚—0§F†Rv†öÆR&V6öâw&÷wF‚7GVF–ò&V6÷&FVB—Bà ¥F†R6÷’vVçB–çFòF†RW†—7F–ær†öÖRvR7G&–ær&F†W"F†âæWrÖöGVÆRÀ¦&V6W6R6W'fW"æ§66—G2W†7FÇ’öâ—G2C#BÖÆ–æR&F6†WBæB&WV—&Vv÷VÆ@¦†fR6÷7BF†RöæÇ’Æ–æRf–Æ&ÆRâF†R6V7F–öâ&WW6W26öæ&Ö÷WF6öÖRÖw&–FÂ6ð¦—B–æ†W&—G2F†RÖö&–ÆR'VÆW2&F†W"F†âæVVF–æræWröæW2à ¢222##bÓ‚Ó"(	BF†RF÷FÇ26&B6÷VçFVBF†RvRÂ–æ6ÇVF–ærÖöæW’f–wW&P ¥F†R6ÖRFVfV7B2F†R&V6÷&BÆ—7G2Â–âF–ffW&VçB&VæFW&W"ÂæBöæR&÷röb—@§v2ÖöæW’à ¦w&÷wF…F÷FÇ46&F&VBWFòS÷"&÷w2æB&W÷'FVB&÷w2æÆVæwF†2F†P§F÷FÂÂVæFW"†VF–ær&VF–ær&6÷VçFVBg&öÒ–÷W"÷vâ&V6÷&G2"â'W6–æW72v—F€£Ã#VçV—&–W2v2FöÆB—B†BÃâ¢¥fÇVRöbF†÷6R6ÆW27VÖÖVBF†R6V@§&VB¢¢Â6ò&VÂ&WfVçVRf–wW&Rv26†÷'B'’†÷vWfW"Öç’6öçfW'6–öç2F–Bæ÷@¦f—B(	BæBF†R†öÖRvRæ÷r6Æ–×2WfW'’f–wW&R6öÖW2g&öÒF†R÷væW"w2÷và§&V6÷&G2æBF†BF†R&öGV7B6—2v†Vâ—BFöW2æ÷B¶æ÷râF†R6&B6öçG&F–7FV@§F†R6Æ–Ò6†—VB†÷W'2V&Æ–W"à ¤F†—&BFVfV7B6B–âF†R6ÖRgVæ7F–öã¢F†Rf–ÇW&RwV&Bv0¦–b‚6×–vç2æö²bbÆVG2æö²bb6öçfW'6–öç2æö²bb6öçFVçBæö²–Â6ò&ö&ÆVÐ§v2&W÷'FVBöæÇ’v†Vâ¦WfW'’¢&VBf–ÆVBâöæRVç&VF&ÆRF&ÆRÆVgB&VÂ ¦&W6–FR6—‚&VÂçVÖ&W'2Â–æF—7F–æwV—6†&ÆRg&öÒ'W6–æW72F†B†BæöæRöbF†@§F†–ærà ¤6÷VçG2æ÷r6öÖRg&öÒ6÷VçCÖW†7FÂv†–6‚6÷7G2öæR&÷röbG&ç6fW"v†FWfW"F†P§6—¦RÂæBV6‚f–ÆVB6÷VçB6—26ò–â—G2÷vâ&÷râF†RfÇVR—2F†RöæRf–wW&P¥÷7Fu$U5B6ææ÷BF÷FÂv—F†÷WBâ%2Â6ò—B—2Æ&VÆÆVBf÷"W†7FÇ’F†R&÷w2—@¦6÷fW'2(	B%fÇVRöbF†RÖ÷7B&V6VçB6ÆW2"(	B&F†W"F†â&W6VçFVB2F÷FÀ¦—B—2æ÷Bà ¢¢¥Gvòöb×’÷vâ76W'F–öç2vW&Rw&öær&Vf÷&RF†W’vW&R&–v‡BÂæBF†B—2F†P§'Bv÷'F‚&V6÷&F–ærâ¢  ¥F†Rf—'7BfW'6–öâ7GV&&VBWfW'’6÷VçB2f–Æ–æræB76W'FVBæòÇFCãÂ÷FCæ ¦V&VBâ—B76VB(	BæB¶WB76–ærv†Vâ’'&ö¶RF†R6öFR(	B&V6W6Rv—F‚ÆÀ¦6÷VçG2f–Æ–ærF†R6&B6†÷'BÖ6—&7V—G2Fò'vR6÷VÆBæ÷B6÷VçBF†W6R"æB&VæFW'0¦æò&÷w2BÆÂâf7V÷W276W'F–öâÂöbW†7FÇ’F†R¶–æBF†—2&W÷6—F÷'’¶VW0¦f–æF–ærâ6Vv‡BöæÇ’'’'&V¶–ærF†R6öFRæBæ÷F–6–ærF†RFW7BF–Bæ÷Bà ¥F†R6V6öæBfW'6–öâf–ÆVBöæÇ’F†RÆVG26÷VçBÂv†–6‚v2&–v‡BÂ'WB¶WBF†P¦&Ææ¶WB&æò¦W&òç—v†W&R"6†V6²(	BæBF†Bf–Ç2öâF†RÖöæW’&÷rÂv†–6€¦†öæW7FÇ’&VG2v†VâF†W&R&Ræò6ÆW2â6†V6²F†B6ææ÷BFVÆÂâ†öæW7B¦W&ð¦g&öÒ7V'7F—GWFVBöæR—2æ÷B6†V6¶–ærF†RF†–ær—B6Æ–×2FòâF†RF†—&BfW'6–öà§&VG2F†R7V6–f–2&÷ræB76W'G2v†BF†B6VÆÂ6—2à ¢222##bÓ‚Ó"(	BF†R6ÖR7V'7F—GWF–öâ–âF†R’Âv†W&Ræö&öG’6âVW7F–öâ—@ ¥7vWBf÷"F†R6†R&F†W"F†â7F÷–ærBF†R6&BÂæBö’öw&÷wF‚öÖWG&–76 ¦†B—Bv÷'6RâWfW'’f–VÆBVæFW"¶W’Æ—FW&ÆÇ’6ÆÆVBF÷FÇ6v2&÷w2æÆVæwF† ¦g&öÒ&VB6VBBS÷"â¢¤vR†2†VF–ær6öÖV&öG’Ö–v‡@§VW7F–öã²¥4ôâ¶W’6ÆÆVBF÷FÇ6FöW2æ÷Bâ¢  ¤6÷VçG26öÖRg&öÒ6÷VçCÖW†7Fæ÷rÂ6ÖRf–VÆBæÖW2Â6÷'&V7BfÇVW2â6÷Vç@§F†B6÷VÆBæ÷B&R&VB&WGW&ç2çVÆÆ&F†W"F†â(	B¦W&ò—2âç7vW"Â'vP¦6÷VÆBæ÷B6²"—2F–ffW&VçBöæRÂæBâ’&WGW&æ–ærf÷"&÷F‚ÆVfW2F†P¦6ÆÆW"Væ&ÆRFòFVÆÂF†VÒ'Bà ¦6öçfW'6–öåfÇVVæBF†RGG&–'WF–öâ'&V¶F÷vâ&RF†RGvòf–wW&W2÷7Fu$U5@¦6ææ÷B6ö×WFRv—F†÷WBâ%2Â6ò&÷F‚&R7F–ÆÂ6×ÆRöbF†RÖ÷7B&V6Vç@¦6öçfW'6–öç2âF†R&W7öç6Ræ÷r6'&–W26ö×WFVD÷fW#¢²6öçfW'6–öç2Â6ö×ÆWFRÖ §6––ær6òÂ–ç7FVBöbÆWGF–ær6ÆÆW"77VÖR—B6÷fW'2WfW'—F†–ærà ¢¢¥F†Rf—‚–Bf÷"—G6VÆb–â&VG2â¢¢öæ6RF†R6÷VçG26ÖRg&öÒF†RFF&6RÀ¦f—fRöbF†R6WfVâÆ—7B&VG2vW&RFVB(	B7F–ÆÂfWF6†–ærWFòF†÷W6æB&÷w0¦V6‚W&VÇ’Fò6ÆÂæÆVæwF†öâF†VÒâÆ–çB6Vv‡B—B2f—fRVçW6VBf&–&ÆW2À§v†–6‚—2Ö÷&RW6VgVÂ6–væÂF†â—B6÷VæG3¢âVçW6VBf&–&ÆR†W&Rv2§F†÷W6æB×&÷rVW'’æö&öG’æVVFVBâF†RVæGö–çBvVçBg&öÒ6WfVâÆ&vR&VG2Fð§GvòÂÇW2æ–æR6÷VçG2F†B6÷7BöæR&÷r–V6Rà ¢222##bÓ‚Ó"(	B6÷'&V7F–öâÂæBF†Rv÷'7B–ç7Fæ6RöbF†R6ÖRFVfV7@ ¢¢¤’v÷BF†—2w&öær–âF†R&Wf–÷W27VÖÖ'’â¢¢’6–BF†R&VÖ–æ–ær&÷w2æÆVæwF† §W6W2f÷VæB–âF†R7vVWvW&R†öæW7BÂæBæÖVBGvòF†BvW&Râ’†Bæ÷B6†V6¶V@¦&÷WFW2÷6öæ&Ö'W6–æW72Ö6öçG&öÂ×ÆæR×&÷WFW2æ6§6ÂæB—Bv2æ÷B†öæW7B(	B—@¦6'&–VBF†R6ÖRFVfV7BGv–6RÂ–âF†RÆ6R—BFöW2F†RÖ÷7BFÖvRà ¦F6†&ö&E6æ6†÷F&VBV6‚&W6÷W&6R6VBB#æBF–@¦&W7VÇBæö²ò&W7VÇBç&÷w2¢µÖâ¢¤WfW'’f–ÆVB&VB&V6ÖR6÷VçBöb¦W&ò¢¢Âæ@¦æW‡D'W6–æW747F–öæ—2G&—fVâVçF—&VÇ’'’F†÷6R6÷VçG3  ¦§0¦–b‚6æ6†÷Bæ6÷VçG2ç6W'f–6W2’&WGW&â²F—FÆS¢$7&VFRF†Rf—'7BöffW""Â(
+bÓ°¦–b‚6æ6†÷Bæ6÷VçG2æ7W7FöÖW'2’&WGW&â²F—FÆS¢$FBF†Rf—'7B7W7FöÖW""Â(
+bÓ°¦  ¥6òâVç&VF&ÆR6W'f–6W2F&ÆRFöÆB'W6–æW72F†BÇ&VG’6VÆÇ2F†–æw2Fð¦7&VFR—G2f—'7BöffW"ÂæBâVç&VF&ÆR7W7FöÖW'2F&ÆRFöÆBöæRv—F‚gVÆÀ¦Æ—7BFòFB—G2f—'7B7W7FöÖW"âw&öærçVÖ&W"—2&BF6†&ö&Bâ¢¤w&öæp¦–ç7G'V7F–öâFVÆÇ26öÖV&öG’F†V—"v÷&²†2fæ—6†VB¢¢(	BæB—B—2F†R6ÖP§6VçFVæ6RvVçV–æVÇ’æWr'W6–æW726VW2Â6òæ÷F†–ærF—7F–æwV—6†W2FF&6P§&ö&ÆVÒg&öÒâV×G’66÷VçBà ¥F‡&VRf—†W2âf–ÆVB&VB—2æ÷rçVÆÆ&F†W"F†âµÖÂæB&æ÷B&VF&ÆR ¦æWfW"6F—6f–W2'–÷R†fRæöæRöbF†W6R"'&æ6‚(	B—BfÆÇ2F‡&÷Vv‚FòF†P¦6Æ÷6–ærGf–6RÂv†–6‚—2G'VRV—F†W"v’âf–wW&W2&VæFW"2(	F&F†W"F†âÀ¦&V6W6R6öæf–FVçB¦W&òöâF6†&ö&B&VG22'–÷W"&V6÷&G2&RvöæR"âæ@§F†R&VB6·2f÷"#&÷w26ògVÆÂvR&W÷'G2#¶&F†W"F†â&W6VçF–æp§F†R62F†RF÷FÂà ¦ÖöGVÆT6&FæVVFVB6F6†–æröâF†Rv’F‡&÷Vvƒ¢—B–çFW'öÆFVBF†R6÷Vç@¦F—&V7FÇ’Â6òçVÆÂv÷VÆB†fR&VæFW&VBF†Rv÷&B&çVÆÂ"&W6–FR'6fVB&V6÷&G2"À§v†–6‚—2v÷'6RF†âV—F†W"w&öærçVÖ&W"÷"F6‚à ¥F†R6÷VçG2†W&R&R7F–ÆÂvRÖ&6VB&F†W"F†â6÷VçCÖW†7FÂVæÆ–¶RF†Rw&÷wF€§7W&f6W2â&W7B‚–F—66&G2F†R&W7öç6R†VFW'2æBF†RFW7G2&–æBF†V—"÷và§7GV"FòvÆö&ÅF†—2åõ÷6öæ&'W6–æW746öçG&öÅ&W7FÂ6òW†7B6÷VçG2v÷VÆB6†ævR¦6öçG&7B6WfW&ÂFW7G2FWVæBöââ&V6÷&FVB2¶æ÷vâÆ–Ö—B&F†W"F†âFöæP¦&FÇ“¢F†Rf–wW&W2&Ræ÷r†öæW7B&÷WB&V–ær6VBÂv†–6‚—2F†R'BF†Bv0¦Ç––ærà ¢222##bÓ‚Ó"(	B7vVW–ær&f–ÆVB&VB—2âV×G’F&ÆR  ¤†f–ærf÷VæB—BGv–6R'’66–FVçBÂ’7vWBf÷"F†RGFW&â&F†W"F†âv—F–ærFð§G&—÷fW"—Bv–ã¢&W7VÇBæö²ò&W7VÇBç&÷w2¢µÖÂWfW'—v†W&Rà ¤f–gFVVâ6—FW2â¢¤6öÆÆ6–ærFòµÖ—2æ÷BWFöÖF–6ÆÇ’FVfV7B¢¢(	B—B—2f–æP§v†Vâæ÷F†–ærFW&—fW26Æ–Òg&öÒF†RV×G’6WBÂæBF†R7vVW6öæf—&ÖVB6WfW&À§F†BvW&RÇ&VG’&–v‡BâÆ–"÷6öæ&Ö66‚×÷6—F–öâæ6§6G&6·2v†B—B6÷VÆBæ÷@§&VBæB&W÷'G2—Bâ&÷WFW2÷6öæ&Ö76—7FçB×&÷WFW2æ6§6vöW2gW'F†W#¢v—F†÷W@§F†R–ÖVçG2F&ÆR6†6RG&gBv÷VÆB7FFRgVÆÂF÷FÂöââ–çfö–6RF†BÖ¦&R†Æb6WGFÆVBÂ6ò—Bw&—FW2æòG&gBBÆÂâö7&VF÷"×7GVF–òövVæW&F–öâö¦ö'6 §6WG2âVæf–Æ&ÆRÖW76vRæBæWfW"&V6†W2—G2V×G’7FFRà ¥F‡&VR6—FW2vW&RÖ¶–ær6Æ–ÒÂæBGvòöbF†VÒvW&R&÷WBF†R7W7FöÖW"w2÷và¦†—7F÷'“  ¢¢¥F†R7&VF÷"vVæW&F–öâÆæF–ærvR¢¢F–B¦ö'2ÒÆ—7FVBæö²òÆ—7FVBç&÷w2¢µÖ §VæFW"âV×G’7FFR&VF–ær¢$æ÷F†–ær–WBâW6RF†Rf÷&Ò&÷fRFòÖ¶R–÷W"f—'7@¦öæRâ"¢f–ÆVB&VBFöÆB7&VF÷"F†V—"vVæW&FVBv÷&²†BæWfW"W†—7FVBæ@¦–çf—FVBF†VÒFò7F'B÷fW"(	B&÷WB÷WGWG2F†W’Ö’†fR–Bf÷"æBv—FVBöâà ¢¢¤¦ö"w2÷WGWG26&B¢¢F–BF†R6ÖRÂæB—G26VçFVæ6R—2v÷'6S¢¢$æ÷F†–ærv0§&öGV6VBf÷"F†—2öæR"¢öâ6ö×ÆWFVB¦ö"âF†R7&VF÷"6öæ6ÇVFW2F†RvVæW&F–öà§F†W’v—FVBf÷"f–ÆVBÂv†VâF†Rf–ÆW2&R6—GF–ær–âF&ÆRæö&öG’6÷VÆB&VBà¥F†R†—7F÷'’6&BFöòà ¢¢¦tUBö’ö'W6–æW72Ö'V–ÆFW"ö'W6–æW76W2ó¦–F¢¢&WGW&æVBµÖW"&W6÷W&6Röà¦f–ÇW&RÂ÷fW"¥4ôâÂv†W&R6öç7VÖW"†2æò†VF–ærFòVW7F–öâæBæòv’Fð§FVÆÂâV×G’F&ÆRg&öÒâVç&VF&ÆRöæRâ—Bæ÷r&WGW&ç2çVÆÆf÷"F†÷6Ræ@¦Æ—7G2F†VÒVæFW"Væf–Æ&ÆVà ¥F†BVæGö–çBÇ6ò&VB—G2VÆWfVâ&W6÷W&6W2–âf÷&Æö÷v—F‚v—F–ç6–FP®(	BVÆWfVâ&÷VæBG&—2–â6W&–W2f÷"&W7öç6RF†BæVVG2æöæRöbF†VÒ÷&FW&VBà¤æ÷röæR&öÖ—6RæÆÆà ¥F†R'VÆRF†B6ÖR÷WBöbF†R7vVWÂæBF†R&V6öâ—B—2æ÷B6–×Ç’&æWfW §&WGW&ââV×G’'&’#¢¢¦âV×G’Æ—7B—2öæÇ’Æ–Rv†Vâ6öÖWF†–ær&VG2—B0¦f7B&÷WBF†R7W7FöÖW"â¢¢F&ÆRF†B&VæFW'2æò&÷w2—2f–æRâ6VçFVæ6P§6––ær'–÷R†fRæWfW"ÖFRç—F†–ær"Â6÷VçBÂâ–ç7G'V7F–öâÂ÷"ÖöæW’F÷FÀ¦—2æ÷Bà ¢222##bÓ’Ó2Ò&÷WF–ær&Wf–WvVB&W÷6—F÷&–W2v—F†÷WB&WFVæF–ærF†W’&R&öGV7G0 ¥F†RÆFW7B'&æ6‚†Bsv÷fW&æVB&W÷6—F÷'’&V6÷&G2âF†—'G’×Gvò&Wf–WvVBÀ¦æöâÖGWÆ–6FR&V6÷&G2g&öÒF†R7G'V7GW&ÂÖ†&FVæ–ær'&æ6‚†Bæ÷B&V6†VBF†@¦&6VÆ–æRÂ6òF†W’vW&R6'&–VBf÷'v&Bv—F†÷WB&WÆ6–æræWvW"&V6÷&G2÷ §&Wf—f–ær&WF—&VB&W÷6—F÷'’U$Ç2âÆFW"&V6öæ6–Æ–F–öâ&W6W'fVBBæWvW §&V6÷&G2g&öÒF†R6†&VBFWfVÆ÷ÖVçB&6VÆ–æR2vVÆÂâF†R&Vv—7FW"æ÷r†2#p§&V6÷&G26÷fW&–ær#2Væ—VRv—D‡V"F&vWG2à ¤6÷W&6RÖæ–fW7B&W6W'fW2ÆÂS6ö6–ÂÆ–æ·2F†B&ö×FVBF†R&Wf–Wrâ—@¦Ö2F†R3R&W÷6—F÷'’–FVçF—F–W2F†RWf–FVæ6R7GVÆÇ’7W÷'G2æBÆVfW2p§Vç&W6öÇfVB÷"6W'f–6RÖöæÇ’Æ–æ·2VæwVW76VBâF†÷6R3R&V6÷&G2æ÷r†fRv÷fW&æV@§&öGV7B†öÖW3¢#–â6†&VBÆFf÷&ÒÂ’–â7&VF÷"7GVF–òÂB–â'W6–æW72'V–ÆFW"À¦æB–âw&÷wF‚7GVF–òà ¥F†R7W7FöÖW"×f—6–&ÆR–×ÆVÖVçFF–öâ—2FVÆ–&W&FVÇ’&VfW&Væ6RÆ–W"â§V&Æ–2÷FV6†æöÆöw’×&F&W‡Æ–ç2F†Rv÷fW&ææ6R÷7GW&S²6–væVBÖ–â7W7FöÖW'0¦6â÷VâF†RÖF6†–ærFV6†æöÆöw’ÖöGVÆR–âV6‚&öGV7Bâæ÷F†–ær—2–ç7FÆÆVBÀ¦W†V7WFVBÂ÷"FW67&–&VB26öææV7FVBâ&Æö6¶VB&V6÷&B7F—2Væf–Æ&ÆRÂæB§&V6÷&Bv—F‚æò&÷fVB&öGV7Bf—B7F—2–â6†&VBÆFf÷&Òv÷fW&ææ6R&F†W §F†â&V–ærf÷&6VB–çFò&öGV7Bà ¥F†RgVÆÂFW7B'VâW‡÷6VBv–æF÷w277V×F–öç2F†B†B†–FFVâ&V†–æBÆ–çW‚4“ §F†RFW7G2&WV—&VBâVç¦—&–æ'’Â6ö×&VB6Æ6‚F—&V7F–öâÂf÷&ÖGFVBFFW0¦–âÆö6ÂF–ÖRÂæBG&VFVB5$Äb6†V6¶÷WB6öçfW'6–öâ2âÆ–VBÖ–w&F–öà¦VF—BâF†Rf—†W2&W6W'fRF†R76W'F–öç2v†–ÆRÖ¶–ærF†VÒÆFf÷&ÒÖ–æFWVæFVçBà¥F†R&V6öæ6–ÆVB&W7VÇB—22Ãƒ76–ærFW7G2æBbW‡Æ–6—BVæF–ærFW7G2Âv—F€¦Æ–çBÂG—V6†V6²Â'V–ÆBÂ&÷WFR6Öö¶RÂ6Æ–VçB×6V7&WB66âÂFF&6R6öçG&7BÂæ@¦Æö6Âv÷fW&ææ6RvFW276–ærâF†RÆVæ6‚vFR&V6÷&G2c‚6÷fW&vRGW&–ærF†@¦öæR7V66W76gVÂ7V—FRæB66WG2F†R66†RöæÇ’f÷"F†R–FVçF–6Â6÷W&6R×G&VP¦f–ævW'&–çBÂfö–F–ær6V6öæBÆö÷&6²Ö†Vg’v–æF÷w2'Vâv—F†÷WBvV¶Væ–ærF†P¦6÷fW&vRfÆö÷"âÖ–w&F–öâ&WÆ’&VÖ–ç2f—6–&Ç’6¶—VBv—F†÷WBÆö6À¥÷7Fw&U5Â&–æ&–W2æB&VÖ–ç2ÖæFF÷'’–â4’à ¢222##bÓ’ÓRÒF&ÆRW†—7F–ærFöW2æ÷BÖVâ—B†2F†R7W'&VçBFVæçB6†P ¥F†R6öçG&öÆÆVBFWÆ÷–ÖVçBf÷"ÖW&vRvc†f76VBWfW'’6÷W&6RæBG'’×'Và¦vFRÂ&V6÷&FVB&öÆÆ&6²6†V6·ö–çBÂF†Vâ7F÷VBv†–ÆRÇ––æp¦##cƒ“3öÖVÖ&W%÷&VE÷öÆ–6–W5÷&W6V&6…÷6÷W&6W2ç7Æâ&öGV7F–öâw2ÆVv7¦7W7FöÖW'6F&ÆRW†—7G2Â'WBFöW2æ÷B†fRF†R6æöæ–6Â÷&væ—¦F–öåö–F ¦6öÇVÖâF†RvVæW&FVBÖVÖ&W"öÆ–7’æÖW2âFõ÷&Vv6Æ72‚–&÷fVBöæÇ’F†BF†P§F&ÆRW†—7FVBÂ6òF†RvVæW&FVBöÆ–7’f–ÆVB&Vf÷&RFWÆ÷–ÖVçBà ¥F†RöÆ–7’vVæW&F÷"æ÷r6†V6·2F†R6öÇVÖâ—G2&VF–6FR&WV—&W2&Vf÷&R—@¦6†ævW2$Å2÷"7&VFW2öÆ–7“¢÷&væ—¦F–öåö–Ff÷"÷&væ—¦F–öâ&VG2æ@¦W6W%ö–Ff÷"W'6öæÂ&VG2âÆVv7’×6†VBF&ÆR—2ÆVgBVæ6†ævVBv—F‚à¦W‡Æ–6—Bæ÷F–6RâF†—2—2–çFVçF–öæÆÇ’æ÷BwVW76VBÖ–ærFòÆVv7’¶W“°¦w&çF–ær66W72F‡&÷Vv‚F†Rw&öærFVæçB&VÆF–öç6†—v÷VÆB&Rv÷'6RF†à¦ÆVf–ærF†BgWGW&RW6W"×66÷VB&VBVæf–Æ&ÆRâ7W'&VçB6W'f–6R×&öÆR&VG0¦&RVæ6†ævVBÂæB6æöæ–6ÂF&ÆW27F–ÆÂ&V6V—fRF†R6ÖRöÆ–7’à
