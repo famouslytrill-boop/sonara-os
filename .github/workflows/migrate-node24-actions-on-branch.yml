@@ -46,15 +46,14 @@ jobs:
                   print(f'updated {path}')
           PY
 
+          # Remove this helper before the scan so its own replacement table is
+          # not mistaken for a live workflow dependency. It never lands on main.
+          rm .github/workflows/migrate-node24-actions-on-branch.yml
+
           if grep -R -nE 'actions/checkout@v4|pnpm/action-setup@v4|actions/setup-node@v4|actions/upload-artifact@v4|github/codeql-action/(init|analyze)@v3|supabase/setup-cli@v1' .github/workflows; then
             echo '::error::Deprecated Node-20-backed action reference remains.'
             exit 1
           fi
-
-          # This workflow exists only to apply the mechanical migration without
-          # rewriting the large controlled-deploy file by hand. Remove it from
-          # the resulting branch before committing so it never lands on main.
-          rm .github/workflows/migrate-node24-actions-on-branch.yml
 
       - name: Commit migration
         shell: bash
