@@ -57,7 +57,6 @@ const EXTRACTED = [
       "getCheckoutPlanStatuses",
       "getInvalidStripeEnvStatuses",
       "combineEnvStatuses",
-      "missingEnvGroups",
       "databaseGroupForTable"
     ]
   },
