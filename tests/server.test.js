@@ -291,7 +291,7 @@ describe("health and readiness", () => {
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.supabase));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.stripe));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.resend));
-    assert.ok(["configured", "missing", "deferred"].includes(res.body.services.googleOAuth));
+    assert.ok(["configured", "setup_required"].includes(res.body.services.googleOAuth));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.adminProtection));
     // Not "review_required". That was an item on a setup list that no change
     // to this code could close -- a qualified legal review is a decision about
@@ -1242,7 +1242,7 @@ describe("product module APIs", () => {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
       if (String(url).includes("/billing_entitlements")) {
-        return { ok: true, json: async () => [{ entitlement_key: "workspace_monthly", status: "active" }] };
+        return { ok: true, json: async () => [{ entitlement_key: "all_three_monthly", status: "active" }] };
       }
       if (String(url).includes("/module_outputs")) {
         return { ok: true, json: async () => [{ id: "module-output-1", module_key: "offer_builder" }] };
@@ -1296,7 +1296,7 @@ describe("product module APIs", () => {
       }
       if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
       if (String(url).includes("/billing_entitlements")) {
-        return { ok: true, json: async () => [{ entitlement_key: "workspace_monthly", status: "active" }] };
+        return { ok: true, json: async () => [{ entitlement_key: "all_three_monthly", status: "active" }] };
       }
       return { ok: true, json: async () => [] };
     };
@@ -1332,7 +1332,7 @@ describe("product module APIs", () => {
     assert.equal(res.status, 200);
     assert.match(res.text, /Billing actions/);
     assert.match(res.text, /Manage billing portal/);
-    assert.match(res.text, /Upgrade: Starter/);
+    assert.match(res.text, /Upgrade: One workspace/);
   });
 });
 
