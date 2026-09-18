@@ -10,12 +10,7 @@ const read = (names) => {
 };
 
 const envUrl = read(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]).replace(/\/+$/, "");
-const envPublicKey = read([
-  "SUPABASE_PUBLISHABLE_KEY",
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  "SUPABASE_ANON_KEY",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY"
-]);
+const envPublicKey = read(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
 const site = read(["NEXT_PUBLIC_SITE_URL"]).replace(/\/+$/, "");
 const projectRef = read(["SUPABASE_PROJECT_ID"]);
 const managementToken = read(["SUPABASE_ACCESS_TOKEN"]);
