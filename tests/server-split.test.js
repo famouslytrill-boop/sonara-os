@@ -591,11 +591,12 @@ describe("the server.js split stays safe", () => {
       // request path now redirects to the workspace checklist, with an
       // explicit compatibility branch and an explanatory comment.
       // 3882 -> 3901 on 14 September 2026: the protected admin command center
-      // now exposes a non-secret agent control-plane summary, and its route is
-      // registered through routes/sonara-admin-agent-routes.cjs. The route
-      // module keeps the new page out of this file; the remaining lines are
-      // the three real table counts and the admin registration contract.
-      lines <= 3901,
+      // now exposes a non-secret agent control-plane summary.
+      // 3901 -> 3926 on 18 September 2026: Google OAuth became a real customer
+      // auth path. The provider/PKCE mechanics live in lib/sonara-customer-auth.cjs;
+      // these remaining lines are the Express entry/callback wiring and the
+      // explicit handoff through the existing two-factor gate.
+      lines <= 3926,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
