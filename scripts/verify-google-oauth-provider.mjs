@@ -25,6 +25,43 @@ function usableEnvValue(value) {
   return Boolean(normalized) && !/^\[SENSITIVE\]$/i.test(normalized);
 }
 
+async function managementAuthConfig() {
+  if (!projectRef || !managementToken) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  let response;
+  try {
+    response = await fetch(
+      `https://api.supabase.com/v1/projects/${encodeURIComponent(projectRef)}/config/auth`,
+      {
+        headers: {
+          Authorization: `Bearer ${managementToken}`,
+          Accept: "application/json"
+        },
+        signal: controller.signal
+      }
+    );
+  } catch (error) {
+    fail(
+      `Supabase Management API Auth config could not be reached: ${error?.name === "AbortError" ? "timeout" : "network error"}.`
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!response.ok) {
+    fail(`Supabase Management API Auth config returned HTTP ${response.status}.`);
+  }
+
+  const config = await response.json().catch(() => null);
+  if (!config || typeof config !== "object") {
+    fail("Supabase Management API Auth config did not return JSON.");
+  }
+
+  return config;
+}
+
 async function managementPublicAuthConfig() {
   if (!projectRef || !managementToken) return null;
 
@@ -85,7 +122,10 @@ async function managementPublicAuthConfig() {
   return { url: managedUrl, publicKey: selected.api_key, source: "management_api" };
 }
 
-const managed = await managementPublicAuthConfig();
+const [managed, authConfig] = await Promise.all([
+  managementPublicAuthConfig(),
+  managementAuthConfig()
+]);
 const url = managed?.url || (usableEnvValue(envUrl) ? envUrl : "");
 const publicKey = managed?.publicKey || (usableEnvValue(envPublicKey) ? envPublicKey : "");
 
@@ -122,6 +162,16 @@ if (!response.ok) fail(`Supabase Auth settings returned HTTP ${response.status}.
 const settings = await response.json().catch(() => null);
 if (!settings || typeof settings !== "object") fail("Supabase Auth settings did not return JSON.");
 if (settings?.external?.google !== true) {
+  const clientIdPresent = Boolean(String(authConfig?.external_google_client_id || "").trim());
+  const secretPresent = Boolean(String(authConfig?.external_google_secret || "").trim());
+  const managementEnabled = authConfig?.external_google_enabled === true;
+
+  if (authConfig) {
+    fail(
+      `Supabase Google provider is not enabled. Hosted Auth config: enabled=${managementEnabled ? "yes" : "no"}, client_id=${clientIdPresent ? "present" : "missing"}, secret=${secretPresent ? "present" : "missing"}. Production deployment remains blocked.`
+    );
+  }
+
   fail("Supabase Google provider is not enabled. Production deployment is blocked until Google sign-in is configured.");
 }
 
