@@ -150,7 +150,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --env-file=.env.production.catalog-verification scripts/verify-google-oauth-provider.mjs --require
+          node --env-file=.env.production.dry-run scripts/verify-google-oauth-provider.mjs --require
 
       - name: Verify live Stripe prices with read-only verifier credential
         env:
