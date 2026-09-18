@@ -77,6 +77,75 @@ here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
 
+### 2026-09-18 - 237 reviews, 9 adapters: asking the register the question nobody had asked
+
+Asked to take everything useful from the 237 registered repositories and apply
+it. The honest version of that is not "install 237 repositories" -- every skill
+here forbids it, and it would cost the guarantees a single production dependency
+buys. The useful version is a question nobody had put to the register:
+**what have we learned and not used?**
+
+`scripts/report-register-opportunities.mjs` derives it:
+
+| integrationStatus | | commercialUseStatus | |
+| --- | --- | --- | --- |
+| reference_only | 90 | allowed_after_review | 120 |
+| blocked | 50 | blocked_until_review | 61 |
+| research_only | 41 | needs_review | 44 |
+| optional_adapter_after_review | 29 | allowed | 6 |
+| needs_license_review | 14 | blocked (3 spellings) | 6 |
+| **adapter_built** | **9** | | |
+| needs_security_review | 4 | | |
+
+**9 of 237.** The other 228 produced no implementation, and mostly that is
+correct: 50 are blocked outright, 35 carry a critical licence risk, 31 are
+reciprocal and this is a hosted product, which is the case a reciprocal licence
+is written for. The register earning its keep looks like refusal far more often
+than adoption, and the numbers say so.
+
+The interesting slice is narrow: **23 records** already reviewed to
+`optional_adapter_after_review`, low licence risk, non-reciprocal, commercially
+permitted -- ideas somebody has already decided SONARA *may* build on and has
+not. Grouped by product: Creator Studio 11, Business Builder 10, Growth Studio
+8, Admin Command Center 4, Internal Development 3.
+
+**It is a report, not a gate, and deliberately outside `verify:launch`.** There
+is no correct number of unbuilt opportunities. A gate over one would either never
+fire or would pressure somebody into adopting a dependency to turn a check green,
+which is the opposite of what the register is for.
+
+## Two gaps checked rather than assumed
+
+The register's Growth Studio entry for `disposable-email-domains` says to flag a
+lead whose address is a throwaway. **`lib/sonara-disposable-email.cjs` already
+exists** -- that one is built, and looking first is the only reason it was not
+duplicated.
+
+The entry for Project Nayuki's QR generator says to "put /book/:slug on a poster,
+a van or a receipt so somebody can book". `/book/:slug` exists. **Nothing in the
+repository generates a QR code** -- no `qrcode`, `QRCode` or `generateQr` in
+`lib/`, `routes/`, `server.js` or `public/`. That gap is real and unclaimed, and
+it is left named rather than half-built: a subtly wrong QR code is worse than
+none, because it scans to nothing or to the wrong URL, and nothing in this
+environment can prove a generated matrix actually scans. Building it means
+implementing ISO/IEC 18004 and proving it against published vectors, not
+eyeballing a bitmap.
+
+## Two instrument errors, both caught by printing the output
+
+The first parse of the register **returned 0 records and printed tidy tables of
+zero without erroring**: `indexOf("[")` found the `[]` inside the type annotation
+`OpenSourceToolRecord[]` and depth-matched an empty array. The reader is now
+anchored past the annotation, and `MINIMUM_RECORDS = 150` refuses to report on a
+register it has stopped reading -- falsified by emptying the literal, which fails
+with "parsed only 0 records ... Refusing to report".
+
+The second was in a falsification harness: `m.index` where `m.end()` was meant,
+so the register was never emptied and the case was silently measuring the intact
+file. It reported exit 0 and proved nothing. Caught only because the output was
+printed rather than the exit code trusted -- the same shape as the `$?`-after-a-pipe
+error earlier in the day.
+
 ### 2026-09-18 - LICENSE does not travel with a copied file; a header does
 
 Asked to tighten things so the source cannot be taken, with the repository

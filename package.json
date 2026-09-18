@@ -51,6 +51,7 @@
     "verify:doc-script-paths": "node scripts/verify-doc-script-paths.mjs",
     "verify:doc-pnpm-scripts": "node scripts/verify-doc-pnpm-scripts.mjs",
     "verify:proprietary-notice": "node scripts/verify-proprietary-notice.mjs",
+    "report:register-opportunities": "node scripts/report-register-opportunities.mjs",
     "verify:text-encoding": "node scripts/verify-tracked-text-encoding.mjs",
     "verify:event-authority": "node scripts/verify-event-authority-agreement.mjs",
     "verify:filter-encoding": "node scripts/verify-postgrest-filter-encoding.mjs",
