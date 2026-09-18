@@ -9,6 +9,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/applied-migration-checksums.json"
       - "scripts/verify-production-project-identity.mjs"
+      - "scripts/verify-google-oauth-provider.mjs"
       - "scripts/verify-stripe-env.mjs"
       - "scripts/audit-dependencies.mjs"
       - "package.json"
@@ -176,7 +177,7 @@ jobs:
           {
             echo "### Controlled production deployment dry run"
             echo
-            echo "Validated build, tests, dependency audit, route/database/API/open-source contracts, production project identity, linked migration preview, Vercel production configuration readability, and both Stripe production credentials."
+            echo "Validated build, tests, dependency audit, route/database/API/open-source contracts, production project identity, linked migration preview, hosted Google provider readiness, Vercel production configuration readability, and both Stripe production credentials."
             echo
             echo "**No production mutation was performed.**"
             echo "- No Supabase migration apply"
