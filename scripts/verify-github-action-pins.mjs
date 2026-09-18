@@ -6,10 +6,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workflowDir = path.join(root, ".github", "workflows");
 
 const approved = new Map([
-  ["actions/checkout", "fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"],
+  ["actions/checkout", "3d3c42e5aac5ba805825da76410c181273ba90b1"],
   ["actions/setup-node", "820762786026740c76f36085b0efc47a31fe5020"],
   ["actions/upload-artifact", "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"],
-  ["actions/setup-python", "ece7cb06caefa5fff74198d8649806c4678c61a1"],
+  ["actions/setup-python", "5fda3b95a4ea91299a34e894583c3862153e4b97"],
   ["pnpm/action-setup", "0977fd99725f1db4007ccb2928dbb4e90d06cc86"],
   ["github/codeql-action", "b96794f015dfd88f77b49b1c93e0fa7110f94c63"],
   ["supabase/setup-cli", "46f7f98c7f948ad727d22c1e67fab04c223a0520"]
