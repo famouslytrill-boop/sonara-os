@@ -1,5 +1,7 @@
 # AI Changelog
 
+- 2026-09-18 Codex - Upgraded every immutable `actions/checkout` pin from reviewed v5 to v7.0.1 and every `actions/setup-python` pin from reviewed v6 to v7.0.0; updated the central allowlist and preserved Node 22 application-runtime behavior for the separate runtime migration.
+
 - 2026-07-19 Codex - Integrated the cohesive 2027 public presentation into the accepted Express runtime with a canonical brand/pricing registry, readiness-backed homepage, scoped progressive assets, symbolic parent/product SVG family, consent-safe interactions, and regressions; preserved Supabase, billing, RLS, secrets, customer data, and legal boundaries.
 - 2026-07-19 Codex - Diagnosed production organization setup HTTP 503 responses as a schema-compatibility defect: the hosted table requires legacy company_key and created_by fields, while the application omitted them and attempted an undefined owner_user_id field. Added an idempotent compatibility patch, deterministic retry recovery, sanitized failure evidence, and regressions without changing migrations or access policy.
 - 2026-07-19 Codex - Repaired the readiness Preview UI with canonical cards, aggregate Founder/Admin protection, deployment context, and compatibility-preserving tests.

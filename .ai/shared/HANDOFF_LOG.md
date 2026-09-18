@@ -1,5 +1,12 @@
 # Handoff Log
 
+## 2026-09-18 - Codex - GitHub action v7 pin migration
+
+- Upgraded `actions/checkout` to immutable v7.0.1 commit `3d3c42e5aac5ba805825da76410c181273ba90b1` across all workflows.
+- Upgraded `actions/setup-python` to immutable v7.0.0 commit `5fda3b95a4ea91299a34e894583c3862153e4b97` across all workflows.
+- Updated `scripts/verify-github-action-pins.mjs`; its supply-chain gate verifies all 64 external action references across 15 workflows.
+- Did not change the Node application runtime; Node 24 migration remains a separate ordered change.
+
 ## 2026-09-14 UTC - Operations reconciliation merged; deployment held by live proof gate
 
 - Merged current `origin/main` (`d83785fc`) into the reconciliation branch,
