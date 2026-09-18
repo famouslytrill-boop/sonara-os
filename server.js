@@ -1367,13 +1367,13 @@ app.get("/business-builder/login", (req, res) => {
       title: "Business Builder Login",
       eyebrow: "Business Builder access",
       heading: "Business Builder Login",
-      body: "Email/password access for Business Builder owners, managers, and employees.",
+      body: "Google or email/password access for Business Builder owners, managers, and employees.",
       sections: [
         authForm("Login with email", "/auth/login"),
         brandCard("Employee access", "Employees use their own email/password credentials after accepting an owner-created invite."),
         brandCard("Password ownership", "Business owners never create, view, store, or know employee passwords.")
       ],
-      actions: [linkAction("/business-builder", "Business Builder"), linkAction("/login", "SONARA login"), linkAction("/", "Home")]
+      actions: [linkAction("/auth/google?next=/business-builder/dashboard", "Continue with Google"), linkAction("/business-builder", "Business Builder"), linkAction("/login", "SONARA login"), linkAction("/", "Home")]
     })
   );
 });
