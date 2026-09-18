@@ -1242,7 +1242,7 @@ describe("product module APIs", () => {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
       if (String(url).includes("/billing_entitlements")) {
-        return { ok: true, json: async () => [{ entitlement_key: "starter_monthly", status: "active" }] };
+        return { ok: true, json: async () => [{ entitlement_key: "workspace_monthly", status: "active" }] };
       }
       if (String(url).includes("/module_outputs")) {
         return { ok: true, json: async () => [{ id: "module-output-1", module_key: "offer_builder" }] };
@@ -1296,7 +1296,7 @@ describe("product module APIs", () => {
       }
       if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
       if (String(url).includes("/billing_entitlements")) {
-        return { ok: true, json: async () => [{ entitlement_key: "starter_monthly", status: "active" }] };
+        return { ok: true, json: async () => [{ entitlement_key: "workspace_monthly", status: "active" }] };
       }
       return { ok: true, json: async () => [] };
     };
@@ -1511,19 +1511,14 @@ describe("business builder employee portal", () => {
 describe("pricing and checkout", () => {
   const validStripeSecret = ["sk", "test", "checkout_ready"].join("_");
   const invalidPriceSecretPrefix = ["sk", "live", "wrong"].join("_");
-  const validStarterPrice = ["price", "starter"].join("_");
-  const validCorePrice = ["price", "core"].join("_");
+  const validWorkspacePrice = ["price", "workspace"].join("_");
+  const validAllThreePrice = ["price", "allthree"].join("_");
   const stripeEnvKeys = [
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
     "STRIPE_PRICE_WORKSPACE_MONTHLY",
-    "STRIPE_PRICE_CORE_MONTHLY",
-    "STRIPE_PRICE_PRO_MONTHLY",
-    "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
-    "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY",
-    "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY",
-    "STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY",
-    "STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME",
+    "STRIPE_PRICE_ALL_THREE_MONTHLY",
+    "STRIPE_PRICE_TEAM_MONTHLY",
     "STRIPE_SUCCESS_URL",
     "STRIPE_CANCEL_URL",
     "APP_URL",
@@ -1576,8 +1571,8 @@ describe("pricing and checkout", () => {
         return {
           ok: true,
           json: async () => ({
-            id: "price_test_starter",
-            unit_amount: app.STRIPE_PLANS.starter_monthly.amountCents,
+            id: "price_test_workspace",
+            unit_amount: app.STRIPE_PLANS.workspace_monthly.amountCents,
             currency: "usd",
             active: true
           })
@@ -1596,31 +1591,21 @@ describe("pricing and checkout", () => {
   it("GET /pricing returns pricing cards", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Starter - \$7\/mo/);
-    assert.match(res.text, /Core - \$19\/mo/);
-    assert.match(res.text, /Pro - \$39\/mo/);
+    assert.match(res.text, /One workspace - \$29\/mo/);
+    assert.match(res.text, /All three - \$59\/mo/);
+    assert.match(res.text, /Team - \$109\/mo/);
     assert.match(res.text, /Business Builder setup/);
   });
 
   it("GET /pricing does not globally disable checkout when optional plan prices are missing", async function() {
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
-    process.env.STRIPE_PRICE_CORE_MONTHLY = validCorePrice;
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = validWorkspacePrice;
+    process.env.STRIPE_PRICE_ALL_THREE_MONTHLY = validAllThreePrice;
 
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.equal((res.text.match(/Start checkout/g) || []).length, 2);
     assert.match(res.text, /Checkout is not configured for this plan yet/);
-  });
-
-  it("GET /pricing accepts house-of-brands Stripe price aliases", async function() {
-    process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY = validStarterPrice;
-    process.env.STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY = validCorePrice;
-
-    const res = await request(app).get("/pricing").set("Accept", "text/html");
-    assert.equal(res.status, 200);
-    assert.equal((res.text.match(/Start checkout/g) || []).length, 2);
   });
 
   it("GET /pricing does not count the free plan as paid checkout readiness", async function() {
@@ -1643,7 +1628,7 @@ describe("pricing and checkout", () => {
     const originalFetch = global.fetch;
     global.fetch = mockCheckoutFetch();
 
-    const res = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
+    const res = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "workspace_monthly" });
 
     global.fetch = originalFetch;
 
@@ -1664,20 +1649,19 @@ describe("pricing and checkout", () => {
     const originalFetch = global.fetch;
     global.fetch = mockCheckoutFetch();
 
-    const res = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
+    const res = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "workspace_monthly" });
 
     global.fetch = originalFetch;
 
     assert.equal(res.status, 503);
     assert.equal(res.body.service, "stripe_price");
-    assert.match(res.body.env, /STRIPE_PRICE_STARTER_MONTHLY/);
-    assert.match(res.body.env, /STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY/);
+    assert.equal(res.body.env, "STRIPE_PRICE_WORKSPACE_MONTHLY");
     assert.equal(res.body.reason, "missing");
   });
 
   it("POST /api/checkout/session redirects browser form posts to login before auth", async function() {
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = validWorkspacePrice;
     process.env.APP_URL = "https://sonaraindustries.com";
     configureSupabaseForCheckout();
 
@@ -1685,7 +1669,7 @@ describe("pricing and checkout", () => {
       .post("/api/checkout/session")
       .type("form")
       .set("Accept", "text/html")
-      .send({ plan: "starter_monthly" });
+      .send({ plan: "workspace_monthly" });
 
     assert.equal(res.status, 303);
     assert.equal(res.headers.location, "/login");
@@ -1694,7 +1678,7 @@ describe("pricing and checkout", () => {
   it("POST /api/checkout/session redirects browser form posts to Stripe", async function() {
     configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = validWorkspacePrice;
     process.env.APP_URL = "https://sonaraindustries.com";
 
     const calls = [];
@@ -1706,7 +1690,7 @@ describe("pricing and checkout", () => {
       .set("Authorization", "Bearer customer-session")
       .type("form")
       .set("Accept", "text/html")
-      .send({ plan: "starter_monthly" });
+      .send({ plan: "workspace_monthly" });
 
     global.fetch = originalFetch;
 
@@ -1716,16 +1700,16 @@ describe("pricing and checkout", () => {
     assert.ok(stripeCall);
     const params = new URLSearchParams(stripeCall.body);
     assert.equal(params.get("customer"), "cus_test_customer");
-    assert.equal(params.get("metadata[plan]"), "starter_monthly");
+    assert.equal(params.get("metadata[plan]"), "workspace_monthly");
     assert.equal(params.get("metadata[organization_id]"), "00000000-0000-0000-0000-000000000071");
-    assert.equal(params.get("subscription_data[metadata][plan]"), "starter_monthly");
+    assert.equal(params.get("subscription_data[metadata][plan]"), "workspace_monthly");
     assert.equal(params.get("subscription_data[metadata][organization_id]"), "00000000-0000-0000-0000-000000000071");
   });
 
   it("POST /api/billing/create-checkout-session aliases checkout creation", async function() {
     configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY = validStarterPrice;
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = validWorkspacePrice;
     process.env.APP_URL = "https://sonaraindustries.com";
 
     const originalFetch = global.fetch;
@@ -1735,7 +1719,7 @@ describe("pricing and checkout", () => {
       .post("/api/billing/create-checkout-session")
       .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
-      .send({ priceKey: "business_builder_monthly" });
+      .send({ priceKey: "workspace_monthly" });
 
     global.fetch = originalFetch;
 
@@ -1778,7 +1762,7 @@ describe("pricing and checkout", () => {
   it("POST /api/checkout/session returns JSON for API callers", async function() {
     configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = validWorkspacePrice;
     process.env.APP_URL = "https://sonaraindustries.com";
 
     const originalFetch = global.fetch;
@@ -1788,7 +1772,7 @@ describe("pricing and checkout", () => {
       .post("/api/checkout/session")
       .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
-      .send({ plan: "starter_monthly" });
+      .send({ plan: "workspace_monthly" });
 
     global.fetch = originalFetch;
 
@@ -1799,20 +1783,20 @@ describe("pricing and checkout", () => {
   it("Stripe price validation rejects secret, product, and customer prefixes", async function() {
     configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = invalidPriceSecretPrefix;
-    process.env.STRIPE_PRICE_CORE_MONTHLY = "prod_wrong";
-    process.env.STRIPE_PRICE_PRO_MONTHLY = "cus_wrong";
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = invalidPriceSecretPrefix;
+    process.env.STRIPE_PRICE_ALL_THREE_MONTHLY = "prod_wrong";
+    process.env.STRIPE_PRICE_TEAM_MONTHLY = "cus_wrong";
     const originalFetch = global.fetch;
     global.fetch = mockCheckoutFetch();
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.status, 200);
     const invalidEnvs = readiness.body.invalid.stripe.map((item) => item.env);
-    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_STARTER_MONTHLY")));
-    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_CORE_MONTHLY")));
-    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_PRO_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_WORKSPACE_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_ALL_THREE_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_TEAM_MONTHLY")));
 
-    const checkout = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
+    const checkout = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "workspace_monthly" });
     global.fetch = originalFetch;
     assert.equal(checkout.status, 503);
     assert.equal(checkout.body.reason, "invalid_prefix");
@@ -1897,7 +1881,7 @@ describe("pricing and checkout", () => {
           status: "active",
           current_period_end: 1893456000,
           cancel_at_period_end: false,
-          metadata: { organization_id: organizationId, plan: "starter_monthly" }
+          metadata: { organization_id: organizationId, plan: "workspace_monthly" }
         }
       }
     });
@@ -1939,7 +1923,7 @@ describe("auth and admin", () => {
   let originalSupabaseServiceRole;
   let originalStripeSecret;
   let originalStripeWebhookSecret;
-  let originalStripeStarterPrice;
+  let originalStripeWorkspacePrice;
 
   beforeEach(() => {
     originalAdminEmails = process.env.ADMIN_EMAILS;
@@ -1949,7 +1933,7 @@ describe("auth and admin", () => {
     originalSupabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
     originalStripeSecret = process.env.STRIPE_SECRET_KEY;
     originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    originalStripeStarterPrice = process.env.STRIPE_PRICE_STARTER_MONTHLY;
+    originalStripeWorkspacePrice = process.env.STRIPE_PRICE_WORKSPACE_MONTHLY;
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-admin.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_admin_status_key_1234567890";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_admin_status_key_1234567890";
@@ -1975,8 +1959,8 @@ describe("auth and admin", () => {
     else process.env.STRIPE_SECRET_KEY = originalStripeSecret;
     if (originalStripeWebhookSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
     else process.env.STRIPE_WEBHOOK_SECRET = originalStripeWebhookSecret;
-    if (originalStripeStarterPrice === undefined) delete process.env.STRIPE_PRICE_STARTER_MONTHLY;
-    else process.env.STRIPE_PRICE_STARTER_MONTHLY = originalStripeStarterPrice;
+    if (originalStripeWorkspacePrice === undefined) delete process.env.STRIPE_PRICE_WORKSPACE_MONTHLY;
+    else process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = originalStripeWorkspacePrice;
   });
 
   function installAdminFetchMock(options = {}) {
@@ -2023,7 +2007,7 @@ describe("auth and admin", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Login/);
-    assert.doesNotMatch(res.text, /Google/);
+    assert.match(res.text, /Continue with Google/);
   });
 
   it("GET /admin without auth returns JSON 401 for API clients", async function() {
@@ -2121,7 +2105,7 @@ describe("auth and admin", () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_status_key_1234567890";
     process.env.STRIPE_SECRET_KEY = "sk_test_sonara_status_key_1234567890";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_sonara_status_key_1234567890";
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_sonara_status_1234567890";
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_sonara_status_1234567890";
 
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -2136,7 +2120,7 @@ describe("auth and admin", () => {
     assert.match(res.text, /grid-template-columns: repeat\(auto-fit, minmax\(280px, 1fr\)\)/);
     assert.match(res.text, /overflow-wrap: anywhere/);
     assert.match(res.text, /word-break: break-word/);
-    assert.match(res.text, /STRIPE_PRICE_STARTER_MONTHLY/);
+    assert.match(res.text, /STRIPE_PRICE_WORKSPACE_MONTHLY/);
     assert.match(res.text, /SUPABASE_SERVICE_ROLE_KEY/);
     assert.match(res.text, /Configured/);
     assert.doesNotMatch(res.text, /service_role_status_key_1234567890/);
