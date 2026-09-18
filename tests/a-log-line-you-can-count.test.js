@@ -363,7 +363,7 @@ describe("a log line you can count", () => {
     const { createBilling } = require("../lib/sonara-billing.cjs");
 
     const PLANS = {
-      starter_monthly: { name: "Starter", price: "$7/mo", amountCents: 700, mode: "subscription", env: "STRIPE_PRICE_STARTER_MONTHLY" }
+      workspace_monthly: { name: "One workspace", price: "$29/mo", amountCents: 2900, mode: "subscription", env: "STRIPE_PRICE_WORKSPACE_MONTHLY" }
     };
 
     function billing() {
@@ -412,10 +412,10 @@ describe("a log line you can count", () => {
       // restricted verifier passes the price audit and cannot create sessions.
       const { result, events } = await runCapturing(async () => {
         global.fetch = async (url) => {
-          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ error: { message: "no" } }, 401);
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.ok, false);
@@ -435,10 +435,10 @@ describe("a log line you can count", () => {
       // send somebody to rotate a key over a malformed parameter.
       const { result, events } = await runCapturing(async () => {
         global.fetch = async (url) => {
-          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ error: { message: "bad param" } }, 400);
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.status, 400);
@@ -455,7 +455,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 4999, currency: "usd", active: true });
           throw new Error("a session must not be created when the price is wrong");
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_stale", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_stale", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.code, "price_mismatch");
@@ -470,26 +470,26 @@ describe("a log line you can count", () => {
       // Or every assertion above is satisfied by a path that never succeeds.
       const { result, events } = await runCapturing(async () => {
         global.fetch = async (url) => {
-          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ url: "https://checkout.stripe.com/c/pay/abc" });
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.ok, true);
       assert.equal(result.url, "https://checkout.stripe.com/c/pay/abc");
       const [event] = events.filter((e) => e.event === "checkout.session");
       assert.equal(event.outcome, "ok");
-      assert.equal(event.detail.plan, "starter_monthly");
+      assert.equal(event.detail.plan, "workspace_monthly");
     });
 
     it("refuses a 200 that carries no url rather than returning ok with nothing", async () => {
       const { result, events } = await runCapturing(async () => {
         global.fetch = async (url) => {
-          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ id: "cs_1" });
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.ok, false);
@@ -503,10 +503,10 @@ describe("a log line you can count", () => {
       // this path emits may contain it.
       const { events } = await runCapturing(async () => {
         global.fetch = async (url) => {
-          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 700, currency: "usd", active: true });
+          if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ error: { message: "Invalid API Key provided: sk_live_test" } }, 401);
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "starter_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       const serialised = JSON.stringify(events);
