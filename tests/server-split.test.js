@@ -730,6 +730,7 @@ describe("the customer auth module stands on its own", () => {
       getSupabaseServerConfig: () => ({ ok: false }),
       isProductionEnvironment: () => false,
       isSupabaseAdminUser: async () => ({ ok: false }),
+      siteOrigin: () => "https://app.example.com",
       renderRateLimitPage: noop,
       reportDegradedRateLimit: noop,
       responsePage: (title) => title,
