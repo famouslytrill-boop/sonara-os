@@ -146,6 +146,12 @@ jobs:
             --token="$VERCEL_TOKEN"
           test -s .env.production.dry-run
 
+      - name: Require live Google sign-in provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --env-file=.env.production.catalog-verification scripts/verify-google-oauth-provider.mjs --require
+
       - name: Verify live Stripe prices with read-only verifier credential
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
