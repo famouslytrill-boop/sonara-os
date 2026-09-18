@@ -1,6 +1,6 @@
 # Open Questions
 
-1. OWNER: Keep Google OAuth deferred for launch? It is currently cleanly disabled.
+1. OWNER + CODEX: Complete the hosted Supabase Google provider configuration and record one successful production Google sign-in; deployment now blocks until the provider itself reports enabled.
 2. OWNER: Adopt the expanded standard API envelope? This is a breaking change and needs a compatibility ADR.
 3. OWNER: Is a future React/Next migration desired? ADR-0001 keeps the root Express runtime; a migration requires full parity and a separate ADR.
 4. OWNER + CODEX: Complete and document the authenticated Stripe test lifecycle through cancellation and paid-access relock.
