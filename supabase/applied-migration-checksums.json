@@ -116,5 +116,6 @@
   "20260819030000_member_read_policies_research_sources.sql": "652933e372933c217bbfcc2d9faa47e19dfa45949a6b2225a1bdb2e4c42cf091",
   "20260916040000_growth_campaign_send_records.sql": "379d292287fda83ddbdb4ba532fecffa362885d2e9b22a51f2ca86a540843d71",
   "20260916032000_generation_lifecycle_persistence.sql": "43c2fb5503b353606b46f28156938e6e009d315ba628199f60bf59522832cf83",
-  "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql": "208919eabeddaca49a7682f58bb39b9a63aa86a17396fcbc58ad8a05bee7893b"
+  "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql": "208919eabeddaca49a7682f58bb39b9a63aa86a17396fcbc58ad8a05bee7893b",
+  "20260917200000_event_consumer_activation_readiness.sql": "ecab7effd1d0fa8636f78e2981007e24d00f3f92c98a2271cad6eecae660d212"
 }

@@ -100,7 +100,10 @@ const twoFactorMigrationNames = ["20260901120000_two_factor_authentication.sql"]
 // Durable event delivery, sanitised LLM observations and golden-dataset agent
 // evaluations are reviewed operational extensions. They postdate the frozen
 // canonical inventory and do not by themselves enable a broker or worker.
-const durableEventFoundationMigrationNames = ["20260917090000_durable_event_outbox_and_ai_evaluation_store.sql"];
+const durableEventFoundationMigrationNames = [
+  "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
+  "20260917200000_event_consumer_activation_readiness.sql"
+];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
   "20260819020000_research_source_permission_values.sql"

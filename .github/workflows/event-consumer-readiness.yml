@@ -1,0 +1,99 @@
+name: Event Consumer Activation Readiness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/sonara-event-consumer.cjs"
+      - "lib/sonara-event-outbox.cjs"
+      - "lib/sonara-database-contract.cjs"
+      - "lib/sonara-environment-classification.cjs"
+      - "scripts/run-event-consumer-canary.mjs"
+      - "scripts/verify-supabase-contract.mjs"
+      - "supabase/migrations/20260917200000_event_consumer_activation_readiness.sql"
+      - "supabase/applied-migration-checksums.json"
+      - "tests/event-consumer-readiness.test.js"
+      - ".github/workflows/event-consumer-readiness.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Offline proof or the explicit one-tenant synthetic production canary
+        required: true
+        default: offline
+        type: choice
+        options:
+          - offline
+          - production_canary
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-event-consumer-readiness-${{ github.ref }}-${{ inputs.mode || 'offline' }}
+  cancel-in-progress: false
+
+jobs:
+  offline-readiness:
+    if: github.event_name == 'pull_request' || inputs.mode == 'offline'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Parse consumer and canary entrypoints
+        run: |
+          node --check lib/sonara-event-consumer.cjs
+          node --check lib/sonara-event-outbox.cjs
+          node --check scripts/run-event-consumer-canary.mjs
+
+      - name: Prove claim, settle, retry, dead-letter, concurrency, canary, and SLO behavior
+        run: pnpm exec mocha tests/event-outbox.test.js tests/event-consumer-readiness.test.js --reporter dot
+
+      - name: Verify environment classification remains fail-closed
+        run: pnpm run verify:env
+
+      - name: Verify Supabase event-consumer contract
+        run: pnpm run verify:supabase-contract
+
+      - name: Verify frozen migration checksums
+        run: pnpm run verify:applied-migrations
+
+  production-canary:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'production_canary'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run the isolated synthetic one-tenant canary
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SONARA_EVENT_CONSUMER_ENABLED: ${{ vars.SONARA_EVENT_CONSUMER_ENABLED || 'false' }}
+          SONARA_EVENT_CONSUMER_CANARY_ORG_ID: ${{ vars.SONARA_EVENT_CONSUMER_CANARY_ORG_ID }}
+        run: node scripts/run-event-consumer-canary.mjs
