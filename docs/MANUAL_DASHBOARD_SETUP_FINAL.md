@@ -1,5 +1,7 @@
 # SONARA One Manual Dashboard Setup
 
+Review by: 2026-12-18
+
 This checklist is for dashboard setup only. Do not paste real secret values into
 source code, docs, screenshots, GitHub, or chat.
 
