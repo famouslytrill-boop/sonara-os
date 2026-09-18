@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* How many frames to pull out of a video, and from where.
  *
  * Shared between the browser that does the pulling and the server that

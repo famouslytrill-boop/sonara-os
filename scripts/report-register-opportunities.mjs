@@ -123,8 +123,43 @@ for (const key of ["integrationStatus", "commercialUseStatus", "licenseRisk"]) {
   console.log();
 }
 
-const reciprocal = records.filter((record) => record.reciprocalLicense === true).length;
-console.log(`  ${reciprocal} record(s) carry a reciprocal licence, which triggers on network use and is therefore the case this hosted product is.\n`);
+// Reciprocal is not one thing, and the previous version of this line said it
+// was: "31 record(s) carry a reciprocal licence, which triggers on network use
+// and is therefore the case this hosted product is." Wrong for 11 of the 31.
+//
+// AGPL-3.0, SSPL and OSL-3.0 reach *providing the software over a network*,
+// which is what a hosted product does and is the case worth flagging loudest.
+// GPL, LGPL, MPL and EPL trigger on **distribution** instead, and carry
+// different obligations again -- MPL is per-file, LGPL turns on linking. A
+// report that flattens them hands whoever reads it for adoption triage an
+// incorrect legal boundary, which AGENTS.md is explicit about not doing.
+//
+// This is a count, not legal advice, and it says so. The register's own `notes`
+// field records what was read and when; that is the authority, not this
+// summary. Codex found the flattening on PR #297.
+//
+// Worth recording where this did NOT come from. The first version of this
+// comment blamed `.claude/skills/reviewing-an-outside-repository/SKILL.md` and
+// said it carried the same error. Opening that file shows the opposite: it
+// says "Do not equate GPL with AGPL: GPL does not generally require source
+// disclosure merely for network use, whereas AGPL has a network-interaction
+// condition for modified versions." The guidance was already right and this
+// script ignored it. That retracted sentence was a reason reasoned rather than
+// checked, written while fixing a defect of exactly that kind, which is how
+// easily it happens.
+const NETWORK_TRIGGERED = /\b(AGPL|SSPL|OSL|Affero)\b/i;
+
+const reciprocal = records.filter((record) => record.reciprocalLicense === true);
+const networkTriggered = reciprocal.filter((record) => NETWORK_TRIGGERED.test(String(record.license || "")));
+const distributionTriggered = reciprocal.filter((record) => !NETWORK_TRIGGERED.test(String(record.license || "")));
+
+console.log(`  ${reciprocal.length} record(s) carry a reciprocal licence. They are not one category:`);
+console.log(`    ${networkTriggered.length}  reach providing the software over a network (AGPL / SSPL / OSL) -- the case a hosted product is`);
+console.log(`    ${distributionTriggered.length}  trigger on distribution instead (GPL / LGPL / MPL and similar), with obligations that differ per licence`);
+for (const record of distributionTriggered) {
+  console.log(`         ${record.name.slice(0, 34).padEnd(35)} ${String(record.license || "").split(/[,.]/)[0].slice(0, 40)}`);
+}
+console.log("  Read the record's own notes before acting on either number. This is a count, not a licence reading.\n");
 
 console.log(`Adapters built: ${built.length} of ${records.length}.`);
 for (const record of built) {
@@ -136,10 +171,33 @@ console.log("Each is a problem somebody else solved. Building it here means owni
 
 const byProduct = new Map();
 for (const record of permittedUnbuilt) {
-  for (const product of (record.productFit || ["(no product recorded)"])) {
+  // `record.productFit || [...]` was wrong: an empty array is truthy, so it
+  // selected the empty array, the loop ran zero times, and the record vanished
+  // from every detailed section while still counting in the headline above.
+  // Three of the 23 qualifying records -- Superpowers, Claude Skills Collection
+  // and Harness -- were invisible that way. Codex found it on PR #297. A
+  // headline that disagrees with the rows under it is the same defect as a
+  // check that passes by measuring nothing: the number is right and the thing
+  // it points at is not there.
+  const fits = Array.isArray(record.productFit) && record.productFit.length
+    ? record.productFit
+    : ["(no product recorded)"];
+  for (const product of fits) {
     if (!byProduct.has(product)) byProduct.set(product, []);
     byProduct.get(product).push(record);
   }
+}
+
+// The headline and the rows must agree, or one of them is lying. Asserted
+// rather than hoped: this is the exact bug above, and an off-by-one in the
+// grouping would otherwise print two different truths on one page.
+const grouped = new Set([...byProduct.values()].flat());
+if (grouped.size !== permittedUnbuilt.length) {
+  console.error(
+    `\nReport aborted: ${permittedUnbuilt.length} record(s) qualify and ${grouped.size} appear in the sections below.`
+  );
+  console.error("A headline count that disagrees with the rows it introduces is worse than no report.");
+  process.exit(1);
 }
 
 for (const [product, list] of [...byProduct.entries()].sort((a, b) => b[1].length - a[1].length)) {

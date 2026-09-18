@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 // Asking the browser for notification permission, on a real click.
 //
 // A separate file rather than inline script, because the Content-Security-Policy

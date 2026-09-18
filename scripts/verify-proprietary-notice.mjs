@@ -51,14 +51,33 @@ const TRACKED_GLOBS = [
   "server.js",
   "api/*.js", "api/*.cjs", "api/*.mjs",
   "routes/*.js", "routes/*.cjs", "routes/*.mjs",
-  "lib/*.js", "lib/*.cjs", "lib/*.mjs"
+  "lib/*.js", "lib/*.cjs", "lib/*.mjs",
+  // Browser-side source. Added 18 September 2026 after Codex pointed out on
+  // PR #297 that the comment above named `public/**` as shipped and the glob
+  // list then left it out -- shape 2 in .claude/skills/checks-that-cannot-lie,
+  // a scan measuring a different population from the one it claims. All 21
+  // tracked public JavaScript files had no notice and the check passed.
+  //
+  // These are the files most likely to be copied, because a browser hands the
+  // reader the source. None is generated: nothing under `scripts/` writes into
+  // `public/`, checked before editing them.
+  "public/*.js", "public/**/*.js"
 ];
+
+// Not included, deliberately, so the decision is visible rather than absent:
+// the 4 tracked stylesheets and 1 HTML file under `public/`. A stylesheet is
+// arguably the same case as a script and could be added; page markup is a
+// different question, since a rendered page is public by construction. Neither
+// was in the finding this population was widened for, and widening a check
+// past what was established is how a check ends up asserting more than anyone
+// verified. Left as a named choice for whoever decides it.
 
 // How far into a file the notice may sit. A shebang, and nothing else, may
 // precede it.
 const HEADER_LINES = 6;
 
-// Measured 18 September 2026: 258 files in this population.
+// Measured 18 September 2026: 279 files in this population (258 server-side
+// plus 21 browser-side).
 const MINIMUM_FILES = 150;
 
 function licenceHolder() {

@@ -78,6 +78,7 @@
     "verify:csp": "node scripts/verify-content-security-policy.mjs",
     "verify:margins": "node scripts/verify-paid-capability-margins.mjs",
     "verify:env": "node scripts/verify-env.mjs",
+    "verify:email-env": "node scripts/verify-email-env.mjs",
     "verify:action-pins": "node scripts/verify-github-action-pins.mjs",
     "verify:action-pins:network": "node scripts/verify-github-action-pins.mjs --network",
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
@@ -98,7 +99,8 @@
     "gen:applied-migrations": "node scripts/verify-applied-migrations.mjs --write",
     "verify:python-coverage-floor": "node scripts/run-python-coverage-floor.mjs",
     "verify:language-floors": "node scripts/verify-language-coverage-floors.mjs",
-    "verify:adapted-skills": "node scripts/verify-adapted-skills.mjs"
+    "verify:adapted-skills": "node scripts/verify-adapted-skills.mjs",
+    "test:email": "node scripts/test-email-config.mjs"
   },
   "license": "UNLICENSED",
   "devDependencies": {

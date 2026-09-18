@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 // SONARA interface engine.
 // Progressive enhancement only: if anything here fails or is skipped, the
 // server-rendered page stays fully usable. Capability ladder:

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* The runtime a published scroll site loads.
  *
  * It does three things and refuses to be needed for any of them:

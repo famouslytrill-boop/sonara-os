@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* SONARA Creator Studio Music System helper */
 (function () {
   const root = (window.SONARA = window.SONARA || {});
