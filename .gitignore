@@ -88,3 +88,14 @@ __pycache__/
 # a fresh checkout. Harmless, because the audit overwrites it before that check
 # reads it, but a build artifact in source is noise at best.
 pnpm-audit.json
+
+# A PowerShell capture of `pnpm test` from 2026, committed by accident. It was
+# the only tracked text file outside archive/ that did not decode as UTF-8 --
+# PowerShell's `>` writes UTF-16LE -- and it recorded a run of
+# `pnpm --dir frontend run test`, against a frontend/ directory that no longer
+# exists. So it was a mojibake transcript of a tree that is gone.
+#
+# Listed as NICE-2 in docs/audits/2026-07-27-ENGINEERING_AUDIT.md. Removed
+# 18 September 2026 while sweeping for the SPRINT_LOG.md corruption; ignored
+# here so the next `> test-output.txt` on a Windows checkout does not come back.
+test-output.txt

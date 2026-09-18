@@ -74,6 +74,7 @@
     "verify:margins": "node scripts/verify-paid-capability-margins.mjs",
     "verify:env": "node scripts/verify-env.mjs",
     "verify:action-pins": "node scripts/verify-github-action-pins.mjs",
+    "verify:action-pins:network": "node scripts/verify-github-action-pins.mjs --network",
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
     "workers:smoke": "echo Optional Creator Studio GPU workers and Growth Studio automation workers are disabled by default and use reviewed contracts when configured",
     "test:security": "pnpm run scan:client-secrets && pnpm run verify:tenant-adversarial && pnpm run verify:member-read-access && pnpm run verify:tenant-queries && pnpm run verify:request-tenant-ids",
