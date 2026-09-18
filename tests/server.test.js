@@ -302,7 +302,7 @@ describe("health and readiness", () => {
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.accountDatabase));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.paymentConnection));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.paymentUpdates));
-    assert.equal(res.body.services.googleSignIn, "deferred");
+    assert.equal(res.body.services.googleSignIn, "setup_required");
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.founderAccess));
     assert.equal(res.text.includes("SUPABASE_SERVICE_ROLE_KEY="), false);
     assert.equal(res.text.includes("STRIPE_SECRET_KEY="), false);
@@ -319,9 +319,6 @@ describe("health and readiness", () => {
       "RESEND_FROM_EMAIL",
       "SUPPORT_TO_EMAIL",
       "CONTACT_TO_EMAIL",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "GOOGLE_REDIRECT_URI",
       "PUBLIC_SITE_URL",
       "NEXT_PUBLIC_SITE_URL",
       "NEXT_PUBLIC_APP_URL",
@@ -338,9 +335,6 @@ describe("health and readiness", () => {
     process.env.RESEND_API_KEY = "re_status_check_value_1234567890";
     process.env.RESEND_FROM_EMAIL = "support@sonaraindustries.com";
     process.env.CONTACT_TO_EMAIL = "owner@sonaraindustries.com";
-    process.env.GOOGLE_CLIENT_ID = "google-client-placeholder";
-    process.env.GOOGLE_CLIENT_SECRET = "google-secret-placeholder";
-    process.env.GOOGLE_REDIRECT_URI = "https://sonaraindustries.com/auth/callback";
     process.env.NEXT_PUBLIC_SITE_URL = "https://sonaraindustries.com";
     process.env.ADMIN_EMAIL = "owner@sonaraindustries.com";
 
@@ -354,7 +348,7 @@ describe("health and readiness", () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.services.supabase, "configured");
     assert.equal(res.body.services.resend, "configured");
-    assert.equal(res.body.services.googleOAuth, "deferred");
+    assert.equal(res.body.services.googleOAuth, "setup_required");
     assert.equal(res.body.services.adminProtection, "configured");
     assert.doesNotMatch(res.text, /service-role-placeholder/);
     assert.doesNotMatch(res.text, /google-secret-placeholder/);
@@ -371,7 +365,7 @@ describe("health and readiness", () => {
       "RESEND_FROM_EMAIL",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
-      "STRIPE_PRICE_STARTER_MONTHLY",
+      "STRIPE_PRICE_WORKSPACE_MONTHLY",
       "ADMIN_EMAILS",
       "ADMIN_EMAIL",
       "FOUNDER_EMAILS"
@@ -386,7 +380,7 @@ describe("health and readiness", () => {
     process.env.RESEND_FROM_EMAIL = "sender@example.com";
     process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_xxx";
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_xxx";
     process.env.ADMIN_EMAILS = "your-email@example.com";
 
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
@@ -472,23 +466,30 @@ describe("auth setup", () => {
     assert.match(res.text, /Show password/);
     assert.match(res.text, /data-toggle-password/);
     assert.match(res.text, /autocomplete="current-password"/);
-    assert.doesNotMatch(res.text, /Google OAuth/);
+    assert.match(res.text, /Continue with Google/);
   });
 
-  it("GET /business-builder/login renders email login without Google OAuth", async function() {
+  it("GET /business-builder/login offers Google and email login", async function() {
     const res = await request(app).get("/business-builder/login").set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.match(res.text, /Business Builder Login/);
     assert.match(res.text, /Login with email/);
     assert.match(res.text, /Show password/);
-    assert.doesNotMatch(res.text, /Google OAuth/);
+    assert.match(res.text, /Continue with Google/);
   });
 
-  it("GET /auth/callback is disabled while Google OAuth is deferred", async function() {
+  it("GET /auth/callback refuses an incomplete PKCE callback rather than pretending Google is disabled", async function() {
+    const keys = ["SUPABASE_URL", "SUPABASE_ANON_KEY"];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    process.env.SUPABASE_URL = "https://project.supabase.co";
+    process.env.SUPABASE_ANON_KEY = "anon-test-key";
     const res = await request(app).get("/auth/callback").set("Accept", "application/json");
-    assert.equal(res.status, 503);
-    assert.equal(res.body.code, "disabled");
-    assert.equal(res.body.service, "google_oauth");
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "oauth_callback_invalid");
   });
 
   it("GET /auth/login redirects to /login by default", async function() {
@@ -1515,7 +1516,7 @@ describe("pricing and checkout", () => {
   const stripeEnvKeys = [
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
-    "STRIPE_PRICE_STARTER_MONTHLY",
+    "STRIPE_PRICE_WORKSPACE_MONTHLY",
     "STRIPE_PRICE_CORE_MONTHLY",
     "STRIPE_PRICE_PRO_MONTHLY",
     "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
@@ -2166,7 +2167,7 @@ describe("auth and admin", () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
     process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_xxx";
+    process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_xxx";
     process.env.RESEND_API_KEY = "resend-placeholder";
     process.env.RESEND_FROM_EMAIL = "sender@example.com";
     process.env.ADMIN_EMAILS = "your-email@example.com";
