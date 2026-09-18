@@ -196,7 +196,7 @@ lines.push("- `optional_adapter_after_review` -- code may be adapted into SONARA
 lines.push("- `reference_only` / `research_only` -- read the patterns, take no code.");
 lines.push("- `blocked` / `needs_license_review` -- neither, and the record says why.");
 lines.push("");
-lines.push("Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence (AGPL, GPL, OSL) triggers on network use**, so incorporating one into this hosted product obliges releasing this product's source under the same terms. Both are recorded per repository rather than left to be rediscovered.");
+lines.push("Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. Twenty of the thirty-one reciprocal records are the first kind. The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.");
 lines.push("");
 
 lines.push("## Before you push");

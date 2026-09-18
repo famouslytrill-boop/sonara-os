@@ -597,6 +597,13 @@ describe("the server.js split stays safe", () => {
       // the three real table counts and the admin registration contract.
       // 3901 -> 3903 on 18 September 2026: the two-line proprietary notice.
       //
+      // 3903 -> 3885 the same day, ratcheting DOWN: isPlaceholderValue,
+      // extractEmailAddress, isEmailLike and isPlaceholderEmail moved to
+      // lib/sonara-env-value-checks.cjs so scripts/verify-email-env.mjs could
+      // apply the same rules as this file's readiness surface instead of a
+      // looser copy of them. The ceiling follows the file down, because a
+      // ceiling left above a real reduction is slack nobody decided to grant.
+      //
       // `LICENSE` sits at the repository root and does not travel with a copied
       // file. 3 of 1,005 source files carried any copyright notice, and neither
       // server.js nor api/index.js was among them -- the two entry points of a
@@ -610,7 +617,7 @@ describe("the server.js split stays safe", () => {
       // squeeze under 3901 would be the ratchet deciding what a file may say
       // about its own ownership, which is the wrong way round -- the same
       // reasoning as the 3874 -> 3876 entry above.
-      lines <= 3903,
+      lines <= 3885,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

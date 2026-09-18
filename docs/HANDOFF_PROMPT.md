@@ -23,7 +23,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3903 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3885 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 122 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
@@ -78,7 +78,7 @@ Before adapting anything from a repository, check its record. The statuses mean 
 - `reference_only` / `research_only` -- read the patterns, take no code.
 - `blocked` / `needs_license_review` -- neither, and the record says why.
 
-Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence (AGPL, GPL, OSL) triggers on network use**, so incorporating one into this hosted product obliges releasing this product's source under the same terms. Both are recorded per repository rather than left to be rediscovered.
+Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. Twenty of the thirty-one reciprocal records are the first kind. The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.
 
 ## Before you push
 
@@ -105,6 +105,147 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-18 - Eight more findings, and the one that would have reached customers
+
+Codex reviewed the fixes for the entry below and found **eight** further
+defects. All eight were real. Six were consequences of those fixes being
+incomplete, which is the useful part of the record: fixing a defect class in one
+place and not its sibling is itself a defect.
+
+## The one that would have reached customers
+
+Widening `verify:proprietary-notice` to cover `public/**/*.js` put
+
+    // Proprietary source. No licence is granted; see LICENSE.
+
+into `public/sonara-scroll.js`. That file is not only served to browsers.
+`routes/sonara-scroll-routes.cjs:57` reads it and `lib/sonara-scroll-export.cjs`
+writes it into **every Creator Studio site export** as `scroll.js`, beside a
+README that tells the customer *"A static site. Put these files on any web host
+and it works... Drop the whole folder in."*
+
+So the download a customer paid for would have arrived carrying a sentence
+denying them permission to use it. Not a notice -- a contradiction of the thing
+they bought. The notice was removed from that file and the file excluded from the
+gate, with the reason recorded where the next person widening that population
+will read it.
+
+Giving that runtime an explicit customer-facing licence **grant** is deliberately
+not done here: AGENTS.md reserves legal and policy publishing to the owner, and
+no check may write a grant on their behalf. The gap is named for them.
+
+Checked rather than assumed: exactly one of the 21 public scripts is
+customer-distributed. `lib/sonara-zip.cjs` requires `public/sonara-zip-core.js`,
+but that is the ZIP *builder* running server-side, not a file in the download.
+
+## A check advertised as the way to verify email, saying yes to what the product says no to
+
+`scripts/verify-email-env.mjs` accepted any non-empty value except four exact
+sentinel words. `lib/sonara-readiness.cjs` rejects a key under 12 characters or
+matching a much broader placeholder test, and requires an address to parse. So
+`RESEND_API_KEY=replace-me` and `RESEND_FROM_EMAIL=fake` made the new check exit
+0 and report email ready while the application treated delivery as
+unconfigured.
+
+**My own falsification had used `RESEND_API_KEY=x`.** A one-character key. The
+proof that the permissive direction worked was conducted with a value the
+application rejects, it passed, and it was reported as evidence.
+
+Fixed by extracting `isPlaceholderValue`, `extractEmailAddress`, `isEmailLike`
+and `isPlaceholderEmail` out of `server.js` into
+`lib/sonara-env-value-checks.cjs`, so `server.js`, `createReadiness` and the
+script all call one implementation. `server.js` 3903 -> 3885 lines, and the
+ratchet in `tests/server-split.test.js` follows it down, because a ceiling left
+above a real reduction is slack nobody decided to grant.
+
+Two things caught this extraction rather than review catching them:
+`node -e "require('./server')"` failed with *"Cannot access
+'isPlaceholderValue' before initialization"* -- function declarations hoist and a
+`const` destructure does not, and these are used at line 270 -- and
+`--max-warnings=0` then flagged `extractEmailAddress` as unused in `server.js`.
+
+## The sibling script nobody fixed
+
+`scripts/test-email-config.mjs` still read `SUPPORT_EMAIL || CONTACT_EMAIL`.
+Nothing in the runtime has ever read those names; the declared recipients are
+`SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`. A correctly configured production
+therefore aborted every `--send` test as unconfigured -- the delivery test
+failing on the one environment it exists to test. One script was fixed and its
+sibling left holding the same defect.
+
+## An exemption that swallowed a live instruction
+
+`docs/HANDOFF_PROMPT.md` was exempted whole as a changelog, on the stated
+grounds that it is not where a live instruction lives. Its own "## Before you
+push" section lists the release chain. The exemption now starts at the
+`## Sprint log` heading, and a named boundary that cannot be found in the
+document fails rather than silently exempting everything.
+
+Falsified both ways: the same dead command fails when placed in the preamble and
+passes when placed below the heading.
+
+## A floor far below its population is not a floor
+
+`MINIMUM_FILES` stayed at **150** while the population went from 258 to 279. If
+the two `public/` pathspecs were ever removed, the check would fall back to the
+258 server-side files, clear 150, and report everything compliant -- recreating
+the exact blind spot widening it was meant to close. Ratcheted to 278, with a
+separate floor of 20 for the browser-side half, because that half is the one a
+single edited glob would silently drop.
+
+## Flattening, again, one category narrower
+
+The reciprocal-licence fix below replaced "all 31 trigger on network use" with
+"20 network, 11 distribution". Directus is
+`MSCL-1.0-GPL (Monospace Sustainable Core License 1.0)`, and its own register
+note says *"It is a licence written this year whose abbreviation carries GPL, and
+it is not OSI open source. Nothing should be built on it from a summary."*
+Printing it under "triggers on distribution" because a regex missed is building
+on a summary.
+
+Now three buckets -- 18 network, 11 distribution, **2 stated as unclassifiable**
+(Directus, and Codegraff's modified AGPL with licensor-only restrictions) -- and
+classification reads the leading licence identifier against known SPDX families
+rather than searching for a substring, so the GPL inside MSCL-1.0-GPL does not
+match. The first attempt put two plain `AGPL-3.0` records in `unknown` because
+their provenance sentence left a trailing full stop on the identifier; caught by
+reading the output rather than the exit code.
+
+**The same error was in the generated handoff prompt**, the file handed to other
+assistants: *"a reciprocal licence (AGPL, GPL, OSL) triggers on network use"*.
+Corrected in `scripts/generate-handoff-prompt.mjs`, where it was produced.
+
+## Four documents made false by fixing a fifth
+
+Wiring `verify:email-env` and `test:email` made four setup documents wrong: each
+carried a note saying no email tooling exists and neither command is defined.
+All four now say what the commands do, that the recipient variables are
+`SUPPORT_TO_EMAIL` / `CONTACT_TO_EMAIL`, and that `--send` reaches a real
+provider.
+
+## One finding answered with a recorded decision instead of a change
+
+The notices changed the bytes of `public/sonara-one.js` while its URL keeps the
+token `?v=sonara-ui-20260914-v12-palette`, and `server.js:316` serves anything
+with a `?v=` as `immutable` for a year. The mechanism is real. The token is
+**not** bumped, and the reasoning is written into
+`scripts/verify-proprietary-notice.mjs` rather than left as an omission: a notice
+exists so a copied file is attributable, somebody copying takes it from the
+repository or a fresh load rather than from a year-old cache entry, every new
+visitor gets current bytes, and bumping the shared token would invalidate every
+cached asset for every visitor -- plus the service worker version, which
+`verify:customer-ready-production-experience` asserts must match -- to deliver a
+two-line comment. The customer export is unaffected: it reads from disk at
+require time.
+
+## What two rounds of this establish
+
+Fourteen findings across two reviews, every one real, and three of them were
+false statements written *while fixing false statements*. What caught them was
+never thinking harder -- it was `require('./server')`, `--max-warnings=0`,
+printing output instead of trusting an exit code, and opening the file named in
+my own comment.
 
 ### 2026-09-18 - Six findings on my own diff, and the one that was a false claim
 

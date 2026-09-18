@@ -147,19 +147,63 @@ for (const key of ["integrationStatus", "commercialUseStatus", "licenseRisk"]) {
 // script ignored it. That retracted sentence was a reason reasoned rather than
 // checked, written while fixing a defect of exactly that kind, which is how
 // easily it happens.
-const NETWORK_TRIGGERED = /\b(AGPL|SSPL|OSL|Affero)\b/i;
+// Three buckets, not two, because "not AGPL" is not the same as "triggers on
+// distribution".
+//
+// The version before this asserted every reciprocal record without AGPL/SSPL/OSL
+// in its name was distribution-triggered. Codex pointed out on PR #299 what that
+// does to Directus, whose licence is `MSCL-1.0-GPL (Monospace Sustainable Core
+// License 1.0)` and whose own register note says: "It is a licence written this
+// year whose abbreviation carries GPL, and it is not OSI open source. Nothing
+// should be built on it from a summary." Printing it under a definitive
+// "triggers on distribution" heading, on the strength of a regex missing, is
+// precisely building on a summary.
+//
+// So classification reads the leading licence identifier and only claims a
+// trigger for a family it recognises. Everything else -- custom licences, dual
+// grants, anything qualified -- goes to `unknown`, which is a statement that the
+// record has to be read rather than a quieter wrong answer. The GPL inside
+// MSCL-1.0-GPL does not match, because the identifier is matched as a whole
+// rather than searched for a substring.
+const NETWORK_FAMILIES = new Set(["AGPL-1.0", "AGPL-3.0", "AGPL", "SSPL-1.0", "SSPL", "OSL-3.0", "OSL"]);
+const DISTRIBUTION_FAMILIES = new Set([
+  "GPL-2.0", "GPL-3.0", "GPL-3.0-or-later", "GPL-2.0-or-later", "GPL",
+  "LGPL-2.1", "LGPL-3.0", "LGPL",
+  "MPL-2.0", "MPL", "EPL-2.0", "EPL", "MS-RL"
+]);
+
+function licenceTrigger(record) {
+  const raw = String(record.license || "").trim();
+  // The identifier is what sits before the first comma, semicolon, space or
+  // bracket -- "GPL-3.0, read from the GitHub API" is GPL-3.0; "MSCL-1.0-GPL
+  // (Monospace...)" is MSCL-1.0-GPL, which is in neither set.
+  // A trailing full stop is punctuation, not part of the identifier: two
+  // records read "AGPL-3.0. Read on 18 August 2026 from GitHub" and landed in
+  // `unknown` on the first attempt purely because of that dot. Stripped from
+  // the end only -- AGPL-3.0 has dots of its own.
+  const identifier = (raw.split(/[,;(]/)[0] || "").trim().split(/\s+/)[0].replace(/\.+$/, "") || "";
+  if (NETWORK_FAMILIES.has(identifier)) return "network";
+  if (DISTRIBUTION_FAMILIES.has(identifier)) return "distribution";
+  return "unknown";
+}
 
 const reciprocal = records.filter((record) => record.reciprocalLicense === true);
-const networkTriggered = reciprocal.filter((record) => NETWORK_TRIGGERED.test(String(record.license || "")));
-const distributionTriggered = reciprocal.filter((record) => !NETWORK_TRIGGERED.test(String(record.license || "")));
+const byTrigger = { network: [], distribution: [], unknown: [] };
+for (const record of reciprocal) byTrigger[licenceTrigger(record)].push(record);
+
+function listing(records) {
+  for (const record of records) {
+    console.log(`         ${record.name.slice(0, 34).padEnd(35)} ${String(record.license || "").split(/[,.]/)[0].slice(0, 44)}`);
+  }
+}
 
 console.log(`  ${reciprocal.length} record(s) carry a reciprocal licence. They are not one category:`);
-console.log(`    ${networkTriggered.length}  reach providing the software over a network (AGPL / SSPL / OSL) -- the case a hosted product is`);
-console.log(`    ${distributionTriggered.length}  trigger on distribution instead (GPL / LGPL / MPL and similar), with obligations that differ per licence`);
-for (const record of distributionTriggered) {
-  console.log(`         ${record.name.slice(0, 34).padEnd(35)} ${String(record.license || "").split(/[,.]/)[0].slice(0, 40)}`);
-}
-console.log("  Read the record's own notes before acting on either number. This is a count, not a licence reading.\n");
+console.log(`    ${byTrigger.network.length}  reach providing the software over a network (AGPL / SSPL / OSL) -- the case a hosted product is`);
+console.log(`    ${byTrigger.distribution.length}  trigger on distribution instead (GPL / LGPL / MPL and similar), with obligations that differ per licence`);
+listing(byTrigger.distribution);
+console.log(`    ${byTrigger.unknown.length}  carry a licence whose trigger this report will not state -- custom, dual, or qualified. Read the record.`);
+listing(byTrigger.unknown);
+console.log("  These are counts, not licence readings. The record's own notes say what was opened and when; that is the authority.\n");
 
 console.log(`Adapters built: ${built.length} of ${records.length}.`);
 for (const record of built) {

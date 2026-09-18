@@ -92,9 +92,34 @@ function parseEnvFile(file) {
 
 const env = { ...parseEnvFile(".env"), ...parseEnvFile(".env.local"), ...process.env };
 
+// The rules the APPLICATION applies, not a looser restatement of them.
+//
+// The first version of this function accepted any non-empty value except four
+// exact sentinel words, which meant `RESEND_API_KEY=replace-me` and
+// `RESEND_FROM_EMAIL=fake` both made this check exit 0 and report email ready
+// while `lib/sonara-readiness.cjs` treated delivery as unconfigured -- so the
+// command advertised as the way to verify email said yes to environments the
+// product says no to. Codex found it on PR #299, and my own falsification of
+// the permissive direction had used `RESEND_API_KEY=x`, a one-character key
+// this now correctly rejects.
+//
+// `isConfiguredSecret` and `isConfiguredEmail` come from
+// lib/sonara-env-value-checks.cjs, which is where `server.js` gets them and
+// where it passes them to `createReadiness`. One implementation, so this cannot
+// drift away from what the running application decides.
+const {
+  isConfiguredSecret,
+  isConfiguredEmail,
+  MINIMUM_SECRET_LENGTH
+} = require(path.join(root, "lib", "sonara-env-value-checks.cjs"));
+
+// Which rule applies follows the readiness module: a *_EMAIL value must be a
+// real address, and anything else is a secret held to the minimum length and
+// the placeholder test.
 function configured(name) {
   const value = env[name];
-  return typeof value === "string" && value.trim().length > 0 && !/^(todo|pending|placeholder|changeme)$/i.test(value.trim());
+  if (typeof value !== "string" || !value.trim()) return false;
+  return /EMAIL$/.test(name) ? isConfiguredEmail(value) : isConfiguredSecret(value);
 }
 
 const strict =
@@ -129,6 +154,8 @@ if (missing.length) {
   console.log("");
   console.log(`Not configured here: ${missing.join("; ")}.`);
   console.log("Set these in Vercel and mark RESEND_API_KEY sensitive. No secret values were printed.");
+  console.log("A value counts as set on the application's own terms: an address must parse as one, and a secret");
+  console.log(`must be at least ${MINIMUM_SECRET_LENGTH} characters and not a placeholder -- "replace-me" and "fake" are not configured.`);
   if (strict) {
     console.error(`\nEmail env check failed in strict mode: ${missing.length} of ${groups.length} requirement(s) unsatisfied.`);
     process.exit(1);
