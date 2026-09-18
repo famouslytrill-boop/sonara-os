@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 122 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 30 admin routes.
-- 349 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 350 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -180,6 +180,99 @@ population is non-empty before asserting anything about it.
 here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
+
+### 2026-09-18 - Two classifiers for owner approval, with opposite defaults
+
+Audited `lib/sonara-event-outbox.cjs` because it arrived in the commit that
+corrupted the sprint log, from the same tooling, and because event consumers are
+the next thing to be built on it. The storage adapter is careful -- tenant id
+repeated on every query, a network failure returning a refusal rather than an
+empty list, a settled claim verified against the worker that held it. The defect
+was one line above it, in the contract it delegates to.
+
+`lib/sonara-event-driven-agent-contract.cjs` had its own classifier:
+
+    function authorityForAction(action) {
+      const normalized = String(action || "").trim().toLowerCase();
+      if (!normalized) return "low_risk";
+      return OWNER_REVIEW_ACTIONS.includes(normalized) ? "owner_review" : "low_risk";
+    }
+
+An allowlist of nine action names, returning `low_risk` for everything else.
+`lib/sonara-agent-authority.cjs` classifies by pattern and sends anything it does
+not recognise to the owner, for the reason CLAUDE.md states outright: "a
+classifier that fails open fails open exactly when somebody adds a capability,
+which is the moment nobody is reading that file."
+
+Two classifiers, opposite defaults. Thirteen action names that the authority
+module gates under a **named** category -- not the unrecognised fallback -- came
+back `low_risk` from the event contract:
+
+| category | actions the event contract called low_risk |
+| --- | --- |
+| `destructive_data_changes` | `delete_customer_records`, `purge_audit_log`, `wipe_bookings`, `truncate_invoices` |
+| `security_settings` | `rotate_api_key`, `grant_role_admin`, `revoke_role` |
+| `refunds` | `issue_refund_batch`, `chargeback_reverse` |
+| `customer_campaigns` | `send_bulk_sms`, `newsletter_blast` |
+| `payout_changes` | `change_payout_bank_account` |
+| `legal_or_policy_publishing` | `publish_terms_of_service` |
+
+`canDispatch` returns `{ ok: true, reason: "low_risk_authority" }` for a
+`low_risk` event -- no approval required -- so `delete_customer_records` was
+dispatchable unattended. Against AGENTS.md: "Unknown sensitive actions default to
+owner review."
+
+**Latent, not live**, and the distinction is worth stating rather than blurring:
+`canDispatch` is called by one test and no production code. The rows were being
+written with the wrong stamp, and wiring a consumer -- the next piece of work --
+would have made it live.
+
+`authorityForAction` now delegates to the authority module and fails closed on a
+name it cannot classify, including when the classifier throws. `OWNER_REVIEW_ACTIONS`
+stays as documentation and as a floor the new gate asserts, not as a decider.
+
+The outbox had the matching defect in its publisher:
+
+    authority: run?.classification?.requiresOwnerApproval ? "owner_review" : "low_risk"
+
+`createAgentEvent` does `input.authority || authorityForAction(action)`, so **any**
+truthy value shadows the derivation. The `?.` says the author thought an absent
+classification possible, and the absent case was stamped dispatchable. It passes
+`undefined` now, which hands the question to the derivation; the strict direction
+still works, so a breaker demotion still pins `owner_review`.
+
+## Two wrong measurements, both from the same trap
+
+`classifyAction` takes a **string**. It normalises with `String()`, so an object
+becomes the literal `"[object Object]"`, lands in `unrecognised`, and returns
+`requiresOwnerApproval: true`.
+
+It fails safe, which is exactly what makes it invisible to somebody measuring.
+The first version of this investigation passed `{ action_type: name }` and every
+probe came back `owner_review` -- which looked like proof of a hole that was not
+there, and was reported as such before being retracted. The first version of the
+**fix** passed an object too, and every action including all seven that may run
+unattended came back `owner_review`: a gate that looked like it worked and would
+have asked the owner for permission to write a draft.
+
+Both were caught by checking the permissive direction, which is why
+`scripts/verify-event-authority-agreement.mjs` and the test both assert it. Every
+production caller of `classifyAction` -- five of them -- was checked and passes a
+string correctly; the only wrong caller was the one written here.
+
+`scripts/verify-event-authority-agreement.mjs` is the 52nd chain command. It
+proves the event contract is never laxer than the authority module across 23
+probes covering all seven categories, never stricter about the seven unattended
+actions, that each probe lands in the category it is filed under (so a pattern
+that stops matching fails instead of leaving a probe gated only by the default),
+that the nine documented names are still gated, that an unrecognised name fails
+closed, and -- behaviourally, not by string comparison -- that `canDispatch`
+refuses a destructive action and accepts it with a matching approval.
+
+Falsified three ways, each restored with `md5sum -c`: reverting the allowlist
+(6 test failures, and the gate naming every action with its category), reverting
+the outbox stamp (2 failures), and passing an object to `classifyAction`
+(3 failures, naming all seven over-gated actions).
 
 ### 2026-09-18 - The corruption had a mechanism, and it is a 384 KiB write cap
 
