@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
 const { ROUTE_REGISTRY, plainRouteTitle } = require("../lib/sonara-route-registry.cjs");

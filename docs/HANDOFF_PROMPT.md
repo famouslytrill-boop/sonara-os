@@ -23,7 +23,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3901 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3903 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 122 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
@@ -180,6 +180,81 @@ population is non-empty before asserting anything about it.
 here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
+
+### 2026-09-18 - LICENSE does not travel with a copied file; a header does
+
+Asked to tighten things so the source cannot be taken, with the repository
+staying public by the owner's decision.
+
+**The honest part first: a public repository cannot be made uncopyable.** Anyone
+may clone it, and nothing inside the tree changes that. Private is the only
+measure that stops copying, and it was declined for now. Writing a check that
+implied otherwise would be the defect this codebase is organised around, so
+`scripts/verify-proprietary-notice.mjs` says in its own success line that it
+makes a copied file *attributable* and not the source uncopyable.
+
+What was missing was real. **3 of 1,005 source files carried any copyright or
+proprietary notice**, and neither `server.js` nor `api/index.js` was among them
+-- the two entry points of a product sold on paid plans. `LICENSE` sits at the
+repository root and does not travel: copy `lib/sonara-billing.cjs` elsewhere and
+nothing in that file says who owns it or on what terms. A header travels, and it
+removes "I did not know it was proprietary" as a position.
+
+258 shipped source files -- `server.js`, `api/`, `routes/`, `lib/` -- now open
+with the holder and a reservation of rights, placed after any shebang and before
+any `"use strict"` directive.
+
+**The holder is read out of `LICENSE`, not repeated in the check.** A hardcoded
+string would leave 258 files asserting an old name after a rename while the gate
+called that correct, so the expected holder is parsed from the
+`Copyright (c) <year> <holder>. All rights reserved` line and the notices are
+compared against it. The gate refuses to run at all when it cannot read that
+line, rather than guessing.
+
+## Two things checked before editing rather than after
+
+**`supabase/migrations/` is excluded, and that is not an oversight.** 119 of
+those files are SHA-256 content-checksummed in
+`supabase/applied-migration-checksums.json`, and `verify:applied-migrations`
+fails when one changes -- which is the whole point, because an applied migration
+is immutable. Adding a header there would have broken 119 checksums to gain a
+comment.
+
+**`lib/sonara-tenant-scoped-tables.cjs` is generated.** Hand-adding the notice
+made `verify:tenant-tables` report the file stale, correctly. The notice belongs
+in the generator's template, and now is; the regenerated file is byte-identical
+to the hand edit, and `--check` agrees.
+
+## The ratchet was raised rather than worked around
+
+`tests/server-split.test.js` holds `server.js` to a shrinking line ceiling, and
+two comment lines pushed it from 3901 to 3903. Its own message says to raise the
+ceiling and say why, so the ceiling is 3903 with the reason recorded beside the
+earlier entries. Shortening the notice to one line to squeeze under 3901 would
+have let the ratchet decide what a file may say about its own ownership, which is
+the wrong way round -- the same reasoning the 3874 -> 3876 entry already
+records.
+
+Falsified three ways, each restored with `md5sum -c`: a file with its notice
+stripped; a notice naming a different holder from `LICENSE`; and a `LICENSE` with
+no readable copyright line.
+
+## What actually protects the business, recorded because it reframes the risk
+
+The source alone is inert. What cannot be copied is the Supabase project, the
+Stripe account, the domain, the customer relationships and the environment
+secrets -- and a full history scan found **no credential has ever been
+committed**: zero plausible Stripe live keys (232 matches are prose, redaction
+patterns and 7 deliberate leak canaries), zero GitHub tokens, and one
+`service_role` JWT that is a fabricated fixture in
+`tests/redaction-boundary.test.js` with a 12-character signature and a single
+claim.
+
+**Still open and the owner's:** `LICENSE` claims the software is *confidential*
+and instructs anyone holding a copy without written permission to delete it and
+notify. Deliberate publication undermines both sentences, while the load-bearing
+"No licence is granted" survives untouched. Rewording is `legal_or_policy_publishing`
+under AGENTS.md and needs owner approval, so it was not touched.
 
 ### 2026-09-18 - The rollback runbook told you to run a command that does not exist
 

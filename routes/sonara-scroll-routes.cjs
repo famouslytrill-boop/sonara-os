@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
 // Making, publishing and downloading a cinematic scroll site.

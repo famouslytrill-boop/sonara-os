@@ -595,7 +595,22 @@ describe("the server.js split stays safe", () => {
       // registered through routes/sonara-admin-agent-routes.cjs. The route
       // module keeps the new page out of this file; the remaining lines are
       // the three real table counts and the admin registration contract.
-      lines <= 3901,
+      // 3901 -> 3903 on 18 September 2026: the two-line proprietary notice.
+      //
+      // `LICENSE` sits at the repository root and does not travel with a copied
+      // file. 3 of 1,005 source files carried any copyright notice, and neither
+      // server.js nor api/index.js was among them -- the two entry points of a
+      // product sold on paid plans, in a repository the owner has decided to
+      // keep public. So every shipped source file now opens with the holder and
+      // a reservation of rights, enforced by
+      // scripts/verify-proprietary-notice.mjs, which reads the holder out of
+      // LICENSE rather than repeating it.
+      //
+      // Raised rather than worked around. Shortening the notice to one line to
+      // squeeze under 3901 would be the ratchet deciding what a file may say
+      // about its own ownership, which is the wrong way round -- the same
+      // reasoning as the 3874 -> 3876 entry above.
+      lines <= 3903,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

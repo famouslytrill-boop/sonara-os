@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 const express = require("express");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");

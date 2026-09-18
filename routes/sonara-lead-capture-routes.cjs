@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
 // The front door a stranger walks through, and the four owner pages behind it.

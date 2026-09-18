@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
 // /owner/agent-activity -- what the agents did, and what they stopped at.
