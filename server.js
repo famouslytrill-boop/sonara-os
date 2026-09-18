@@ -166,6 +166,9 @@ const {
   createEmployeeAuthUser,
   getCookie,
   getSupabaseAuthConfig,
+  getGoogleOAuthProviderStatus,
+  beginGoogleOAuth,
+  completeGoogleOAuth,
   handleEmailAuth,
   hashInviteToken,
   rejectCustomerBearerFromAdminLogin,
@@ -182,6 +185,7 @@ const {
   getSupabaseServerConfig,
   isProductionEnvironment,
   isSupabaseAdminUser,
+  siteOrigin,
   renderRateLimitPage,
   reportDegradedRateLimit,
   responsePage
@@ -1047,7 +1051,7 @@ function loginPage(req, { email = "", error = "" } = {}) {
       brandCard("One connected workspace", "Your business, creator, and growth tools stay organized under one account."),
       brandCard("Private by default", "Only you and approved members can access protected workspace content.")
     ],
-    actions: [linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
+    actions: [linkAction("/auth/google", "Continue with Google"), linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
   });
 }
 
@@ -1062,7 +1066,7 @@ function signupPage({ email = "", error = "" } = {}) {
       brandCard("Start free", "Set up your workspace, choose a product path, and save your first project before upgrading."),
       brandCard("Built to expand", "Add products, teammates, customer records, and paid services as your operation grows.")
     ],
-    actions: [linkAction("/login", "Login"), linkAction("/", "Home")]
+    actions: [linkAction("/auth/google", "Continue with Google"), linkAction("/login", "Login"), linkAction("/", "Home")]
   });
 }
 
@@ -1118,6 +1122,15 @@ app.post("/auth/login", loginRateLimiter, async (req, res) => {
   if (held) return undefined;
   return sendEmailAuthResult(req, res, result, "/dashboard", "/login", ({ message }) =>
     loginPage(req, { email: req.body?.email, error: message }));
+});
+
+app.get("/auth/google", async (req, res) => {
+  const result = await beginGoogleOAuth(req, res, req.query?.next);
+  if (result.ok) return res.redirect(303, result.url);
+  if (!acceptsHtml(req)) return res.status(result.status).json({ ok: false, code: result.code, message: result.message });
+  return res.status(result.status).type("html").send(
+    responsePage("Google sign-in unavailable", result.message, [linkAction("/login", "Login with email"), linkAction("/support", "Get help")])
+  );
 });
 
 app.get("/logout", (req, res) => {
@@ -1243,15 +1256,18 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
   );
 });
 
-app.get("/auth/callback", (req, res) => {
-  const payload = { ok: false, code: "disabled", service: "google_oauth", message: "Google OAuth is deferred until owner configuration is complete." };
-  if (!acceptsHtml(req)) return res.status(503).json(payload);
-  return res.status(503).type("html").send(
-    responsePage("OAuth deferred", "Google OAuth is disabled for launch verification. Use email/password access after account login is configured.", [
-      linkAction("/login", "Login"),
-      linkAction("/", "Home")
-    ])
-  );
+app.get("/auth/callback", async (req, res) => {
+  const result = await completeGoogleOAuth(req, res);
+  if (!result.ok) {
+    if (!acceptsHtml(req)) return res.status(result.status).json({ ok: false, code: result.code, message: result.message });
+    return res.status(result.status).type("html").send(
+      responsePage("Google sign-in not completed", result.message, [linkAction("/auth/google", "Try Google again"), linkAction("/login", "Login with email")])
+    );
+  }
+
+  const held = twoFactor.ok ? await twoFactor.holdForSecondFactor(result, req, res) : false;
+  if (held) return undefined;
+  return sendEmailAuthResult(req, res, result, result.nextPath || "/dashboard", "/login");
 });
 
 app.get("/api/checkout/session", (req, res) => {
@@ -1527,7 +1543,16 @@ app.get("/api/health", (req, res) => res.status(200).json({
   timestamp: new Date().toISOString()
 }));
 
-app.get("/api/readiness", (req, res) => res.status(200).json(getReadiness()));
+app.get("/api/readiness", async (req, res) => {
+  const readiness = getReadiness();
+  const google = await getGoogleOAuthProviderStatus();
+  const googleStatus = google.ok ? "configured" : "setup_required";
+  readiness.googleSignIn = googleStatus;
+  readiness.services.googleOAuth = googleStatus;
+  readiness.services.googleSignIn = googleStatus;
+  readiness.missing.googleOAuth = google.ok ? [] : ["Supabase Google provider"];
+  return res.status(200).json(readiness);
+});
 
 const publicCompatibilityRoutes = {
   "/onboarding": "/account/setup",
