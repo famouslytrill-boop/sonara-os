@@ -1,11 +1,11 @@
 name: One-time enable production Google provider
 
 on:
-  push:
-    branches:
-      - ops/enable-google-provider-20260918
+  pull_request:
+    branches: [main]
     paths:
       - ".github/workflows/one-time-enable-google-provider.yml"
+      - "scripts/enable-google-oauth-provider.mjs"
   workflow_dispatch:
 
 permissions:
@@ -20,6 +20,7 @@ jobs:
     name: Enable and verify hosted Google provider
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'ops/enable-google-provider-20260918'
     environment: production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
