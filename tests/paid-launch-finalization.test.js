@@ -8,10 +8,9 @@ const ENV_KEYS = [
   "RESEND_FROM_EMAIL",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-  "STRIPE_PRICE_STARTER_MONTHLY",
-  "STRIPE_PRICE_CORE_MONTHLY",
-  "STRIPE_PRICE_PRO_MONTHLY",
-  "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME"
+  "STRIPE_PRICE_WORKSPACE_MONTHLY",
+  "STRIPE_PRICE_ALL_THREE_MONTHLY",
+  "STRIPE_PRICE_TEAM_MONTHLY"
 ];
 
 function snapshotEnv() {
@@ -30,10 +29,9 @@ function setConfiguredCommerceEnv() {
   process.env.RESEND_FROM_EMAIL = "SONARA Industries <no-reply@sonaraindustries.com>";
   process.env.STRIPE_SECRET_KEY = "sk_test_sonaraConfigured123456789";
   process.env.STRIPE_WEBHOOK_SECRET = "whsec_sonaraConfigured123456789";
-  process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_sonaraStarter123456789";
-  process.env.STRIPE_PRICE_CORE_MONTHLY = "price_sonaraCore123456789";
-  process.env.STRIPE_PRICE_PRO_MONTHLY = "price_sonaraPro123456789";
-  process.env.STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME = "price_sonaraSetup123456789";
+  process.env.STRIPE_PRICE_WORKSPACE_MONTHLY = "price_sonaraWorkspace123456789";
+  process.env.STRIPE_PRICE_ALL_THREE_MONTHLY = "price_sonaraAllThree123456789";
+  process.env.STRIPE_PRICE_TEAM_MONTHLY = "price_sonaraTeam123456789";
 }
 
 describe("paid launch finalization", () => {
@@ -112,7 +110,7 @@ describe("paid launch finalization", () => {
     // The setup package is quoted rather than priced -- it is done-for-you
     // work whose scope varies, and it previously carried a live $197 Stripe
     // price while the page advertised no amount at all.
-    for (const expected of ["$0", "$7/mo", "$19/mo", "$39/mo", "We quote you"]) {
+    for (const expected of ["$0", "$29/mo", "$59/mo", "$109/mo", "We quote you"]) {
       assert.match(response.text, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
   });
@@ -125,7 +123,7 @@ describe("paid launch finalization", () => {
       assert.equal(readiness.body.services.stripe, "configured");
       assert.equal(readiness.body.services.stripeWebhook, "configured");
       assert.equal(readiness.body.services.checkout, "enabled");
-      for (const plan of ["starter_monthly", "core_monthly", "pro_monthly"]) {
+      for (const plan of ["workspace_monthly", "all_three_monthly", "team_monthly"]) {
         assert.equal(readiness.body.checkoutPlans[plan].checkout, "enabled");
       }
       // Asserted rather than dropped, so the setup package cannot drift back
