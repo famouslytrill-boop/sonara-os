@@ -203,9 +203,9 @@ describe("Recommended product catalog production boundary", () => {
     // defined as being free.
     assert.match(verifier, /paid execution is open only where the server enforces an entitlement for the product/);
     assert.match(verifier, /Production catalog page is missing/);
-    assert.match(verifier, /starter_monthly/);
-    assert.match(verifier, /core_monthly/);
-    assert.match(verifier, /pro_monthly/);
+    assert.match(verifier, /offeredPlanKeys/);
+    assert.match(verifier, /enabledPaidPlans\.length > 0/);
+    assert.doesNotMatch(verifier, /Legacy predecessor keys retained here/);
   });
 
   // The test above reads the verifier's text. That is not the same as checking
