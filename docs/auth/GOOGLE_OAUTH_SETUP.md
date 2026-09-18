@@ -1,53 +1,50 @@
 # Google OAuth Setup
 
-Google sign-in will show a setup message until the Supabase Google provider is enabled and callback URLs are aligned.
+Google sign-in is required in production and is hosted by Supabase Auth. SONARA uses server-side PKCE and the existing HttpOnly customer session; it does not maintain a second Google session system.
 
-## Supabase Dashboard
+## Google Cloud callback
 
-1. Open Supabase Dashboard > Authentication > Providers > Google.
-2. Enable Google.
-3. Add the Google Client ID.
-4. Add the Google Client Secret.
-5. Save provider settings.
-
-## Google Cloud
-
-Add the Supabase callback URL to Google Cloud Authorized redirect URIs. The exact callback URL is shown in the Supabase Google provider panel and usually has this shape:
+The OAuth Web Client's Authorized redirect URI is the Supabase provider callback:
 
 ```text
-https://<project-ref>.supabase.co/auth/v1/callback
+https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback
 ```
 
-Do not use a stale project ref.
+Do **not** put `https://sonaraindustries.com/auth/callback` in Google Cloud as the provider callback. Google returns to Supabase first.
 
-## SONARA Redirect URLs
+## Supabase provider
 
-Set Supabase Auth Site URL:
+Open Supabase Dashboard -> Authentication -> Providers -> Google:
+
+1. Enable Google.
+2. Enter the Google Web Client ID.
+3. Enter the Google Client Secret.
+4. Save.
+
+Google credentials live here only. Do not duplicate them into Vercel environment variables.
+
+## SONARA application callback
+
+Set the Supabase Site URL to:
 
 ```text
 https://sonaraindustries.com
 ```
 
-Add redirect URLs:
+Allow this production redirect:
 
 ```text
 https://sonaraindustries.com/auth/callback
-https://sonaraindustries.com/login
-https://sonaraindustries.com/onboarding
 ```
 
-For local development, add:
+For local development, also allow:
 
 ```text
-http://localhost:3000/auth/callback
-http://localhost:3000/login
-http://localhost:3000/onboarding
+http://localhost:5000/auth/callback
 ```
 
-## Expected App Behavior
+## Required production result
 
-If Google is not enabled, the login screen should show:
+The release gate runs `scripts/verify-google-oauth-provider.mjs --require` against the production Supabase settings. If `external.google` is not enabled, deployment stops before database migration or Vercel deployment.
 
-```text
-Google sign-in is not enabled in Supabase yet. Enable Google in Supabase Auth Providers and add the callback URL.
-```
+The live application must report `services.googleOAuth = "configured"`; `deferred` is no longer a valid runtime state.
