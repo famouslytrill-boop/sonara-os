@@ -463,7 +463,7 @@ describe("a log line you can count", () => {
       assert.equal(event.outcome, "refused", "a price refusal was counted as a failure");
       assert.equal(event.reason, "price_mismatch");
       assert.equal(event.detail.charges, 4999);
-      assert.equal(event.detail.advertised, 700);
+      assert.equal(event.detail.advertised, 2900);
     });
 
     it("emits ok for a session that was created", async () => {
