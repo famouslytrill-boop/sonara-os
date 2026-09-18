@@ -42,24 +42,16 @@ async function managementAuthConfig() {
         signal: controller.signal
       }
     );
-  } catch (error) {
-    fail(
-      `Supabase Management API Auth config could not be reached: ${error?.name === "AbortError" ? "timeout" : "network error"}.`
-    );
+  } catch {
+    return null;
   } finally {
     clearTimeout(timer);
   }
 
-  if (!response.ok) {
-    fail(`Supabase Management API Auth config returned HTTP ${response.status}.`);
-  }
+  if (!response.ok) return null;
 
   const config = await response.json().catch(() => null);
-  if (!config || typeof config !== "object") {
-    fail("Supabase Management API Auth config did not return JSON.");
-  }
-
-  return config;
+  return config && typeof config === "object" ? config : null;
 }
 
 async function managementPublicAuthConfig() {
