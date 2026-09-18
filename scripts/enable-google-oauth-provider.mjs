@@ -67,25 +67,39 @@ if (!clientIdPresent || !secretPresent) {
 if (!siteUrlMatches) {
   fail("Supabase Auth Site URL is not the canonical SONARA production origin; no configuration was changed.");
 }
-if (!callbackAllowed) {
-  fail("SONARA /auth/callback is not explicitly allow-listed; no configuration was changed.");
-}
-
 if (!enable) {
-  console.log("Inspection only. Pass --enable to enable the already-configured Google provider.");
+  console.log("Inspection only. Pass --enable to repair the callback allow-list and enable the already-configured Google provider.");
   process.exit(0);
 }
 
-if (before.external_google_enabled !== true) {
-  await request("PATCH", { external_google_enabled: true });
+const existingAllowList = normalizedAllowList(before.uri_allow_list);
+const nextAllowList = callbackAllowed
+  ? existingAllowList
+  : [...existingAllowList, EXPECTED_CALLBACK];
+
+const patch = {};
+if (before.external_google_enabled !== true) patch.external_google_enabled = true;
+if (!callbackAllowed) patch.uri_allow_list = nextAllowList.join(",");
+
+if (Object.keys(patch).length > 0) {
+  await request("PATCH", patch);
 }
 
 const after = await request("GET");
+const afterCallbackAllowed = normalizedAllowList(after.uri_allow_list).includes(EXPECTED_CALLBACK);
 if (after.external_google_enabled !== true) {
   fail("Supabase accepted the request but Google still reads disabled.");
 }
+if (!afterCallbackAllowed) {
+  fail("Supabase accepted the request but the SONARA callback is still not allow-listed.");
+}
+
+const changed = [];
+if (before.external_google_enabled !== true) changed.push("external_google_enabled");
+if (!callbackAllowed) changed.push("uri_allow_list");
 
 console.log("Google provider postflight:");
 console.log("- enabled: yes");
+console.log("- application callback allow-listed: yes");
 console.log("- credentials: retained in Supabase Auth");
-console.log("- changed fields requested by this operation: external_google_enabled only");
+console.log(`- changed fields requested by this operation: ${changed.length ? changed.join(", ") : "none (already correct)"}`);
