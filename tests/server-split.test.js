@@ -935,7 +935,7 @@ describe("the billing module stands on its own", () => {
 
   const STRIPE_PLANS = {
     free: { name: "Free", price: "$0", description: "Free.", mode: undefined },
-    core_monthly: { name: "Core", price: "$19/mo", description: "Core.", mode: "subscription" }
+    workspace_monthly: { name: "One workspace", price: "$29/mo", description: "One workspace.", mode: "subscription" }
   };
 
   function deps(overrides = {}) {
@@ -995,12 +995,12 @@ describe("the billing module stands on its own", () => {
     assert.equal(billing.verifyStripeWebhookSignature("{}", "t=1,v1=abc", "s").ok, false);
   });
 
-  it("resolves the plan a customer asked for, including the old names", () => {
+  it("accepts canonical plan keys without compatibility aliases", () => {
     const billing = createBilling(deps());
-    assert.equal(billing.normalizeCheckoutPlan({ plan: "creator_studio_monthly" }), "core_monthly");
-    assert.equal(billing.normalizeCheckoutPlan({ price_key: " core_monthly " }), "core_monthly");
+    assert.equal(billing.normalizeCheckoutPlan({ plan: "workspace_monthly" }), "workspace_monthly");
+    assert.equal(billing.normalizeCheckoutPlan({ price_key: " workspace_monthly " }), "workspace_monthly");
     assert.equal(billing.normalizeCheckoutPlan({}), "");
-    assert.equal(billing.isValidPlan("core_monthly"), true);
+    assert.equal(billing.isValidPlan("workspace_monthly"), true);
     assert.equal(billing.isValidPlan("not_a_plan"), false);
     // Object.prototype keys are not plans.
     assert.equal(billing.isValidPlan("constructor"), false);
@@ -1017,7 +1017,7 @@ describe("the billing module stands on its own", () => {
   it("does not offer a checkout button for a plan that cannot be bought", () => {
     const billing = createBilling(deps());
     const readiness = { services: { stripe: "missing", checkout: "setup_required" } };
-    const card = billing.priceCard("core_monthly", STRIPE_PLANS.core_monthly, { checkout: "setup_required", reason: "missing" }, readiness);
+    const card = billing.priceCard("workspace_monthly", STRIPE_PLANS.workspace_monthly, { checkout: "setup_required", reason: "missing" }, readiness);
     assert.match(card, /Not open yet/);
     assert.doesNotMatch(card, /Start checkout/);
     // The free plan has no checkout at all, so it renders as a plain card.
@@ -1041,6 +1041,17 @@ describe("the billing module stands on its own", () => {
     assert.deepEqual(result, { ok: true, ignored: true });
   });
 
+  it("fails closed when a subscription webhook has no canonical plan metadata", async () => {
+    const billing = createBilling(deps({
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co" })
+    }));
+    const result = await billing.synchronizeBillingFromStripeEvent({
+      type: "customer.subscription.updated",
+      data: { object: { id: "sub_1", customer: "cus_1", status: "active", metadata: { organization_id: "org-1" } } }
+    });
+    assert.deepEqual(result, { ok: false, code: "invalid_plan_metadata" });
+  });
+
   it("will not grant access from a checkout session that was not paid", async () => {
     // The entitlement write is what opens paid tools. It must not happen for a
     // session that is complete but unpaid.
@@ -1050,7 +1061,7 @@ describe("the billing module stands on its own", () => {
       insertActivityEvent: async () => { wrote = true; }
     }));
     const result = await billing.synchronizeCheckoutSessionCompleted({
-      data: { object: { id: "cs_1", mode: "payment", payment_status: "unpaid", metadata: { organization_id: "org-1", plan: "core_monthly" } } }
+      data: { object: { id: "cs_1", mode: "payment", payment_status: "unpaid", metadata: { organization_id: "org-1", plan: "workspace_monthly" } } }
     });
     assert.deepEqual(result, { ok: true, ignored: true });
     assert.equal(wrote, false, "an unpaid session must not record a purchase");
