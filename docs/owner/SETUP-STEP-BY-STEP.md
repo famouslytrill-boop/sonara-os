@@ -14,160 +14,73 @@ this somewhere else.
 
 ---
 
-## 1 — The pricing page is advertising three plans nobody can buy
+## 1 — Canonical Stripe catalogue and deployment verification
 
-**This is the finding. Read it before doing anything else.**
+The live Stripe account was read again on **18 September 2026**. SONARA's
+canonical workspace ladder now exists in Stripe at exactly the amounts the
+application advertises, for both monthly and yearly billing:
 
-`/pricing` advertises **One workspace $29/mo, All three $59/mo, Team $109/mo**.
-Your live Stripe account holds **thirteen prices in its entire history**, and
-**none of them is $29, $59 or $109.** The closest are the three created on
-13 August 2026, which charge **$19, $39 and $79** and carry the lookup keys
-`sonara_workspace_monthly`, `sonara_all_three_monthly` and
-`sonara_team_monthly`.
+| Plan | Price ID | Amount | Interval | Stripe state |
+| --- | --- | ---: | --- | --- |
+| One workspace | `price_1UDcAR0dKtlEU3lA6xBfzRYu` | $29 | month | active price / active product |
+| All three | `price_1UDcB60dKtlEU3lAiTaUfXLI` | $59 | month | active price / active product |
+| Team | `price_1UDcC60dKtlEU3lABcH8EVw6` | $109 | month | active price / active product |
+| One workspace yearly | `price_1UDcdq0dKtlEU3lA6bTBV7Pk` | $290 | year | active price / active product |
+| All three yearly | `price_1UDcfA0dKtlEU3lAaqioX8tE` | $590 | year | active price / active product |
+| Team yearly | `price_1UDcg80dKtlEU3lAoLjca1r0` | $1090 | year | active price / active product |
 
-So whatever `STRIPE_PRICE_WORKSPACE_MONTHLY`, `STRIPE_PRICE_ALL_THREE_MONTHLY`
-and `STRIPE_PRICE_TEAM_MONTHLY` are set to in Vercel, they cannot be pointing at
-a price that charges what the page says.
+The three Price IDs previously written in this runbook as the new monthly
+catalogue do **not** exist in the connected live Stripe account and must not be
+used. The table above is the provider-read result.
 
-**Nobody is being overcharged, and nobody is being charged the wrong amount.**
-`assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs` fetches the price from
-Stripe on every checkout and refuses to create the session when the amount
-disagrees:
+### Production environment pointers
 
-```js
-if (price.unit_amount !== expected) return { ok: false, code: "price_mismatch", ... };
+Vercel Production should contain only the canonical price variables:
+
+```text
+STRIPE_PRICE_WORKSPACE_MONTHLY   = price_1UDcAR0dKtlEU3lA6xBfzRYu
+STRIPE_PRICE_ALL_THREE_MONTHLY   = price_1UDcB60dKtlEU3lAiTaUfXLI
+STRIPE_PRICE_TEAM_MONTHLY        = price_1UDcC60dKtlEU3lABcH8EVw6
+STRIPE_PRICE_WORKSPACE_ANNUAL    = price_1UDcdq0dKtlEU3lA6bTBV7Pk
+STRIPE_PRICE_ALL_THREE_ANNUAL    = price_1UDcfA0dKtlEU3lAaqioX8tE
+STRIPE_PRICE_TEAM_ANNUAL         = price_1UDcg80dKtlEU3lAoLjca1r0
 ```
 
-The consequence is worse in a quieter way: **every headline plan on your pricing
-page refuses checkout.** A customer clicking Start on any of the three gets a
-refusal, not a Stripe page. Only Free works.
+Do not restore the retired Starter/Core/Pro variables or product-specific
+aliases. Runtime checkout, readiness, entitlement mapping and plan limits no
+longer recognize them.
 
-### How this happened, since it is worth knowing
+### Verification sequence
 
-`docs/owner/OWNER-STEPS.md` item 5 was written on 19 August 2026, when the plan
-table held $19/$39/$79, and it names those three price ids in a table with the
-instruction "set each variable above to its price id". That was correct on the
-day it was written. On 6 September the amounts moved to $29/$59/$109 and the
-price ids in that table stopped matching — but the instruction still read like a
-current one. Following it exactly produces precisely this state.
+1. Let the controlled production dry run pull the real Vercel Production
+   environment.
+2. Require `scripts/verify-stripe-env.mjs --require-live` to prove each
+   configured Price has the advertised amount, interval and active Product.
+3. Do not deploy if a canonical variable points at any other Price.
+4. After the exact-head CI and controlled deployment are green, complete one
+   authenticated One-workspace checkout and confirm the persisted Stripe
+   entitlement opens the workspace.
+5. Cancel/refund the proof purchase as appropriate and confirm paid access
+   relocks after the authoritative Stripe update.
 
-A Stripe price is immutable. Changing what a plan costs always means creating a
-new price; there is no edit.
+The verifier credential may be a restricted live key with Prices/Products read
+access. The customer-facing runtime credential remains separate and must retain
+the permissions required to create customers and Checkout Sessions.
 
-### Fix it in four steps
+### Retired billing evidence
 
-**Step 1. Create three prices. — DONE 8 September 2026, at the owner's
-instruction.** They were created on the existing products, so the description a
-customer sees on the invoice stays right, and read back from Stripe to confirm:
+The former Starter/Core/Pro depth-ladder prices were checked for subscriptions
+before removal:
 
-| Plan | Price id | Amount | Interval | Lookup key |
-| --- | --- | --- | --- | --- |
-| One workspace | `price_1UDTj00dKtlEU3lAmimC5cN7` | **$29.00** | month | `sonara_workspace_monthly_v2` |
-| All three | `price_1UDToK0dKtlEU3lAWURVCj6H` | **$59.00** | month | `sonara_all_three_monthly_v2` |
-| Team | `price_1UDUKr0dKtlEU3lAJzu0pVoe` | **$109.00** | month | `sonara_team_monthly_v2` |
+| Retired plan | Price ID | Amount | Subscription count before archival |
+| --- | --- | ---: | ---: |
+| Starter | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo | 0 |
+| Core | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo | 0 |
+| Pro | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo | 0 |
 
-All three: `active: true`, `livemode: true`, USD, `interval_count: 1`. Price ids
-are not secrets — they travel to the browser during checkout — so they are
-written down here rather than described.
-
-The `_v2` suffix keeps the old price and the new one tellable apart in the
-dashboard while both exist. The 13 August prices at $19 / $39 / $79 are still
-active and still carry the unsuffixed lookup keys; **step 5 archives them, and
-not before step 3 passes.**
-
-Creating a price charges nobody — a price is inert until a checkout session
-names it. **Nothing changed for a customer when these were created**, because
-the three environment variables still point at the old prices. That is step 2.
-
-**Step 2. Repoint three variables.** Vercel → your project → Settings →
-Environment Variables → **Production**:
-
-```
-STRIPE_PRICE_WORKSPACE_MONTHLY = price_1UDTj00dKtlEU3lAmimC5cN7
-STRIPE_PRICE_ALL_THREE_MONTHLY = price_1UDToK0dKtlEU3lAWURVCj6H
-STRIPE_PRICE_TEAM_MONTHLY      = price_1UDUKr0dKtlEU3lAJzu0pVoe
-```
-
-**This is the step that changes what a customer is charged**, and until it is
-done the pricing page still advertises $29 / $59 / $109 while the variables
-point at the $19 / $39 / $79 prices — so every one of those three plans still
-refuses checkout with `price_mismatch`. Creating the prices did not fix that on
-its own, and could not have.
-
-Price ids are not secrets — they travel to the browser during checkout — so you
-can paste them anywhere you like. **Vercel does not apply an environment change
-to a deployment that is already running. Redeploy afterwards.**
-
-**Step 3. Prove the amounts agree, with the key present.**
-
-```
-STRIPE_SECRET_KEY=rk_live_... node scripts/verify-stripe-env.mjs --require-live
-```
-
-**Use a restricted key, not your live secret key.** This script makes one kind
-of call — `GET /v1/prices/{id}` — so a Stripe **restricted key** with read
-access to Prices is enough. Create one at Developers → API keys → Create
-restricted key, grant *Prices: read*, and grant nothing else. A restricted key
-that leaks cannot charge anybody, refund anybody, or read a customer.
-
-The variable is still named `STRIPE_SECRET_KEY`, because that is what the code
-reads; the value can be `rk_...` or `sk_...`.
-
-**The same key is what the deployment needs.** The controlled production
-deployment runs this check as step 26 of 32, so add that restricted key to the
-repository's protected GitHub environment as `STRIPE_SECRET_KEY`
-(Settings → Environments → the production environment → Add secret). Until it is
-there, every deployment fails at that step — deliberately: a deployment that
-cannot prove it charges what it advertises is what shipped the September
-mismatch.
-
-`--require-live` was added on 8 September 2026 and is the point of this whole
-section. Without it the script skips the live comparison when there is no key
-**and still exits 0**, which is why both runbooks tell you to "read the last
-line rather than the exit code". That instruction was followed and this
-happened anyway. With the flag, every reason for not comparing is a failure, so
-the exit code means what the last line says.
-
-Expect one line per plan:
-
-```
-[OK] workspace_monthly: Stripe charges exactly what the pricing page advertises
-```
-
-Anything else stops the cutover.
-
-**Step 4. Buy one, with a real card.** `docs/SHIP_READINESS.md` item 1, still
-open. Buy One workspace at $29, confirm the workspace opens rather than saying
-"setup required", then refund yourself. The charge path, subscription creation
-and refund have all been observed working. **The entitlement half never has** —
-the only subscription that ever existed lived 29 minutes. This is the only thing
-that proves it.
-
-**Retired Starter/Core/Pro compatibility is closed.** On 18 September 2026 the
-live Stripe account was queried for every subscription status against the exact
-retired SONARA price IDs; all three returned zero subscriptions. The application
-no longer recognizes those plan keys or their environment aliases, so they are
-not a migration path and must not be reintroduced.
-
-### Optional, once the monthly three work: annual billing
-
-Three more prices, and the page will start showing yearly cards it currently
-hides entirely:
-
-| Variable | Interval | Amount |
-| --- | --- | --- |
-| `STRIPE_PRICE_WORKSPACE_ANNUAL` | **year** | $290 |
-| `STRIPE_PRICE_ALL_THREE_ANNUAL` | **year** | $590 |
-| `STRIPE_PRICE_TEAM_ANNUAL` | **year** | $1090 |
-
-Each is ten months of its monthly twin — two months free. Check the interval
-says **year**, not month; `verify-stripe-env.mjs` refuses a subscription plan
-whose Stripe interval disagrees with the period the page advertises.
-
-`/api/readiness` reports these three under `deferred.stripe` rather than
-`missing.stripe`, which is the difference between a variable nobody is waiting
-for and a variable nobody has noticed. Leaving them unset is a supported state,
-not an unfinished one.
+All three Price objects were archived in live Stripe on 18 September 2026.
+They are historical evidence only; they are not a compatibility or migration
+path.
 
 ---
 
