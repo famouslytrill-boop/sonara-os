@@ -123,6 +123,9 @@ function registeredPages() {
     .filter((route) => !route.includes(":"))
     .filter((route) => !route.startsWith("/api/"))
     .filter((route) => !route.startsWith("/admin"))
+    // OAuth callback is a protocol endpoint, not a workspace page. A direct
+    // request with no provider code/PKCE verifier is correctly HTTP 400.
+    .filter((route) => route !== "/auth/callback")
     .sort();
 }
 
