@@ -143,10 +143,11 @@ and refund have all been observed working. **The entitlement half never has** �
 the only subscription that ever existed lived 29 minutes. This is the only thing
 that proves it.
 
-**Do not archive the old prices until steps 3 and 4 pass.** A superseded plan
-drops off the page only when its replacement can be bought, so archiving first
-takes the pricing page down to nothing purchasable. That is
-`docs/owner/PRICE-CUTOVER-RUNBOOK.md` pathway C, and it is the one to avoid.
+**Retired Starter/Core/Pro compatibility is closed.** On 18 September 2026 the
+live Stripe account was queried for every subscription status against the exact
+retired SONARA price IDs; all three returned zero subscriptions. The application
+no longer recognizes those plan keys or their environment aliases, so they are
+not a migration path and must not be reintroduced.
 
 ### Optional, once the monthly three work: annual billing
 
@@ -170,36 +171,33 @@ not an unfinished one.
 
 ---
 
-## 2 — What is genuinely still open, besides the prices
+## 2 — Google sign-in is required
 
-Read from `/api/readiness` on production at 06:15 UTC on 8 September 2026, which
-was serving commit `6f4c7b1`:
+Google is no longer deferred and there are no SONARA/Vercel variables named
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, or `GOOGLE_REDIRECT_URI`.
 
-```
-missing:  { "googleOAuth": ["GOOGLE_REDIRECT_URI"] }
-deferred: { "stripe": ["STRIPE_PRICE_WORKSPACE_ANNUAL",
-                       "STRIPE_PRICE_ALL_THREE_ANNUAL",
-                       "STRIPE_PRICE_TEAM_ANNUAL"] }
-invalid:  (nothing, for any service)
-```
+SONARA uses the hosted Supabase Google provider and server-side PKCE:
 
-Everything else — Supabase, Stripe secret, Stripe webhook, Resend, admin
-protection, founder access, the account database, the payment connection and
-payment updates — reports `configured`.
+1. In Google Cloud, create/open the SONARA OAuth Web Client.
+2. Add this exact Google Authorized redirect URI:
+   `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`
+3. In Supabase -> Authentication -> Providers -> Google, enable Google and paste
+   that Web Client ID and Client Secret.
+4. In Supabase Auth redirect URLs, allow:
+   `https://sonaraindustries.com/auth/callback`
+5. Save the provider.
+6. Run:
+   `node scripts/verify-google-oauth-provider.mjs --require`
+   with the production Supabase public URL/anon values loaded.
+7. Confirm production `/api/readiness` reports
+   `services.googleOAuth = "configured"`.
+8. Complete one real Google login from `/login` and confirm it returns through
+   `/auth/callback` to `/dashboard` (or the requested safe SONARA path).
 
-### `GOOGLE_REDIRECT_URI` is not a task. Do not set it.
-
-It reads like the one outstanding variable, and it is not one. Checked by
-grep on 8 September 2026: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
-`GOOGLE_REDIRECT_URI` appear in `.env.example`, in `lib/sonara-readiness.cjs`,
-and in tests and docs. **No route reads any of them.** `services.googleOAuth` is
-the string literal `"deferred"` in `lib/sonara-readiness.cjs` — it cannot become
-`configured`, whatever you set.
-
-So setting `GOOGLE_REDIRECT_URI` would empty that `missing` list and add no
-Google sign-in button. It would make the readiness payload say a capability is
-fully configured that does not exist. Leave it unset until somebody builds
-Google sign-in.
+The controlled production deployment runs the same provider verification after
+pulling the production Vercel environment and **before** rollback checkpoint,
+database migration, or Vercel deployment. If Google is not enabled at Supabase,
+the release stops with production untouched.
 
 ### The owner steps that are still real
 
@@ -421,9 +419,10 @@ at 503. That 503 is the "setup required" state, not a broken install.
 
 ## The order, if you only read one thing
 
-1. Create three Stripe prices at **$29, $59, $109**.
-2. Repoint the three `STRIPE_PRICE_*_MONTHLY` variables in Vercel Production, and redeploy.
-3. `STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live`
-4. Buy One workspace with a real card, confirm the workspace opens, refund.
-5. Only then archive the old $19/$39/$79 prices.
-6. Leave `GOOGLE_REDIRECT_URI` alone.
+1. Keep only the canonical Stripe plans: **One workspace $29**, **All three $59**, **Team $109** (plus optional annual twins).
+2. Verify them with `node scripts/verify-stripe-env.mjs --require-live`.
+3. Do not restore retired Starter/Core/Pro keys or aliases; live Stripe showed zero subscriptions on those retired SONARA prices.
+4. Enable Google in Supabase Auth and put the Google Web Client ID/Secret there only.
+5. Google Cloud redirects to `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`.
+6. Supabase is allowed to redirect to `https://sonaraindustries.com/auth/callback`.
+7. Run `node scripts/verify-google-oauth-provider.mjs --require`, then complete one real production Google sign-in.
