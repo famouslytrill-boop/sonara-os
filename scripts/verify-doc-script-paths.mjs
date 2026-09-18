@@ -47,6 +47,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { firstInvalidUtf8Byte } from "./utf8-first-invalid-byte.mjs";
 
 const root = process.cwd();
 
@@ -143,25 +144,10 @@ for (const doc of docs) {
     source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
     const decoded = bytes.toString("utf8");
-    // A true byte offset, found by decoding prefixes. `indexOf` on the decoded
-    // string gives a CHARACTER index, which is what a multi-byte character makes
-    // wrong -- and this message exists to tell somebody where to look.
-    let firstBad = bytes.length;
-    for (let end = 1; end <= bytes.length; end += 1) {
-      try {
-        new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, end));
-      } catch {
-        // A truncated multi-byte character at the prefix boundary is not a
-        // defect, so only stop where the byte itself cannot start or continue
-        // one: decoding one byte further still fails.
-        try {
-          new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, Math.min(end + 3, bytes.length)));
-        } catch {
-          firstBad = end - 1;
-          break;
-        }
-      }
-    }
+    // Exact, from scripts/utf8-first-invalid-byte.mjs. A character index from
+    // `indexOf("\uFFFD")` is shifted by every multi-byte character before it,
+    // and this number is what tells somebody where to look.
+    const firstBad = firstInvalidUtf8Byte(bytes);
     notText.push({ doc, bytes: bytes.length, firstBad, invalid: (decoded.match(/\uFFFD/g) || []).length });
     continue;
   }

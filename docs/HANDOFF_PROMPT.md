@@ -181,6 +181,69 @@ here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
 
+### 2026-09-18 - The corruption had a mechanism, and it is a 384 KiB write cap
+
+Followed up the sprint-log recovery by asking what actually wrote those bytes,
+because "a bad merge" is not a cause and the answer decides whether it recurs.
+
+`docs/HANDOFF_PROMPT.md` was corrupt from the **same** offset as the sprint log,
+393216, at a size within one byte of it. That rules out the generator having
+simply copied a bad sprint log forward -- the handoff's own preamble would have
+shifted the offset, so both files were capped independently.
+
+At the clean parent, exactly three tracked files exceeded 384 KiB:
+
+| bytes | file | |
+| --- | --- | --- |
+| 504,810 | `data/open-source-tools.ts` | not rewritten by that commit -- intact |
+| 1,239,342 | `docs/HANDOFF_PROMPT.md` | rewritten -- destroyed at 393216 |
+| 1,232,848 | `docs/SPRINT_LOG.md` | rewritten -- destroyed at 393216 |
+
+Both files the commit rewrote and that exceeded the cap were destroyed at exactly
+that byte; the one over the cap it did not touch is fine. Each corrupt file was
+~393216 bytes of content followed by ~393229 bytes of padding -- content, then
+about the same span again of stale buffer.
+
+**So the writing tool caps a write at 393216 bytes and pads the remainder.** That
+tooling is outside this repository and cannot be fixed from here. What can be
+fixed is letting the result be committed, and the next file in its path was
+`data/open-source-tools.ts` -- 504 KB, over the cap, and the register every
+licence ruling reads.
+
+That register turned out to be protected already, by structure rather than by
+coverage: corrupting it the same way makes both
+`verify-open-source-registry.mjs` and `verify-reciprocal-licence-containment.mjs`
+exit 1, because neither can parse past the cut. **That was checked rather than
+assumed, and the first check of it was wrong** -- `$?` was read after a pipe, so
+it reported the reciprocal gate exiting 0 when the pipe's own status was 0 and
+the script's was 1. Re-run without the pipe, both refuse correctly. Nearly a
+fabricated finding, from the one mistake this repository has already written down.
+
+`scripts/verify-tracked-text-encoding.mjs` is the new gate: every tracked text
+file outside `archive/` must decode strictly as UTF-8. 1,593 files today, 3 of
+them above the cap. When the first invalid byte is at exactly 393216 it names the
+mechanism in the failure, because deriving that from a hex offset took a morning.
+
+`scripts/utf8-first-invalid-byte.mjs` exists because two ways of finding that
+offset were tried and both were wrong: `indexOf("\uFFFD")` returns a *character*
+index, shifted by every multi-byte character before it; and decoding prefixes
+with a three-byte "rescue" for split characters overshoots, because random
+padding can form a valid continuation -- it reported **393218** for a file capped
+at 393216, which was enough to miss the equality test and silently suppress the
+diagnostic. It now walks the encoding, table-driven from RFC 3629, and reports
+393216 exactly.
+
+Falsified: the exact signature on a 504 KB file (offset 393216, diagnostic
+printed), and the blindness floor against a tree holding two files. Both restored
+with `md5sum -c`.
+
+Recorded as **shape 11** in `.claude/skills/checks-that-cannot-lie`, because it
+is not shape 1. Shape 1 passes over an empty population; this passed over a
+population that was real, non-empty and silently cut in half, which is worse
+because every symptom of shape 1 is absent. The corrupt commit's own diff stat
+read **+1,453 / −30,251** and was merged -- the number was on the pull request
+the whole time.
+
 ### 2026-09-18 - Half the sprint log was binary, committed on main
 
 `docs/SPRINT_LOG.md` was clean UTF-8 to offset 393216 -- exactly 0x60000, 384 KiB
