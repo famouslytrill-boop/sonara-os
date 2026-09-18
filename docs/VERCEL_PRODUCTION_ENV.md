@@ -63,6 +63,11 @@ Cloudflare Email Routing only confirms inbound forwarding. Outbound support/cont
 Run after env changes:
 
 ```powershell
-pnpm run verify:email-env
+pnpm run verify:env
 pnpm run build
 ```
+
+> `pnpm run verify:email-env` was named here and is not defined in
+> `package.json`. Corrected 18 September 2026 to `pnpm run verify:env`, which
+> classifies every variable the code reads. It does not prove outbound email
+> works; nothing in this repository does.

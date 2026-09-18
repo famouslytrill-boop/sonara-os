@@ -108,15 +108,37 @@ Redeploy the previously-live commit recorded in the checkpoint.
 ```bash
 git checkout <previous_production_sha>
 pnpm install --frozen-lockfile
-pnpm run apply:runtime
+pnpm run build
 pnpm dlx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN" \
   --meta githubCommitSha="<previous_production_sha>" \
   --meta githubCommitRef="main" \
   --meta githubCommitMessage="Rollback to last known good production commit"
 ```
 
-`apply:runtime` is required: `server.js` is transformed at build time, so a
-checkout alone is not the deployable artifact.
+**This step used to say something false, and it said it in the one document you
+read during an incident.** It prescribed `pnpm run apply:runtime`, and justified
+it: *"`apply:runtime` is required: `server.js` is transformed at build time, so a
+checkout alone is not the deployable artifact."*
+
+No such script exists. Following this runbook mid-incident got you
+`Command "apply:runtime" not found`, and then a sentence telling you your
+checkout was therefore not deployable — at the moment nobody has time to work
+out why. Corrected 18 September 2026.
+
+The claim was also untrue, which is why the fix is a simpler procedure rather
+than a renamed command:
+
+- `build` is `node --check server.js && node -e "require('./server')"` — it
+  parses the file and loads it. It **validates**; it transforms nothing.
+- `vercel-build` is `pnpm run build`. There is no `prebuild`, `postinstall` or
+  `prepare`.
+- `server.js` is tracked in git, is not generated, and nothing in `scripts/`
+  writes it.
+
+**So the checkout IS the deployable artifact.** `pnpm run build` is kept in the
+sequence because it is worth knowing the commit you are about to push to
+production still parses and loads — but it produces nothing, and if it fails,
+stop and do not deploy.
 
 Verify the rollback actually took effect — do not trust the CLI's success line:
 

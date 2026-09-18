@@ -113,7 +113,6 @@ pnpm install --frozen-lockfile
 pnpm audit --audit-level moderate
 pnpm run typecheck
 pnpm run build
-pnpm run validate:infrastructure
 pnpm run verify:db
 pnpm run smoke:routes
 pnpm run verify:all

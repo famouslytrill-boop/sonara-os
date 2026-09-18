@@ -59,9 +59,18 @@ Configure the real support destination in hosting secrets or provider dashboards
 ## Verification
 
 ```powershell
-pnpm run verify:email-env
-pnpm run test:email
-pnpm run test:email -- --send
+pnpm run verify:env
 ```
 
-The send test must be run manually after Resend domain verification and key rotation.
+> **No email tooling exists in this repository.** `pnpm run verify:email-env`
+> and `pnpm run test:email` are named above as they were written; neither is
+> defined in `package.json`, and there is no email script under `scripts/`.
+> Checked 18 September 2026: no script name or body in `package.json` contains
+> "email" at all. The live environment check is `pnpm run verify:env`, which
+> classifies every variable the code reads — including the email variables —
+> but it sends nothing and proves no provider works.
+>
+> So outbound email cannot be verified from this repository today. Confirm it in
+> the provider dashboard, and treat any claim that email is live as unproven
+> until there is a script here that proves it.
+

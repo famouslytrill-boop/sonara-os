@@ -77,6 +77,101 @@ here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
 
+### 2026-09-18 - The rollback runbook told you to run a command that does not exist
+
+Asked to confirm the workflows, tables, schemas and migrations were all current,
+that the latest Node 26 was installed, and that Node 27 was ready. Most of that
+turned out to be true already, verified rather than assumed:
+
+- **122 migrations** replayed in order against an empty PostgreSQL, 119 frozen
+  and unchanged, 146 required tables present, 8 operational indexes.
+- **Node 26.9.0** (released 2026-09-16, not LTS) downloaded, checksum-verified
+  against `nodejs.org/dist/v26.9.0/SHASUMS256.txt`, installed locally, and the
+  whole repository run under it: build, typecheck, lint, the full suite, and
+  `verify:launch` **exit 0**.
+- **Node 27 does not exist.** Its release is 2027-04-22 per `nodejs/Release`,
+  and Node 26 reaches LTS 2026-10-28 -- both read from the schedule, and both
+  matching what `node-runtime-compatibility.yml` already says. The prewired
+  manual lane is correctly timed and needed nothing.
+
+`engines.node` stays `24.x`, deliberately. `vercel.json` carries no runtime pin
+and there is no `.nvmrc`, so that field **is** the production runtime; a test
+already asserts it must stay 24.x. The `[WARN] Unsupported engine` line under
+Node 26 is correct and wanted, and widening the field to silence it would be a
+production change. That was nearly "fixed" before checking what set the runtime.
+
+## What was actually broken
+
+`docs/PRODUCTION_ROLLBACK_RUNBOOK.md`, Step 3, the application rollback:
+
+    git checkout <previous_production_sha>
+    pnpm install --frozen-lockfile
+    pnpm run apply:runtime
+
+followed by *"`apply:runtime` is required: `server.js` is transformed at build
+time, so a checkout alone is not the deployable artifact."*
+
+**Both halves were false.** No `apply:runtime` script exists. And `server.js` is
+not transformed: `build` is `node --check server.js && node -e "require('./server')"`,
+`vercel-build` is `pnpm run build`, there is no prebuild/postinstall/prepare
+hook, `server.js` is tracked in git, and nothing under `scripts/` writes it. So
+an operator following the runbook mid-incident got `Command "apply:runtime" not
+found` and then a sentence telling them their checkout was not deployable -- at
+the one moment nobody has time to work it out. The checkout **is** the artifact.
+
+This is the same failure `scripts/verify-doc-script-paths.mjs` was written for in
+August, when `MONITORING_AND_BACKUPS.md` named three backup scripts that lived
+only under `archive/`. That gate matches backticked `scripts/...` paths, and
+almost nothing here is invoked that way -- it is invoked as `pnpm run X`. So the
+defect reappeared in the notation the gate is blind to, and in a recovery
+document again.
+
+**23 dead `pnpm run` names across `docs/`,** eight of them in live instructions:
+`apply:runtime` in the rollback runbook and the server-split plan;
+`check:env-safety` and `check:risky-features` in the admin launch checklist --
+the first two lines of it; `db:types` in the schema doc; `validate:infrastructure`
+in the migration-fix doc; `verify:legacy-copy` in the deployment runbook; and
+`verify:email-env` plus `test:email` across four documents.
+
+That last one is worth naming on its own: **an entire email-setup capability is
+documented and does not exist.** No script name or body in `package.json`
+contains "email" at all, yet `EMAIL_ROUTING_AND_RESEND_SETUP.md` described
+`pnpm run test:email` as a dry run and `pnpm run test:email -- --send` as a real
+provider test, with a caution not to run the send from CI -- a caution protecting
+a capability that was never there. Every one of those documents now says plainly
+that outbound email cannot be verified from this repository, and points at
+`verify:env`, which classifies the variables but sends nothing.
+
+`scripts/verify-doc-pnpm-scripts.mjs` is the 53rd chain command, two-sided like
+its older sibling: a named command exists, or is registered as history with what
+the mention IS.
+
+## The matcher had to be narrowed, and the first one was shape 7
+
+`\bpnpm(?:\s+run)?\s+(\w[\w:-]*)` over whole documents returned 36 "missing
+scripts" including `and`, `only`, `for`, `from`, `correctly`, `stays` and
+`workspace` -- from prose like "SONARA uses pnpm only" and "pnpm workspace". A
+pattern matching prose as if it were code, which would have buried the eight real
+findings in noise. A reference now counts only inside inline backticks or a
+fenced block, and only as `pnpm run <name>` or `pnpm <namespaced:name>`; prose
+satisfies neither. 36 candidates became 23 with no false positives, and the
+regression is asserted -- a falsification case appends prose and requires the
+gate to stay **green**.
+
+Falsified four ways, each restored with `md5sum -c`: a live doc naming a missing
+command; an orphaned register entry; a registered name that `package.json`
+defines again; and the prose guard.
+
+`docs/NODE_AND_PNPM_SETUP.md` was rewritten -- it had claimed `>=22 <27` while
+`engines` said `24.x`, and named two of the dead commands. It now carries
+`Review by: 2027-04-22`, Node 27's real release date, so `report-stale-claims`
+surfaces the manual Node 27 lane when it becomes relevant; nothing else in the
+repository would have noticed.
+
+**The doc-counts gate caught a hardcoded figure in that rewrite** -- "4,746
+passing" -- with the right objection: a passing count is stale the next time
+anybody adds a test. Removed rather than updated.
+
 ### 2026-09-18 - Two classifiers for owner approval, with opposite defaults
 
 Audited `lib/sonara-event-outbox.cjs` because it arrived in the commit that
