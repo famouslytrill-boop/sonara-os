@@ -1,0 +1,97 @@
+name: Node Runtime Compatibility
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      test_node27:
+        description: "Attempt the future Node 27 lane after an official Node 27 release exists"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  blocking-compatibility:
+    name: Node ${{ matrix.node }} blocking compatibility
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.1
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      # package.json intentionally remains 24.x because that is the documented
+      # Vercel production runtime. Node 26 is a blocking compatibility target
+      # ahead of its LTS transition, so installation must not reject the lane
+      # merely because it is newer than the production engine declaration.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.engine-strict=false
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+  node-27-forward-compatibility:
+    name: Node 27 forward compatibility (manual, non-blocking)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_node27 }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.1
+          run_install: false
+
+      # Node 27 is prewired but deliberately manual until an official release
+      # exists. As of 2026-09-18 the Node release schedule places alpha on
+      # 2026-10-28 and the normal release on 2027-04-22.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 27
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.engine-strict=false
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build

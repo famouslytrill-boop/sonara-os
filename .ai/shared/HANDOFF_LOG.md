@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-09-18 - Codex - Node 24 production runtime / Node 26 compatibility proof
+
+- Stacked runtime migration on top of PR #294 hardening rather than mixing scopes. Draft PR #295 keeps production and ordinary CI on Node 24, adds Node 26 as a blocking compatibility lane, and prewires Node 27 as manual/non-blocking only until an official release exists.
+- Vercel project metadata confirms the SONARA project is configured for Node `24.x`; latest READY production deployment remains on merged `main` commit `6f52b33e69724ad6b8f5c6fa855a4cadc6edd879`. No deployment was triggered from this branch.
+- GitHub exact-head runtime proof passed on Node `24.20.0` and Node `26.9.0`: dependency install, typecheck, lint, full test suite, and build all green in both blocking lanes. Node 27 correctly skipped on pull-request runs.
+- First Node 24 dependency-scan attempt exposed a parser defect rather than failing tests: Node 24 changed the default `node --test` human-readable summary. The workflow now pins `--test-reporter=tap` and parses TAP's machine-readable count; existing suite floors were preserved. Replacement dependency-scan is green.
+- Action/runtime health is green: 70 external Action references across 16 workflows resolve to seven reviewed Actions on `node24` or composite runtimes, and the network verifier reread eight upstream manifests at the exact pinned commits. No retired Node runtime is registered or referenced.
+- Exact-head PR #295 workflows are green: Docker Image CI, dependency-scan, Node Runtime Compatibility, External Repository Health, and SONARA Industries CI.
+- Next ordered gate: integrate PR #294 first, then retarget/rebase PR #295 onto the resulting `main`, rerun the complete exact-head matrix, and only then consider merge/deployment. No merge or production mutation was performed in this pass.
+
 ## 2026-09-18 - Codex - GitHub action v7 pin migration
 
 - Upgraded `actions/checkout` to immutable v7.0.1 commit `3d3c42e5aac5ba805825da76410c181273ba90b1` across all workflows.

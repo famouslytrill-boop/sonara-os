@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: "22"
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
@@ -336,17 +336,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version: 24
       - name: Run the ${{ matrix.project }} tests
         working-directory: tools/${{ matrix.project }}
         shell: bash
         run: |
           set -o pipefail
-          node --test tests/*.test.js 2>&1 | tee /tmp/out.log
+          # Pin an explicit machine-readable reporter. Node 24 changed the
+          # human-facing default summary even though the tests themselves passed.
+          node --test --test-reporter=tap tests/*.test.js 2>&1 | tee /tmp/out.log
           status=${PIPESTATUS[0]}
-          ran=$(grep -oP '^# tests \K[0-9]+' /tmp/out.log | tail -n 1)
+          ran=$(awk '/^# tests [0-9]+$/ { count=$3 } END { if (count != "") print count }' /tmp/out.log)
           if [ -z "$ran" ]; then
-            echo "::error::no '# tests' line in the output; the runner did not report a count"
+            echo "::error::no TAP '# tests N' summary found; the runner did not report a machine-readable count"
             exit 1
           fi
           if [ "$ran" -lt "${{ matrix.floor }}" ]; then
