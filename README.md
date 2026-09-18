@@ -11,7 +11,7 @@ The app intentionally remains an Express/Node deployment for this repo. Do not a
 ## What is functional now
 
 - Public marketing pages for `/`, `/pricing`, `/business-builder`, `/creator-studio`, and `/growth-studio`.
-- Email/password signup, login, logout, persistent HTTP-only session cookies, and password visibility toggles when Supabase is configured.
+- Email/password and Google sign-in through Supabase Auth, sharing the same persistent HTTP-only SONARA session cookies and server-side two-factor/authorization boundary.
 - Auth-protected `/dashboard`, product dashboards, Business Builder intake, launch readiness, billing, and support pages.
 - Role-aware access for `customer`, `paid_customer`, `owner`, `admin`, and `founder`.
 - Paid-tool access gates based on roles, active/trialing subscription rows, or valid purchase rows.
@@ -19,13 +19,13 @@ The app intentionally remains an Express/Node deployment for this repo. Do not a
 - Stripe Checkout session creation, Customer Portal session creation, webhook signature verification, subscription/purchase sync, and payment activity events.
 - Admin-only overview and environment-status API routes that return booleans only, never secret values.
 - Legal template pages: terms, privacy, refund policy, cookies, acceptable use, accessibility, and earnings disclaimer.
-- Setup-required states when Supabase, Stripe, Resend, Google OAuth, or founder access are missing.
+- Setup-required states when Supabase, Stripe, Resend, Google OAuth, or founder access are missing; production deployment is blocked until the hosted Google provider is enabled.
 
 ## What still requires manual external setup
 
 - Create/configure the Supabase project.
 - Apply the SQL migrations in `supabase/migrations/`.
-- Configure Supabase email auth and any Google OAuth provider settings.
+- Configure Supabase email auth and the required Google provider; Google client credentials live only in Supabase Auth.
 - Create Stripe products/prices and add the price IDs to env vars.
 - Configure the Stripe webhook endpoint to hit `/api/stripe/webhook` and copy the webhook secret.
 - Configure Resend sender/domain verification.
@@ -70,17 +70,19 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY=
-STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME=
-STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY=
-STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY=
+STRIPE_PRICE_WORKSPACE_MONTHLY=
+STRIPE_PRICE_ALL_THREE_MONTHLY=
+STRIPE_PRICE_TEAM_MONTHLY=
+STRIPE_PRICE_WORKSPACE_ANNUAL=
+STRIPE_PRICE_ALL_THREE_ANNUAL=
+STRIPE_PRICE_TEAM_ANNUAL=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 NEXT_PUBLIC_SITE_URL=
 FOUNDER_EMAILS=
 ```
 
-Backward-compatible aliases are documented in `.env.example` and remain supported where practical.
+Retired Starter/Core/Pro and product-specific Stripe aliases are intentionally unsupported. Google Client ID/Secret are not SONARA environment variables; configure them in Supabase Auth -> Providers -> Google.
 
 ## Supabase setup
 
@@ -91,7 +93,10 @@ Backward-compatible aliases are documented in `.env.example` and remain supporte
    - Anon/public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - Service role key → `SUPABASE_SERVICE_ROLE_KEY`
 4. Go to **Authentication → Providers → Email** and confirm email/password is enabled.
-5. Apply the migration:
+5. Go to **Authentication → Providers → Google**, enable Google, and set the Google OAuth Web Client ID/Secret there.
+6. In Google Cloud, authorize the Supabase callback `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`.
+7. In Supabase Auth redirect URLs, allow `https://sonaraindustries.com/auth/callback`.
+8. Apply the migration:
 
 ```powershell
 pnpm exec supabase login
@@ -103,12 +108,13 @@ Manual SQL Editor fallback: open `supabase/migrations/011_sonara_saas_launch_sys
 
 ## Stripe setup
 
-1. In Stripe, create products/prices for:
-   - Business Builder monthly
-   - Business Builder one-time setup
-   - Creator Studio monthly
-   - Growth Studio monthly
-2. Copy each `price_...` ID to the matching env var.
+1. In Stripe, use the canonical SONARA prices:
+   - One workspace: $29/month
+   - All three: $59/month
+   - Team: $109/month
+   - Optional annual twins at $290/$590/$1090
+   - Business Builder setup remains quoted, not self-serve
+2. Copy each canonical `price_...` ID to the matching `STRIPE_PRICE_WORKSPACE_*`, `STRIPE_PRICE_ALL_THREE_*`, or `STRIPE_PRICE_TEAM_*` environment variable. Retired Starter/Core/Pro price variables are not supported.
 3. Copy your secret key to `STRIPE_SECRET_KEY`.
 4. Create a webhook endpoint:
 
