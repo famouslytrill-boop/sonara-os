@@ -20,8 +20,12 @@ pnpm run typecheck
 pnpm run lint
 pnpm test
 pnpm run build
-pnpm run verify:legacy-copy
+pnpm run verify:stale-claims
 ```
+
+> This sequence used to end with `pnpm run verify:legacy-copy`, which is not
+> defined in `package.json`. Corrected 18 September 2026: retired-name and stale
+> public-copy checking is `pnpm run verify:stale-claims`.
 
 ## Domain And SSL
 

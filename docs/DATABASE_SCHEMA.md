@@ -49,6 +49,6 @@ Membership reads are scoped to the signed-in user's active memberships. Organiza
 - Service-role access must remain server-side.
 - Private organization, customer, payment, file, and audit data must not have public read policies.
 - Apply migrations only after backing up the target Supabase project.
-- Generate TypeScript types after migration review with `pnpm run db:types`.
+- There is **no TypeScript type generation script in this repository**. This line used to say to run `pnpm run db:types` after migration review; that script is not defined in `package.json`. Checked 18 September 2026. Migration review is `pnpm run verify:applied-migrations` and `pnpm run verify:migration-replay`, which replays every migration in order against an empty PostgreSQL.
 - Some production schemas may include a required `organizations.company_key` column. Owner bootstrap SQL sets `company_key = 'sonara'` when the column exists.
 - Do not rely on `ON CONFLICT` for owner bootstrap unless a matching unique or exclusion constraint has been confirmed.

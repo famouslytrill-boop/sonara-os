@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 // SONARA Software-in-a-Service lifecycle routes.
 // Adds onboarding, service catalog, service requests, deliverables, support,
 // free tool workspaces with real POST actions, and admin/operator views.

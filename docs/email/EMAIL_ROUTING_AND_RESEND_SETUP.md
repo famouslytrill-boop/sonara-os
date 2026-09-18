@@ -29,17 +29,27 @@ Do not put `RESEND_API_KEY` in `NEXT_PUBLIC_*` variables, screenshots, frontend 
 ## Local Verification
 
 ```powershell
-pnpm run verify:email-env
-pnpm run test:email
+pnpm run verify:env
 ```
 
-`pnpm run test:email` is a dry run. A real provider test requires:
+> **No email tooling exists in this repository.** `pnpm run verify:email-env`
+> and `pnpm run test:email` are named above as they were written; neither is
+> defined in `package.json`, and there is no email script under `scripts/`.
+> Checked 18 September 2026: no script name or body in `package.json` contains
+> "email" at all. The live environment check is `pnpm run verify:env`, which
+> classifies every variable the code reads — including the email variables —
+> but it sends nothing and proves no provider works.
+>
+> So outbound email cannot be verified from this repository today. Confirm it in
+> the provider dashboard, and treat any claim that email is live as unproven
+> until there is a script here that proves it.
 
-```powershell
-pnpm run test:email -- --send
-```
-
-Do not run the send test from CI. Confirm the message arrives in the real support inbox before claiming outbound email is live.
+> The instruction this replaces was more specific than the truth: it described
+> `pnpm run test:email` as "a dry run" and `pnpm run test:email -- --send` as a
+> real provider test, with a warning not to run the send from CI. None of those
+> commands exist, so the caution was protecting a capability that was never
+> there. Confirm the message arrives in the real support inbox before claiming
+> outbound email is live — by sending one yourself, not by running this.
 
 ## Provider Setup Still Required
 
