@@ -120,27 +120,19 @@ describe("a read-only key is enough to check a price", () => {
     assert.deepEqual(payload.invalid.stripe, []);
   });
 
-  it("defers missing legacy prices after their configured replacements are buyable", () => {
+  it("reports only canonical paid plans in readiness", () => {
     const payload = makeReadiness().getReadiness();
+    const planKeys = Object.keys(payload.checkoutPlans);
 
-    for (const legacy of ["starter_monthly", "core_monthly", "pro_monthly"]) {
-      const status = payload.checkoutPlans[legacy];
-      assert.equal(status.checkout, "setup_required", `${legacy} itself must not pretend to be buyable`);
-      assert.equal(status.reason, "missing", `${legacy} still has a genuinely absent legacy price`);
-      assert.ok(
-        payload.deferred.stripe.includes(status.env),
-        `${legacy} is superseded by a buyable plan and should be deferred rather than blocking readiness`
-      );
-      assert.equal(
-        payload.missing.stripe.includes(status.env),
-        false,
-        `${legacy} must not be reported as required after the replacement ladder opens`
-      );
+    for (const plan of ["workspace_monthly", "all_three_monthly", "team_monthly"]) {
+      assert.equal(payload.checkoutPlans[plan]?.checkout, "enabled", `${plan} must be buyable in the canonical fixture`);
     }
 
-    assert.equal(payload.checkoutPlans.workspace_monthly.checkout, "enabled");
-    assert.equal(payload.checkoutPlans.all_three_monthly.checkout, "enabled");
-    assert.equal(payload.checkoutPlans.team_monthly.checkout, "enabled");
+    assert.deepEqual(
+      planKeys.filter((plan) => STRIPE_PLANS[plan]?.mode === "subscription" && !STRIPE_PLANS[plan]?.billedAnnually).sort(),
+      ["all_three_monthly", "team_monthly", "workspace_monthly"],
+      "readiness exposed a second monthly billing ladder"
+    );
   });
 
   it("still rejects a malformed Stripe key in runtime readiness", () => {
@@ -157,11 +149,7 @@ describe("a read-only key is enough to check a price", () => {
     const source = fs.readFileSync(path.join(root, "scripts", "verify-production-product-catalog.mjs"), "utf8");
 
     assert.match(source, /offeredPlanKeys\(\(plan\) => readiness\.checkoutPlans\?\.\[plan\]\?\.checkout\)/);
-    assert.doesNotMatch(
-      source,
-      /\["starter_monthly",\s*"core_monthly",\s*"pro_monthly"\]/,
-      "the deploy gate has hard-coded the superseded depth ladder again"
-    );
+    assert.doesNotMatch(source, /Legacy predecessor keys retained here/, "the deploy verifier still carries cutover-only vocabulary");
     assert.match(source, /enabledPaidPlans\.length > 0/);
   });
 });
