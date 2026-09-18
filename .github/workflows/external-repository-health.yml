@@ -22,23 +22,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
       - name: Validate registry policy and remote repository health
-        # Authenticated, because unauthenticated is 60 requests an hour shared
-        # across every runner on the same address, and this check reads 115
-        # targets. It failed on 18 August 2026 with "rate limit reached" and
-        # "confirmed none of 115 registered targets" -- the checker refusing to
-        # report success on a run that established nothing, which is correct.
-        #
-        # scripts/verify-open-source-registry.mjs has read GITHUB_TOKEN since it
-        # was written, and its own failure message says to check the token. The
-        # workflow never passed one. `permissions: contents: read` above is
-        # enough for the public repository metadata this reads.
+        # Pull requests validate the whole registry offline, then spend network
+        # quota only on GitHub repository URLs added or changed by the PR.
+        # The scheduled/manual job still probes the entire registry for upstream
+        # drift. This keeps a 239-target catalogue from exhausting the shared
+        # Actions token during concurrent PR work while preserving pre-merge
+        # verification for every newly introduced upstream repository.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/verify-open-source-registry.mjs --network
+          SONARA_NETWORK_BASE_REF: origin/${{ github.base_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            node scripts/verify-open-source-registry.mjs --network-changed
+          else
+            node scripts/verify-open-source-registry.mjs --network
+          fi
 
       - name: Confirm each pinned action still declares its reviewed runtime
         # The offline half of this check (verify:action-pins, in verify:gates)
