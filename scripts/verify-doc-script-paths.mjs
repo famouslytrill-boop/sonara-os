@@ -47,6 +47,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { firstInvalidUtf8Byte } from "./utf8-first-invalid-byte.mjs";
 
 const root = process.cwd();
 
@@ -58,6 +59,10 @@ const root = process.cwd();
 const HISTORICAL_SCRIPTS = Object.freeze({
   "scripts/verify.sh":
     "Named in docs/SPRINT_LOG.md and the generated handoff inside the sentence recording that it was deleted, because it built a frontend/ directory that no longer exists.",
+  "scripts/verify-stripe-config.mjs":
+    "Named in docs/SPRINT_LOG.md in the entry that itself records this name as wrong; the real script is scripts/verify-stripe-env.mjs, run as `pnpm run verify:stripe`.",
+  "scripts/seed-stripe-products.mjs":
+    "A one-shot seeding script named in docs/SPRINT_LOG.md as the source of eight product names a check surfaced. Historical narrative, not an instruction.",
   "scripts/verify-brand.mjs":
     "Named in docs/MASSIVE_UPDATE_COMPLETION_REPORT.md, a report of what was run at the time.",
   "scripts/verify-no-client-secrets.mjs":
@@ -122,8 +127,30 @@ function markdownFiles(dir, out = []) {
 const docs = markdownFiles(path.join(root, "docs")).map((file) => path.relative(root, file));
 
 const referencedBy = new Map();
+const notText = [];
 for (const doc of docs) {
-  const source = fs.readFileSync(path.join(root, doc), "utf8");
+  // Read as bytes and decode strictly. `readFileSync(path, "utf8")` substitutes
+  // U+FFFD for every invalid byte and tells you nothing, which is how a corrupt
+  // document walks through a check that is "reading" it.
+  //
+  // Found on 18 September 2026: docs/SPRINT_LOG.md was clean UTF-8 to exactly
+  // 384 KiB and 111,879 bytes of binary after that, committed on main through a
+  // merged pull request. This check, verify:doc-counts and verify:handoff all
+  // read that file and all passed -- a truncation that leaves the head intact is
+  // invisible to anything that only looks at the head.
+  const bytes = fs.readFileSync(path.join(root, doc));
+  let source;
+  try {
+    source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    const decoded = bytes.toString("utf8");
+    // Exact, from scripts/utf8-first-invalid-byte.mjs. A character index from
+    // `indexOf("\uFFFD")` is shifted by every multi-byte character before it,
+    // and this number is what tells somebody where to look.
+    const firstBad = firstInvalidUtf8Byte(bytes);
+    notText.push({ doc, bytes: bytes.length, firstBad, invalid: (decoded.match(/\uFFFD/g) || []).length });
+    continue;
+  }
   for (const match of source.matchAll(SCRIPT_REFERENCE)) {
     if (!referencedBy.has(match[1])) referencedBy.set(match[1], new Set());
     referencedBy.get(match[1]).add(doc);
@@ -131,6 +158,21 @@ for (const doc of docs) {
 }
 
 const problems = [];
+
+if (notText.length) {
+  problems.push(
+    "These documents are not valid UTF-8 text:\n"
+    + notText
+      .map(({ doc, bytes, firstBad, invalid }) =>
+        `  ${doc}\n    ${bytes} bytes, first invalid byte at offset ${firstBad}, ${invalid} invalid byte(s) total`)
+      .join("\n")
+    + "\n\nA document that is half binary still has a head that parses, still contains the\n"
+    + "phrases a grep looks for, and still answers a line count. Recover it from history\n"
+    + "rather than rewriting it -- and if the corrupt commit also carried real content,\n"
+    + "reconstruct rather than revert, then prove the tail is byte-identical to the last\n"
+    + "clean version."
+  );
+}
 
 if (docs.length < MINIMUM_DOCS) {
   problems.push(

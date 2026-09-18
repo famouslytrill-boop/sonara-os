@@ -300,6 +300,58 @@ windowed to a date range rather than a whole table, and both recorded in
 watching and what its failure would look like. A site examined and not fixed is
 a finding; a site examined and not written down gets examined again.
 
+### 11. Reading a file without asking whether it is still a file
+
+Shape 1 is passing over an empty population. This is passing over a population
+that is **real, non-empty, and silently cut in half** -- which is worse, because
+every symptom of shape 1 is absent.
+
+On 18 September 2026 `docs/SPRINT_LOG.md` turned out to be clean UTF-8 to offset
+393216 -- exactly 384 KiB -- and 111,879 bytes of binary after that, breaking off
+mid-sentence. It had been on `main` for a day, arriving through a merged pull
+request that took the file from 1,232,848 bytes to 786,445 and destroyed 274 of
+its 377 entries. `CLAUDE.md` calls that file the only hand-written part of the
+handoff "because history cannot be derived", so nothing could have rebuilt it.
+
+**Every gate that reads it passed.** `verify:doc-counts` and `verify:handoff`
+both read that file on every release. So did `verify:doc-script-paths`, which
+walks all 411 documents. None noticed, and none was badly written: a file whose
+first 384 KiB is intact still contains the phrases a grep looks for, still has
+parseable headings, still answers a line count, and still satisfies a floor.
+`fs.readFileSync(path, "utf8")` substitutes U+FFFD for every invalid byte and
+reports nothing, so the read *succeeded* in the only sense any of them checked.
+
+The detail that makes this a shape rather than an anecdote: the corrupt commit's
+own diff stat said **+1,453 / −30,251** across 26 files, and it was reviewed and
+merged. 30,209 of those deletions were two files. The number was on the pull
+request the whole time.
+
+**Guard:** when a check's finding depends on a file's *contents*, decode it
+strictly -- `new TextDecoder("utf-8", { fatal: true })` -- and fail on the file
+rather than on what you found in it. `scripts/verify-tracked-text-encoding.mjs`
+does this across every tracked text file, and
+`scripts/verify-doc-script-paths.mjs` does it for the documents it already walks.
+
+Two things worth copying from that fix:
+
+**Report a byte offset, exactly.** Two approximations were tried and both were
+wrong in ways that mattered: `indexOf("\uFFFD")` on a lossily decoded string
+gives a *character* index, shifted by every multi-byte character before it; and
+decoding successive prefixes while allowing three bytes to "rescue" a split
+character overshoots, because random padding can itself form a valid
+continuation -- it reported 393218 for a file capped at 393216, which was enough
+to miss an equality test against the known cap and suppress the diagnostic that
+named the bug. `scripts/utf8-first-invalid-byte.mjs` walks the encoding instead.
+
+**When you know the mechanism, put it in the failure message.** The cap was
+established, not guessed: `docs/HANDOFF_PROMPT.md` was corrupt from the *same*
+offset at a size within one byte, which rules out the generator having copied a
+bad sprint log (its own preamble would have shifted the offset); and of the three
+tracked files then over 384 KiB, the two that commit rewrote were both destroyed
+and the one it did not touch is intact. So the writing tool caps at 393216 bytes
+and pads the rest. The check now says so when it sees that offset, because
+working it out from a hex number took a morning once.
+
 ## Writing a new release-chain command
 
 1. Put it in `scripts/`, named `verify-*` or `report-*`.
