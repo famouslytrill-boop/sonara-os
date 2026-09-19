@@ -1,0 +1,99 @@
+name: Android TWA Packaging
+
+on:
+  pull_request:
+    paths:
+      - "android/twa/**"
+      - "public/site.webmanifest"
+      - "public/icons/**"
+      - "scripts/verify-android-twa.mjs"
+      - "scripts/generate-android-assetlinks.mjs"
+      - "lib/sonara-infrastructure-manifest.cjs"
+      - "tests/the-infrastructure-map-says-what-is-configured.test.js"
+      - ".github/workflows/android-twa-packaging.yml"
+  push:
+    branches: [main]
+    paths:
+      - "android/twa/**"
+      - "public/site.webmanifest"
+      - "public/icons/**"
+      - "scripts/verify-android-twa.mjs"
+      - "scripts/generate-android-assetlinks.mjs"
+      - ".github/workflows/android-twa-packaging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Android TWA static contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SONARA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Verify Android contract
+        run: node scripts/verify-android-twa.mjs
+
+  package:
+    name: Generate TWA and build Android artifacts
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout SONARA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Verify runner Android toolchain
+        run: |
+          set -euo pipefail
+          java -version
+          command -v sdkmanager
+          echo "ANDROID_HOME=$ANDROID_HOME"
+      - name: Install pinned Bubblewrap CLI
+        run: |
+          set -euo pipefail
+          npm install --global @bubblewrap/cli@1.25.0
+          bubblewrap --version
+      - name: Generate Android project from SONARA PWA contract
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/sonara-twa"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp android/twa/twa-manifest.json "$work/twa-manifest.json"
+          bubblewrap update --skipVersionUpgrade --manifest "$work/twa-manifest.json" --directory "$work"
+          grep -Eq "compileSdkVersion[[:space:]]+36|compileSdk[[:space:]]+36" "$work/app/build.gradle"
+          grep -Eq "targetSdkVersion[[:space:]]+36|targetSdk[[:space:]]+36" "$work/app/build.gradle"
+      - name: Ensure Android 16 build tools are installed
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Build debug APK and unsigned release AAB
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/sonara-twa"
+          chmod +x "$work/gradlew"
+          (
+            cd "$work"
+            ./gradlew --no-daemon :app:assembleDebug :app:bundleRelease
+          )
+          mkdir -p artifacts/android
+          cp "$work/app/build/outputs/apk/debug/app-debug.apk" artifacts/android/sonara-debug.apk
+          cp "$work/app/build/outputs/bundle/release/app-release.aab" artifacts/android/sonara-release-unsigned.aab
+          sha256sum artifacts/android/* | tee artifacts/android/SHA256SUMS
+      - name: Upload Android packaging proof
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonara-android-twa-${{ github.run_id }}
+          path: artifacts/android
+          if-no-files-found: error
+          retention-days: 7
