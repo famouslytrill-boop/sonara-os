@@ -324,6 +324,12 @@ jobs:
             --token="$VERCEL_TOKEN"
           test -s .env.production.catalog-verification
 
+      - name: Require live Google sign-in provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --env-file=.env.production.catalog-verification scripts/verify-google-oauth-provider.mjs --require
+
       - name: Verify live Stripe prices match what the pricing page advertises
         shell: bash
         # The protected STRIPE_SECRET_KEY is intentionally a read-only verifier
