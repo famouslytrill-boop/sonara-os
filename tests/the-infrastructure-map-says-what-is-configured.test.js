@@ -135,7 +135,8 @@ describe("the infrastructure map says what is configured", () => {
       assert.ok(android, "Android native client track is missing");
       assert.equal(android.productionEnabled, false);
       assert.match(android.claimBoundary, /does not claim a hardware kernel/i);
-      assert.ok(android.technologies.includes("Capacitor"));
+      assert.ok(android.technologies.includes("Trusted Web Activity"));
+      assert.match(android.target, /Capacitor server\.url is not a production/i);
     });
 
     it("uses passkeys without creating a biometric identity database", () => {

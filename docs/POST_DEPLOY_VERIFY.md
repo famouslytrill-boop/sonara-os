@@ -85,5 +85,21 @@ Manual proof gates:
 - Vercel environment variables must remain server-scoped where required.
 - Supabase service-role, Stripe secret/webhook, Resend, and administrator secrets must never be exposed to public assets or API responses.
 - `SUPABASE_DB_URL` must not be present in frontend bundles.
-- Google sign-in remains deferred until `GOOGLE_REDIRECT_URI` is configured and verified.
+- Google sign-in is **live**, and `GOOGLE_REDIRECT_URI` has nothing to do with
+  it. Verify it by signing in, not by checking a variable: `GET /auth/google`
+  (`server.js:1140`, rate-limited by `googleOAuthStartRateLimiter`) begins a PKCE
+  flow against Supabase, and `GET /auth/callback` (`server.js:1272`,
+  `googleOAuthCallbackRateLimiter`) completes it. The provider's client id and
+  secret live in the Supabase dashboard, not in this application's environment.
+  Nothing in `lib/`, `routes/`, `api/` or `server.js` reads `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET` or `GOOGLE_REDIRECT_URI` — measured 19 September 2026 —
+  so setting them verifies nothing and configures nothing.
+
+  > This line read *"Google sign-in remains deferred until `GOOGLE_REDIRECT_URI`
+  > is configured and verified"* until 19 September 2026. Sign-in had shipped,
+  > and this is the document somebody opens immediately after a deploy: it told
+  > them a working feature was deferred, pending a variable no code reads.
+  > `docs/owner/INSTALL-ALL-KEYS.md` had recorded the truth about those three
+  > variables the whole time, so the two documents disagreed and the one giving
+  > post-deploy instructions was the wrong one.
 - Qualified legal review remains an owner-dependent launch gate.

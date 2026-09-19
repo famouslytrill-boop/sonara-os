@@ -181,7 +181,16 @@ jobs:
         run: |
           mkdir -p artifacts/security
           set -o pipefail
-          pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
+          # --config .mocharc.targeted.json, and this is the whole point of the
+          # step. `.mocharc.json` declares spec ["tests/**/*.js",
+          # "tests/**/*.mjs"], and mocha APPENDS a positional path to that list
+          # rather than replacing it -- so this ran all 4,779 tests and wrote
+          # them into a file named tenant-adversarial.json. Release security
+          # evidence claiming 13 tenant-isolation assertions, containing the
+          # entire suite, and turning any unrelated failure anywhere into a
+          # tenant-isolation failure. Measured 19 September 2026: 4,779 with the
+          # repository config, 13 with this one.
+          pnpm exec mocha --config .mocharc.targeted.json tests/cross-tenant-isolation.test.js --reporter json \
             > artifacts/security/tenant-adversarial.json
 
       - name: Verify RLS contracts and tenant query safety
@@ -196,7 +205,7 @@ jobs:
             pnpm run verify:tenant-tables
             pnpm run verify:tenant-queries
             pnpm run verify:request-tenant-ids
-            pnpm exec mocha tests/member-read-access-check.test.js --reporter spec
+            pnpm exec mocha --config .mocharc.targeted.json tests/member-read-access-check.test.js --reporter spec
           } 2>&1 | tee artifacts/security/rls-contract.log
 
       - name: Audit dependency vulnerabilities

@@ -1,0 +1,62 @@
+name: Action Pin Runtime Health
+
+# Why this is its own workflow, and not a second step in
+# External Repository Health.
+#
+# `verify:action-pins:network` reads each pinned action's manifest at the
+# pinned commit and confirms `runs.using` still matches what
+# `scripts/verify-github-action-pins.mjs` recorded as reviewed. The event that
+# should run it is "a workflow changed", so its paths filter has to include
+# `.github/workflows/**`.
+#
+# It was first added to external-repository-health.yml, which meant widening
+# THAT workflow's filter to `.github/workflows/**` -- and the job it shares
+# starts with the registry sweep, which makes roughly 239 authenticated GitHub
+# API requests across every record in `data/open-source-tools.ts`. So every
+# edit to any workflow file bought a full registry sweep that had no reason to
+# run, and on 18 September 2026 a burst of those runs exhausted the hourly rate
+# limit for an unrelated branch. The checker refused to report success on a run
+# that established nothing, which is correct, but the runs should not have been
+# triggered at all.
+#
+# Splitting them lets each check carry the filter that actually describes it.
+#
+# This half needs no token: it fetches eight files from
+# raw.githubusercontent.com, which is not the metadata API the registry sweep
+# authenticates against. No `secrets` are referenced here on purpose -- a
+# token-less workflow cannot leak one.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "scripts/verify-github-action-pins.mjs"
+  schedule:
+    # Offset from the registry sweep's Monday 07:23 so the two never contend
+    # for the same rate-limit window.
+    - cron: "41 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-action-pin-runtimes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+      - name: Confirm each pinned action still declares its reviewed runtime
+        # The offline half of this check (verify:action-pins, in verify:gates)
+        # compares the workflows against a register in the repository. It cannot
+        # catch the register itself being wrong, which is the failure that left a
+        # "do the workflows use Node 20?" question unanswerable from the source
+        # tree on 18 September 2026: seven SHAs, and no record of what had been
+        # reviewed about any of them.
+        #
+        # This reads runs.using out of each manifest AT THE PINNED COMMIT and
+        # refuses to pass when it disagrees with the register -- or when it could
+        # not read the manifest at all.
+        run: node scripts/verify-github-action-pins.mjs --network
