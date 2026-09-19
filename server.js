@@ -177,6 +177,9 @@ const {
   createEmployeeAuthUser,
   getCookie,
   getSupabaseAuthConfig,
+  getGoogleOAuthProviderStatus, googleOAuthStartRateLimiter, googleOAuthCallbackRateLimiter,
+  beginGoogleOAuth,
+  completeGoogleOAuth,
   handleEmailAuth,
   hashInviteToken,
   rejectCustomerBearerFromAdminLogin,
@@ -193,6 +196,7 @@ const {
   getSupabaseServerConfig,
   isProductionEnvironment,
   isSupabaseAdminUser,
+  siteOrigin,
   renderRateLimitPage,
   reportDegradedRateLimit,
   responsePage
@@ -768,6 +772,7 @@ registerServiceLifecycleRoutes(app, {
   insertActivityEvent,
   safeListTable,
   getReadiness,
+  getLiveReadiness,
   readinessCards,
   displayStatus,
   adminActions,
@@ -804,6 +809,7 @@ registerRouteRegistryRoutes(app, {
   getPublicAppUrl,
   getCustomerPrimaryOrganization,
   getReadiness,
+  getLiveReadiness,
   displayStatus,
   accountNoticeCard,
   logoutAction,
@@ -1058,7 +1064,7 @@ function loginPage(req, { email = "", error = "" } = {}) {
       brandCard("One connected workspace", "Your business, creator, and growth tools stay organized under one account."),
       brandCard("Private by default", "Only you and approved members can access protected workspace content.")
     ],
-    actions: [linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
+    actions: [linkAction("/auth/google", "Continue with Google"), linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
   });
 }
 
@@ -1073,7 +1079,7 @@ function signupPage({ email = "", error = "" } = {}) {
       brandCard("Start free", "Set up your workspace, choose a product path, and save your first project before upgrading."),
       brandCard("Built to expand", "Add products, teammates, customer records, and paid services as your operation grows.")
     ],
-    actions: [linkAction("/login", "Login"), linkAction("/", "Home")]
+    actions: [linkAction("/auth/google", "Continue with Google"), linkAction("/login", "Login"), linkAction("/", "Home")]
   });
 }
 
@@ -1129,6 +1135,15 @@ app.post("/auth/login", loginRateLimiter, async (req, res) => {
   if (held) return undefined;
   return sendEmailAuthResult(req, res, result, "/dashboard", "/login", ({ message }) =>
     loginPage(req, { email: req.body?.email, error: message }));
+});
+
+app.get("/auth/google", googleOAuthStartRateLimiter, async (req, res) => {
+  const result = await beginGoogleOAuth(req, res, req.query?.next);
+  if (result.ok) return res.redirect(303, result.url);
+  if (!acceptsHtml(req)) return res.status(result.status).json({ ok: false, code: result.code, message: result.message });
+  return res.status(result.status).type("html").send(
+    responsePage("Google sign-in unavailable", result.message, [linkAction("/login", "Login with email"), linkAction("/support", "Get help")])
+  );
 });
 
 app.get("/logout", (req, res) => {
@@ -1254,15 +1269,18 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
   );
 });
 
-app.get("/auth/callback", (req, res) => {
-  const payload = { ok: false, code: "disabled", service: "google_oauth", message: "Google OAuth is deferred until owner configuration is complete." };
-  if (!acceptsHtml(req)) return res.status(503).json(payload);
-  return res.status(503).type("html").send(
-    responsePage("OAuth deferred", "Google OAuth is disabled for launch verification. Use email/password access after account login is configured.", [
-      linkAction("/login", "Login"),
-      linkAction("/", "Home")
-    ])
-  );
+app.get("/auth/callback", googleOAuthCallbackRateLimiter, async (req, res) => {
+  const result = await completeGoogleOAuth(req, res);
+  if (!result.ok) {
+    if (!acceptsHtml(req)) return res.status(result.status).json({ ok: false, code: result.code, message: result.message });
+    return res.status(result.status).type("html").send(
+      responsePage("Google sign-in not completed", result.message, [linkAction("/auth/google", "Try Google again"), linkAction("/login", "Login with email")])
+    );
+  }
+
+  const held = twoFactor.ok ? await twoFactor.holdForSecondFactor(result, req, res) : false;
+  if (held) return undefined;
+  return sendEmailAuthResult(req, res, result, result.nextPath || "/dashboard", "/login");
 });
 
 app.get("/api/checkout/session", (req, res) => {
@@ -1362,13 +1380,13 @@ app.get("/business-builder/login", (req, res) => {
       title: "Business Builder Login",
       eyebrow: "Business Builder access",
       heading: "Business Builder Login",
-      body: "Email/password access for Business Builder owners, managers, and employees.",
+      body: "Google or email/password access for Business Builder owners, managers, and employees.",
       sections: [
         authForm("Login with email", "/auth/login"),
         brandCard("Employee access", "Employees use their own email/password credentials after accepting an owner-created invite."),
         brandCard("Password ownership", "Business owners never create, view, store, or know employee passwords.")
       ],
-      actions: [linkAction("/business-builder", "Business Builder"), linkAction("/login", "SONARA login"), linkAction("/", "Home")]
+      actions: [linkAction("/auth/google?next=/business-builder/dashboard", "Continue with Google"), linkAction("/business-builder", "Business Builder"), linkAction("/login", "SONARA login"), linkAction("/", "Home")]
     })
   );
 });
@@ -1530,6 +1548,17 @@ registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer
 registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, resolveCustomerSession, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 const twoFactor = registerTwoFactorRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, verifySupabaseAccessToken, sendEmailAuthResult, verifyRateLimiter: twoFactorRateLimiter });
 
+async function getLiveReadiness() {
+  const readiness = getReadiness();
+  const google = await getGoogleOAuthProviderStatus();
+  const googleStatus = google.ok ? "configured" : "setup_required";
+  readiness.googleSignIn = googleStatus;
+  readiness.services.googleOAuth = googleStatus;
+  readiness.services.googleSignIn = googleStatus;
+  readiness.missing.googleOAuth = google.ok ? [] : ["Supabase Google provider"];
+  return readiness;
+}
+
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,
   app: "sonara-industries",
@@ -1538,7 +1567,7 @@ app.get("/api/health", (req, res) => res.status(200).json({
   timestamp: new Date().toISOString()
 }));
 
-app.get("/api/readiness", (req, res) => res.status(200).json(getReadiness()));
+app.get("/api/readiness", async (req, res) => res.status(200).json(await getLiveReadiness()));
 
 const publicCompatibilityRoutes = {
   "/onboarding": "/account/setup",
@@ -1558,9 +1587,10 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
 
 app.get("/api/admin/env-status", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "api.admin.env_status.view", { path: req.path });
+  const readiness = await getLiveReadiness();
   return res.status(200).json({
     ok: true,
-    services: getReadiness().services,
+    services: readiness.services,
     checks: getAdminEnvReadiness().map((item) => ({ key: item.key, label: item.label, ok: item.ok, status: item.status }))
   });
 });
@@ -1660,7 +1690,7 @@ app.post("/admin/logout", (req, res) => {
 });
 
 app.get("/admin", requireAdmin, async (req, res) => {
-  const readiness = getReadiness();
+  const readiness = await getLiveReadiness();
   const metrics = await getAdminMetrics();
   await recordAdminAuditEvent(req, "admin.dashboard.view", { path: req.path });
   return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness, metrics));
@@ -1838,13 +1868,14 @@ app.get("/admin/catalog", requireAdmin, async (req, res) => {
 
 app.get("/admin/system", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "admin.system.view", { path: req.path });
+  const readiness = await getLiveReadiness();
   return res.status(200).type("html").send(
     layout({
       title: "System",
       eyebrow: "Founder operations",
       heading: "System status",
       body: "Non-secret system readiness and route map for launch operations.",
-      sections: [deploymentCard(), ...readinessCards(getReadiness()), ...getRouteMapCards()],
+      sections: [deploymentCard(), ...readinessCards(readiness), ...getRouteMapCards()],
       actions: adminActions()
     })
   );
@@ -2022,8 +2053,8 @@ function registerProduct(slug, config) {
     );
   });
 
-  app.get(`/${slug}/launch-readiness`, (req, res) => {
-    const readiness = getReadiness();
+  app.get(`/${slug}/launch-readiness`, async (req, res) => {
+    const readiness = await getLiveReadiness();
     res.status(200).type("html").send(
       layout({
         title: `${config.name} Setup Checklist`,
@@ -2358,7 +2389,7 @@ function countLabel(result) {
 }
 
 async function getCommandCenterSummary(req) {
-  const readiness = getReadiness();
+  const readiness = await getLiveReadiness();
   const organization = req.sonaraUser ? await getCustomerPrimaryOrganization(req.sonaraUser) : { ok: false, code: "customer_auth_required" };
   const hasOrg = organization.ok;
 
