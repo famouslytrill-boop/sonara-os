@@ -8,8 +8,6 @@ on:
       - "backend/requirements.txt"
       - "package.json"
       - "scripts/verify-open-source-registry.mjs"
-      - "scripts/verify-github-action-pins.mjs"
-      - ".github/workflows/**"
   schedule:
     - cron: "23 7 * * 1"
   workflow_dispatch:
@@ -33,18 +31,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/verify-open-source-registry.mjs --network
-
-      - name: Confirm each pinned action still declares its reviewed runtime
-        # The offline half of this check (verify:action-pins, in verify:gates)
-        # compares the workflows against a register in the repository. It cannot
-        # catch the register itself being wrong, which is the failure that left a
-        # "do the workflows use Node 20?" question unanswerable from the source
-        # tree on 18 September 2026: seven SHAs, and no record of what had been
-        # reviewed about any of them.
-        #
-        # This reads runs.using out of each manifest AT THE PINNED COMMIT and
-        # refuses to pass when it disagrees with the register -- or when it could
-        # not read the manifest at all. Unauthenticated on purpose: it fetches 8
-        # files from raw.githubusercontent.com, which is not the metadata API the
-        # step above needs a token for.
-        run: node scripts/verify-github-action-pins.mjs --network

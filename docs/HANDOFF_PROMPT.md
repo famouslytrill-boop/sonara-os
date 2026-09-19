@@ -106,6 +106,82 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-19 - The external-repository-health trigger split, and a test that guarded a filename
+
+The follow-up owed since PR #294, held out of #297 and #299 because AGENTS.md
+says to keep CI fixes separate from product features.
+
+## What was wrong
+
+`verify:action-pins:network` reads each pinned action's manifest at the pinned
+commit and confirms `runs.using` still matches the register. The event that
+should run it is "a workflow changed", so its `paths` filter needs
+`.github/workflows/**`.
+
+It was added to `external-repository-health.yml`, which meant widening THAT
+workflow's filter -- and the job it shares starts with the registry sweep, which
+makes roughly 239 authenticated GitHub API requests across every record in
+`data/open-source-tools.ts`. So every edit to any workflow file bought a full
+registry sweep with no reason to run, and on 18 September a burst of those runs
+exhausted the hourly rate limit for an unrelated branch. The checker refused to
+report success on a run that established nothing, which was correct; the runs
+should not have been triggered.
+
+Now `.github/workflows/action-pin-runtime-health.yml` carries the
+`.github/workflows/**` filter and the registry workflow has its narrower list
+back. The new workflow references no `secrets.` at all -- it fetches eight files
+from raw.githubusercontent.com, which is not the metadata API the sweep
+authenticates against, and a token-less workflow cannot leak one.
+
+## The test that failed, and why that was the right failure
+
+`tests/a-pinned-action-says-which-runtime-it-is.test.js` went red:
+
+    nothing runs the networked confirmation, so the register can be wrong
+    indefinitely
+
+It read `external-repository-health.yml` **by name**. The step had not gone
+anywhere -- it had moved -- so the test failed for the filename rather than for
+the guarantee. Exactly the right alarm on the wrong axis.
+
+The property is "something runs the networked confirmation", so it now searches
+every workflow, and asserts **exactly one** runs it (duplicating an
+eight-manifest fetch is a rate limit waiting to happen) and that whichever one
+does references no `secrets.`. Three assertions where there was one, none of
+them tied to a filename. Falsified all three: removing `--network` fails with
+the original message, adding the step to a second workflow names both files, and
+handing the runner a `GITHUB_TOKEN` fails on the token-less claim.
+
+## Two things established while doing it, both by being wrong first
+
+**A monitor that exits on "no checks pending" reports success on a population
+that has not been assembled.** Mine fired `ALL TERMINAL: 10 checks, 0 not
+passing` against a matrix of 53 -- accurate and useless -- and I relayed it as
+green before catching it. It now requires >=40 checks before calling a matrix
+terminal and emits `STALLED` otherwise. That guard then did its job twice: once
+on a partial matrix, and once when #299 merged and its workflows stopped, which
+is why only 10 checks ever existed on the final head.
+
+**A failure read from the wrong line.** Running `verify:gates` standalone
+printed three "Tenant-scoped query audit failed" blocks and I reported a broken
+tenant-isolation gate on `main`. Wrong on both counts: those blocks are a test
+fixture's stderr, and the real message was `verify:coverage-floor` saying it had
+no successful coverage to read, because `verify:gates` was run outside the chain
+order that populates it. The audit passes on `main` and in this branch --
+`0 tenant-scoped and NOT filtered` -- confirmed by running it in a clean
+worktree of `origin/main`. A security gate is the last thing to be wrong about,
+and the check that corrected me was running the thing itself rather than reading
+its neighbour's output.
+
+## The equality assertion, on someone else's branch
+
+`EXPECTED_FILES` was introduced on #299 to replace a floor that had been wrong
+twice. Within the hour it caught drift on two independent branches: mine, when
+`lib/sonara-licence-trigger.cjs` became tracked, and a separate Batch 13 intake
+branch, whose commit `1f11d48f` is titled "Repair proprietary notice ratchet for
+Batch 13 intake". Somebody had to update that constant deliberately rather than
+having a floor absorb it. That is the design working, measured rather than hoped.
+
 ### 2026-09-19 - Five findings on the fixes for the eight, and a floor that was wrong twice
 
 A third review round. Five findings, all real, all on the previous commit. The

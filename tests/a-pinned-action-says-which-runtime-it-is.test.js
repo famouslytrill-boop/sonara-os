@@ -279,10 +279,35 @@ describe("a pinned action says which runtime it is", () => {
       "the offline check is no longer in verify:gates"
     );
 
-    const health = fs.readFileSync(path.join(WORKFLOW_DIR, "external-repository-health.yml"), "utf8");
+    // Which workflow runs it is not the property; that SOMETHING does is.
+    //
+    // This read `external-repository-health.yml` by name until 19 September
+    // 2026, when the step moved into its own workflow -- and the test failed for
+    // the filename rather than for the guarantee. The guarantee is asserted
+    // across every workflow now, so the step can be moved again without this
+    // going red, and cannot quietly disappear.
+    const workflows = fs.readdirSync(WORKFLOW_DIR).filter((name) => /\.ya?ml$/i.test(name));
+    assert.ok(workflows.length >= 10, `only ${workflows.length} workflow files; this check has gone blind`);
+
+    const runners = workflows.filter((name) =>
+      fs.readFileSync(path.join(WORKFLOW_DIR, name), "utf8").includes("verify-github-action-pins.mjs --network"));
+
+    assert.equal(
+      runners.length,
+      1,
+      runners.length === 0
+        ? "nothing runs the networked confirmation, so the register can be wrong indefinitely"
+        : `${runners.length} workflows run the networked confirmation (${runners.join(", ")}); it reads 8 manifests from `
+          + "raw.githubusercontent.com and duplicating that is a rate limit waiting to happen"
+    );
+
+    // The half that needs no token must not be given one. A workflow with no
+    // `secrets.` reference cannot leak a credential, and that is the reason the
+    // step was separated from the registry sweep rather than left beside it.
+    const runner = fs.readFileSync(path.join(WORKFLOW_DIR, runners[0]), "utf8");
     assert.ok(
-      health.includes("verify-github-action-pins.mjs --network"),
-      "nothing runs the networked confirmation, so the register can be wrong indefinitely"
+      !/secrets\./.test(runner),
+      `${runners[0]} runs the token-less network check and references secrets; it fetches public files and needs none`
     );
 
     // The fetch failure path must refuse, not shrug. Asserted on the source
