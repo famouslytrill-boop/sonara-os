@@ -1,6 +1,8 @@
 # RLS Policy Review
 
-This project is RLS-ready, not production-verified. Review every policy in Supabase before storing real customer, payment, file, legal, or audit data.
+RLS is part of the production authorization boundary, but application traffic is not allowed to rely on RLS alone. Tenant-scoped server queries must still carry an explicit `organization_id`, and signed-in Data API reads must run as the caller so Postgres can independently enforce membership.
+
+The September 19, 2026 tenant-boundary audit found that all production tables carrying `organization_id` had RLS enabled, but live authorization drift had reintroduced an older `organization_members` identity source. Migration `20260919033000_organization_tenant_boundary_hardening.sql` restores `organization_memberships` as the canonical source, requires active membership, narrows organization-table grants, and quarantines the legacy table without dropping it.
 
 ## Required Rules
 
@@ -10,6 +12,11 @@ This project is RLS-ready, not production-verified. Review every policy in Supab
 - Admin-only operations require a role check through `organization_memberships`.
 - Owner-only operations must be enforced in server code and database policy where possible.
 - Service-role keys are server-only and bypass RLS by design.
+- A service-role query to a tenant-scoped table must still carry an explicit tenant boundary enforced by `lib/sonara-tenant-guard.cjs`.
+- A table absent from both generated tenant/global registries fails closed; unknown must never be interpreted as global.
+- `organization_memberships` is the canonical organization identity source. Authorization helpers must not fall back to the legacy `organization_members` table.
+- Anonymous callers have no direct privileges on `organizations`, `organization_memberships`, or `business_memberships`.
+- Direct membership mutation is server-authoritative; authenticated users may read membership rows allowed by RLS but cannot directly change role/status through the Data API.
 
 ## Tables Requiring Private Scope
 
