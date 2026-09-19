@@ -761,6 +761,7 @@ registerServiceLifecycleRoutes(app, {
   insertActivityEvent,
   safeListTable,
   getReadiness,
+  getLiveReadiness,
   readinessCards,
   displayStatus,
   adminActions,
@@ -797,6 +798,7 @@ registerRouteRegistryRoutes(app, {
   getPublicAppUrl,
   getCustomerPrimaryOrganization,
   getReadiness,
+  getLiveReadiness,
   displayStatus,
   accountNoticeCard,
   logoutAction,
@@ -1535,6 +1537,17 @@ registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer
 registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, resolveCustomerSession, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 const twoFactor = registerTwoFactorRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, verifySupabaseAccessToken, sendEmailAuthResult, verifyRateLimiter: twoFactorRateLimiter });
 
+async function getLiveReadiness() {
+  const readiness = getReadiness();
+  const google = await getGoogleOAuthProviderStatus();
+  const googleStatus = google.ok ? "configured" : "setup_required";
+  readiness.googleSignIn = googleStatus;
+  readiness.services.googleOAuth = googleStatus;
+  readiness.services.googleSignIn = googleStatus;
+  readiness.missing.googleOAuth = google.ok ? [] : ["Supabase Google provider"];
+  return readiness;
+}
+
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,
   app: "sonara-industries",
@@ -1543,16 +1556,7 @@ app.get("/api/health", (req, res) => res.status(200).json({
   timestamp: new Date().toISOString()
 }));
 
-app.get("/api/readiness", async (req, res) => {
-  const readiness = getReadiness();
-  const google = await getGoogleOAuthProviderStatus();
-  const googleStatus = google.ok ? "configured" : "setup_required";
-  readiness.googleSignIn = googleStatus;
-  readiness.services.googleOAuth = googleStatus;
-  readiness.services.googleSignIn = googleStatus;
-  readiness.missing.googleOAuth = google.ok ? [] : ["Supabase Google provider"];
-  return res.status(200).json(readiness);
-});
+app.get("/api/readiness", async (req, res) => res.status(200).json(await getLiveReadiness()));
 
 const publicCompatibilityRoutes = {
   "/onboarding": "/account/setup",
@@ -1572,9 +1576,10 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
 
 app.get("/api/admin/env-status", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "api.admin.env_status.view", { path: req.path });
+  const readiness = await getLiveReadiness();
   return res.status(200).json({
     ok: true,
-    services: getReadiness().services,
+    services: readiness.services,
     checks: getAdminEnvReadiness().map((item) => ({ key: item.key, label: item.label, ok: item.ok, status: item.status }))
   });
 });
@@ -1674,7 +1679,7 @@ app.post("/admin/logout", (req, res) => {
 });
 
 app.get("/admin", requireAdmin, async (req, res) => {
-  const readiness = getReadiness();
+  const readiness = await getLiveReadiness();
   const metrics = await getAdminMetrics();
   await recordAdminAuditEvent(req, "admin.dashboard.view", { path: req.path });
   return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness, metrics));
@@ -1852,13 +1857,14 @@ app.get("/admin/catalog", requireAdmin, async (req, res) => {
 
 app.get("/admin/system", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "admin.system.view", { path: req.path });
+  const readiness = await getLiveReadiness();
   return res.status(200).type("html").send(
     layout({
       title: "System",
       eyebrow: "Founder operations",
       heading: "System status",
       body: "Non-secret system readiness and route map for launch operations.",
-      sections: [deploymentCard(), ...readinessCards(getReadiness()), ...getRouteMapCards()],
+      sections: [deploymentCard(), ...readinessCards(readiness), ...getRouteMapCards()],
       actions: adminActions()
     })
   );
@@ -2036,8 +2042,8 @@ function registerProduct(slug, config) {
     );
   });
 
-  app.get(`/${slug}/launch-readiness`, (req, res) => {
-    const readiness = getReadiness();
+  app.get(`/${slug}/launch-readiness`, async (req, res) => {
+    const readiness = await getLiveReadiness();
     res.status(200).type("html").send(
       layout({
         title: `${config.name} Setup Checklist`,
@@ -2372,7 +2378,7 @@ function countLabel(result) {
 }
 
 async function getCommandCenterSummary(req) {
-  const readiness = getReadiness();
+  const readiness = await getLiveReadiness();
   const organization = req.sonaraUser ? await getCustomerPrimaryOrganization(req.sonaraUser) : { ok: false, code: "customer_auth_required" };
   const hasOrg = organization.ok;
 

@@ -118,6 +118,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     insertActivityEvent,
     safeListTable,
     getReadiness,
+    getLiveReadiness,
     readinessCards,
     displayStatus,
     adminActions,
@@ -1047,7 +1048,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     );
   });
 
-  app.get("/readiness", (req, res) => {
+  app.get("/readiness", async (req, res) => {
     res.status(200).type("html").send(
       layout({
         // "What's working right now" promised more than this page delivers.
@@ -1059,7 +1060,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         eyebrow: "Live status",
         heading: "What's set up right now",
         body: "A live, honest view of what is set up and what still needs attention. Nothing here is a secret, and anything that isn't working says so instead of pretending.",
-        sections: readinessCards(getReadiness()),
+        sections: readinessCards(await getLiveReadiness()),
         actions: [linkAction("/start", "Start"), linkAction("/support", "Get help"), linkAction("/", "Home")]
       })
     );
@@ -1905,7 +1906,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
 
   app.get("/admin/integrations", requireAdmin, async (req, res) => {
     await recordAdminAuditEvent(req, "admin.integrations.view", { path: req.path });
-    const services = getReadiness().services || {};
+    const services = (await getLiveReadiness()).services || {};
     const gateway = getOptionalAiGatewayReadiness();
     const serviceState = (key) => displayStatus(services[key] || "unknown");
     return res.status(200).type("html").send(

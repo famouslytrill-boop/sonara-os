@@ -181,6 +181,17 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
     assert.doesNotMatch(server, /Google OAuth is deferred|OAuth deferred/);
   });
 
+  it("all customer-facing readiness surfaces use the hosted provider state", () => {
+    const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+    const lifecycle = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-service-lifecycle-routes.cjs"), "utf8");
+    const registry = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-route-registry-routes.cjs"), "utf8");
+    assert.match(server, /async function getLiveReadiness\(\)/);
+    assert.match(server, /services\.googleOAuth = googleStatus/);
+    assert.match(lifecycle, /readinessCards\(await getLiveReadiness\(\)\)/);
+    assert.match(lifecycle, /\(await getLiveReadiness\(\)\)\.services/);
+    assert.match(registry, /\(await getLiveReadiness\(\)\)\.services/);
+  });
+
   it("deployment verification requires the application callback in Supabase redirect URLs", () => {
     const verifier = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-google-oauth-provider.mjs"), "utf8");
     assert.match(verifier, /uri_allow_list/);
