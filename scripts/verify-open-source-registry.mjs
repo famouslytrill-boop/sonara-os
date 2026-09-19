@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
 
 const registryRequire = createRequire(import.meta.url);
 const {
@@ -12,7 +13,8 @@ const {
 } = registryRequire("../lib/sonara-open-source-registry.cjs");
 
 const root = process.cwd();
-const networkMode = process.argv.includes("--network");
+const networkChangedMode = process.argv.includes("--network-changed");
+const networkMode = process.argv.includes("--network") || networkChangedMode;
 const errors = [];
 const warnings = [];
 const repositoryTargets = new Map();
@@ -329,7 +331,47 @@ for (const match of registrySource.matchAll(/github\.com\/([A-Za-z0-9_.-]+)\/([A
 // go and delete entries from it, so a check that cannot tell "this repository
 // is gone" from "GitHub is down" is worse than one that does not run: it argues
 // for removing records that are fine.
-const networkOutcome = { confirmed: 0, indeterminate: [], unattempted: 0 };
+const networkOutcome = { confirmed: 0, indeterminate: [], unattempted: 0, population: 0 };
+
+function changedRepositoryTargetKeys() {
+  const baseRef = String(process.env.SONARA_NETWORK_BASE_REF || "").trim();
+  if (!baseRef) {
+    errors.push("PR delta network verification needs SONARA_NETWORK_BASE_REF so it can compare the pull request to its base.");
+    return new Set();
+  }
+
+  let diff = "";
+  try {
+    diff = execFileSync(
+      "git",
+      [
+        "diff",
+        "--unified=0",
+        `${baseRef}...HEAD`,
+        "--",
+        "data/open-source-tools.ts",
+        "docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md"
+      ],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+    );
+  } catch (error) {
+    const detail = String(error?.stderr || error?.message || "git diff failed").trim();
+    errors.push(`Could not derive changed external repositories from ${baseRef}...HEAD: ${detail}`);
+    return new Set();
+  }
+
+  const changed = new Set();
+  for (const line of diff.split(/\r?\n/)) {
+    if (!line.startsWith("+") || line.startsWith("+++")) continue;
+    for (const match of line.matchAll(/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)/gi)) {
+      const owner = match[1];
+      const repository = match[2].replace(/\.git$/i, "");
+      const key = `repository:${owner}/${repository}`.toLowerCase();
+      if (repositoryTargets.has(key)) changed.add(key);
+    }
+  }
+  return changed;
+}
 
 // Retried, because a 5xx is usually a moment rather than a state. Three
 // attempts and then give up and say so -- retrying until it works is how a
@@ -407,7 +449,20 @@ async function verifyNetworkTarget(target) {
 }
 
 if (networkMode) {
-  const targets = [...repositoryTargets.values()];
+  const allTargets = [...repositoryTargets.entries()];
+  const changedKeys = networkChangedMode ? changedRepositoryTargetKeys() : null;
+  const targets = networkChangedMode
+    ? allTargets.filter(([key]) => changedKeys.has(key)).map(([, target]) => target)
+    : allTargets.map(([, target]) => target);
+  networkOutcome.population = targets.length;
+
+  if (networkChangedMode) {
+    console.log(`PR network delta targets: ${targets.length}`);
+    if (!targets.length) {
+      console.log("No added or changed GitHub repository URLs require a PR network probe; the full registry remains covered by the scheduled/manual network scan.");
+    }
+  }
+
   for (let index = 0; index < targets.length; index += 1) {
     const result = await verifyNetworkTarget(targets[index]);
     if (result === "rate_limited") {
@@ -416,13 +471,12 @@ if (networkMode) {
     }
   }
 
-  // A run that confirmed nothing is not a clean run. Without this the outage
-  // above would have gone from thirty-five false errors to a silent pass, which
-  // is the same defect wearing the other face: the check would report the
-  // register healthy having established nothing about it.
+  // A non-empty network population that confirmed nothing is not a clean run.
+  // In PR delta mode an empty population is expected when only policy/workflow
+  // code changed; the whole registry was still validated offline above.
   if (targets.length && !networkOutcome.confirmed) {
     errors.push(
-      `Network verification confirmed none of ${targets.length} registered targets, so this run established ` +
+      `Network verification confirmed none of ${targets.length} ${networkChangedMode ? "changed" : "registered"} targets, so this run established ` +
       "nothing about whether they exist. Check GitHub availability and the token, then run it again."
     );
   }
@@ -430,7 +484,7 @@ if (networkMode) {
 
 console.log(`Open-source registry records: ${toolBlocks.length}`);
 console.log(`Unique GitHub targets: ${repositoryTargets.size}`);
-console.log(`Network verification: ${networkMode ? "enabled" : "disabled"}`);
+console.log(`Network verification: ${networkChangedMode ? "changed-targets" : networkMode ? "full" : "disabled"}`);
 for (const warning of warnings) console.warn(`WARNING: ${warning}`);
 if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);
@@ -458,9 +512,15 @@ if (networkMode) {
     for (const entry of networkOutcome.indeterminate) console.warn(`INDETERMINATE: ${entry}`);
     console.log(
       `Open-source and external repository controls verified offline, and ${networkOutcome.confirmed} of ` +
-      `${repositoryTargets.size} registered targets confirmed to still exist. GitHub did not answer for ` +
+      `${networkOutcome.population} ${networkChangedMode ? "changed" : "registered"} targets confirmed to still exist. GitHub did not answer for ` +
       `${networkOutcome.indeterminate.length}${networkOutcome.unattempted ? `, and ${networkOutcome.unattempted} were not attempted` : ""}, ` +
       "so those are unconfirmed rather than broken -- do not remove them from the register on the strength of this run."
+    );
+  } else if (networkChangedMode) {
+    console.log(
+      networkOutcome.population
+        ? `Open-source and external repository controls verified, including all ${networkOutcome.population} GitHub targets added or changed by this pull request.`
+        : "Open-source and external repository controls verified offline; this pull request adds or changes no GitHub repository URL, so no PR network probe was required."
     );
   } else {
     console.log("Open-source and external repository controls verified, including that every registered repository still exists.");
