@@ -112,11 +112,10 @@ describe("tenant-scoped query construction", () => {
 // raw call site is no longer the risk it was and counting them measures style
 // rather than safety.
 //
-// The guard does have one real gap: it decides what to enforce from a generated
-// list of tables, and a table missing from that list is waved through. That is
-// deliberate -- blocking an unrecognised name would turn a stale list into an
-// outage -- but it means the list going stale is the way the guard quietly
-// stops guarding. This is the test for that.
+// The guard decides what to enforce from a migration-derived table registry.
+// Unknown tables now fail closed: a stale registry is an availability failure,
+// never an implicit authorization bypass. This static scan still catches the
+// drift earlier, before a request reaches the runtime guard.
 describe("the guard knows every table the code queries by name", () => {
   it("recognises each literal table name in a PostgREST path", () => {
     const root = path.join(__dirname, "..");
@@ -171,52 +170,39 @@ describe("the guard knows every table the code queries by name", () => {
   });
 });
 
-// The guard returned an `unrecognised` field and nothing ever read it.
-//
-// install() checked verdict.allowed and stopped. A table in neither generated
-// list was waved through in silence, so the gap and its cover story were the
-// same sentence -- "allow it and say so". It allowed. It did not say.
-describe("an unrecognised table does not pass quietly", () => {
+// A table that is absent from both generated classifications is authorization
+// drift. The runtime must fail closed rather than guessing that it is global.
+describe("an unrecognised table fails closed", () => {
   const guard = require("../lib/sonara-tenant-guard.cjs");
 
-  it("reports a table it has never heard of rather than failing closed", () => {
+  it("refuses a table it has never heard of", () => {
     const verdict = guard.inspect("GET", "https://db.example.co/rest/v1/a_table_no_migration_creates?select=*");
-    assert.equal(verdict.allowed, true, "failing closed here would turn a stale list into an outage");
-    assert.equal(verdict.unrecognised, "a_table_no_migration_creates");
+    assert.equal(verdict.allowed, false);
+    assert.match(verdict.message, /not classified as tenant-scoped or global/);
+    assert.match(verdict.message, /Regenerate lib\/sonara-tenant-scoped-tables\.cjs/);
   });
 
-  it("says nothing about a table it does know", () => {
+  it("still allows a classified tenant table when it carries scope", () => {
     const known = [...TENANT_SCOPED_TABLES][0];
     const verdict = guard.inspect("GET", `https://db.example.co/rest/v1/${known}?organization_id=eq.org-1`);
     assert.equal(verdict.allowed, true);
-    assert.equal(verdict.unrecognised, undefined, "a known table must not produce a warning");
   });
 
-  it("still refuses an unscoped query against a table it does know", () => {
+  it("still refuses an unscoped query against a classified tenant table", () => {
     assert.ok(TENANT_SCOPED_TABLES.has("agent_action_logs"), "agent_action_logs must be recognised as tenant-scoped");
     const verdict = guard.inspect("GET", "https://db.example.co/rest/v1/agent_action_logs?select=*");
-    assert.equal(verdict.allowed, false, "adding the report must not have loosened the refusal");
+    assert.equal(verdict.allowed, false);
   });
 
-  it("wires the report through install rather than only computing it", async () => {
-    const seen = [];
+  it("enforces the refusal through the installed fetch wrapper", async () => {
     const scope = { fetch: async (url) => ({ ok: true, url: String(url) }) };
+    assert.equal(guard.install({ global: scope }), true, "install() was a no-op, so this test is not exercising the guard");
 
-    // install() tracks the target rather than a module-level boolean. It used
-    // to be a boolean, so once anything in the suite had installed the guard
-    // this call returned false, scope.fetch stayed unwrapped, and the test
-    // below passed while exercising nothing. Asserting the return value is what
-    // keeps it from going quietly vacuous again.
-    assert.equal(
-      guard.install({ global: scope, onUnrecognised: (table) => seen.push(table) }),
-      true,
-      "install() was a no-op, so this test is not exercising the guard"
+    await assert.rejects(
+      () => scope.fetch("https://db.example.co/rest/v1/a_table_no_migration_creates?select=*"),
+      (error) => error && error.name === "TenantGuardError" && /not classified/.test(error.message)
     );
 
-    await scope.fetch("https://db.example.co/rest/v1/a_table_no_migration_creates?select=*");
-    await scope.fetch("https://db.example.co/rest/v1/a_table_no_migration_creates?select=id");
-
-    assert.deepEqual(seen, ["a_table_no_migration_creates"], "reported once per table, not once per request");
     assert.equal(guard.install({ global: scope }), false, "installing twice on one target must stay a no-op");
   });
 });
