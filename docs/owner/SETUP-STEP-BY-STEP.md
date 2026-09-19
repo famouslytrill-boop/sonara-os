@@ -14,192 +14,94 @@ this somewhere else.
 
 ---
 
-## 1 — The pricing page is advertising three plans nobody can buy
+## 1 — Canonical Stripe catalogue and deployment verification
 
-**This is the finding. Read it before doing anything else.**
+The live Stripe account was read again on **18 September 2026**. SONARA's
+canonical workspace ladder now exists in Stripe at exactly the amounts the
+application advertises, for both monthly and yearly billing:
 
-`/pricing` advertises **One workspace $29/mo, All three $59/mo, Team $109/mo**.
-Your live Stripe account holds **thirteen prices in its entire history**, and
-**none of them is $29, $59 or $109.** The closest are the three created on
-13 August 2026, which charge **$19, $39 and $79** and carry the lookup keys
-`sonara_workspace_monthly`, `sonara_all_three_monthly` and
-`sonara_team_monthly`.
+| Plan | Price ID | Amount | Interval | Stripe state |
+| --- | --- | ---: | --- | --- |
+| One workspace | `price_1UDcAR0dKtlEU3lA6xBfzRYu` | $29 | month | active price / active product |
+| All three | `price_1UDcB60dKtlEU3lAiTaUfXLI` | $59 | month | active price / active product |
+| Team | `price_1UDcC60dKtlEU3lABcH8EVw6` | $109 | month | active price / active product |
+| One workspace yearly | `price_1UDcdq0dKtlEU3lA6bTBV7Pk` | $290 | year | active price / active product |
+| All three yearly | `price_1UDcfA0dKtlEU3lAaqioX8tE` | $590 | year | active price / active product |
+| Team yearly | `price_1UDcg80dKtlEU3lAoLjca1r0` | $1090 | year | active price / active product |
 
-So whatever `STRIPE_PRICE_WORKSPACE_MONTHLY`, `STRIPE_PRICE_ALL_THREE_MONTHLY`
-and `STRIPE_PRICE_TEAM_MONTHLY` are set to in Vercel, they cannot be pointing at
-a price that charges what the page says.
+The three Price IDs previously written in this runbook as the new monthly
+catalogue do **not** exist in the connected live Stripe account and must not be
+used. The table above is the provider-read result.
 
-**Nobody is being overcharged, and nobody is being charged the wrong amount.**
-`assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs` fetches the price from
-Stripe on every checkout and refuses to create the session when the amount
-disagrees:
+### Production environment pointers
 
-```js
-if (price.unit_amount !== expected) return { ok: false, code: "price_mismatch", ... };
+Vercel Production should contain only the canonical price variables:
+
+```text
+STRIPE_PRICE_WORKSPACE_MONTHLY   = price_1UDcAR0dKtlEU3lA6xBfzRYu
+STRIPE_PRICE_ALL_THREE_MONTHLY   = price_1UDcB60dKtlEU3lAiTaUfXLI
+STRIPE_PRICE_TEAM_MONTHLY        = price_1UDcC60dKtlEU3lABcH8EVw6
+STRIPE_PRICE_WORKSPACE_ANNUAL    = price_1UDcdq0dKtlEU3lA6bTBV7Pk
+STRIPE_PRICE_ALL_THREE_ANNUAL    = price_1UDcfA0dKtlEU3lAaqioX8tE
+STRIPE_PRICE_TEAM_ANNUAL         = price_1UDcg80dKtlEU3lAoLjca1r0
 ```
 
-The consequence is worse in a quieter way: **every headline plan on your pricing
-page refuses checkout.** A customer clicking Start on any of the three gets a
-refusal, not a Stripe page. Only Free works.
+Do not restore retired pricing variables or product-specific aliases. Runtime checkout, readiness, entitlement mapping and plan limits no
+longer recognize them.
 
-### How this happened, since it is worth knowing
+### Verification sequence
 
-`docs/owner/OWNER-STEPS.md` item 5 was written on 19 August 2026, when the plan
-table held $19/$39/$79, and it names those three price ids in a table with the
-instruction "set each variable above to its price id". That was correct on the
-day it was written. On 6 September the amounts moved to $29/$59/$109 and the
-price ids in that table stopped matching — but the instruction still read like a
-current one. Following it exactly produces precisely this state.
+1. Let the controlled production dry run pull the real Vercel Production
+   environment.
+2. Require `scripts/verify-stripe-env.mjs --require-live` to prove each
+   configured Price has the advertised amount, interval and active Product.
+3. Do not deploy if a canonical variable points at any other Price.
+4. After the exact-head CI and controlled deployment are green, complete one
+   authenticated One-workspace checkout and confirm the persisted Stripe
+   entitlement opens the workspace.
+5. Cancel/refund the proof purchase as appropriate and confirm paid access
+   relocks after the authoritative Stripe update.
 
-A Stripe price is immutable. Changing what a plan costs always means creating a
-new price; there is no edit.
+The verifier credential may be a restricted live key with Prices/Products read
+access. The customer-facing runtime credential remains separate and must retain
+the permissions required to create customers and Checkout Sessions.
 
-### Fix it in four steps
+### Historical billing evidence
 
-**Step 1. Create three prices. — DONE 8 September 2026, at the owner's
-instruction.** They were created on the existing products, so the description a
-customer sees on the invoice stays right, and read back from Stripe to confirm:
-
-| Plan | Price id | Amount | Interval | Lookup key |
-| --- | --- | --- | --- | --- |
-| One workspace | `price_1UDTj00dKtlEU3lAmimC5cN7` | **$29.00** | month | `sonara_workspace_monthly_v2` |
-| All three | `price_1UDToK0dKtlEU3lAWURVCj6H` | **$59.00** | month | `sonara_all_three_monthly_v2` |
-| Team | `price_1UDUKr0dKtlEU3lAJzu0pVoe` | **$109.00** | month | `sonara_team_monthly_v2` |
-
-All three: `active: true`, `livemode: true`, USD, `interval_count: 1`. Price ids
-are not secrets — they travel to the browser during checkout — so they are
-written down here rather than described.
-
-The `_v2` suffix keeps the old price and the new one tellable apart in the
-dashboard while both exist. The 13 August prices at $19 / $39 / $79 are still
-active and still carry the unsuffixed lookup keys; **step 5 archives them, and
-not before step 3 passes.**
-
-Creating a price charges nobody — a price is inert until a checkout session
-names it. **Nothing changed for a customer when these were created**, because
-the three environment variables still point at the old prices. That is step 2.
-
-**Step 2. Repoint three variables.** Vercel → your project → Settings →
-Environment Variables → **Production**:
-
-```
-STRIPE_PRICE_WORKSPACE_MONTHLY = price_1UDTj00dKtlEU3lAmimC5cN7
-STRIPE_PRICE_ALL_THREE_MONTHLY = price_1UDToK0dKtlEU3lAWURVCj6H
-STRIPE_PRICE_TEAM_MONTHLY      = price_1UDUKr0dKtlEU3lAJzu0pVoe
-```
-
-**This is the step that changes what a customer is charged**, and until it is
-done the pricing page still advertises $29 / $59 / $109 while the variables
-point at the $19 / $39 / $79 prices — so every one of those three plans still
-refuses checkout with `price_mismatch`. Creating the prices did not fix that on
-its own, and could not have.
-
-Price ids are not secrets — they travel to the browser during checkout — so you
-can paste them anywhere you like. **Vercel does not apply an environment change
-to a deployment that is already running. Redeploy afterwards.**
-
-**Step 3. Prove the amounts agree, with the key present.**
-
-```
-STRIPE_SECRET_KEY=rk_live_... node scripts/verify-stripe-env.mjs --require-live
-```
-
-**Use a restricted key, not your live secret key.** This script makes one kind
-of call — `GET /v1/prices/{id}` — so a Stripe **restricted key** with read
-access to Prices is enough. Create one at Developers → API keys → Create
-restricted key, grant *Prices: read*, and grant nothing else. A restricted key
-that leaks cannot charge anybody, refund anybody, or read a customer.
-
-The variable is still named `STRIPE_SECRET_KEY`, because that is what the code
-reads; the value can be `rk_...` or `sk_...`.
-
-**The same key is what the deployment needs.** The controlled production
-deployment runs this check as step 26 of 32, so add that restricted key to the
-repository's protected GitHub environment as `STRIPE_SECRET_KEY`
-(Settings → Environments → the production environment → Add secret). Until it is
-there, every deployment fails at that step — deliberately: a deployment that
-cannot prove it charges what it advertises is what shipped the September
-mismatch.
-
-`--require-live` was added on 8 September 2026 and is the point of this whole
-section. Without it the script skips the live comparison when there is no key
-**and still exits 0**, which is why both runbooks tell you to "read the last
-line rather than the exit code". That instruction was followed and this
-happened anyway. With the flag, every reason for not comparing is a failure, so
-the exit code means what the last line says.
-
-Expect one line per plan:
-
-```
-[OK] workspace_monthly: Stripe charges exactly what the pricing page advertises
-```
-
-Anything else stops the cutover.
-
-**Step 4. Buy one, with a real card.** `docs/SHIP_READINESS.md` item 1, still
-open. Buy One workspace at $29, confirm the workspace opens rather than saying
-"setup required", then refund yourself. The charge path, subscription creation
-and refund have all been observed working. **The entitlement half never has** —
-the only subscription that ever existed lived 29 minutes. This is the only thing
-that proves it.
-
-**Do not archive the old prices until steps 3 and 4 pass.** A superseded plan
-drops off the page only when its replacement can be bought, so archiving first
-takes the pricing page down to nothing purchasable. That is
-`docs/owner/PRICE-CUTOVER-RUNBOOK.md` pathway C, and it is the one to avoid.
-
-### Optional, once the monthly three work: annual billing
-
-Three more prices, and the page will start showing yearly cards it currently
-hides entirely:
-
-| Variable | Interval | Amount |
-| --- | --- | --- |
-| `STRIPE_PRICE_WORKSPACE_ANNUAL` | **year** | $290 |
-| `STRIPE_PRICE_ALL_THREE_ANNUAL` | **year** | $590 |
-| `STRIPE_PRICE_TEAM_ANNUAL` | **year** | $1090 |
-
-Each is ten months of its monthly twin — two months free. Check the interval
-says **year**, not month; `verify-stripe-env.mjs` refuses a subscription plan
-whose Stripe interval disagrees with the period the page advertises.
-
-`/api/readiness` reports these three under `deferred.stripe` rather than
-`missing.stripe`, which is the difference between a variable nobody is waiting
-for and a variable nobody has noticed. Leaving them unset is a supported state,
-not an unfinished one.
+The provider-read retirement ledger, including historical plan names, aliases,
+Price IDs, and the zero-subscription evidence captured before archival, lives in
+`docs/archive/legacy-names.md`. Active setup instructions intentionally use only
+the canonical catalogue above.
 
 ---
 
-## 2 — What is genuinely still open, besides the prices
+## 2 — Google sign-in is required
 
-Read from `/api/readiness` on production at 06:15 UTC on 8 September 2026, which
-was serving commit `6f4c7b1`:
+Google is no longer deferred and there are no SONARA/Vercel variables named
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, or `GOOGLE_REDIRECT_URI`.
 
-```
-missing:  { "googleOAuth": ["GOOGLE_REDIRECT_URI"] }
-deferred: { "stripe": ["STRIPE_PRICE_WORKSPACE_ANNUAL",
-                       "STRIPE_PRICE_ALL_THREE_ANNUAL",
-                       "STRIPE_PRICE_TEAM_ANNUAL"] }
-invalid:  (nothing, for any service)
-```
+SONARA uses the hosted Supabase Google provider and server-side PKCE:
 
-Everything else — Supabase, Stripe secret, Stripe webhook, Resend, admin
-protection, founder access, the account database, the payment connection and
-payment updates — reports `configured`.
+1. In Google Cloud, create/open the SONARA OAuth Web Client.
+2. Add this exact Google Authorized redirect URI:
+   `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`
+3. In Supabase -> Authentication -> Providers -> Google, enable Google and paste
+   that Web Client ID and Client Secret.
+4. In Supabase Auth redirect URLs, allow:
+   `https://sonaraindustries.com/auth/callback`
+5. Save the provider.
+6. Run:
+   `node scripts/verify-google-oauth-provider.mjs --require`
+   with the production Supabase public URL/anon values loaded.
+7. Confirm production `/api/readiness` reports
+   `services.googleOAuth = "configured"`.
+8. Complete one real Google login from `/login` and confirm it returns through
+   `/auth/callback` to `/dashboard` (or the requested safe SONARA path).
 
-### `GOOGLE_REDIRECT_URI` is not a task. Do not set it.
-
-It reads like the one outstanding variable, and it is not one. Checked by
-grep on 8 September 2026: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
-`GOOGLE_REDIRECT_URI` appear in `.env.example`, in `lib/sonara-readiness.cjs`,
-and in tests and docs. **No route reads any of them.** `services.googleOAuth` is
-the string literal `"deferred"` in `lib/sonara-readiness.cjs` — it cannot become
-`configured`, whatever you set.
-
-So setting `GOOGLE_REDIRECT_URI` would empty that `missing` list and add no
-Google sign-in button. It would make the readiness payload say a capability is
-fully configured that does not exist. Leave it unset until somebody builds
-Google sign-in.
+The controlled production deployment runs the same provider verification after
+pulling the production Vercel environment and **before** rollback checkpoint,
+database migration, or Vercel deployment. If Google is not enabled at Supabase,
+the release stops with production untouched.
 
 ### The owner steps that are still real
 
@@ -421,9 +323,10 @@ at 503. That 503 is the "setup required" state, not a broken install.
 
 ## The order, if you only read one thing
 
-1. Create three Stripe prices at **$29, $59, $109**.
-2. Repoint the three `STRIPE_PRICE_*_MONTHLY` variables in Vercel Production, and redeploy.
-3. `STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live`
-4. Buy One workspace with a real card, confirm the workspace opens, refund.
-5. Only then archive the old $19/$39/$79 prices.
-6. Leave `GOOGLE_REDIRECT_URI` alone.
+1. Keep only the canonical Stripe plans: **One workspace $29**, **All three $59**, **Team $109** (plus optional annual twins).
+2. Verify them with `node scripts/verify-stripe-env.mjs --require-live`.
+3. Do not restore retired pricing keys or aliases; the archived provider-read ledger records the zero-subscription evidence.
+4. Enable Google in Supabase Auth and put the Google Web Client ID/Secret there only.
+5. Google Cloud redirects to `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`.
+6. Supabase is allowed to redirect to `https://sonaraindustries.com/auth/callback`.
+7. Run `node scripts/verify-google-oauth-provider.mjs --require`, then complete one real production Google sign-in.
