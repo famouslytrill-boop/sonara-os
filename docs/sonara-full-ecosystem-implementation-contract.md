@@ -198,6 +198,64 @@ Automation settings may exist, but actual automations must remain disabled until
 
 Founder/admin can manage parent company platform, company pages, legal center, billing monitor, support monitor, product catalog, system readiness, and deployment status.
 
+## Capability expansion program
+
+The next platform build closes known capability gaps through governed tracks rather than by relabeling research as shipped product.
+
+### Phase 0 — release proof
+
+- Keep exact-head CI, tenant isolation, security evidence, dependency scans, runtime compatibility, migration proof, controlled deployment dry-runs, and post-deploy commit verification as the production gate.
+- Do not stack customer-facing activation onto a red release matrix.
+
+### Phase 1 — customer device and ecosystem access
+
+- Build an Android client using a web-native shell. Capacitor is the primary path for native APIs; a Trusted Web Activity remains a lighter option where the product only needs the PWA surface.
+- Add Digital Asset Links, Android internal-test builds, push-notification proof, and offline-shell validation.
+- Add passkeys/WebAuthn and Android Credential Manager. SONARA stores public-key credential material, not fingerprints or facial templates.
+- Build a provider-neutral integration gateway for OAuth/API-key connections, token refresh, webhooks, retries, rate limits, sync jobs, and MCP/tool calls.
+- Add offline/local-first drafts, a mutation queue, conflict policy, resumable uploads, and explicit labels for workflows that remain online-only.
+
+### Phase 2 — governed execution
+
+- Activate the durable event system only through a one-tenant low-risk canary before unrestricted consumers.
+- Preserve fail-closed agent authority, approval receipts, policy checks, and auditable human control for destructive, financial, security, legal, payout, or bulk-customer actions.
+- Add provider health probes, timeout budgets, circuit breakers, retry classes, and fallback contracts.
+- Continue immutable repository/version, licence, dependency, security, tenant, call-site, canary, and rollback gates before third-party code becomes runtime authority.
+
+### Phase 3 — specialist and communication bridges
+
+- Integrate specialist CAD, ERP, DAW, accounting, professional video, regulated, industrial, and telecom tools through APIs, MCP/tool contracts, open formats, import/export, and deep links before attempting native replacements.
+- Add opt-in ActivityPub federation behind a public/private boundary, signed delivery, moderation, rate limits, abuse controls, and deletion propagation.
+- Add a dedicated WebRTC media plane for calls, rooms, screen sharing, streaming, recording, and agent participation. Realtime media must not flow through general JSON/Vercel request bodies.
+
+### Phase 4 — scale and recovery evidence
+
+- Instrument traces, metrics, and logs with OpenTelemetry-compatible telemetry.
+- Add k6 smoke, load, soak, and breakpoint tests with explicit SLO thresholds.
+- Exercise backup/restore and provider/region failure drills.
+- Add read replicas only where measured read latency/load justifies them and account for asynchronous replication lag.
+- Accumulate 30/90-day reliability evidence before using enterprise-scale or hyperscale claims.
+
+### Phase 5 — market-scale evidence
+
+- Measure supported SONARA connectors, active organizations, successful workflow volume, uptime/SLO history, support outcomes, retention, and incidents from defined sources of truth.
+- Do not claim Salesforce-, Shopify-, Canva-, HubSpot-, Wix-, or Zapier-level ecosystem size or operating history without measured evidence.
+
+### Research references
+
+- Capacitor native runtime: https://capacitorjs.com/docs
+- Android Trusted Web Activities: https://developer.android.com/develop/ui/views/layout/webapps/trusted-web-activities
+- Google passkeys: https://developers.google.com/identity/passkeys
+- Android FIDO/Credential Manager direction: https://developers.google.com/identity/fido/android/native-apps
+- Nango integration infrastructure and API catalog: https://nango.dev/api-integrations and https://nango.dev/platform/unified-api
+- W3C ActivityPub Recommendation: https://www.w3.org/TR/activitypub/
+- LiveKit realtime media/self-hosting: https://docs.livekit.io/transport/ and https://docs.livekit.io/transport/self-hosting/
+- OpenTelemetry: https://opentelemetry.io/docs/
+- Grafana k6 API load testing: https://grafana.com/docs/k6/latest/testing-guides/api-load-testing/
+- Supabase read replicas: https://supabase.com/docs/guides/platform/read-replicas
+
+The machine-readable source for this program is `CAPABILITY_EXPANSION_TRACKS` in `lib/sonara-infrastructure-manifest.cjs`. The public and founder infrastructure views expose it without changing a planned or gated capability into a launch-ready feature.
+
 ## Test requirements
 
 Add tests for:
