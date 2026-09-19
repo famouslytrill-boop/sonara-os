@@ -58,6 +58,9 @@ const {
 const {
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
+const {
+  getSeptember19PatternConvergence
+} = require("../lib/sonara-september19-pattern-convergence.cjs");
 
 module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -67,6 +70,10 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   const recordAdminAuditEvent = typeof deps.recordAdminAuditEvent === "function"
     ? deps.recordAdminAuditEvent
     : async () => undefined;
+
+  app.get("/api/ecosystem/platform-patterns", (req, res) => {
+    res.status(200).json(getSeptember19PatternConvergence());
+  });
 
   app.get("/api/ecosystem/requested-repositories", (req, res) => {
     const repositories = getCombinedPublicCatalog();
@@ -103,7 +110,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots are cataloged as non-executing research records; verification state remains explicit per record.`),
       brandCard("Capability convergence — Batch 8", `${convergence.batch8Count} truth records describe actual SONARA One, Business Builder, Creator Studio, Growth Studio, Claude, ChatGPT/Codex, and cross-agent delivery capability without enabling anything from the research surface.`),
       brandCard("Design and correctness — Batch 9", `${convergence.batch9Count} current design/correctness records preserve the v3 SONARA One identity, Balanced Precision interaction system, truthful loading/state language, cross-agent authority, and named repair/review work.`),
-      brandCard("Latest screenshot intake", "Batch 15 adds verified browser, security, design-quality, device-interoperability, business-management, and local agent-memory research. ToolJet and VoxCPM are confirmations of existing governed records rather than duplicate verdicts."),
+      brandCard("Latest screenshot intake", "Batch 15 adds system-design, agent-harness, governed-memory, production-RAG, media-delivery, gateway, event-delivery, data-store, HTTPS, and reliability patterns. Grok Build, Concat, and Situation Monitor are cataloged as non-executing repository references."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items are kept as hosted services, learning references, or unresolved non-repository leads outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -139,7 +146,11 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       actions: [
         linkAction("/research-lab/latest-screenshot-intake", "Latest screenshot intake"),
         linkAction("/api/ecosystem/requested-repositories", "Catalog JSON"),
+        linkAction("/api/ecosystem/platform-patterns", "Platform patterns JSON"),
+        linkAction("/research-batch15-platform-patterns.html", "Architecture patterns"),
         linkAction("/research-lab/open-source", "Open-source research"),
+        linkAction("/api/ecosystem/platform-patterns", "Platform patterns JSON"),
+        linkAction("/research-batch15-platform-patterns.html", "Architecture patterns"),
         linkAction("/", "SONARA home")
       ]
     }));
@@ -154,7 +165,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Batch 9 design/correctness", `${convergence.batch9Count} records define the current v3 design authority and the repair/review items that must not be marketed as complete.`),
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were already represented in earlier governed records and were not duplicated.`),
-      brandCard("Batch 15 confirmations", `${latest.confirmedExistingRecords.length} submitted projects were already covered by governed records and were re-confirmed instead of duplicated.`),
+      brandCard("Earlier confirmations", `${latest.confirmedExistingRecords.length} submitted projects from earlier September 19 intake were already covered by governed records and were re-confirmed instead of duplicated.`),
       brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging and capability/design documentation are not installation, deployment, or permission to send customer data."),
       ...convergence.capabilities.map((item) => brandCard(
         `${item.label}: ${display(item.capabilityStatus)}`,
@@ -201,7 +212,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
       brandCard("Batch 8 capability truth", `${readiness.capabilityBatch8.length} internal capability records distinguish actual runtime capability from setup-gated or research-only agent integration.`),
       brandCard("Batch 9 design/correctness", `${readiness.designBatch9.length} design and correctness records define current visual authority and unresolved repair/review work.`),
-      brandCard("Latest screenshot intake", "Aggregate repository readiness now covers Batch 15 research on authenticated-browser, authorized-security, reciprocal-license, and customer-memory boundaries. Batches 8 and 9 remain separate internal capability/design convergence records."),
+      brandCard("Latest screenshot intake", "Aggregate repository readiness now covers Batch 15 system-design, agent-harness, memory, RAG, media, gateway, delivery, data-store, and transport-security research while preserving the earlier browser, security, licensing, voice, and memory boundaries. Batches 8 and 9 remain separate internal capability/design convergence records."),
       brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} hosted/service references are kept outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
       brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current repository-research records remain non-executing and human-reviewed.`),

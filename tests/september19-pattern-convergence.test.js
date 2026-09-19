@@ -7,6 +7,7 @@ const {
   SOURCE_LEADS,
   PLATFORM_PATTERNS,
   AGENT_ROLES,
+  BUSINESS_APPLICATIONS,
   SKILLS,
   citationCoverage,
   routeScore,
@@ -42,6 +43,8 @@ describe("September 19 platform pattern convergence", () => {
     assert.ok(PLATFORM_PATTERNS.some((item) => item.key === "control_data_plane_split"));
     assert.ok(AGENT_ROLES.some((item) => item.key === "policy_gate"));
     assert.ok(AGENT_ROLES.some((item) => item.key === "verifier"));
+    assert.ok(BUSINESS_APPLICATIONS.some((item) => item.product === "Creator Studio"));
+    assert.ok(BUSINESS_APPLICATIONS.some((item) => item.product === "Business Builder"));
     assert.ok(SKILLS.some((item) => item.key === "authorized_security_audit"));
     assert.ok(SKILLS.some((item) => item.key === "media_delivery"));
   });
