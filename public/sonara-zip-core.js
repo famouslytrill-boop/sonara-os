@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* The ZIP container, assembled from entries somebody else compressed.
  *
  * This exists because the same archive has to be built in two places. The

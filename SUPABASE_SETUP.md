@@ -26,8 +26,17 @@ Recommended production order:
 2. Confirm RLS policies before adding public traffic.
 3. Push migrations:
    - `pnpm run db:push`
-4. Regenerate types if local Supabase is running:
-   - `pnpm run db:types`
+
+> Step 4 of this list used to read *"Regenerate types if local Supabase is
+> running: `pnpm run db:types`"*. There is no `db:types` script in
+> `package.json` and there never has been in this repository -- the runtime here
+> is CommonJS JavaScript, not generated TypeScript, which
+> `docs/DATABASE_SCHEMA.md` already records. An operator following this file
+> during setup got "Command \"db:types\" not found" as the last step of
+> bringing a database up. Corrected 18 September 2026, found by Codex on
+> PR #297, and `scripts/verify-doc-pnpm-scripts.mjs` now reads the repository
+> root as well as `docs/`, so a live instruction naming a dead command fails the
+> release here too.
 
 ## RLS Reminder
 

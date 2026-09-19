@@ -67,7 +67,15 @@ pnpm run verify:env
 pnpm run build
 ```
 
-> `pnpm run verify:email-env` was named here and is not defined in
-> `package.json`. Corrected 18 September 2026 to `pnpm run verify:env`, which
-> classifies every variable the code reads. It does not prove outbound email
-> works; nothing in this repository does.
+> `pnpm run verify:email-env` was named here and was not defined in
+> `package.json`. Corrected 18 September 2026 to `pnpm run verify:env`, and then
+> `verify:email-env` was wired up the same day — the script had existed since
+> 25 August with nothing pointing at it. Both work now: `verify:env` classifies
+> every variable the code reads, and `verify:email-env` checks the email
+> provider's three declared requirements against the application's own
+> placeholder and address rules, so a value like `replace-me` fails.
+>
+> Neither proves outbound email works. `pnpm run test:email -- --send` is the
+> only command here that reaches a provider, and even then it reports that
+> Resend accepted the message, not that anybody received it. The recipient
+> variables are `SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`.

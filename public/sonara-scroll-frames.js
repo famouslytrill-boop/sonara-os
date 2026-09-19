@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* Turning a video somebody brought into the frames a scroll site scrubs through.
  *
  * All of this runs in the browser, on the visitor's own machine, and that is a

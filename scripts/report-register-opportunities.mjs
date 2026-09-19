@@ -50,9 +50,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 
 const root = process.cwd();
 const REGISTER = "data/open-source-tools.ts";
+
+const require = createRequire(import.meta.url);
+const { licenceIdentifier, summariseReciprocal } = require(path.join(root, "lib", "sonara-licence-trigger.cjs"));
 
 // Measured 18 September 2026. A floor, because parsing this file by locating a
 // literal is exactly the kind of reader that silently returns nothing -- the
@@ -123,8 +127,52 @@ for (const key of ["integrationStatus", "commercialUseStatus", "licenseRisk"]) {
   console.log();
 }
 
-const reciprocal = records.filter((record) => record.reciprocalLicense === true).length;
-console.log(`  ${reciprocal} record(s) carry a reciprocal licence, which triggers on network use and is therefore the case this hosted product is.\n`);
+// Reciprocal is not one thing, and the previous version of this line said it
+// was: "31 record(s) carry a reciprocal licence, which triggers on network use
+// and is therefore the case this hosted product is." Wrong for 11 of the 31.
+//
+// AGPL-3.0, SSPL and OSL-3.0 reach *providing the software over a network*,
+// which is what a hosted product does and is the case worth flagging loudest.
+// GPL, LGPL, MPL and EPL trigger on **distribution** instead, and carry
+// different obligations again -- MPL is per-file, LGPL turns on linking. A
+// report that flattens them hands whoever reads it for adoption triage an
+// incorrect legal boundary, which AGENTS.md is explicit about not doing.
+//
+// This is a count, not legal advice, and it says so. The register's own `notes`
+// field records what was read and when; that is the authority, not this
+// summary. Codex found the flattening on PR #297.
+//
+// Worth recording where this did NOT come from. The first version of this
+// comment blamed `.claude/skills/reviewing-an-outside-repository/SKILL.md` and
+// said it carried the same error. Opening that file shows the opposite: it
+// says "Do not equate GPL with AGPL: GPL does not generally require source
+// disclosure merely for network use, whereas AGPL has a network-interaction
+// condition for modified versions." The guidance was already right and this
+// script ignored it. That retracted sentence was a reason reasoned rather than
+// checked, written while fixing a defect of exactly that kind, which is how
+// easily it happens.
+// Classification lives in lib/sonara-licence-trigger.cjs, not here.
+//
+// It was here, and `scripts/generate-handoff-prompt.mjs` stated its own literal
+// count ("Twenty of the thirty-one") which disagreed with it -- written in the
+// same commit that fixed this report. Codex found that on PR #299. Two places
+// stating the same fact is how one of them goes wrong, so there is one
+// implementation and the handoff derives its sentence from it.
+const reciprocal = summariseReciprocal(records);
+
+function listing(rows) {
+  for (const record of rows) {
+    console.log(`         ${record.name.slice(0, 34).padEnd(35)} ${licenceIdentifier(record).slice(0, 46)}`);
+  }
+}
+
+console.log(`  ${reciprocal.total} record(s) carry a reciprocal licence. They are not one category:`);
+console.log(`    ${reciprocal.network.length}  reach providing the software over a network (AGPL / SSPL / OSL) -- the case a hosted product is`);
+console.log(`    ${reciprocal.distribution.length}  trigger on distribution instead (GPL / LGPL / MPL and similar), with obligations that differ per licence`);
+listing(reciprocal.distribution);
+console.log(`    ${reciprocal.unknown.length}  carry a licence whose trigger this report will not state -- custom, dual, or qualified. Read the record.`);
+listing(reciprocal.unknown);
+console.log("  These are counts, not licence readings. The record's own notes say what was opened and when; that is the authority.\n");
 
 console.log(`Adapters built: ${built.length} of ${records.length}.`);
 for (const record of built) {
@@ -136,16 +184,39 @@ console.log("Each is a problem somebody else solved. Building it here means owni
 
 const byProduct = new Map();
 for (const record of permittedUnbuilt) {
-  for (const product of (record.productFit || ["(no product recorded)"])) {
+  // `record.productFit || [...]` was wrong: an empty array is truthy, so it
+  // selected the empty array, the loop ran zero times, and the record vanished
+  // from every detailed section while still counting in the headline above.
+  // Three of the 23 qualifying records -- Superpowers, Claude Skills Collection
+  // and Harness -- were invisible that way. Codex found it on PR #297. A
+  // headline that disagrees with the rows under it is the same defect as a
+  // check that passes by measuring nothing: the number is right and the thing
+  // it points at is not there.
+  const fits = Array.isArray(record.productFit) && record.productFit.length
+    ? record.productFit
+    : ["(no product recorded)"];
+  for (const product of fits) {
     if (!byProduct.has(product)) byProduct.set(product, []);
     byProduct.get(product).push(record);
   }
 }
 
+// The headline and the rows must agree, or one of them is lying. Asserted
+// rather than hoped: this is the exact bug above, and an off-by-one in the
+// grouping would otherwise print two different truths on one page.
+const grouped = new Set([...byProduct.values()].flat());
+if (grouped.size !== permittedUnbuilt.length) {
+  console.error(
+    `\nReport aborted: ${permittedUnbuilt.length} record(s) qualify and ${grouped.size} appear in the sections below.`
+  );
+  console.error("A headline count that disagrees with the rows it introduces is worse than no report.");
+  process.exit(1);
+}
+
 for (const [product, list] of [...byProduct.entries()].sort((a, b) => b[1].length - a[1].length)) {
   console.log(`  ${product} (${list.length})`);
   for (const record of list) {
-    const licence = String(record.license || "").split(/[,.]/)[0].slice(0, 26);
+    const licence = licenceIdentifier(record).slice(0, 26);
     const use = (record.useCase || [])[0] || "";
     console.log(`    ${record.name.slice(0, 30).padEnd(31)} ${licence.padEnd(27)} ${use.slice(0, 64)}`);
   }

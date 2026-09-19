@@ -32,6 +32,15 @@ const registerPublicBookingRoutes = require("./routes/sonara-public-booking-rout
 const registerImportRoutes = require("./routes/sonara-import-routes.cjs");
 const registerRecurringInvoiceRoutes = require("./routes/sonara-recurring-invoice-routes.cjs");
 const registerRotaRoutes = require("./routes/sonara-rota-routes.cjs");
+// Moved to lib/sonara-env-value-checks.cjs on 18 September 2026 so that
+// scripts/verify-email-env.mjs applies the SAME placeholder and email rules
+// this file's readiness surface applies, rather than a looser copy. See the
+// header of that module for the defect that prompted it.
+const {
+  isPlaceholderValue,
+  isEmailLike,
+  isPlaceholderEmail
+} = require("./lib/sonara-env-value-checks.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
@@ -2773,33 +2782,6 @@ async function sendSupportNotification(request) {
   return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
 }
 
-
-function isPlaceholderValue(value) {
-  const raw = String(value || "").trim();
-  const normalized = raw.toLowerCase();
-  if (!normalized) return true;
-  if (normalized.includes("...")) return true;
-  if (["changeme", "change-me", "replace-me", "todo"].includes(normalized)) return true;
-  return /(^|[_\-\s])(placeholder|dummy|fake|xxx|your|sample|example|must[_-]?not[_-]?render)([_\-\s]|$)/i.test(normalized)
-    || /^price_(test|xxx|placeholder|example|your)/i.test(normalized)
-    || /^sk_(test|live)_(test|xxx|placeholder|example|your)/i.test(normalized)
-    || /^whsec_(test|xxx|placeholder|example|your)/i.test(normalized);
-}
-
-function extractEmailAddress(value) {
-  const raw = String(value || "").trim();
-  const friendlyNameMatch = raw.match(/^[^<>]*<([^<>]+)>$/);
-  return String(friendlyNameMatch?.[1] || raw).trim();
-}
-
-function isEmailLike(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extractEmailAddress(value));
-}
-
-function isPlaceholderEmail(value) {
-  const email = extractEmailAddress(value).toLowerCase();
-  return isPlaceholderValue(email) || ["your-email@example.com", "you@example.com"].includes(email);
-}
 
 
 function isSupabaseConfigured() {

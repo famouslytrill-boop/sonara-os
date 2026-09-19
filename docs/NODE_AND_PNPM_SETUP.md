@@ -74,11 +74,18 @@ pnpm run verify:launch
 it are the fast subset worth running while you work.
 
 > This list used to name `pnpm run check:risky-features` and
-> `pnpm run verify:email-env`. Neither is defined in `package.json`, so the
-> setup document told a new developer to run two commands that do not exist.
+> `pnpm run verify:email-env`. Neither was defined in `package.json`, so the
+> setup document told a new developer to run two commands that did not exist.
 > Corrected 18 September 2026, and
 > `scripts/verify-doc-pnpm-scripts.mjs` now fails the release when any document
-> names a `pnpm run` target that `package.json` does not define.
+> names a `pnpm run` target that `package.json` does not define — reading the
+> repository root as well as `docs/`, and scoping its exemptions per document
+> rather than per command name.
+>
+> `verify:email-env` was then wired up properly later the same day, because the
+> script existed all along. It is not in `verify:launch`: without provider
+> values it has nothing to check, and `test:email -- --send` reaches a real
+> provider. Both are operator commands, run deliberately.
 
 ## Why this file carries a review date
 

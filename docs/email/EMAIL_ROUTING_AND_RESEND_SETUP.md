@@ -32,24 +32,38 @@ Do not put `RESEND_API_KEY` in `NEXT_PUBLIC_*` variables, screenshots, frontend 
 pnpm run verify:env
 ```
 
-> **No email tooling exists in this repository.** `pnpm run verify:email-env`
-> and `pnpm run test:email` are named above as they were written; neither is
-> defined in `package.json`, and there is no email script under `scripts/`.
-> Checked 18 September 2026: no script name or body in `package.json` contains
-> "email" at all. The live environment check is `pnpm run verify:env`, which
-> classifies every variable the code reads — including the email variables —
-> but it sends nothing and proves no provider works.
+> **Both commands now exist.** This note said "No email tooling exists in this
+> repository" and that neither command was defined. That was true of
+> `package.json` and false of the repository: `scripts/verify-email-env.mjs` and
+> `scripts/test-email-config.mjs` had been sitting there since 25 August 2026
+> with nothing pointing at them. `pnpm run verify:email-env` and
+> `pnpm run test:email` were wired up on 18 September 2026 and both work.
 >
-> So outbound email cannot be verified from this repository today. Confirm it in
-> the provider dashboard, and treat any claim that email is live as unproven
-> until there is a script here that proves it.
+> Two things changed with them, and they matter if you set these variables from
+> an older copy of this file. `verify:email-env` reads its requirement from
+> `lib/sonara-infrastructure-manifest.cjs` — the same declaration
+> `/api/readiness` uses — and applies the application's own rules, so
+> `RESEND_API_KEY=replace-me` fails rather than passing. And the recipient
+> variables are **`SUPPORT_TO_EMAIL`** or **`CONTACT_TO_EMAIL`**, not
+> `SUPPORT_EMAIL`/`CONTACT_EMAIL`; nothing in the runtime has ever read the
+> latter pair.
+>
+> `pnpm run test:email` is a dry run and reaches no provider.
+> `pnpm run test:email -- --send` posts a real message to Resend — run it
+> deliberately, from a machine with the production values, and not from CI.
+>
+> Provider acceptance is not delivery. `--send` tells you Resend took the
+> message; confirm it arrived in the real inbox before claiming outbound email
+> is live.
 
 > The instruction this replaces was more specific than the truth: it described
 > `pnpm run test:email` as "a dry run" and `pnpm run test:email -- --send` as a
-> real provider test, with a warning not to run the send from CI. None of those
-> commands exist, so the caution was protecting a capability that was never
-> there. Confirm the message arrives in the real support inbox before claiming
-> outbound email is live — by sending one yourself, not by running this.
+> real provider test, with a warning not to run the send from CI. That warning
+> was written before the aliases existed and is now doing the job it was written
+> for: both commands work as described, and the send reaches Resend. Confirm the
+> message arrives in the real support inbox before claiming outbound email is
+> live — the command tells you the provider accepted it, which is not the same
+> as somebody receiving it.
 
 ## Provider Setup Still Required
 
