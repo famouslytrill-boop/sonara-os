@@ -1,0 +1,45 @@
+{
+  "version": "2026-09-19",
+  "strategy": "twa_first",
+  "packageName": "com.sonaraindustries.os",
+  "productionOrigin": "https://sonaraindustries.com",
+  "webManifest": "https://sonaraindustries.com/site.webmanifest",
+  "bubblewrapVersion": "1.25.0",
+  "compileSdk": 36,
+  "targetSdk": 36,
+  "minSdk": 23,
+  "androidBrowserHelperObserved": "2.7.3",
+  "capacitor": {
+    "status": "deferred_until_local_web_bundle_or_native_plugins",
+    "productionRemoteServerUrlAllowed": false,
+    "reason": "Capacitor server.url is documented for live reload and not intended for production."
+  },
+  "digitalAssetLinks": {
+    "status": "setup_required",
+    "path": "/.well-known/assetlinks.json",
+    "fingerprintSource": "Google Play App Signing certificate",
+    "fingerprintEnvironment": "ANDROID_PLAY_SIGNING_SHA256",
+    "relations": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ]
+  },
+  "play": {
+    "targetApiDeadline": "2026-08-31",
+    "packageRegistrationDeadline": "2026-09-30",
+    "billingDecision": "required_before_in_app_digital_or_cloud_sales",
+    "internalTesting": "manual_required"
+  },
+  "proof": {
+    "staticContract": "automated",
+    "unsignedReleaseAab": "automated_ci",
+    "debugApk": "automated_ci",
+    "playSignedAab": "manual_required",
+    "assetLinkVerification": "manual_required",
+    "physicalDevice": "manual_required",
+    "loginSessionContinuity": "manual_required",
+    "offlinePublicShell": "manual_required",
+    "pushNotifications": "manual_required",
+    "billingPolicy": "manual_required"
+  }
+}

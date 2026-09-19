@@ -33,7 +33,7 @@
     "smoke:routes": "node scripts/smoke-routes.cjs",
     "verify:agent-sync": "node scripts/verify-agent-development-sync.mjs",
     "verify:customer-ready": "node scripts/verify-customer-ready-production-experience.mjs",
-    "verify:config": "node scripts/verify-launch-config.mjs && node scripts/verify-route-registry.cjs && pnpm run verify:agent-sync && pnpm run verify:customer-ready",
+    "verify:config": "node scripts/verify-launch-config.mjs && node scripts/verify-route-registry.cjs && pnpm run verify:agent-sync && pnpm run verify:customer-ready && pnpm run verify:android-twa",
     "verify:api": "node scripts/verify-openapi-contract.mjs",
     "verify:supabase-contract": "node scripts/verify-supabase-contract.mjs",
     "verify:db": "node scripts/verify-production-schema.mjs && pnpm run verify:supabase-contract && pnpm run verify:tenant-queries && pnpm run verify:request-tenant-ids",
@@ -102,7 +102,9 @@
     "verify:language-floors": "node scripts/verify-language-coverage-floors.mjs",
     "verify:adapted-skills": "node scripts/verify-adapted-skills.mjs",
     "test:email": "node scripts/test-email-config.mjs",
-    "verify:repository-intake": "node scripts/verify-repository-intake-20260918.mjs"
+    "verify:repository-intake": "node scripts/verify-repository-intake-20260918.mjs",
+    "verify:android-twa": "node scripts/verify-android-twa.mjs",
+    "android:twa:assetlinks": "node scripts/generate-android-assetlinks.mjs"
   },
   "license": "UNLICENSED",
   "devDependencies": {
