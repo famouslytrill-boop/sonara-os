@@ -1831,16 +1831,16 @@ async function recordWithdrawal(config, { organizationId, leadId, channel }) {
   // security, so these filters are the tenant boundary -- and this is an
   // unauthenticated endpoint, which is exactly where a missing one would matter
   // most.
-  const updated = await rest(
-    config,
-    TABLES.consents,
-    `organization_id=eq.${encodeURIComponent(organizationId)}&lead_id=eq.${encodeURIComponent(leadId)}&channel=eq.${encodeURIComponent(channel)}`,
-    {
+  const scope =
+    `organization_id=eq.${encodeURIComponent(organizationId)}` +
+    `&lead_id=eq.${encodeURIComponent(leadId)}` +
+    `&channel=eq.${encodeURIComponent(channel)}`;
+
+  const updated = await rest(config, TABLES.consents, scope, {
     method: "PATCH",
     prefer: "return=representation",
     body: { consent_status: "withdrawn", withdrawn_at: now, updated_at: now }
-    }
-  );
+  });
 
   // A failed write is never reported as done. Somebody who pressed Unsubscribe
   // and was told it worked, when it did not, will receive the next campaign --
