@@ -22,29 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
       - name: Validate registry policy and remote repository health
-        # Pull requests validate the whole registry offline, then spend network
-        # quota only on GitHub repository URLs added or changed by the PR.
-        # The scheduled/manual job still probes the entire registry for upstream
-        # drift. This keeps a 239-target catalogue from exhausting the shared
-        # Actions token during concurrent PR work while preserving pre-merge
-        # verification for every newly introduced upstream repository.
+        # Authenticated on every run. The registry is large enough to exhaust
+        # unauthenticated GitHub API quota, and pre-merge verification must not
+        # skip an unchanged registered dependency simply because an earlier PR
+        # introduced it.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONARA_NETWORK_BASE_REF: origin/${{ github.base_ref }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            node scripts/verify-open-source-registry.mjs --network-changed
-          else
-            node scripts/verify-open-source-registry.mjs --network
-          fi
+        run: node scripts/verify-open-source-registry.mjs --network
 
       - name: Confirm each pinned action still declares its reviewed runtime
         # The offline half of this check (verify:action-pins, in verify:gates)

@@ -11,27 +11,12 @@ const RUNTIME_PATHS = [
   "routes"
 ];
 
-const RETIRED = [
-  "starter_monthly",
-  "core_monthly",
-  "pro_monthly",
-  "STRIPE_PRICE_STARTER_MONTHLY",
-  "STRIPE_PRICE_CORE_MONTHLY",
-  "STRIPE_PRICE_PRO_MONTHLY",
-  "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY",
-  "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY",
-  "STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY",
-  "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
-  "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",
-  "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY",
-  "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY",
-  "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY",
-  "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY",
-  "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY",
-  "GOOGLE_CLIENT_ID",
-  "GOOGLE_CLIENT_SECRET",
-  "GOOGLE_REDIRECT_URI"
-];
+const archive = fs.readFileSync(path.join(ROOT, "docs", "archive", "legacy-names.md"), "utf8");
+const retiredBlock = /<!-- BEGIN RETIRED_RUNTIME_IDENTIFIERS -->\s*```text\s*([\s\S]*?)```\s*<!-- END RETIRED_RUNTIME_IDENTIFIERS -->/.exec(archive);
+assert.ok(retiredBlock, "legacy archive is missing the retired runtime identifier ledger");
+const RETIRED = retiredBlock[1].split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+assert.ok(RETIRED.length >= 15, `only ${RETIRED.length} retired identifiers are archived; runtime scan has gone blind`);
+
 
 function runtimeFiles(entry) {
   const absolute = path.join(ROOT, entry);

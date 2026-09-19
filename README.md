@@ -82,7 +82,7 @@ NEXT_PUBLIC_SITE_URL=
 FOUNDER_EMAILS=
 ```
 
-Retired Starter/Core/Pro and product-specific Stripe aliases are intentionally unsupported. Google Client ID/Secret are not SONARA environment variables; configure them in Supabase Auth -> Providers -> Google.
+Retired pricing and product-specific Stripe aliases are intentionally unsupported. Google Client ID/Secret are not SONARA environment variables; configure them in Supabase Auth -> Providers -> Google.
 
 ## Supabase setup
 
@@ -114,7 +114,7 @@ Manual SQL Editor fallback: open `supabase/migrations/011_sonara_saas_launch_sys
    - Team: $109/month
    - Optional annual twins at $290/$590/$1090
    - Business Builder setup remains quoted, not self-serve
-2. Copy each canonical `price_...` ID to the matching `STRIPE_PRICE_WORKSPACE_*`, `STRIPE_PRICE_ALL_THREE_*`, or `STRIPE_PRICE_TEAM_*` environment variable. Retired Starter/Core/Pro price variables are not supported.
+2. Copy each canonical `price_...` ID to the matching `STRIPE_PRICE_WORKSPACE_*`, `STRIPE_PRICE_ALL_THREE_*`, or `STRIPE_PRICE_TEAM_*` environment variable. Retired price variables are not supported.
 3. Copy your secret key to `STRIPE_SECRET_KEY`.
 4. Create a webhook endpoint:
 
