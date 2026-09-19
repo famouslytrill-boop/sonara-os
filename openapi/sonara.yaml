@@ -929,6 +929,13 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /api/ecosystem/platform-patterns:
+    get:
+      operationId: getPlatformPatternConvergence
+      tags: [Ecosystem]
+      summary: Return non-executing platform patterns, agent roles, skills, business mappings, and deterministic planning formulas.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
   /api/ecosystem/requested-repositories:
     get:
       operationId: getRequestedRepositoryCatalog
