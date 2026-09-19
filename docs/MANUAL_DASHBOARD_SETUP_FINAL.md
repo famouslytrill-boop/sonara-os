@@ -42,11 +42,20 @@ production deployment.
 Business Builder setup remains quoted rather than self-serve. It is not part of
 the recurring canonical ladder and has no checkout price environment variable.
 
-### Historical pricing evidence
+### Retired prices
 
-Legacy plan names, aliases, and archived Price IDs are intentionally kept out of
-active setup instructions. The provider-read retirement ledger is preserved in
-`docs/archive/legacy-names.md` for audit and stale-configuration diagnosis.
+These Price IDs are **audit-only**. They are archived in Stripe and must not be
+configured as active checkout values, reactivated, or copied into the canonical
+price environment variables. They remain here only so an operator can recognize
+and remove a stale production value:
+
+- `price_1TS4jf0dKtlEU3lAgEX2tjV2`
+- `price_1TS4l70dKtlEU3lAGmuQmmYO`
+- `price_1TS4lc0dKtlEU3lAy98zUnFy`
+
+Legacy plan names and aliases remain in `docs/archive/legacy-names.md` for
+historical audit. Active setup instructions above use only the canonical price
+ladder.
 
 ## Vercel
 
