@@ -152,6 +152,45 @@ create policy "service_role_organization_memberships_all"
   using (true)
   with check (true);
 
+-- The authorization row must not be able to name organization A while pointing
+-- at a workspace owned by organization B. A UUID primary-key FK proves only
+-- that the workspace exists; this composite FK proves that it exists inside
+-- the same tenant. Keep the original workspace_id FK as well -- this is an
+-- additive tenant-integrity constraint.
+create unique index if not exists business_workspaces_organization_id_id_uidx
+  on public.business_workspaces (organization_id, id);
+
+do $tenant_fk$
+begin
+  if to_regclass('public.business_memberships') is not null
+     and to_regclass('public.business_workspaces') is not null
+     and not exists (
+       select 1
+       from pg_constraint
+       where conrelid = 'public.business_memberships'::regclass
+         and conname = 'business_memberships_org_workspace_fkey'
+     ) then
+    alter table public.business_memberships
+      add constraint business_memberships_org_workspace_fkey
+      foreign key (organization_id, workspace_id)
+      references public.business_workspaces (organization_id, id)
+      on delete cascade
+      not valid;
+  end if;
+
+  if exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.business_memberships'::regclass
+      and conname = 'business_memberships_org_workspace_fkey'
+      and not convalidated
+  ) then
+    alter table public.business_memberships
+      validate constraint business_memberships_org_workspace_fkey;
+  end if;
+end
+$tenant_fk$;
+
 -- Production contains an older empty organization_members table from a prior
 -- schema generation. Do not drop it here because undeclared legacy functions
 -- may still depend on it; remove its direct customer-facing privileges instead.
@@ -200,6 +239,19 @@ begin
      or has_table_privilege('authenticated', 'public.organization_memberships', 'update')
      or has_table_privilege('authenticated', 'public.organization_memberships', 'delete') then
     raise exception 'tenant hardening failed: authenticated can mutate organization memberships directly';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.business_memberships'::regclass
+      and conname = 'business_memberships_org_workspace_fkey'
+      and contype = 'f'
+      and convalidated
+      and pg_get_constraintdef(oid) like
+        'FOREIGN KEY (organization_id, workspace_id) REFERENCES business_workspaces(organization_id, id)%'
+  ) then
+    raise exception 'tenant hardening failed: business membership can cross organization workspace boundary';
   end if;
 end
 $assert$;
