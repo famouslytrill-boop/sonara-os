@@ -1,5 +1,7 @@
 # SONARA One Manual Dashboard Setup
 
+Review by: 2026-12-18
+
 This checklist is for dashboard setup only. Do not paste real secret values into
 source code, docs, screenshots, GitHub, or chat.
 
@@ -15,91 +17,36 @@ they are written out in full below. Everything under "Never do this" is.
 5. The env var **name** goes in the key field and the Price ID goes in the value
    field. `price_...` is never an env var name.
 
-### The three price env vars the server actually reads
+### Canonical price environment variables
 
-These names come from the plan table in `server.js`. Setting any other name has
-no effect — the value is simply never read, and checkout reports that payments
-are not set up with no indication of why.
+These names come from `lib/sonara-stripe-plans.cjs`. The active live Stripe
+account was read on 18 September 2026 before this table was updated. Each Price
+below is active, recurring at the interval shown, charges the amount the SONARA
+pricing table advertises, and belongs to an active Stripe Product.
 
-| Plan    | Env var                      | Live Price ID                     | Amount  |
-| ------- | ---------------------------- | --------------------------------- | ------- |
-| Starter | `STRIPE_PRICE_STARTER_MONTHLY` | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo   |
-| Core    | `STRIPE_PRICE_CORE_MONTHLY`    | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo  |
-| Pro     | `STRIPE_PRICE_PRO_MONTHLY`     | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo  |
-| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | **must be recreated** | $29/mo |
-| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | **must be recreated** | $59/mo |
-| Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | **must be recreated** | $109/mo |
-| One workspace, yearly | `STRIPE_PRICE_WORKSPACE_ANNUAL` | *not created yet* | $290/yr |
-| All three, yearly | `STRIPE_PRICE_ALL_THREE_ANNUAL` | *not created yet* | $590/yr |
-| Team, yearly | `STRIPE_PRICE_TEAM_ANNUAL` | *not created yet* | $1090/yr |
+| Plan | Env var | Live Price ID | Amount |
+| --- | --- | --- | --- |
+| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | `price_1UDcAR0dKtlEU3lA6xBfzRYu` | $29/mo |
+| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | `price_1UDcB60dKtlEU3lAiTaUfXLI` | $59/mo |
+| Team | `STRIPE_PRICE_TEAM_MONTHLY` | `price_1UDcC60dKtlEU3lABcH8EVw6` | $109/mo |
+| One workspace, yearly | `STRIPE_PRICE_WORKSPACE_ANNUAL` | `price_1UDcdq0dKtlEU3lA6bTBV7Pk` | $290/yr |
+| All three, yearly | `STRIPE_PRICE_ALL_THREE_ANNUAL` | `price_1UDcfA0dKtlEU3lAaqioX8tE` | $590/yr |
+| Team, yearly | `STRIPE_PRICE_TEAM_ANNUAL` | `price_1UDcg80dKtlEU3lAoLjca1r0` | $1090/yr |
 
-The last three are annual billing, added 5 September 2026 — two months free
-against the monthly price, and repriced with the monthly ladder on 6 September. **Their Stripe prices do not exist yet**, unlike the
-breadth ladder above them, so these are two steps rather than one: create a
-recurring yearly price at each amount (lookup keys `sonara_workspace_annual`,
-`sonara_all_three_annual`, `sonara_team_annual` keep them findable without this
-table), then set the variables. Until then those plans are not shown at all —
-the monthly twin already sells the same product, so an unbuyable yearly card
-would tell a customer nothing. See `docs/pricing/2026-09-05-PRICING-STRATEGY.md`
-for why two months free rather than a deeper discount.
+A Stripe Price is immutable. If an advertised amount changes, create a new Price
+and repoint the matching canonical variable; do not change the plan key and do
+not restore a retired alias. `scripts/verify-stripe-env.mjs --require-live`
+checks the live amount, interval, and product state before a controlled
+production deployment.
 
-### The breadth ladder was repriced on 6 September 2026 — do not use the old IDs
+Business Builder setup remains quoted rather than self-serve. It is not part of
+the recurring canonical ladder and has no checkout price environment variable.
 
-Those three were created in the live account on 13 August 2026 at **$19, $39 and
-$79**, with lookup keys `sonara_workspace_monthly`, `sonara_all_three_monthly`
-and `sonara_team_monthly`. On 6 September the owner raised them to **$29, $59
-and $109** (see `docs/pricing/2026-09-06-PRICE-INCREASE.md`).
+### Historical pricing evidence
 
-**A Stripe price is immutable.** The three IDs previously printed here still
-exist and still charge the old amounts, so this table no longer prints them:
-pointing `STRIPE_PRICE_ALL_THREE_MONTHLY` at the 13 August price would put
-"$59/mo" on the pricing page and charge the customer **$39**. That mismatch is
-caught by `scripts/verify-stripe-env.mjs` — but only on a run that has
-`STRIPE_SECRET_KEY`, and it *skips* without one, which is every CI run. So this
-paragraph is the guard offline.
-
-**Create three new recurring monthly prices** at $29, $59 and $109, with fresh
-lookup keys (`sonara_workspace_monthly_v2` and so on) rather than moving the old
-ones, so the old and new stay tellable apart in the dashboard. Archive the
-13 August three once the new variables are set: nobody is subscribed to them,
-because their variables were never set and no paid signup has completed in
-production at all.
-
-Creating a price charges nobody; a Stripe price is inert until a checkout
-session names it.
-
-**The one step left is yours:** set those three variables in the Vercel project
-and redeploy. Until they are set, those plans show as not open
-for checkout. The three above them keep working exactly as they are -- Stripe
-prices are immutable, so an existing subscriber goes on paying what they agreed
-to and nobody is migrated by a deploy.
-
-Business Builder setup ($197) is quoted, not sold through checkout, so it has no
-price env var. It keeps a Stripe price (`price_1TjCnv0dKtlEU3lAzjxJnhLK`) only
-so an invoice can be raised by hand.
-
-### Retired prices — do not use
-
-These were the original three plans. Both the products and the prices are
-archived in Stripe as of 2026-08-04, so a checkout session built on them fails.
-
-| Retired plan | Price ID                          | Amount    |
-| ------------ | --------------------------------- | --------- |
-| Creator      | `price_1TS4jf0dKtlEU3lAgEX2tjV2` | $9.99/mo  |
-| Pro (old)    | `price_1TS4l70dKtlEU3lAGmuQmmYO` | $19.99/mo |
-| Label        | `price_1TS4lc0dKtlEU3lAy98zUnFy` | $49.99/mo |
-
-Until 2026-08-04 this file listed the first two as the required values, under
-env var names (`STRIPE_CREATOR_MONTHLY_PRICE_ID`, `STRIPE_PRO_MONTHLY_PRICE_ID`)
-that the server has never read, with the IDs mistranscribed — capital `I` where
-the real IDs have lowercase `l`. Anyone who followed it configured three
-variables that did nothing, pointing at two prices that no longer sell. It is
-recorded here rather than deleted so that a stale copy of the old instructions
-can be recognised for what it is.
-
-Archiving a price does not cancel a subscription already running on it. One
-subscription ever used these, and it was cancelled in April 2026, so nothing was
-billing when they were archived.
+Legacy plan names, aliases, and archived Price IDs are intentionally kept out of
+active setup instructions. The provider-read retirement ledger is preserved in
+`docs/archive/legacy-names.md` for audit and stale-configuration diagnosis.
 
 ## Vercel
 
@@ -110,9 +57,9 @@ publishable key.
 - `STRIPE_PUBLISHABLE_KEY` = your live publishable value (`pk_live_...`)
 - `STRIPE_SECRET_KEY` = your newly rotated live server value (`sk_live_...`)
 - `STRIPE_WEBHOOK_SECRET` = your webhook signing value (`whsec_...`)
-- `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_CORE_MONTHLY`,
-  `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_WORKSPACE_MONTHLY`,
-  `STRIPE_PRICE_ALL_THREE_MONTHLY`, `STRIPE_PRICE_TEAM_MONTHLY` = the Price IDs from the table above
+- `STRIPE_PRICE_WORKSPACE_MONTHLY`, `STRIPE_PRICE_ALL_THREE_MONTHLY`,
+  `STRIPE_PRICE_TEAM_MONTHLY`, `STRIPE_PRICE_WORKSPACE_ANNUAL`,
+  `STRIPE_PRICE_ALL_THREE_ANNUAL`, `STRIPE_PRICE_TEAM_ANNUAL` = the canonical Price IDs from the table above
 
 After env var changes, redeploy without build cache.
 
