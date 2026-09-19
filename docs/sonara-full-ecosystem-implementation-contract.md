@@ -209,8 +209,8 @@ The next platform build closes known capability gaps through governed tracks rat
 
 ### Phase 1 — customer device and ecosystem access
 
-- Build an Android client using a web-native shell. Capacitor is the primary path for native APIs; a Trusted Web Activity remains a lighter option where the product only needs the PWA surface.
-- Add Digital Asset Links, Android internal-test builds, push-notification proof, and offline-shell validation.
+- Ship the current PWA through a verified Trusted Web Activity first. Add Capacitor only when SONARA has a local web asset bundle or a concrete native-plugin requirement; do not use Capacitor's remote server URL as a production wrapper.
+- Add Digital Asset Links from the Play app-signing certificate, API 36 packaging CI, Android internal-test builds, push-notification proof, and offline-shell validation.
 - Add passkeys/WebAuthn and Android Credential Manager. SONARA stores public-key credential material, not fingerprints or facial templates.
 - Build a provider-neutral integration gateway for OAuth/API-key connections, token refresh, webhooks, retries, rate limits, sync jobs, and MCP/tool calls.
 - Add offline/local-first drafts, a mutation queue, conflict policy, resumable uploads, and explicit labels for workflows that remain online-only.
