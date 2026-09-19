@@ -132,6 +132,21 @@ const sprintLog = read("docs/SPRINT_LOG.md").trim();
 
 // --- Assembly ------------------------------------------------------------
 
+// Derived, not stated. The sentence here used to read "Twenty of the
+// thirty-one reciprocal records are the first kind" as a literal, written in
+// the same change that fixed the same misclassification in
+// scripts/report-register-opportunities.mjs -- and it disagreed with it. Codex
+// found it on PR #299. This is the handoff other assistants read to learn how
+// licences work here, so a number in it has to come from the classifier rather
+// than from whoever typed the paragraph.
+const { summariseReciprocal } = require(path.join(root, "lib", "sonara-licence-trigger.cjs"));
+const reciprocalSummary = summariseReciprocal(registerRecords);
+if (!reciprocalSummary.total) problems.push("no reciprocal-licence records found in the register; the licence paragraph below would state a false zero");
+const reciprocalSentence =
+  `Of the ${reciprocalSummary.total} reciprocal records, ${reciprocalSummary.network.length} are the network-triggered kind, `
+  + `${reciprocalSummary.distribution.length} trigger on distribution, and ${reciprocalSummary.unknown.length} carry a licence `
+  + "custom or qualified enough that neither label is safe -- read those records rather than a summary of them.";
+
 const productArchitecture = (agentsRules.match(/## Product Architecture\n([\s\S]*?)\n## /) || [])[1] || "";
 const positioning = (agentsRules.match(/## Public Product Positioning\n([\s\S]*?)\n## /) || [])[1] || "";
 
@@ -196,7 +211,7 @@ lines.push("- `optional_adapter_after_review` -- code may be adapted into SONARA
 lines.push("- `reference_only` / `research_only` -- read the patterns, take no code.");
 lines.push("- `blocked` / `needs_license_review` -- neither, and the record says why.");
 lines.push("");
-lines.push("Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. Twenty of the thirty-one reciprocal records are the first kind. The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.");
+lines.push(`Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. ${reciprocalSentence} The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.`);
 lines.push("");
 
 lines.push("## Before you push");

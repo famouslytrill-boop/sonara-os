@@ -82,7 +82,7 @@ pnpm run verify:env
 > `pnpm run test:email -- --send` posts a real message to Resend — run it
 > deliberately, from a machine with the production values, and not from CI.
 >
-> So outbound email cannot be verified from this repository today. Confirm it in
-> the provider dashboard, and treat any claim that email is live as unproven
-> until there is a script here that proves it.
+> Provider acceptance is not delivery. `--send` tells you Resend took the
+> message; confirm it arrived in the real inbox before claiming outbound email
+> is live.
 

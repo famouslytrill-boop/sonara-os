@@ -144,8 +144,22 @@ const HEADER_LINES = 6;
 // So it ratchets to the measurement, and the browser-side half gets its own
 // floor, because that half is the one that was missing and the one a single
 // edited glob would silently drop.
-const MINIMUM_FILES = 278;
-const MINIMUM_PUBLIC_FILES = 20;
+// An EXACT expected count, not a floor, and this is the third attempt at it.
+//
+// 150 while the population was 258, then still 150 at 279 -- Codex pointed out
+// that a floor far below its population floors nothing. Raised to 278, and
+// Codex pointed out that adding `lib/sonara-env-value-checks.cjs` had already
+// made it 279, so deleting any one covered file would still pass. That is the
+// same defect twice: any fixed floor below the measurement leaves exactly that
+// much slack, and it reappears the moment somebody adds a file.
+//
+// So this asserts equality in BOTH directions. Too few means a glob stopped
+// matching or a file lost its notice; too many means the population grew and
+// nobody looked. The second is not a failure of the code, it is a prompt to
+// re-read this constant deliberately -- which is the only way it stays a
+// measurement rather than a guess.
+const EXPECTED_FILES = 279;
+const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
   const licensePath = path.join(root, "LICENSE");
@@ -218,20 +232,28 @@ if (staleExclusions.length) {
   );
 }
 
-if (examinedPublic < MINIMUM_PUBLIC_FILES) {
+if (examinedPublic !== EXPECTED_PUBLIC_FILES) {
   problems.push(
-    `Only ${examinedPublic} browser-side file(s) examined under public/, below the ${MINIMUM_PUBLIC_FILES} present on 18 September 2026.\n`
-    + "    The public/ pathspecs have stopped matching. The server-side files alone would clear the overall floor,\n"
-    + "    so without this second floor the browser half could vanish from the population in silence -- which is\n"
-    + "    how 21 shipped files had no notice while this check reported success."
+    `${examinedPublic} browser-side file(s) examined under public/, and EXPECTED_PUBLIC_FILES says ${EXPECTED_PUBLIC_FILES}.\n`
+    + (examinedPublic < EXPECTED_PUBLIC_FILES
+      ? "    Fewer: the public/ pathspecs have stopped matching, or a file was removed. The server-side files alone\n"
+        + "    would satisfy any overall count, so without this second assertion the browser half could vanish from the\n"
+        + "    population in silence -- which is how 21 shipped files had no notice while this check reported success."
+      : "    More: browser-side files were added and now carry the notice. Update EXPECTED_PUBLIC_FILES to match, having\n"
+        + "    first checked whether any of them is distributed to customers -- see CUSTOMER_DISTRIBUTED above.")
   );
 }
 
-if (examined < MINIMUM_FILES) {
+if (examined !== EXPECTED_FILES) {
   problems.push(
-    `Only ${examined} shipped source file(s) examined, below the ${MINIMUM_FILES} present on 18 September 2026.\n`
-    + "    Either `git ls-files` returned almost nothing or the glob list stopped matching the tree.\n"
-    + "    A notice check that reads nothing reports every file compliant, which is how 1,002 of them had none."
+    `${examined} shipped source file(s) examined, and EXPECTED_FILES says ${EXPECTED_FILES}.\n`
+    + (examined < EXPECTED_FILES
+      ? "    Fewer: either `git ls-files` returned almost nothing, the glob list stopped matching the tree, or a covered\n"
+        + "    file was deleted. A notice check that reads nothing reports every file compliant, which is how 1,002 of\n"
+        + "    them had none."
+      : "    More: shipped source files were added and carry the notice, which is the good case. Update EXPECTED_FILES to\n"
+        + "    match. This asserts equality rather than a floor precisely so that growth is noticed instead of absorbed\n"
+        + "    as slack -- twice now, a floor below the population hid exactly the gap it was raised to close.")
   );
 }
 

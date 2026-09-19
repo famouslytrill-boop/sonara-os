@@ -2,6 +2,98 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-19 - Five findings on the fixes for the eight, and a floor that was wrong twice
+
+A third review round. Five findings, all real, all on the previous commit. The
+pattern across three rounds is now clear enough to state: **the defects are not
+in the code being fixed, they are in the fixes.**
+
+## A number typed into the fix for numbers being wrong
+
+The previous entry fixed the reciprocal-licence report and corrected the
+sentence in `scripts/generate-handoff-prompt.mjs`. That corrected sentence read
+*"Twenty of the thirty-one reciprocal records are the first kind"* -- a literal,
+written into the document other assistants read to learn how licences work here,
+in the same commit whose subject was licence misclassification, and it disagreed
+with the classifier it was supposedly corrected against (which said eighteen).
+
+The fix is not 20 -> 18. Classification now lives in
+`lib/sonara-licence-trigger.cjs` and the handoff **derives** its sentence from
+it, because two places stating one fact is how one of them goes wrong. The
+generator fails rather than publishing a zero if the register ever yields no
+reciprocal records.
+
+## The report truncated the identifiers it exists to show
+
+`split(/[,.]/)` splits on every period, so the rows printed `GPL-3.0` as
+`GPL-3`, `LGPL-3.0` as `LGPL-3`, `MPL-2.0` as `MPL-2` and `MSCL-1.0-GPL` as
+`MSCL-1`. An operator could not tell which licence or which version a row meant,
+in the one report whose whole subject is that distinction. **This was visible in
+output printed into the previous round's own transcript and went unread.**
+
+Splitting now happens on prose delimiters only -- comma, semicolon, open
+bracket, or a full stop *followed by whitespace*. Fixing it moved the counts to
+**17 / 11 / 3**, because `AGPL-3.0 upstream with a stated commercial-licence
+option` had been classifying as plain AGPL once the period cut it short. Three
+unclassifiable is the more honest answer: a dual-licensed record is exactly the
+case where a bucket label should not be asserted.
+
+## A floor that was wrong, raised, and wrong again
+
+`MINIMUM_FILES` was 150 against a population of 258, then still 150 at 279
+(round two), then raised to 278 -- by which point adding
+`lib/sonara-env-value-checks.cjs` in the same commit had already made it 279. So
+deleting any one covered file would still have passed, which is the identical
+defect the raise was meant to close.
+
+Any fixed floor below its measurement leaves exactly that much slack, and the
+slack reappears the moment somebody adds a file. So it is no longer a floor:
+`EXPECTED_FILES` asserts **equality**, failing when the count drops *and* when
+it grows. Growth is not a code failure -- it is a prompt to re-read the constant
+deliberately, which is the only thing that keeps it a measurement.
+
+Falsified both ways, which no floor could do: deleting one covered file gives
+278 and fails; adding one gives 280 and fails.
+
+## A fallback that was kindness and a false pass
+
+`scripts/test-email-config.mjs` was fixed to read `SUPPORT_TO_EMAIL ||
+CONTACT_TO_EMAIL`, and then *also* accepted the legacy `SUPPORT_EMAIL` /
+`CONTACT_EMAIL` last, reasoning that an operator mid-rotation should not be
+stranded. But `server.js:2777` sends support mail to
+`getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])` and nothing else. So the
+`--send` test would have succeeded on a configuration where the application
+cannot route support mail -- in the same commit whose documentation said nothing
+in the runtime reads those names.
+
+The fallback is gone. The legacy values are still read, only to name them in the
+failure message: *"SUPPORT_EMAIL or CONTACT_EMAIL is set and neither is read by
+anything... Rename the variable rather than adding a second one."* That helps the
+operator without reporting success.
+
+## Corrected guidance appended above a contradiction
+
+`docs/SUPPORT_CONTACT_SETUP.md` and `docs/email/EMAIL_ROUTING_AND_RESEND_SETUP.md`
+were updated to say both commands work and `--send` posts to Resend -- directly
+above a surviving paragraph reading *"So outbound email cannot be verified from
+this repository today... until there is a script here that proves it."* Two
+mutually exclusive instructions, three lines apart, because the update was
+appended without deleting what it replaced. Removed, and replaced with the
+distinction that actually matters: provider acceptance is not delivery.
+
+## Nineteen findings, three rounds
+
+Every one real. What is worth recording is not the count but where they lived:
+round one found defects in the codebase, rounds two and three found defects in
+the repairs -- a false number inside a fix for false numbers, a floor raised to a
+value already stale, a fallback that recreated the false positive it replaced,
+and a correction appended above the text it contradicted.
+
+Nothing here was found by being careful. It was found by another reader looking
+at the diff, and before that by `require('./server')`, `--max-warnings=0`, and
+reading printed output instead of an exit code. The output that showed `GPL-3`
+was on screen in the previous round and nobody read it.
+
 ### 2026-09-18 - Eight more findings, and the one that would have reached customers
 
 Codex reviewed the fixes for the entry below and found **eight** further
@@ -100,13 +192,21 @@ it is not OSI open source. Nothing should be built on it from a summary."*
 Printing it under "triggers on distribution" because a regex missed is building
 on a summary.
 
-Now three buckets -- 18 network, 11 distribution, **2 stated as unclassifiable**
-(Directus, and Codegraff's modified AGPL with licensor-only restrictions) -- and
+Now three buckets -- **17 network, 11 distribution, 3 stated as unclassifiable**
+(Directus, Codegraff's modified AGPL, and OBLITERATUS's AGPL-with-commercial-option)
+-- and
 classification reads the leading licence identifier against known SPDX families
 rather than searching for a substring, so the GPL inside MSCL-1.0-GPL does not
 match. The first attempt put two plain `AGPL-3.0` records in `unknown` because
 their provenance sentence left a trailing full stop on the identifier; caught by
 reading the output rather than the exit code.
+
+The counts above read 18 / 11 / 2 when this entry was first written, and moved to
+17 / 11 / 3 in the entry above it: the identifier splitter was still cutting at
+every period, which both truncated the printed identifiers and let
+`AGPL-3.0 upstream with a stated commercial-licence option` classify as plain
+AGPL. Recorded rather than quietly edited, because the second number is the one
+to trust and the reason it moved is the finding.
 
 **The same error was in the generated handoff prompt**, the file handed to other
 assistants: *"a reciprocal licence (AGPL, GPL, OSL) triggers on network use"*.

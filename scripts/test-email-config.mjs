@@ -42,9 +42,20 @@ const from = env.RESEND_FROM_EMAIL;
 // test. Codex found it on PR #299, after the sibling check had been fixed and
 // this one left behind.
 //
-// The old names are still accepted, last, so an operator who set them from the
-// earlier documentation is not stranded mid-rotation.
-const to = env.SUPPORT_TO_EMAIL || env.CONTACT_TO_EMAIL || env.SUPPORT_EMAIL || env.CONTACT_EMAIL;
+// The legacy names are deliberately NOT accepted as a fallback. The first
+// attempt at this fix accepted them last, reasoning that an operator
+// mid-rotation should not be stranded -- but `server.js:2777` sends support
+// mail to `getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])` and nothing else,
+// so accepting `SUPPORT_EMAIL` would let `--send` succeed while the
+// application still cannot route support mail. A configuration test that
+// passes on a configuration the application rejects is the defect, not the
+// kindness. Codex caught it on PR #299, in the same revision whose
+// documentation said nothing in the runtime reads those names.
+//
+// The legacy values are still READ, only to say so in the failure message,
+// which helps the operator mid-rotation without reporting success.
+const to = env.SUPPORT_TO_EMAIL || env.CONTACT_TO_EMAIL;
+const legacyOnly = !to && (env.SUPPORT_EMAIL || env.CONTACT_EMAIL);
 
 console.log("Email test readiness:");
 console.log(`- RESEND_API_KEY: ${apiKey ? "configured" : "missing"}`);
@@ -58,6 +69,10 @@ if (!send) {
 
 if (!apiKey || !from || !to) {
   console.error("Cannot send test email until RESEND_API_KEY, RESEND_FROM_EMAIL, and SUPPORT_TO_EMAIL or CONTACT_TO_EMAIL are configured.");
+  if (legacyOnly) {
+    console.error("SUPPORT_EMAIL or CONTACT_EMAIL is set and neither is read by anything: server.js sends support mail to");
+    console.error("SUPPORT_TO_EMAIL or CONTACT_TO_EMAIL only. Rename the variable rather than adding a second one.");
+  }
   process.exit(1);
 }
 

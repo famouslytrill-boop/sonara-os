@@ -50,9 +50,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 
 const root = process.cwd();
 const REGISTER = "data/open-source-tools.ts";
+
+const require = createRequire(import.meta.url);
+const { licenceIdentifier, summariseReciprocal } = require(path.join(root, "lib", "sonara-licence-trigger.cjs"));
 
 // Measured 18 September 2026. A floor, because parsing this file by locating a
 // literal is exactly the kind of reader that silently returns nothing -- the
@@ -147,62 +151,27 @@ for (const key of ["integrationStatus", "commercialUseStatus", "licenseRisk"]) {
 // script ignored it. That retracted sentence was a reason reasoned rather than
 // checked, written while fixing a defect of exactly that kind, which is how
 // easily it happens.
-// Three buckets, not two, because "not AGPL" is not the same as "triggers on
-// distribution".
+// Classification lives in lib/sonara-licence-trigger.cjs, not here.
 //
-// The version before this asserted every reciprocal record without AGPL/SSPL/OSL
-// in its name was distribution-triggered. Codex pointed out on PR #299 what that
-// does to Directus, whose licence is `MSCL-1.0-GPL (Monospace Sustainable Core
-// License 1.0)` and whose own register note says: "It is a licence written this
-// year whose abbreviation carries GPL, and it is not OSI open source. Nothing
-// should be built on it from a summary." Printing it under a definitive
-// "triggers on distribution" heading, on the strength of a regex missing, is
-// precisely building on a summary.
-//
-// So classification reads the leading licence identifier and only claims a
-// trigger for a family it recognises. Everything else -- custom licences, dual
-// grants, anything qualified -- goes to `unknown`, which is a statement that the
-// record has to be read rather than a quieter wrong answer. The GPL inside
-// MSCL-1.0-GPL does not match, because the identifier is matched as a whole
-// rather than searched for a substring.
-const NETWORK_FAMILIES = new Set(["AGPL-1.0", "AGPL-3.0", "AGPL", "SSPL-1.0", "SSPL", "OSL-3.0", "OSL"]);
-const DISTRIBUTION_FAMILIES = new Set([
-  "GPL-2.0", "GPL-3.0", "GPL-3.0-or-later", "GPL-2.0-or-later", "GPL",
-  "LGPL-2.1", "LGPL-3.0", "LGPL",
-  "MPL-2.0", "MPL", "EPL-2.0", "EPL", "MS-RL"
-]);
+// It was here, and `scripts/generate-handoff-prompt.mjs` stated its own literal
+// count ("Twenty of the thirty-one") which disagreed with it -- written in the
+// same commit that fixed this report. Codex found that on PR #299. Two places
+// stating the same fact is how one of them goes wrong, so there is one
+// implementation and the handoff derives its sentence from it.
+const reciprocal = summariseReciprocal(records);
 
-function licenceTrigger(record) {
-  const raw = String(record.license || "").trim();
-  // The identifier is what sits before the first comma, semicolon, space or
-  // bracket -- "GPL-3.0, read from the GitHub API" is GPL-3.0; "MSCL-1.0-GPL
-  // (Monospace...)" is MSCL-1.0-GPL, which is in neither set.
-  // A trailing full stop is punctuation, not part of the identifier: two
-  // records read "AGPL-3.0. Read on 18 August 2026 from GitHub" and landed in
-  // `unknown` on the first attempt purely because of that dot. Stripped from
-  // the end only -- AGPL-3.0 has dots of its own.
-  const identifier = (raw.split(/[,;(]/)[0] || "").trim().split(/\s+/)[0].replace(/\.+$/, "") || "";
-  if (NETWORK_FAMILIES.has(identifier)) return "network";
-  if (DISTRIBUTION_FAMILIES.has(identifier)) return "distribution";
-  return "unknown";
-}
-
-const reciprocal = records.filter((record) => record.reciprocalLicense === true);
-const byTrigger = { network: [], distribution: [], unknown: [] };
-for (const record of reciprocal) byTrigger[licenceTrigger(record)].push(record);
-
-function listing(records) {
-  for (const record of records) {
-    console.log(`         ${record.name.slice(0, 34).padEnd(35)} ${String(record.license || "").split(/[,.]/)[0].slice(0, 44)}`);
+function listing(rows) {
+  for (const record of rows) {
+    console.log(`         ${record.name.slice(0, 34).padEnd(35)} ${licenceIdentifier(record).slice(0, 46)}`);
   }
 }
 
-console.log(`  ${reciprocal.length} record(s) carry a reciprocal licence. They are not one category:`);
-console.log(`    ${byTrigger.network.length}  reach providing the software over a network (AGPL / SSPL / OSL) -- the case a hosted product is`);
-console.log(`    ${byTrigger.distribution.length}  trigger on distribution instead (GPL / LGPL / MPL and similar), with obligations that differ per licence`);
-listing(byTrigger.distribution);
-console.log(`    ${byTrigger.unknown.length}  carry a licence whose trigger this report will not state -- custom, dual, or qualified. Read the record.`);
-listing(byTrigger.unknown);
+console.log(`  ${reciprocal.total} record(s) carry a reciprocal licence. They are not one category:`);
+console.log(`    ${reciprocal.network.length}  reach providing the software over a network (AGPL / SSPL / OSL) -- the case a hosted product is`);
+console.log(`    ${reciprocal.distribution.length}  trigger on distribution instead (GPL / LGPL / MPL and similar), with obligations that differ per licence`);
+listing(reciprocal.distribution);
+console.log(`    ${reciprocal.unknown.length}  carry a licence whose trigger this report will not state -- custom, dual, or qualified. Read the record.`);
+listing(reciprocal.unknown);
 console.log("  These are counts, not licence readings. The record's own notes say what was opened and when; that is the authority.\n");
 
 console.log(`Adapters built: ${built.length} of ${records.length}.`);
@@ -247,7 +216,7 @@ if (grouped.size !== permittedUnbuilt.length) {
 for (const [product, list] of [...byProduct.entries()].sort((a, b) => b[1].length - a[1].length)) {
   console.log(`  ${product} (${list.length})`);
   for (const record of list) {
-    const licence = String(record.license || "").split(/[,.]/)[0].slice(0, 26);
+    const licence = licenceIdentifier(record).slice(0, 26);
     const use = (record.useCase || [])[0] || "";
     console.log(`    ${record.name.slice(0, 30).padEnd(31)} ${licence.padEnd(27)} ${use.slice(0, 64)}`);
   }
