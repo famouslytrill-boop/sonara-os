@@ -49,9 +49,19 @@ describe("canonical organization tenant boundary", () => {
     assert.doesNotMatch(sql, /drop table(?: if exists)? public\.organization_members/i);
   });
 
+  it("enforces workspace membership inside the same organization", () => {
+    assert.match(sql, /business_workspaces_organization_id_id_uidx/i);
+    assert.match(
+      sql,
+      /foreign key \(organization_id, workspace_id\)[\s\S]*references public\.business_workspaces \(organization_id, id\)/i
+    );
+    assert.match(sql, /validate constraint business_memberships_org_workspace_fkey/i);
+  });
+
   it("contains migration-time assertions against identity-source regression", () => {
     assert.match(sql, /tenant hardening failed: is_org_member is not canonical/i);
     assert.match(sql, /tenant hardening failed: scalar has_org_role is not canonical/i);
     assert.match(sql, /tenant hardening failed: anon still has organization authority table access/i);
+    assert.match(sql, /business membership can cross organization workspace boundary/i);
   });
 });
