@@ -2,7 +2,7 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
-const { INFRASTRUCTURE_SERVICES, PIPELINE_LAYERS, MOBILE_EXPERIENCE_CHECKS, envReadiness } = require("../lib/sonara-infrastructure-manifest.cjs");
+const { INFRASTRUCTURE_SERVICES, PIPELINE_LAYERS, MOBILE_EXPERIENCE_CHECKS, CAPABILITY_EXPANSION_TRACKS, envReadiness } = require("../lib/sonara-infrastructure-manifest.cjs");
 
 function registerSonaraInfrastructureRoutes(app, deps) {
   const { layout, brandCard, linkAction, requireAdmin } = deps;
@@ -13,7 +13,8 @@ function registerSonaraInfrastructureRoutes(app, deps) {
       status: "ready",
       services: INFRASTRUCTURE_SERVICES,
       pipelineLayers: PIPELINE_LAYERS,
-      mobileExperienceChecks: MOBILE_EXPERIENCE_CHECKS
+      mobileExperienceChecks: MOBILE_EXPERIENCE_CHECKS,
+      capabilityExpansion: capabilityExpansionSummary()
     });
   });
 
@@ -27,7 +28,8 @@ function registerSonaraInfrastructureRoutes(app, deps) {
       missingRequiredServices: missing.map((service) => service.key),
       services,
       pipelineLayers: PIPELINE_LAYERS,
-      mobileExperienceChecks: MOBILE_EXPERIENCE_CHECKS
+      mobileExperienceChecks: MOBILE_EXPERIENCE_CHECKS,
+      capabilityExpansion: capabilityExpansionSummary()
     });
   });
 
@@ -38,6 +40,8 @@ function registerSonaraInfrastructureRoutes(app, deps) {
       brandCard("MVP launch rule", "Paid-customer readiness depends on passing tests, real database state, verified Stripe webhooks, verified Resend sender, and protected customer access."),
       ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : service.configurationStatus || service.launchStatus}`, `${service.category}. Endpoints: ${service.endpoints.length ? service.endpoints.join(" / ") : "manual or worker-layer verification"}.`)),
       ...PIPELINE_LAYERS.map((layer) => brandCard(layer.label, layer.description)),
+      brandCard("Capability expansion", `${CAPABILITY_EXPANSION_TRACKS.length} governed tracks convert known platform limitations into phased build targets with explicit proof gates and claim boundaries.`),
+      ...CAPABILITY_EXPANSION_TRACKS.map((track) => brandCard(`${track.label}: ${track.status.replace(/_/g, " ")}`, `${track.customerValue} Boundary: ${track.claimBoundary}`)),
       brandCard("Mobile optimization", MOBILE_EXPERIENCE_CHECKS.join(" / "))
     ];
 
@@ -56,7 +60,9 @@ function registerSonaraInfrastructureRoutes(app, deps) {
     const sections = [
       brandCard("Admin infrastructure view", "This page shows configuration state without exposing raw secret values."),
       ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : service.configurationStatus || "setup required"}`, service.env.length ? service.env.map((item) => `${item.name}: ${item.configured ? "configured" : "missing"}`).join(" / ") : `${service.launchStatus} manual verification required.`)),
-      ...PIPELINE_LAYERS.map((layer) => brandCard(layer.label, layer.description))
+      ...PIPELINE_LAYERS.map((layer) => brandCard(layer.label, layer.description)),
+      brandCard("Capability expansion control plane", `${CAPABILITY_EXPANSION_TRACKS.length} tracks are registered. Production enablement is independent from research status; every track carries its own proof gates.`),
+      ...CAPABILITY_EXPANSION_TRACKS.map((track) => brandCard(`${track.label} — phase ${track.phase} — ${track.status.replace(/_/g, " ")}`, `Target: ${track.target} Proof: ${track.proofGates.join(" / ")} Claim boundary: ${track.claimBoundary}`))
     ];
 
     res.status(200).type("html").send(layout({
@@ -68,6 +74,20 @@ function registerSonaraInfrastructureRoutes(app, deps) {
       actions: [linkAction("/api/infrastructure/readiness", "Readiness JSON"), linkAction("/admin", "Admin"), linkAction("/admin/system", "System")]
     }));
   });
+}
+
+function capabilityExpansionSummary() {
+  const counts = CAPABILITY_EXPANSION_TRACKS.reduce((summary, track) => {
+    summary[track.status] = (summary[track.status] || 0) + 1;
+    return summary;
+  }, {});
+  return {
+    total: CAPABILITY_EXPANSION_TRACKS.length,
+    counts,
+    nextBuild: CAPABILITY_EXPANSION_TRACKS.filter((track) => track.status === "next_build").map((track) => track.key),
+    gated: CAPABILITY_EXPANSION_TRACKS.filter((track) => track.status === "gated").map((track) => track.key),
+    tracks: CAPABILITY_EXPANSION_TRACKS
+  };
 }
 
 module.exports = registerSonaraInfrastructureRoutes;
