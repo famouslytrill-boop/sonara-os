@@ -47,6 +47,10 @@ jobs:
     steps:
       - name: Checkout SONARA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.1
       - name: Set up Node 24
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -57,11 +61,10 @@ jobs:
           java -version
           command -v sdkmanager
           echo "ANDROID_HOME=$ANDROID_HOME"
-      - name: Install pinned Bubblewrap CLI
+      - name: Check pinned Bubblewrap CLI
         run: |
           set -euo pipefail
-          npm install --global @bubblewrap/cli@1.25.0
-          bubblewrap --version
+          pnpm dlx @bubblewrap/cli@1.25.0 --version
       - name: Generate Android project from SONARA PWA contract
         run: |
           set -euo pipefail
@@ -69,13 +72,15 @@ jobs:
           rm -rf "$work"
           mkdir -p "$work"
           cp android/twa/twa-manifest.json "$work/twa-manifest.json"
-          bubblewrap update --skipVersionUpgrade --manifest "$work/twa-manifest.json" --directory "$work"
+          pnpm dlx @bubblewrap/cli@1.25.0 update --skipVersionUpgrade --manifest "$work/twa-manifest.json" --directory "$work"
           grep -Eq "compileSdkVersion[[:space:]]+36|compileSdk[[:space:]]+36" "$work/app/build.gradle"
           grep -Eq "targetSdkVersion[[:space:]]+36|targetSdk[[:space:]]+36" "$work/app/build.gradle"
       - name: Ensure Android 16 build tools are installed
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
+          set +o pipefail
+          yes | sdkmanager --licenses >/dev/null
+          set -o pipefail
           sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Build debug APK and unsigned release AAB
         run: |
