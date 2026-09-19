@@ -1,0 +1,42 @@
+{
+  "packageId": "com.sonaraindustries.os",
+  "host": "sonaraindustries.com",
+  "name": "SONARA Industries",
+  "launcherName": "SONARA",
+  "display": "standalone",
+  "displayOverride": ["standalone", "minimal-ui"],
+  "themeColor": "#11101A",
+  "themeColorDark": "#11101A",
+  "navigationColor": "#11101A",
+  "navigationColorDark": "#11101A",
+  "navigationDividerColor": "#11101A",
+  "navigationDividerColorDark": "#11101A",
+  "backgroundColor": "#F7F9FF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://sonaraindustries.com/icons/icon-512.png",
+  "maskableIconUrl": "https://sonaraindustries.com/icons/maskable-512.png",
+  "splashScreenFadeOutDuration": 250,
+  "signingKey": {
+    "path": "sonara-release.keystore",
+    "alias": "sonara"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1.0.0",
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://sonaraindustries.com/site.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://sonaraindustries.com/",
+  "minSdkVersion": 23,
+  "orientation": "any",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}
