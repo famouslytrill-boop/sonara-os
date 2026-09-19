@@ -117,5 +117,6 @@
   "20260916040000_growth_campaign_send_records.sql": "379d292287fda83ddbdb4ba532fecffa362885d2e9b22a51f2ca86a540843d71",
   "20260916032000_generation_lifecycle_persistence.sql": "43c2fb5503b353606b46f28156938e6e009d315ba628199f60bf59522832cf83",
   "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql": "208919eabeddaca49a7682f58bb39b9a63aa86a17396fcbc58ad8a05bee7893b",
-  "20260917200000_event_consumer_activation_readiness.sql": "ecab7effd1d0fa8636f78e2981007e24d00f3f92c98a2271cad6eecae660d212"
+  "20260917200000_event_consumer_activation_readiness.sql": "ecab7effd1d0fa8636f78e2981007e24d00f3f92c98a2271cad6eecae660d212",
+  "20260919033000_organization_tenant_boundary_hardening.sql": "c6cdd39873c6fbe45a31399d9d7a62250aeec30ee3a4f6f7ef14532057c3ae04"
 }
