@@ -72,7 +72,7 @@ function fakeTables() {
 
 // The whole sign-in path, wired the way server.js wires it: a password check
 // that always succeeds, the hold in between, and the session setter.
-function buildApp({ tables, envKey = KEY_VALUE, factorReadFails = false, sessionCookies = [] } = {}) {
+function buildApp({ tables, envKey = KEY_VALUE, factorReadFails = false, identityReadFails = false, sessionCookies = [] } = {}) {
   const app = express();
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
@@ -132,13 +132,13 @@ function buildApp({ tables, envKey = KEY_VALUE, factorReadFails = false, session
     getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
     supabaseHeaders: (config) => ({ apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}` }),
     getEnv: (names) => (names.includes("SONARA_TOTP_KEY") ? envKey : undefined),
-    verifySupabaseAccessToken: async () => ({ ok: true, user: USER }),
+    verifySupabaseAccessToken: async () => identityReadFails ? ({ ok: false }) : ({ ok: true, user: USER }),
     sendEmailAuthResult
   });
 
   // server.js: password first, hold second, session third.
   app.post("/auth/login", async (req, res) => {
-    const result = { status: 200, body: { ok: true, code: "login_ready", sessionStored: true }, session: { accessToken: "REAL-ACCESS-TOKEN", refreshToken: "REAL-REFRESH-TOKEN", maxAgeSeconds: 3600 } };
+    const result = { status: 200, body: { ok: true, code: "login_ready", sessionStored: true }, nextPath: req.body?.nextPath, session: { accessToken: "REAL-ACCESS-TOKEN", refreshToken: "REAL-REFRESH-TOKEN", maxAgeSeconds: 3600 } };
     const held = registered.ok ? await registered.holdForSecondFactor(result, req, res) : null;
     if (held) return held;
     return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
@@ -309,6 +309,16 @@ describe("a password alone is not enough", () => {
       assert.deepEqual(sessionCookies, ["REAL-ACCESS-TOKEN"]);
     });
 
+    it("refuses the sign-in when the identity lookup fails after the first factor", async () => {
+      const sessionCookies = [];
+      const tables = fakeTables();
+      const { app } = buildApp({ tables, identityReadFails: true, sessionCookies });
+      const login = await request(app).post("/auth/login").set("accept", "text/html").send({});
+      assert.equal(login.status, 503);
+      assert.deepEqual(sessionCookies, [], "a session was granted when identity verification failed");
+      assert.match(login.text, /not signed you in/i);
+    });
+
     it("refuses the sign-in when it cannot tell whether a factor exists", async () => {
       // The deliberate direction. Signing somebody in without their second
       // factor because a table could not be read is the failure this whole
@@ -360,6 +370,18 @@ describe("a password alone is not enough", () => {
       const right = await request(app).post("/login/verify").set("accept", "text/html").set("Cookie", cookie).send({ code: codeNow(secret) });
       assert.equal(right.headers.location, "/dashboard");
       assert.deepEqual(sessionCookies, ["REAL-ACCESS-TOKEN"], "the held session was not the one handed over");
+    });
+
+    it("preserves a validated destination through the second-factor challenge", async () => {
+      const sessionCookies = [];
+      const tables = fakeTables();
+      const { app } = buildApp({ tables, sessionCookies });
+      const { secret } = await enrol(tables);
+      const login = await request(app).post("/auth/login").set("accept", "text/html").send({ nextPath: "/creator-studio/dashboard" });
+      const cookie = cookieFor(login, registerTwoFactorRoutes.CHALLENGE_COOKIE).split(";")[0];
+      const right = await request(app).post("/login/verify").set("accept", "text/html").set("Cookie", cookie).send({ code: codeNow(secret) });
+      assert.equal(right.headers.location, "/creator-studio/dashboard");
+      assert.deepEqual(sessionCookies, ["REAL-ACCESS-TOKEN"]);
     });
 
     it("refuses the same challenge twice", async () => {
