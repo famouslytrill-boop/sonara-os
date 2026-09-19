@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SONARA Architecture Lab — Platform Patterns</title>
+  <meta name="description" content="A concise view of the engineering patterns behind SONARA's governed application, media, data, and automation architecture.">
+  <link rel="stylesheet" href="/sonara-design-system.css">
+  <link rel="stylesheet" href="/sonara-application-ui.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p>SONARA Industries</p>
+      <h1>Architecture Lab: Platform Patterns</h1>
+      <p>Production systems are built from explicit contracts: identity, authority, data boundaries, retries, verification, and observable failure paths.</p>
+    </header>
+
+    <section>
+      <h2>Agent harness</h2>
+      <p>Context → plan and route → policy gate → scoped execution → independent verification → observability → bounded retry or stop.</p>
+      <p>The harness owns authority and reliability. Models and providers stay replaceable.</p>
+    </section>
+
+    <section>
+      <h2>Grounded knowledge</h2>
+      <p>Retrieval is tenant-scoped and evidence-based. Indexing, retrieval, reranking, citations, evaluation, safety, and monitoring are separate responsibilities.</p>
+    </section>
+
+    <section>
+      <h2>Memory</h2>
+      <p>Working, episodic, semantic, and procedural state are treated differently. Durable memory requires relevance, confidence, provenance, retention rules, and user control.</p>
+    </section>
+
+    <section>
+      <h2>Media delivery</h2>
+      <p>Original assets remain immutable. Preview and delivery renditions are derived as new objects, verified, approved when publication is consequential, and served through storage and caching paths designed for large media.</p>
+    </section>
+
+    <section>
+      <h2>Integration gateway</h2>
+      <p>REST, GraphQL, gRPC, SOAP, agent protocols, and provider APIs can share one governed gateway. Protocol translation never bypasses authentication, organization scope, rate limits, cost controls, approvals, or audit evidence.</p>
+    </section>
+
+    <section>
+      <h2>Events and streaming</h2>
+      <p>Retries are bounded, handlers are idempotent, replay is explicit, dead-letter evidence is retained, and backpressure is a first-class state rather than an afterthought.</p>
+    </section>
+
+    <section>
+      <h2>Data architecture</h2>
+      <p>PostgreSQL remains the system of record. Caches, search indexes, graph stores, analytical stores, embedded databases, and time-series systems are added only for measured workload requirements.</p>
+    </section>
+
+    <section>
+      <h2>Security and verification</h2>
+      <p>Transport security, tenant isolation, least privilege, authorized-target testing, independent verification, and release evidence remain mandatory boundaries across every product surface.</p>
+    </section>
+
+    <footer>
+      <p>Research references inform design; they do not become production dependencies or runtime authority automatically.</p>
+    </footer>
+  </main>
+</body>
+</html>
