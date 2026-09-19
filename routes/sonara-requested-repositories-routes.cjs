@@ -149,8 +149,6 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
         linkAction("/api/ecosystem/platform-patterns", "Platform patterns JSON"),
         linkAction("/research-batch15-platform-patterns.html", "Architecture patterns"),
         linkAction("/research-lab/open-source", "Open-source research"),
-        linkAction("/api/ecosystem/platform-patterns", "Platform patterns JSON"),
-        linkAction("/research-batch15-platform-patterns.html", "Architecture patterns"),
         linkAction("/", "SONARA home")
       ]
     }));
