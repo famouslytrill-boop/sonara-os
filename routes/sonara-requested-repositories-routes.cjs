@@ -45,6 +45,12 @@ const {
   getConfirmedExistingRecordsBatch12
 } = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
 const {
+  getPublicScreenshotToolCatalogBatch14,
+  getScreenshotToolReadinessBatch14,
+  getNonRepositoryReferencesBatch14,
+  getConfirmedExistingRecordsBatch14
+} = require("../lib/sonara-screenshot-tool-radar-batch14.cjs");
+const {
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
 
@@ -61,6 +67,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const repositories = getCombinedPublicCatalog();
     const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
     const nonRepositoryReferences = getAllNonRepositoryReferences();
+    const confirmedExistingRecords = getAllConfirmedExistingRecords();
     res.status(200).json({
       ok: true,
       status: "governed_catalog",
@@ -70,9 +77,11 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       screenshotResearchCount: getScreenshotResearchCount(),
       unresolvedVisualLeadCount: unresolvedVisualLeads.length,
       nonRepositoryReferenceCount: nonRepositoryReferences.length,
+      confirmedExistingRecordCount: confirmedExistingRecords.length,
       repositories,
       unresolvedVisualLeads,
-      nonRepositoryReferences
+      nonRepositoryReferences,
+      confirmedExistingRecords
     });
   });
 
@@ -277,20 +286,28 @@ function getLatestScreenshotIntake() {
   const batch6 = getScreenshotToolReadinessBatch6();
   const batch7 = getScreenshotToolReadinessBatch7();
   const batch12 = getScreenshotToolReadinessBatch12();
+  const batch14 = getScreenshotToolReadinessBatch14();
   return {
-    repositories: [...batch5.repositories, ...batch6.repositories, ...batch7.repositories, ...batch12.repositories],
+    repositories: [
+      ...batch5.repositories,
+      ...batch6.repositories,
+      ...batch7.repositories,
+      ...batch12.repositories,
+      ...batch14.repositories
+    ],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
       ...getNonRepositoryReferencesBatch6(),
       ...getNonRepositoryReferencesBatch7(),
-      ...getNonRepositoryReferencesBatch12()
+      ...getNonRepositoryReferencesBatch12(),
+      ...getNonRepositoryReferencesBatch14()
     ],
     deduplicatedReferences: batch5.deduplicatedReferences || [],
     // Refused for what using them would do rather than for what their licence
     // says -- three of the five are permissively licensed, so filing them as
     // licence problems would imply a relicence could unblock them.
     conductRefusals: getConductRefusalsBatch12(),
-    confirmedExistingRecords: [...getConfirmedExistingRecordsBatch12(), ...getConfirmedExistingRecordsBatch14()]
+    confirmedExistingRecords: getAllConfirmedExistingRecords()
   };
 }
 
@@ -304,7 +321,8 @@ function getCombinedPublicCatalog() {
     ...getScreenshotToolReadinessBatch5().repositories,
     ...getScreenshotToolReadinessBatch6().repositories,
     ...getPublicScreenshotToolCatalogBatch7(),
-    ...getPublicScreenshotToolCatalogBatch12()
+    ...getPublicScreenshotToolCatalogBatch12(),
+    ...getPublicScreenshotToolCatalogBatch14()
   ];
 }
 
@@ -316,7 +334,8 @@ function getScreenshotResearchCount() {
     + getScreenshotToolReadinessBatch5().repositoryCount
     + getScreenshotToolReadinessBatch6().repositoryCount
     + getPublicScreenshotToolCatalogBatch7().length
-    + getPublicScreenshotToolCatalogBatch12().length\n    + getPublicScreenshotToolCatalogBatch14().length;
+    + getPublicScreenshotToolCatalogBatch12().length
+    + getPublicScreenshotToolCatalogBatch14().length;
 }
 
 function getAllNonRepositoryReferences() {
@@ -326,7 +345,15 @@ function getAllNonRepositoryReferences() {
     ...(batch5.nonRepositoryReferences || []),
     ...getNonRepositoryReferencesBatch6(),
     ...getNonRepositoryReferencesBatch7(),
-    ...getNonRepositoryReferencesBatch12()
+    ...getNonRepositoryReferencesBatch12(),
+    ...getNonRepositoryReferencesBatch14()
+  ];
+}
+
+function getAllConfirmedExistingRecords() {
+  return [
+    ...getConfirmedExistingRecordsBatch12(),
+    ...getConfirmedExistingRecordsBatch14()
   ];
 }
 
@@ -340,9 +367,11 @@ function getCombinedReadiness() {
   const screenshotBatch6 = getScreenshotToolReadinessBatch6();
   const screenshotBatch7 = getScreenshotToolReadinessBatch7();
   const screenshotBatch12 = getScreenshotToolReadinessBatch12();
+  const screenshotBatch14 = getScreenshotToolReadinessBatch14();
   const convergence = getCapabilityDesignReadiness();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
   const nonRepositoryReferences = getAllNonRepositoryReferences();
+  const confirmedExistingRecords = getAllConfirmedExistingRecords();
   const repositories = [
     ...requested.repositories,
     ...screenshot.repositories,
@@ -352,7 +381,8 @@ function getCombinedReadiness() {
     ...screenshotBatch5.repositories,
     ...screenshotBatch6.repositories,
     ...screenshotBatch7.repositories,
-    ...screenshotBatch12.repositories
+    ...screenshotBatch12.repositories,
+    ...screenshotBatch14.repositories
   ];
   return {
     ok: true,
@@ -360,16 +390,26 @@ function getCombinedReadiness() {
     repositoryCount: repositories.length,
     verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
     blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
-    screenshotResearchCount: screenshot.repositoryCount + screenshotBatch2.repositoryCount + screenshotBatch3.repositoryCount + screenshotBatch4.repositoryCount + screenshotBatch5.repositoryCount + screenshotBatch6.repositoryCount + screenshotBatch7.repositoryCount + screenshotBatch12.repositoryCount + screenshotBatch14.repositoryCount,
+    screenshotResearchCount: screenshot.repositoryCount
+      + screenshotBatch2.repositoryCount
+      + screenshotBatch3.repositoryCount
+      + screenshotBatch4.repositoryCount
+      + screenshotBatch5.repositoryCount
+      + screenshotBatch6.repositoryCount
+      + screenshotBatch7.repositoryCount
+      + screenshotBatch12.repositoryCount
+      + screenshotBatch14.repositoryCount,
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
+    confirmedExistingRecordCount: confirmedExistingRecords.length,
     productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,
     capabilityBatch8: convergence.capabilities,
     designBatch9: convergence.designs,
     convergenceProductionExecutionAdded: convergence.productionExecutionAdded,
     repositories,
     unresolvedVisualLeads,
-    nonRepositoryReferences
+    nonRepositoryReferences,
+    confirmedExistingRecords
   };
 }
 
