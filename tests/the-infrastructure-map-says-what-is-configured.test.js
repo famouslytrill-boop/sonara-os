@@ -18,7 +18,7 @@
 const assert = require("node:assert/strict");
 const request = require("supertest");
 const app = require("../server");
-const { envReadiness, INFRASTRUCTURE_SERVICES } = require("../lib/sonara-infrastructure-manifest.cjs");
+const { envReadiness, INFRASTRUCTURE_SERVICES, CAPABILITY_EXPANSION_TRACKS } = require("../lib/sonara-infrastructure-manifest.cjs");
 
 describe("the infrastructure map says what is configured", () => {
   it("has services to report on", () => {
@@ -36,6 +36,8 @@ describe("the infrastructure map says what is configured", () => {
       assert.ok(Array.isArray(res.body.services) && res.body.services.length >= 10, "the manifest returned no services");
       assert.ok(Array.isArray(res.body.pipelineLayers) && res.body.pipelineLayers.length > 0);
       assert.ok(Array.isArray(res.body.mobileExperienceChecks) && res.body.mobileExperienceChecks.length > 0);
+      assert.ok(res.body.capabilityExpansion && res.body.capabilityExpansion.total >= 14, "capability expansion tracks are missing");
+      assert.equal(res.body.capabilityExpansion.tracks.length, CAPABILITY_EXPANSION_TRACKS.length);
     });
 
     it("names each service and says whether it is required to launch", async () => {
@@ -106,6 +108,63 @@ describe("the infrastructure map says what is configured", () => {
         services.some((service) => (service.env || []).some((entry) => entry.configured)),
         "no variable was reported as configured, so the check above proves nothing"
       );
+    });
+  });
+
+  describe("capability expansion", () => {
+    it("turns the known limitations into governed build tracks instead of marketing claims", () => {
+      assert.ok(CAPABILITY_EXPANSION_TRACKS.length >= 14, `only ${CAPABILITY_EXPANSION_TRACKS.length} expansion tracks were registered`);
+      const keys = new Set();
+      for (const track of CAPABILITY_EXPANSION_TRACKS) {
+        assert.ok(track.key, "an expansion track has no key");
+        assert.ok(!keys.has(track.key), `duplicate expansion track ${track.key}`);
+        keys.add(track.key);
+        assert.ok(["foundation_active", "next_build", "gated", "planned"].includes(track.status), `${track.key} has unknown status ${track.status}`);
+        assert.ok(Number.isInteger(track.phase) && track.phase >= 0, `${track.key} has no phase`);
+        assert.ok(track.customerValue, `${track.key} has no customer value`);
+        assert.ok(track.businessValue, `${track.key} has no business value`);
+        assert.ok(track.target, `${track.key} has no target architecture`);
+        assert.ok(track.claimBoundary, `${track.key} has no claim boundary`);
+        assert.ok(Array.isArray(track.technologies) && track.technologies.length > 0, `${track.key} has no technology path`);
+        assert.ok(Array.isArray(track.proofGates) && track.proofGates.length >= 3, `${track.key} has too few proof gates`);
+      }
+    });
+
+    it("keeps Android a client/runtime track rather than falsely claiming a replacement hardware OS", () => {
+      const android = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "android_native_client");
+      assert.ok(android, "Android native client track is missing");
+      assert.equal(android.productionEnabled, false);
+      assert.match(android.claimBoundary, /does not claim a hardware kernel/i);
+      assert.ok(android.technologies.includes("Capacitor"));
+    });
+
+    it("uses passkeys without creating a biometric identity database", () => {
+      const passkeys = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "passkeys_device_security");
+      assert.ok(passkeys, "passkey track is missing");
+      assert.equal(passkeys.serverStoresBiometrics, false);
+      assert.match(passkeys.claimBoundary, /not fingerprints, face templates/i);
+    });
+
+    it("keeps autonomous event consumers gated until canary evidence exists", () => {
+      const consumers = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "autonomous_event_consumers");
+      assert.ok(consumers, "event-consumer track is missing");
+      assert.equal(consumers.status, "gated");
+      assert.equal(consumers.productionEnabled, false);
+      assert.ok(consumers.proofGates.some((gate) => /canary/i.test(gate)), "consumer activation has no canary gate");
+    });
+
+    it("does not relabel a third-party integration catalog as SONARA-native coverage", () => {
+      const gateway = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "integration_gateway");
+      assert.ok(gateway, "integration gateway track is missing");
+      assert.match(gateway.claimBoundary, /not SONARA's native integration count/i);
+    });
+
+    it("returns the same expansion contract through readiness without converting plans into green infrastructure", async () => {
+      const res = await request(app).get("/api/infrastructure/readiness").set("Accept", "application/json");
+      assert.equal(res.status, 200);
+      assert.equal(res.body.capabilityExpansion.total, CAPABILITY_EXPANSION_TRACKS.length);
+      assert.ok(res.body.capabilityExpansion.nextBuild.includes("android_native_client"));
+      assert.ok(res.body.capabilityExpansion.gated.includes("autonomous_event_consumers"));
     });
   });
 
