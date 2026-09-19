@@ -48,6 +48,61 @@ them tied to a filename. Falsified all three: removing `--network` fails with
 the original message, adding the step to a second workflow names both files, and
 handing the runner a `GITHUB_TOKEN` fails on the token-less claim.
 
+## A security-evidence file named for 13 assertions, containing 4,779
+
+Added to this branch after the owner passed on a Codex session's finding, which
+was right and is worth stating as a measurement rather than a description.
+
+`.mocharc.json` declares `spec: ["tests/**/*.js", "tests/**/*.mjs"]`. Mocha
+treats a positional path as an **addition** to that list, not a replacement. So
+
+    pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
+      > artifacts/security/tenant-adversarial.json
+
+in `engineering-intelligence-security.yml` ran **4,779 tests** and wrote all of
+them into a file named for the **13** in `tests/cross-tenant-isolation.test.js`.
+Measured both ways: 4,779 with the repository config, 13 with a config carrying
+no spec.
+
+That file is release security evidence. Two consequences, both the shape this
+repository is organised around:
+
+- **Any unrelated failure anywhere in the suite appeared in it and read as a
+  tenant-isolation failure.** That is the mechanism by which three failing
+  assertions elsewhere propagated into the security gate and looked like an
+  isolation bug. The static tenant-query audit was reporting `0 tenant-scoped
+  and NOT filtered` the whole time.
+- **The file's name claimed a population it did not measure** -- shape 2, in the
+  artifact a release decision reads.
+
+The same applied to `artifacts/security/rls-contract.log`, to the
+event-consumer readiness step, and to `verify:tenant-adversarial` in
+`package.json`, which `test:security` runs. Four sites.
+
+`.mocharc.targeted.json` carries the same `require` and `timeout` and declares
+**no `spec`**, so a positional path is the whole population. All four
+invocations now pass it: 13 and 17 tests where there were 4,779, and the
+tenant-isolation step went from 31s to 3s.
+
+**And this is why `tests/every-test-file-can-fail-the-suite.test.js` timed out
+earlier tonight.** It spawns mocha subprocesses per file; each was loading the
+entire suite. That timeout was reported here as not reproducing, which was true
+and incomplete -- the cause was this, and it was in view the whole time. The
+suite ran 4,779 tests inside a single-file invocation in this very session and
+it was read as normal.
+
+`verify:targeted-mocha` is the 56th chain command. It scans `package.json` and
+every workflow for a mocha invocation naming a path under `tests/` and requires
+`--config .mocharc.targeted.json`; it also refuses if that config gains a
+`spec`, or loses a `require` or `timeout` that `.mocharc.json` sets, because
+either would quietly restore the old behaviour. `pnpm test` has no positional
+path and is deliberately untouched.
+
+Falsified three ways: reintroducing the original `package.json` command fails
+naming it, adding a `spec` to the targeted config fails, and deleting its
+`require` fails with the value `.mocharc.json` sets.
+
+
 ## Two things established while doing it, both by being wrong first
 
 **A monitor that exits on "no checks pending" reports success on a population

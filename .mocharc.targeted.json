@@ -1,0 +1,5 @@
+{
+  "require": "tests/setup-env.cjs",
+  "timeout": 15000,
+  "exit": true
+}
