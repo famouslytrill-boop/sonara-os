@@ -62,7 +62,7 @@ const isStripePriceId = (value) => /^price_[A-Za-z0-9]+$/.test(String(value || "
 const requireLive = process.argv.includes("--require-live");
 
 function configuredPriceFor(config) {
-  const names = [config.env, ...(config.envAliases || [])].filter(Boolean);
+  const names = [config.env].filter(Boolean);
   const values = names.map((name) => process.env[name]).filter(Boolean);
   return { names, values, priceId: values.find(isStripePriceId) };
 }

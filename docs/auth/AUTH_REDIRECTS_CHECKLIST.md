@@ -2,29 +2,33 @@
 
 ## Production
 
-- Vercel domain: `https://sonaraindustries.com`
+- SONARA origin: `https://sonaraindustries.com`
 - Supabase Site URL: `https://sonaraindustries.com`
-- Supabase Redirect URLs:
+- Google Cloud Authorized redirect URI:
+  - `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`
+- Supabase application Redirect URLs:
   - `https://sonaraindustries.com/auth/callback`
-  - `https://sonaraindustries.com/login`
-  - `https://sonaraindustries.com/onboarding`
 
-## Local Development
+## Local development
 
-- `http://localhost:3000/auth/callback`
-- `http://localhost:3000/login`
-- `http://localhost:3000/onboarding`
+- Supabase application Redirect URL:
+  - `http://localhost:5000/auth/callback`
 
-## App Defaults
+## Redirect safety
 
-- Login completion defaults to `/onboarding`.
-- Explicit `next` or `redirect` query parameters are allowed only when they are same-origin relative paths.
-- Unsafe external redirects and protocol-relative paths are ignored.
+- Google begins at `/auth/google`.
+- OAuth completion defaults to `/dashboard`.
+- An explicit `next` is accepted only as a same-origin relative path.
+- Absolute external URLs, protocol-relative URLs, and backslash-based redirect tricks are discarded.
+- The PKCE verifier is stored only in a short-lived HttpOnly cookie and never placed in the OAuth URL.
+- A completed Google session passes through SONARA's existing two-factor gate before customer session cookies are issued.
 
-## Manual Verification
+## Verification
 
-1. Open `/login`.
-2. Submit an email sign-in link.
-3. Use Google sign-in after provider setup.
-4. Confirm `/auth/callback` redirects to `/onboarding` or the requested safe relative `next` path.
-5. Confirm no raw Supabase JSON, service-role markers, or secret values appear in the browser.
+1. Confirm Supabase Auth settings report the Google provider enabled.
+2. Open `/login`; confirm **Continue with Google** is present.
+3. Start Google sign-in; confirm the browser is sent through Supabase to Google.
+4. Complete sign-in.
+5. Confirm return to `/auth/callback`, then `/dashboard` or the requested safe SONARA route.
+6. Confirm `/api/readiness` reports Google as `configured`.
+7. Confirm no OAuth verifier, provider token, service-role credential, or Google client secret appears in the page or URL.

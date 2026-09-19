@@ -1,11 +1,15 @@
 {
-  "updated": "2026-07-19",
+  "updated": "2026-09-18",
   "runtime": {
     "entry": "api/index.js",
     "server": "server.js",
     "host": "vercel",
     "rewrite": "/(.*) -> /api",
-    "bundledDirs": ["public/**", "routes/**", "lib/**"],
+    "bundledDirs": [
+      "public/**",
+      "routes/**",
+      "lib/**"
+    ],
     "applicationBaselineCommit": "88ee2d5dbf359972fc5eee64b322fed17192cbdf",
     "lastVerifiedProductionCommit": "68bab71c5b98ad16692285a87549a3a09d10e492",
     "lastVerifiedProductionDeployment": "dpl_zBcP14sv6UumFxagChpFYSG15LjJ",
@@ -47,11 +51,21 @@
       "validator": "friendly-name sender repair deployed",
       "deliveryProof": "pending"
     },
-    "googleOAuth": { "status": "deferred" }
+    "googleOAuth": {
+      "status": "required_provider_verification",
+      "flow": "Supabase Google provider -> SONARA /auth/callback -> server PKCE exchange -> existing HttpOnly session + 2FA gate",
+      "applicationCallback": "https://sonaraindustries.com/auth/callback"
+    }
   },
   "commercial": {
     "pricingApproval": "owner_approved",
-    "prices": ["$0", "$7/month", "$19/month", "$39/month", "one-time setup"],
+    "prices": [
+      "$0",
+      "$29/month one workspace",
+      "$59/month all three",
+      "$109/month team",
+      "quoted Business Builder setup"
+    ],
     "legalOwnerApproval": "owner_approved",
     "legalPages": "review_required",
     "legalReview": "qualified review required; not attorney-reviewed"

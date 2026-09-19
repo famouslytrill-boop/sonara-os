@@ -97,7 +97,8 @@ function stubFetch() {
       if (entitled && table === "billing_entitlements") {
         const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1])
           .split(",").filter(Boolean);
-        return json(asked[0] ? [{ entitlement_key: asked[0], status: "active" }] : []);
+        const granted = asked.includes("all_three_monthly") ? "all_three_monthly" : asked[0];
+        return json(granted ? [{ entitlement_key: granted, status: "active" }] : []);
       }
 
       if (method === "POST" || method === "PATCH") return json([{ id: "created" }], 201);
@@ -122,6 +123,9 @@ function registeredPages() {
     .filter((route) => !route.includes(":"))
     .filter((route) => !route.startsWith("/api/"))
     .filter((route) => !route.startsWith("/admin"))
+    // OAuth callback is a protocol endpoint, not a workspace page. A direct
+    // request with no provider code/PKCE verifier is correctly HTTP 400.
+    .filter((route) => route !== "/auth/callback")
     .sort();
 }
 

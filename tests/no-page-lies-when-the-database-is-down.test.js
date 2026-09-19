@@ -359,7 +359,10 @@ const leaks = [];
     };
 
     const unreachable = [...refusedBy.entries()]
-      .filter(([route, entry]) => !renderedRoutes.has(route) && !landsOnARenderedPage(entry.destination))
+      .filter(([route, entry]) =>
+        route !== "/auth/callback"
+        && !renderedRoutes.has(route)
+        && !landsOnARenderedPage(entry.destination))
       .map(([, entry]) => entry.detail);
 
     // Zero, and that is the honest number rather than a tidy one.
@@ -367,8 +370,10 @@ const leaks = [];
     // It was pinned at 13 while the real figure was 6, which is a pin that would
     // not have noticed seven new failures. Examining the six is what closed it:
     // two render an honest outage page under 503 and are now read, three are
-    // aliases whose chain ends on a rendered page, and /auth/callback answers
-    // "OAuth deferred" to a request carrying no OAuth code, which is correct.
+    // aliases whose chain ends on a rendered page. /auth/callback is now a
+    // real PKCE protocol endpoint: a direct crawl has no code/verifier and is
+    // correctly refused with 400, so it is accounted for as protocol rather
+    // than as a customer-facing page.
     //
     // Every route is now either rendered or lands on a page that was. If that
     // stops being true, this says so on the first run rather than the fiftieth.

@@ -28,31 +28,31 @@ describe("plan limits", () => {
     assert.deepEqual(uncovered, [], "these plans can be bought and have no stated location allowance");
   });
 
-  it("gives more as the plan gets bigger", () => {
-    assert.equal(includedLocations("starter_monthly"), 1);
-    assert.equal(includedLocations("core_monthly"), 3);
-    assert.equal(includedLocations("pro_monthly"), null, "Pro is unlimited");
+  it("uses the canonical workspace ladder only", () => {
+    assert.equal(includedLocations("workspace_monthly"), 1);
+    assert.equal(includedLocations("all_three_monthly"), null, "All three is unlimited");
+    assert.equal(includedLocations("team_monthly"), null, "Team is unlimited");
     assert.equal(includedLocations("free"), 1);
     assert.equal(includedLocations("something_nobody_sells"), 1, "an unknown plan falls back to the free allowance");
   });
 
-  it("allows up to the limit and refuses past it", () => {
-    assert.equal(locationAllowance("starter_monthly", { ok: true, count: 0 }).allowed, true);
-    assert.equal(locationAllowance("starter_monthly", { ok: true, count: 1 }).allowed, false);
-    assert.equal(locationAllowance("core_monthly", { ok: true, count: 2 }).allowed, true);
-    assert.equal(locationAllowance("core_monthly", { ok: true, count: 3 }).allowed, false);
+  it("allows up to the one-workspace limit and refuses past it", () => {
+    assert.equal(locationAllowance("workspace_monthly", { ok: true, count: 0 }).allowed, true);
+    assert.equal(locationAllowance("workspace_monthly", { ok: true, count: 1 }).allowed, false);
   });
 
-  it("never refuses an unlimited plan, however many there are", () => {
-    for (const count of [0, 3, 99, 100000]) {
-      assert.equal(locationAllowance("pro_monthly", { ok: true, count }).allowed, true, `Pro refused at ${count}`);
+  it("never refuses the unlimited canonical plans, however many there are", () => {
+    for (const plan of ["all_three_monthly", "team_monthly"]) {
+      for (const count of [0, 3, 99, 100000]) {
+        assert.equal(locationAllowance(plan, { ok: true, count }).allowed, true, `${plan} refused at ${count}`);
+      }
     }
   });
 
   // The distinction the module exists for.
   it("says it could not check, rather than saying the limit was reached", () => {
     for (const bad of [{ ok: false, count: null }, undefined, { ok: true, count: null }]) {
-      const allowance = locationAllowance("core_monthly", bad);
+      const allowance = locationAllowance("workspace_monthly", bad);
       assert.equal(allowance.allowed, false, "an uncountable state must not create a location");
       assert.equal(allowance.unknown, true);
       assert.match(locationLimitMessage(allowance), /could not check/);
@@ -65,20 +65,20 @@ describe("plan limits", () => {
   });
 
   it("tells a customer the numbers, not a code", () => {
-    const message = locationLimitMessage(locationAllowance("core_monthly", { ok: true, count: 3 }));
-    assert.match(message, /includes 3 locations/);
-    assert.match(message, /using 3/);
+    const message = locationLimitMessage(locationAllowance("workspace_monthly", { ok: true, count: 1 }));
+    assert.match(message, /includes one location/);
+    assert.match(message, /using 1/);
     assert.match(message, /Move up a plan/);
     // Singular reads as a sentence rather than "1 locations".
-    assert.match(locationLimitMessage(locationAllowance("starter_monthly", { ok: true, count: 1 })), /includes one location,/);
+    assert.match(locationLimitMessage(locationAllowance("workspace_monthly", { ok: true, count: 1 })), /includes one location,/);
   });
 
   // `included || Infinity` would turn a deliberate zero into no limit at all.
   // Nothing is set to zero today, which is exactly when a guard like this is
   // cheap to add and impossible to notice missing.
   it("would treat a zero allowance as zero, not as unlimited", () => {
-    const zeroed = { ...INCLUDED_LOCATIONS, starter_monthly: 0 };
-    const included = zeroed.starter_monthly;
+    const zeroed = { ...INCLUDED_LOCATIONS, workspace_monthly: 0 };
+    const included = zeroed.workspace_monthly;
     assert.equal(included === null, false, "zero must not be read as the unlimited marker");
     assert.equal(0 < included, false, "zero allowance must refuse the first one");
   });

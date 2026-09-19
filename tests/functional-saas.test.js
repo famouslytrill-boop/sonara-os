@@ -8,9 +8,13 @@ describe("SONARA SaaS functional routes", () => {
   it("returns readiness without secret values", async () => {
     const res = await request(app).get("/api/readiness").expect(200);
     assert.equal(res.body.ok, true);
-    for (const key of ["accountDatabase", "paymentConnection", "paymentUpdates", "emailDelivery", "googleSignIn", "founderAccess"]) {
+    for (const key of ["accountDatabase", "paymentConnection", "paymentUpdates", "emailDelivery", "founderAccess"]) {
       assert.ok(["configured", "deferred", "missing"].includes(res.body[key]), `bad readiness value for ${key}`);
     }
+    assert.ok(
+      ["configured", "setup_required"].includes(res.body.googleSignIn),
+      `bad readiness value for googleSignIn: ${res.body.googleSignIn}`
+    );
     assert.equal(JSON.stringify(res.body).includes("sk_"), false);
     assert.equal(JSON.stringify(res.body).includes("whsec_"), false);
   });

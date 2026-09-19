@@ -2,7 +2,10 @@
   "supabase": {
     "role": "auth+database+storage",
     "status": "configured; production ledger 42/42 and linked schema lint passed",
-    "serverOnly": ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"],
+    "serverOnly": [
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "SUPABASE_SECRET_KEY"
+    ],
     "repositoryContract": "3 schemas / 71 tables / 10 functions / 8 operational indexes / 7 private buckets",
     "productionContractMigrations": "40, 41, and 42 applied and remote-ledger verified",
     "credentialBoundary": "previously disclosed server access still requires replacement outside chat"
@@ -21,7 +24,13 @@
   },
   "pricing": {
     "status": "owner_approved",
-    "catalog": ["free:$0", "starter:$7/month", "core:$19/month", "pro:$39/month", "business-builder-setup:one-time"]
+    "catalog": [
+      "free:$0",
+      "workspace:$29/month",
+      "all-three:$59/month",
+      "team:$109/month",
+      "business-builder-setup:quoted"
+    ]
   },
   "legal": {
     "ownerApproval": "owner_approved",
@@ -37,7 +46,19 @@
     "healthVerified": true,
     "runtimeErrors24h": "none observed at retry verification"
   },
-  "cloudflare": { "role": "DNS and inbound email routing records", "status": "active zone; record types verified; delivery proof pending" },
-  "googleOAuth": { "role": "auth provider", "status": "deferred" },
-  "omniroute": { "role": "optional AI gateway", "status": "disabled by default; docs/infrastructure/OPTIONAL_AI_GATEWAY.md" }
+  "cloudflare": {
+    "role": "DNS and inbound email routing records",
+    "status": "active zone; record types verified; delivery proof pending"
+  },
+  "googleOAuth": {
+    "role": "auth provider",
+    "status": "required; Supabase-hosted provider must verify enabled before production deployment",
+    "implementation": "server-side PKCE; SONARA HttpOnly session cookies; existing two-factor gate preserved",
+    "applicationCallback": "https://sonaraindustries.com/auth/callback",
+    "providerCallback": "https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback"
+  },
+  "omniroute": {
+    "role": "optional AI gateway",
+    "status": "disabled by default; docs/infrastructure/OPTIONAL_AI_GATEWAY.md"
+  }
 }
