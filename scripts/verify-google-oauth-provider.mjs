@@ -170,9 +170,46 @@ if (settings?.external?.google !== true) {
 const callback = new URL("/auth/callback", `${site}/`).toString();
 const supabaseCallback = new URL("/auth/v1/callback", `${url}/`).toString();
 
+function allowListPatternMatches(pattern, candidate) {
+  const source = String(pattern || "").trim();
+  if (!source) return false;
+  let regex = "^";
+  const regexMeta = "\\^$.*+?()[]{}|";
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === "*" && source[index + 1] === "*") {
+      regex += ".*";
+      index += 1;
+      continue;
+    }
+    if (char === "*") {
+      regex += "[^./]*";
+      continue;
+    }
+    if (char === "?") {
+      regex += "[^./]";
+      continue;
+    }
+    regex += regexMeta.includes(char) ? "\\" + char : char;
+  }
+  return new RegExp(regex + "$").test(candidate);
+}
+
+const redirectAllowList = String(authConfig?.uri_allow_list || "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+
+if (requireProvider && !authConfig) {
+  fail("Supabase hosted Auth configuration could not be read, so the application callback allowlist cannot be verified.");
+}
+if (authConfig && !redirectAllowList.some((entry) => allowListPatternMatches(entry, callback))) {
+  fail(`Supabase redirect allowlist does not permit ${callback}. Add the exact callback (or an intentional matching wildcard) before deployment.`);
+}
+
 console.log("Google OAuth provider verified:");
 console.log("- Supabase provider: enabled");
-console.log(`- Application callback: ${callback}`);
+console.log(`- Application callback: ${callback} (allowlisted)`);
 console.log(`- Google provider callback: ${supabaseCallback}`);
 console.log(`- Public Auth key source: ${managed?.source || "application_environment"}`);
 console.log("- OAuth mode: server-side PKCE");

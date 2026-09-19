@@ -148,6 +148,7 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
 
     assert.equal(result.ok, true);
     assert.equal(result.nextPath, "/dashboard");
+    assert.equal(result.body.sessionStored, true);
     assert.deepEqual(result.session, {
       accessToken: "access-token",
       refreshToken: "refresh-token",
@@ -173,10 +174,17 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
 
   it("the Express callback still sends Google sessions through SONARA two-factor", () => {
     const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-    assert.match(server, /app\.get\("\/auth\/google"/);
-    assert.match(server, /app\.get\("\/auth\/callback", async/);
+    assert.match(server, /app\.get\("\/auth\/google", googleOAuthStartRateLimiter, async/);
+    assert.match(server, /app\.get\("\/auth\/callback", googleOAuthCallbackRateLimiter, async/);
     assert.match(server, /completeGoogleOAuth\(req, res\)/);
     assert.match(server, /twoFactor\.holdForSecondFactor\(result, req, res\)/);
     assert.doesNotMatch(server, /Google OAuth is deferred|OAuth deferred/);
+  });
+
+  it("deployment verification requires the application callback in Supabase redirect URLs", () => {
+    const verifier = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-google-oauth-provider.mjs"), "utf8");
+    assert.match(verifier, /uri_allow_list/);
+    assert.match(verifier, /redirect allowlist does not permit/);
+    assert.match(verifier, /allowListPatternMatches/);
   });
 });

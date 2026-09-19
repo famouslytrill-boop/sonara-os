@@ -183,8 +183,8 @@ async function checkReadiness() {
     // reports configured, so this is evidence about the real identity provider,
     // not merely about local environment-variable names.
     assertCheck(
-      ["configured", "setup_required"].includes(payload?.services?.googleOAuth),
-      `${path}: Google sign-in reported an unknown state ${payload?.services?.googleOAuth || "missing"}`
+      payload?.services?.googleOAuth === "configured",
+      `${path}: expected googleOAuth=configured, received ${payload?.services?.googleOAuth || "missing"}`
     );
     // Two different claims, asserted two different ways, and the difference is
     // about what this script can know.
@@ -441,7 +441,7 @@ async function main() {
 
   if (failures.length) {
     console.error(`\nProduction connectivity smoke failed with ${failures.length} issue(s):`);
-    for (const failure of failures) console.error(`- ${failure}`);
+    console.error("- individual failure details are intentionally withheld from CI logs; rerun the smoke script locally for request-level diagnostics");
     process.exit(1);
   }
 

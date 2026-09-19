@@ -166,7 +166,7 @@ const {
   createEmployeeAuthUser,
   getCookie,
   getSupabaseAuthConfig,
-  getGoogleOAuthProviderStatus,
+  getGoogleOAuthProviderStatus, googleOAuthStartRateLimiter, googleOAuthCallbackRateLimiter,
   beginGoogleOAuth,
   completeGoogleOAuth,
   handleEmailAuth,
@@ -1124,7 +1124,7 @@ app.post("/auth/login", loginRateLimiter, async (req, res) => {
     loginPage(req, { email: req.body?.email, error: message }));
 });
 
-app.get("/auth/google", async (req, res) => {
+app.get("/auth/google", googleOAuthStartRateLimiter, async (req, res) => {
   const result = await beginGoogleOAuth(req, res, req.query?.next);
   if (result.ok) return res.redirect(303, result.url);
   if (!acceptsHtml(req)) return res.status(result.status).json({ ok: false, code: result.code, message: result.message });
@@ -1256,7 +1256,7 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
   );
 });
 
-app.get("/auth/callback", async (req, res) => {
+app.get("/auth/callback", googleOAuthCallbackRateLimiter, async (req, res) => {
   const result = await completeGoogleOAuth(req, res);
   if (!result.ok) {
     if (!acceptsHtml(req)) return res.status(result.status).json({ ok: false, code: result.code, message: result.message });
