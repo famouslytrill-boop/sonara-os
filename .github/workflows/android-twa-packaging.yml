@@ -59,7 +59,10 @@ jobs:
         run: |
           set -euo pipefail
           java -version
-          command -v sdkmanager
+          test -n "${ANDROID_HOME:-}"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --version
           echo "ANDROID_HOME=$ANDROID_HOME"
       - name: Check pinned Bubblewrap CLI
         run: |
@@ -78,10 +81,11 @@ jobs:
       - name: Ensure Android 16 build tools are installed
         run: |
           set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           set +o pipefail
-          yes | sdkmanager --licenses >/dev/null
+          yes | "$SDKMANAGER" --licenses >/dev/null
           set -o pipefail
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
       - name: Build debug APK and unsigned release AAB
         run: |
           set -euo pipefail
