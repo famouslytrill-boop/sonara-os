@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* How precisely a check-in records where somebody was.
  *
  * Shared between the browser that captures the position and the server that

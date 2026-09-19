@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 // One end of a browser-to-browser call.
 //
 // The same file runs on both ends and the difference is one word of

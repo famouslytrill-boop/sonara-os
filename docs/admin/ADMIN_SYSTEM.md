@@ -24,9 +24,17 @@ Use `docs/admin/OWNER_BOOTSTRAP.md` for first-owner setup. The owner email must 
 ## Launch Checks
 
 ```powershell
-pnpm run check:env-safety
-pnpm run check:risky-features
+pnpm run verify:env
 pnpm run verify:db
 pnpm run typecheck
 pnpm run build
 ```
+
+> This block used to open with `pnpm run check:env-safety` and
+> `pnpm run check:risky-features`. Neither is defined in `package.json`, so the
+> checklist failed on its first line. Corrected 18 September 2026.
+> `pnpm run verify:env` is the live equivalent for the first: it fails the build
+> when the code reads a variable nobody has classified. There is no successor to
+> the second — `pnpm run verify:launch` runs the whole release chain if you
+> want everything.
+

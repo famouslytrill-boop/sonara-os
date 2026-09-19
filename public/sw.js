@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 // SONARA public-site service worker.
 // The cache version stays aligned with the rendered asset token. Only
 // public navigation and non-sensitive same-origin assets are handled here.

@@ -24,6 +24,12 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Claude repository work uses `.claude/skills/governed-batch-convergence/SKILL.md`.
 - ChatGPT/Codex repository work uses `AGENTS.md` plus `.ai/shared/CHATGPT_CODEX_BATCH_1_10_STRATEGY.md`. This does not mean a ChatGPT app/plugin is installed; workspace/user authorization remains separate.
 
+### 2026-09-18 cross-host repository intake
+
+- `data/repository-intake-2026-09-18.json` adds exactly 30 research-only repositories and 30 exact-SHA pinned install targets across GitHub, GitLab, and Higgsfield sources; `pnpm run verify:repository-intake` enforces the split, uniqueness, pinning, licence-review and non-execution rules.
+- `lib/sonara-batch-convergence-engine.cjs` consumes this as Batch 13. Both lanes remain non-executing in convergence; an install target is not evidence of runtime installation or activation.
+- No third-party repository source was bulk-copied into SONARA. Package/tool adoption still requires a pnpm lockfile change, a real SONARA call site or explicitly developer/test-only classification, full CI/security/tenant checks, and the product-specific canary gate.
+
 ## Learning and memory truth
 
 - `.ai/shared/PROJECT_MEMORY.md` is repository-native development memory only.

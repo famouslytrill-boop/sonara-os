@@ -616,11 +616,12 @@ describe("the server.js split stays safe", () => {
       // squeeze under 3901 would be the ratchet deciding what a file may say
       // about its own ownership, which is the wrong way round -- the same
       // reasoning as the 3874 -> 3876 entry above.
-      // 3885 -> 3932 on 18 September 2026: this PR makes Google
-      // OAuth a canonical customer sign-in path and removes retired billing
-      // compatibility. The auth provider/PKCE mechanics stay in the extracted
-      // auth module; server.js carries only the explicit route wiring.
-      lines <= 3932,
+      // 3885 -> 3916 on 18 September 2026: Google OAuth became a canonical
+      // customer sign-in path while main simultaneously extracted shared
+      // environment validators. The auth provider/PKCE mechanics remain in
+      // lib/sonara-customer-auth.cjs; server.js keeps only explicit route and
+      // callback wiring, so the ratchet follows the reconciled file exactly.
+      lines <= 3916,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

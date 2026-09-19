@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 // Recording a check-in, on a real click, at the precision the person picked.
 //
 // A separate file rather than inline script for the same reason as

@@ -59,9 +59,30 @@ Configure the real support destination in hosting secrets or provider dashboards
 ## Verification
 
 ```powershell
-pnpm run verify:email-env
-pnpm run test:email
-pnpm run test:email -- --send
+pnpm run verify:env
 ```
 
-The send test must be run manually after Resend domain verification and key rotation.
+> **Both commands now exist.** This note said "No email tooling exists in this
+> repository" and that neither command was defined. That was true of
+> `package.json` and false of the repository: `scripts/verify-email-env.mjs` and
+> `scripts/test-email-config.mjs` had been sitting there since 25 August 2026
+> with nothing pointing at them. `pnpm run verify:email-env` and
+> `pnpm run test:email` were wired up on 18 September 2026 and both work.
+>
+> Two things changed with them, and they matter if you set these variables from
+> an older copy of this file. `verify:email-env` reads its requirement from
+> `lib/sonara-infrastructure-manifest.cjs` — the same declaration
+> `/api/readiness` uses — and applies the application's own rules, so
+> `RESEND_API_KEY=replace-me` fails rather than passing. And the recipient
+> variables are **`SUPPORT_TO_EMAIL`** or **`CONTACT_TO_EMAIL`**, not
+> `SUPPORT_EMAIL`/`CONTACT_EMAIL`; nothing in the runtime has ever read the
+> latter pair.
+>
+> `pnpm run test:email` is a dry run and reaches no provider.
+> `pnpm run test:email -- --send` posts a real message to Resend — run it
+> deliberately, from a machine with the production values, and not from CI.
+>
+> Provider acceptance is not delivery. `--send` tells you Resend took the
+> message; confirm it arrived in the real inbox before claiming outbound email
+> is live.
+

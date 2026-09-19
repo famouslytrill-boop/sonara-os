@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
 const { INFRASTRUCTURE_SERVICES, PIPELINE_LAYERS, MOBILE_EXPERIENCE_CHECKS, envReadiness } = require("../lib/sonara-infrastructure-manifest.cjs");

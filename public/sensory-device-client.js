@@ -1,3 +1,5 @@
+// Copyright (c) 2026 SONARA Industries. All rights reserved.
+// Proprietary source. No licence is granted; see LICENSE.
 /* SONARA Sensory Device Client
  * Plain browser helper for sound cues, vibration, GPS, and motion/orientation checks.
  * It does not auto-start sensors. User action and permission are required.
