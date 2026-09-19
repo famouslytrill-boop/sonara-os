@@ -73,6 +73,7 @@
     "verify:contrast": "node scripts/verify-colour-contrast.mjs",
     "enable:leaked-password": "node scripts/enable-leaked-password-protection.mjs",
     "verify:doc-counts": "node scripts/verify-doc-counts.mjs --check",
+    "fix:doc-counts": "node scripts/verify-doc-counts.mjs --write",
     "verify:source-licence": "node scripts/verify-source-licence.mjs",
     "verify:growth-copy": "node scripts/check-growth-studio-copy.mjs",
     "verify:csp": "node scripts/verify-content-security-policy.mjs",

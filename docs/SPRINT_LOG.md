@@ -93,9 +93,21 @@ whole suite is the deliberate point -- its job is to enumerate every test file,
 and its own comment says `--dry-run` "loads every file and reports the cases
 without running their bodies, which is the only answer that cannot disagree with
 the runner". The spec leak cannot have affected it, because it wants the full
-spec. That test is simply slow -- 4,779 cases loaded, with load-time assertions
-executing -- and under coverage instrumentation it crosses the 15s limit. It
-remains unexplained and untouched, which is the honest state.
+spec. It remains **unexplained and untouched**, and three hypotheses were eliminated
+on 19 September 2026 so the next person does not re-derive them:
+
+| hypothesis | measurement |
+| --- | --- |
+| the `--dry-run` spawn is inherently slow | **1.9s** standalone, against a 15s limit |
+| coverage instrumentation inherited by the child | **2.0s** with `NODE_V8_COVERAGE` set; the child writes 2 coverage files and is not slowed by it |
+| CPU contention with the parent suite | **1.9s** while two additional full-suite runs saturated all 4 cores |
+
+So it does roughly two seconds of work under a fifteen-second limit, and has
+failed once, in one `verify:launch` run, on a machine also doing other things.
+The timeout is **not** raised: that would be a speculative fix to a test nobody
+can show failing, which is how a limit stops meaning anything. It is left alone
+with the measurements written down, because "I could not reproduce it" is a
+finding and "it is probably slow" is a guess.
 
 Written into a commit message and this log before being checked, while fixing a
 defect about evidence claiming more than it measured.
@@ -144,6 +156,132 @@ path and is deliberately untouched.
 Falsified three ways: reintroducing the original `package.json` command fails
 naming it, adding a `spec` to the targeted config fails, and deleting its
 `require` fails with the value `.mocharc.json` sets.
+
+
+## Sweeping what chat raised across 18-19 September
+
+Asked to close out everything raised in conversation over the two days. Four
+items were live; two were already closed and saying so is the point, because an
+open list that contains closed items is the same defect as a document claiming
+more than it measures.
+
+### Closed by verification, not by work
+
+**PR #296's missing auth rate limiter.** Reviewing that branch on 18 September
+found `/auth/google` and `/auth/callback` reaching Supabase with no limiter
+while `/auth/signup` and `/auth/login` both had one. On `main` today both carry
+one: `server.js:1140` mounts `googleOAuthStartRateLimiter` and `server.js:1272`
+mounts `googleOAuthCallbackRateLimiter`. Addressed by whoever owns that branch.
+Off the list.
+
+**The Google readiness signal reporting on three variables nothing reads.**
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_REDIRECT_URI` appear in
+no readiness surface on `main` -- measured across `lib/`, `routes/`, `api/` and
+`server.js`, zero files read any of them. The only code reference is
+`scripts/client-secret-scan.cjs`, which lists `GOOGLE_CLIENT_SECRET` as a name
+to scan *for* in client bundles, which is correct. Nothing to remove.
+
+### A post-deploy document telling operators a shipped feature was deferred
+
+`docs/POST_DEPLOY_VERIFY.md` said, under **Environment and security**:
+
+> Google sign-in remains deferred until `GOOGLE_REDIRECT_URI` is configured and
+> verified.
+
+Google sign-in ships. `server.js:1140` serves `GET /auth/google` behind a rate
+limiter and begins a PKCE flow against Supabase; `server.js:1272` completes it
+at `/auth/callback`. The provider's client id and secret live in the Supabase
+dashboard, and nothing in this application reads `GOOGLE_REDIRECT_URI`.
+
+So the document an operator opens **immediately after a deploy** told them a
+working feature was deferred, pending a variable no code reads.
+`docs/owner/INSTALL-ALL-KEYS.md` had recorded the truth about those three
+variables the whole time, so two documents disagreed and the one giving
+post-deploy instructions was the wrong one. Corrected, with the retraction kept
+in place and the verification rewritten to say what to actually do: sign in.
+
+### A near-miss worth writing down: killing a test run corrupts tracked files
+
+While measuring something unrelated I ran two full suites in the background and
+then `pkill`ed them. That left the working tree holding:
+
+- `.ai/shared/CURRENT_STATE.md` with its `<!-- superseded-by: -->` pointer
+  **deleted**, which fails `verify:agent-development-sync`;
+- `supabase/migrations/20260728120000_member_read_policies.sql` **corrupted** --
+  33 `create policy ... using (public.is_org_member(organization_id))` statements
+  truncated to an unterminated `execute '`;
+- `supabase/migrations/20260728130000_sync_published_catalog_names.sql` also
+  modified.
+
+The cause is not mysterious and is not a bug in those tests' logic.
+`tests/a-shared-baseline-that-is-behind-must-say-so.test.js:67` writes the real
+tracked file, runs the gate against it, and restores it in a `finally`. A
+`finally` survives an exception; it does not survive SIGTERM. Killing the
+process mid-window leaves the mutation on disk, and for the migration the kill
+landed mid-write, so the file was left truncated rather than merely changed.
+
+**The dangerous part is what comes next.** Every commit in this session is made
+with `git add -A`. Had that run while the tree was in that state, it would have
+committed 33 broken SQL statements into an applied, content-checksummed
+migration -- and the corruption looks nothing like a deliberate edit, so the
+diff would have been the only warning. It was caught because `git status`
+listed two `supabase/migrations/` files that nothing in this work touches.
+
+Restored from `HEAD` with `git show HEAD:<path> > <path>` rather than
+`git checkout --`, and verified: `verify:applied-migrations` reports
+**119 frozen and unchanged**, `verify:agent-development-sync` exits 0, and each
+of the five commits already pushed was checked individually for unterminated
+`execute '` lines -- all zero, so nothing corrupt was ever committed or pushed.
+
+Two practices follow, and they are the actual output of this:
+
+1. **Do not `pkill` a running suite.** Let it finish, or run it in a scratch
+   worktree where a mutation cannot reach the tree being committed.
+2. **Read `git status` before `git add -A`, for files the work does not
+   explain.** A file appearing that the change has no reason to touch is the
+   signal; the contents may look plausible.
+
+Not fixed here, and flagged rather than half-fixed: those tests mutate tracked
+files in place, so any interrupted run leaves the repository dirty. Adding
+`SIGTERM`/`SIGINT` handlers alongside the `finally` would cover `pkill`'s
+default signal but not `SIGKILL`, and the durable fix is for such a test to
+operate on a copy rather than the real path. That is somebody's deliberate
+change to make, not a passenger on a CI-trigger PR.
+
+### The derived counts are now writable, because remembering them is the hazard
+
+Every figure `verify:doc-counts` checks is derived from the repository and typed
+into a document by hand. That is not only a staleness hazard, it is a **merge**
+hazard, and it cost a CI cycle on PR #305 hours ago: main took the
+release-chain count 55 -> 56 for an Android gate while this branch took the
+same count 55 -> 56 for `verify:targeted-mocha`. Identical text on both sides,
+so git raised no conflict, and the merged tree held both gates and was 57. CI
+was the only thing that could catch it, because the number was remembered
+rather than derived.
+
+`verify:doc-counts --write` (`pnpm run fix:doc-counts`) now rewrites every
+derived figure to its measured value. The check is untouched and remains the
+gate; this removes the arithmetic from the person resolving it. With PR #304 in
+flight and carrying gates of its own, the same collision was due to recur.
+
+Deliberately narrow, in three ways:
+
+- **Word-spelled counts are never rewritten.** "the eighteen-command chain" is
+  invisible to every pattern here, as this script already recorded, so such a
+  number cannot be checked and must not be silently edited either.
+- **A `passing` count is never rewritten.** The rule for those is that a
+  document may not state one at all, so there is no correct value to write.
+- **The rewrite patterns are built from the check's own patterns**, by
+  substituting an emphasis-tolerant prefix, rather than kept as a second copy
+  of thirteen regular expressions that could drift from the ones that gate.
+
+Falsified by reproducing tonight's collision exactly: setting the document to 56
+against a chain of 57 fails `--check`, `pnpm run fix:doc-counts` repairs both
+sentences, `**57**` keeps its emphasis, `--check` passes, and the file is
+byte-identical to the original by `md5sum -c`. Then three refusals confirmed: a
+word-spelled count survives untouched, a `9999 tests passing` claim is reported
+and left alone, and a non-chain derived claim (`999 reviewed repositories`)
+rewrites to 237.
 
 
 ## Two things established while doing it, both by being wrong first

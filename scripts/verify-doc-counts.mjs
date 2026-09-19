@@ -21,6 +21,50 @@ import { createRequire } from "node:module";
 const root = process.cwd();
 const check = process.argv.includes("--check");
 
+// --write rewrites the derived numbers in place instead of only reporting them.
+//
+// Every figure this script checks is derived from the repository and typed into
+// a document by hand, which makes each one a merge hazard rather than only a
+// staleness hazard. On 19 September 2026 PR #305 and main both took the
+// release-chain count 55 -> 56, for different gates. Identical text on both
+// sides, so git raised no conflict -- and the merged tree held both gates and
+// was 57. CI caught it; nothing else could, because the number was remembered
+// rather than derived.
+//
+// With --write, resolving that is one command instead of knowing the answer.
+// The check is unchanged and still the gate; this only removes the arithmetic
+// from the human.
+//
+// Word-spelled counts ("the eighteen-command chain") are deliberately NOT
+// rewritten. They are invisible to every pattern here, as the comment on the
+// reciprocal-repositories pattern already records, so a number written as a
+// word cannot be checked and must not be silently edited either. Those still
+// fail the check and want a person.
+const write = process.argv.includes("--write");
+if (check && write) {
+  console.error("verify-doc-counts: --check and --write are opposites; pass one.");
+  process.exit(1);
+}
+
+// Every derivable pattern below begins with exactly this prefix, so the
+// emphasis-tolerant form used for rewriting is built from it mechanically
+// rather than by keeping a second copy of thirteen regular expressions.
+const DIGIT_PREFIX = "\\b(\\d[\\d,]{0,4})";
+const EMPHASISED_DIGITS = "(?:\\*\\*|`)?(\\d[\\d,]{0,4})(?:\\*\\*|`)?";
+
+function rewritePattern(pattern) {
+  if (!pattern.source.startsWith(DIGIT_PREFIX)) return null;
+  return new RegExp(EMPHASISED_DIGITS + pattern.source.slice(DIGIT_PREFIX.length), pattern.flags);
+}
+
+// The matched text with only its number replaced, so surrounding emphasis,
+// backticks and wording survive untouched.
+function withNumber(match, digits, actual) {
+  return match.replace(digits, String(actual));
+}
+
+const rewrites = [];
+
 // Generated documents cannot drift, and two of them embed SPRINT_LOG verbatim,
 // so every historical "1,733 tests passing" in the log reappears in them. A
 // check that reads those is reading the same history twice and calling it a
@@ -230,6 +274,7 @@ let serviceRoleClaimsSeen = 0;
 for (const file of walk("docs")) {
   const raw = fs.readFileSync(path.join(root, file), "utf8");
   if (isExcluded(file, raw)) continue;
+  let rewritten = raw;
   // Emphasis stripped before matching. "**21** verification commands" did not
   // match a pattern anchored on a word boundary before the digits, so the one
   // live claim in the repository was invisible to the check written for it.
@@ -237,12 +282,18 @@ for (const file of walk("docs")) {
 
   // "the eighteen-command chain", "18 verification commands", "21 commands"
   for (const match of text.matchAll(/\b([a-z-]+|\d+)[- ](?:verification )?commands?\b/gi)) {
-    const raw = String(match[1]).toLowerCase();
-    const claimed = WORDS[raw] ?? (/^\d+$/.test(raw) ? Number(raw) : null);
+    const raw_ = String(match[1]).toLowerCase();
+    const claimed = WORDS[raw_] ?? (/^\d+$/.test(raw_) ? Number(raw_) : null);
     if (claimed === null) continue;
     claimsChecked += 1;
     if (claimed !== commandCount) {
-      problems.push(`${file}: says ${match[0].trim()}; verify:launch chains ${commandCount}`);
+      if (write && /^\d+$/.test(raw_)) {
+        const pattern = new RegExp(EMPHASISED_DIGITS + "[- ](?:verification )?commands?\\b", "gi");
+        rewritten = rewritten.replace(pattern, (m, digits) =>
+          (Number(String(digits).replace(/,/g, "")) === commandCount ? m : withNumber(m, digits, commandCount)));
+      } else {
+        problems.push(`${file}: says ${match[0].trim()}; verify:launch chains ${commandCount}`);
+      }
     }
   }
 
@@ -305,7 +356,15 @@ for (const file of walk("docs")) {
       claimsChecked += 1;
       if (what === REGISTER_CLAIM) registerClaimsSeen += 1;
       if (what === SERVICE_ROLE_CLAIM) serviceRoleClaimsSeen += 1;
-      if (claimed !== actual) problems.push(`${file}: says "${match[0].trim()}"; the true figure is ${actual} (${what})`);
+      if (claimed !== actual) {
+        const rewriter = write ? rewritePattern(pattern) : null;
+        if (rewriter) {
+          rewritten = rewritten.replace(rewriter, (m, digits) =>
+            (Number(String(digits).replace(/,/g, "")) === actual ? m : withNumber(m, digits, actual)));
+        } else {
+          problems.push(`${file}: says "${match[0].trim()}"; the true figure is ${actual} (${what})`);
+        }
+      }
     }
   }
 
@@ -319,6 +378,13 @@ for (const file of walk("docs")) {
       `${file}: states "${match[0].trim()}". A passing count is stale the next time anybody adds a test -- ` +
         "say what the suite covers, or let docs/HANDOFF_PROMPT.md carry the number, which is generated."
     );
+  }
+
+  // A passing count is never rewritten: the rule for it is that a document may
+  // not state one at all, so there is no correct value to write.
+  if (write && rewritten !== raw) {
+    fs.writeFileSync(path.join(root, file), rewritten);
+    rewrites.push(file);
   }
 }
 
@@ -354,6 +420,17 @@ if (problems.length) {
 if (claimsChecked === 0) {
   console.error("ERROR: no countable claim was found in any live document. Either the patterns have stopped matching, or docs/owner/WHAT-IS-LEFT.md no longer states the chain length it is supposed to.");
   process.exit(1);
+}
+
+if (write) {
+  if (!rewrites.length) {
+    console.log(`Document counts already correct: ${claimsChecked} countable claim(s) against ${commandCount} chain commands and ${testFiles} test files. Nothing rewritten.`);
+  } else {
+    console.log(`Rewrote ${rewrites.length} document(s) to the derived figures:`);
+    for (const file of rewrites) console.log(`    ${file}`);
+    console.log("Re-run with --check to confirm, and read the diff: this edits prose and only the numbers were derived.");
+  }
+  process.exit(0);
 }
 
 console.log(`Document counts verified: ${claimsChecked} countable claim(s) checked against ${commandCount} chain commands and ${testFiles} test files.`);
