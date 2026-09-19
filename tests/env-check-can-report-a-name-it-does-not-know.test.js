@@ -69,7 +69,14 @@ describe("the environment check can report a name it has never heard of", () => 
       ...classification.DEVELOPMENT_ONLY
     ]);
     assert.ok(classified.size > 50, `only ${classified.size} names are classified; this check has gone blind`);
-    for (const name of ["STRIPE_PRICE_STARTER_MONTHLY", "STRIPE_PRICE_CORE_MONTHLY", "STRIPE_PRICE_PRO_MONTHLY"]) {
+    for (const name of [
+      "STRIPE_PRICE_WORKSPACE_MONTHLY",
+      "STRIPE_PRICE_ALL_THREE_MONTHLY",
+      "STRIPE_PRICE_TEAM_MONTHLY",
+      "STRIPE_PRICE_WORKSPACE_ANNUAL",
+      "STRIPE_PRICE_ALL_THREE_ANNUAL",
+      "STRIPE_PRICE_TEAM_ANNUAL"
+    ]) {
       assert.ok(classified.has(name), `${name} is read by the plan table and classified nowhere`);
     }
   });
