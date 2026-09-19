@@ -48,6 +48,21 @@ Legacy plan names, aliases, and archived Price IDs are intentionally kept out of
 active setup instructions. The provider-read retirement ledger is preserved in
 `docs/archive/legacy-names.md` for audit and stale-configuration diagnosis.
 
+### Retired prices — do not use
+
+These Price IDs are retained here only so an operator can recognize stale
+configuration. They are archived and must never be assigned to any active
+`STRIPE_PRICE_*` variable.
+
+| Retired plan | Price ID | Historical amount |
+| --- | --- | --- |
+| Creator | `price_1TS4jf0dKtlEU3lAgEX2tjV2` | $9.99/mo |
+| Pro (old) | `price_1TS4l70dKtlEU3lAGmuQmmYO` | $19.99/mo |
+| Label | `price_1TS4lc0dKtlEU3lAy98zUnFy` | $49.99/mo |
+
+The active setup table above is the only pricing configuration to apply. This
+retired section exists for stale-copy diagnosis and historical audit evidence.
+
 ## Vercel
 
 Add these Vercel Environment Variables. All are server-side only except the
