@@ -138,6 +138,23 @@ describe("what the guard allows", () => {
 
   it("allows a row scoped to one person rather than one organization", () => {
     assert.equal(allowed("GET", "/rest/v1/user_notifications?select=*&user_id=eq.u-1").allowed, true);
+    assert.equal(allowed("GET", "/rest/v1/user_preferences?select=*&user_id=eq.u-1").allowed, true);
+    assert.equal(allowed("GET", "/rest/v1/business_employee_profiles?select=*&user_id=eq.u-1").allowed, true);
+    assert.equal(allowed("GET", "/rest/v1/sonara_platforms?select=*&user_id=eq.u-1").allowed, true);
+  });
+
+  it("does not let user_id substitute for organization scope on arbitrary tenant data", () => {
+    for (const table of ["customer_records", "service_requests", "billing_entitlements"]) {
+      const verdict = allowed("GET", `/rest/v1/${table}?select=*&user_id=eq.attacker-chosen`);
+      assert.equal(verdict.allowed, false, `${table} must still require organization scope`);
+    }
+  });
+
+  it("keeps the personal-scope bypass explicit and reviewable", () => {
+    assert.deepEqual(
+      [...guard.PERSONAL_SCOPED_TABLES].sort(),
+      ["business_employee_profiles", "sonara_platforms", "user_notifications", "user_preferences"]
+    );
   });
 });
 
