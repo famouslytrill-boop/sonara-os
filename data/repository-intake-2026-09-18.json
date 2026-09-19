@@ -1,0 +1,1156 @@
+{
+  "schemaVersion": 1,
+  "intakeId": "repository-intake-2026-09-18-60",
+  "researchedAt": "2026-09-18",
+  "policy": {
+    "researchOnlyExecutionAllowed": false,
+    "installSetExecutionAllowedByRegistry": false,
+    "thirdPartySourceCopiedIntoSonara": false,
+    "exactPinRequiredForInstallSet": true,
+    "notes": [
+      "Research-only records contribute architecture, workflow, security, UX, observability and infrastructure lessons only.",
+      "Install-set records are reviewed install targets, not evidence that runtime activation occurred.",
+      "A repository record never grants credentials, provider authority, tenant access, payment authority, publication authority or campaign authority.",
+      "Actual package installation must update pnpm-lock.yaml and pass the complete SONARA verification matrix before merge."
+    ]
+  },
+  "counts": {
+    "researchOnly": 30,
+    "installSet": 30,
+    "total": 60
+  },
+  "researchOnly": [
+    {
+      "key": "gitlab_yana_ai",
+      "source": "gitlab",
+      "repository": "gitlab.com/yana-ai-group/Yana-AI-project",
+      "url": "https://gitlab.com/yana-ai-group/Yana-AI-project",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "local-first agent governance",
+        "deterministic access/change/execute boundaries",
+        "cross-platform runtime control"
+      ],
+      "productFit": [
+        "Admin Command Center",
+        "Agent governance"
+      ],
+      "reasonNotInstalled": "New Rust runtime with license not yet verified; study governance patterns without adding a second execution authority.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_am_runtime",
+      "source": "gitlab",
+      "repository": "gitlab.com/am.statementforge/am-runtime",
+      "url": "https://gitlab.com/am.statementforge/am-runtime",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "durable memory",
+        "approval workflows",
+        "audit trails",
+        "bounded execution"
+      ],
+      "productFit": [
+        "Agent governance",
+        "Development memory"
+      ],
+      "reasonNotInstalled": "Standalone FastAPI/SQLite runtime duplicates SONARA control-plane responsibilities and has not passed license/security review.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_emage_code",
+      "source": "gitlab",
+      "repository": "gitlab.com/em-age/emage.code",
+      "url": "https://gitlab.com/em-age/emage.code",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "plan-approve-execute workflow",
+        "canonical engineering knowledge base",
+        "multi-agent validation gates"
+      ],
+      "productFit": [
+        "Internal Development",
+        "Admin Command Center"
+      ],
+      "reasonNotInstalled": "Research the workflow contract; do not add another orchestration authority before provenance and license review.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_pi_goal_loop_audit",
+      "source": "gitlab",
+      "repository": "gitlab.com/DraconDev/pi-goal-list-loop-audit",
+      "url": "https://gitlab.com/DraconDev/pi-goal-list-loop-audit",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "fresh-session independent auditing",
+        "goal-loop completion verification",
+        "read-only verifier isolation"
+      ],
+      "productFit": [
+        "CI/release evidence",
+        "Internal Development"
+      ],
+      "reasonNotInstalled": "Agent-specific extension; its independent-auditor pattern should be reimplemented in SONARA verification rather than imported as runtime authority.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_mnemos",
+      "source": "gitlab",
+      "repository": "gitlab.com/ncz-os/mnemos",
+      "url": "https://gitlab.com/ncz-os/mnemos",
+      "license": "Apache-2.0 (project description)",
+      "status": "research_only",
+      "researchValue": [
+        "MCP memory gateway",
+        "OpenAI-compatible memory API",
+        "PostgreSQL/pgvector memory architecture"
+      ],
+      "productFit": [
+        "Development memory",
+        "Research Lab"
+      ],
+      "reasonNotInstalled": "Separate FastAPI memory OS would duplicate SONARA memory policy; study interfaces before any provider/runtime decision.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_cq_screenshots",
+      "source": "gitlab",
+      "repository": "gitlab.com/gitlab-org/upstream-studios/design-strategy/cq-screenshots",
+      "url": "https://gitlab.com/gitlab-org/upstream-studios/design-strategy/cq-screenshots",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "before/after UI evidence",
+        "verified screenshot attachment",
+        "agent-agnostic AGENTS.md workflow"
+      ],
+      "productFit": [
+        "UI regression evidence",
+        "CI/release evidence"
+      ],
+      "reasonNotInstalled": "Tightly coupled to GitLab GDK merge-request workflows; adapt the evidence pattern, not the plugin.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_agent_synapse",
+      "source": "gitlab",
+      "repository": "gitlab.com/bayraktarozcan/AgentSynapse",
+      "url": "https://gitlab.com/bayraktarozcan/AgentSynapse",
+      "license": "aggregate/needs review",
+      "status": "research_only",
+      "researchValue": [
+        "skill taxonomy",
+        "skill discovery",
+        "zero-dependency installer patterns"
+      ],
+      "productFit": [
+        "Agent skills",
+        "Internal Development"
+      ],
+      "reasonNotInstalled": "Aggregates 560+ skills from 34 repositories; transitive provenance and licensing must be reviewed per source before any code/skill adoption.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_monkeybyte",
+      "source": "gitlab",
+      "repository": "gitlab.com/leestripp/monkeybyte",
+      "url": "https://gitlab.com/leestripp/monkeybyte",
+      "license": "MIT",
+      "status": "research_only",
+      "researchValue": [
+        "native desktop editor architecture",
+        "C++23/GTK4 UI",
+        "behavioral-spec driven development"
+      ],
+      "productFit": [
+        "Desktop companion research"
+      ],
+      "reasonNotInstalled": "Native Linux/C++ desktop editor is outside the Vercel/Node runtime; use only for desktop interaction and specification patterns.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_claude_orchestra",
+      "source": "gitlab",
+      "repository": "gitlab.com/Zenya4/claude-orchestra",
+      "url": "https://gitlab.com/Zenya4/claude-orchestra",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "lean agent workflow skills",
+        "orchestration prompts",
+        "developer process decomposition"
+      ],
+      "productFit": [
+        "Internal Development"
+      ],
+      "reasonNotInstalled": "Claude-specific workflow bundle with unverified license; extract only general process lessons.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_db_gateway_mcp",
+      "source": "gitlab",
+      "repository": "gitlab.com/kochan4php/db-gateway-mcp",
+      "url": "https://gitlab.com/kochan4php/db-gateway-mcp",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "controlled schema inspection",
+        "stored procedure discovery",
+        "bounded MCP database actions"
+      ],
+      "productFit": [
+        "Database tooling",
+        "Admin Command Center"
+      ],
+      "reasonNotInstalled": "Targets MySQL/MariaDB while SONARA uses PostgreSQL/PostgREST; study authorization boundaries only.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_daedalus",
+      "source": "gitlab",
+      "repository": "gitlab.com/leestripp/daedalus",
+      "url": "https://gitlab.com/leestripp/daedalus",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "embedded multi-agent host API",
+        "C++23 autonomous agent library",
+        "worked host examples"
+      ],
+      "productFit": [
+        "Agent architecture research"
+      ],
+      "reasonNotInstalled": "C++ static library is not compatible with the Node/Vercel runtime and would create an unnecessary second runtime.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_ly_agent_skills",
+      "source": "gitlab",
+      "repository": "gitlab.com/lyoneel/ly-agent-skills",
+      "url": "https://gitlab.com/lyoneel/ly-agent-skills",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "local-model skill design",
+        "Qwen/DeepSeek workflow portability",
+        "Markdown skill packaging"
+      ],
+      "productFit": [
+        "Local model research",
+        "Agent skills"
+      ],
+      "reasonNotInstalled": "Targets local model stacks and has unverified licensing; use as skill-format research only.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_pocket_vault",
+      "source": "gitlab",
+      "repository": "gitlab.com/federicovittorini/pocket-vault",
+      "url": "https://gitlab.com/federicovittorini/pocket-vault",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "context vault",
+        "MCP/API retrieval",
+        "noise-reduced project search"
+      ],
+      "productFit": [
+        "Development memory",
+        "Research Lab"
+      ],
+      "reasonNotInstalled": "Separate context store would overlap SONARA project memory; study retrieval and context-budget patterns first.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_varve",
+      "source": "gitlab",
+      "repository": "gitlab.com/dunn.dev/varve",
+      "url": "https://gitlab.com/dunn.dev/varve",
+      "license": "unverified",
+      "status": "research_only",
+      "researchValue": [
+        "Parquet agent-session lake",
+        "DuckDB analytics",
+        "correction mining",
+        "cost analytics"
+      ],
+      "productFit": [
+        "Engineering intelligence",
+        "Agent observability"
+      ],
+      "reasonNotInstalled": "Local analytics lake is valuable as an offline pattern but not a production runtime dependency without retention/privacy design.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_opstrace",
+      "source": "gitlab",
+      "repository": "gitlab.com/gitlab-org/opstrace/opstrace",
+      "url": "https://gitlab.com/gitlab-org/opstrace/opstrace",
+      "license": "needs verification",
+      "status": "research_only",
+      "researchValue": [
+        "integrated logs/metrics/traces",
+        "observability distribution architecture",
+        "multi-tenant telemetry"
+      ],
+      "productFit": [
+        "Observability",
+        "Admin Command Center"
+      ],
+      "reasonNotInstalled": "Large standalone observability distribution; extract telemetry architecture rather than embedding an entire platform.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "gitlab_labkit_rs",
+      "source": "gitlab",
+      "repository": "gitlab.com/gitlab-org/rust/labkit-rs",
+      "url": "https://gitlab.com/gitlab-org/rust/labkit-rs",
+      "license": "needs verification",
+      "status": "research_only",
+      "researchValue": [
+        "correlation IDs",
+        "logging/metrics/tracing conventions",
+        "service instrumentation"
+      ],
+      "productFit": [
+        "Observability"
+      ],
+      "reasonNotInstalled": "Rust observability library is not a Node dependency; mirror its correlation and instrumentation semantics in SONARA.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_gpu_orchestrator",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/higgsfield",
+      "url": "https://github.com/higgsfield-ai/higgsfield",
+      "license": "Apache-2.0",
+      "status": "research_only",
+      "researchValue": [
+        "fault-tolerant GPU orchestration",
+        "resource queues",
+        "distributed training control",
+        "GitHub Actions ML CI"
+      ],
+      "productFit": [
+        "Creator Studio workers",
+        "Research Lab"
+      ],
+      "reasonNotInstalled": "Heavy Python/GPU control plane belongs in isolated compute infrastructure, not the Vercel web process.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_python_client",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/higgsfield-client",
+      "url": "https://github.com/higgsfield-ai/higgsfield-client",
+      "license": "Apache-2.0",
+      "status": "research_only",
+      "researchValue": [
+        "sync/async generation API",
+        "job subscription semantics",
+        "credential separation"
+      ],
+      "productFit": [
+        "Creator Studio"
+      ],
+      "reasonNotInstalled": "Python SDK is redundant for the Node web process; API semantics are useful, while a Node client path is evaluated separately.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_js_sdk",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/higgsfield-js",
+      "url": "https://github.com/higgsfield-ai/higgsfield-js",
+      "license": "MIT declared in package.json; root LICENSE not retrieved",
+      "status": "research_only",
+      "researchValue": [
+        "server-only generation SDK",
+        "polling/job-set model",
+        "credential-safe Node client"
+      ],
+      "productFit": [
+        "Creator Studio"
+      ],
+      "reasonNotInstalled": "Potential fit, but the root license artifact was not retrieved in this review; keep research-only until license/package terms and provider economics are fully verified.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_local_creative_mcp",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/fnf-local-pluging-bridge-mcp",
+      "url": "https://github.com/higgsfield-ai/fnf-local-pluging-bridge-mcp",
+      "license": "MIT with upstream attribution",
+      "status": "research_only",
+      "researchValue": [
+        "local stdio MCP bridge",
+        "After Effects automation",
+        "Blender background-process control",
+        "offline creative skills"
+      ],
+      "productFit": [
+        "Creator Studio desktop companion"
+      ],
+      "reasonNotInstalled": "Requires local Adobe/Blender applications and OS permissions; belongs on an owner device, never in the cloud web runtime.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_omagotchi",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/omagotchi",
+      "url": "https://github.com/higgsfield-ai/omagotchi",
+      "license": "MIT",
+      "status": "research_only",
+      "researchValue": [
+        "desktop AI companion state",
+        "local interaction patterns",
+        "persistent character UI"
+      ],
+      "productFit": [
+        "Desktop companion research"
+      ],
+      "reasonNotInstalled": "Desktop companion application is outside SONARA One production runtime; study UX/state patterns only.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_cursor_plugin",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/cursor-plugin",
+      "url": "https://github.com/higgsfield-ai/cursor-plugin",
+      "license": "MIT",
+      "status": "research_only",
+      "researchValue": [
+        "IDE plugin packaging",
+        "creative provider workflow entry points",
+        "developer-tool integration"
+      ],
+      "productFit": [
+        "Internal Development"
+      ],
+      "reasonNotInstalled": "IDE-specific plugin; use only as developer-workflow research rather than product runtime code.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "temporal",
+      "source": "github",
+      "repository": "temporalio/temporal",
+      "url": "https://github.com/temporalio/temporal",
+      "license": "MIT",
+      "status": "research_only",
+      "researchValue": [
+        "durable workflows",
+        "retries/timers",
+        "workflow determinism",
+        "worker orchestration"
+      ],
+      "productFit": [
+        "Durable events",
+        "Growth Studio automation"
+      ],
+      "reasonNotInstalled": "Large standalone workflow server; SONARA should first prove its own durable-event consumer boundary before introducing an external control plane.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "nats_server",
+      "source": "github",
+      "repository": "nats-io/nats-server",
+      "url": "https://github.com/nats-io/nats-server",
+      "license": "Apache-2.0",
+      "status": "research_only",
+      "researchValue": [
+        "event bus",
+        "JetStream persistence",
+        "consumer backpressure",
+        "service messaging"
+      ],
+      "productFit": [
+        "Event architecture",
+        "Worker infrastructure"
+      ],
+      "reasonNotInstalled": "Long-lived messaging infrastructure cannot run inside the Vercel request process; research event-spine patterns only.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "opa",
+      "source": "github",
+      "repository": "open-policy-agent/opa",
+      "url": "https://github.com/open-policy-agent/opa",
+      "license": "Apache-2.0",
+      "status": "research_only",
+      "researchValue": [
+        "policy-as-code",
+        "decision APIs",
+        "Rego authorization model",
+        "WASM policy evaluation"
+      ],
+      "productFit": [
+        "Authorization",
+        "Tenant policy"
+      ],
+      "reasonNotInstalled": "A second policy authority would be dangerous until SONARA's existing authorization model has an explicit integration boundary; study semantics first.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "grafana",
+      "source": "github",
+      "repository": "grafana/grafana",
+      "url": "https://github.com/grafana/grafana",
+      "license": "AGPL-3.0",
+      "status": "research_only",
+      "researchValue": [
+        "operational dashboards",
+        "alerting UX",
+        "metrics/logs/traces exploration"
+      ],
+      "productFit": [
+        "Admin Command Center",
+        "Observability"
+      ],
+      "reasonNotInstalled": "AGPL network-use obligations plus a very large standalone application make direct incorporation inappropriate; use dashboard/alerting patterns only.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "prometheus",
+      "source": "github",
+      "repository": "prometheus/prometheus",
+      "url": "https://github.com/prometheus/prometheus",
+      "license": "Apache-2.0",
+      "status": "research_only",
+      "researchValue": [
+        "metrics model",
+        "scrape semantics",
+        "alert rule design",
+        "cardinality discipline"
+      ],
+      "productFit": [
+        "Observability"
+      ],
+      "reasonNotInstalled": "Standalone Go monitoring server; SONARA can adopt metric naming and SLO patterns without embedding the server.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "langfuse",
+      "source": "github",
+      "repository": "langfuse/langfuse",
+      "url": "https://github.com/langfuse/langfuse",
+      "license": "mixed/open-core; enterprise directories have separate terms",
+      "status": "research_only",
+      "researchValue": [
+        "LLM tracing",
+        "prompt/version evaluation",
+        "cost/latency telemetry",
+        "experiment datasets"
+      ],
+      "productFit": [
+        "Agent observability",
+        "Research Lab"
+      ],
+      "reasonNotInstalled": "Mixed licensing and large service footprint require a separate deployment/legal review; study evaluation and trace schemas only.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "flagd",
+      "source": "github",
+      "repository": "open-feature/flagd",
+      "url": "https://github.com/open-feature/flagd",
+      "license": "Apache-2.0",
+      "status": "research_only",
+      "researchValue": [
+        "feature flag evaluation",
+        "canary rollout",
+        "OpenFeature semantics",
+        "configuration sources"
+      ],
+      "productFit": [
+        "Release control",
+        "Canary activation"
+      ],
+      "reasonNotInstalled": "Standalone flag service adds operational authority; first adapt flag contracts to SONARA's disabled-by-default activation model.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "sentry",
+      "source": "github",
+      "repository": "getsentry/sentry",
+      "url": "https://github.com/getsentry/sentry",
+      "license": "FSL-1.1-Apache-2.0 future license",
+      "status": "research_only",
+      "researchValue": [
+        "error grouping",
+        "release health",
+        "performance traces",
+        "issue triage"
+      ],
+      "productFit": [
+        "Observability",
+        "Release diagnostics"
+      ],
+      "reasonNotInstalled": "Source-available FSL terms and very large service footprint make source incorporation inappropriate; use the observability patterns or a separately reviewed service.",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    }
+  ],
+  "installSet": [
+    {
+      "key": "higgsfield_skills",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/skills",
+      "url": "https://github.com/higgsfield-ai/skills",
+      "license": "MIT",
+      "sha": "d071406147a37b835bed09543d85ab3e9bd85c7d",
+      "installClass": "developer_skill",
+      "packageName": null,
+      "productFit": [
+        "Creator Studio",
+        "Internal Development"
+      ],
+      "activationBoundary": "Install only in approved developer/agent environments; no provider credentials or generation authority are granted by the registry.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "higgsfield_cli",
+      "source": "higgsfield_github",
+      "repository": "higgsfield-ai/cli",
+      "url": "https://github.com/higgsfield-ai/cli",
+      "license": "MIT",
+      "sha": "dc7e2d2eac0b1fdad255de24d87552d1ba479037",
+      "installClass": "developer_cli",
+      "packageName": "@higgsfield/cli",
+      "productFit": [
+        "Creator Studio",
+        "Internal Development"
+      ],
+      "activationBoundary": "CLI remains developer-side until Higgsfield account, cost, safety and provider terms are approved.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "mcp_typescript_sdk",
+      "source": "github",
+      "repository": "modelcontextprotocol/typescript-sdk",
+      "url": "https://github.com/modelcontextprotocol/typescript-sdk",
+      "license": "MIT/Apache-2.0 transition",
+      "sha": "60321700871029401a2e3bed8fdf4f02c9ec3331",
+      "installClass": "application_library",
+      "packageName": "@modelcontextprotocol/sdk",
+      "productFit": [
+        "Agent integrations",
+        "Admin Command Center"
+      ],
+      "activationBoundary": "Expose only explicit allow-listed tools; MCP never grants tenant/provider/account authority by itself.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "opentelemetry_js",
+      "source": "github",
+      "repository": "open-telemetry/opentelemetry-js",
+      "url": "https://github.com/open-telemetry/opentelemetry-js",
+      "license": "Apache-2.0",
+      "sha": "66c04030f8f2cb9c1a05e8dcf63c2ba52ffdc1da",
+      "installClass": "observability_library",
+      "packageName": "@opentelemetry/api",
+      "productFit": [
+        "Observability",
+        "Release diagnostics"
+      ],
+      "activationBoundary": "Telemetry must redact secrets and tenant-sensitive payloads; exporters remain configuration-gated.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "pino",
+      "source": "github",
+      "repository": "pinojs/pino",
+      "url": "https://github.com/pinojs/pino",
+      "license": "MIT",
+      "sha": "1de1212b31f569c50bb14ca11e13a8f8bb2b2407",
+      "installClass": "application_library",
+      "packageName": "pino",
+      "productFit": [
+        "Structured logging",
+        "Observability"
+      ],
+      "activationBoundary": "Structured logs must pass SONARA redaction before emission.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "pino_http",
+      "source": "github",
+      "repository": "pinojs/pino-http",
+      "url": "https://github.com/pinojs/pino-http",
+      "license": "MIT",
+      "sha": "0cc1a489f668a50b5d0c723a4aa47211beaf8887",
+      "installClass": "application_library",
+      "packageName": "pino-http",
+      "productFit": [
+        "HTTP observability"
+      ],
+      "activationBoundary": "Do not log authorization headers, cookies, request bodies containing secrets, or raw tenant data.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "ajv",
+      "source": "github",
+      "repository": "ajv-validator/ajv",
+      "url": "https://github.com/ajv-validator/ajv",
+      "license": "MIT",
+      "sha": "f177fe323420ccb23e1a79445fd470cbf80aee7c",
+      "installClass": "application_library",
+      "packageName": "ajv",
+      "productFit": [
+        "API contracts",
+        "Configuration validation"
+      ],
+      "activationBoundary": "Schemas validate shape only; authorization remains separate.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "zod",
+      "source": "github",
+      "repository": "colinhacks/zod",
+      "url": "https://github.com/colinhacks/zod",
+      "license": "MIT",
+      "sha": "59bbc03e10c636b9eb3c393dfeb552819774ec21",
+      "installClass": "application_library",
+      "packageName": "zod",
+      "productFit": [
+        "Runtime validation",
+        "Provider adapters"
+      ],
+      "activationBoundary": "Use at input/provider boundaries; never treat schema validity as permission.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "p_retry",
+      "source": "github",
+      "repository": "sindresorhus/p-retry",
+      "url": "https://github.com/sindresorhus/p-retry",
+      "license": "MIT",
+      "sha": "1472907affe8d6107aba5884abc36d6361b3042e",
+      "installClass": "application_library",
+      "packageName": "p-retry",
+      "productFit": [
+        "Provider reliability",
+        "Workers"
+      ],
+      "activationBoundary": "Retries require bounded attempts, idempotency and jitter; never retry irreversible actions blindly.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "p_limit",
+      "source": "github",
+      "repository": "sindresorhus/p-limit",
+      "url": "https://github.com/sindresorhus/p-limit",
+      "license": "MIT",
+      "sha": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
+      "installClass": "application_library",
+      "packageName": "p-limit",
+      "productFit": [
+        "Concurrency control",
+        "Workers"
+      ],
+      "activationBoundary": "Concurrency limits must be explicit per provider/tenant workload.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "p_map",
+      "source": "github",
+      "repository": "sindresorhus/p-map",
+      "url": "https://github.com/sindresorhus/p-map",
+      "license": "MIT",
+      "sha": "f0c43e358a449584c2045c89d1b9ae3cd5a9f293",
+      "installClass": "application_library",
+      "packageName": "p-map",
+      "productFit": [
+        "Bounded parallelism",
+        "Batch workflows"
+      ],
+      "activationBoundary": "Use only with finite input sets and explicit concurrency; preserve per-item failure evidence.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "octokit_rest",
+      "source": "github",
+      "repository": "octokit/rest.js",
+      "url": "https://github.com/octokit/rest.js",
+      "license": "MIT",
+      "sha": "cd9cb8cd4965d99c7dac8c87d249308956250be3",
+      "installClass": "provider_sdk",
+      "packageName": "@octokit/rest",
+      "productFit": [
+        "GitHub integration",
+        "Internal Development"
+      ],
+      "activationBoundary": "GitHub writes require explicit connected-account authorization and scoped tokens.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "openai_node",
+      "source": "github",
+      "repository": "openai/openai-node",
+      "url": "https://github.com/openai/openai-node",
+      "license": "Apache-2.0",
+      "sha": "db9a57bd901a9a0f50002fbe5ee5b79e7b220c73",
+      "installClass": "provider_sdk",
+      "packageName": "openai",
+      "productFit": [
+        "Optional AI adapters"
+      ],
+      "activationBoundary": "Server-side only, disabled without an approved key/model/cost policy; no silent provider fallback.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "anthropic_sdk_ts",
+      "source": "github",
+      "repository": "anthropics/anthropic-sdk-typescript",
+      "url": "https://github.com/anthropics/anthropic-sdk-typescript",
+      "license": "MIT-style permissive",
+      "sha": "3c5d9c0c15bb847a628f3f2876ac09719abe3012",
+      "installClass": "provider_sdk",
+      "packageName": "@anthropic-ai/sdk",
+      "productFit": [
+        "Optional AI adapters"
+      ],
+      "activationBoundary": "Server-side only, explicit provider selection, bounded tools and no cross-tenant context.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "stripe_node",
+      "source": "github",
+      "repository": "stripe/stripe-node",
+      "url": "https://github.com/stripe/stripe-node",
+      "license": "MIT",
+      "sha": "9996a2d4f129c8b02f36f715b27a30c956087007",
+      "installClass": "provider_sdk",
+      "packageName": "stripe",
+      "productFit": [
+        "Billing"
+      ],
+      "activationBoundary": "Provider-reported billing truth remains authoritative; SDK use cannot infer payment success from redirects.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "supabase_js",
+      "source": "github",
+      "repository": "supabase/supabase-js",
+      "url": "https://github.com/supabase/supabase-js",
+      "license": "MIT",
+      "sha": "29b978d5da37cbb1927b1e8a8013c6f47e7223c8",
+      "installClass": "provider_sdk",
+      "packageName": "@supabase/supabase-js",
+      "productFit": [
+        "Database/Auth adapters"
+      ],
+      "activationBoundary": "Service-role credentials remain server-only; every privileged query must preserve organization filters.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "resend_node",
+      "source": "github",
+      "repository": "resend/resend-node",
+      "url": "https://github.com/resend/resend-node",
+      "license": "MIT",
+      "sha": "77432189ec30104c968931b77fa74b1bfd21d109",
+      "installClass": "provider_sdk",
+      "packageName": "resend",
+      "productFit": [
+        "Transactional email"
+      ],
+      "activationBoundary": "Sending remains explicit and environment-gated; logs never contain API keys or message secrets.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "pg_boss",
+      "source": "github",
+      "repository": "timgit/pg-boss",
+      "url": "https://github.com/timgit/pg-boss",
+      "license": "MIT",
+      "sha": "8daa8ea242b6df327fa9514766bd5574df1c3e72",
+      "installClass": "worker_library",
+      "packageName": "pg-boss",
+      "productFit": [
+        "Durable jobs",
+        "Growth Studio automation"
+      ],
+      "activationBoundary": "Worker activation remains disabled by default until idempotent claim/settle, retry, dead-letter and one-tenant canary tests are green.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "graphile_worker",
+      "source": "github",
+      "repository": "graphile/worker",
+      "url": "https://github.com/graphile/worker",
+      "license": "MIT",
+      "sha": "4cda192c5df254392a1dff350e5d73f7d2c18a85",
+      "installClass": "worker_library",
+      "packageName": "graphile-worker",
+      "productFit": [
+        "PostgreSQL jobs",
+        "Durable events"
+      ],
+      "activationBoundary": "Alternative worker candidate; do not run simultaneously with another queue authority for the same event stream.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "bullmq",
+      "source": "github",
+      "repository": "taskforcesh/bullmq",
+      "url": "https://github.com/taskforcesh/bullmq",
+      "license": "MIT",
+      "sha": "063e6c8d6e4082e37cff9a61f7435c799d1bd589",
+      "installClass": "worker_library",
+      "packageName": "bullmq",
+      "productFit": [
+        "Queues",
+        "Workers"
+      ],
+      "activationBoundary": "Requires reviewed Redis infrastructure; remains inactive unless a Redis-backed worker architecture is explicitly selected.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "ioredis",
+      "source": "github",
+      "repository": "redis/ioredis",
+      "url": "https://github.com/redis/ioredis",
+      "license": "MIT",
+      "sha": "b169c3af29887aec8cf1a879dc9c808192e3d3d9",
+      "installClass": "infrastructure_client",
+      "packageName": "ioredis",
+      "productFit": [
+        "Queue/cache infrastructure"
+      ],
+      "activationBoundary": "No Redis dependency is introduced until infrastructure, tenancy, persistence and failure-mode decisions are approved.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "pgvector_node",
+      "source": "github",
+      "repository": "pgvector/pgvector-node",
+      "url": "https://github.com/pgvector/pgvector-node",
+      "license": "MIT",
+      "sha": "d0e5a86c6905f54af66ce030287facb33d1ea6eb",
+      "installClass": "database_library",
+      "packageName": "pgvector",
+      "productFit": [
+        "Semantic retrieval",
+        "Research Lab"
+      ],
+      "activationBoundary": "Embedding model and vector dimension must be explicitly reviewed; semantic retrieval remains optional.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "node_postgres",
+      "source": "github",
+      "repository": "brianc/node-postgres",
+      "url": "https://github.com/brianc/node-postgres",
+      "license": "MIT",
+      "sha": "064d69f67c16018a349c99f663830dc06bd7a94f",
+      "installClass": "database_library",
+      "packageName": "pg",
+      "productFit": [
+        "PostgreSQL portability",
+        "Worker infrastructure"
+      ],
+      "activationBoundary": "Direct SQL must not bypass tenant filters, migration authority or PostgREST contracts without an explicit architecture decision.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "simplewebauthn",
+      "source": "github",
+      "repository": "MasterKale/SimpleWebAuthn",
+      "url": "https://github.com/MasterKale/SimpleWebAuthn",
+      "license": "MIT",
+      "sha": "7e3c4c4ff7b3465de4e614274a3285e4f06d36fc",
+      "installClass": "auth_library",
+      "packageName": "@simplewebauthn/server",
+      "productFit": [
+        "Passkeys",
+        "Authentication"
+      ],
+      "activationBoundary": "Passkey enrollment and verification must remain bound to current user/org authorization and verified origins.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "express_rate_limit",
+      "source": "github",
+      "repository": "express-rate-limit/express-rate-limit",
+      "url": "https://github.com/express-rate-limit/express-rate-limit",
+      "license": "MIT",
+      "sha": "00315d872f776bd62fa79219429b79833a743bfd",
+      "installClass": "security_library",
+      "packageName": "express-rate-limit",
+      "productFit": [
+        "API abuse protection"
+      ],
+      "activationBoundary": "Use identity/tenant-aware keys where appropriate; rate limiting is not an authorization control.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "helmet",
+      "source": "github",
+      "repository": "helmetjs/helmet",
+      "url": "https://github.com/helmetjs/helmet",
+      "license": "MIT",
+      "sha": "2a5f14343619795c3948957e96b945a424f1954b",
+      "installClass": "security_library",
+      "packageName": "helmet",
+      "productFit": [
+        "HTTP security headers"
+      ],
+      "activationBoundary": "Adoption must preserve SONARA's explicit CSP and not silently loosen existing directives.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "playwright",
+      "source": "github",
+      "repository": "microsoft/playwright",
+      "url": "https://github.com/microsoft/playwright",
+      "license": "Apache-2.0",
+      "sha": "78ff4260d79b924724bdcc4ccd89e463b8f43b0d",
+      "installClass": "dev_dependency",
+      "packageName": "playwright",
+      "productFit": [
+        "End-to-end testing",
+        "Visual regression"
+      ],
+      "activationBoundary": "Testing/dev dependency only; browser automation does not enter production request handling.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "lighthouse",
+      "source": "github",
+      "repository": "GoogleChrome/lighthouse",
+      "url": "https://github.com/GoogleChrome/lighthouse",
+      "license": "Apache-2.0",
+      "sha": "08c05cdee7e191719480477056bd145abcb09c17",
+      "installClass": "dev_dependency",
+      "packageName": "lighthouse",
+      "productFit": [
+        "Performance/accessibility audits"
+      ],
+      "activationBoundary": "CI/audit use only; scores are evidence, not a substitute for functional or accessibility testing.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "msw",
+      "source": "github",
+      "repository": "mswjs/msw",
+      "url": "https://github.com/mswjs/msw",
+      "license": "MIT",
+      "sha": "85f4bf3ff60fc9441eca2fe44a75878bce50af5a",
+      "installClass": "dev_dependency",
+      "packageName": "msw",
+      "productFit": [
+        "API contract tests",
+        "Provider simulation"
+      ],
+      "activationBoundary": "Mocks are test-only and must never be treated as production provider evidence.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    },
+    {
+      "key": "faker",
+      "source": "github",
+      "repository": "faker-js/faker",
+      "url": "https://github.com/faker-js/faker",
+      "license": "MIT",
+      "sha": "ac68a921066b4c5414c79f2f2cf3d3a0e0b6ff55",
+      "installClass": "dev_dependency",
+      "packageName": "@faker-js/faker",
+      "productFit": [
+        "Synthetic test data"
+      ],
+      "activationBoundary": "Synthetic identities/data stay clearly marked and never seed production facts, customer claims or billing state.",
+      "status": "install_target_pinned",
+      "executionEnabled": false,
+      "humanReviewRequired": true
+    }
+  ]
+}
