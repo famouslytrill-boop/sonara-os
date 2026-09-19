@@ -46,6 +46,9 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Test release evidence integrity
+        run: pnpm exec mocha --config .mocharc.targeted.json tests/release-evidence-integrity.test.js --reporter spec
+
       # GitHub CodeQL is the SAST layer. It is intentionally a release signal,
       # not an agent permission source: findings can block a release but can
       # never grant an agent more authority.
@@ -276,4 +279,13 @@ jobs:
       # inspectable and cannot be converted into unexplained red lights.
       - name: Enforce release evidence gate
         if: always()
-        run: node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json
+        shell: bash
+        run: |
+          node scripts/generate-release-evidence.mjs --check artifacts/release-evidence/manifest.json \
+            --source artifacts \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --ref "${GITHUB_REF}" \
+            --event-name "${GITHUB_EVENT_NAME}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}"
