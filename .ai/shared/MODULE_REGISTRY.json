@@ -1,5 +1,18 @@
 {
-  "note": "Server-side module/catalog truth lives in server.js STRIPE_PLANS + product_modules table + /service-catalog. Codex to expand.",
-  "products": ["business_builder", "creator_studio", "growth_studio"],
-  "plans": ["free", "starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]
+  "note": "Server-side module/catalog truth lives in lib/sonara-stripe-plans.cjs + product_modules table + /service-catalog.",
+  "products": [
+    "business_builder",
+    "creator_studio",
+    "growth_studio"
+  ],
+  "plans": [
+    "free",
+    "workspace_monthly",
+    "all_three_monthly",
+    "team_monthly",
+    "workspace_annual",
+    "all_three_annual",
+    "team_annual",
+    "business_builder_one_time"
+  ]
 }
