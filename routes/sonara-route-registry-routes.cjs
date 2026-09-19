@@ -54,6 +54,7 @@ function registerRouteRegistryRoutes(app, deps) {
     getPublicAppUrl,
     getCustomerPrimaryOrganization,
     getReadiness,
+    getLiveReadiness,
     displayStatus,
     accountNoticeCard,
     logoutAction,
@@ -345,8 +346,8 @@ function registerRouteRegistryRoutes(app, deps) {
     });
   });
 
-  app.get("/account/integrations", requireCustomer, (req, res) => {
-    const services = getReadiness().services || {};
+  app.get("/account/integrations", requireCustomer, async (req, res) => {
+    const services = (await getLiveReadiness()).services || {};
     return sendPage(res, {
       title: "Integrations",
       eyebrow: "Your account",
