@@ -17,12 +17,24 @@ const {
   boundedLoopStatus,
   getSeptember19PatternConvergence
 } = require("../lib/sonara-september19-pattern-convergence.cjs");
+const {
+  getScreenshotToolReadinessBatch15
+} = require("../lib/sonara-screenshot-tool-radar-batch15.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
     assert.ok(SOURCE_LEADS.length >= 10);
     assert.equal(SOURCE_LEADS.filter((item) => item.enabledInProduction).length, 0);
     assert.equal(getSeptember19PatternConvergence().productionThirdPartyExecutionCount, 0);
+  });
+
+  it("wires Batch 15 into the governed screenshot intake", () => {
+    const readiness = getScreenshotToolReadinessBatch15();
+    assert.equal(readiness.batch, 15);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.ok(readiness.repositoryCount >= 3);
+    assert.ok(readiness.nonRepositoryReferenceCount >= 7);
+    assert.equal(readiness.architectureConvergence.version, "1.0.0");
   });
 
   it("captures architecture, agent, and skill catalogs", () => {
