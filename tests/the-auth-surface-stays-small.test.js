@@ -45,10 +45,10 @@ function withoutComments(text) {
   return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
 }
 
-// Measured 19 August 2026: 2 files, 4 endpoints. The ceilings leave room for a
+// Measured 18 September 2026 after Google OAuth: a small file set, 6 endpoints. The ceilings leave room for a
 // change that is genuinely needed and fail on a drift nobody decided to make.
 const MAX_FILES_TOUCHING_AUTH = 4;
-const KNOWN_AUTH_ENDPOINTS = ["user", "token", "signup", "recover"];
+const KNOWN_AUTH_ENDPOINTS = ["user", "token", "signup", "recover", "settings", "authorize"];
 const MAX_AUTH_ENDPOINTS = 6;
 
 describe("the authentication surface stays small enough to replace", () => {
