@@ -58,11 +58,11 @@ actually means:
   *Corrected 6 September 2026.* This named "$19, $39 or $79" as the plans on the
   page. Neither half was right: those are the **breadth** ladder's amounts, and
   the breadth ladder was not then on the page -- its price variables were unset,
-  so `/api/readiness` offered `free`, `starter_monthly`, `core_monthly`,
-  `pro_monthly` and the quoted package. And the breadth amounts moved to
-  **$29 / $59 / $109** on 6 September. A figure written into prose beside a claim
-  outlives the claim; the sentence above is true without naming amounts, and
-  `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries the numbers where they are
+  so `/api/readiness` offered the then-current depth ladder and the quoted
+  package. Exact retired identifiers are preserved only in
+  `docs/archive/legacy-names.md`. The breadth amounts moved to **$29 / $59 / $109**
+  on 6 September. A figure written into prose beside a claim outlives the claim;
+  `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries current numbers where they are
   checked.
 
   *Corrected again 10 September 2026, and this half is the good news.* The

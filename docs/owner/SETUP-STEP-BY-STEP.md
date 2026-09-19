@@ -46,8 +46,7 @@ STRIPE_PRICE_ALL_THREE_ANNUAL    = price_1UDcfA0dKtlEU3lAaqioX8tE
 STRIPE_PRICE_TEAM_ANNUAL         = price_1UDcg80dKtlEU3lAoLjca1r0
 ```
 
-Do not restore the retired Starter/Core/Pro variables or product-specific
-aliases. Runtime checkout, readiness, entitlement mapping and plan limits no
+Do not restore retired pricing variables or product-specific aliases. Runtime checkout, readiness, entitlement mapping and plan limits no
 longer recognize them.
 
 ### Verification sequence
@@ -67,20 +66,12 @@ The verifier credential may be a restricted live key with Prices/Products read
 access. The customer-facing runtime credential remains separate and must retain
 the permissions required to create customers and Checkout Sessions.
 
-### Retired billing evidence
+### Historical billing evidence
 
-The former Starter/Core/Pro depth-ladder prices were checked for subscriptions
-before removal:
-
-| Retired plan | Price ID | Amount | Subscription count before archival |
-| --- | --- | ---: | ---: |
-| Starter | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo | 0 |
-| Core | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo | 0 |
-| Pro | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo | 0 |
-
-All three Price objects were archived in live Stripe on 18 September 2026.
-They are historical evidence only; they are not a compatibility or migration
-path.
+The provider-read retirement ledger, including historical plan names, aliases,
+Price IDs, and the zero-subscription evidence captured before archival, lives in
+`docs/archive/legacy-names.md`. Active setup instructions intentionally use only
+the canonical catalogue above.
 
 ---
 
@@ -334,7 +325,7 @@ at 503. That 503 is the "setup required" state, not a broken install.
 
 1. Keep only the canonical Stripe plans: **One workspace $29**, **All three $59**, **Team $109** (plus optional annual twins).
 2. Verify them with `node scripts/verify-stripe-env.mjs --require-live`.
-3. Do not restore retired Starter/Core/Pro keys or aliases; live Stripe showed zero subscriptions on those retired SONARA prices.
+3. Do not restore retired pricing keys or aliases; the archived provider-read ledger records the zero-subscription evidence.
 4. Enable Google in Supabase Auth and put the Google Web Client ID/Secret there only.
 5. Google Cloud redirects to `https://yqncsonkxgwhcxedgevk.supabase.co/auth/v1/callback`.
 6. Supabase is allowed to redirect to `https://sonaraindustries.com/auth/callback`.

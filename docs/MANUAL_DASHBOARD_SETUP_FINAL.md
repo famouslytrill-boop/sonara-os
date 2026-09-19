@@ -42,33 +42,11 @@ production deployment.
 Business Builder setup remains quoted rather than self-serve. It is not part of
 the recurring canonical ladder and has no checkout price environment variable.
 
-### Retired prices — do not use
+### Historical pricing evidence
 
-Retired Price IDs remain here only so a stale screenshot or environment value
-can be recognized. They are not accepted by SONARA's runtime plan table.
-
-The former Starter/Core/Pro depth ladder was checked in live Stripe on
-18 September 2026: every one had zero subscriptions of any status, and all three
-Price objects were then archived.
-
-| Retired plan | Price ID | Amount |
-| --- | --- | --- |
-| Starter | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo |
-| Core | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo |
-| Pro | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo |
-
-An older Creator/Pro/Label set was already archived before this cutover:
-
-| Retired plan | Price ID | Amount |
-| --- | --- | --- |
-| Creator | `price_1TS4jf0dKtlEU3lAgEX2tjV2` | $9.99/mo |
-| Pro (old) | `price_1TS4l70dKtlEU3lAGmuQmmYO` | $19.99/mo |
-| Label | `price_1TS4lc0dKtlEU3lAy98zUnFy` | $49.99/mo |
-
-Do not restore `STRIPE_PRICE_STARTER_MONTHLY`,
-`STRIPE_PRICE_CORE_MONTHLY`, or `STRIPE_PRICE_PRO_MONTHLY`. Those names are
-historical vocabulary only and are deliberately unsupported by executable
-runtime.
+Legacy plan names, aliases, and archived Price IDs are intentionally kept out of
+active setup instructions. The provider-read retirement ledger is preserved in
+`docs/archive/legacy-names.md` for audit and stale-configuration diagnosis.
 
 ## Vercel
 
