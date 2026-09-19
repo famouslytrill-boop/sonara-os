@@ -63,7 +63,13 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           test -x "$SDKMANAGER"
           "$SDKMANAGER" --version
+          JDK_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")"
+          test -x "$JDK_HOME/bin/java"
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JDK_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+          node -e 'const fs=require("fs"); const c=JSON.parse(fs.readFileSync(process.env.HOME+"/.bubblewrap/config.json","utf8")); if(!c.jdkPath||!c.androidSdkPath) process.exit(1)'
           echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "Bubblewrap JDK=$JDK_HOME"
       - name: Check pinned Bubblewrap CLI
         run: |
           set -euo pipefail
