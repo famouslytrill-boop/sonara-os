@@ -84,12 +84,55 @@ event-consumer readiness step, and to `verify:tenant-adversarial` in
 invocations now pass it: 13 and 17 tests where there were 4,779, and the
 tenant-isolation step went from 31s to 3s.
 
-**And this is why `tests/every-test-file-can-fail-the-suite.test.js` timed out
-earlier tonight.** It spawns mocha subprocesses per file; each was loading the
-entire suite. That timeout was reported here as not reproducing, which was true
-and incomplete -- the cause was this, and it was in view the whole time. The
-suite ran 4,779 tests inside a single-file invocation in this very session and
-it was read as normal.
+**A claim retracted from this entry's own first version.** It said this
+explained the `tests/every-test-file-can-fail-the-suite.test.js` timeout earlier
+tonight, because that test "spawns mocha subprocesses per file; each was loading
+the entire suite". Opening the file shows both halves wrong: it spawns mocha
+**once**, as `mocha --dry-run` with **no positional path**, and loading the
+whole suite is the deliberate point -- its job is to enumerate every test file,
+and its own comment says `--dry-run` "loads every file and reports the cases
+without running their bodies, which is the only answer that cannot disagree with
+the runner". The spec leak cannot have affected it, because it wants the full
+spec. That test is simply slow -- 4,779 cases loaded, with load-time assertions
+executing -- and under coverage instrumentation it crosses the 15s limit. It
+remains unexplained and untouched, which is the honest state.
+
+Written into a commit message and this log before being checked, while fixing a
+defect about evidence claiming more than it measured.
+
+## Self-review after Codex ran out of credits, and what it found
+
+Codex hit its usage limits and posted so on PR #305, which removes the reader
+that produced 19 real findings across #297 and #299. So the gap was filled by
+reading this diff adversarially. It found three things, in the work above.
+
+**The gate's population was "wherever I happened to look".** It scanned
+`package.json` and the workflows, because that is where the four known
+invocations were. A mocha spawned from `scripts/` or `tests/` is the same
+defect. Widened to both.
+
+**And the widening was decorative until it was falsified.** A spawned call is an
+array of quoted strings -- `["mocha", "tests/x.test.js", "--reporter", "dot"]` --
+and the tokeniser split on whitespace and tested `/^tests\//`, so every token
+still carried a quote or a comma and nothing matched. It scanned those files and
+could not see anything in them. A planted unpinned spawn exited 0. Caught only
+by planting one instead of trusting the change.
+
+**Then the check flagged its own header comment**, for the example invocation
+quoted there -- shape 7, a pattern reading prose as code, written while fixing a
+defect about evidence claiming more than it measures. Stripping comments fixed
+it, and stripping them by hand was wrong too: the first attempt used two passes,
+block comments then line comments, and
+`tests/a-line-comment-cannot-open-a-block-comment.test.js` failed it by name --
+*"strips comments without using the shared stripper; that is how the same bug
+shipped three times"*. It was right. `lib/sonara-comment-stripping.cjs` exists
+for that bug, does it in one alternation, and now carries the `#` form for YAML
+so this is the fourth caller rather than a fifth copy.
+
+Five falsifications on the final version: an unpinned spawn in `scripts/` fails,
+the same text in a comment stays green, a line comment containing `/*` followed
+by a real spawn still fails, a pinned spawn passes, and a workflow losing its
+`--config` fails.
 
 `verify:targeted-mocha` is the 56th chain command. It scans `package.json` and
 every workflow for a mocha invocation naming a path under `tests/` and requires
