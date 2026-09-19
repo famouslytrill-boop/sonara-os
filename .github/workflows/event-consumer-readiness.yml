@@ -59,7 +59,7 @@ jobs:
           node --check scripts/run-event-consumer-canary.mjs
 
       - name: Prove claim, settle, retry, dead-letter, concurrency, canary, and SLO behavior
-        run: pnpm exec mocha tests/event-outbox.test.js tests/event-consumer-readiness.test.js --reporter dot
+        run: pnpm exec mocha --config .mocharc.targeted.json tests/event-outbox.test.js tests/event-consumer-readiness.test.js --reporter dot
 
       - name: Verify environment classification remains fail-closed
         run: pnpm run verify:env
