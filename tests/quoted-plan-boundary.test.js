@@ -71,7 +71,7 @@ describe("quoted work is not sold through checkout", () => {
       .post("/api/checkout/session")
       .set("accept", "text/html")
       .type("form")
-      .send("plan=business_builder_setup");
+      .send("plan=business_builder_one_time");
     assert.equal(form.status, 303);
     assert.match(form.headers.location, /^\/contact/);
   });

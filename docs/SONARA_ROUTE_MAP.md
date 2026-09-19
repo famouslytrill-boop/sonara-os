@@ -15,7 +15,7 @@ The registry contains 124 required GET routes. `scripts/verify-route-registry.cj
 | Group | Routes |
 | --- | --- |
 | Public | `/`, `/start`, `/products`, `/service-catalog`, `/free-tools`, `/pricing`, `/how-it-works`, `/tutorials`, four tutorial pages, `/help`, `/contact`, `/security`, `/accessibility`, legal/policy pages, `/sitemap.xml`, `/robots.txt`, and the three product landing pages |
-| Authentication | `/login`, `/signup`, `/logout`, `/forgot-password`, `/reset-password`, `/auth/callback` |
+| Authentication | `/login`, `/signup`, `/logout`, `/forgot-password`, `/reset-password`, `/auth/google`, `/auth/callback` |
 
 Only registry records with `visibility: public` and `sitemap: true` appear in `/sitemap.xml`. Authentication and protected application pages use `noindex,nofollow` metadata in the registry.
 

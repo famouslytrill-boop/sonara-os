@@ -239,12 +239,9 @@ async function verifyProductionPages(database) {
   assert.equal(readiness.services?.stripeWebhook, "configured", "Production Stripe webhook must be configured");
   assert.equal(readiness.services?.checkout, "enabled", "Production checkout must be enabled");
 
-  // Follow the same cutover policy the pricing page uses. The old gate named
-  // starter/core/pro forever, so the moment their configured breadth-ladder
-  // replacements opened and the legacy price variables were intentionally
-  // removed, a successful cutover could never pass deployment verification.
-  // Legacy predecessor keys retained here only as regression vocabulary:
-  // starter_monthly, core_monthly, pro_monthly.
+  // Follow the same canonical plan-visibility policy the pricing page uses.
+  // The verifier derives the offered plans from the runtime table rather than
+  // carrying a second plan list that can drift from checkout.
   const offeredPlans = offeredPlanKeys((plan) => readiness.checkoutPlans?.[plan]?.checkout);
   const offeredPaidPlans = offeredPlans.filter((plan) => plan !== "free" && !STRIPE_PLANS[plan]?.quoted);
   const enabledPaidPlans = offeredPaidPlans.filter(

@@ -245,7 +245,10 @@ function registerTwoFactorRoutes(app, deps = {}) {
     if (!configured.ok) return false;
 
     const who = await verifySupabaseAccessToken(result.session.accessToken);
-    if (!who.ok || !who.user?.id) return false;
+    if (!who.ok || !who.user?.id) {
+      refuseSignIn(req, res, "We could not verify your account security state, so we have not signed you in. Try again shortly.");
+      return true;
+    }
 
     const needed = await twoFactor.challengeRequired(store, who.user.id);
     if (!needed.ok) {
@@ -254,7 +257,8 @@ function registerTwoFactorRoutes(app, deps = {}) {
     }
     if (!needed.required) return false;
 
-    const started = await twoFactor.startChallenge(store, configured, { userId: who.user.id, session: result.session });
+    const heldSession = result.nextPath ? { ...result.session, nextPath: result.nextPath } : result.session;
+    const started = await twoFactor.startChallenge(store, configured, { userId: who.user.id, session: heldSession });
     if (!started.ok) {
       refuseSignIn(req, res, "We could not start the second step, so we have not signed you in. Try again shortly.");
       return true;
@@ -328,7 +332,7 @@ function registerTwoFactorRoutes(app, deps = {}) {
     // The session that was held back, handed over by the same path an ordinary
     // sign-in uses -- so the cookies, their lifetimes and the redirect are one
     // implementation rather than two that can drift.
-    return sendEmailAuthResult(req, res, { status: 200, body: { ok: true, code: "login_ready", sessionStored: true }, session: done.session }, "/dashboard", "/login");
+    return sendEmailAuthResult(req, res, { status: 200, body: { ok: true, code: "login_ready", sessionStored: true }, session: done.session }, done.session?.nextPath || "/dashboard", "/login");
   });
 
   function finishFailed(req, res, message, dead = false) {

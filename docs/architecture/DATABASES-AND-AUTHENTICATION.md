@@ -1,6 +1,6 @@
 # Databases and authentication this application could move to
 
-Checked: 2026-08-19
+Checked: 2026-09-18
 Review by: 2027-02-19
 
 Every licence below was read from the project's own `LICENSE` file on
@@ -18,13 +18,13 @@ worth having before anybody plans a migration.**
 
 | Surface | Files that touch it | What is actually used |
 | --- | --- | --- |
-| Supabase Auth | **2** | Four endpoints: `/auth/v1/user`, `/token`, `/signup`, `/recover` |
+| Supabase Auth | **small server-side surface** | Six endpoints: `/auth/v1/user`, `/token`, `/signup`, `/recover`, `/settings`, `/authorize` |
 | PostgREST | **27** | 145 tables, 3 stored procedures |
 | Supabase Storage | **2** | Signed object URLs |
 
 `lib/sonara-customer-auth.cjs` is 426 lines and is where nearly all of the auth
-coupling lives. Four HTTP endpoints is a small enough surface that swapping the
-provider behind them is a week of work, not a quarter.
+coupling lives. Six HTTP endpoints remain a small enough surface that swapping the
+provider behind them is bounded work rather than a database-scale rewrite. The two additions are the Google OAuth provider-readiness and authorization entrypoints; callback code exchange still uses `/token`.
 
 The database is the opposite, and the reason is not the row count:
 
@@ -104,7 +104,7 @@ on merit.
 
 ## Authentication
 
-Only four endpoints are in use, so the bar is low and the field is wide.
+Only six Auth endpoints are in use, so the surface remains deliberately small.
 
 | Project | Licence (read 19 Aug 2026) | Reciprocal? | Notes |
 | --- | --- | --- | --- |
@@ -164,7 +164,7 @@ provider. Not a licence problem; an architecture one.
    Migration is a cost paid against a problem, and there is no problem yet.
 2. **When a cache is needed, reach for Valkey, not Redis.** Same capability, BSD,
    no licence conversation.
-3. **If auth ever has to move, price it at four endpoints.** Keycloak, Ory Kratos
+3. **If auth ever has to move, price it at six endpoints.** Keycloak, Ory Kratos
    or Casdoor — all Apache-2.0, all with a service boundary this application
    already speaks over. The cost is in `lib/sonara-customer-auth.cjs` and nowhere
    else.

@@ -3,9 +3,8 @@
 // docs/MANUAL_DASHBOARD_SETUP_FINAL.md is the file somebody follows to point
 // production at Stripe. Until 2026-08-04 it was wrong in three ways at once:
 //
-//   - It named env vars the server has never read
-//     (STRIPE_CREATOR_MONTHLY_PRICE_ID, STRIPE_PRO_MONTHLY_PRICE_ID) rather
-//     than the ones in the plan table (STRIPE_PRICE_STARTER_MONTHLY, ...).
+//   - It named environment variables the server never read rather than the
+//     canonical price variables in the runtime plan table.
 //   - The Price IDs it gave were the retired $9.99/$19.99 plans, whose Stripe
 //     products were archived in June.
 //   - Those IDs were mistranscribed: capital I where the real IDs have

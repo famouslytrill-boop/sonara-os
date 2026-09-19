@@ -28,7 +28,7 @@ describe("pricing", () => {
   });
 
   it("shows the plans we intend to sell", () => {
-    for (const [name, price] of [["Free", "$0"], ["Starter", "$7/mo"], ["Core", "$19/mo"], ["Pro", "$39/mo"]]) {
+    for (const [name, price] of [["Free", "$0"], ["One workspace", "$29/mo"], ["All three", "$59/mo"], ["Team", "$109/mo"], ["Business Builder setup", "We quote you"]]) {
       assert.ok(page.includes(`${name} - ${price}`), `the pricing page must offer ${name} at ${price}`);
     }
   });
@@ -67,19 +67,8 @@ describe("pricing", () => {
     // test was never moved with it. A bound nobody updates when its source is
     // corrected is a bound that stops meaning anything, so it now carries the
     // arithmetic rather than a remembered total.
-    const CHEAPEST_COMPETITOR_ENTRY_CENTS = 900; // Brevo Starter, $9
-    const COMPETITOR_STACK_CENTS = 4900 + 4900 + 900; // Jobber Core + Podia Mover + Brevo Starter, monthly
+    const COMPETITOR_STACK_CENTS = 4900 + 4900 + 900; // Jobber Core + Podia Mover + Brevo entry tier, monthly
     assert.equal(COMPETITOR_STACK_CENTS, 10700, "the stack arithmetic no longer comes to the $107 the pricing doc states");
-    assert.ok(
-      PLANS.starter_monthly.amountCents < CHEAPEST_COMPETITOR_ENTRY_CENTS,
-      "Starter must undercut the cheapest competitor entry plan, or the pricing page claim is false"
-    );
-    for (const key of ["pro_monthly", "all_three_monthly"]) {
-      assert.ok(
-        PLANS[key].amountCents < COMPETITOR_STACK_CENTS,
-        `${key} must stay under the $107 competitor stack the page compares against`
-      );
-    }
     // Each plan against the competitor it actually replaces, not just against
     // the stack. The owner's requirement on 6 September 2026 was "competitive
     // but cheaper", and a requirement nothing checks is a requirement that stops
