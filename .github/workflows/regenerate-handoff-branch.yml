@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - codex/durable-generation-lifecycle-20260916
-      - codex/google-signin-canonical-no-legacy-20260918
       - codex/google-signin-no-legacy-rebase-20260919
 
 permissions:
