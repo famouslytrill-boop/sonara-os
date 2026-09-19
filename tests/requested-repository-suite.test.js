@@ -49,6 +49,10 @@ const {
   SCREENSHOT_TOOL_RADAR_BATCH12,
   NON_REPOSITORY_REFERENCES_BATCH12
 } = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH14,
+  NON_REPOSITORY_REFERENCES_BATCH14
+} = require("../lib/sonara-screenshot-tool-radar-batch14.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -121,12 +125,14 @@ const SCREENSHOT_BATCH5_KEYS = SCREENSHOT_TOOL_RADAR_BATCH5.map((item) => item.k
 const SCREENSHOT_BATCH6_KEYS = SCREENSHOT_TOOL_RADAR_BATCH6.map((item) => item.key);
 const SCREENSHOT_BATCH7_KEYS = SCREENSHOT_TOOL_RADAR_BATCH7.map((item) => item.key);
 const SCREENSHOT_BATCH12_KEYS = SCREENSHOT_TOOL_RADAR_BATCH12.map((item) => item.key);
+const SCREENSHOT_BATCH14_KEYS = SCREENSHOT_TOOL_RADAR_BATCH14.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
   ...NON_REPOSITORY_REFERENCES_BATCH6,
   ...NON_REPOSITORY_REFERENCES_BATCH7,
-  ...NON_REPOSITORY_REFERENCES_BATCH12
+  ...NON_REPOSITORY_REFERENCES_BATCH12,
+  ...NON_REPOSITORY_REFERENCES_BATCH14
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -480,12 +486,12 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 89);
-    assert.equal(response.body.verifiedCount, 85);
+    assert.equal(response.body.repositoryCount, 96);
+    assert.equal(response.body.verifiedCount, 92);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 79);
+    assert.equal(response.body.screenshotResearchCount, 86);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 35);
+    assert.equal(response.body.nonRepositoryReferenceCount, 36);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -497,7 +503,8 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH5_KEYS,
         ...SCREENSHOT_BATCH6_KEYS,
         ...SCREENSHOT_BATCH7_KEYS,
-        ...SCREENSHOT_BATCH12_KEYS
+        ...SCREENSHOT_BATCH12_KEYS,
+        ...SCREENSHOT_BATCH14_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
@@ -508,8 +515,8 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /79 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /35 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /86 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /36 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
