@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3932 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3885 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 122 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 18 customer routes, 30 admin routes.
-- 351 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 350 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -78,7 +78,7 @@ Before adapting anything from a repository, check its record. The statuses mean 
 - `reference_only` / `research_only` -- read the patterns, take no code.
 - `blocked` / `needs_license_review` -- neither, and the record says why.
 
-Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence (AGPL, GPL, OSL) triggers on network use**, so incorporating one into this hosted product obliges releasing this product's source under the same terms. Both are recorded per repository rather than left to be rediscovered.
+Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. Of the 31 reciprocal records, 17 are the network-triggered kind, 11 trigger on distribution, and 3 carry a licence custom or qualified enough that neither label is safe -- read those records rather than a summary of them. The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.
 
 ## Before you push
 
@@ -105,6 +105,363 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-19 - Five findings on the fixes for the eight, and a floor that was wrong twice
+
+A third review round. Five findings, all real, all on the previous commit. The
+pattern across three rounds is now clear enough to state: **the defects are not
+in the code being fixed, they are in the fixes.**
+
+## A number typed into the fix for numbers being wrong
+
+The previous entry fixed the reciprocal-licence report and corrected the
+sentence in `scripts/generate-handoff-prompt.mjs`. That corrected sentence read
+*"Twenty of the thirty-one reciprocal records are the first kind"* -- a literal,
+written into the document other assistants read to learn how licences work here,
+in the same commit whose subject was licence misclassification, and it disagreed
+with the classifier it was supposedly corrected against (which said eighteen).
+
+The fix is not 20 -> 18. Classification now lives in
+`lib/sonara-licence-trigger.cjs` and the handoff **derives** its sentence from
+it, because two places stating one fact is how one of them goes wrong. The
+generator fails rather than publishing a zero if the register ever yields no
+reciprocal records.
+
+## The report truncated the identifiers it exists to show
+
+`split(/[,.]/)` splits on every period, so the rows printed `GPL-3.0` as
+`GPL-3`, `LGPL-3.0` as `LGPL-3`, `MPL-2.0` as `MPL-2` and `MSCL-1.0-GPL` as
+`MSCL-1`. An operator could not tell which licence or which version a row meant,
+in the one report whose whole subject is that distinction. **This was visible in
+output printed into the previous round's own transcript and went unread.**
+
+Splitting now happens on prose delimiters only -- comma, semicolon, open
+bracket, or a full stop *followed by whitespace*. Fixing it moved the counts to
+**17 / 11 / 3**, because `AGPL-3.0 upstream with a stated commercial-licence
+option` had been classifying as plain AGPL once the period cut it short. Three
+unclassifiable is the more honest answer: a dual-licensed record is exactly the
+case where a bucket label should not be asserted.
+
+## A floor that was wrong, raised, and wrong again
+
+`MINIMUM_FILES` was 150 against a population of 258, then still 150 at 279
+(round two), then raised to 278 -- by which point adding
+`lib/sonara-env-value-checks.cjs` in the same commit had already made it 279. So
+deleting any one covered file would still have passed, which is the identical
+defect the raise was meant to close.
+
+Any fixed floor below its measurement leaves exactly that much slack, and the
+slack reappears the moment somebody adds a file. So it is no longer a floor:
+`EXPECTED_FILES` asserts **equality**, failing when the count drops *and* when
+it grows. Growth is not a code failure -- it is a prompt to re-read the constant
+deliberately, which is the only thing that keeps it a measurement.
+
+Falsified both ways, which no floor could do: deleting one covered file gives
+278 and fails; adding one gives 280 and fails.
+
+## A fallback that was kindness and a false pass
+
+`scripts/test-email-config.mjs` was fixed to read `SUPPORT_TO_EMAIL ||
+CONTACT_TO_EMAIL`, and then *also* accepted the legacy `SUPPORT_EMAIL` /
+`CONTACT_EMAIL` last, reasoning that an operator mid-rotation should not be
+stranded. But `server.js:2777` sends support mail to
+`getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])` and nothing else. So the
+`--send` test would have succeeded on a configuration where the application
+cannot route support mail -- in the same commit whose documentation said nothing
+in the runtime reads those names.
+
+The fallback is gone. The legacy values are still read, only to name them in the
+failure message: *"SUPPORT_EMAIL or CONTACT_EMAIL is set and neither is read by
+anything... Rename the variable rather than adding a second one."* That helps the
+operator without reporting success.
+
+## Corrected guidance appended above a contradiction
+
+`docs/SUPPORT_CONTACT_SETUP.md` and `docs/email/EMAIL_ROUTING_AND_RESEND_SETUP.md`
+were updated to say both commands work and `--send` posts to Resend -- directly
+above a surviving paragraph reading *"So outbound email cannot be verified from
+this repository today... until there is a script here that proves it."* Two
+mutually exclusive instructions, three lines apart, because the update was
+appended without deleting what it replaced. Removed, and replaced with the
+distinction that actually matters: provider acceptance is not delivery.
+
+## Nineteen findings, three rounds
+
+Every one real. What is worth recording is not the count but where they lived:
+round one found defects in the codebase, rounds two and three found defects in
+the repairs -- a false number inside a fix for false numbers, a floor raised to a
+value already stale, a fallback that recreated the false positive it replaced,
+and a correction appended above the text it contradicted.
+
+Nothing here was found by being careful. It was found by another reader looking
+at the diff, and before that by `require('./server')`, `--max-warnings=0`, and
+reading printed output instead of an exit code. The output that showed `GPL-3`
+was on screen in the previous round and nobody read it.
+
+### 2026-09-18 - Eight more findings, and the one that would have reached customers
+
+Codex reviewed the fixes for the entry below and found **eight** further
+defects. All eight were real. Six were consequences of those fixes being
+incomplete, which is the useful part of the record: fixing a defect class in one
+place and not its sibling is itself a defect.
+
+## The one that would have reached customers
+
+Widening `verify:proprietary-notice` to cover `public/**/*.js` put
+
+    // Proprietary source. No licence is granted; see LICENSE.
+
+into `public/sonara-scroll.js`. That file is not only served to browsers.
+`routes/sonara-scroll-routes.cjs:57` reads it and `lib/sonara-scroll-export.cjs`
+writes it into **every Creator Studio site export** as `scroll.js`, beside a
+README that tells the customer *"A static site. Put these files on any web host
+and it works... Drop the whole folder in."*
+
+So the download a customer paid for would have arrived carrying a sentence
+denying them permission to use it. Not a notice -- a contradiction of the thing
+they bought. The notice was removed from that file and the file excluded from the
+gate, with the reason recorded where the next person widening that population
+will read it.
+
+Giving that runtime an explicit customer-facing licence **grant** is deliberately
+not done here: AGENTS.md reserves legal and policy publishing to the owner, and
+no check may write a grant on their behalf. The gap is named for them.
+
+Checked rather than assumed: exactly one of the 21 public scripts is
+customer-distributed. `lib/sonara-zip.cjs` requires `public/sonara-zip-core.js`,
+but that is the ZIP *builder* running server-side, not a file in the download.
+
+## A check advertised as the way to verify email, saying yes to what the product says no to
+
+`scripts/verify-email-env.mjs` accepted any non-empty value except four exact
+sentinel words. `lib/sonara-readiness.cjs` rejects a key under 12 characters or
+matching a much broader placeholder test, and requires an address to parse. So
+`RESEND_API_KEY=replace-me` and `RESEND_FROM_EMAIL=fake` made the new check exit
+0 and report email ready while the application treated delivery as
+unconfigured.
+
+**My own falsification had used `RESEND_API_KEY=x`.** A one-character key. The
+proof that the permissive direction worked was conducted with a value the
+application rejects, it passed, and it was reported as evidence.
+
+Fixed by extracting `isPlaceholderValue`, `extractEmailAddress`, `isEmailLike`
+and `isPlaceholderEmail` out of `server.js` into
+`lib/sonara-env-value-checks.cjs`, so `server.js`, `createReadiness` and the
+script all call one implementation. `server.js` 3903 -> 3885 lines, and the
+ratchet in `tests/server-split.test.js` follows it down, because a ceiling left
+above a real reduction is slack nobody decided to grant.
+
+Two things caught this extraction rather than review catching them:
+`node -e "require('./server')"` failed with *"Cannot access
+'isPlaceholderValue' before initialization"* -- function declarations hoist and a
+`const` destructure does not, and these are used at line 270 -- and
+`--max-warnings=0` then flagged `extractEmailAddress` as unused in `server.js`.
+
+## The sibling script nobody fixed
+
+`scripts/test-email-config.mjs` still read `SUPPORT_EMAIL || CONTACT_EMAIL`.
+Nothing in the runtime has ever read those names; the declared recipients are
+`SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`. A correctly configured production
+therefore aborted every `--send` test as unconfigured -- the delivery test
+failing on the one environment it exists to test. One script was fixed and its
+sibling left holding the same defect.
+
+## An exemption that swallowed a live instruction
+
+`docs/HANDOFF_PROMPT.md` was exempted whole as a changelog, on the stated
+grounds that it is not where a live instruction lives. Its own "## Before you
+push" section lists the release chain. The exemption now starts at the
+`## Sprint log` heading, and a named boundary that cannot be found in the
+document fails rather than silently exempting everything.
+
+Falsified both ways: the same dead command fails when placed in the preamble and
+passes when placed below the heading.
+
+## A floor far below its population is not a floor
+
+`MINIMUM_FILES` stayed at **150** while the population went from 258 to 279. If
+the two `public/` pathspecs were ever removed, the check would fall back to the
+258 server-side files, clear 150, and report everything compliant -- recreating
+the exact blind spot widening it was meant to close. Ratcheted to 278, with a
+separate floor of 20 for the browser-side half, because that half is the one a
+single edited glob would silently drop.
+
+## Flattening, again, one category narrower
+
+The reciprocal-licence fix below replaced "all 31 trigger on network use" with
+"20 network, 11 distribution". Directus is
+`MSCL-1.0-GPL (Monospace Sustainable Core License 1.0)`, and its own register
+note says *"It is a licence written this year whose abbreviation carries GPL, and
+it is not OSI open source. Nothing should be built on it from a summary."*
+Printing it under "triggers on distribution" because a regex missed is building
+on a summary.
+
+Now three buckets -- **17 network, 11 distribution, 3 stated as unclassifiable**
+(Directus, Codegraff's modified AGPL, and OBLITERATUS's AGPL-with-commercial-option)
+-- and
+classification reads the leading licence identifier against known SPDX families
+rather than searching for a substring, so the GPL inside MSCL-1.0-GPL does not
+match. The first attempt put two plain `AGPL-3.0` records in `unknown` because
+their provenance sentence left a trailing full stop on the identifier; caught by
+reading the output rather than the exit code.
+
+The counts above read 18 / 11 / 2 when this entry was first written, and moved to
+17 / 11 / 3 in the entry above it: the identifier splitter was still cutting at
+every period, which both truncated the printed identifiers and let
+`AGPL-3.0 upstream with a stated commercial-licence option` classify as plain
+AGPL. Recorded rather than quietly edited, because the second number is the one
+to trust and the reason it moved is the finding.
+
+**The same error was in the generated handoff prompt**, the file handed to other
+assistants: *"a reciprocal licence (AGPL, GPL, OSL) triggers on network use"*.
+Corrected in `scripts/generate-handoff-prompt.mjs`, where it was produced.
+
+## Four documents made false by fixing a fifth
+
+Wiring `verify:email-env` and `test:email` made four setup documents wrong: each
+carried a note saying no email tooling exists and neither command is defined.
+All four now say what the commands do, that the recipient variables are
+`SUPPORT_TO_EMAIL` / `CONTACT_TO_EMAIL`, and that `--send` reaches a real
+provider.
+
+## One finding answered with a recorded decision instead of a change
+
+The notices changed the bytes of `public/sonara-one.js` while its URL keeps the
+token `?v=sonara-ui-20260914-v12-palette`, and `server.js:316` serves anything
+with a `?v=` as `immutable` for a year. The mechanism is real. The token is
+**not** bumped, and the reasoning is written into
+`scripts/verify-proprietary-notice.mjs` rather than left as an omission: a notice
+exists so a copied file is attributable, somebody copying takes it from the
+repository or a fresh load rather than from a year-old cache entry, every new
+visitor gets current bytes, and bumping the shared token would invalidate every
+cached asset for every visitor -- plus the service worker version, which
+`verify:customer-ready-production-experience` asserts must match -- to deliver a
+two-line comment. The customer export is unaffected: it reads from disk at
+require time.
+
+## What two rounds of this establish
+
+Fourteen findings across two reviews, every one real, and three of them were
+false statements written *while fixing false statements*. What caught them was
+never thinking harder -- it was `require('./server')`, `--max-warnings=0`,
+printing output instead of trusting an exit code, and opening the file named in
+my own comment.
+
+### 2026-09-18 - Six findings on my own diff, and the one that was a false claim
+
+An automated reviewer (Codex) left six findings on PR #297. All six were real,
+all six were in work added in that PR, and four were instances of shapes
+`.claude/skills/checks-that-cannot-lie` already names. Recorded in full because a
+review round that finds six genuine defects in one diff is worth more as a
+record than as a fix.
+
+## The one that mattered: a stated gap that did not exist
+
+The entry above this one claimed **"Nothing in the repository generates a QR
+code"**, and offered as evidence that `qrcode`, `QRCode` and `generateQr` appear
+nowhere. All three absences are true. The function is called `encode`, in
+`lib/sonara-qr.cjs` -- 25 KB of QR Code Model 2 with the ISO/IEC 18004 capacity
+tables, shipped 25 August 2026, already rendering an inline SVG on `/book/:slug`
+from `routes/sonara-public-booking-routes.cjs:532`, and round-tripped by an
+independently written decoder in `tests/a-qr-code-can-be-read-back.test.js`
+(33 assertions, passing).
+
+The generated handoff prompt contained the false claim at line 230 and the
+entry describing the encoder at line 14,082 of the same file.
+
+The mechanism is the point. The entry **published its own search terms**, which
+is the only reason the error was findable -- and then asserted a conclusion three
+guessed identifiers cannot support. A negative grep is evidence about the terms,
+not about the capability. It was also handed to the owner as a decision they did
+not have, which is worse than the log entry.
+
+## A check that could not fail, and a list of variables nothing read
+
+`verify:email-env` and `test:email` were registered as history with the reason
+"no email tooling exists here". Both scripts existed, since 25 August. The
+reason was false and it is the kind of false reason this codebase treats as
+worse than no exemption, because it is what the next reader believes instead of
+looking.
+
+Wiring the aliases was not enough, because the check they point at could not
+fail. `scripts/verify-email-env.mjs` guarded its only `process.exit(1)` behind
+`formsEnabled && strict`, and computed `formsEnabled` from the existence of
+`app/contact/page.tsx` and three sibling Next.js App Router paths. There is no
+`app/` directory in this repository. The branch was unreachable; the script
+printed `[MISSING]` for every unset variable and exited 0 saying "Email env
+check completed."
+
+Its list was wrong too. Of nine required variables, **seven were read by
+nothing**, and the two address variables the runtime does read are named
+`SUPPORT_TO_EMAIL` and `CONTACT_TO_EMAIL` -- so five names existed nowhere and
+two were misspellings. Rewritten to read the requirement from
+`lib/sonara-infrastructure-manifest.cjs`, which is the declaration
+`/api/readiness` already uses, and which resolves to three requirement groups
+including the "either of these two" pair. It refuses to run at all if that
+declaration is empty.
+
+Falsified in four directions, all without a pipe in the way of `$?`: unset and
+strict exits 1, all three set exits 0, either alternate name satisfies its
+group, and `placeholder` is rejected.
+
+## An exemption keyed by name, when it needed to be keyed by document
+
+`SUPABASE_SETUP.md` step 4 told an operator setting up a database to run
+`pnpm run db:types`, which does not exist. `verify:doc-pnpm-scripts` could not
+see it for two reasons: it walked only `docs/`, and `db:types` was exempted **by
+name** because `docs/DATABASE_SCHEMA.md` records, correctly, that no
+type-generation script exists here. One honest historical note silenced the
+check everywhere, including a live setup instruction.
+
+The register is now keyed by name **and document**, with a fourth check for a
+listed document that has stopped naming the script. That fourth check
+immediately caught a stale entry of my own: `validate:infrastructure` was
+recorded as named in `docs/SUPABASE_MIGRATION_FIX.md`, which does not name it.
+Falsified both ways -- a dead command added to `README.md` fails by document
+name, and a listed document that does not name its script fails too.
+
+## The notice gate measured a different population from the one it claimed
+
+`verify:proprietary-notice`'s own comment named `public/**` as shipped content,
+quoting `vercel.json`, and then the glob list omitted it. All **21** tracked
+public JavaScript files had no notice and the check passed -- shape 2. These are
+the files most likely to be copied, because a browser hands the reader the
+source. Notices added to all 21, population now 279. Checked before editing that
+nothing under `scripts/` writes into `public/`, and that no subresource-integrity
+hash pins them. The four stylesheets and one HTML file under `public/` are left
+out as a **named** decision rather than an unexamined one.
+
+## A headline that disagreed with the rows under it
+
+`report:register-opportunities` grouped with `record.productFit || [...]`. An
+empty array is truthy, so it selected the empty array, the loop ran zero times,
+and the record vanished from every section while still counting in the headline.
+Three of 23 -- Superpowers, Claude Skills Collection, Harness. The grouping now
+tests length, and a new assertion aborts the report when the headline and the
+rows disagree. Falsified by reintroducing the exact original expression: 23
+qualify, 20 appear, exit 1.
+
+## Flattening eleven licences into one legal claim
+
+The same report said all **31** reciprocal records "trigger on network use". That
+is true of the 20 AGPL/OSL records and false of the other 11 -- nine GPL, one
+LGPL, one MPL -- which trigger on distribution, with obligations that differ per
+licence. AGENTS.md is explicit about not handing anyone an incorrect boundary.
+The two are now counted separately and the eleven are listed by name.
+
+**And a retraction inside the fix.** The first version of that new comment
+blamed `.claude/skills/reviewing-an-outside-repository/SKILL.md` for the error.
+Opening the file shows it says the opposite: *"Do not equate GPL with AGPL."*
+The guidance was already right and the script ignored it. A reason reasoned
+rather than checked, written while fixing a defect of exactly that kind.
+
+## What this round is evidence of
+
+Two of the six were false statements written in the same PR whose stated purpose
+was catching false statements, and a seventh was written while fixing the sixth.
+The discipline that caught all of them was not care -- it was opening the file
+and re-running the measurement. Nothing here was found by thinking harder about
+it.
 
 ### 2026-09-18 - The action pins were immutable and unreadable, and the Node-20 question had no answer in source
 
@@ -180,6 +537,359 @@ population is non-empty before asserting anything about it.
 here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
+
+### 2026-09-18 - 237 reviews, 9 adapters: asking the register the question nobody had asked
+
+Asked to take everything useful from the 237 registered repositories and apply
+it. The honest version of that is not "install 237 repositories" -- every skill
+here forbids it, and it would cost the guarantees a single production dependency
+buys. The useful version is a question nobody had put to the register:
+**what have we learned and not used?**
+
+`scripts/report-register-opportunities.mjs` derives it:
+
+| integrationStatus | | commercialUseStatus | |
+| --- | --- | --- | --- |
+| reference_only | 90 | allowed_after_review | 120 |
+| blocked | 50 | blocked_until_review | 61 |
+| research_only | 41 | needs_review | 44 |
+| optional_adapter_after_review | 29 | allowed | 6 |
+| needs_license_review | 14 | blocked (3 spellings) | 6 |
+| **adapter_built** | **9** | | |
+| needs_security_review | 4 | | |
+
+**9 of 237.** The other 228 produced no implementation, and mostly that is
+correct: 50 are blocked outright, 35 carry a critical licence risk, 31 are
+reciprocal and this is a hosted product, which is the case a reciprocal licence
+is written for. The register earning its keep looks like refusal far more often
+than adoption, and the numbers say so.
+
+The interesting slice is narrow: **23 records** already reviewed to
+`optional_adapter_after_review`, low licence risk, non-reciprocal, commercially
+permitted -- ideas somebody has already decided SONARA *may* build on and has
+not. Grouped by product: Creator Studio 11, Business Builder 10, Growth Studio
+8, Admin Command Center 4, Internal Development 3.
+
+**It is a report, not a gate, and deliberately outside `verify:launch`.** There
+is no correct number of unbuilt opportunities. A gate over one would either never
+fire or would pressure somebody into adopting a dependency to turn a check green,
+which is the opposite of what the register is for.
+
+## Two gaps checked rather than assumed
+
+The register's Growth Studio entry for `disposable-email-domains` says to flag a
+lead whose address is a throwaway. **`lib/sonara-disposable-email.cjs` already
+exists** -- that one is built, and looking first is the only reason it was not
+duplicated.
+
+The entry for Project Nayuki's QR generator says to "put /book/:slug on a poster,
+a van or a receipt so somebody can book".
+
+**The first version of this entry said that gap was real. It was not, and the
+claim was mine.** It read: *"Nothing in the repository generates a QR code -- no
+`qrcode`, `QRCode` or `generateQr` in `lib/`, `routes/`, `server.js` or
+`public/`."* Every one of those three search terms is absent from this
+repository. The function is called `encode`, exported from
+`lib/sonara-qr.cjs` -- 25 KB of QR Code Model 2, whose header credits Project
+Nayuki as the reference it was checked against, with the ISO/IEC 18004 capacity
+tables read from there on 25 August 2026 rather than recalled.
+`lib/sonara-qr-png.cjs` renders the grid to PNG or SVG.
+`routes/sonara-public-booking-routes.cjs:532` already calls it and inlines the
+SVG on `/book/:slug`; the lead-capture and two-factor routes call it too. And
+`tests/a-qr-code-can-be-read-back.test.js` is an independently written *decoder*
+that round-trips every case -- 33 assertions, passing -- because an encoder and
+a decoder written from the same misunderstanding could still agree.
+
+So everything the retracted paragraph said "building it means" -- implementing
+ISO/IEC 18004, proving it against vectors rather than eyeballing a bitmap -- had
+been done three weeks earlier, and was on `main` the whole time.
+
+Recorded rather than quietly deleted, because the mechanism matters and it is
+the one CLAUDE.md warns about: the entry **listed its own search terms**, which
+is what made the error findable, and then stated a conclusion those terms could
+not support. A negative result from three guessed identifiers is not the absence
+of a capability. Codex caught it on PR #297; had it not, the next person reading
+this log would have been pointed at duplicating a shipped, tested feature. It
+was also handed to the owner as an open decision they did not have, which is
+worse than the log entry.
+
+## Two instrument errors, both caught by printing the output
+
+The first parse of the register **returned 0 records and printed tidy tables of
+zero without erroring**: `indexOf("[")` found the `[]` inside the type annotation
+`OpenSourceToolRecord[]` and depth-matched an empty array. The reader is now
+anchored past the annotation, and `MINIMUM_RECORDS = 150` refuses to report on a
+register it has stopped reading -- falsified by emptying the literal, which fails
+with "parsed only 0 records ... Refusing to report".
+
+The second was in a falsification harness: `m.index` where `m.end()` was meant,
+so the register was never emptied and the case was silently measuring the intact
+file. It reported exit 0 and proved nothing. Caught only because the output was
+printed rather than the exit code trusted -- the same shape as the `$?`-after-a-pipe
+error earlier in the day.
+
+### 2026-09-18 - LICENSE does not travel with a copied file; a header does
+
+Asked to tighten things so the source cannot be taken, with the repository
+staying public by the owner's decision.
+
+**The honest part first: a public repository cannot be made uncopyable.** Anyone
+may clone it, and nothing inside the tree changes that. Private is the only
+measure that stops copying, and it was declined for now. Writing a check that
+implied otherwise would be the defect this codebase is organised around, so
+`scripts/verify-proprietary-notice.mjs` says in its own success line that it
+makes a copied file *attributable* and not the source uncopyable.
+
+What was missing was real. **3 of 1,005 source files carried any copyright or
+proprietary notice**, and neither `server.js` nor `api/index.js` was among them
+-- the two entry points of a product sold on paid plans. `LICENSE` sits at the
+repository root and does not travel: copy `lib/sonara-billing.cjs` elsewhere and
+nothing in that file says who owns it or on what terms. A header travels, and it
+removes "I did not know it was proprietary" as a position.
+
+258 shipped source files -- `server.js`, `api/`, `routes/`, `lib/` -- now open
+with the holder and a reservation of rights, placed after any shebang and before
+any `"use strict"` directive.
+
+**The holder is read out of `LICENSE`, not repeated in the check.** A hardcoded
+string would leave 258 files asserting an old name after a rename while the gate
+called that correct, so the expected holder is parsed from the
+`Copyright (c) <year> <holder>. All rights reserved` line and the notices are
+compared against it. The gate refuses to run at all when it cannot read that
+line, rather than guessing.
+
+## Two things checked before editing rather than after
+
+**`supabase/migrations/` is excluded, and that is not an oversight.** 119 of
+those files are SHA-256 content-checksummed in
+`supabase/applied-migration-checksums.json`, and `verify:applied-migrations`
+fails when one changes -- which is the whole point, because an applied migration
+is immutable. Adding a header there would have broken 119 checksums to gain a
+comment.
+
+**`lib/sonara-tenant-scoped-tables.cjs` is generated.** Hand-adding the notice
+made `verify:tenant-tables` report the file stale, correctly. The notice belongs
+in the generator's template, and now is; the regenerated file is byte-identical
+to the hand edit, and `--check` agrees.
+
+## The ratchet was raised rather than worked around
+
+`tests/server-split.test.js` holds `server.js` to a shrinking line ceiling, and
+two comment lines pushed it from 3901 to 3903. Its own message says to raise the
+ceiling and say why, so the ceiling is 3903 with the reason recorded beside the
+earlier entries. Shortening the notice to one line to squeeze under 3901 would
+have let the ratchet decide what a file may say about its own ownership, which is
+the wrong way round -- the same reasoning the 3874 -> 3876 entry already
+records.
+
+Falsified three ways, each restored with `md5sum -c`: a file with its notice
+stripped; a notice naming a different holder from `LICENSE`; and a `LICENSE` with
+no readable copyright line.
+
+## What actually protects the business, recorded because it reframes the risk
+
+The source alone is inert. What cannot be copied is the Supabase project, the
+Stripe account, the domain, the customer relationships and the environment
+secrets -- and a full history scan found **no credential has ever been
+committed**: zero plausible Stripe live keys (232 matches are prose, redaction
+patterns and 7 deliberate leak canaries), zero GitHub tokens, and one
+`service_role` JWT that is a fabricated fixture in
+`tests/redaction-boundary.test.js` with a 12-character signature and a single
+claim.
+
+**Still open and the owner's:** `LICENSE` claims the software is *confidential*
+and instructs anyone holding a copy without written permission to delete it and
+notify. Deliberate publication undermines both sentences, while the load-bearing
+"No licence is granted" survives untouched. Rewording is `legal_or_policy_publishing`
+under AGENTS.md and needs owner approval, so it was not touched.
+
+### 2026-09-18 - The rollback runbook told you to run a command that does not exist
+
+Asked to confirm the workflows, tables, schemas and migrations were all current,
+that the latest Node 26 was installed, and that Node 27 was ready. Most of that
+turned out to be true already, verified rather than assumed:
+
+- **122 migrations** replayed in order against an empty PostgreSQL, 119 frozen
+  and unchanged, 146 required tables present, 8 operational indexes.
+- **Node 26.9.0** (released 2026-09-16, not LTS) downloaded, checksum-verified
+  against `nodejs.org/dist/v26.9.0/SHASUMS256.txt`, installed locally, and the
+  whole repository run under it: build, typecheck, lint, the full suite, and
+  `verify:launch` **exit 0**.
+- **Node 27 does not exist.** Its release is 2027-04-22 per `nodejs/Release`,
+  and Node 26 reaches LTS 2026-10-28 -- both read from the schedule, and both
+  matching what `node-runtime-compatibility.yml` already says. The prewired
+  manual lane is correctly timed and needed nothing.
+
+`engines.node` stays `24.x`, deliberately. `vercel.json` carries no runtime pin
+and there is no `.nvmrc`, so that field **is** the production runtime; a test
+already asserts it must stay 24.x. The `[WARN] Unsupported engine` line under
+Node 26 is correct and wanted, and widening the field to silence it would be a
+production change. That was nearly "fixed" before checking what set the runtime.
+
+## What was actually broken
+
+`docs/PRODUCTION_ROLLBACK_RUNBOOK.md`, Step 3, the application rollback:
+
+    git checkout <previous_production_sha>
+    pnpm install --frozen-lockfile
+    pnpm run apply:runtime
+
+followed by *"`apply:runtime` is required: `server.js` is transformed at build
+time, so a checkout alone is not the deployable artifact."*
+
+**Both halves were false.** No `apply:runtime` script exists. And `server.js` is
+not transformed: `build` is `node --check server.js && node -e "require('./server')"`,
+`vercel-build` is `pnpm run build`, there is no prebuild/postinstall/prepare
+hook, `server.js` is tracked in git, and nothing under `scripts/` writes it. So
+an operator following the runbook mid-incident got `Command "apply:runtime" not
+found` and then a sentence telling them their checkout was not deployable -- at
+the one moment nobody has time to work it out. The checkout **is** the artifact.
+
+This is the same failure `scripts/verify-doc-script-paths.mjs` was written for in
+August, when `MONITORING_AND_BACKUPS.md` named three backup scripts that lived
+only under `archive/`. That gate matches backticked `scripts/...` paths, and
+almost nothing here is invoked that way -- it is invoked as `pnpm run X`. So the
+defect reappeared in the notation the gate is blind to, and in a recovery
+document again.
+
+**23 dead `pnpm run` names across `docs/`,** eight of them in live instructions:
+`apply:runtime` in the rollback runbook and the server-split plan;
+`check:env-safety` and `check:risky-features` in the admin launch checklist --
+the first two lines of it; `db:types` in the schema doc; `validate:infrastructure`
+in the migration-fix doc; `verify:legacy-copy` in the deployment runbook; and
+`verify:email-env` plus `test:email` across four documents.
+
+That last one is worth naming on its own: **an entire email-setup capability is
+documented and does not exist.** No script name or body in `package.json`
+contains "email" at all, yet `EMAIL_ROUTING_AND_RESEND_SETUP.md` described
+`pnpm run test:email` as a dry run and `pnpm run test:email -- --send` as a real
+provider test, with a caution not to run the send from CI -- a caution protecting
+a capability that was never there. Every one of those documents now says plainly
+that outbound email cannot be verified from this repository, and points at
+`verify:env`, which classifies the variables but sends nothing.
+
+`scripts/verify-doc-pnpm-scripts.mjs` is the 53rd chain command, two-sided like
+its older sibling: a named command exists, or is registered as history with what
+the mention IS.
+
+## The matcher had to be narrowed, and the first one was shape 7
+
+`\bpnpm(?:\s+run)?\s+(\w[\w:-]*)` over whole documents returned 36 "missing
+scripts" including `and`, `only`, `for`, `from`, `correctly`, `stays` and
+`workspace` -- from prose like "SONARA uses pnpm only" and "pnpm workspace". A
+pattern matching prose as if it were code, which would have buried the eight real
+findings in noise. A reference now counts only inside inline backticks or a
+fenced block, and only as `pnpm run <name>` or `pnpm <namespaced:name>`; prose
+satisfies neither. 36 candidates became 23 with no false positives, and the
+regression is asserted -- a falsification case appends prose and requires the
+gate to stay **green**.
+
+Falsified four ways, each restored with `md5sum -c`: a live doc naming a missing
+command; an orphaned register entry; a registered name that `package.json`
+defines again; and the prose guard.
+
+`docs/NODE_AND_PNPM_SETUP.md` was rewritten -- it had claimed `>=22 <27` while
+`engines` said `24.x`, and named two of the dead commands. It now carries
+`Review by: 2027-04-22`, Node 27's real release date, so `report-stale-claims`
+surfaces the manual Node 27 lane when it becomes relevant; nothing else in the
+repository would have noticed.
+
+**The doc-counts gate caught a hardcoded figure in that rewrite** -- "4,746
+passing" -- with the right objection: a passing count is stale the next time
+anybody adds a test. Removed rather than updated.
+
+### 2026-09-18 - Two classifiers for owner approval, with opposite defaults
+
+Audited `lib/sonara-event-outbox.cjs` because it arrived in the commit that
+corrupted the sprint log, from the same tooling, and because event consumers are
+the next thing to be built on it. The storage adapter is careful -- tenant id
+repeated on every query, a network failure returning a refusal rather than an
+empty list, a settled claim verified against the worker that held it. The defect
+was one line above it, in the contract it delegates to.
+
+`lib/sonara-event-driven-agent-contract.cjs` had its own classifier:
+
+    function authorityForAction(action) {
+      const normalized = String(action || "").trim().toLowerCase();
+      if (!normalized) return "low_risk";
+      return OWNER_REVIEW_ACTIONS.includes(normalized) ? "owner_review" : "low_risk";
+    }
+
+An allowlist of nine action names, returning `low_risk` for everything else.
+`lib/sonara-agent-authority.cjs` classifies by pattern and sends anything it does
+not recognise to the owner, for the reason CLAUDE.md states outright: "a
+classifier that fails open fails open exactly when somebody adds a capability,
+which is the moment nobody is reading that file."
+
+Two classifiers, opposite defaults. Thirteen action names that the authority
+module gates under a **named** category -- not the unrecognised fallback -- came
+back `low_risk` from the event contract:
+
+| category | actions the event contract called low_risk |
+| --- | --- |
+| `destructive_data_changes` | `delete_customer_records`, `purge_audit_log`, `wipe_bookings`, `truncate_invoices` |
+| `security_settings` | `rotate_api_key`, `grant_role_admin`, `revoke_role` |
+| `refunds` | `issue_refund_batch`, `chargeback_reverse` |
+| `customer_campaigns` | `send_bulk_sms`, `newsletter_blast` |
+| `payout_changes` | `change_payout_bank_account` |
+| `legal_or_policy_publishing` | `publish_terms_of_service` |
+
+`canDispatch` returns `{ ok: true, reason: "low_risk_authority" }` for a
+`low_risk` event -- no approval required -- so `delete_customer_records` was
+dispatchable unattended. Against AGENTS.md: "Unknown sensitive actions default to
+owner review."
+
+**Latent, not live**, and the distinction is worth stating rather than blurring:
+`canDispatch` is called by one test and no production code. The rows were being
+written with the wrong stamp, and wiring a consumer -- the next piece of work --
+would have made it live.
+
+`authorityForAction` now delegates to the authority module and fails closed on a
+name it cannot classify, including when the classifier throws. `OWNER_REVIEW_ACTIONS`
+stays as documentation and as a floor the new gate asserts, not as a decider.
+
+The outbox had the matching defect in its publisher:
+
+    authority: run?.classification?.requiresOwnerApproval ? "owner_review" : "low_risk"
+
+`createAgentEvent` does `input.authority || authorityForAction(action)`, so **any**
+truthy value shadows the derivation. The `?.` says the author thought an absent
+classification possible, and the absent case was stamped dispatchable. It passes
+`undefined` now, which hands the question to the derivation; the strict direction
+still works, so a breaker demotion still pins `owner_review`.
+
+## Two wrong measurements, both from the same trap
+
+`classifyAction` takes a **string**. It normalises with `String()`, so an object
+becomes the literal `"[object Object]"`, lands in `unrecognised`, and returns
+`requiresOwnerApproval: true`.
+
+It fails safe, which is exactly what makes it invisible to somebody measuring.
+The first version of this investigation passed `{ action_type: name }` and every
+probe came back `owner_review` -- which looked like proof of a hole that was not
+there, and was reported as such before being retracted. The first version of the
+**fix** passed an object too, and every action including all seven that may run
+unattended came back `owner_review`: a gate that looked like it worked and would
+have asked the owner for permission to write a draft.
+
+Both were caught by checking the permissive direction, which is why
+`scripts/verify-event-authority-agreement.mjs` and the test both assert it. Every
+production caller of `classifyAction` -- five of them -- was checked and passes a
+string correctly; the only wrong caller was the one written here.
+
+`scripts/verify-event-authority-agreement.mjs` is the 52nd chain command. It
+proves the event contract is never laxer than the authority module across 23
+probes covering all seven categories, never stricter about the seven unattended
+actions, that each probe lands in the category it is filed under (so a pattern
+that stops matching fails instead of leaving a probe gated only by the default),
+that the nine documented names are still gated, that an unrecognised name fails
+closed, and -- behaviourally, not by string comparison -- that `canDispatch`
+refuses a destructive action and accepts it with a matching approval.
+
+Falsified three ways, each restored with `md5sum -c`: reverting the allowlist
+(6 test failures, and the gate naming every action with its category), reverting
+the outbox stamp (2 failures), and passing an object to `classifyAction`
+(3 failures, naming all seven over-gated actions).
 
 ### 2026-09-18 - The corruption had a mechanism, and it is a 384 KiB write cap
 

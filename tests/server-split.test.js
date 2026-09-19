@@ -590,12 +590,37 @@ describe("the server.js split stays safe", () => {
       // request path now redirects to the workspace checklist, with an
       // explicit compatibility branch and an explanatory comment.
       // 3882 -> 3901 on 14 September 2026: the protected admin command center
-      // now exposes a non-secret agent control-plane summary.
-      // 3901 -> 3926 on 18 September 2026: Google OAuth became a real customer
-      // auth path. The provider/PKCE mechanics live in lib/sonara-customer-auth.cjs;
-      // these remaining lines are the Express entry/callback wiring and the
-      // explicit handoff through the existing two-factor gate.
-      lines <= 3926,
+      // now exposes a non-secret agent control-plane summary, and its route is
+      // registered through routes/sonara-admin-agent-routes.cjs. The route
+      // module keeps the new page out of this file; the remaining lines are
+      // the three real table counts and the admin registration contract.
+      // 3901 -> 3903 on 18 September 2026: the two-line proprietary notice.
+      //
+      // 3903 -> 3885 the same day, ratcheting DOWN: isPlaceholderValue,
+      // extractEmailAddress, isEmailLike and isPlaceholderEmail moved to
+      // lib/sonara-env-value-checks.cjs so scripts/verify-email-env.mjs could
+      // apply the same rules as this file's readiness surface instead of a
+      // looser copy of them. The ceiling follows the file down, because a
+      // ceiling left above a real reduction is slack nobody decided to grant.
+      //
+      // `LICENSE` sits at the repository root and does not travel with a copied
+      // file. 3 of 1,005 source files carried any copyright notice, and neither
+      // server.js nor api/index.js was among them -- the two entry points of a
+      // product sold on paid plans, in a repository the owner has decided to
+      // keep public. So every shipped source file now opens with the holder and
+      // a reservation of rights, enforced by
+      // scripts/verify-proprietary-notice.mjs, which reads the holder out of
+      // LICENSE rather than repeating it.
+      //
+      // Raised rather than worked around. Shortening the notice to one line to
+      // squeeze under 3901 would be the ratchet deciding what a file may say
+      // about its own ownership, which is the wrong way round -- the same
+      // reasoning as the 3874 -> 3876 entry above.
+      // 3885 -> 3932 on 18 September 2026: this PR makes Google
+      // OAuth a canonical customer sign-in path and removes retired billing
+      // compatibility. The auth provider/PKCE mechanics stay in the extracted
+      // auth module; server.js carries only the explicit route wiring.
+      lines <= 3932,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
