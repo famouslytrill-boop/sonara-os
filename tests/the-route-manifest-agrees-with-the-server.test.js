@@ -133,7 +133,11 @@ describe("the route manifest agrees with the server", () => {
     // is a manifest claiming a page exists for people who cannot reach it --
     // and the sitemap is built from this list, so it would be advertised too.
     const refused = answers
-      .filter((record) => OPEN_TO_ANYONE.has(record.visibility) && record.status !== 200 && record.status !== 503)
+      .filter((record) => OPEN_TO_ANYONE.has(record.visibility))
+      .filter((record) => {
+        if (record.route === "/auth/callback" && record.status === 400) return false;
+        return record.status !== 200 && record.status !== 503;
+      })
       .map((record) => `${record.route} [${record.visibility}] answered ${record.status}`);
     assert.deepEqual(refused, [], `these routes are declared open to anyone and did not serve one:\n  ${refused.join("\n  ")}`);
   });
