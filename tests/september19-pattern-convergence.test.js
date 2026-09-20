@@ -46,11 +46,18 @@ const {
 
 const {
   FRONTEND_VISUAL_SNAPSHOT_DATE,
+  FRONTEND_VISUAL_VERSION,
   FRONTEND_MARKET_SIGNALS_2026,
+  FRONTEND_MARKET_SIGNALS_PASS2_2026,
   FRONTEND_REPOSITORY_REFERENCES,
+  FRONTEND_REPOSITORY_REFERENCES_PASS2,
+  FRONTEND_VISUAL_PRIMITIVES_PASS2,
   FRONTEND_SURFACE_ARCHETYPES,
   FRONTEND_IMPLEMENTATION_SEQUENCE,
   frontendPriorityScore,
+  frontendInteractionPresentation,
+  operationalCollectionPolicy,
+  spatialPresentationPolicy,
   getFrontendVisualIntelligence
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
 
@@ -374,9 +381,9 @@ describe("September 19 platform pattern convergence", () => {
   it("exposes frontend visual intelligence through the platform-pattern contract", () => {
     const convergence = getSeptember19PatternConvergence();
     const frontend = getFrontendVisualIntelligence();
-    assert.equal(convergence.frontendMarketSignalCount, FRONTEND_MARKET_SIGNALS_2026.length);
+    assert.equal(convergence.frontendMarketSignalCount, FRONTEND_MARKET_SIGNALS_2026.length + FRONTEND_MARKET_SIGNALS_PASS2_2026.length);
     assert.equal(convergence.frontendSurfaceArchetypeCount, FRONTEND_SURFACE_ARCHETYPES.length);
-    assert.equal(convergence.frontendRepositoryReferenceCount, FRONTEND_REPOSITORY_REFERENCES.length);
+    assert.equal(convergence.frontendRepositoryReferenceCount, FRONTEND_REPOSITORY_REFERENCES.length + FRONTEND_REPOSITORY_REFERENCES_PASS2.length);
     assert.equal(convergence.frontendVisualIntelligence.snapshotDate, FRONTEND_VISUAL_SNAPSHOT_DATE);
     assert.equal(convergence.frontendVisualIntelligence.productionExecutionCount, 0);
     assert.equal(frontend.formulas.sonaraDefaultTapTargetCssPx, 44);
