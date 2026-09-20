@@ -11,6 +11,7 @@ const {
   opportunityScore,
   get2026MarketIntelligence
 } = require("../lib/sonara-2026-market-intelligence.cjs");
+const { getSeptember19PatternConvergence } = require("../lib/sonara-september19-pattern-convergence.cjs");
 
 describe("2026 market intelligence control layer", () => {
   it("keeps external research non-executing and date-bounded", () => {
@@ -93,6 +94,14 @@ describe("2026 market intelligence control layer", () => {
       integrationRisk: 0,
       regulatoryRisk: 0
     }), /between 0 and 1/);
+  });
+
+  it("is exposed through the existing platform-pattern convergence API contract", () => {
+    const convergence = getSeptember19PatternConvergence();
+    assert.equal(convergence.marketSignalCount, MARKET_SIGNALS_2026.length);
+    assert.equal(convergence.verticalOpportunityCount, VERTICAL_OPPORTUNITIES.length);
+    assert.equal(convergence.marketIntelligence.snapshotDate, MARKET_SNAPSHOT_DATE);
+    assert.equal(convergence.marketIntelligence.productionExecutionCount, 0);
   });
 
   it("returns defensive copies for arrays exposed to callers", () => {
