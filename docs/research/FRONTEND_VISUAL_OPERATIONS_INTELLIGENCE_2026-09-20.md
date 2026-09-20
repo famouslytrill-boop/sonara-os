@@ -470,3 +470,99 @@ Prefer high-frequency, high-consequence, reusable flows before decorative or nic
 - no unsupported claim that SONARA matches the scale or reliability history of the referenced companies.
 
 The research becomes useful only when it improves SONARA's own deterministic components, states, accessibility, responsive behavior, testing, and customer workflows.
+
+
+---
+
+## Frontend research pass #2 — current 2026 convergence
+
+This second pass adds the following market and implementation conclusions to the original frontend study.
+
+### AI is now a horizontal product layer
+
+Sensor Tower's 2026 AI research shows AI expanding through shopping, advertising, finance, education, utilities, productivity, media, and other app categories. The product implication is **not** "turn every SONARA screen into chat." The stronger model is contextual AI inside deterministic task surfaces:
+
+- ask or generate where language is the fastest input;
+- show records, files, money, identity, schedules, devices, inventory, customers, and orders as inspectable application state;
+- expose tools and side effects as visible typed actions;
+- require confirmation where the action crosses an external, irreversible, financial, destructive, or authority boundary;
+- return the user to the canonical workflow after the assistant has helped.
+
+Sources:
+- https://sensortower.com/blog/state-of-ai-2026
+- https://sensortower.com/blog/state-of-mobile-2026
+
+### Agent UX is becoming an operations surface
+
+Vercel's current AI SDK direction makes approval, resumability, tool execution state, and durable workflows explicit. SONARA should therefore standardize an agent action vocabulary:
+
+`idle → planning → tool input → policy/approval → running → partial → output → verified/failed → complete`
+
+Sensitive tools need a preview and approval surface that names the tenant, target, scope, expected side effect, reversibility, and audit consequence before execution.
+
+Source: https://vercel.com/blog/ai-sdk-7
+
+### Design systems must serve humans and coding agents
+
+Figma's September 2026 Coinbase case study reports improved design-system adherence and lower agent implementation cost/time when code agents receive component context directly. SONARA should treat its design system as machine-readable engineering infrastructure:
+
+- semantic tokens instead of copied raw values;
+- canonical component names and states;
+- examples and counterexamples;
+- deprecated-pattern rules;
+- accessible interaction contracts;
+- responsive behavior and density modes;
+- generated-code acceptance tests.
+
+Source: https://www.figma.com/blog/how-coinbase-used-code-connect-to-shrink-token-costs/
+
+### Motion and cinematic design become reusable system assets
+
+Figma Config 2026's code layers, motion timeline, shaders, and agent-connected design direction reinforces a useful boundary for SONARA: motion belongs in the design system when it carries continuity, hierarchy, feedback, or brand expression. It does not replace state.
+
+Use View Transitions where supported to maintain spatial continuity, but preserve navigation, focus, errors, completion, and reduced-motion behavior without them.
+
+Sources:
+- https://www.figma.com/blog/config-2026-recap/
+- https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API
+
+### 3D must earn its cost
+
+WebGPU is powerful but not universally Baseline. SONARA can use 3D for CAD, robotics, facilities, manufacturing, architecture, data-center topology, media scenes, vehicles, digital twins, and spatial training when the third dimension carries information. Every critical workflow still needs a compatible 2D or lower-capability path.
+
+Source: https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API
+
+### Reusable primitive set added by this pass
+
+The platform should converge on these shared primitives before building more one-off pages:
+
+1. global app shell;
+2. product side navigation;
+3. command palette;
+4. prioritized work queue;
+5. record list/detail;
+6. agent tool card;
+7. approval drawer;
+8. evidence rail;
+9. timeline/audit log;
+10. multi-view collection over one canonical record model;
+11. payment state panel;
+12. notification center;
+13. media workbench;
+14. spatial viewport with 2D fallback;
+15. analytics summary → trend → breakdown → evidence stack.
+
+### Open-source reference expansion
+
+The second pass adds research-only references for React Spectrum, TanStack Table, xyflow, React Three Fiber, Tiptap, Excalidraw, Recharts, and Motion. They remain **uninstalled**. Their purpose is to inform interaction contracts and architecture decisions while SONARA keeps its current dependency and release boundary intact.
+
+### Market positioning implication
+
+SONARA's frontend advantage should not be "more screens." It should be **cross-industry continuity**:
+
+- the same customer can flow from lead → quote → schedule → order → payment → fulfillment → support;
+- the same work item can appear in table, list, board, calendar, timeline, map, or agent context without becoming separate data;
+- AI can propose and explain while deterministic state owns the transaction;
+- desktop, mobile, kiosk, POS, field, creator, and administrative experiences share one semantic state system while using different density and input modes.
+
+That creates a coherent operating system for work without pretending one visual surface is optimal for every job.
