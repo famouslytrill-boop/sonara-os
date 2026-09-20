@@ -53,7 +53,13 @@ begin
       into helper_oid;
 
     if helper_oid is null then
-      raise exception 'organization replay bridge failed: % does not exist', helper.signature;
+      -- A clean preview/fresh replay may not have this legacy helper yet.
+      -- The following frozen hardening migration creates the canonical
+      -- signature, so absence is safe; unexpected existing shapes are not.
+      raise notice
+        'organization replay bridge: % is absent; frozen hardening will create it',
+        helper.signature;
+      continue;
     end if;
 
     select p.proargnames

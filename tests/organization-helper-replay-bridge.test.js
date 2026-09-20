@@ -49,8 +49,9 @@ describe("organization helper replay bridge", () => {
     assert.match(bridge, /captured % policies but restored %/i);
   });
 
-  it("fails closed on unexpected live shapes instead of guessing", () => {
-    assert.match(bridge, /does not exist/i);
+  it("allows clean replay absence but fails closed on unexpected existing shapes", () => {
+    assert.match(bridge, /is absent; frozen hardening will create it/i);
+    assert.match(bridge, /if helper_oid is null[\s\S]*continue;/i);
     assert.match(bridge, /unexpected first input parameter name/i);
     assert.match(bridge, /no dependent policies captured/i);
     assert.match(bridge, /unknown command/i);
