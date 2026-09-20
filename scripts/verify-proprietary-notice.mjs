@@ -165,9 +165,11 @@ const HEADER_LINES = 6;
 // The September 20 governed market-intelligence module added one more shipped
 // proprietary source file, taking the exact covered population to 287. Backend
 // Operations Research Pass #3 adds one governed shipped research module, taking
-// the exact covered population to 288. Frontend Visual Operations Intelligence adds one governed shipped research module, taking
-// the exact covered population to 289.
-const EXPECTED_FILES = 289;
+// the exact covered population to 288. Backend Operations Market Analysis Pass
+// #4 adds one governed shipped research module, taking the exact covered
+// population to 289. Frontend Visual Operations Intelligence adds one governed
+// shipped research module, taking the combined exact covered population to 290.
+const EXPECTED_FILES = 290;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
