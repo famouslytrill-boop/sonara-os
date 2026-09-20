@@ -19,7 +19,7 @@ describe("organization helper replay bridge", () => {
   it("normalizes the two live legacy parameter names without doing the later hardening early", () => {
     assert.match(bridge, /public\.is_org_member\(target_organization_id uuid\)/i);
     assert.match(bridge, /public\.has_org_role\(target_organization_id uuid, target_role text\)/i);
-    assert.match(bridge, /legacy_argument_name[\s\S]*target_org_id/i);
+    assert.equal((bridge.match(/'target_org_id'::text/g) || []).length, 2);
     assert.match(bridge, /from public\.organization_members\b/i);
     assert.doesNotMatch(
       bridge,
