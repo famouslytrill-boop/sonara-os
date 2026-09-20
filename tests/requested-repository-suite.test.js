@@ -55,6 +55,11 @@ const {
   NON_REPOSITORY_REFERENCES_BATCH14,
   getScreenshotToolReadinessBatch14
 } = require("../lib/sonara-screenshot-tool-radar-batch14.cjs");
+const {
+  VERIFIED_REPOSITORIES_BATCH15,
+  NON_REPOSITORY_REFERENCES_BATCH15,
+  getScreenshotToolReadinessBatch15
+} = require("../lib/sonara-screenshot-tool-radar-batch15.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -128,13 +133,15 @@ const SCREENSHOT_BATCH6_KEYS = SCREENSHOT_TOOL_RADAR_BATCH6.map((item) => item.k
 const SCREENSHOT_BATCH7_KEYS = SCREENSHOT_TOOL_RADAR_BATCH7.map((item) => item.key);
 const SCREENSHOT_BATCH12_KEYS = SCREENSHOT_TOOL_RADAR_BATCH12.map((item) => item.key);
 const SCREENSHOT_BATCH14_KEYS = SCREENSHOT_TOOL_RADAR_BATCH14.map((item) => item.key);
+const SCREENSHOT_BATCH15_KEYS = VERIFIED_REPOSITORIES_BATCH15.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
   ...NON_REPOSITORY_REFERENCES_BATCH6,
   ...NON_REPOSITORY_REFERENCES_BATCH7,
   ...NON_REPOSITORY_REFERENCES_BATCH12,
-  ...NON_REPOSITORY_REFERENCES_BATCH14
+  ...NON_REPOSITORY_REFERENCES_BATCH14,
+  ...NON_REPOSITORY_REFERENCES_BATCH15
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -547,6 +554,16 @@ describe("Batch 14 agent, browser, voice and business-tool intake", () => {
     assert.match(confirmations.voxcpm_existing_voice_clone_cluster.registerSays, /consent|provenance/i);
   });
 
+  it("keeps Batch 15 repository research disabled and explicit", () => {
+    const readiness = getScreenshotToolReadinessBatch15();
+    assert.equal(readiness.repositoryCount, 3);
+    assert.equal(readiness.verifiedCount, 3);
+    assert.equal(readiness.nonRepositoryReferenceCount, 7);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.deepEqual(readiness.repositories.map((item) => item.key), SCREENSHOT_BATCH15_KEYS);
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+  });
+
   it("keeps the industrial agentic engineering paper as a non-repository harness reference", () => {
     assert.equal(NON_REPOSITORY_REFERENCES_BATCH14.length, 1);
     const reference = NON_REPOSITORY_REFERENCES_BATCH14[0];
@@ -565,12 +582,12 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 96);
-    assert.equal(response.body.verifiedCount, 92);
+    assert.equal(response.body.repositoryCount, 99);
+    assert.equal(response.body.verifiedCount, 95);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 86);
+    assert.equal(response.body.screenshotResearchCount, 89);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 36);
+    assert.equal(response.body.nonRepositoryReferenceCount, 43);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -583,7 +600,8 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH6_KEYS,
         ...SCREENSHOT_BATCH7_KEYS,
         ...SCREENSHOT_BATCH12_KEYS,
-        ...SCREENSHOT_BATCH14_KEYS
+        ...SCREENSHOT_BATCH14_KEYS,
+        ...SCREENSHOT_BATCH15_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
@@ -594,8 +612,8 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /86 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /36 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /89 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /43 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
