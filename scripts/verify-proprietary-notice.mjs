@@ -162,9 +162,11 @@ const HEADER_LINES = 6;
 // shipped research module and Platform Foundation v1 added one shipped kernel,
 // taking the exact population to 282. Batch 15 adds four governed shipped
 // runtime/research modules; exact-head CI measured 286 covered source files.
-// The September 20 governed market-intelligence module adds one more shipped
-// proprietary source file, taking the exact covered population to 287.
-const EXPECTED_FILES = 287;
+// The September 20 governed market-intelligence module added one more shipped
+// proprietary source file, taking the exact covered population to 287. Backend
+// Operations Research Pass #3 adds one governed shipped research module, taking
+// the exact covered population to 288.
+const EXPECTED_FILES = 288;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
