@@ -68,6 +68,7 @@ describe("SONARA market intelligence", () => {
   it("keeps every market workspace and API behind customer access or honest setup failure", async function() {
     for (const route of [
       "/api/market-intelligence/framework",
+      "/api/market-intelligence/2026-snapshot",
       "/api/market-intelligence/portfolio",
       "/api/market-intelligence/segments",
       "/api/market-intelligence/competitors",
