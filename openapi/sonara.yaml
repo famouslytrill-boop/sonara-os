@@ -2768,15 +2768,6 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "401": { $ref: "#/components/responses/Unauthorized" }
-  /api/market-intelligence/2026-snapshot:
-    get:
-      operationId: get2026MarketIntelligenceSnapshot
-      tags: [Market Intelligence]
-      summary: Return the current source-dated 2026 research snapshot, strategic layers, and non-executing technology references.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/market-intelligence/portfolio:
     get:
       operationId: getMarketIntelligencePortfolio
