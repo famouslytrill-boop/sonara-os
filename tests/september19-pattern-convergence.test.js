@@ -55,12 +55,15 @@ const {
   CAPABILITY_PRIORITIES,
   AUTONOMIC_CONTROL_LOOPS,
   MARKET_WEDGES_2026,
+  BACKEND_REFERENCE_SYSTEMS_2026,
   capacityHeadroom,
   recoveryConfidenceScore,
   workflowFitnessScore,
   repairAutomationDecision,
   retrySafetyDecision,
   progressiveDeliveryDecision,
+  executionFabricDecision,
+  autonomicRepairDecision,
   getBackendOperationsMarketAnalysis
 } = require("../lib/sonara-backend-operations-market-analysis-2026.cjs");
 
@@ -381,13 +384,16 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(market.researchOnly, true);
     assert.equal(market.productionExecutionCount, 0);
     assert.equal(market.installedRepositoryCount, 0);
-    assert.ok(BACKEND_MARKET_SIGNALS_2026.length >= 24);
+    assert.ok(BACKEND_MARKET_SIGNALS_2026.length >= 33);
     assert.ok(WORKLOAD_ARCHETYPES.length >= 10);
     assert.ok(INDUSTRY_BACKEND_MAP.length >= 10);
     assert.ok(CAPABILITY_PRIORITIES.length >= 5);
     assert.ok(AUTONOMIC_CONTROL_LOOPS.length >= 6);
     assert.ok(MARKET_WEDGES_2026.length >= 7);
-    assert.equal(BACKEND_MARKET_ANALYSIS_VERSION, "1.1.0");
+    assert.ok(BACKEND_REFERENCE_SYSTEMS_2026.length >= 12);
+    assert.equal(BACKEND_MARKET_ANALYSIS_VERSION, "1.2.0");
+    assert.equal(BACKEND_REFERENCE_SYSTEMS_2026.filter((item) => item.installedByResearch).length, 0);
+    assert.equal(BACKEND_REFERENCE_SYSTEMS_2026.filter((item) => item.enabledInProduction).length, 0);
     for (const signal of BACKEND_MARKET_SIGNALS_2026) {
       assert.equal(signal.runtimeAuthority, "none");
       assert.equal(signal.productionCapability, false);
@@ -490,6 +496,88 @@ describe("September 19 platform pattern convergence", () => {
     assert.deepEqual(progressiveDeliveryDecision({ ...base, errorRate: 0.05 }), { decision: "rollback", reason: "canary_threshold_breach" });
     assert.deepEqual(progressiveDeliveryDecision({ ...base, sampleCount: 10 }), { decision: "hold", reason: "insufficient_samples" });
     assert.deepEqual(progressiveDeliveryDecision({ ...base, exactShaVerified: false }), { decision: "blocked", reason: "exact_sha_not_verified" });
+  });
+
+  it("selects backend execution fabric from workload evidence without auto-adopting infrastructure", () => {
+    assert.deepEqual(
+      executionFabricDecision({ databaseAdjacent: true, eventsPerSecond: 25 }),
+      { mode: "postgres_outbox_inbox", adoption: "existing_pattern", reason: "transactional_adjacency" }
+    );
+    assert.deepEqual(
+      executionFabricDecision({ workflowDurationMinutes: 30, humanWaits: true }),
+      { mode: "durable_workflow", adoption: "evaluate_isolated", reason: "long_lived_or_interactive_workflow" }
+    );
+    assert.deepEqual(
+      executionFabricDecision({ requiresReplay: true, eventsPerSecond: 2500 }),
+      { mode: "stream_fabric", adoption: "evaluate_only", reason: "measured_high_throughput_replay_requirement" }
+    );
+    assert.equal(executionFabricDecision({ offlineEdge: true }).mode, "offline_command_log");
+  });
+
+  it("requires fresh abortable low-risk evidence before autonomic repair", () => {
+    assert.deepEqual(
+      autonomicRepairDecision({
+        evidenceFreshness: 0.98,
+        blastRadius: 0.02,
+        rollbackConfidence: 0.98,
+        dataLossRisk: 0,
+        deterministic: true,
+        reversible: true,
+        abortable: true,
+        tenantScoped: true
+      }),
+      { automate: true, mode: "bounded_reconciliation", reason: "fresh_reversible_abortable_low_risk_repair" }
+    );
+    assert.equal(
+      autonomicRepairDecision({
+        evidenceFreshness: 0.98,
+        blastRadius: 0.02,
+        rollbackConfidence: 0.98,
+        dataLossRisk: 0.1,
+        deterministic: true,
+        reversible: true,
+        abortable: true,
+        tenantScoped: true
+      }).reason,
+      "data_loss_risk"
+    );
+    assert.equal(
+      autonomicRepairDecision({
+        evidenceFreshness: 0.98,
+        blastRadius: 0.02,
+        rollbackConfidence: 0.98,
+        deterministic: true,
+        reversible: true,
+        abortable: false,
+        tenantScoped: true
+      }).mode,
+      "observe_only"
+    );
+    assert.equal(
+      autonomicRepairDecision({
+        evidenceFreshness: 1,
+        blastRadius: 0,
+        rollbackConfidence: 1,
+        deterministic: true,
+        reversible: true,
+        abortable: true,
+        tenantScoped: true,
+        changesSchema: true
+      }).mode,
+      "branch_only"
+    );
+  });
+
+  it("keeps Pass 6 backend reference systems governed and non-executing", () => {
+    const byRepo = new Map(BACKEND_REFERENCE_SYSTEMS_2026.map((item) => [item.repository, item]));
+    assert.equal(byRepo.get("dbos-inc/dbos-transact-ts").licensePosture, "MIT");
+    assert.equal(byRepo.get("restatedev/restate").licensePosture, "BSL-1.1");
+    assert.equal(byRepo.get("grafana/k6").adoptionState, "external_developer_tool");
+    assert.equal(byRepo.get("argoproj/argo-rollouts").adoptionState, "future_kubernetes_only");
+    for (const item of BACKEND_REFERENCE_SYSTEMS_2026) {
+      assert.equal(item.installedByResearch, false);
+      assert.equal(item.enabledInProduction, false);
+    }
   });
 
   it("models self-repair as bounded control loops rather than production source mutation", () => {
