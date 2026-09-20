@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: sonara-controlled-production
@@ -44,6 +45,95 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      # Production must not outrun the independent CI/security evidence
+      # created by the same main push. Join those workflows on this exact SHA
+      # before any production credential, migration, configuration, or deploy
+      # work proceeds.
+      - name: Require exact-SHA post-merge green matrix
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          required='["SONARA Industries CI","Docker Image CI","Node Runtime Compatibility","Engineering Intelligence and Security Evidence","dependency-scan"]'
+
+          for attempt in $(seq 1 60); do
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100" \
+              > exact-sha-runs.json
+
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/branches/main" \
+              > main-branch.json
+
+            set +e
+            REQUIRED_WORKFLOWS="$required" node <<'NODE'
+          const fs = require("node:fs");
+          const required = JSON.parse(process.env.REQUIRED_WORKFLOWS);
+          const expected = process.env.GITHUB_SHA;
+          const runs = JSON.parse(fs.readFileSync("exact-sha-runs.json", "utf8")).workflow_runs || [];
+          const main = JSON.parse(fs.readFileSync("main-branch.json", "utf8"));
+          const mainSha = main?.commit?.sha;
+
+          if (mainSha !== expected) {
+            console.error(`Release SHA ${expected} is no longer main (current main: ${mainSha || "unknown"}). Refusing a stale production deployment.`);
+            process.exit(3);
+          }
+
+          const states = [];
+          for (const name of required) {
+            const run = runs
+              .filter((item) => item.name === name && item.head_sha === expected && item.event === "push")
+              .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+
+            if (!run) {
+              states.push({ name, state: "missing" });
+              continue;
+            }
+            if (run.status !== "completed") {
+              states.push({ name, state: run.status });
+              continue;
+            }
+            if (run.conclusion !== "success") {
+              console.error(`${name} completed with ${run.conclusion}; exact-SHA production release is blocked.`);
+              process.exit(3);
+            }
+            states.push({ name, state: "success" });
+          }
+
+          if (states.every((entry) => entry.state === "success")) {
+            console.log(`Exact-SHA matrix is green for ${expected}: ${states.map((entry) => entry.name).join(", ")}`);
+            process.exit(0);
+          }
+
+          console.log("Waiting for exact-SHA matrix:", states.map((entry) => `${entry.name}=${entry.state}`).join(", "));
+          process.exit(2);
+          NODE
+            status=$?
+            set -e
+
+            if [ "$status" -eq 0 ]; then
+              rm -f exact-sha-runs.json main-branch.json
+              break
+            fi
+            if [ "$status" -eq 3 ]; then
+              rm -f exact-sha-runs.json main-branch.json
+              exit 1
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Exact-SHA matrix did not become fully green within 30 minutes." >&2
+              rm -f exact-sha-runs.json main-branch.json
+              exit 1
+            fi
+            sleep 30
+          done
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
@@ -351,6 +441,23 @@ jobs:
       # Validate the selected runtime key against the same live configured prices
       # before changing Vercel. The secret is piped over stdin to Vercel and is
       # never written to the repository, diagnostics, step summary, or GITHUB_ENV.
+      - name: Reconfirm release SHA is still current main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_main="$(curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/branches/main" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).commit.sha))")"
+          if [ "$current_main" != "$GITHUB_SHA" ]; then
+            echo "Release SHA $GITHUB_SHA was overtaken by main $current_main before production mutation. Refusing stale deployment." >&2
+            exit 1
+          fi
+
       - name: Synchronize verified Stripe runtime secret to Vercel production
         shell: bash
         env:
