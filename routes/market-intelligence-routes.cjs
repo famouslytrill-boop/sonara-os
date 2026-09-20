@@ -24,7 +24,6 @@ const OPPORTUNITY_STATES = new Set(["watch", "validate", "prioritized", "buildin
 const REVIEW_DECISIONS = new Set(["prioritize", "validate", "watch", "hold", "reject"]);
 
 const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
-const { get2026MarketIntelligence } = require("../lib/sonara-2026-market-intelligence.cjs");
 
 module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
@@ -33,13 +32,6 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
 
   app.get("/api/market-intelligence/framework", requireCustomer, (req, res) => {
     return res.status(200).json({ ok: true, framework: getMarketIntelligenceFramework() });
-  });
-
-  app.get("/api/market-intelligence/2026-snapshot", requireCustomer, (req, res) => {
-    return res.status(200).json({
-      ok: true,
-      snapshot: get2026MarketIntelligence()
-    });
   });
 
   app.get("/api/market-intelligence/portfolio", requireCustomer, async (req, res) => {
