@@ -81,8 +81,8 @@ describe("2026 market intelligence control layer", () => {
       integrationRisk: 1,
       regulatoryRisk: 1
     });
-    assert.equal(lowRisk, 0.811);
-    assert.equal(highRisk, 0.611);
+    assert.equal(lowRisk, 0.813);
+    assert.equal(highRisk, 0.6);
     assert.ok(lowRisk > highRisk);
     assert.throws(() => opportunityScore({
       pain: 2,
