@@ -11,7 +11,7 @@
 <body>
   <main>
     <header>
-      <p>SONARA Industries · Research Lab · Backend Pass #3 · 2026-09-20</p>
+      <p>SONARA Industries · Research Lab · Backend Pass #4 · 2026-09-20</p>
       <h1>Backend Operations: Fast, Accurate, Dependable, Recoverable</h1>
       <p>The goal is not an unrestricted self-modifying system. The goal is measurable correctness, bounded recovery, deterministic workflows, small blast radius, fast diagnosis, and safe rollback across every SONARA product.</p>
     </header>
@@ -63,7 +63,39 @@
     <section>
       <h2>2026 reference stack</h2>
       <p>Research references include AWS Well-Architected reliability and Agentic AI guidance, Kubernetes self-healing, Supabase Queues and RLS, PostgreSQL high availability, OpenTelemetry, Stripe idempotency, GitHub Actions security, Apache Kafka delivery semantics, pgvector retrieval tradeoffs, Grafana k6 thresholds, Argo Rollouts progressive delivery, Open Policy Agent and NIST AI/secure-development guidance.</p>
-      <p>Reference repositories are cataloged for Kubernetes, Argo Rollouts, OpenTelemetry JS, Supabase, pgvector, OPA, Kafka and k6. This research installs none of them and activates none in production.</p>
+      <p>Reference systems now also include durable-workflow, commerce, field-service, fleet and 2026 agent-security evidence. These are research inputs only: this pass installs no new engine, broker, database or provider and activates nothing in production.</p>
+    </section>
+
+    <section>
+      <h2>2026 market analysis</h2>
+      <p>Current research reinforces a platform-first strategy. Cloud-native engineering is increasingly standardized; durable workflows are being used to survive process and dependency failures; OpenTelemetry is extending common observability into model and tool calls; and current OWASP guidance treats agent identity, tools, orchestration and excessive agency as application-security concerns.</p>
+      <p>Mobile economics also make backend monetization a first-class concern: subscriptions, entitlements, usage metering, receipts, refunds, retention events and provider reconciliation should be reusable services rather than one-off product code.</p>
+    </section>
+
+    <section>
+      <h2>Workload architecture instead of vertical silos</h2>
+      <p>SONARA now classifies backend work into ten reusable archetypes: transactional system of record, durable business workflow, event/telemetry ingest, low-latency session coordination, analytical observability, tenant-scoped RAG, media asset pipeline, external provider adapter, offline-sync edge and risk/approval ledger.</p>
+      <p>Restaurant/POS/reservations, trades and field service, trucking/logistics, ecommerce, creator/media, manufacturing, finance, real estate, education/public access, gaming/spatial systems and agentic AI compose those primitives with domain-specific schemas and policies instead of creating separate infrastructure stacks.</p>
+    </section>
+
+    <section>
+      <h2>Safe self-repair boundary</h2>
+      <p>Automatic repair is limited to fresh-evidence, tenant-scoped, deterministic, reversible and low-blast-radius runtime reconciliation. Retry, requeue, drain, pause and pre-approved rollback can be automated when their invariants are proven. Code or schema repair remains branch-only; destructive actions, secret/access changes, regulated actions and money movement require explicit authorization.</p>
+      <p><code>recovery_confidence = 0.25*detection + 0.25*runbook + 0.25*rollback + 0.25*test_freshness</code></p>
+      <p><code>workflow_fitness = 0.30*correctness + 0.25*durability + 0.20*auditability + 0.15*latency_fit + 0.10*cost_fit</code></p>
+      <p><code>capacity_headroom = clamp(1 - peak_observed / safe_capacity, 0, 1)</code></p>
+    </section>
+
+    <section>
+      <h2>Market-driven capability priorities</h2>
+      <ol>
+        <li><strong>P0:</strong> tenant identity, idempotency, outbox/inbox, deadlines, backpressure, circuit breakers, audit and release evidence.</li>
+        <li><strong>P1:</strong> persisted workflows, reconciliation, SLOs, correlated telemetry, bounded recovery and progressive rollback.</li>
+        <li><strong>P1:</strong> subscriptions, entitlements, usage metering, checkout/refund reconciliation and retention analytics.</li>
+        <li><strong>P1:</strong> tenant-scoped hybrid RAG, evaluation, agent/tool telemetry, policy and approval gates.</li>
+        <li><strong>P2:</strong> fleet telematics, field-service adapters, POS/offline sync, media pipelines, manufacturing telemetry and realtime/spatial coordination.</li>
+        <li><strong>P3:</strong> regulated or high-authority integrations only after domain-specific review.</li>
+      </ol>
     </section>
 
     <section>
