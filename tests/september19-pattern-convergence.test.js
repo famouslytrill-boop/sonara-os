@@ -47,32 +47,14 @@ const {
   getBackendOperationsIntelligence
 } = require("../lib/sonara-backend-operations-intelligence-2026.cjs");
 const {
-  BACKEND_MARKET_ANALYSIS_DATE,
-  MARKET_SIGNALS_2026: BACKEND_MARKET_SIGNALS_2026,
-  WORKLOAD_ARCHETYPES,
-  INDUSTRY_BACKEND_MAP,
-  CAPABILITY_PRIORITIES,
-  capacityHeadroom,
-  recoveryConfidenceScore,
-  workflowFitnessScore,
-  repairAutomationDecision,
-  getBackendOperationsMarketAnalysis
-} = require("../lib/sonara-backend-operations-market-analysis-2026.cjs");
-
-const {
   FRONTEND_VISUAL_SNAPSHOT_DATE,
-  FRONTEND_VISUAL_VERSION,
   FRONTEND_MARKET_SIGNALS_2026,
   FRONTEND_MARKET_SIGNALS_PASS2_2026,
   FRONTEND_REPOSITORY_REFERENCES,
   FRONTEND_REPOSITORY_REFERENCES_PASS2,
-  FRONTEND_VISUAL_PRIMITIVES_PASS2,
   FRONTEND_SURFACE_ARCHETYPES,
   FRONTEND_IMPLEMENTATION_SEQUENCE,
   frontendPriorityScore,
-  frontendInteractionPresentation,
-  operationalCollectionPolicy,
-  spatialPresentationPolicy,
   getFrontendVisualIntelligence
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
 
