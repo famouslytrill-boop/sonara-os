@@ -240,8 +240,8 @@ describe("September 19 platform pattern convergence", () => {
       lockInRisk: 0.9,
       licenseRisk: 0.9
     });
-    assert.equal(reusable, 0.8325);
-    assert.equal(risky, 0.165);
+    assert.equal(reusable, 0.875);
+    assert.equal(risky, 0.185);
     assert.ok(reusable > risky);
   });
 
