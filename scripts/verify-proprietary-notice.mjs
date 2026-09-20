@@ -158,8 +158,10 @@ const HEADER_LINES = 6;
 // nobody looked. The second is not a failure of the code, it is a prompt to
 // re-read this constant deliberately -- which is the only way it stays a
 // measurement rather than a guess.
-// Batch 13 adds one shipped lib/ module; CI measured 280 covered source files on the exact PR merge SHA.
-const EXPECTED_FILES = 280;
+// Batch 13 raised the measured population to 280. Batch 14 then added one
+// shipped research module and Platform Foundation v1 added one shipped kernel;
+// exact-head CI now measures 282 covered source files, all with valid notices.
+const EXPECTED_FILES = 282;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
