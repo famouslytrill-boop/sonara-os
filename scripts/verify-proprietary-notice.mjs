@@ -161,9 +161,10 @@ const HEADER_LINES = 6;
 // Batch 13 raised the measured population to 280. Batch 14 then added one
 // shipped research module and Platform Foundation v1 added one shipped kernel,
 // taking the exact population to 282. Batch 15 adds four governed shipped
-// runtime/research modules; exact-head CI measured 286 covered source files,
-// all carrying valid SONARA proprietary notices.
-const EXPECTED_FILES = 286;
+// runtime/research modules; exact-head CI measured 286 covered source files.
+// The September 20 governed market-intelligence module adds one more shipped
+// proprietary source file, taking the exact covered population to 287.
+const EXPECTED_FILES = 287;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
