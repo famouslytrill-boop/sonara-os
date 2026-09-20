@@ -7,7 +7,7 @@
 -- legacy table when it exists. It is intentionally additive/non-destructive:
 -- no tenant/customer rows are deleted and the legacy table is not dropped.
 
-create or replace function public.is_org_member(uuid)
+create or replace function public.is_org_member(target_organization_id uuid)
 returns boolean
 language sql
 stable
@@ -17,7 +17,7 @@ as $$
   select exists (
     select 1
     from public.organization_memberships memberships
-    where memberships.organization_id = $1
+    where memberships.organization_id = target_organization_id
       and memberships.user_id = (select auth.uid())
       and memberships.status = 'active'
   );
@@ -26,7 +26,7 @@ $$;
 -- Keep the historical scalar overload because live policies/functions may
 -- still call has_org_role(uuid, text). It must resolve against the same
 -- canonical membership source and active-status rule as the array overload.
-create or replace function public.has_org_role(uuid, text)
+create or replace function public.has_org_role(target_organization_id uuid, target_role text)
 returns boolean
 language sql
 stable
@@ -36,14 +36,14 @@ as $$
   select exists (
     select 1
     from public.organization_memberships memberships
-    where memberships.organization_id = $1
+    where memberships.organization_id = target_organization_id
       and memberships.user_id = (select auth.uid())
       and memberships.status = 'active'
-      and memberships.role = $2
+      and memberships.role = target_role
   );
 $$;
 
-create or replace function public.has_org_role(uuid, text[])
+create or replace function public.has_org_role(target_organization_id uuid, allowed_roles text[])
 returns boolean
 language sql
 stable
@@ -53,21 +53,21 @@ as $$
   select exists (
     select 1
     from public.organization_memberships memberships
-    where memberships.organization_id = $1
+    where memberships.organization_id = target_organization_id
       and memberships.user_id = (select auth.uid())
       and memberships.status = 'active'
-      and memberships.role = any($2)
+      and memberships.role = any(allowed_roles)
   );
 $$;
 
-create or replace function public.is_org_owner_or_admin(uuid)
+create or replace function public.is_org_owner_or_admin(target_organization_id uuid)
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select public.has_org_role($1, array['owner','admin']::text[]);
+  select public.has_org_role(target_organization_id, array['owner','admin']::text[]);
 $$;
 
 -- Policy helpers are intentionally callable by authenticated users because RLS
