@@ -119,5 +119,6 @@
   "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql": "208919eabeddaca49a7682f58bb39b9a63aa86a17396fcbc58ad8a05bee7893b",
   "20260917200000_event_consumer_activation_readiness.sql": "ecab7effd1d0fa8636f78e2981007e24d00f3f92c98a2271cad6eecae660d212",
   "20260919032900_prepare_org_owner_helper_for_replay.sql": "d5a10bc77d5361d977cb8e025ceb0d08c5e919c42d7223284cc7b300d4ee0cbd",
+  "20260919032950_prepare_org_membership_helpers_for_replay.sql": "956de53dcde27c4572c69091776ceca392a4a701d6aa7d91e6133b6c7c358dea",
   "20260919033000_organization_tenant_boundary_hardening.sql": "a02e656c94453f64425e4bfbd075d9e5c0b0de0a1a8fa0ccd9706e16d459f9fb"
 }
