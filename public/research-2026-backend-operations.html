@@ -11,7 +11,7 @@
 <body>
   <main>
     <header>
-      <p>SONARA Industries · Research Lab · Backend Pass #4 · 2026-09-20</p>
+      <p>SONARA Industries · Research Lab · Backend Pass #5 · 2026-09-20</p>
       <h1>Backend Operations: Fast, Accurate, Dependable, Recoverable</h1>
       <p>The goal is not an unrestricted self-modifying system. The goal is measurable correctness, bounded recovery, deterministic workflows, small blast radius, fast diagnosis, and safe rollback across every SONARA product.</p>
     </header>
@@ -84,6 +84,25 @@
       <p><code>recovery_confidence = 0.25*detection + 0.25*runbook + 0.25*rollback + 0.25*test_freshness</code></p>
       <p><code>workflow_fitness = 0.30*correctness + 0.25*durability + 0.20*auditability + 0.15*latency_fit + 0.10*cost_fit</code></p>
       <p><code>capacity_headroom = clamp(1 - peak_observed / safe_capacity, 0, 1)</code></p>
+    </section>
+
+    <section>
+      <h2>Autonomic control loops, not self-modifying production code</h2>
+      <p>Pass #5 models six bounded recovery loops: queue-stall recovery, provider degradation, workflow-checkpoint recovery, release regression, projection reconciliation and agent-tool recovery. Each loop requires explicit evidence, a small set of pre-approved actions, block conditions and proof of the invariant it must preserve.</p>
+      <p>Automatic actions are limited to operations such as reclaiming an expired lease, retrying a proven-idempotent call, opening a circuit, resuming a persisted checkpoint, rebuilding derived state, pausing promotion or executing a proven reversible rollback. Source/schema repair still goes through an isolated branch and the complete release matrix.</p>
+    </section>
+
+    <section>
+      <h2>Retry safety and progressive delivery</h2>
+      <p>A retry is permitted only when the failure is classified retryable, the operation is idempotent, authority is not widened, the attempt ceiling has not been reached and the next delay fits inside the remaining deadline.</p>
+      <p><code>retry = retryable &amp;&amp; idempotent &amp;&amp; !authority_sensitive &amp;&amp; attempt&lt;max_attempts &amp;&amp; next_delay&lt;remaining_deadline</code></p>
+      <p>A canary may promote only when the tested commit is exact, the minimum evidence sample exists, error rate is within budget, p95 latency is within budget and the business KPI remains above its floor. Otherwise the decision is hold, pause or proven rollback.</p>
+    </section>
+
+    <section>
+      <h2>Current 2026 backend market pressure</h2>
+      <p>ServiceTitan's 2026 trades research shows experimentation is materially ahead of embedded AI adoption, with training, integration complexity, comprehension and ROI among reported barriers. Toast is grounding restaurant intelligence in operating data. Shopify is reporting strong growth in AI-assisted commerce discovery. Sensor Tower reports record mobile in-app-purchase revenue and continued generative-AI app growth.</p>
+      <p>The SONARA implication is not to clone each vertical incumbent. The opportunity is a shared operating substrate: canonical records, durable workflows, entitlements, reconciliation, tenant-scoped data, policy, evidence and measurable automation that can be composed for trades, restaurants, commerce, creators, fleet, property, education, gaming and other verticals.</p>
     </section>
 
     <section>
