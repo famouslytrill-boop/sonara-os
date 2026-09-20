@@ -1,4 +1,4 @@
-# Backend Operations Research + Market Analysis — Pass #5
+# Backend Operations Research + Market Analysis — Pass #6
 
 **Snapshot date:** 2026-09-20  
 **Scope:** backend speed, correctness, dependability, bounded self-repair, deterministic workflows, agentic AI, RAG, payments, subscriptions, scheduling, reservations/RSVP, POS/kiosk, restaurant, field service, trades, fleet/logistics, retail/ecommerce, media/streaming, manufacturing/robotics, finance, property/rental, gaming/spatial, education/public access, customer service, marketing and external provider integrations.
@@ -187,7 +187,7 @@ Use for refunds, money movement, access changes, regulated actions, destructive 
 | rotate/change production secrets or access policy | No | explicit authorized operator |
 | move money / refund / regulated action | No autonomous widening | explicit business-policy authorization and audit |
 
-## Pass #5 expansion — autonomic backend operations
+## Pass #6 — autonomic backend operations and execution fabric
 
 The next step is not unrestricted self-modifying infrastructure. It is an **autonomic control plane with bounded authority**: observe a known failure mode, classify it deterministically, execute only a pre-approved reversible action, verify the invariant, and stop or escalate when evidence is insufficient.
 
@@ -256,15 +256,80 @@ Fleet, logistics, field-service and device products increasingly expose APIs, we
 
 **SONARA wedge:** one tenant-scoped event/asset/job graph for trucking, delivery, waste, trades, facilities and light manufacturing rather than separate integration stacks.
 
+## Pass #6 findings — execution fabric, protocols and entitlement state
+
+### Keep PostgreSQL canonical; add durability by workload evidence
+
+PostgreSQL 18.6 is the current stable 18.x maintenance release in this snapshot, while PostgreSQL 19 remains beta. SONARA should prefer the supported stable database path and upgrade only through provider compatibility, extension, replay, backup and rollback evidence.
+
+For workflow durability, the market now offers multiple distinct operating models:
+
+- **Existing Postgres outbox/inbox + persisted jobs** remains the default for transaction-adjacent background work.
+- **DBOS** is the closest architecture match when SONARA needs Postgres-native TypeScript durable workflows and queues without adding a separate orchestration server.
+- **Temporal** remains a mature isolated-worker reference for long-lived, multi-service workflows, timers and human waits.
+- **Restate** is technically relevant for durable services, keyed state and workflows, but its BSL-1.1 server license and separate runtime boundary require explicit commercial/architecture review.
+- **NATS/JetStream or another stream fabric** should be evaluated only after measured event throughput, replay retention or fan-out requirements exceed the current database-adjacent path.
+
+The selection rule is workload-driven, not popularity-driven:
+
+`offline edge -> realtime coordinator -> durable workflow -> measured high-throughput replay -> Postgres outbox/inbox -> persisted job queue`
+
+No evaluation result installs or enables a system automatically.
+
+### Protocol interoperability without authority leakage
+
+Three specifications are especially useful as boundary patterns:
+
+- **CloudEvents:** normalize event metadata across adapters and transports.
+- **OpenFeature:** decouple feature evaluation from a specific flag provider and support reversible canaries/degradation controls.
+- **MCP 2026-07-28:** interoperable agent/tool requests with a stateless core, routing metadata, authorization hardening and task extensions.
+
+These protocols do **not** own SONARA authority. Organization identity, tenant scope, billing entitlement, secrets, approvals, budgets and audit stay in SONARA-owned server policy.
+
+### App-store purchases are reconciliation inputs
+
+Apple App Store Server Notifications V2 and Google Play RTDN reinforce the same backend pattern already used for Stripe: provider events are evidence, not the canonical entitlement themselves.
+
+SONARA should:
+
+1. authenticate/verify the provider event;
+2. deduplicate the delivery;
+3. fetch or validate authoritative provider purchase state when required;
+4. reconcile the canonical SONARA entitlement;
+5. persist audit evidence and conflict state;
+6. keep refund/chargeback decisions behind explicit business authority.
+
+Google Play's 2026 pending chargeback-review notifications make the approval boundary especially important: receiving the event does not authorize an autonomous refund decision.
+
+### Vector scale remains a measured projection decision
+
+Qdrant now documents payload-partitioned, dedicated-shard and tiered multitenancy. That is relevant if SONARA reaches vector workloads where pgvector cannot meet measured isolation, latency or capacity objectives. Until such evidence exists, PostgreSQL/pgvector remains the lower-complexity default and any separate vector service remains a reconciled projection rather than transactional authority.
+
+### Stronger autonomic-repair proof
+
+Pass #6 tightens automatic repair beyond “deterministic and reversible.” Automatic repair now also requires:
+
+`tenant_scoped && fresh_evidence>=0.9 && deterministic && reversible && abortable && rollback_confidence>=0.9 && blast_radius<=0.05 && data_loss_risk<=0.01 && !authority_sensitive`
+
+Anything involving source/schema mutation remains branch-only. High data-loss risk, weak rollback confidence, stale evidence, non-abortable repair, widened authority or ambiguous tenant scope stops automation.
+
 ## Current reference implementations reviewed
 
 The following repositories were reviewed as architecture references through the connected source platform; none is installed or production-enabled by this pass:
 
-- `temporalio/temporal` — durable workflow reference
-- `argoproj/argo-rollouts` — progressive delivery reference
-- `open-telemetry/opentelemetry-js` — correlated telemetry reference
+- `dbos-inc/dbos-transact-ts` — MIT; Postgres-native TypeScript durable-workflow evaluation
+- `temporalio/temporal` — MIT; mature durable-workflow reference
+- `restatedev/restate` — BSL-1.1; architecture/commercial review required
+- `nats-io/nats-server` — Apache-2.0; event-fabric evaluation after measured pressure
+- `cloudevents/spec` — Apache-2.0; interoperable event-envelope specification
+- `open-feature/spec` — Apache-2.0; provider-neutral feature evaluation
+- `modelcontextprotocol/modelcontextprotocol` — license transition (Apache-2.0/MIT; documentation CC-BY-4.0); protocol reference
+- `qdrant/qdrant` — Apache-2.0; vector projection evaluation after pgvector benchmark
+- `openfga/openfga` — Apache-2.0; relationship-authorization reference
+- `open-telemetry/opentelemetry-js` — Apache-2.0; correlated telemetry reference
+- `argoproj/argo-rollouts` — Apache-2.0; future Kubernetes progressive-delivery reference
+- `grafana/k6` — AGPL-3.0; external developer/load-testing tool boundary
 - `pgvector/pgvector` — exact/approximate vector retrieval reference
-- `grafana/k6` — executable performance-threshold reference
 - `open-policy-agent/opa` — policy decision/evidence reference
 - `kubernetes/kubernetes` — health/reconciliation reference
 
@@ -327,11 +392,13 @@ Source code is not copied from these repositories. Adoption requires separate de
 
 `progressive_delivery = exact_sha && samples >= minimum && error_rate <= budget && p95 <= latency_budget && business_kpi >= floor`
 
+`autonomic_repair = tenant_scoped && fresh_evidence>=0.9 && deterministic && reversible && abortable && rollback_confidence>=0.9 && blast_radius<=0.05 && data_loss_risk<=0.01 && !authority_sensitive`
+
 These are architecture/decision-support formulas. They do not substitute for measured production SLOs.
 
 ## Repository/reference policy
 
-Reference systems include Kubernetes, OpenTelemetry, Supabase/PostgreSQL/pgvector, Temporal, Stripe, Shopify, Samsara, ServiceTitan and OWASP guidance. Research references are not equivalent to installed dependencies.
+Reference systems include Kubernetes, OpenTelemetry, Supabase/PostgreSQL/pgvector, DBOS, Temporal, Restate, NATS, CloudEvents, OpenFeature, MCP, Qdrant, OpenFGA, Stripe, Apple, Google Play, Shopify, Samsara, ServiceTitan and OWASP guidance. Research references are not equivalent to installed dependencies.
 
 No new workflow engine, broker, analytics database or provider is installed or production-enabled by this pass.
 
