@@ -1,4 +1,4 @@
-# Backend Operations Research + Market Analysis — Pass #4
+# Backend Operations Research + Market Analysis — Pass #5
 
 **Snapshot date:** 2026-09-20  
 **Scope:** backend speed, correctness, dependability, bounded self-repair, deterministic workflows, agentic AI, RAG, payments, subscriptions, scheduling, reservations/RSVP, POS/kiosk, restaurant, field service, trades, fleet/logistics, retail/ecommerce, media/streaming, manufacturing/robotics, finance, property/rental, gaming/spatial, education/public access, customer service, marketing and external provider integrations.
@@ -187,6 +187,89 @@ Use for refunds, money movement, access changes, regulated actions, destructive 
 | rotate/change production secrets or access policy | No | explicit authorized operator |
 | move money / refund / regulated action | No autonomous widening | explicit business-policy authorization and audit |
 
+## Pass #5 expansion — autonomic backend operations
+
+The next step is not unrestricted self-modifying infrastructure. It is an **autonomic control plane with bounded authority**: observe a known failure mode, classify it deterministically, execute only a pre-approved reversible action, verify the invariant, and stop or escalate when evidence is insufficient.
+
+| Control loop | Evidence | Allowed automatic actions | Hard stop |
+|---|---|---|---|
+| Queue stall | queue age, lease, attempt, outcome | reclaim expired lease, replay safe work, dead-letter, pause lane | idempotency or tenant scope unproven |
+| Provider degradation | timeout/429/5xx rate, circuit, fallback health | open circuit, shed optional work, retry idempotent call, tested fallback | fallback changes authority or money semantics |
+| Workflow checkpoint | checkpoint, activity id, deadline, approval | resume checkpoint, retry idempotent activity, wait, predeclared compensation | external side-effect outcome ambiguous |
+| Release regression | exact SHA, sample count, errors, p95, business KPI | hold, pause, proven rollback | exact SHA or rollback evidence missing |
+| Projection drift | canonical version, projection checkpoint, lag | rebuild cache/search/analytics projection | repair would mutate canonical history |
+| Agent/tool failure | tool-call id, policy decision id, attempt, budget | retry read-only/idempotent tool, resume, request approval, stop | tool scope expands or sensitive approval missing |
+
+This is the operational definition of SONARA self-healing: **desired-state reconciliation and proven rollback, not production source/schema rewriting**.
+
+## Retry safety contract
+
+A retry is eligible only when all of these are true:
+
+`retryable && idempotent && !authority_sensitive && attempt < max_attempts && next_delay_ms < remaining_deadline_ms`
+
+A non-idempotent mutation fails closed unless a stable operation identity or provider precondition makes duplicate effects impossible. Attempt ceilings and deadlines terminate retry storms.
+
+## Progressive delivery contract
+
+Promotion requires:
+
+`exact_sha && samples >= minimum && error_rate <= budget && p95 <= latency_budget && business_kpi >= floor`
+
+A threshold breach causes rollback only when rollback is proven safe. Otherwise the control plane pauses and requires intervention rather than inventing a recovery path.
+
+## 2026 market wedges
+
+### Trades and field service
+
+ServiceTitan's 2026 survey reports experimentation ahead of fully embedded AI adoption, with training, integration complexity, comprehension and ROI among the named barriers.
+
+**SONARA wedge:** guided workflows over shared customer/job/schedule/estimate/invoice/payment data, with measurable outcome evidence instead of a raw-model feature layer.
+
+### Restaurant operations
+
+Toast is increasingly grounding restaurant intelligence in sales, labor, menu, guest and operating data.
+
+**SONARA wedge:** a canonical restaurant operating graph across ordering, reservations, fulfillment, inventory, labor and guest context, with explicit approvals for consequential actions.
+
+### Agentic commerce
+
+Shopify's 2026 updates describe rapid growth in AI-assisted shopping traffic and orders.
+
+**SONARA wedge:** expose governed product/availability information to external assistants while SONARA retains order identity, inventory reservation, payment reconciliation, permissions and audit.
+
+### Durable agents and workflows
+
+Cloudflare Workflows/Agents and Temporal-style durable execution reinforce checkpointed, replay-aware work for jobs that outlive one request.
+
+**SONARA wedge:** make models and providers replaceable inside a SONARA-owned workflow, policy, evidence, budget and recovery envelope.
+
+### Mobile monetization and entitlements
+
+Sensor Tower's 2026 reporting shows record global app monetization and continued generative-AI application growth.
+
+**SONARA wedge:** one reusable entitlement, receipt, refund, quota and usage-metering backend across the application portfolio.
+
+### Physical operations event fabric
+
+Fleet, logistics, field-service and device products increasingly expose APIs, webhooks and telemetry.
+
+**SONARA wedge:** one tenant-scoped event/asset/job graph for trucking, delivery, waste, trades, facilities and light manufacturing rather than separate integration stacks.
+
+## Current reference implementations reviewed
+
+The following repositories were reviewed as architecture references through the connected source platform; none is installed or production-enabled by this pass:
+
+- `temporalio/temporal` — durable workflow reference
+- `argoproj/argo-rollouts` — progressive delivery reference
+- `open-telemetry/opentelemetry-js` — correlated telemetry reference
+- `pgvector/pgvector` — exact/approximate vector retrieval reference
+- `grafana/k6` — executable performance-threshold reference
+- `open-policy-agent/opa` — policy decision/evidence reference
+- `kubernetes/kubernetes` — health/reconciliation reference
+
+Source code is not copied from these repositories. Adoption requires separate dependency, licence, security, maintenance and operational-fit review.
+
 ## Engineering priorities
 
 **P0 — shared reliability kernel**
@@ -239,6 +322,10 @@ Use for refunds, money movement, access changes, regulated actions, destructive 
 `recovery_confidence = 0.25*detection + 0.25*runbook + 0.25*rollback + 0.25*test_freshness`
 
 `workflow_fitness = 0.30*correctness + 0.25*durability + 0.20*auditability + 0.15*latency_fit + 0.10*cost_fit`
+
+`retry_safety = retryable && idempotent && !authority_sensitive && attempt < max_attempts && next_delay_ms < remaining_deadline_ms`
+
+`progressive_delivery = exact_sha && samples >= minimum && error_rate <= budget && p95 <= latency_budget && business_kpi >= floor`
 
 These are architecture/decision-support formulas. They do not substitute for measured production SLOs.
 
