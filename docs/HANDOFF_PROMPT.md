@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-237 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+269 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -78,7 +78,7 @@ Before adapting anything from a repository, check its record. The statuses mean 
 - `reference_only` / `research_only` -- read the patterns, take no code.
 - `blocked` / `needs_license_review` -- neither, and the record says why.
 
-Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. Of the 31 reciprocal records, 17 are the network-triggered kind, 11 trigger on distribution, and 3 carry a licence custom or qualified enough that neither label is safe -- read those records rather than a summary of them. The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.
+Two things that come up repeatedly and are worth stating plainly. A repository with **no licence declared is all rights reserved** -- the absence of a licence is not permission, and nobody on this project can grant what its author has not. And a **reciprocal licence obliges releasing source, but not all of them trigger on the same act**: AGPL, SSPL and OSL reach *providing the software over a network*, which is what this hosted product does, while GPL and LGPL trigger on distribution and MPL is per-file. Of the 36 reciprocal records, 18 are the network-triggered kind, 15 trigger on distribution, and 3 carry a licence custom or qualified enough that neither label is safe -- read those records rather than a summary of them. The distinction is the difference between a boundary that applies here and one that may not, so read the record rather than the family name. Both are recorded per repository rather than left to be rediscovered.
 
 ## Before you push
 
