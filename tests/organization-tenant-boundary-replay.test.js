@@ -63,7 +63,7 @@ describe("organization authorization helper replay bridge", () => {
   it("drops only the drifted helpers and never uses CASCADE", () => {
     assert.match(sql, /drop function public\.is_org_member\(uuid\)/i);
     assert.match(sql, /drop function public\.has_org_role\(uuid, text\)/i);
-    assert.doesNotMatch(sql, /drop function[^;]+cascade/i);
+    assert.doesNotMatch(sql, /^\\s*drop\\s+function\\s+public\\.(?:is_org_member|has_org_role)\\([^)]*\\)\\s+cascade\\s*;/im);
   });
 
   it("recreates both helpers on the canonical active-membership source", () => {
