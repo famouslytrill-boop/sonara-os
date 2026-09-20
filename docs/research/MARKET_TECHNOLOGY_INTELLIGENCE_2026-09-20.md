@@ -92,6 +92,7 @@ Named organizations below are **reference archetypes**, not a ranking and not a 
 
 ### AI / model / agent ecosystem
 
+- OpenAI's September 10, 2026 Agents API reinforces the harness pattern: context, tools, subagents, files, code execution and long-running state are managed around the model.
 - OpenAI, Anthropic, Google, Microsoft, Meta, xAI, Alibaba and DeepSeek demonstrate that model/provider competition changes quickly.
 - GitHub and coding-agent ecosystems show software creation is becoming more agent-assisted.
 - The correct SONARA architecture is therefore a provider-neutral gateway plus evaluation, policy, cost and observability contracts.
@@ -246,6 +247,7 @@ Principle: **own workflow, policy, data context and customer experience; integra
 
 ## Research sources
 
+- OpenAI, Agents API (2026-09-10): https://openai.com/index/introducing-the-agents-api/
 - Stanford HAI, 2026 AI Index — Economy: https://hai.stanford.edu/ai-index/2026-ai-index-report/economy
 - McKinsey, The State of AI 2026: https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai
 - ServiceTitan, 2026 State of AI in the Trades: https://www.servicetitan.com/guides/2026-ai-in-the-trades
