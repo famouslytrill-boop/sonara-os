@@ -204,8 +204,22 @@ describe("style sources actually reach the served stylesheet", () => {
     );
   });
 
-  it("assembles the marketing surface", () => {
+  it("assembles the marketing and frontend-operations surfaces", () => {
     assert.match(assembled, /SONARA marketing surface/);
+    assert.match(assembled, /SONARA Frontend Operations System 2026/);
+    assert.match(assembled, /\.sonara-agent-workspace/);
+    assert.match(assembled, /\.sonara-kiosk/);
+    assert.match(assembled, /\.sonara-media-workbench/);
+  });
+
+  it("keeps frontend operations on the existing token authority", () => {
+    const operations = fs
+      .readFileSync(path.join(styleDir, "99-zzzzzz-frontend-operations-2026.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+
+    const rootBlocks = operations.match(/:root[^{]*\{[^}]*\}/g) || [];
+    assert.deepEqual(rootBlocks, [], "frontend operations must not declare a competing :root token family");
+    assert.doesNotMatch(operations, /url\(\s*["']?https?:/i, "frontend operations must not add external asset loads");
   });
 
   it("keeps the marketing surface out of the operational screens", () => {
