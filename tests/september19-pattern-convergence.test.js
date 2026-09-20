@@ -48,14 +48,19 @@ const {
 } = require("../lib/sonara-backend-operations-intelligence-2026.cjs");
 const {
   BACKEND_MARKET_ANALYSIS_DATE,
+  BACKEND_MARKET_ANALYSIS_VERSION,
   MARKET_SIGNALS_2026: BACKEND_MARKET_SIGNALS_2026,
   WORKLOAD_ARCHETYPES,
   INDUSTRY_BACKEND_MAP,
   CAPABILITY_PRIORITIES,
+  AUTONOMIC_CONTROL_LOOPS,
+  MARKET_WEDGES_2026,
   capacityHeadroom,
   recoveryConfidenceScore,
   workflowFitnessScore,
   repairAutomationDecision,
+  retrySafetyDecision,
+  progressiveDeliveryDecision,
   getBackendOperationsMarketAnalysis
 } = require("../lib/sonara-backend-operations-market-analysis-2026.cjs");
 
@@ -376,10 +381,13 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(market.researchOnly, true);
     assert.equal(market.productionExecutionCount, 0);
     assert.equal(market.installedRepositoryCount, 0);
-    assert.ok(BACKEND_MARKET_SIGNALS_2026.length >= 12);
+    assert.ok(BACKEND_MARKET_SIGNALS_2026.length >= 24);
     assert.ok(WORKLOAD_ARCHETYPES.length >= 10);
     assert.ok(INDUSTRY_BACKEND_MAP.length >= 10);
     assert.ok(CAPABILITY_PRIORITIES.length >= 5);
+    assert.ok(AUTONOMIC_CONTROL_LOOPS.length >= 6);
+    assert.ok(MARKET_WEDGES_2026.length >= 7);
+    assert.equal(BACKEND_MARKET_ANALYSIS_VERSION, "1.1.0");
     for (const signal of BACKEND_MARKET_SIGNALS_2026) {
       assert.equal(signal.runtimeAuthority, "none");
       assert.equal(signal.productionCapability, false);
@@ -433,6 +441,73 @@ describe("September 19 platform pattern convergence", () => {
       tenantScoped: true,
       authoritySensitive: true
     }).mode, "human_approval_required");
+  });
+
+
+  it("classifies retry safety before consuming reliability budget", () => {
+    assert.deepEqual(retrySafetyDecision({
+      attempt: 1,
+      maxAttempts: 4,
+      remainingDeadlineMs: 5000,
+      nextDelayMs: 500,
+      retryable: true,
+      idempotent: true
+    }), { retry: true, mode: "bounded_retry", reason: "transient_idempotent_operation" });
+
+    assert.equal(retrySafetyDecision({
+      attempt: 1,
+      maxAttempts: 4,
+      remainingDeadlineMs: 5000,
+      nextDelayMs: 500,
+      retryable: true,
+      idempotent: false
+    }).reason, "idempotency_not_proven");
+
+    assert.equal(retrySafetyDecision({
+      attempt: 4,
+      maxAttempts: 4,
+      remainingDeadlineMs: 5000,
+      nextDelayMs: 500,
+      retryable: true,
+      idempotent: true
+    }).mode, "dead_letter");
+  });
+
+  it("promotes, holds, pauses or rolls back canaries from exact-SHA evidence", () => {
+    const base = {
+      sampleCount: 200,
+      minSamples: 100,
+      errorRate: 0.001,
+      errorRateBudget: 0.01,
+      latencyP95Ms: 300,
+      latencyBudgetMs: 500,
+      businessKpi: 0.9,
+      businessKpiFloor: 0.8,
+      rollbackReady: true,
+      exactShaVerified: true
+    };
+    assert.deepEqual(progressiveDeliveryDecision(base), { decision: "promote", reason: "canary_thresholds_pass" });
+    assert.deepEqual(progressiveDeliveryDecision({ ...base, errorRate: 0.05 }), { decision: "rollback", reason: "canary_threshold_breach" });
+    assert.deepEqual(progressiveDeliveryDecision({ ...base, sampleCount: 10 }), { decision: "hold", reason: "insufficient_samples" });
+    assert.deepEqual(progressiveDeliveryDecision({ ...base, exactShaVerified: false }), { decision: "blocked", reason: "exact_sha_not_verified" });
+  });
+
+  it("models self-repair as bounded control loops rather than production source mutation", () => {
+    const keys = new Set(AUTONOMIC_CONTROL_LOOPS.map((item) => item.key));
+    for (const key of [
+      "queue_stall_recovery",
+      "provider_degradation",
+      "workflow_checkpoint_recovery",
+      "release_regression",
+      "projection_reconciliation",
+      "agent_tool_recovery"
+    ]) {
+      assert.equal(keys.has(key), true, `missing autonomic control loop ${key}`);
+    }
+    const market = getBackendOperationsMarketAnalysis();
+    assert.equal(market.autonomicControlLoopCount, AUTONOMIC_CONTROL_LOOPS.length);
+    assert.equal(market.marketWedgeCount, MARKET_WEDGES_2026.length);
+    assert.equal(market.productionExecutionCount, 0);
   });
 
   it("exposes backend market analysis through platform convergence without runtime authority", () => {
