@@ -448,4 +448,93 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(frontend.formulas.sonaraDefaultTapTargetCssPx, 44);
   });
 
+
+  it("validates backend market-analysis pass 4 as research-only deterministic infrastructure guidance", () => {
+    const analysis = getBackendOperationsMarketAnalysis();
+    assert.equal(BACKEND_MARKET_ANALYSIS_DATE, "2026-09-20");
+    assert.equal(analysis.researchOnly, true);
+    assert.equal(analysis.productionExecutionCount, 0);
+    assert.equal(analysis.installedRepositoryCount, 0);
+    assert.equal(analysis.marketSignalCount, BACKEND_MARKET_SIGNALS_2026.length);
+    assert.equal(analysis.workloadArchetypeCount, WORKLOAD_ARCHETYPES.length);
+    assert.equal(analysis.industryMapCount, INDUSTRY_BACKEND_MAP.length);
+    assert.equal(analysis.capabilityPriorityCount, CAPABILITY_PRIORITIES.length);
+    assert.ok(BACKEND_MARKET_SIGNALS_2026.length > 0);
+    assert.ok(WORKLOAD_ARCHETYPES.length > 0);
+    assert.ok(INDUSTRY_BACKEND_MAP.length > 0);
+    assert.ok(CAPABILITY_PRIORITIES.length > 0);
+  });
+
+  it("keeps backend capacity, recovery, workflow fitness, and repair authority deterministic", () => {
+    assert.equal(capacityHeadroom({ peakObserved: 70, safeCapacity: 100 }), 0.3);
+    assert.equal(recoveryConfidenceScore({
+      detectionCoverage: 1,
+      runbookCoverage: 0.8,
+      rollbackCoverage: 0.6,
+      testFreshness: 1
+    }), 0.85);
+    assert.equal(workflowFitnessScore({
+      correctness: 1,
+      durability: 1,
+      auditability: 1,
+      latencyFit: 1,
+      costFit: 1
+    }), 1);
+    assert.deepEqual(
+      repairAutomationDecision({
+        evidenceFreshness: 1,
+        blastRadius: 0.01,
+        deterministic: true,
+        reversible: true,
+        tenantScoped: true,
+        changesCode: true
+      }),
+      { automate: false, mode: "branch_only", reason: "source_or_schema_change" }
+    );
+    assert.deepEqual(
+      repairAutomationDecision({
+        evidenceFreshness: 1,
+        blastRadius: 0.05,
+        deterministic: true,
+        reversible: true,
+        tenantScoped: true
+      }),
+      { automate: true, mode: "bounded_reconciliation", reason: "preapproved_low_risk_repair" }
+    );
+  });
+
+  it("validates frontend pass 2 primitives and sensitive-action presentation rules", () => {
+    const intelligence = getFrontendVisualIntelligence();
+    assert.equal(FRONTEND_VISUAL_VERSION, "1.1.0");
+    assert.equal(intelligence.visualPrimitiveCount, FRONTEND_VISUAL_PRIMITIVES_PASS2.length);
+    assert.ok(FRONTEND_VISUAL_PRIMITIVES_PASS2.length >= 12);
+    assert.deepEqual(
+      frontendInteractionPresentation({ risk: 0.1, reversible: true }),
+      { mode: "direct_reversible_action", previewRequired: false, auditRequired: false, undoExpected: true }
+    );
+    assert.deepEqual(
+      frontendInteractionPresentation({ risk: 0.1, moneyMovement: true }),
+      { mode: "explicit_human_approval", previewRequired: true, auditRequired: true, undoExpected: false }
+    );
+  });
+
+  it("selects collection and spatial presentation policies deterministically", () => {
+    assert.deepEqual(
+      operationalCollectionPolicy({ rowCount: 6001, columnCount: 13, containerWidthPx: 1024 }),
+      { layout: "table", dataStrategy: "server_paginated", detailStrategy: "progressive_disclosure" }
+    );
+    assert.deepEqual(
+      operationalCollectionPolicy({ rowCount: 100, columnCount: 3, containerWidthPx: 600 }),
+      { layout: "priority_list", dataStrategy: "eager", detailStrategy: "inline" }
+    );
+    assert.deepEqual(
+      spatialPresentationPolicy({ informationBearing: false, webGpuAvailable: true }),
+      { mode: "avoid_decorative_3d", fallbackRequired: true }
+    );
+    assert.deepEqual(
+      spatialPresentationPolicy({ informationBearing: true, webGpuAvailable: true, reducedMotion: false, compactDevice: false }),
+      { mode: "progressive_information_bearing_3d", fallbackRequired: true }
+    );
+  });
+
 });
