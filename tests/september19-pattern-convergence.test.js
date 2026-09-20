@@ -29,6 +29,15 @@ const {
   opportunityScore,
   get2026MarketIntelligence
 } = require("../lib/sonara-2026-market-intelligence.cjs");
+const {
+  FRONTEND_VISUAL_SNAPSHOT_DATE,
+  FRONTEND_MARKET_SIGNALS_2026,
+  FRONTEND_REPOSITORY_REFERENCES,
+  FRONTEND_SURFACE_ARCHETYPES,
+  FRONTEND_IMPLEMENTATION_SEQUENCE,
+  frontendPriorityScore,
+  getFrontendVisualIntelligence
+} = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -192,5 +201,84 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(convergence.verticalOpportunityCount, VERTICAL_OPPORTUNITIES.length);
     assert.equal(convergence.marketIntelligence.snapshotDate, MARKET_SNAPSHOT_DATE);
     assert.equal(convergence.marketIntelligence.productionExecutionCount, 0);
+  });
+
+  it("keeps frontend and visual research current, non-executing, and source-grounded", () => {
+    const intelligence = getFrontendVisualIntelligence();
+    assert.equal(FRONTEND_VISUAL_SNAPSHOT_DATE, "2026-09-20");
+    assert.equal(intelligence.productionExecutionCount, 0);
+    assert.equal(intelligence.researchOnly, true);
+    assert.ok(FRONTEND_MARKET_SIGNALS_2026.length >= 15);
+    assert.ok(FRONTEND_REPOSITORY_REFERENCES.length >= 6);
+    for (const signal of FRONTEND_MARKET_SIGNALS_2026) {
+      assert.equal(signal.runtimeAuthority, "none");
+      assert.ok(signal.sourceUrl.startsWith("https://"));
+      assert.ok(signal.asOf <= FRONTEND_VISUAL_SNAPSHOT_DATE);
+    }
+  });
+
+  it("maps the frontend research into task-specific surface archetypes", () => {
+    const keys = new Set(FRONTEND_SURFACE_ARCHETYPES.map((item) => item.key));
+    for (const key of [
+      "business_command_center",
+      "agent_workspace",
+      "rag_evidence_workspace",
+      "records_and_data_table",
+      "calendar_scheduler",
+      "pos_counter",
+      "kiosk_self_service",
+      "restaurant_kitchen_fulfillment",
+      "field_service_mobile",
+      "fleet_map_dispatch",
+      "commerce_storefront_checkout",
+      "creator_media_workbench",
+      "analytics_observability",
+      "spatial_3d_viewer"
+    ]) {
+      assert.equal(keys.has(key), true, `missing frontend surface ${key}`);
+    }
+    assert.ok(FRONTEND_IMPLEMENTATION_SEQUENCE.length >= 10);
+  });
+
+  it("prioritizes frontend work deterministically while penalizing interaction risk", () => {
+    const lowerRisk = frontendPriorityScore({
+      taskFrequency: 0.9,
+      operationalCriticality: 0.9,
+      platformReuse: 0.9,
+      mobileImportance: 0.8,
+      revenueOrServiceImpact: 0.8,
+      implementationRisk: 0.2,
+      interactionRisk: 0.2
+    });
+    const higherRisk = frontendPriorityScore({
+      taskFrequency: 0.9,
+      operationalCriticality: 0.9,
+      platformReuse: 0.9,
+      mobileImportance: 0.8,
+      revenueOrServiceImpact: 0.8,
+      implementationRisk: 1,
+      interactionRisk: 1
+    });
+    assert.ok(lowerRisk > higherRisk);
+    assert.throws(() => frontendPriorityScore({
+      taskFrequency: 2,
+      operationalCriticality: 1,
+      platformReuse: 1,
+      mobileImportance: 1,
+      revenueOrServiceImpact: 1,
+      implementationRisk: 0,
+      interactionRisk: 0
+    }), /between 0 and 1/);
+  });
+
+  it("exposes frontend visual intelligence through the platform-pattern contract", () => {
+    const convergence = getSeptember19PatternConvergence();
+    const frontend = getFrontendVisualIntelligence();
+    assert.equal(convergence.frontendMarketSignalCount, FRONTEND_MARKET_SIGNALS_2026.length);
+    assert.equal(convergence.frontendSurfaceArchetypeCount, FRONTEND_SURFACE_ARCHETYPES.length);
+    assert.equal(convergence.frontendRepositoryReferenceCount, FRONTEND_REPOSITORY_REFERENCES.length);
+    assert.equal(convergence.frontendVisualIntelligence.snapshotDate, FRONTEND_VISUAL_SNAPSHOT_DATE);
+    assert.equal(convergence.frontendVisualIntelligence.productionExecutionCount, 0);
+    assert.equal(frontend.formulas.sonaraDefaultTapTargetCssPx, 44);
   });
 });
