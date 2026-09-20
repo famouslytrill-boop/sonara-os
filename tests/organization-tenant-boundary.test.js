@@ -15,15 +15,18 @@ const sql = fs.readFileSync(migrationPath, "utf8");
 
 describe("canonical organization tenant boundary", () => {
   it("resolves membership through organization_memberships and active status", () => {
-    assert.match(sql, /create or replace function public\.is_org_member\(target_organization_id uuid\)/i);
+    assert.match(sql, /create or replace function public\.is_org_member\(uuid\)/i);
+    assert.match(sql, /memberships\.organization_id = \$1/i);
     assert.match(sql, /from public\.organization_memberships memberships/i);
     assert.match(sql, /memberships\.status = 'active'/i);
     assert.match(sql, /memberships\.user_id = \(select auth\.uid\(\)\)/i);
   });
 
   it("repairs both has_org_role overloads onto the canonical membership source", () => {
-    assert.match(sql, /public\.has_org_role\(target_organization_id uuid, target_role text\)/i);
-    assert.match(sql, /public\.has_org_role\(target_organization_id uuid, allowed_roles text\[\]\)/i);
+    assert.match(sql, /public\.has_org_role\(uuid, text\)/i);
+    assert.match(sql, /public\.has_org_role\(uuid, text\[\]\)/i);
+    assert.match(sql, /memberships\.role = \$2/i);
+    assert.match(sql, /memberships\.role = any\(\$2\)/i);
     const canonicalReferences = sql.match(/from public\.organization_memberships memberships/gi) || [];
     assert.ok(canonicalReferences.length >= 3, "membership helpers are not consistently canonical");
   });
