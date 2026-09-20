@@ -29,6 +29,20 @@ const {
   opportunityScore,
   get2026MarketIntelligence
 } = require("../lib/sonara-2026-market-intelligence.cjs");
+const {
+  BACKEND_RESEARCH_DATE,
+  BACKEND_SIGNALS_2026,
+  RELIABILITY_PRIMITIVES,
+  SELF_REPAIR_LEVELS,
+  REFERENCE_REPOSITORIES,
+  SHARED_BACKEND_SURFACES,
+  backendReliabilityScore,
+  retryDelayMs,
+  sloBudgetState,
+  repairAuthorityDecision,
+  ragQualityScore,
+  getBackendOperationsIntelligence
+} = require("../lib/sonara-backend-operations-intelligence-2026.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -192,5 +206,91 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(convergence.verticalOpportunityCount, VERTICAL_OPPORTUNITIES.length);
     assert.equal(convergence.marketIntelligence.snapshotDate, MARKET_SNAPSHOT_DATE);
     assert.equal(convergence.marketIntelligence.productionExecutionCount, 0);
+  });
+
+  it("keeps backend operations research non-executing, current, and repository-safe", () => {
+    const backend = getBackendOperationsIntelligence();
+    assert.equal(BACKEND_RESEARCH_DATE, "2026-09-20");
+    assert.equal(backend.researchOnly, true);
+    assert.equal(backend.productionExecutionCount, 0);
+    assert.equal(backend.installedRepositoryCount, 0);
+    assert.ok(BACKEND_SIGNALS_2026.length >= 15);
+    assert.ok(RELIABILITY_PRIMITIVES.length >= 15);
+    assert.equal(SELF_REPAIR_LEVELS.length, 6);
+    assert.ok(REFERENCE_REPOSITORIES.length >= 8);
+    assert.ok(SHARED_BACKEND_SURFACES.length >= 10);
+    assert.equal(REFERENCE_REPOSITORIES.filter((item) => item.installedByResearch).length, 0);
+    assert.equal(REFERENCE_REPOSITORIES.filter((item) => item.enabledInProduction).length, 0);
+    for (const signal of BACKEND_SIGNALS_2026) {
+      assert.equal(signal.runtimeAuthority, "none");
+      assert.equal(signal.productionCapability, false);
+      assert.ok(signal.sourceUrl.startsWith("https://"));
+    }
+  });
+
+  it("scores backend reliability, retry delay, SLO budget and RAG quality deterministically", () => {
+    assert.equal(backendReliabilityScore({
+      availability: 0.999,
+      correctness: 0.99,
+      recoveryCoverage: 0.9,
+      observabilityCoverage: 0.95,
+      latencyP95Ms: 300,
+      latencyBudgetMs: 600
+    }), 0.8948);
+    assert.equal(retryDelayMs({ baseMs: 250, attempt: 3, maxMs: 5000 }), 2000);
+    assert.deepEqual(
+      sloBudgetState({ totalRequests: 10000, failedRequests: 5, targetSuccessRate: 0.999 }),
+      { actualSuccessRate: 0.9995, allowedFailures: 10, remainingFailures: 5, budgetState: "within_budget" }
+    );
+    assert.equal(ragQualityScore({
+      recall: 0.9,
+      groundedness: 0.95,
+      citationCoverage: 1,
+      latencyP95Ms: 400,
+      latencyBudgetMs: 800
+    }), 0.9);
+  });
+
+  it("permits only bounded runtime recovery and sends source/schema repair through branch gates", () => {
+    assert.deepEqual(
+      repairAuthorityDecision({
+        evidenceFreshness: 0.95,
+        blastRadius: 0.05,
+        tenantScoped: true,
+        deterministic: true,
+        reversible: true
+      }),
+      { allowed: true, mode: "bounded_runtime_recovery", reason: "preapproved_reversible_reconciliation" }
+    );
+    assert.deepEqual(
+      repairAuthorityDecision({
+        evidenceFreshness: 1,
+        blastRadius: 0.01,
+        tenantScoped: true,
+        deterministic: true,
+        reversible: true,
+        changesCode: true
+      }),
+      { allowed: false, mode: "branch_repair_required", reason: "source_or_schema_change" }
+    );
+    assert.equal(
+      repairAuthorityDecision({
+        evidenceFreshness: 1,
+        blastRadius: 0,
+        tenantScoped: false,
+        deterministic: true,
+        reversible: true
+      }).mode,
+      "blocked"
+    );
+  });
+
+  it("exposes backend intelligence through the platform-pattern convergence contract", () => {
+    const convergence = getSeptember19PatternConvergence();
+    assert.equal(convergence.version, "1.1.0");
+    assert.equal(convergence.backendSignalCount, BACKEND_SIGNALS_2026.length);
+    assert.equal(convergence.backendReliabilityPrimitiveCount, RELIABILITY_PRIMITIVES.length);
+    assert.equal(convergence.selfRepairLevelCount, SELF_REPAIR_LEVELS.length);
+    assert.equal(convergence.backendOperationsIntelligence.productionExecutionCount, 0);
   });
 });
