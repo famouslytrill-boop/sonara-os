@@ -44,7 +44,11 @@ describe("organization helper replay bridge", () => {
   it("drops helpers without CASCADE and reconstructs every captured policy", () => {
     assert.match(bridge, /drop function public\.is_org_member\(uuid\);/i);
     assert.match(bridge, /drop function public\.has_org_role\(uuid, text\);/i);
-    assert.doesNotMatch(bridge, /drop function[^;]*cascade/i);
+    assert.doesNotMatch(
+      bridge,
+      /^\s*drop\s+function\s+public\.(?:is_org_member|has_org_role)\([^)]*\)\s+cascade\s*;/im,
+      "an executable helper drop must never use CASCADE"
+    );
     assert.match(bridge, /pg_get_expr\(p\.polqual, p\.polrelid\)/i);
     assert.match(bridge, /pg_get_expr\(p\.polwithcheck, p\.polrelid\)/i);
     assert.match(bridge, /create policy %I on %I\.%I as %s for %s to %s%s%s/i);

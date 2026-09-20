@@ -73,6 +73,25 @@ describe("an applied migration cannot be edited", () => {
   it("pins every migration no generator still owns", () => {
     const migrations = fs.readdirSync(migrationsDirectory).filter((name) => name.endsWith(".sql"));
     assert.ok(migrations.length >= 50, `only ${migrations.length} migrations found; this check would be measuring almost nothing`);
+
+    // Supabase migration history is keyed by the numeric version prefix. Two
+    // differently named files with one version are not two migrations: one can
+    // shadow the other in replay/history and leave repository intent different
+    // from what production can apply.
+    const byVersion = new Map();
+    for (const name of migrations) {
+      const version = name.split("_", 1)[0];
+      const names = byVersion.get(version) || [];
+      names.push(name);
+      byVersion.set(version, names);
+    }
+    const duplicateVersions = [...byVersion.entries()].filter(([, names]) => names.length > 1);
+    assert.deepEqual(
+      duplicateVersions,
+      [],
+      `duplicate migration versions: ${duplicateVersions.map(([version, names]) => `${version} => ${names.join(", ")}`).join("; ")}`
+    );
+
     const pinned = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     const expected = migrations.filter((name) => !GENERATOR_OWNED.includes(name)).sort();
     assert.deepEqual(Object.keys(pinned).sort(), expected, "the manifest and the migrations directory disagree about what is frozen");
