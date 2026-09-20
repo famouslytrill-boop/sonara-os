@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SONARA Research Lab — Backend Operations 2026</title>
+  <meta name="description" content="2026 backend operations research for speed, correctness, dependability, deterministic recovery, agentic workflows, databases, payments, RAG, observability and bounded self-repair.">
+  <link rel="stylesheet" href="/sonara-design-system.css">
+  <link rel="stylesheet" href="/sonara-application-ui.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p>SONARA Industries · Research Lab · Backend Pass #3 · 2026-09-20</p>
+      <h1>Backend Operations: Fast, Accurate, Dependable, Recoverable</h1>
+      <p>The goal is not an unrestricted self-modifying system. The goal is measurable correctness, bounded recovery, deterministic workflows, small blast radius, fast diagnosis, and safe rollback across every SONARA product.</p>
+    </header>
+
+    <section>
+      <h2>Shared reliability kernel</h2>
+      <p>Restaurants, POS and kiosks, reservations and RSVP, trades, trucking, delivery, retail, ecommerce, creator/media, manufacturing, property, marketplaces, education, public access, gaming, customer service, payments and agentic AI should reuse the same backend primitives: tenant identity, idempotency, durable events, workflow state, policy, observability, reconciliation, search/RAG, approvals and release evidence.</p>
+    </section>
+
+    <section>
+      <h2>What self-healing means</h2>
+      <ol>
+        <li>Observe and classify without mutation.</li>
+        <li>Safely retry or return the previous result for an idempotent operation.</li>
+        <li>Reconcile runtime state: restart, requeue, reroute, pause, drain or replace unhealthy capacity inside pre-approved bounds.</li>
+        <li>Stop a rollout or roll back a reversible change when objective metrics fail.</li>
+        <li>Repair code, configuration or schema only on an isolated branch with tests, security checks and exact-head CI.</li>
+        <li>Require explicit human authorization for destructive actions, secrets, widened access, regulated actions and money movement.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Speed without lying about correctness</h2>
+      <p>Latency is one term, not the whole objective. The backend score combines availability, correctness, p95 latency fit, recovery coverage and observability coverage. Caches, replicas, approximate vector indexes and asynchronous workers are used only where their consistency and freshness tradeoffs are explicit.</p>
+      <p><code>0.25*availability + 0.25*correctness + 0.15*latency_fit + 0.20*recovery_coverage + 0.15*observability_coverage</code></p>
+    </section>
+
+    <section>
+      <h2>Deterministic execution</h2>
+      <p>Side-effecting requests carry organization scope, workflow/action identity, correlation identity and stable idempotency. Retries are classified, bounded and delayed; queue depth and concurrency are bounded; dead-letter outcomes are evidence, not silent loss. Transport never substitutes for application-level correctness.</p>
+    </section>
+
+    <section>
+      <h2>Agent and RAG accuracy</h2>
+      <p>Agents operate through SONARA-owned authority and evidence. Retrieval is evaluated on fixed tenant-filtered benchmarks using recall, groundedness, citation coverage, p95 latency and cost. Exact and approximate vector-search modes are compared instead of assuming the faster index is better.</p>
+      <p><code>0.35*recall + 0.30*groundedness + 0.25*citation_coverage + 0.10*latency_fit</code></p>
+    </section>
+
+    <section>
+      <h2>Operational evidence</h2>
+      <p>Use correlated traces, metrics, logs, audit events and business outcomes. Define service-level objectives for critical flows, then make load, spike, soak, dependency-failure and retry-storm tests part of release evidence. A production claim requires measured evidence from the deployed SHA.</p>
+    </section>
+
+    <section>
+      <h2>Payments, orders, subscriptions and reservations</h2>
+      <p>Provider state is external evidence. SONARA keeps canonical state machines and reconciliation for checkout, subscriptions, refunds, entitlements, ordering, inventory reservations, bookings, cancellations and delivery. Provider idempotency is used where available, but duplicate-safe business effects remain SONARA's responsibility.</p>
+    </section>
+
+    <section>
+      <h2>2026 reference stack</h2>
+      <p>Research references include AWS Well-Architected reliability and Agentic AI guidance, Kubernetes self-healing, Supabase Queues and RLS, PostgreSQL high availability, OpenTelemetry, Stripe idempotency, GitHub Actions security, Apache Kafka delivery semantics, pgvector retrieval tradeoffs, Grafana k6 thresholds, Argo Rollouts progressive delivery, Open Policy Agent and NIST AI/secure-development guidance.</p>
+      <p>Reference repositories are cataloged for Kubernetes, Argo Rollouts, OpenTelemetry JS, Supabase, pgvector, OPA, Kafka and k6. This research installs none of them and activates none in production.</p>
+    </section>
+
+    <section>
+      <h2>Backend implementation sequence</h2>
+      <ol>
+        <li>Measure baseline p50/p95/p99 latency, errors, saturation and recovery time.</li>
+        <li>Standardize tenant-scoped operation identity and idempotency.</li>
+        <li>Prove replay-safe outbox/inbox consumers, visibility timeout, retry ceilings and dead-letter evidence.</li>
+        <li>Add timeout, circuit-breaker, backpressure and bulkhead contracts.</li>
+        <li>Unify traces, metrics, logs, audits and business outcomes by correlation ID.</li>
+        <li>Define SLOs and enforce load/fault thresholds.</li>
+        <li>Add desired-state reconciliation for bounded runtime recovery.</li>
+        <li>Add progressive delivery and objective rollback.</li>
+        <li>Benchmark RAG recall, grounding, citation coverage, latency and cost.</li>
+        <li>Make payment, subscription, booking, order and refund reconciliation explicit.</li>
+        <li>Prove one-tenant canaries before wider activation.</li>
+        <li>Keep code/schema self-repair branch-only behind the complete release matrix.</li>
+      </ol>
+    </section>
+
+    <nav>
+      <a href="/research-2026-market-intelligence.html">2026 market intelligence</a>
+      <a href="/research-batch15-platform-patterns.html">Platform patterns</a>
+      <a href="/research-lab/requested-repositories">Repository research</a>
+      <a href="/api/ecosystem/platform-patterns">Backend + platform JSON</a>
+    </nav>
+
+    <footer>
+      <p>Research presence is not runtime authority. No worker, provider, repository, deployment, migration, payment, publication, secret change or production self-repair is activated by this page or its research module.</p>
+    </footer>
+  </main>
+</body>
+</html>
