@@ -65,7 +65,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         linkAction("/api/ecosystem/learning-memory", "Learning & memory"),
         linkAction("/api/ecosystem/source-evidence", "Source evidence"),
         linkAction("/api/ecosystem/ai-integrations", "AI integration catalog"),
-        linkAction("/invention-systems", "Invention systems"),
+        linkAction("/market-intelligence/invention-systems", "Invention systems"),
         linkAction("/formulas", "Formulas"),
         linkAction("/dashboard", "Dashboard")
       ]
@@ -119,7 +119,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
       actions: [
         linkAction("/admin", "Admin"),
         linkAction("/admin/formulas", "Formulas"),
-        linkAction("/invention-systems", "Invention systems"),
+        linkAction("/market-intelligence/invention-systems", "Invention systems"),
         linkAction("/api/ecosystem/manifest", "Manifest JSON"),
         linkAction("/api/ecosystem/readiness", "Readiness JSON"),
         linkAction("/api/ecosystem/model-engines", "Models & engines"),

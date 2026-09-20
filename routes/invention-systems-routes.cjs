@@ -3,9 +3,7 @@
 "use strict";
 
 const {
-  getInventionSystemsIntelligence,
-  scoreInventionOpportunity,
-  promotionReadiness
+  getInventionSystemsIntelligence
 } = require("../lib/sonara-invention-systems-2026.cjs");
 
 module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
@@ -20,20 +18,8 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
     return res.status(200).json(getInventionSystemsIntelligence());
   });
 
-  app.post("/api/invention-systems/score", requireCustomer, (req, res) => {
-    return res.status(200).json({
-      ok: true,
-      score: scoreInventionOpportunity(req.body || {}),
-      note: "Internal deterministic prioritization heuristic; not a market forecast."
-    });
-  });
 
-  app.post("/api/invention-systems/promotion-readiness", requireCustomer, (req, res) => {
-    const result = promotionReadiness(String(req.body?.currentStage || ""), req.body?.evidence || {});
-    return res.status(result.ok ? 200 : 409).json(result);
-  });
-
-  app.get("/invention-systems", requireCustomer, (req, res) => {
+  app.get("/market-intelligence/invention-systems", requireCustomer, (req, res) => {
     const catalog = getInventionSystemsIntelligence();
     const sections = [
       ui.card(
@@ -49,8 +35,12 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
         "Governed agents + deterministic workflows + evidence RAG + business digital twins + provider-neutral commerce, communications, media, field and vertical-operation modules."
       ),
       ui.card(
+        "Reality ↔ model loop",
+        "Observe permitted real-world evidence → update the twin/evidence graph → rehearse in simulation → generate options → authorize deterministically → execute a bounded action → measure the outcome. Sensing and prediction never grant action authority."
+      ),
+      ui.card(
         "2026 market signal",
-        "Current research favors workflow redesign, supervised vertical AI, machine-readable commerce, passkeys, agent observability, modular digital twins, and progressive WebGPU/WebXR interfaces."
+        "Current research favors governed workflow redesign, explicit agent identity/authority, stateless interoperable tool protocols, machine-readable commerce, realtime coordination, simulation-first physical/digital twins, durable creative continuity, adaptive media delivery, passkeys, agent observability, and progressive WebGPU/WebXR interfaces."
       )
     ];
 
@@ -62,7 +52,7 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
       sections,
       actions: [
         ui.link("/business-builder/market-intelligence", "Market intelligence"),
-        ui.link("/product-lifecycle", "Product lifecycle"),
+        ui.link("/product-lifecycle", "Roadmap"),
         ui.link("/", "SONARA home")
       ]
     }));

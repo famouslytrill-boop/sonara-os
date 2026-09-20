@@ -3,10 +3,12 @@
 const assert = require("assert");
 const {
   SNAPSHOT_DATE,
+  REGISTRY_VERSION,
   MATURITY_STAGES,
   MARKET_SIGNALS,
   INVENTION_SYSTEMS,
   DOMAIN_COVERAGE,
+  FORMULAS,
   getInventionSystemsIntelligence,
   scoreInventionOpportunity,
   promotionReadiness
@@ -16,14 +18,16 @@ describe("SONARA invention systems intelligence", () => {
   it("is a dated non-executing research registry", () => {
     const catalog = getInventionSystemsIntelligence();
     assert.equal(SNAPSHOT_DATE, "2026-09-20");
+    assert.equal(REGISTRY_VERSION, "1.1.0");
     assert.equal(catalog.authority, "research_and_design_only");
     assert.equal(catalog.runtimeAuthority, false);
     assert.equal(catalog.executionEnabled, false);
     assert.equal(catalog.claims.productionReady, false);
     assert.equal(catalog.claims.patentStatus, "not_assessed");
-    assert.ok(MARKET_SIGNALS.length >= 15);
-    assert.ok(INVENTION_SYSTEMS.length >= 20);
+    assert.ok(MARKET_SIGNALS.length >= 30);
+    assert.ok(INVENTION_SYSTEMS.length >= 29);
     assert.ok(DOMAIN_COVERAGE.length >= 35);
+    assert.ok(FORMULAS.length >= 11);
   });
 
   it("never marks research inventions as executable or production claims", () => {
@@ -79,6 +83,48 @@ describe("SONARA invention systems intelligence", () => {
       assert.ok(domain.strategy, domain.key);
       assert.ok(domain.boundary.length > 20, domain.key);
     }
+  });
+
+  it("captures the expanded agent, simulation, realtime, media, and market-signal systems", () => {
+    const signalKeys = new Set(MARKET_SIGNALS.map((item) => item.key));
+    const systemKeys = new Set(INVENTION_SYSTEMS.map((item) => item.key));
+    const formulaKeys = new Set(FORMULAS.map((item) => item.key));
+
+    for (const key of [
+      "mcp_stateless_interop",
+      "agent_identity_authority",
+      "runtime_agent_governance",
+      "agentic_storefront_distribution",
+      "agentic_payment_runtime",
+      "app_ai_economics",
+      "operational_vector_search",
+      "realtime_stateful_coordination",
+      "creative_agent_workflows",
+      "open_video_av2",
+      "physical_ai_world_models",
+      "agentic_design_interop",
+      "realtime_engine_convergence",
+      "postgres_operational_foundation"
+    ]) assert.equal(signalKeys.has(key), true, `missing signal ${key}`);
+
+    for (const key of [
+      "agent-identity-authority-mesh",
+      "protocol-interop-fabric",
+      "realtime-coordination-engine",
+      "simulation-rehearsal-engine",
+      "reality-model-learning-loop",
+      "creative-continuity-graph",
+      "adaptive-media-delivery-engine",
+      "market-signal-radar"
+    ]) assert.equal(systemKeys.has(key), true, `missing invention system ${key}`);
+
+    for (const key of [
+      "agent_authority_envelope",
+      "interoperability_friction",
+      "simulation_reality_fidelity",
+      "creative_continuity",
+      "realtime_coordination_health"
+    ]) assert.equal(formulaKeys.has(key), true, `missing formula ${key}`);
   });
 
   it("retains source provenance for every market signal", () => {

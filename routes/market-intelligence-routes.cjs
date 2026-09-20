@@ -24,11 +24,13 @@ const OPPORTUNITY_STATES = new Set(["watch", "validate", "prioritized", "buildin
 const REVIEW_DECISIONS = new Set(["prioritize", "validate", "watch", "hold", "reject"]);
 
 const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
+const registerInventionSystemsRoutes = require("./invention-systems-routes.cjs");
 
 module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
   const ui = buildUi(deps);
+  registerInventionSystemsRoutes(app, { ...deps, requireCustomer });
 
   app.get("/api/market-intelligence/framework", requireCustomer, (req, res) => {
     return res.status(200).json({ ok: true, framework: getMarketIntelligenceFramework() });
