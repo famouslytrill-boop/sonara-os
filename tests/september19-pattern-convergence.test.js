@@ -448,4 +448,93 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(frontend.formulas.sonaraDefaultTapTargetCssPx, 44);
   });
 
+  it("keeps backend market analysis current, cross-industry, and non-executing after convergence merges", () => {
+    const market = getBackendOperationsMarketAnalysis();
+    assert.equal(BACKEND_MARKET_ANALYSIS_DATE, "2026-09-20");
+    assert.equal(market.researchOnly, true);
+    assert.equal(market.productionExecutionCount, 0);
+    assert.equal(market.installedRepositoryCount, 0);
+    assert.ok(BACKEND_MARKET_SIGNALS_2026.length >= 12);
+    assert.ok(WORKLOAD_ARCHETYPES.length >= 10);
+    assert.ok(INDUSTRY_BACKEND_MAP.length >= 10);
+    assert.ok(CAPABILITY_PRIORITIES.length >= 5);
+    for (const signal of BACKEND_MARKET_SIGNALS_2026) {
+      assert.equal(signal.runtimeAuthority, "none");
+      assert.equal(signal.productionCapability, false);
+      assert.equal(signal.asOf, BACKEND_MARKET_ANALYSIS_DATE);
+      assert.ok(signal.sourceUrl.startsWith("https://"));
+    }
+  });
+
+  it("scores backend capacity, recovery and durable-workflow fitness deterministically", () => {
+    assert.equal(capacityHeadroom({ peakObserved: 60, safeCapacity: 100 }), 0.4);
+    assert.equal(recoveryConfidenceScore({
+      detectionCoverage: 0.9,
+      runbookCoverage: 0.8,
+      rollbackCoverage: 0.95,
+      testFreshness: 0.85
+    }), 0.875);
+    assert.equal(workflowFitnessScore({
+      correctness: 0.95,
+      durability: 0.9,
+      auditability: 0.95,
+      latencyFit: 0.8,
+      costFit: 0.7
+    }), 0.89);
+    assert.deepEqual(repairAutomationDecision({
+      evidenceFreshness: 0.95,
+      blastRadius: 0.05,
+      deterministic: true,
+      reversible: true,
+      tenantScoped: true
+    }), { automate: true, mode: "bounded_reconciliation", reason: "preapproved_low_risk_repair" });
+    assert.equal(repairAutomationDecision({
+      evidenceFreshness: 1,
+      blastRadius: 0,
+      deterministic: true,
+      reversible: true,
+      tenantScoped: true,
+      authoritySensitive: true
+    }).mode, "human_approval_required");
+  });
+
+  it("exposes backend market analysis through convergence without runtime authority", () => {
+    const convergence = getSeptember19PatternConvergence();
+    const market = getBackendOperationsMarketAnalysis();
+    assert.equal(convergence.backendMarketSignalCount, market.marketSignalCount);
+    assert.equal(convergence.backendWorkloadArchetypeCount, market.workloadArchetypeCount);
+    assert.equal(convergence.backendIndustryMapCount, market.industryMapCount);
+    assert.equal(convergence.backendOperationsMarketAnalysis.productionExecutionCount, 0);
+  });
+
+  it("keeps frontend pass-two primitives and interaction policies deterministic", () => {
+    const frontend = getFrontendVisualIntelligence();
+    assert.equal(FRONTEND_VISUAL_VERSION, "1.1.0");
+    assert.equal(frontend.visualPrimitiveCount, FRONTEND_VISUAL_PRIMITIVES_PASS2.length);
+    assert.ok(FRONTEND_VISUAL_PRIMITIVES_PASS2.some((item) => item.key === "approval_drawer"));
+
+    assert.deepEqual(frontendInteractionPresentation({ moneyMovement: true }), {
+      mode: "explicit_human_approval",
+      previewRequired: true,
+      auditRequired: true,
+      undoExpected: false
+    });
+    assert.deepEqual(operationalCollectionPolicy({
+      rowCount: 6000,
+      columnCount: 14,
+      containerWidthPx: 1200
+    }), {
+      layout: "table",
+      dataStrategy: "server_paginated",
+      detailStrategy: "progressive_disclosure"
+    });
+    assert.deepEqual(spatialPresentationPolicy({
+      informationBearing: true,
+      webGpuAvailable: false
+    }), {
+      mode: "compatible_graphics_or_2d_fallback",
+      fallbackRequired: true
+    });
+  });
+
 });
