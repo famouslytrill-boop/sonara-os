@@ -24,7 +24,6 @@ const registerCreatorGenerationRoutes = require("./routes/creator-generation-rou
 const registerGrowthStudioControlRoutes = require("./routes/growth-studio-control-routes.cjs");
 const registerProductLifecycleRoutes = require("./routes/product-lifecycle-routes.cjs");
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
-const registerInventionSystemsRoutes = require("./routes/invention-systems-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
@@ -676,13 +675,6 @@ registerMarketIntelligenceRoutes(app, {
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
   supabaseHeaders
-});
-
-registerInventionSystemsRoutes(app, {
-  layout,
-  brandCard,
-  linkAction,
-  requireCustomer
 });
 
 // getCustomerPaidEntitlement lives in lib/sonara-paid-entitlement.cjs now. It is
