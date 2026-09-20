@@ -25,8 +25,11 @@ const {
   MARKET_SNAPSHOT_DATE,
   MARKET_SIGNALS_2026,
   VERTICAL_OPPORTUNITIES,
+  STRATEGIC_MARKET_LAYERS_2026,
+  TECHNOLOGY_REFERENCE_REPOSITORIES_2026,
   IMPLEMENTATION_SEQUENCE,
   opportunityScore,
+  technologyFitScore,
   get2026MarketIntelligence
 } = require("../lib/sonara-2026-market-intelligence.cjs");
 const {
@@ -132,7 +135,7 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(MARKET_SNAPSHOT_DATE, "2026-09-20");
     assert.equal(snapshot.productionExecutionCount, 0);
     assert.equal(snapshot.researchOnly, true);
-    assert.ok(MARKET_SIGNALS_2026.length >= 10);
+    assert.ok(MARKET_SIGNALS_2026.length >= 20);
     for (const signal of MARKET_SIGNALS_2026) {
       assert.equal(signal.runtimeAuthority, "none");
       assert.equal(signal.productionCapability, false);
@@ -200,12 +203,56 @@ describe("September 19 platform pattern convergence", () => {
     assert.ok(lowRisk > highRisk);
   });
 
+  it("classifies platform strategy before specialist expansion and keeps repository research non-executing", () => {
+    const priorities = new Set(STRATEGIC_MARKET_LAYERS_2026.map((item) => item.priority));
+    assert.equal(priorities.has("P0"), true);
+    assert.equal(priorities.has("P1"), true);
+    assert.equal(priorities.has("P2"), true);
+    assert.equal(priorities.has("PARTNER_ONLY"), true);
+    assert.equal(priorities.has("WATCH"), true);
+    assert.ok(STRATEGIC_MARKET_LAYERS_2026.some((item) => item.key === "governed_control_plane"));
+    assert.ok(STRATEGIC_MARKET_LAYERS_2026.some((item) => item.key === "vertical_operating_packs"));
+    assert.ok(TECHNOLOGY_REFERENCE_REPOSITORIES_2026.length >= 10);
+    assert.equal(TECHNOLOGY_REFERENCE_REPOSITORIES_2026.filter((item) => item.installedByResearch).length, 0);
+    assert.equal(TECHNOLOGY_REFERENCE_REPOSITORIES_2026.filter((item) => item.enabledInProduction).length, 0);
+  });
+
+  it("scores technology fit deterministically while penalizing integration, lock-in, and license risk", () => {
+    const reusable = technologyFitScore({
+      interoperability: 0.95,
+      platformReuse: 0.95,
+      maturity: 0.9,
+      maintainability: 0.85,
+      ecosystem: 0.9,
+      securityFit: 0.9,
+      integrationRisk: 0.15,
+      lockInRisk: 0.1,
+      licenseRisk: 0.05
+    });
+    const risky = technologyFitScore({
+      interoperability: 0.5,
+      platformReuse: 0.5,
+      maturity: 0.6,
+      maintainability: 0.5,
+      ecosystem: 0.5,
+      securityFit: 0.4,
+      integrationRisk: 0.9,
+      lockInRisk: 0.9,
+      licenseRisk: 0.9
+    });
+    assert.equal(reusable, 0.8325);
+    assert.equal(risky, 0.165);
+    assert.ok(reusable > risky);
+  });
+
   it("exposes market intelligence through the existing platform-pattern contract", () => {
     const convergence = getSeptember19PatternConvergence();
     assert.equal(convergence.marketSignalCount, MARKET_SIGNALS_2026.length);
     assert.equal(convergence.verticalOpportunityCount, VERTICAL_OPPORTUNITIES.length);
     assert.equal(convergence.marketIntelligence.snapshotDate, MARKET_SNAPSHOT_DATE);
     assert.equal(convergence.marketIntelligence.productionExecutionCount, 0);
+    assert.equal(convergence.marketIntelligence.strategicMarketLayerCount, STRATEGIC_MARKET_LAYERS_2026.length);
+    assert.equal(convergence.marketIntelligence.technologyReferenceRepositoryCount, TECHNOLOGY_REFERENCE_REPOSITORIES_2026.length);
   });
 
   it("keeps backend operations research non-executing, current, and repository-safe", () => {
