@@ -49,8 +49,12 @@ module.exports = function registerInventionSystemsRoutes(app, deps = {}) {
         "Governed agents + deterministic workflows + evidence RAG + business digital twins + provider-neutral commerce, communications, media, field and vertical-operation modules."
       ),
       ui.card(
+        "Reality ↔ model loop",
+        "Observe permitted real-world evidence → update the twin/evidence graph → rehearse in simulation → generate options → authorize deterministically → execute a bounded action → measure the outcome. Sensing and prediction never grant action authority."
+      ),
+      ui.card(
         "2026 market signal",
-        "Current research favors workflow redesign, supervised vertical AI, machine-readable commerce, passkeys, agent observability, modular digital twins, and progressive WebGPU/WebXR interfaces."
+        "Current research favors governed workflow redesign, explicit agent identity/authority, stateless interoperable tool protocols, machine-readable commerce, realtime coordination, simulation-first physical/digital twins, durable creative continuity, adaptive media delivery, passkeys, agent observability, and progressive WebGPU/WebXR interfaces."
       )
     ];
 

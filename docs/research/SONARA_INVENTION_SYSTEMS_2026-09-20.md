@@ -242,6 +242,59 @@ The current ecosystem already tracks candidates such as Timefold, PostgreSQL, Op
 - Android Developers, 2026 target API requirements.
 - Apple Developer, App Store Server API and subscription state.
 
+## Art ↔ life: the reality-to-model loop
+
+The useful engineering interpretation of "art imitates life / life imitates art" is a controlled feedback loop:
+
+`observe reality → build/update model → simulate/rehearse → generate options → authorize deterministically → execute a bounded action → measure reality → update evidence/model`
+
+This loop can serve business operations, creator workflows, digital twins, field service, manufacturing, robotics, games/spatial experiences, forecasting and customer operations. It must **not** collapse sensing, prediction and action authority into one model call. Observations are evidence; predictions are hypotheses; simulations are rehearsal; high-impact actions cross independent policy and approval gates.
+
+### Reality-to-Model Learning Loop
+
+Camera, GPS, gyroscope, telemetry, transactions, inventory, workflow events, media, customer interactions and other permitted signals update a versioned evidence graph and digital twin. The system tracks observation time, source identity, permissions, confidence, transformations and human corrections.
+
+### Simulation & Rehearsal Engine
+
+Before risky physical, financial, operational or deployment actions, SONARA should support scenario branches, synthetic data, workflow replay, failure injection, policy rehearsal, canary mirroring and measurable simulation-to-reality fidelity. Simulation success is evidence for a canary—not permission to skip authorization.
+
+### Creative Continuity Graph
+
+Characters, brands, visual language, audio motifs, locations, products, campaigns and rights/provenance should be reusable graph entities. Generative providers become interchangeable tools operating on durable project state rather than isolated prompts. This supports consistent film/video/audio/image/social/game assets while preserving version and rights evidence.
+
+## Newly incorporated 2026 signals
+
+This pass extends the evidence base with:
+
+- Model Context Protocol's July 2026 shift toward a stateless core, routable methods/names, cacheable discovery and stronger authorization guidance.
+- NIST's 2026 AI Agent Standards Initiative and identity/authorization work.
+- Google's September 2026 zero-trust agent guidance: runtime intent governance and deterministic security controls around model behavior.
+- Shopify's 2026 agentic storefront distribution model and Visa's agentic-payment trust/authorization direction.
+- Apple's 2026 app-economy study, reinforcing mobile distribution, retention, entitlements and unit economics as first-class product concerns.
+- Native operational vector retrieval, represented by Amazon DynamoDB vector search, while retaining transactional authority and permission filters.
+- Stateful realtime coordination patterns represented by Cloudflare Durable Objects.
+- Adobe's creative-agent direction: multi-step generation/editing connected to durable creative assets.
+- AV2 as a new open media-delivery option that should sit inside benchmarked codec/device ladders rather than become a hard dependency.
+- NVIDIA physical-AI/world-model workflows and the broader simulation-before-real-execution pattern.
+- Autodesk agent-oriented platform interfaces for design/model data and automation instead of rebuilding CAD kernels.
+- Unreal Engine's continued convergence of realtime rendering, world building, performance budgets and AI-assisted development.
+- PostgreSQL 18.x as a strengthened relational foundation for canonical multi-tenant operational state.
+
+## New SONARA invention modules
+
+Eight additional research-stage systems are now registered:
+
+1. **Agent Identity & Authority Mesh** — verifiable workload identity, delegated scopes, signed mutation evidence and revocation.
+2. **Protocol Interop Fabric** — stateless MCP/API/webhook adaptation with versioning and auth validation.
+3. **Realtime Coordination Engine** — ordered shared state, reconnect/replay and live collaboration/session primitives.
+4. **Simulation & Rehearsal Engine** — what-if branches, failure injection, workflow replay and sim-to-real evidence.
+5. **Reality-to-Model Learning Loop** — permitted sensor/media/telemetry observations update digital twins and evidence graphs.
+6. **Creative Continuity Graph** — characters, brands, assets, rights and cross-modal identity survive model/provider changes.
+7. **Adaptive Media Delivery Engine** — AV2/AV1/fallback, HDR/4K and device/bandwidth/GPU-aware delivery.
+8. **Market Signal Radar** — continuously dated, deduplicated research evidence mapped to product and implementation candidates.
+
+These remain research/control-plane definitions. They do not install a provider, grant new agent authority, change production data, or activate runtime behavior.
+
 ## Engineering rule
 
 This batch should merge only through the normal exact-head engineering gate. The new registry itself does not authorize production activation of any invention system, provider, worker, migration or autonomous agent.
