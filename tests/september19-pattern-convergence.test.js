@@ -57,7 +57,7 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(readiness.productionExecutionCount, 0);
     assert.ok(readiness.repositoryCount >= 3);
     assert.ok(readiness.nonRepositoryReferenceCount >= 7);
-    assert.equal(readiness.architectureConvergence.version, "1.0.0");
+    assert.equal(readiness.architectureConvergence.version, "1.1.0");
   });
 
   it("captures architecture, agent, and skill catalogs", () => {
