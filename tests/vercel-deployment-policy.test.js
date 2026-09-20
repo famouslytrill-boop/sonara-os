@@ -43,6 +43,34 @@ describe('Vercel deployment policy', () => {
     assert.match(workflow, /release-validation\.log/);
   });
 
+  it('waits for the exact-SHA post-merge matrix before production work', () => {
+    const gatePosition = workflow.indexOf('Require exact-SHA post-merge green matrix');
+    const credentialPosition = workflow.indexOf('Require protected production credentials');
+    const migrationPosition = workflow.indexOf('Apply production database migrations');
+    const runtimeMutationPosition = workflow.indexOf('Synchronize verified Stripe runtime secret to Vercel production');
+
+    assert.match(workflow, /actions:\s*read/, 'the production gate cannot read workflow evidence');
+    assert.ok(gatePosition > -1, 'production has no exact-SHA matrix gate');
+    assert.ok(gatePosition < credentialPosition, 'matrix evidence is checked only after production credentials are consulted');
+    assert.ok(gatePosition < migrationPosition, 'matrix evidence is checked only after a migration can run');
+    assert.ok(gatePosition < runtimeMutationPosition, 'matrix evidence is checked only after production runtime configuration can change');
+
+    for (const name of [
+      'SONARA Industries CI',
+      'Docker Image CI',
+      'Node Runtime Compatibility',
+      'Engineering Intelligence and Security Evidence',
+      'dependency-scan'
+    ]) {
+      assert.ok(workflow.includes(name), `production does not require exact-SHA success from ${name}`);
+    }
+
+    assert.match(workflow, /head_sha=\$GITHUB_SHA/, 'workflow evidence is not scoped to the release SHA');
+    assert.match(workflow, /branches\/main/, 'the gate does not read the current main ref');
+    assert.match(workflow, /no longer main/, 'an overtaken release SHA is not refused');
+    assert.match(workflow, /Reconfirm release SHA is still current main/, 'main is not rechecked immediately before production mutation');
+  });
+
   it('does not use an ignored build step as a quota workaround', () => {
     assert.equal(config.ignoreCommand, undefined);
   });
