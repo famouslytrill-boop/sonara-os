@@ -369,6 +369,120 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(convergence.selfRepairLevelCount, SELF_REPAIR_LEVELS.length);
     assert.equal(convergence.backendOperationsIntelligence.productionExecutionCount, 0);
   });
+
+  it("keeps backend market analysis current, cross-industry, and non-executing", () => {
+    const market = getBackendOperationsMarketAnalysis();
+    assert.equal(BACKEND_MARKET_ANALYSIS_DATE, "2026-09-20");
+    assert.equal(market.researchOnly, true);
+    assert.equal(market.productionExecutionCount, 0);
+    assert.equal(market.installedRepositoryCount, 0);
+    assert.ok(BACKEND_MARKET_SIGNALS_2026.length >= 12);
+    assert.ok(WORKLOAD_ARCHETYPES.length >= 10);
+    assert.ok(INDUSTRY_BACKEND_MAP.length >= 10);
+    assert.ok(CAPABILITY_PRIORITIES.length >= 5);
+    for (const signal of BACKEND_MARKET_SIGNALS_2026) {
+      assert.equal(signal.runtimeAuthority, "none");
+      assert.equal(signal.productionCapability, false);
+      assert.equal(signal.asOf, BACKEND_MARKET_ANALYSIS_DATE);
+      assert.ok(signal.sourceUrl.startsWith("https://"));
+    }
+    const verticals = new Set(INDUSTRY_BACKEND_MAP.map((item) => item.key));
+    for (const key of [
+      "restaurant_pos_kiosk_reservations_rsvp",
+      "trades_hvac_electrical_plumbing_carpentry_cleaning",
+      "trucking_delivery_waste_logistics",
+      "retail_ecommerce_marketplace",
+      "creator_social_streaming_media_books_podcasts",
+      "manufacturing_robotics_cad_printing",
+      "finance_banking_investment_insurance",
+      "education_translation_classroom_public_access_government",
+      "gaming_ar_spatial_device",
+      "ai_agents_llms_skills_rag"
+    ]) {
+      assert.equal(verticals.has(key), true, `missing backend vertical ${key}`);
+    }
+  });
+
+  it("scores capacity, recovery and durable-workflow fitness deterministically", () => {
+    assert.equal(capacityHeadroom({ peakObserved: 60, safeCapacity: 100 }), 0.4);
+    assert.equal(recoveryConfidenceScore({
+      detectionCoverage: 0.9,
+      runbookCoverage: 0.8,
+      rollbackCoverage: 0.95,
+      testFreshness: 0.85
+    }), 0.875);
+    assert.equal(workflowFitnessScore({
+      correctness: 0.95,
+      durability: 0.9,
+      auditability: 0.95,
+      latencyFit: 0.8,
+      costFit: 0.7
+    }), 0.89);
+    assert.deepEqual(repairAutomationDecision({
+      evidenceFreshness: 0.95,
+      blastRadius: 0.05,
+      deterministic: true,
+      reversible: true,
+      tenantScoped: true
+    }), { automate: true, mode: "bounded_reconciliation", reason: "preapproved_low_risk_repair" });
+    assert.equal(repairAutomationDecision({
+      evidenceFreshness: 1,
+      blastRadius: 0,
+      deterministic: true,
+      reversible: true,
+      tenantScoped: true,
+      authoritySensitive: true
+    }).mode, "human_approval_required");
+  });
+
+  it("exposes backend market analysis through platform convergence without runtime authority", () => {
+    const convergence = getSeptember19PatternConvergence();
+    const market = getBackendOperationsMarketAnalysis();
+    assert.equal(convergence.version, "1.2.0");
+    assert.equal(convergence.backendMarketSignalCount, market.marketSignalCount);
+    assert.equal(convergence.backendWorkloadArchetypeCount, market.workloadArchetypeCount);
+    assert.equal(convergence.backendIndustryMapCount, market.industryMapCount);
+    assert.equal(convergence.backendOperationsMarketAnalysis.productionExecutionCount, 0);
+  });
+
+  it("keeps frontend pass-2 primitives and version explicit", () => {
+    const frontend = getFrontendVisualIntelligence();
+    assert.equal(FRONTEND_VISUAL_VERSION, "1.1.0");
+    assert.equal(frontend.version, FRONTEND_VISUAL_VERSION);
+    assert.equal(frontend.visualPrimitiveCount, FRONTEND_VISUAL_PRIMITIVES_PASS2.length);
+    assert.ok(FRONTEND_VISUAL_PRIMITIVES_PASS2.length >= 15);
+  });
+
+  it("maps interaction risk to deterministic presentation and approval states", () => {
+    assert.deepEqual(
+      frontendInteractionPresentation({ risk: 0.1 }),
+      { mode: "direct_reversible_action", previewRequired: false, auditRequired: false, undoExpected: true }
+    );
+    assert.equal(frontendInteractionPresentation({ risk: 0.4 }).mode, "preview_then_apply");
+    assert.equal(frontendInteractionPresentation({ externalWrite: true }).mode, "confirm_before_execute");
+    assert.equal(frontendInteractionPresentation({ moneyMovement: true }).mode, "explicit_human_approval");
+  });
+
+  it("chooses collection and spatial presentation from measurable constraints", () => {
+    assert.deepEqual(
+      operationalCollectionPolicy({ rowCount: 6000, columnCount: 14, containerWidthPx: 1200 }),
+      { layout: "table", dataStrategy: "server_paginated", detailStrategy: "progressive_disclosure" }
+    );
+    assert.deepEqual(
+      operationalCollectionPolicy({ rowCount: 200, columnCount: 6, containerWidthPx: 600 }),
+      { layout: "priority_list", dataStrategy: "eager", detailStrategy: "progressive_disclosure" }
+    );
+    assert.equal(spatialPresentationPolicy({ informationBearing: false }).mode, "avoid_decorative_3d");
+    assert.equal(
+      spatialPresentationPolicy({ informationBearing: true, compactDevice: true }).mode,
+      "two_dimensional_primary_spatial_on_demand"
+    );
+    assert.equal(
+      spatialPresentationPolicy({ informationBearing: true, webGpuAvailable: true }).mode,
+      "progressive_information_bearing_3d"
+    );
+  });
+
   it("keeps frontend and visual research current, non-executing, and source-grounded", () => {
     const intelligence = getFrontendVisualIntelligence();
     assert.equal(FRONTEND_VISUAL_SNAPSHOT_DATE, "2026-09-20");
