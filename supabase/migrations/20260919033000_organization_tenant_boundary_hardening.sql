@@ -60,18 +60,15 @@ as $$
   );
 $$;
 
--- Preserve the historical input parameter name. PostgreSQL identifies this
--- function by argument type, but CREATE OR REPLACE refuses to rename an
--- existing input parameter during a fresh replay.
-create or replace function public.is_org_owner_or_admin(_org_id uuid)
+create or replace function public.is_org_owner_or_admin(target_organization_id uuid)
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
-as $
-  select public.has_org_role(_org_id, array['owner','admin']::text[]);
-$;
+as $$
+  select public.has_org_role(target_organization_id, array['owner','admin']::text[]);
+$$;
 
 -- Policy helpers are intentionally callable by authenticated users because RLS
 -- evaluates them as that caller. PUBLIC/anon execution is unnecessary.
