@@ -11,7 +11,7 @@
 <body>
   <main>
     <header>
-      <p>SONARA Industries · Research Lab · Backend Pass #5 · 2026-09-20</p>
+      <p>SONARA Industries · Research Lab · Backend Pass #6 · 2026-09-20</p>
       <h1>Backend Operations: Fast, Accurate, Dependable, Recoverable</h1>
       <p>The goal is not an unrestricted self-modifying system. The goal is measurable correctness, bounded recovery, deterministic workflows, small blast radius, fast diagnosis, and safe rollback across every SONARA product.</p>
     </header>
@@ -115,6 +115,33 @@
         <li><strong>P2:</strong> fleet telematics, field-service adapters, POS/offline sync, media pipelines, manufacturing telemetry and realtime/spatial coordination.</li>
         <li><strong>P3:</strong> regulated or high-authority integrations only after domain-specific review.</li>
       </ol>
+    </section>
+
+    <section>
+      <h2>Pass #6: execution fabric and protocol boundaries</h2>
+      <p>PostgreSQL remains canonical. Transaction-adjacent work defaults to the existing outbox/inbox and persisted-job patterns. Long-lived or human-interactive processes may justify an isolated durable-workflow evaluation; high-throughput replay may justify a stream-fabric evaluation only after measured evidence. No research result installs a broker, workflow engine or database automatically.</p>
+      <p><code>edge → realtime → durable workflow → high-throughput replay → Postgres outbox/inbox → persisted job queue</code></p>
+    </section>
+
+    <section>
+      <h2>Interoperability without authority leakage</h2>
+      <p>CloudEvents, OpenFeature and MCP are treated as boundary specifications. They can standardize event metadata, feature evaluation and agent/tool interoperability, but organization scope, billing entitlement, secrets, approval, budgets and audit remain SONARA-owned server policy.</p>
+    </section>
+
+    <section>
+      <h2>Mobile entitlement reconciliation</h2>
+      <p>Apple App Store Server Notifications V2 and Google Play RTDN are provider evidence. Server handlers verify/authenticate events, deduplicate delivery, resolve authoritative purchase state when required, reconcile canonical SONARA entitlements and preserve audit evidence. Refund and chargeback decisions remain approval-gated.</p>
+    </section>
+
+    <section>
+      <h2>Pass #6 reference systems</h2>
+      <p>Reviewed references include DBOS, Temporal, Restate, NATS, CloudEvents, OpenFeature, MCP, Qdrant, OpenFGA, OpenTelemetry, Argo Rollouts and k6. License posture and runtime placement are recorded in the backend intelligence module. Every record remains non-executing and production-disabled by this research pass.</p>
+    </section>
+
+    <section>
+      <h2>Stronger autonomic repair gate</h2>
+      <p>Automatic remediation now additionally requires abortability, high rollback confidence and near-zero data-loss risk. Source/schema mutation remains branch-only, while widened authority, stale evidence, ambiguous tenant scope or high blast radius stops automation.</p>
+      <p><code>tenant_scoped &amp;&amp; fresh_evidence&gt;=0.9 &amp;&amp; deterministic &amp;&amp; reversible &amp;&amp; abortable &amp;&amp; rollback_confidence&gt;=0.9 &amp;&amp; blast_radius&lt;=0.05 &amp;&amp; data_loss_risk&lt;=0.01 &amp;&amp; !authority_sensitive</code></p>
     </section>
 
     <section>
