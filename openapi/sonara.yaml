@@ -75,6 +75,15 @@ paths:
       summary: Return the non-secret free-first technology directory.
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/invention-systems/catalog:
+    get:
+      operationId: getInventionSystemsCatalog
+      tags: [Platform]
+      summary: Return the authenticated SONARA invention-systems intelligence catalog.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/checkout/session:
     get:
       operationId: getCheckoutSessionMethodNotice
