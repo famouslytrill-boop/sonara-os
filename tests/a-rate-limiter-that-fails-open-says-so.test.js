@@ -4,14 +4,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { createRateLimiter } = require("../lib/sonara-rate-limit.cjs");
+const { createRateLimiter, __resetInMemoryBucketsForTests } = require("../lib/sonara-rate-limit.cjs");
 
 const root = path.join(__dirname, "..");
 
-// The rate limiter fails open when its Postgres counter cannot be reached, and
-// that is the right trade: failing closed turns a transient database problem
-// into a total authentication outage. The trade only holds while somebody finds
-// out it happened.
+// The rate limiter preserves availability when its Postgres counter cannot be
+// reached, but it must not become unlimited. The degraded path now falls back
+// to a bounded per-instance counter: weaker than the durable distributed limit,
+// but materially safer than admitting every attempt until Postgres recovers.
 //
 // `consumeRateLimit` says the degraded flag "is logged so the condition is
 // visible rather than silent". It was visible in one of four places. Only
@@ -68,22 +68,45 @@ async function capturingConsoleError(run) {
   return lines;
 }
 
-describe("a rate limiter that fails open says so", () => {
+describe("a degraded rate limiter remains bounded and says so", () => {
+  beforeEach(() => __resetInMemoryBucketsForTests());
   it("reports when no onDegraded was supplied, which is the case that was silent", async function probe() {
     this.timeout(15000);
     const lines = await capturingConsoleError(() => runLimiter({}));
-    assert.ok(lines.length > 0, "a limiter with no onDegraded degraded to fail-open and said nothing");
+    assert.ok(lines.length > 0, "a limiter with no onDegraded degraded and said nothing");
     assert.ok(
       lines.some((line) => line.includes("[rate-limit]") && line.includes("probe") && /degraded/i.test(line)),
       `nothing in the output names the degraded limiter: ${JSON.stringify(lines)}`
     );
   });
 
-  it("still lets the request through, because failing closed is the worse outage", async function probe() {
+  it("still lets the first request through, because failing closed is the worse outage", async function probe() {
     this.timeout(15000);
     let allowed;
     await capturingConsoleError(async () => { allowed = await runLimiter({}); });
     assert.equal(allowed, true, "a database problem became an authentication outage");
+  });
+
+  it("uses a finite fallback budget when the durable counter is unavailable", async function probe() {
+    this.timeout(30000);
+    const limiter = createRateLimiter({
+      name: "bounded-probe",
+      windowSeconds: 60,
+      maxAttempts: 2,
+      getSupabaseServerConfig: UNREACHABLE
+    });
+    const responses = [];
+    await capturingConsoleError(async () => {
+      for (let index = 0; index < 3; index += 1) {
+        const res = responseStub();
+        let nexted = false;
+        await limiter(requestWithIp("203.0.113.9"), res, () => { nexted = true; });
+        responses.push({ nexted, statusCode: res.statusCode, retryAfter: res.headers["Retry-After"] });
+      }
+    });
+    assert.deepEqual(responses.map((item) => item.nexted), [true, true, false]);
+    assert.equal(responses[2].statusCode, 429, "the degraded limiter never enforced its fallback budget");
+    assert.ok(Number(responses[2].retryAfter) >= 1, "the denial did not tell the caller when to retry");
   });
 
   it("never prints the service-role key it failed to authenticate with", async function probe() {
