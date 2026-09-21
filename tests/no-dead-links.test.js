@@ -124,6 +124,18 @@ describe("no dead links", () => {
     assert.equal(rows, tools.length, `the page shows ${rows} records and the register holds ${tools.length}`);
   });
 
+  it("keeps the 2026 repository sweep bounded to 20 candidates and 20 research-only records", async () => {
+    const res = await request(app).get("/api/ecosystem/open-source").set("Accept", "application/json");
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body.repositorySweep, {
+      snapshotDate: "2026-09-20",
+      installableCandidates: 20,
+      researchOnly: 20,
+      runtimeDependenciesInstalled: 0,
+      productionCapabilitiesActivated: 0
+    });
+  });
+
   it("parses the register the same way the release gate does", () => {
     // Two readers of one file that disagree is how a page starts showing a
     // different register from the one being gated.

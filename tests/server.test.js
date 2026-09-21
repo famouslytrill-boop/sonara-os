@@ -1690,7 +1690,7 @@ describe("pricing and checkout", () => {
       .set("Authorization", "Bearer customer-session")
       .type("form")
       .set("Accept", "text/html")
-      .send({ plan: "workspace_monthly" });
+      .send({ plan: "workspace_monthly", workspace: "business_builder" });
 
     global.fetch = originalFetch;
 
@@ -1719,7 +1719,7 @@ describe("pricing and checkout", () => {
       .post("/api/billing/create-checkout-session")
       .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
-      .send({ priceKey: "workspace_monthly" });
+      .send({ priceKey: "workspace_monthly", workspace: "creator_studio" });
 
     global.fetch = originalFetch;
 
@@ -1772,7 +1772,7 @@ describe("pricing and checkout", () => {
       .post("/api/checkout/session")
       .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
-      .send({ plan: "workspace_monthly" });
+      .send({ plan: "workspace_monthly", workspace: "growth_studio" });
 
     global.fetch = originalFetch;
 

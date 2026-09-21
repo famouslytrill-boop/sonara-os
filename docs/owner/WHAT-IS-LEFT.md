@@ -92,10 +92,11 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 237 reviewed repositories, 31 carry a
-reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
-reaches a hosted product; 18 declare no licence at all — which is not a review
-item, it is an absence of permission — and 2 rest on n8n's fair-code Sustainable
+**Some of it cannot be built as stated.** Of 269 reviewed repositories, 36 carry a
+reciprocal licence. Of those, 18 are network-triggered, 15 trigger on
+distribution, and 3 are custom or qualified enough that the individual record
+must be read; 18 declare no licence at all — which is not a review item, it is
+an absence of permission — and 2 rest on n8n's fair-code Sustainable
 Use Licence, which permits internal use but restricts offering it as a hosted
 service. "Install all repositories" has no completion state that is also legal.
 
@@ -136,11 +137,11 @@ rather than fixed.
 Each of the figures below except the last is now derived by
 `scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
 
-- **309** registered GET routes
+- **310** registered GET routes
 - **337** tables created by the migrations, **240** of them organization-scoped
 - **27** owner record pages
 - **57** verification commands in the release chain
-- **237** external repositories reviewed with their licences read off each one
+- **269** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
 - **22** record checks — **hand-counted on 12 August 2026 and not derived.**

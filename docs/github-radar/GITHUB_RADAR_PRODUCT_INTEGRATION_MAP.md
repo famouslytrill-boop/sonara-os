@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-237 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 237.
+269 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 269.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-53 repositories.
+60 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -21,12 +21,13 @@ Create, launch, run and manage a business.
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
 | [Business Machine Learning (firmai)](https://github.com/firmai/business-machine-learning) | AGPL-3.0 | Read only | applied analytics index |
-| [Cal (calcom/cal.diy, formerly cal.com)](https://github.com/calcom/cal.diy) | MIT at the repository root, from GitHub's detected licence field | Licence unresolved | appointment booking |
+| [Cal (calcom/cal.diy, formerly cal.com)](https://github.com/calcom/cal.diy) | MIT at the repository root, from GitHub's detected licence field | Licence unresolved | 2026 repository sweep research-only |
 | [Carbon (open ERP, MES and QMS for manufacturing)](https://github.com/crbnos/carbon) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | manufacturing |
-| [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
+| [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | MIT; content outside enterprise/ is MIT Expat, while enterprise/ | Read only | 2026 repository sweep research-only |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
+| [ERPNext](https://github.com/frappe/erpnext) | GPL-3.0 | Research only | 2026 repository sweep research-only |
 | [erxes](https://github.com/erxes/erxes) | AGPL-3.0 | Read only | CRM and support suite |
 | [Excalidraw](https://github.com/excalidraw/excalidraw) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | drawing |
 | [Flint](https://github.com/chintanpatel24/flint) | MIT | Read only | local knowledge base |
@@ -39,27 +40,33 @@ Create, launch, run and manage a business.
 | [LiveKit Agents](https://github.com/livekit/agents) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Research only | realtime voice |
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
 | [Lunar (headless e-commerce for Laravel)](https://github.com/lunarphp/lunar) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Read only | e-commerce |
+| [Medusa](https://github.com/medusajs/medusa) | MIT core; enterprise materials require separate commercial terms | Research only | 2026 repository sweep research-only |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
-| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License v1.0 -- source-available, NOT an open-so | Licence unresolved | workflow automation |
+| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License v1.0 -- source-available, NOT an open-so | Licence unresolved | 2026 repository sweep research-only |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
+| [NocoDB](https://github.com/nocodb/nocodb) | Sustainable Use License 1.0 on current master/develop; source-av | Licence unresolved | 2026 repository sweep research-only |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
+| [Odoo Community](https://github.com/odoo/odoo) | LGPL-3.0; Odoo Community 19.0 root LICENSE, with bundled compone | Research only | 2026 repository sweep research-only |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
 | [Open SaaS (wasp-lang)](https://github.com/wasp-lang/open-saas) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
 | [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx) | GPL-3.0 | Read only | document management |
-| [Plane](https://github.com/makeplane/plane) | AGPL-3.0 | Read only | project management |
+| [Plane](https://github.com/makeplane/plane) | AGPL-3.0 | Read only | 2026 repository sweep research-only |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [QloApps](https://github.com/Qloapps/QloApps) | OSL-3.0 | Read only | hotel reservations |
 | [QR Code generator (Project Nayuki)](https://github.com/nayuki/QR-Code-generator) | MIT | Adapt after review | QR code generation |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | adapter_built | retrieval augmented generation |
+| [Resend Node SDK](https://github.com/resend/resend-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [RestaurantProject (BryanTheLai)](https://github.com/BryanTheLai/RestaurantProject) | Apache-2.0 | Read only | hospitality reference |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
+| [Saleor](https://github.com/saleor/saleor) | BSD-3-Clause | Research only | 2026 repository sweep research-only |
+| [Stripe Node SDK](https://github.com/stripe/stripe-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [TastyIgniter](https://github.com/tastyigniter/TastyIgniter) | MIT | Adapt after review | online ordering |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
-| [ToolJet](https://github.com/ToolJet/ToolJet) | AGPL-3.0, read from the GitHub API's detected license.spdx_id on | Blocked | internal tool builder |
+| [ToolJet](https://github.com/ToolJet/ToolJet) | AGPL-3.0, read from the GitHub API's detected license.spdx_id on | Blocked | 2026 repository sweep research-only |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [ury (ERPNext restaurant management)](https://github.com/ury-erp/ury) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | restaurant management |
@@ -72,7 +79,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-58 repositories.
+60 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -114,7 +121,9 @@ Organize, protect, publish, monetize and grow creative work.
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
 | [OpenVid](https://github.com/cristianolivera1/openvid) | PolyForm Noncommercial 1.0.0 | Blocked | screen recording |
 | [OpenVoice](https://github.com/myshell-ai/OpenVoice) | MIT | Adapt after review | voice cloning |
+| [pgvector-node](https://github.com/pgvector/pgvector-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
+| [Qdrant JavaScript SDK](https://github.com/qdrant/qdrant-js) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [seek-tune (Shazam-style audio fingerprinting)](https://github.com/cgzirim/seek-tune) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio fingerprinting |
@@ -139,10 +148,11 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-38 repositories.
+43 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
+| [Activepieces](https://github.com/activepieces/activepieces) | MIT core with separately licensed enterprise directories | Research only | 2026 repository sweep research-only |
 | [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Content Studio (naqashafzal)](https://github.com/naqashafzal/AI-Content-Studio) | MIT | Adapt after review | content generation workflow |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
@@ -162,21 +172,25 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Ghost](https://github.com/TryGhost/Ghost) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | publishing |
 | [Hi.Events (event management and ticket selling)](https://github.com/HiEventsDev/Hi.Events) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | events |
 | [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
+| [Mautic](https://github.com/mautic/mautic) | GPL-3.0-or-later | Research only | 2026 repository sweep research-only |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
-| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License v1.0 -- source-available, NOT an open-so | Licence unresolved | workflow automation |
+| [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License v1.0 -- source-available, NOT an open-so | Licence unresolved | 2026 repository sweep research-only |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
 | [NotFair](https://github.com/nowork-studio/NotFair) | MIT | Read only | marketing automation |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
-| [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
+| [pgvector-node](https://github.com/pgvector/pgvector-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
+| [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | 2026 repository sweep research-only |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
+| [Qdrant JavaScript SDK](https://github.com/qdrant/qdrant-js) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [QR Code generator (Project Nayuki)](https://github.com/nayuki/QR-Code-generator) | MIT | Adapt after review | QR code generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
+| [Resend Node SDK](https://github.com/resend/resend-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
-| [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | Not classifiable by GitHub. Its detected licence on 18 August 20 | Licence unresolved | CRM |
+| [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | AGPL-3.0; most of the repository is AGPLv3, Enterprise-marked fi | Licence unresolved | 2026 repository sweep research-only |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [wacrm (self-hostable WhatsApp CRM template)](https://github.com/ArnasDon/wacrm) | MIT. Read on 18 August 2026 from GitHub's own detected licence f | Adapt after review | CRM |
 | [WebLLM](https://github.com/mlc-ai/web-llm) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
@@ -186,20 +200,23 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-141 repositories.
+173 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [500 AI Agents Projects (ashishpatel26)](https://github.com/ashishpatel26/500-ai-agents-projects) | MIT | Read only | curated list |
 | [Academic Research Skills](https://github.com/Imbad0202/academic-research-skills) | Creative Commons Attribution-NonCommercial 4.0 International (CC | Blocked | Claude Code skills |
+| [Activepieces](https://github.com/activepieces/activepieces) | MIT core with separately licensed enterprise directories | Research only | 2026 repository sweep research-only |
 | [Agency Agents / The Agency (msitarzewski)](https://github.com/msitarzewski/agency-agents) | MIT | Read only | agent personas |
 | [Agent Room](https://github.com/steviebuilds/agent-room) | MIT | Read only | developer tooling |
 | [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT | Read only | course material |
 | [AI-SDLC Framework](https://github.com/ai-sdlc-framework/ai-sdlc) | Apache License 2.0 for the code in the repository; the enterpris | Read only | AI coding agent orchestration |
+| [Ajv](https://github.com/ajv-validator/ajv) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Anthropic Agent Skills (anthropics/skills)](https://github.com/anthropics/skills) | None declared (all rights reserved) | Blocked | agent skills |
 | [Anthropic Cybersecurity Skills (community)](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) | Apache-2.0 | Research only | Claude Code skills |
 | [AnyCreature](https://github.com/ariescar/anycreature) | MIT | Read only | text-to-3D |
+| [Appsmith](https://github.com/appsmithorg/appsmith) | Apache-2.0 | Research only | 2026 repository sweep research-only |
 | [Archify](https://github.com/tt-a1i/archify) | MIT | Read only | agent skill |
 | [Archon](https://github.com/coleam00/Archon) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | AI coding harness |
 | [Artifact Server (Plannotator)](https://github.com/plannotator/artifact-server) | AGPL-3.0 | Blocked | artifact hosting |
@@ -219,15 +236,17 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [book-to-skill](https://github.com/virgiliojr94/book-to-skill) | MIT | Adapt after review | agent skill packaging |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
 | [BrowserCode (browser-use)](https://github.com/browser-use/browsercode) | MIT (upstream opencode copyright, retained by the fork) | Security review first | coding agent |
+| [BullMQ](https://github.com/taskforcesh/bullmq) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [BYOC (Bring Your Own Cloud)](https://github.com/Ajayvarmaramineni/byoc) | Apache-2.0 | Read only | storage abstraction |
 | [camofox-browser](https://github.com/redf0x1/camofox-browser) | MIT | Blocked | browser automation |
 | [Casdoor](https://github.com/casdoor/casdoor) | Apache-2.0 | Research only | identity provider |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | component library |
-| [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
+| [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | MIT; content outside enterprise/ is MIT Expat, while enterprise/ | Read only | 2026 repository sweep research-only |
 | [Claude Code](https://github.com/anthropics/claude-code) | Anthropic product terms; not treated as a redistributable open-s | Read only | developer CLI |
 | [Claude SEO](https://github.com/AgriciDaniel/claude-seo) | MIT | Adapt after review | developer workflow |
 | [ClawFlows](https://github.com/nikilster/clawflows) | Unclear, and the ambiguity is the finding. The README carries a  | Licence unresolved | agent workflow collection |
 | [Clone Wars](https://github.com/GorvGoyl/Clone-Wars) | CC0-1.0 | Read only | index of open-source clones |
+| [CloudEvents JavaScript SDK](https://github.com/cloudevents/sdk-javascript) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [Cloudflare Agents](https://github.com/cloudflare/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |
 | [Codegraff](https://github.com/justrach/codegraff) | Modified AGPL-3.0 with licensor-only reserved commercial and clo | Read only | agent harness |
@@ -238,17 +257,20 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [DeepSeek V3](https://github.com/deepseek-ai/DeepSeek-V3) | Repository code is MIT; model weights use the upstream DeepSeek  | Licence unresolved | open-weight model |
 | [developer-roadmap (roadmap.sh)](https://github.com/kamranahmedse/developer-roadmap) | Custom: personal use only, no republication (all other rights re | Blocked | learning paths |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
-| [Directus](https://github.com/directus/directus) | MSCL-1.0-GPL (Monospace Sustainable Core License 1.0) | Research only | headless CMS |
+| [Directus](https://github.com/directus/directus) | MSCL-1.0-GPL (Monospace Sustainable Core License 1.0) | Research only | 2026 repository sweep research-only |
 | [Doop](https://github.com/kgoedecke/doop) | AGPL-3.0 | Read only | design canvas |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
 | [DwarfStar (ds4-metal)](https://github.com/ivanfioravanti/ds4-metal) | MIT. LICENSE read 11 September 2026: 'MIT License, Copyright (c) | Read only | local model inference |
 | [Ecommerce Intelligence APIs](https://github.com/cporter202/ecommerce-intelligence-apis) | MIT | Blocked | API directory |
+| [ERPNext](https://github.com/frappe/erpnext) | GPL-3.0 | Research only | 2026 repository sweep research-only |
+| [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Face Anything](https://github.com/kocasariumut/faceanything) | CC-BY-NC-4.0 | Blocked | face reconstruction |
 | [fal-3d-anything](https://github.com/blendi-remade/fal-3d-anything) | None declared; the README says MIT but the repository has no lic | Blocked | image-to-3D |
 | [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
 | [Figranium](https://github.com/figranium/figranium) | GPL-3.0, read from the GitHub API's detected license.spdx_id on  | Read only | browser automation |
 | [Flint](https://github.com/chintanpatel24/flint) | MIT | Read only | local knowledge base |
 | [Flox](https://github.com/flox/flox) | GPL-2.0, read from the GitHub API's detected license.spdx_id on  | Read only | developer environments |
+| [Forgejo](https://codeberg.org/forgejo/forgejo) | GPL-3.0-or-later; current Forgejo v9+ releases | Research only | 2026 repository sweep research-only |
 | [free-for.dev](https://github.com/ripienaar/free-for-dev) | None declared. The GitHub API returns no `license` object at all | Blocked | link directory |
 | [FreeToken](https://github.com/FlashML-org/FreeToken) | Apache-2.0; model weights and accelerator dependencies require s | Research only | local model inference |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
@@ -256,10 +278,13 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [GenAI Agents (NirDiamant)](https://github.com/NirDiamant/GenAI_Agents) | NOASSERTION: GitHub detects a licence file it cannot classify. U | Licence unresolved | tutorials |
 | [GEO SEO Claude](https://github.com/zubair-trabzada/geo-seo-claude) | MIT | Read only | SEO |
 | [GitDiagram](https://github.com/ahmedkhaleel2004/gitdiagram) | MIT | Read only | architecture diagrams |
+| [Gitea](https://github.com/go-gitea/gitea) | MIT | Research only | 2026 repository sweep research-only |
 | [Gitingest](https://github.com/cyclotruc/gitingest) | MIT | Read only | repository extraction |
+| [GitLab Community Edition mirror](https://github.com/gitlabhq/gitlabhq) | MIT core in the mirror, with documentation and enterprise/JH dir | Research only | 2026 repository sweep research-only |
 | [GitMCP](https://github.com/idosal/git-mcp) | Apache-2.0 | Read only | MCP tooling |
 | [Gortex](https://github.com/zzet/gortex) | Apache-2.0 | Read only | code intelligence |
 | [Gridex](https://github.com/gridex/gridex) | Apache-2.0 | Research only | database client |
+| [Helmet](https://github.com/helmetjs/helmet) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [Hugging Face Transformers](https://github.com/huggingface/transformers) | Apache-2.0; every model and dataset licence remains separate | Read only | model framework |
 | [Image Pipes (mrajaeim)](https://github.com/mrajaeim/image-pipes) | MIT | Read only | computer vision |
 | [IONOS \](https://www.ionos.com) | All rights reserved. The document carries \ | Blocked | competitor marketing material |
@@ -271,16 +296,23 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [LightRAG](https://github.com/HKUDS/LightRAG) | MIT | Read only | retrieval augmented generation |
 | [Logto](https://github.com/logto-io/logto) | MPL-2.0, read from the GitHub API's detected license.spdx_id on  | Read only | authentication |
 | [Lovable for Beginners](https://github.com/cporter202/lovable-for-beginners) | None declared (all rights reserved) | Blocked | course material |
+| [Mautic](https://github.com/mautic/mautic) | GPL-3.0-or-later | Research only | 2026 repository sweep research-only |
+| [Medusa](https://github.com/medusajs/medusa) | MIT core; enterprise materials require separate commercial terms | Research only | 2026 repository sweep research-only |
 | [Metabigor](https://github.com/j3ssie/metabigor) | MIT | Blocked | OSINT |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [MIT Technology Review Insights \](https://www.technologyreview.com) | All rights reserved. The back matter reads \ | Blocked | industry research |
+| [Model Context Protocol TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | Apache-2.0 / MIT transition; root LICENSE says new contributions | Adapt after review | 2026 repository sweep installable candidate |
 | [Next.js](https://github.com/vercel/next.js) | MIT | Research only | web framework |
+| [NocoDB](https://github.com/nocodb/nocodb) | Sustainable Use License 1.0 on current master/develop; source-av | Licence unresolved | 2026 repository sweep research-only |
+| [node-cron](https://github.com/node-cron/node-cron) | ISC | Adapt after review | 2026 repository sweep installable candidate |
 | [NodeGraphQt](https://github.com/jchanvfx/NodeGraphQt) | MIT | Read only | node editor |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs/EAGLE) | Apache-2.0 for the code; the model weights are under the NVIDIA  | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs/LongLive) | Apache-2.0 (repository); one vendored subdirectory is MIT | Research only | long-video generation infrastructure |
 | [OBLITERATUS](https://github.com/elder-plinius/OBLITERATUS) | AGPL-3.0 upstream with a stated commercial-license option; legal | Blocked | model safety research |
+| [Odoo Community](https://github.com/odoo/odoo) | LGPL-3.0; Odoo Community 19.0 root LICENSE, with bundled compone | Research only | 2026 repository sweep research-only |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
 | [OmniRoute](https://github.com/diegosouzapw/OmniRoute) | MIT | Read only | AI gateway |
+| [Open Policy Agent](https://github.com/open-policy-agent/opa) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [Open SaaS (wasp-lang)](https://github.com/wasp-lang/open-saas) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | adapter_built | model interface |
 | [OpenAI Agents SDK (Python)](https://github.com/openai/openai-agents-python) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
@@ -289,33 +321,46 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [opencode (anomalyco)](https://github.com/anomalyco/opencode) | MIT | Read only | coding agent |
 | [OpenCompany](https://github.com/zeenie-ai/opencompany) | MIT | Read only | agent workflows |
 | [OpenContext](https://github.com/0xranx/OpenContext) | Three different declarations in one repository, which is the fin | Licence unresolved | AI coding agent tooling |
+| [OpenFeature JavaScript SDK](https://github.com/open-feature/js-sdk) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
+| [OpenFGA](https://github.com/openfga/openfga) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [OpenHuman](https://github.com/tinyhumansai/openhuman) | GPL-3.0 | Read only | personal AI |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
+| [OpenTelemetry JavaScript](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [OpenVid](https://github.com/cristianolivera1/openvid) | PolyForm Noncommercial 1.0.0 | Blocked | screen recording |
 | [OpenViking](https://github.com/volcengine/openviking) | AGPL-3.0 | Read only | agent memory |
 | [Ory Kratos](https://github.com/ory/kratos) | Apache-2.0 | Research only | identity provider |
 | [OSIRIS](https://github.com/simplifaisoul/osiris) | MIT | Blocked | OSINT aggregation |
 | [OWASP Noir](https://github.com/owasp-noir/noir) | MIT | Adapt after review | static analysis |
+| [pgvector-node](https://github.com/pgvector/pgvector-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
+| [Pino](https://github.com/pinojs/pino) | MIT | Adapt after review | 2026 repository sweep installable candidate |
+| [Playwright](https://github.com/microsoft/playwright) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [PostgREST](https://github.com/PostgREST/postgrest) | PostgreSQL | Read only | database access layer |
-| [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
+| [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | 2026 repository sweep research-only |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [Public APIs](https://github.com/public-apis/public-apis) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Read only | directory |
 | [Public Suffix List](https://github.com/publicsuffix/list) | MPL-2.0 | Research only | data list |
+| [Qdrant JavaScript SDK](https://github.com/qdrant/qdrant-js) | Apache-2.0 | Adapt after review | 2026 repository sweep installable candidate |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | adapter_built | retrieval augmented generation |
 | [React](https://github.com/facebook/react) | MIT | Research only | UI library |
 | [Real Estate Data APIs](https://github.com/cporter202/real-estate-data-apis) | MIT | Blocked | API directory |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
+| [Resend Node SDK](https://github.com/resend/resend-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [reverse-skill](https://github.com/zhaoxuya520/reverse-skill) | MIT | Blocked | reverse engineering |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
+| [Saleor](https://github.com/saleor/saleor) | BSD-3-Clause | Research only | 2026 repository sweep research-only |
 | [SAM Sovereign Agent Mesh](https://github.com/google/sam) | Apache-2.0 | Security review first | peer-to-peer agents |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
+| [Sentry](https://github.com/getsentry/sentry) | Source-available / mixed licensing; exact components and deploym | Licence unresolved | 2026 repository sweep research-only |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Skills for Real Engineers (Matt Pocock)](https://github.com/mattpocock/skills) | MIT | Read only | agent skills |
 | [software-income-playbooks](https://github.com/cporter202/software-income-playbooks) | None declared. No LICENSE file and no licence statement, checked | Blocked | advertised as curated playbooks and APIs |
 | [Sonora (nolight132)](https://github.com/nolight132/sonora) | GPL-3.0-or-later | Read only | music streaming client |
 | [Stock Market Signal Automation (cporter202)](https://github.com/cporter202/stock-market-signal-automation) | MIT | Read only | webhook starter kit |
 | [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
+| [Stripe Node SDK](https://github.com/stripe/stripe-node) | MIT | Adapt after review | 2026 repository sweep installable candidate |
+| [Supabase JavaScript Client](https://github.com/supabase/supabase-js) | MIT | Adapt after review | 2026 repository sweep installable candidate |
+| [Temporal TypeScript SDK](https://github.com/temporalio/sdk-typescript) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [TidyFactor Styler](https://github.com/TidyFactor/Styler) | Apache-2.0 | Read only | Claude Code skill |
 | [UniFace](https://github.com/yakhyo/uniface) | MIT | Blocked | face recognition |
@@ -331,6 +376,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [x-cmd](https://github.com/x-cmd/x-cmd) | Apache-2.0 | Read only | command-line tooling |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
 | [Zitadel](https://github.com/zitadel/zitadel) | AGPL-3.0 | Research only | identity provider |
+| [Zod](https://github.com/colinhacks/zod) | MIT | Adapt after review | 2026 repository sweep installable candidate |
 
 ## Placed against no product
 

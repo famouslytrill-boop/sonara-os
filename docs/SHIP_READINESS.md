@@ -236,7 +236,7 @@ customers out of their own records.
 > itself is still the owner's decision, against production rather than a replay.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 124 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 125 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
@@ -427,7 +427,7 @@ cannot:
 | Nothing would route to it anyway | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
 
 The shipped product is the Express CommonJS application: `server.js`, `routes/`,
-`lib/`, **309 registered GET routes**, deployed as one serverless function.
+`lib/`, **310 registered GET routes**, deployed as one serverless function.
 
 **What it cost, before it was found.** `scripts/report-orphan-tables.mjs` counted
 a table as "queried" when any `.ts` file named it. So the release chain reported
@@ -560,7 +560,7 @@ reports these tables as used.
   succeeded since 5 August. So it had reported nothing for a month while the set
   nearly doubled.
 
-  Measured against the replay (all 124 migrations on an empty database, so this
+  Measured against the replay (all 125 migrations on an empty database, so this
   is the migrations' intended end state, not production's): **31 of 311 tables
   with RLS enabled.**
 

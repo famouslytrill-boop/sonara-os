@@ -1039,6 +1039,113 @@ describe("the billing module stands on its own", () => {
     });
   });
 
+  it("requires and renders an explicit workspace choice for the one-workspace plan", async () => {
+    const billing = createBilling(deps());
+    const readiness = { services: { stripe: "configured", checkout: "enabled" } };
+    const card = billing.priceCard(
+      "workspace_monthly",
+      STRIPE_PLANS.workspace_monthly,
+      { checkout: "enabled", reason: "configured" },
+      readiness
+    );
+    assert.match(card, /name="workspace"/);
+    assert.match(card, /business_builder/);
+    assert.match(card, /creator_studio/);
+    assert.match(card, /growth_studio/);
+
+    const originalFetch = global.fetch;
+    let contactedStripe = false;
+    global.fetch = async () => {
+      contactedStripe = true;
+      throw new Error("Stripe must not be contacted without a workspace choice");
+    };
+    try {
+      const refused = await billing.createStripeCheckoutSession(
+        { body: {} },
+        "workspace_monthly",
+        "price_workspace",
+        "org-1",
+        { id: "user-1" },
+        "cus-1"
+      );
+      assert.deepEqual(refused, { ok: false, code: "workspace_required" });
+      assert.equal(contactedStripe, false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("carries the chosen workspace into Stripe session and subscription metadata", async () => {
+    const billing = createBilling(deps());
+    const originalFetch = global.fetch;
+    let checkoutBody = "";
+    global.fetch = async (url, options = {}) => {
+      if (String(url).includes("/v1/checkout/sessions")) {
+        checkoutBody = String(options.body || "");
+        return new Response(JSON.stringify({ url: "https://checkout.stripe.com/c/session_test" }), { status: 200 });
+      }
+      throw new Error(`unexpected Stripe call: ${url}`);
+    };
+    try {
+      const created = await billing.createStripeCheckoutSession(
+        { body: { workspace: "creator-studio" } },
+        "workspace_monthly",
+        "price_workspace",
+        "org-1",
+        { id: "user-1" },
+        "cus-1"
+      );
+      assert.equal(created.ok, true);
+      const params = new URLSearchParams(checkoutBody);
+      assert.equal(params.get("metadata[workspace]"), "creator_studio");
+      assert.equal(params.get("metadata[workspace_key]"), "creator_studio");
+      assert.equal(params.get("subscription_data[metadata][workspace]"), "creator_studio");
+      assert.equal(params.get("subscription_data[metadata][workspace_key]"), "creator_studio");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("preserves the chosen workspace when Stripe webhooks update access rows", async () => {
+    const writes = [];
+    const billing = createBilling(deps({
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co" })
+    }));
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      writes.push({ url: String(url), body: options.body ? JSON.parse(String(options.body)) : undefined });
+      return new Response("[]", { status: 200 });
+    };
+    try {
+      const result = await billing.synchronizeBillingFromStripeEvent({
+        type: "customer.subscription.updated",
+        created: 1790000000,
+        data: {
+          object: {
+            id: "sub_workspace",
+            customer: "cus_workspace",
+            status: "active",
+            metadata: {
+              organization_id: "org-1",
+              plan: "workspace_monthly",
+              workspace: "growth_studio"
+            }
+          }
+        }
+      });
+      assert.equal(result.ok, true);
+      const subscription = writes.find((write) => write.url.includes("/billing_subscriptions"));
+      const entitlement = writes.find((write) => write.url.includes("/billing_entitlements"));
+      assert.equal(subscription.body.metadata.workspace, "growth_studio");
+      assert.equal(subscription.body.metadata.workspace_key, "growth_studio");
+      assert.equal(entitlement.body.metadata.workspace, "growth_studio");
+      assert.equal(entitlement.body.metadata.workspace_key, "growth_studio");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+
   it("does not offer a checkout button for a plan that cannot be bought", () => {
     const billing = createBilling(deps());
     const readiness = { services: { stripe: "missing", checkout: "setup_required" } };

@@ -8,6 +8,7 @@ const {
   createCustomerAuth,
   GOOGLE_OAUTH_VERIFIER_COOKIE,
   GOOGLE_OAUTH_NEXT_COOKIE,
+  GOOGLE_OAUTH_FLOW_COOKIE_PREFIX,
   GOOGLE_OAUTH_MAX_AGE_SECONDS
 } = require("../lib/sonara-customer-auth.cjs");
 
@@ -91,18 +92,22 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
     assert.equal(url.searchParams.get("code_challenge_method"), "s256");
     assert.equal(url.searchParams.get("scopes"), "openid email profile");
 
-    const verifier = cookies.set.find((cookie) => cookie.name === GOOGLE_OAUTH_VERIFIER_COOKIE);
-    const next = cookies.set.find((cookie) => cookie.name === GOOGLE_OAUTH_NEXT_COOKIE);
-    assert.ok(verifier?.value.length >= 43);
-    assert.equal(verifier.options.httpOnly, true);
-    assert.equal(verifier.options.sameSite, "lax");
-    assert.equal(verifier.options.secure, true);
-    assert.equal(verifier.options.maxAge, GOOGLE_OAUTH_MAX_AGE_SECONDS * 1000);
-    assert.equal(next.value, "/creator-studio/dashboard?tab=release");
+    assert.match(started.state, /^[A-Za-z0-9_-]{32,128}$/);
+    assert.equal(url.searchParams.get("state"), started.state);
+    const flowCookie = cookies.set.find((cookie) => cookie.name === `${GOOGLE_OAUTH_FLOW_COOKIE_PREFIX}${started.state}`);
+    assert.ok(flowCookie);
+    assert.equal(flowCookie.options.httpOnly, true);
+    assert.equal(flowCookie.options.sameSite, "lax");
+    assert.equal(flowCookie.options.secure, true);
+    assert.equal(flowCookie.options.maxAge, GOOGLE_OAUTH_MAX_AGE_SECONDS * 1000);
 
-    const expectedChallenge = crypto.createHash("sha256").update(verifier.value).digest("base64url");
+    const flow = JSON.parse(Buffer.from(flowCookie.value, "base64url").toString("utf8"));
+    assert.ok(flow.verifier.length >= 43);
+    assert.equal(flow.nextPath, "/creator-studio/dashboard?tab=release");
+
+    const expectedChallenge = crypto.createHash("sha256").update(flow.verifier).digest("base64url");
     assert.equal(url.searchParams.get("code_challenge"), expectedChallenge);
-    assert.equal(started.url.includes(verifier.value), false, "PKCE verifier leaked into the redirect URL");
+    assert.equal(started.url.includes(flow.verifier), false, "PKCE verifier leaked into the redirect URL");
   });
 
   it("refuses an external next URL rather than creating an open redirect", async () => {
@@ -114,7 +119,9 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
       "https://evil.example/steal"
     );
     assert.equal(started.ok, true);
-    assert.equal(cookies.set.find((cookie) => cookie.name === GOOGLE_OAUTH_NEXT_COOKIE).value, "/dashboard");
+    const flowCookie = cookies.set.find((cookie) => cookie.name === `${GOOGLE_OAUTH_FLOW_COOKIE_PREFIX}${started.state}`);
+    const flow = JSON.parse(Buffer.from(flowCookie.value, "base64url").toString("utf8"));
+    assert.equal(flow.nextPath, "/dashboard");
   });
 
   it("exchanges the callback code for the same SONARA session shape email login uses", async () => {
@@ -136,13 +143,16 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
     };
 
     const cookies = responseCookies();
-    const cookieHeader = [
-      `${GOOGLE_OAUTH_VERIFIER_COOKIE}=${encodeURIComponent("verifier-value")}`,
-      `${GOOGLE_OAUTH_NEXT_COOKIE}=${encodeURIComponent("/dashboard")}`
-    ].join("; ");
+    const state = "callback-state-0123456789abcdef0123456789";
+    const flowCookieName = `${GOOGLE_OAUTH_FLOW_COOKIE_PREFIX}${state}`;
+    const flowCookieValue = Buffer.from(JSON.stringify({
+      verifier: "verifier-value-0123456789abcdef0123456789abcdef0123456789",
+      nextPath: "/dashboard"
+    }), "utf8").toString("base64url");
+    const cookieHeader = `${flowCookieName}=${encodeURIComponent(flowCookieValue)}`;
 
     const result = await createCustomerAuth(deps()).completeGoogleOAuth(
-      { query: { code: "auth-code" }, get: (name) => String(name).toLowerCase() === "cookie" ? cookieHeader : "" },
+      { query: { code: "auth-code", state }, get: (name) => String(name).toLowerCase() === "cookie" ? cookieHeader : "" },
       cookies.res
     );
 
@@ -154,22 +164,110 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
       refreshToken: "refresh-token",
       maxAgeSeconds: 3600
     });
-    assert.deepEqual(tokenBody, { auth_code: "auth-code", code_verifier: "verifier-value" });
-    assert.deepEqual(
-      cookies.cleared.map((cookie) => cookie.name).sort(),
-      [GOOGLE_OAUTH_NEXT_COOKIE, GOOGLE_OAUTH_VERIFIER_COOKIE].sort()
-    );
+    assert.deepEqual(tokenBody, {
+      auth_code: "auth-code",
+      code_verifier: "verifier-value-0123456789abcdef0123456789abcdef0123456789"
+    });
+    const clearedNames = cookies.cleared.map((cookie) => cookie.name);
+    assert.ok(clearedNames.includes(flowCookieName));
+    assert.ok(clearedNames.includes(GOOGLE_OAUTH_NEXT_COOKIE));
+    assert.ok(clearedNames.includes(GOOGLE_OAUTH_VERIFIER_COOKIE));
   });
 
   it("fails closed when callback proof is absent", async () => {
     const cookies = responseCookies();
     const result = await createCustomerAuth(deps()).completeGoogleOAuth(
-      { query: { code: "code-without-verifier" }, get: () => "" },
+      {
+        query: { code: "code-without-proof", state: "missing-proof-state-0123456789abcdef012345" },
+        get: () => ""
+      },
       cookies.res
     );
     assert.equal(result.ok, false);
     assert.equal(result.code, "oauth_callback_invalid");
     assert.equal(result.status, 400);
+  });
+
+  it("keeps simultaneous Google flows correlated to their own PKCE verifier", async () => {
+    let exchangedVerifier = "";
+    global.fetch = async (input, init = {}) => {
+      const url = String(input);
+      if (url.endsWith("/auth/v1/settings")) {
+        return new Response(JSON.stringify({ external: { google: true } }), { status: 200 });
+      }
+      if (url.includes("/auth/v1/token?grant_type=pkce")) {
+        exchangedVerifier = JSON.parse(String(init.body)).code_verifier;
+        return new Response(JSON.stringify({
+          access_token: "parallel-access",
+          refresh_token: "parallel-refresh",
+          expires_in: 3600
+        }), { status: 200 });
+      }
+      throw new Error(`unexpected URL ${url}`);
+    };
+
+    const cookies = responseCookies();
+    const auth = createCustomerAuth(deps());
+    const req = { get: () => "sonaraindustries.com", protocol: "https" };
+    const first = await auth.beginGoogleOAuth(req, cookies.res, "/business-builder/dashboard");
+    const second = await auth.beginGoogleOAuth(req, cookies.res, "/growth-studio/dashboard");
+    assert.notEqual(first.state, second.state);
+
+    const firstCookie = cookies.set.find((cookie) => cookie.name === `${GOOGLE_OAUTH_FLOW_COOKIE_PREFIX}${first.state}`);
+    const secondCookie = cookies.set.find((cookie) => cookie.name === `${GOOGLE_OAUTH_FLOW_COOKIE_PREFIX}${second.state}`);
+    assert.ok(firstCookie);
+    assert.ok(secondCookie);
+
+    const firstFlow = JSON.parse(Buffer.from(firstCookie.value, "base64url").toString("utf8"));
+    const cookieHeader = [
+      `${firstCookie.name}=${encodeURIComponent(firstCookie.value)}`,
+      `${secondCookie.name}=${encodeURIComponent(secondCookie.value)}`
+    ].join("; ");
+
+    const completed = await auth.completeGoogleOAuth(
+      {
+        query: { code: "first-code", state: first.state },
+        get: (name) => String(name).toLowerCase() === "cookie" ? cookieHeader : ""
+      },
+      cookies.res
+    );
+
+    assert.equal(completed.ok, true);
+    assert.equal(completed.nextPath, "/business-builder/dashboard");
+    assert.equal(exchangedVerifier, firstFlow.verifier);
+  });
+
+  it("ignores malformed cookie components instead of throwing during OAuth callback", async () => {
+    global.fetch = async (input) => {
+      if (String(input).includes("/auth/v1/token?grant_type=pkce")) {
+        return new Response(JSON.stringify({
+          access_token: "safe-access",
+          refresh_token: "safe-refresh",
+          expires_in: 3600
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ external: { google: true } }), { status: 200 });
+    };
+
+    const cookies = responseCookies();
+    const state = "malformed-cookie-state-0123456789abcdef012345";
+    const name = `${GOOGLE_OAUTH_FLOW_COOKIE_PREFIX}${state}`;
+    const value = Buffer.from(JSON.stringify({
+      verifier: "malformed-safe-verifier-0123456789abcdef0123456789abcdef",
+      nextPath: "/dashboard"
+    }), "utf8").toString("base64url");
+    const cookieHeader = `broken%key=x; ${name}=${encodeURIComponent(value)}`;
+
+    const result = await createCustomerAuth(deps()).completeGoogleOAuth(
+      {
+        query: { code: "safe-code", state },
+        get: (header) => String(header).toLowerCase() === "cookie" ? cookieHeader : ""
+      },
+      cookies.res
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(result.nextPath, "/dashboard");
   });
 
   it("the Express callback still sends Google sessions through SONARA two-factor", () => {
