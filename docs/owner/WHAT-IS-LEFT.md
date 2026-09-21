@@ -141,7 +141,7 @@ Each of the figures below except the last is now derived by
 - **337** tables created by the migrations, **240** of them organization-scoped
 - **27** owner record pages
 - **57** verification commands in the release chain
-- **237** external repositories reviewed with their licences read off each one
+- **269** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
 - **22** record checks — **hand-counted on 12 August 2026 and not derived.**
