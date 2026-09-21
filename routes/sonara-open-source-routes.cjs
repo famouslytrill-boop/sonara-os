@@ -32,6 +32,10 @@ const {
 } = require("../lib/sonara-repository-product-routing.cjs");
 const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-registry.cjs");
 
+const REPOSITORY_SWEEP_INSTALLABLE = "2026 repository sweep installable candidate";
+const REPOSITORY_SWEEP_RESEARCH = "2026 repository sweep research-only";
+const REPOSITORY_SWEEP_DATE = "2026-09-20";
+
 module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
@@ -46,11 +50,13 @@ module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
   // that record is present.
   app.get("/api/ecosystem/open-source", (req, res) => {
     const tools = readOpenSourceTools().map((tool) => ({ ...tool, name: displayName(tool) }));
+    const repositorySweep = repositorySweepCounts(tools);
     res.status(200).json({
       ok: true,
       status: "reviewed_register",
       toolCount: tools.length,
       counts: countBy(tools, "integrationStatus"),
+      repositorySweep,
       tools
     });
   });
@@ -59,6 +65,7 @@ module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
     const tools = readOpenSourceTools();
     const byIntegration = countBy(tools, "integrationStatus");
     const blocked = tools.filter((tool) => tool.integrationStatus === "blocked");
+    const repositorySweep = repositorySweepCounts(tools);
 
     const sections = [
       brandCard(
@@ -68,6 +75,10 @@ module.exports = function registerSonaraOpenSourceRoutes(app, deps = {}) {
       brandCard(
         "Nothing here runs by default",
         "Being listed is not adoption. Reference-only entries are read, not installed; an optional adapter still needs review before it is wired to anything; blocked entries are recorded so the same question is not asked twice."
+      ),
+      brandCard(
+        `Repository ecosystem sweep — ${repositorySweep.installableCandidates} installable candidates + ${repositorySweep.researchOnly} research only`,
+        `Snapshot ${repositorySweep.snapshotDate}. The installable group contains package/service candidates that can be evaluated behind SONARA adapters after licence, security, tenant and workload review. The research-only group is read for architecture, market and UX lessons but is not copied into the runtime. This sweep installs zero dependencies and activates zero production capabilities.`
       )
     ];
 
@@ -302,6 +313,17 @@ function placement(tool) {
   if (tool.integrationStatus === "blocked") return "Nowhere -- refused";
   if (tool.integrationStatus === "needs_license_review") return "Nowhere yet -- licence unresolved";
   return "Build-time only -- helps write SONARA, reaches no customer";
+}
+
+function repositorySweepCounts(tools) {
+  const hasCategory = (tool, category) => Array.isArray(tool.category) && tool.category.includes(category);
+  return Object.freeze({
+    snapshotDate: REPOSITORY_SWEEP_DATE,
+    installableCandidates: tools.filter((tool) => hasCategory(tool, REPOSITORY_SWEEP_INSTALLABLE)).length,
+    researchOnly: tools.filter((tool) => hasCategory(tool, REPOSITORY_SWEEP_RESEARCH)).length,
+    runtimeDependenciesInstalled: 0,
+    productionCapabilitiesActivated: 0
+  });
 }
 
 function countBy(items, key) {
