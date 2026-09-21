@@ -63,7 +63,10 @@ supabase_schema_backup.sql
 # Output of npm pack
 *.tgz
 
+# TypeScript and Next.js generate these locally; they are not source or release input.
+tsconfig.tsbuildinfo
 frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
 
 # Output from examples/qr-hello-world.js when run without an argument.
 examples/hello-world.png

@@ -79,7 +79,12 @@ const BOOKING_POST_SCHEMA = Object.freeze({
   customer_name: { type: "string", required: true, minLength: 1, maxLength: 120 },
   customer_email: { type: "string", maxLength: 320 },
   customer_phone: { type: "string", maxLength: 40 },
-  notes: { type: "string", maxLength: 1000 }
+  notes: { type: "string", maxLength: 1000 },
+  // These fields have appeared in forged or older form submissions. Accept
+  // them as bounded input so the request can still be handled, but never use
+  // them for tenant, staff, or location authority below.
+  organization_id: { type: "string", maxLength: 36 },
+  assigned_employee_id: { type: "string", maxLength: 36 }
 });
 
 const REQUIRED = [

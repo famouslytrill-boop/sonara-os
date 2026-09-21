@@ -147,13 +147,16 @@ Using it unmodified as a service creates no such obligation. That is a much
 narrower obligation than AGPL's and a wider one than MIT's, and the difference is
 worth knowing before somebody patches a file to fix something small.
 
-**Better Auth is a library, not a service, and this stack cannot use it as-is.**
+**Better Auth is a library, not a service, and this stack does not use it.**
 It is TypeScript for the Node ecosystem and would be the natural choice on almost
-any other JavaScript project. This one has **one production dependency** —
-`express` — no bundler and no build step (`pnpm run build` is
-`node --check server.js && node -e "require('./server')"`). Adding a TypeScript library means adding a compile
-step, which is a larger change to how this repository works than swapping an auth
-provider. Not a licence problem; an architecture one.
+any other JavaScript project. The current production manifest contains Express
+plus the reviewed OpenFeature and OpenTelemetry runtime packages; none is an
+authentication provider, and there is still no auth library to migrate around.
+There is no bundler or TypeScript build step (`pnpm run build` is
+`node --check server.js && node -e "require('./server')"`). Adding an auth library
+would therefore be an architectural change to the small server-side auth
+surface, not a dependency to add casually. Not a licence problem; an architecture
+one.
 
 ---
 
