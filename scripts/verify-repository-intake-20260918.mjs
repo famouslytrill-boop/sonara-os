@@ -30,10 +30,21 @@ const registryUrls = new Set(
   [...registry.matchAll(/repoUrl:\s*"([^"]+)"/g)]
     .map((match) => match[1].replace(/\/$/, "").toLowerCase())
 );
-const overlap = all
-  .filter((item) => registryUrls.has(String(item.url || "").replace(/\/$/, "").toLowerCase()))
-  .map((item) => item.url);
-if (overlap.length) problems.push(`intake duplicates existing formal-registry URLs: ${overlap.join(", ")}`);
+const isRegistryUrl = (item) =>
+  registryUrls.has(String(item.url || "").replace(/\/$/, "").toLowerCase());
+const promoted = all.filter((item) => item.promotedToRegistry === true);
+const unmarkedOverlap = all.filter((item) => isRegistryUrl(item) && item.promotedToRegistry !== true);
+const stalePromotions = promoted.filter((item) => !isRegistryUrl(item));
+if (unmarkedOverlap.length) {
+  problems.push(
+    `intake overlaps the formal registry without an explicit promotion marker: ${unmarkedOverlap.map((item) => item.url).join(", ")}`
+  );
+}
+if (stalePromotions.length) {
+  problems.push(
+    `promotedToRegistry is stale because the formal registry no longer contains: ${stalePromotions.map((item) => item.url).join(", ")}`
+  );
+}
 
 for (const item of research) {
   if (item.status !== "research_only") problems.push(`${item.key}: research record status must be research_only`);
@@ -67,4 +78,4 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`Repository intake verified: ${research.length} research-only + ${install.length} pinned install targets; 0 duplicates with the maintained open-source registry; execution remains disabled by registry authority.`);
+console.log(`Repository intake verified: ${research.length} research-only + ${install.length} pinned install targets; ${promoted.length} explicitly promoted into the maintained formal registry; 0 unmarked overlaps; execution remains disabled by registry authority.`);
