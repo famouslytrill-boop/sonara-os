@@ -30,7 +30,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm --allow-build=protobufjs add @openfeature/server-sdk @opentelemetry/api @opentelemetry/sdk-node @opentelemetry/instrumentation-http @opentelemetry/instrumentation-express @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/sdk-metrics
-          pnpm add -D @playwright/test
+          pnpm --allow-build=esbuild add -D @playwright/test
           pnpm audit --audit-level moderate
       - name: Commit only the package manifest and pnpm lockfile
         run: |
