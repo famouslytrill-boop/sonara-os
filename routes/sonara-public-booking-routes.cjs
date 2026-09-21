@@ -43,6 +43,7 @@
 // application committing a business to work it has not seen.
 
 const { availableSlots, isBookable, WEEKDAY_NAMES, normaliseOpeningHours, minutesFromClock, knownZone } = require("../lib/sonara-booking-availability.cjs");
+const { validateRequestBody } = require("../lib/sonara-request-schema.cjs");
 const { encode: encodeQr } = require("../lib/sonara-qr.cjs");
 const { toSvg: qrToSvg } = require("../lib/sonara-qr-png.cjs");
 
@@ -71,6 +72,15 @@ const CATALOG_TABLE = "business_service_catalog";
 // and the empty string there matches rows whose slug is empty rather than none.
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,46}[a-z0-9]$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const BOOKING_POST_SCHEMA = Object.freeze({
+  service_id: { type: "string", required: true, pattern: UUID_PATTERN, maxLength: 36 },
+  starts_at: { type: "string", required: true, minLength: 10, maxLength: 64 },
+  customer_name: { type: "string", required: true, minLength: 1, maxLength: 120 },
+  customer_email: { type: "string", maxLength: 320 },
+  customer_phone: { type: "string", maxLength: 40 },
+  notes: { type: "string", maxLength: 1000 }
+});
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
@@ -360,6 +370,16 @@ function registerPublicBookingRoutes(app, deps = {}) {
     const slug = String(req.params.slug || "").toLowerCase();
     if (!SLUG_PATTERN.test(slug)) return noSuchPage(res);
 
+    const shape = validateRequestBody(req.body, BOOKING_POST_SCHEMA, { maxKeys: 6 });
+    if (!shape.ok) {
+      return res.status(400).type("html").send(publicPage({
+        heading: "Check the booking details",
+        body: "Only the fields on this booking form are accepted. Reload the page and submit it again.",
+        sections: [brandCard("Nothing was booked", "The request did not match the booking form, so no customer or appointment record was written.")]
+      }));
+    }
+    const input = shape.value;
+
     const config = getSupabaseServerConfig();
     if (!config?.ok) return unavailable(res);
 
@@ -368,15 +388,15 @@ function registerPublicBookingRoutes(app, deps = {}) {
     if (!found.page) return noSuchPage(res);
     const page = found.page;
 
-    const serviceId = String(req.body?.service_id || "");
+    const serviceId = String(input.service_id || "");
     const services = await readServices(config, page.organization_id);
     if (!services.ok) return unavailable(res);
     const service = UUID_PATTERN.test(serviceId) ? services.rows.find((row) => row.id === serviceId) : null;
     if (!service) return res.redirect(303, `/book/${slug}`);
 
-    const name = String(req.body?.customer_name || "").trim().slice(0, 120);
-    const email = String(req.body?.customer_email || "").trim().slice(0, 320);
-    const phone = String(req.body?.customer_phone || "").trim().slice(0, 40);
+    const name = String(input.customer_name || "").trim().slice(0, 120);
+    const email = String(input.customer_email || "").trim().slice(0, 320);
+    const phone = String(input.customer_phone || "").trim().slice(0, 40);
     const back = `/book/${slug}?service=${enc(service.id)}`;
     // A name and one way to reach them. A booking the business cannot confirm
     // is a slot held for nobody.
@@ -394,7 +414,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
       bookings: capacity.bookings,
       staffShifts: capacity.staffShifts,
       serviceLocationId: service.location_id || null,
-      startsAt: String(req.body?.starts_at || "")
+      startsAt: String(input.starts_at || "")
     });
     if (!check.ok) return res.redirect(303, `${back}&problem=taken`);
 
@@ -419,7 +439,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
       // this yet. Writing `confirmed` would commit a business to work on the
       // word of a stranger.
       status: "requested",
-      notes: String(req.body?.notes || "").trim().slice(0, 1000) || null
+      notes: String(input.notes || "").trim().slice(0, 1000) || null
     };
 
     const saved = await fetch(`${config.url}/rest/v1/${BOOKINGS_TABLE}`, {
