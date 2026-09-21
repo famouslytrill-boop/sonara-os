@@ -93,6 +93,7 @@ describe("a degraded rate limiter remains bounded and says so", () => {
       name: "bounded-probe",
       windowSeconds: 60,
       maxAttempts: 2,
+      degradedMaxAttempts: 2,
       getSupabaseServerConfig: UNREACHABLE
     });
     const responses = [];
