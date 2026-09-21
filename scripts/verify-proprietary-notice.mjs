@@ -168,8 +168,8 @@ const HEADER_LINES = 6;
 // the exact covered population to 288. Backend Operations Market Analysis Pass
 // #4 adds one governed shipped research module, taking the exact covered
 // population to 289. Frontend Visual Operations Intelligence adds one governed
-// shipped research module, taking the combined exact covered population to 290.
-const EXPECTED_FILES = 290;
+// shipped research module, taking the combined exact covered population to 292.
+const EXPECTED_FILES = 292;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
