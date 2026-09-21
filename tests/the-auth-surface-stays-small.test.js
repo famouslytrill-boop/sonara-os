@@ -103,15 +103,26 @@ describe("the authentication surface stays small enough to replace", () => {
     );
   });
 
-  it("keeps the one production dependency the migration note assumes", () => {
-    // Better Auth and every other TypeScript identity library is ruled out in
-    // that document on the grounds that this repository has no build step. If
-    // that stops being true the recommendation changes, and this is what says so.
+  it("keeps the runtime dependency contract explicit", () => {
+    // The observability and feature-flag packages are intentional production
+    // dependencies, but none is an authentication provider. Keep this exact
+    // manifest contract visible so an auth library cannot arrive unnoticed and
+    // invalidate the migration note.
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
     assert.deepEqual(
       Object.keys(manifest.dependencies || {}),
-      ["express"],
-      "a second production dependency appeared; the migration note rules out library-based auth on the basis that there is one"
+      [
+        "@openfeature/server-sdk",
+        "@opentelemetry/api",
+        "@opentelemetry/exporter-metrics-otlp-http",
+        "@opentelemetry/exporter-trace-otlp-http",
+        "@opentelemetry/instrumentation-express",
+        "@opentelemetry/instrumentation-http",
+        "@opentelemetry/sdk-metrics",
+        "@opentelemetry/sdk-node",
+        "express"
+      ],
+      "the production runtime dependency contract changed; review the authentication migration note before adding an auth library"
     );
   });
 });

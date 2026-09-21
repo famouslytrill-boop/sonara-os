@@ -156,6 +156,22 @@ describe("what the guard allows", () => {
       ["business_employee_profiles", "sonara_platforms", "user_notifications", "user_preferences"]
     );
   });
+
+  it("allows only the published booking-page lookup that resolves a tenant", () => {
+    const select = "id,organization_id,slug,headline,intro,time_zone,opening_hours,slot_minutes,lead_time_hours,horizon_days,assign_staff";
+    assert.equal(
+      allowed("GET", `/rest/v1/public_booking_pages?slug=eq.bright-plumbing&enabled=is.true&select=${select}&limit=1`).allowed,
+      true
+    );
+    assert.equal(
+      allowed("GET", `/rest/v1/public_booking_pages?slug=eq.bright-plumbing&enabled=is.true&select=*&limit=1`).allowed,
+      false
+    );
+    assert.equal(
+      allowed("GET", `/rest/v1/public_booking_pages?slug=eq.bright-plumbing&enabled=is.true&select=${select}&limit=2`).allowed,
+      false
+    );
+  });
 });
 
 describe("the exemptions are declared, not implied", () => {

@@ -66,6 +66,15 @@ function runScriptOf(stepHeading) {
 
 const PRECONDITION = runScriptOf(PRECONDITION_STEP);
 
+function bashExecutable() {
+  if (process.platform !== "win32") return "bash";
+  const candidates = [
+    path.join(process.env.ProgramFiles || "C:\\Program Files", "Git", "bin", "bash.exe"),
+    path.join(process.env.ProgramW6432 || "C:\\Program Files", "Git", "bin", "bash.exe")
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || "bash";
+}
+
 const PRESENT = {
   VERCEL_TOKEN: "token",
   SUPABASE_ACCESS_TOKEN: "token",
@@ -107,15 +116,22 @@ after(() => {
 // Run the real step with a given environment. Returns its exit code, its
 // combined output, and whatever it wrote to the step summary.
 function runPrecondition(env = {}) {
-  const summaryPath = path.join(workdir, `summary-${Math.random().toString(36).slice(2)}.md`);
+  const summaryName = `summary-${Math.random().toString(36).slice(2)}.md`;
+  const summaryPath = path.join(workdir, summaryName);
   fs.writeFileSync(summaryPath, "");
   let status = 0;
   let output = "";
   try {
-    output = execFileSync("bash", [scriptPath], {
-      env: { PATH: process.env.PATH, GITHUB_STEP_SUMMARY: summaryPath, ...env },
+    // Feed the extracted workflow block over stdin and give Bash a native
+    // working directory. Passing a Windows path as a Git Bash script argument
+    // is shell-dependent; the workflow itself runs on Ubuntu, while this test
+    // must also exercise the real block on Windows.
+    output = execFileSync(bashExecutable(), ["-s"], {
+      cwd: workdir,
+      input: PRECONDITION,
+      env: { PATH: process.env.PATH, GITHUB_STEP_SUMMARY: summaryName, ...env },
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"]
     });
   } catch (error) {
     status = typeof error.status === "number" ? error.status : 1;

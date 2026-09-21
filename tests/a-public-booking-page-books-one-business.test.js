@@ -47,6 +47,7 @@ const SAM = "c9c9c9c9-0000-4000-8000-00000000009c";
 const SHOP = "aaaa1111-0000-4000-8000-0000000000a1";
 const DEPOT = "bbbb2222-0000-4000-8000-0000000000b2";
 const SHOP_SERVICE = "cccc3333-0000-4000-8000-0000000000c3";
+const SUPABASE_FIXTURE_URL = "https://booking-fixture.test";
 
 const OTHER_CUSTOMER = "Nadia Okonkwo";
 const OTHER_PHONE = "555-PRIVATE-9999";
@@ -128,10 +129,13 @@ describe("a public booking page books one business", () => {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
     };
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    // Keep this fixture off the Supabase hostname: the tenant guard marks
+    // mocked fetches as offline, and the runtime must reject an unmocked
+    // *.supabase.co request even in tests.
+    process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_FIXTURE_URL;
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
-    fake = createFakeSupabase({ users: {}, tables: seed() });
+    fake = createFakeSupabase({ url: SUPABASE_FIXTURE_URL, users: {}, tables: seed() });
     savedFetch = global.fetch;
     global.fetch = fake.install(savedFetch);
     app = require("../server");
