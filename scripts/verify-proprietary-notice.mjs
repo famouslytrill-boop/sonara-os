@@ -169,9 +169,10 @@ const HEADER_LINES = 6;
 // #4 adds one governed shipped research module, taking the exact covered
 // population to 289. Frontend Visual Operations Intelligence adds one governed
 // shipped research module, taking the combined exact covered population to 290.
-// PR #330's consolidated backend/auth/repository work brings the current exact
-// shipped-source population to 292; keep this as an exact non-vacuous assertion.
-const EXPECTED_FILES = 292;
+// PR #330's consolidated backend/auth/repository work brought the exact
+// shipped-source population to 292. Batch 16 adds one governed shipped research
+// module, and exact-head CI measured the current population at 293.
+const EXPECTED_FILES = 293;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
