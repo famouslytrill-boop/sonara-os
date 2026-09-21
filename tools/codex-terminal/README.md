@@ -26,5 +26,5 @@ Download one reviewed model explicitly:
 python tools/codex-terminal/download-model.py --model MODEL_ID --execute
 ```
 
-Repository `AGENTS.md`, the maintained open-source registry, owner approval,
+Repository `AGENTS.md`, the maintained external-repository registry, owner approval,
 tenant/security gates and Provider Gateway remain authoritative.
