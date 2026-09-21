@@ -19,3 +19,4 @@ overrides:
 
 allowBuilds:
   esbuild: true
+  protobufjs: true
