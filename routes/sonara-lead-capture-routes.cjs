@@ -47,6 +47,7 @@
 // visitor who could see the rules would learn how to score better.
 
 const crypto = require("node:crypto");
+const { validateRequestBody } = require("../lib/sonara-request-schema.cjs");
 
 const { blockedBy: disposableBlockedBy } = require("../lib/sonara-disposable-email.cjs");
 const { encode: encodeQr } = require("../lib/sonara-qr.cjs");
@@ -80,6 +81,16 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 // whose token is empty rather than none.
 const TOKEN_BYTES = 24;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32}$/;
+
+const CHAT_POST_SCHEMA = Object.freeze({
+  question: { type: "string", required: true, minLength: 1, maxLength: 80 },
+  token: { type: "string", maxLength: 32, pattern: TOKEN_PATTERN },
+  answer: { type: "string", maxLength: 320 },
+  other: { type: "string", maxLength: 120 },
+  name: { type: "string", maxLength: 120 },
+  email: { type: "string", maxLength: 320 },
+  phone: { type: "string", maxLength: 40 }
+});
 
 const MAX_TRANSCRIPT = 60;
 
@@ -389,6 +400,10 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     const slug = String(req.params.slug || "").toLowerCase();
     if (!SLUG_PATTERN.test(slug)) return noSuchPage(res);
 
+    const shape = validateRequestBody(req.body, CHAT_POST_SCHEMA, { maxKeys: 7 });
+    if (!shape.ok) return res.redirect(303, `/chat/${slug}?problem=invalid`);
+    const input = shape.value;
+
     const config = getSupabaseServerConfig();
     if (!config?.ok) return unavailable(res);
 
@@ -405,7 +420,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     // pattern before it reaches a filter, and the row is refused unless it
     // belongs to the organization this slug named -- a token from another
     // business's widget resolves to nothing here rather than to their row.
-    const submitted = String(req.body?.token || "");
+    const submitted = String(input.token || "");
     let conversation = null;
     if (submitted) {
       if (!isToken(submitted)) return res.redirect(303, `/chat/${slug}`);
@@ -432,15 +447,15 @@ function registerLeadCaptureRoutes(app, deps = {}) {
       return res.status(200).type("html").send(donePage(page));
     }
     const asked = step.question;
-    if (String(req.body?.question || "") !== asked.key) {
+    if (String(input.question || "") !== asked.key) {
       return res.status(200).type("html").send(conversationPage({
         page, question: asked, token: submitted || null, said: saidSoFar(profile, answers)
       }));
     }
 
     const raw = asked.kind === "contact"
-      ? { name: req.body?.name, email: req.body?.email, phone: req.body?.phone }
-      : (asked.allowOther ? { value: req.body?.answer, other: req.body?.other } : req.body?.answer);
+      ? { name: input.name, email: input.email, phone: input.phone }
+      : (asked.allowOther ? { value: input.answer, other: input.other } : input.answer);
 
     const recorded = recordAnswer(profile, asked.key, raw);
     if (!recorded.ok) {

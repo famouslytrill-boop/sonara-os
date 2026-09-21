@@ -1,0 +1,42 @@
+name: Bootstrap production-hardening dependencies
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/bootstrap-production-hardening-deps.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  lock-reviewed-hardening-dependencies:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.1
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install reviewed production hardening dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --allow-build=protobufjs add @openfeature/server-sdk @opentelemetry/api @opentelemetry/sdk-node @opentelemetry/instrumentation-http @opentelemetry/instrumentation-express @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/sdk-metrics
+          pnpm --allow-build=esbuild add -D @playwright/test
+          pnpm audit --audit-level moderate
+      - name: Commit only the package manifest and pnpm lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          git diff --cached --exit-code && exit 0
+          git commit -m "Add production hardening dependencies"
+          git push origin "HEAD:${{ github.head_ref }}"
