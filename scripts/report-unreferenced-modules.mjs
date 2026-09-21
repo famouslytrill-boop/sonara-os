@@ -23,33 +23,31 @@
 // allowlist below takes those with a reason attached, which is the part that
 // stops the list becoming a place to hide things.
 //
-// ## Tests count as referencers here, and that was measured rather than assumed
+// ## Tests count as referencers, so there is a second tier below
 //
-// The searched set below includes tests/, so a module only its own test
-// requires reads as referenced. That is a real gap in principle: a lib module
-// nothing in the product uses is dead whatever its tests do, and it is exactly
-// the shape that hid 108 lines of homepage from this report (see
-// scripts/report-uncalled-factory-functions.mjs, which covers the function-level
-// version of it).
+// The searched set includes tests/, so a module only its own test requires
+// reads as referenced here. That is a real gap: a lib module nothing in the
+// product uses is dead whatever its tests do.
 //
-// Measured on 8 September 2026, the module-level version of that gap has **no
-// defects in it**. Two modules are referenced by tests and by neither runtime
-// nor scripts, and both are correct:
+// This file used to say the gap had been measured -- 8 September 2026, two
+// modules, both legitimate -- and concluded that a runtime-versus-test tier
+// "would carry two permanent exemptions and catch nothing". That measurement
+// was true when it was taken and the conclusion drawn from it has since
+// expired, which is shape 5 in .claude/skills/checks-that-cannot-lie: an
+// exemption whose reason no longer describes anything, sitting where the next
+// reader looks instead of checking.
 //
-//   lib/sonara-form-reachability.cjs   -- a measurement three tests share. Test
-//                                         infrastructure that lives in lib/ on
-//                                         purpose.
-//   lib/sonara-supabase-clients.cjs    -- deliberately not yet wired. It is the
-//                                         machinery for moving off the
-//                                         service-role key, and
-//                                         tests/the-revoke-reasoning-is-still-true.test.js
-//                                         reasons about it explicitly, including
-//                                         what its deletion would mean.
+// Re-measured 21 September 2026: **fourteen**, not two. One of them was
+// `lib/sonara-screenshot-tool-radar-batch13.cjs`, four verified repository
+// records that reached no catalog, no readiness figure and no page because
+// `routes/sonara-requested-repositories-routes.cjs` required batch 12 and then
+// batch 14. This report printed "every module is reachable" for five days
+// while that was true, because the batch's own test names the module.
 //
-// So no runtime-versus-test tier was added. It would carry two permanent
-// exemptions and catch nothing, and a gate whose entire population is
-// exemptions is a gate that only makes noise. This note is here so the next
-// person can see the measurement rather than repeat it.
+// So the tier exists now, as an accounted list rather than a count. It is
+// two-sided like every other exemption here: a test-only module nobody has
+// ruled on fails, and an entry whose module is no longer test-only fails, so a
+// reason cannot outlive the thing it describes.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -67,6 +65,58 @@ const ALLOWED = new Map([
   // Empty. Both entries that would have gone here were deleted instead, which
   // is what this list is for -- making the choice explicit rather than letting
   // "unreferenced" become a resting state.
+]);
+
+// Tier 2: reached by tests/ and by nothing else. Each reason says what the
+// module is waiting for, because "it is fine" is what every one of these looks
+// like until it is the one that was forgotten.
+const TEST_ONLY = new Map([
+  ["lib/sonara-compliance-evidence-readiness.cjs",
+    "Reports evidence and gaps and deliberately never emits a compliant state. No surface renders it yet; "
+    + "wiring it is a product decision about what to show an owner, not a missing require."],
+  ["lib/sonara-d1-rollups.cjs",
+    "The schema and read rules for the two derived tables D1 may hold. lib/sonara-d1-adapter.cjs is the "
+    + "enforcement half and is wired; this half waits on a D1 binding the owner has not provisioned."],
+  ["lib/sonara-feature-flags.cjs",
+    "Wraps @openfeature/server-sdk, which PR #332 added to production dependencies. Nothing evaluates a flag "
+    + "through it, so the dependency ships to Vercel for code the runtime never reaches. Wire it or move the "
+    + "dependency -- see docs/SHIP_READINESS.md."],
+  ["lib/sonara-form-reachability.cjs",
+    "A measurement three tests share. Test infrastructure that lives in lib/ on purpose, and the one entry "
+    + "here that is correct as a permanent state rather than a staging one."],
+  ["lib/sonara-generation-execution-contract.cjs",
+    "Declares the operations and pathways a generation run may take. The planner it composes is wired; this "
+    + "contract is ahead of the executor that will read it."],
+  ["lib/sonara-generation-persistence-contract.cjs",
+    "Declares the tables and legal state transitions of the generation lifecycle against migration "
+    + "20260916032000. The repository module it names is wired; this contract is ahead of the writer."],
+  ["lib/sonara-grounded-retrieval-contract.cjs",
+    "Batch 13's grounded-retrieval envelope over lib/sonara-platform-kernel.cjs. Recorded research, not a "
+    + "built retrieval path."],
+  ["lib/sonara-llm-observability-contract.cjs",
+    "Batch 13's model-observation record shape, with no raw prompt or response storage by default. Nothing "
+    + "emits one yet; docs/research/SCREENSHOT_TOOL_RADAR_2026-09-16_BATCH13.md records it as intake."],
+  ["lib/sonara-media-processing-contract.cjs",
+    "Declares the non-destructive media operations an isolated worker would be allowed. There is no worker, "
+    + "which is the point -- AGENTS.md keeps FFmpeg and headless browsers out of the request process."],
+  ["lib/sonara-module-runtime.cjs",
+    "Validates and orders module manifests into an auditable installation plan, and deliberately installs, "
+    + "loads and activates nothing. Waiting on a surface that shows the plan to an owner for approval."],
+  ["lib/sonara-observability.cjs",
+    "Wraps eight @opentelemetry packages PR #332 added to production dependencies. Neither startTelemetry nor "
+    + "installHttpObservability is called anywhere, so the packages ship for unreachable code. Note for "
+    + "whoever wires it: the meter is taken in installHttpObservability, and OpenTelemetry instruments built "
+    + "from the no-op provider stay no-ops after a later start -- installing it before startTelemetry gives a "
+    + "dashboard that looks configured and counts nothing."],
+  ["lib/sonara-sms-keywords.cjs",
+    "Turns an inbound \"STOP\" into an intent. The refusal half is already built and wired "
+    + "(authoriseOutbound in lib/sonara-telephony.cjs refuses on consent_revoked), and both candidate carriers "
+    + "honour the keywords themselves, so nothing is unprotected. There is no inbound SMS webhook for this to "
+    + "hang off yet; that is what it waits on."],
+  ["lib/sonara-supabase-clients.cjs",
+    "Deliberately not yet wired. It is the machinery for moving off the service-role key, and "
+    + "tests/the-revoke-reasoning-is-still-true.test.js reasons about it explicitly, including what deleting "
+    + "it would mean."]
 ]);
 
 function walk(directory, found = []) {
@@ -93,7 +143,27 @@ const searchable = [
   ...walk(path.join(root, "tests")),
   ...walk(path.join(root, "data")),
   path.join(root, "server.js")
-].filter((file) => fs.existsSync(file));
+]
+  .filter((file) => fs.existsSync(file))
+  // This report's own path, removed from the set it searches.
+  //
+  // Found by the tier-2 list on the run that introduced it: it reported all
+  // thirteen entries as stale, because naming a module in ALLOWED or TEST_ONLY
+  // is naming it in a file under scripts/, and scripts/ is searched. The
+  // bookkeeping made its own subjects look reachable. `withoutComments` covers
+  // the header, which names modules in prose; it does not cover a Map whose
+  // keys are code.
+  //
+  // ALLOWED has been empty for as long as it has existed, so this never bit
+  // before, and it would have bitten silently the first time somebody used it
+  // -- an exempted module would have read as referenced and dropped out of the
+  // population the exemption was written for.
+  //
+  // Excluding the file is right rather than convenient: a module named only in
+  // this report's bookkeeping is not a module the product uses. It requires
+  // lib/sonara-comment-stripping.cjs, which four other files also require, so
+  // that stays referenced on its own evidence.
+  .filter((file) => file !== fileURLToPath(import.meta.url));
 
 // Candidates: modules under lib/ and routes/ that something is supposed to use.
 const candidates = [...walk(path.join(root, "lib")), ...walk(path.join(root, "routes"))]
@@ -136,7 +206,12 @@ if (candidates.length === 0) {
 
 const sources = new Map(searchable.map((file) => [file, withoutComments(fs.readFileSync(file, "utf8"))]));
 
+// Tier 2 needs to tell a test referencer from any other, so the test files are
+// identified once here rather than by re-walking the directory per candidate.
+const testFiles = new Set(walk(path.join(root, "tests")));
+
 const unreferenced = [];
+const testOnly = [];
 for (const candidate of candidates) {
   const relative = path.relative(root, candidate);
   const base = path.basename(candidate, ".cjs");
@@ -144,18 +219,31 @@ for (const candidate of candidates) {
   // name rather than the full path catches ../lib/x.cjs, ./x.cjs and
   // path.join(root, "lib", "x.cjs") alike.
   const pattern = new RegExp(`["'\`/]${base.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}(?:\\.cjs)?["'\`]`);
-  let referenced = false;
+  let referencedByTest = false;
+  let referencedByOther = false;
   for (const [file, source] of sources) {
     if (file === candidate) continue;
-    if (pattern.test(source)) {
-      referenced = true;
+    if (!pattern.test(source)) continue;
+    if (testFiles.has(file)) referencedByTest = true;
+    else {
+      referencedByOther = true;
+      // Nothing further can change the verdict for either tier.
       break;
     }
   }
-  if (!referenced) unreferenced.push(relative);
+  if (!referencedByTest && !referencedByOther) unreferenced.push(relative);
+  else if (referencedByTest && !referencedByOther) testOnly.push(relative);
 }
 
 const unexplained = unreferenced.filter((relative) => !ALLOWED.has(relative));
+
+// Two-sided, both directions stated separately because they are different
+// mistakes. Unaccounted means somebody wired a module into tests and nowhere
+// else and nobody ruled on it. Stale means a module got wired -- the good case
+// -- and its reason was left behind to be read by the next person as though it
+// were still true.
+const testOnlyUnaccounted = testOnly.filter((relative) => !TEST_ONLY.has(relative));
+const testOnlyStale = [...TEST_ONLY.keys()].filter((relative) => !testOnly.includes(relative));
 
 console.log(`Modules under lib/ and routes/: ${candidates.length}`);
 console.log(`Files that could reference them: ${sources.size}`);
@@ -164,6 +252,7 @@ for (const relative of unreferenced) {
   const reason = ALLOWED.get(relative);
   console.log(`  ${relative}${reason ? ` -- allowed: ${reason}` : ""}`);
 }
+console.log(`Reached by tests/ and nothing else: ${testOnly.length}, all ${TEST_ONLY.size} accounted for with a reason`);
 
 if (checkOnly && unexplained.length) {
   console.error("");
@@ -175,4 +264,25 @@ if (checkOnly && unexplained.length) {
   process.exit(1);
 }
 
-if (checkOnly) console.log("Every module under lib/ and routes/ is reachable.");
+if (checkOnly && (testOnlyUnaccounted.length || testOnlyStale.length)) {
+  console.error("");
+  if (testOnlyUnaccounted.length) {
+    console.error("ERROR: these modules are required by their tests and by nothing else. A test proves a module");
+    console.error("works; it does not make the product use it. Wire each one, delete it, or add it to TEST_ONLY");
+    console.error("in this script with what it is waiting for:");
+    for (const relative of testOnlyUnaccounted) console.error(`  ${relative}`);
+  }
+  if (testOnlyStale.length) {
+    if (testOnlyUnaccounted.length) console.error("");
+    console.error("ERROR: these TEST_ONLY entries no longer describe anything -- the module is now reached by the");
+    console.error("product, or it is gone. Remove the entry. A reason that outlives its subject is what the next");
+    console.error("reader believes instead of checking, which is how this file's own 8 September measurement");
+    console.error("stayed here after it stopped being true:");
+    for (const relative of testOnlyStale) console.error(`  ${relative} -- reason on file: ${TEST_ONLY.get(relative)}`);
+  }
+  process.exit(1);
+}
+
+if (checkOnly) {
+  console.log("Every module under lib/ and routes/ is reachable, and every module reached only by its tests is accounted for.");
+}

@@ -2,6 +2,203 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
+
+Restarted this branch from the new `main` after PR #305 merged. `main` had moved
+266 commits and 32 pull requests in the meantime, so the first job was to find
+out whether the base was green. It was not, and looking into why found three
+more things.
+
+## The release chain was red on `main`, on arithmetic
+
+`pnpm run verify:launch` fails at `verify:proprietary-notice`: 296 shipped
+source files examined, `EXPECTED_FILES` says 293. Three `lib/` modules landed
+after the commit that set 293, all three carrying the notice correctly. The gate
+was right; the constant was three behind.
+
+That constant changed **ten times between 18 and 20 September**, each change
+adding a sentence to a prose ledger above it, and
+`git log -L '/^const EXPECTED_FILES/,+1:scripts/verify-proprietary-notice.mjs'`
+shows the mechanism directly: `45a0a916` and `31dc7a1e` **both set it to 288**,
+two branches independently raising 287 by one. Two identical-looking edits merge
+with no conflict, and the value that lands is one short of the tree. It is the same shape as the
+`verify:launch` chain count on 19 September, which merged cleanly at 56 while
+the truth was 57.
+
+So the count is now regenerated rather than re-typed: `--write`, exposed as
+`pnpm run fix:proprietary-notice`, mirroring `fix:doc-counts`. The thirteen-line
+ledger is gone; `git log -L` is a better record than a comment somebody has to
+remember to extend.
+
+`--write` syncs the two counts and nothing else. Falsified in four directions
+before being trusted: a wrong count fails naming `EXPECTED_FILES`; `--write`
+rewrites 999 to 296 and exits 0; a reformatted declaration (`const
+EXPECTED_FILES =\n  295;`) makes it **stop** rather than report a rewrite it did
+not perform; and with a notice-less file planted it rewrote 296 to 297 **and
+still exited 1** naming the file. A fixer that could launder a missing notice
+would be worse than no fixer.
+
+## `lib/sonara-screenshot-tool-radar-batch13.cjs` was wired into nothing
+
+Every other radar batch is required by
+`routes/sonara-requested-repositories-routes.cjs`. Batch 13, recorded 16
+September with four verified repositories and two non-repository references, was
+not. The require list reads `batch12` then `batch14`.
+
+So `openosint`, `pinchtab`, `openshorts` and `every_programmer_should_know`
+reached no catalog, no readiness figure and no page, and the founder control
+plane published `screenshotResearchCount: 104` and
+`productionExecutionCount` as covering all screenshot intake while four records
+sat outside the population being counted. Wired into all five aggregation
+functions: 114 to 118 repositories, 110 to 114 verified, 104 to 108 screenshot
+records, 50 to 52 non-repository references.
+
+**Two checks watched this happen and both reported success**, which is why the
+fix is not just the require.
+
+`scripts/report-unreferenced-modules.mjs` printed "every module under lib/ and
+routes/ is reachable" for five days, because
+`tests/batch13-event-security-media.test.js` names the module and that report
+counts a test as a referencer.
+
+`tests/requested-repository-suite.test.js` asserted the exact key list, the
+exact repository count and the exact page copy, and passed — because the list
+was written from the route rather than from the batch modules. It agreed with
+the omission instead of catching it. That is worth stating plainly: an
+enumeration copied from the implementation cannot disagree with the
+implementation.
+
+`tests/every-screenshot-radar-batch-reaches-the-route.test.js` asserts the
+property instead. It discovers the batch modules from disk, refuses to run on
+fewer than twelve, and requires every key each one holds to appear in the public
+catalog **and** to be included in `screenshotResearchCount`. Falsified both
+ways: dropping batch 13 from `getCombinedPublicCatalog` while keeping the
+require fails naming all four keys, and dropping it from
+`getScreenshotResearchCount` while keeping it in the catalog fails with
+`screenshotResearchCount is 104 but the batch modules hold 108` — the exact
+pre-fix number, so the check reproduces the original defect.
+
+## The measurement that said a tier would catch nothing had expired
+
+`scripts/report-unreferenced-modules.mjs` carried a note: measured 8 September
+2026, two modules were referenced by tests and nothing else, both legitimate, so
+no runtime-versus-test tier was added because it "would carry two permanent
+exemptions and catch nothing". It ended "This note is here so the next person
+can see the measurement rather than repeat it."
+
+Re-measured 21 September: **fourteen**, one of them batch 13. Shape 5 — an
+exemption whose reason stopped describing anything, sitting exactly where the
+next reader looks instead of checking. The note was true when written; the
+conclusion drawn from it was not still true, and the two read identically.
+
+The tier exists now as a two-sided accounted list, thirteen entries after
+batch 13 dropped out, each saying what its module is waiting for. An
+unaccounted test-only module fails; an entry whose module has since been wired
+fails too, so a reason cannot outlive its subject. Both directions falsified
+with real exit codes, read without a pipe in between.
+
+## The tier's first finding was the tier
+
+Its first run reported all thirteen entries as stale. Naming a module in
+`TEST_ONLY` is naming it in a file under `scripts/`, and `scripts/` is in the
+set the report searches, so the bookkeeping made its own subjects look
+reachable. `withoutComments` covers the header, which names modules in prose;
+it does not cover a `Map` whose keys are code.
+
+`ALLOWED` has had this hazard since the file was written and has always been
+empty, so it never bit — and would have bitten silently the first time somebody
+used it, an exempted module reading as referenced and dropping out of the
+population the exemption was written for. The report now excludes its own path
+from the set it searches.
+
+## A second red gate on `main`, hidden behind the first
+
+With the notice count fixed the chain got further and failed again, at
+`verify:coverage-floor`: `lib/sonara-observability.cjs` at **13.8% covered
+(19 of 138 lines)**, under the 35% floor and unregistered. It had been red since
+the module landed; nobody saw it because `verify:proprietary-notice` runs first
+and exits the chain. Worth remembering when a chain goes red: the first failure
+is not necessarily the only one.
+
+The module's single test asserted one thing -- telemetry is disabled unless
+enabled -- and **could not have asserted a second**. `startTelemetry` memoises
+on module state, so the first call in a process decides for the whole process. A
+second `it` calling it with different environment would have received the first
+call's answer, asserted against that, and passed. Registering the module in
+`BELOW_FLOOR` would have recorded that as "hard to test" when what was true is
+"the test surface makes a second case silently meaningless".
+
+So each case now takes a fresh module out of the require cache, and the helper
+**asserts the instance is fresh** (`status === "not_started"`) before using it.
+If the cache key ever stops matching, the tests stop rather than going back to
+measuring one memoised decision. Twelve cases, no production code changed:
+non-`"true"` values read as off, an enabled-with-no-endpoint refusal with its
+recorded reason, plaintext refused under `NODE_ENV=production` and allowed
+outside it, a non-URL endpoint refused, a traces-only configuration refused
+rather than half-started, and the middleware's correlation id, status classes,
+static-asset skip, organization scoping and `unmatched` route label.
+
+Two things the writing of it turned up:
+
+- The first version captured stderr synchronously around a `supertest` call and
+  reported **zero events**. The `finish` handler runs after the response
+  promise resolves, so the capture was restored before the event it existed to
+  read. Had the assertion been "no unexpected events" rather than a count, that
+  would have passed.
+- The one case that starts the real SDK registers global trace and metric
+  providers **for the whole process**, so every later test in the suite would
+  take a live meter instead of the no-op one and the suite's behaviour would
+  depend on file order. It shuts the SDK down, calls `metrics.disable()` and
+  `trace.disable()`, and then asserts the global meter is a `NoopMeter` again --
+  a cleanup nobody checks is how order-dependence gets in.
+
+Floor after: 296 runtime files, 58,906 countable lines, 93.3% overall, one file
+under the floor and it is the one registered with a reason.
+
+## Nine production dependencies for two modules nothing calls
+
+`package.json` went from one production dependency to nine on 20 September:
+eight `@opentelemetry/*` packages and `@openfeature/server-sdk`. Their only
+consumers are `lib/sonara-observability.cjs` and `lib/sonara-feature-flags.cjs`,
+and **neither is required by anything but its own test**. `startTelemetry`,
+`installHttpObservability` and `createFeatureFlagService` have no caller in
+`server.js`, `api/`, `routes/`, `lib/` or `scripts/`.
+
+Nothing unsafe: telemetry needs `SONARA_OTEL_ENABLED=true` and refuses a
+non-HTTPS endpoint under `NODE_ENV=production`, and the flag service fails
+closed on an unknown key. The cost is a bundle carrying an SDK for unreachable
+code and a readiness story that reads as observability being in place. Recorded
+in `docs/SHIP_READINESS.md` for the owner rather than decided here: wiring it
+adds a middleware to every dynamic request and an `X-Request-ID` header to every
+response, and removing it reverses an architecture choice another session made
+deliberately.
+
+**One hazard measured rather than reasoned, for whoever wires it.**
+`installHttpObservability` takes its meter and builds its counter and histogram
+at install time. An OpenTelemetry instrument built before
+`setGlobalMeterProvider` is bound to the no-op provider and stays a no-op after
+a later start — so installing it before `startTelemetry` gives a dashboard that
+looks configured and counts nothing. Confirmed against `@opentelemetry/api`
+1.9.1 and `@opentelemetry/sdk-metrics` 2.11.0 with an in-memory exporter: a
+counter created before the provider was registered, then incremented, was
+absent from `reader.collect()`; one created after reported its value. The
+module's header already warns about the mirror-image ordering problem for HTTP
+instrumentation — this is a second, separate ordering constraint pointing the
+same way.
+
+## What the next person should not have to rediscover
+
+- The proprietary-notice count is now `pnpm run fix:proprietary-notice`. Do not
+  do the arithmetic by hand; that is how it fell three behind.
+- A test-only reference is not reachability. Tier 2 of
+  `report-unreferenced-modules` is the list that means it.
+- `report-unreferenced-modules.mjs` excludes its own file. If that filter is
+  removed, every entry in `ALLOWED` and `TEST_ONLY` silently stops being
+  measured.
+- Batches 8 and 9 are not missing modules: they are
+  `getCapabilityDesignReadiness()`, surfaced as `capabilityBatch8` and
+  `designBatch9`. Batches 10 and 11 never existed as separate modules.
+
 ### 2026-09-19 - The handoff package could not be pasted into the assistant its first line names
 
 Asked to update the handoff package for ChatGPT. Measuring it first turned the

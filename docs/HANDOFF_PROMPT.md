@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 125 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 19 customer routes, 30 admin routes.
-- 361 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 362 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -102,11 +102,210 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 23 most recent entries of 385 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 386 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
+
+Restarted this branch from the new `main` after PR #305 merged. `main` had moved
+266 commits and 32 pull requests in the meantime, so the first job was to find
+out whether the base was green. It was not, and looking into why found three
+more things.
+
+## The release chain was red on `main`, on arithmetic
+
+`pnpm run verify:launch` fails at `verify:proprietary-notice`: 296 shipped
+source files examined, `EXPECTED_FILES` says 293. Three `lib/` modules landed
+after the commit that set 293, all three carrying the notice correctly. The gate
+was right; the constant was three behind.
+
+That constant changed **ten times between 18 and 20 September**, each change
+adding a sentence to a prose ledger above it, and
+`git log -L '/^const EXPECTED_FILES/,+1:scripts/verify-proprietary-notice.mjs'`
+shows the mechanism directly: `45a0a916` and `31dc7a1e` **both set it to 288**,
+two branches independently raising 287 by one. Two identical-looking edits merge
+with no conflict, and the value that lands is one short of the tree. It is the same shape as the
+`verify:launch` chain count on 19 September, which merged cleanly at 56 while
+the truth was 57.
+
+So the count is now regenerated rather than re-typed: `--write`, exposed as
+`pnpm run fix:proprietary-notice`, mirroring `fix:doc-counts`. The thirteen-line
+ledger is gone; `git log -L` is a better record than a comment somebody has to
+remember to extend.
+
+`--write` syncs the two counts and nothing else. Falsified in four directions
+before being trusted: a wrong count fails naming `EXPECTED_FILES`; `--write`
+rewrites 999 to 296 and exits 0; a reformatted declaration (`const
+EXPECTED_FILES =\n  295;`) makes it **stop** rather than report a rewrite it did
+not perform; and with a notice-less file planted it rewrote 296 to 297 **and
+still exited 1** naming the file. A fixer that could launder a missing notice
+would be worse than no fixer.
+
+## `lib/sonara-screenshot-tool-radar-batch13.cjs` was wired into nothing
+
+Every other radar batch is required by
+`routes/sonara-requested-repositories-routes.cjs`. Batch 13, recorded 16
+September with four verified repositories and two non-repository references, was
+not. The require list reads `batch12` then `batch14`.
+
+So `openosint`, `pinchtab`, `openshorts` and `every_programmer_should_know`
+reached no catalog, no readiness figure and no page, and the founder control
+plane published `screenshotResearchCount: 104` and
+`productionExecutionCount` as covering all screenshot intake while four records
+sat outside the population being counted. Wired into all five aggregation
+functions: 114 to 118 repositories, 110 to 114 verified, 104 to 108 screenshot
+records, 50 to 52 non-repository references.
+
+**Two checks watched this happen and both reported success**, which is why the
+fix is not just the require.
+
+`scripts/report-unreferenced-modules.mjs` printed "every module under lib/ and
+routes/ is reachable" for five days, because
+`tests/batch13-event-security-media.test.js` names the module and that report
+counts a test as a referencer.
+
+`tests/requested-repository-suite.test.js` asserted the exact key list, the
+exact repository count and the exact page copy, and passed — because the list
+was written from the route rather than from the batch modules. It agreed with
+the omission instead of catching it. That is worth stating plainly: an
+enumeration copied from the implementation cannot disagree with the
+implementation.
+
+`tests/every-screenshot-radar-batch-reaches-the-route.test.js` asserts the
+property instead. It discovers the batch modules from disk, refuses to run on
+fewer than twelve, and requires every key each one holds to appear in the public
+catalog **and** to be included in `screenshotResearchCount`. Falsified both
+ways: dropping batch 13 from `getCombinedPublicCatalog` while keeping the
+require fails naming all four keys, and dropping it from
+`getScreenshotResearchCount` while keeping it in the catalog fails with
+`screenshotResearchCount is 104 but the batch modules hold 108` — the exact
+pre-fix number, so the check reproduces the original defect.
+
+## The measurement that said a tier would catch nothing had expired
+
+`scripts/report-unreferenced-modules.mjs` carried a note: measured 8 September
+2026, two modules were referenced by tests and nothing else, both legitimate, so
+no runtime-versus-test tier was added because it "would carry two permanent
+exemptions and catch nothing". It ended "This note is here so the next person
+can see the measurement rather than repeat it."
+
+Re-measured 21 September: **fourteen**, one of them batch 13. Shape 5 — an
+exemption whose reason stopped describing anything, sitting exactly where the
+next reader looks instead of checking. The note was true when written; the
+conclusion drawn from it was not still true, and the two read identically.
+
+The tier exists now as a two-sided accounted list, thirteen entries after
+batch 13 dropped out, each saying what its module is waiting for. An
+unaccounted test-only module fails; an entry whose module has since been wired
+fails too, so a reason cannot outlive its subject. Both directions falsified
+with real exit codes, read without a pipe in between.
+
+## The tier's first finding was the tier
+
+Its first run reported all thirteen entries as stale. Naming a module in
+`TEST_ONLY` is naming it in a file under `scripts/`, and `scripts/` is in the
+set the report searches, so the bookkeeping made its own subjects look
+reachable. `withoutComments` covers the header, which names modules in prose;
+it does not cover a `Map` whose keys are code.
+
+`ALLOWED` has had this hazard since the file was written and has always been
+empty, so it never bit — and would have bitten silently the first time somebody
+used it, an exempted module reading as referenced and dropping out of the
+population the exemption was written for. The report now excludes its own path
+from the set it searches.
+
+## A second red gate on `main`, hidden behind the first
+
+With the notice count fixed the chain got further and failed again, at
+`verify:coverage-floor`: `lib/sonara-observability.cjs` at **13.8% covered
+(19 of 138 lines)**, under the 35% floor and unregistered. It had been red since
+the module landed; nobody saw it because `verify:proprietary-notice` runs first
+and exits the chain. Worth remembering when a chain goes red: the first failure
+is not necessarily the only one.
+
+The module's single test asserted one thing -- telemetry is disabled unless
+enabled -- and **could not have asserted a second**. `startTelemetry` memoises
+on module state, so the first call in a process decides for the whole process. A
+second `it` calling it with different environment would have received the first
+call's answer, asserted against that, and passed. Registering the module in
+`BELOW_FLOOR` would have recorded that as "hard to test" when what was true is
+"the test surface makes a second case silently meaningless".
+
+So each case now takes a fresh module out of the require cache, and the helper
+**asserts the instance is fresh** (`status === "not_started"`) before using it.
+If the cache key ever stops matching, the tests stop rather than going back to
+measuring one memoised decision. Twelve cases, no production code changed:
+non-`"true"` values read as off, an enabled-with-no-endpoint refusal with its
+recorded reason, plaintext refused under `NODE_ENV=production` and allowed
+outside it, a non-URL endpoint refused, a traces-only configuration refused
+rather than half-started, and the middleware's correlation id, status classes,
+static-asset skip, organization scoping and `unmatched` route label.
+
+Two things the writing of it turned up:
+
+- The first version captured stderr synchronously around a `supertest` call and
+  reported **zero events**. The `finish` handler runs after the response
+  promise resolves, so the capture was restored before the event it existed to
+  read. Had the assertion been "no unexpected events" rather than a count, that
+  would have passed.
+- The one case that starts the real SDK registers global trace and metric
+  providers **for the whole process**, so every later test in the suite would
+  take a live meter instead of the no-op one and the suite's behaviour would
+  depend on file order. It shuts the SDK down, calls `metrics.disable()` and
+  `trace.disable()`, and then asserts the global meter is a `NoopMeter` again --
+  a cleanup nobody checks is how order-dependence gets in.
+
+Floor after: 296 runtime files, 58,906 countable lines, 93.3% overall, one file
+under the floor and it is the one registered with a reason.
+
+## Nine production dependencies for two modules nothing calls
+
+`package.json` went from one production dependency to nine on 20 September:
+eight `@opentelemetry/*` packages and `@openfeature/server-sdk`. Their only
+consumers are `lib/sonara-observability.cjs` and `lib/sonara-feature-flags.cjs`,
+and **neither is required by anything but its own test**. `startTelemetry`,
+`installHttpObservability` and `createFeatureFlagService` have no caller in
+`server.js`, `api/`, `routes/`, `lib/` or `scripts/`.
+
+Nothing unsafe: telemetry needs `SONARA_OTEL_ENABLED=true` and refuses a
+non-HTTPS endpoint under `NODE_ENV=production`, and the flag service fails
+closed on an unknown key. The cost is a bundle carrying an SDK for unreachable
+code and a readiness story that reads as observability being in place. Recorded
+in `docs/SHIP_READINESS.md` for the owner rather than decided here: wiring it
+adds a middleware to every dynamic request and an `X-Request-ID` header to every
+response, and removing it reverses an architecture choice another session made
+deliberately.
+
+**One hazard measured rather than reasoned, for whoever wires it.**
+`installHttpObservability` takes its meter and builds its counter and histogram
+at install time. An OpenTelemetry instrument built before
+`setGlobalMeterProvider` is bound to the no-op provider and stays a no-op after
+a later start — so installing it before `startTelemetry` gives a dashboard that
+looks configured and counts nothing. Confirmed against `@opentelemetry/api`
+1.9.1 and `@opentelemetry/sdk-metrics` 2.11.0 with an in-memory exporter: a
+counter created before the provider was registered, then incremented, was
+absent from `reader.collect()`; one created after reported its value. The
+module's header already warns about the mirror-image ordering problem for HTTP
+instrumentation — this is a second, separate ordering constraint pointing the
+same way.
+
+## What the next person should not have to rediscover
+
+- The proprietary-notice count is now `pnpm run fix:proprietary-notice`. Do not
+  do the arithmetic by hand; that is how it fell three behind.
+- A test-only reference is not reachability. Tier 2 of
+  `report-unreferenced-modules` is the list that means it.
+- `report-unreferenced-modules.mjs` excludes its own file. If that filter is
+  removed, every entry in `ALLOWED` and `TEST_ONLY` silently stops being
+  measured.
+- Batches 8 and 9 are not missing modules: they are
+  `getCapabilityDesignReadiness()`, surfaced as `capabilityBatch8` and
+  `designBatch9`. Batches 10 and 11 never existed as separate modules.
+
+
 
 ### 2026-09-19 - The handoff package could not be pasted into the assistant its first line names
 
@@ -2117,225 +2316,3 @@ Its first version named a table that does not exist (`market_segments` rather
 than `market_intelligence_segments`), so every count came back 0 and three
 assertions failed for the wrong reason; the name is now read from the route
 module and stated once.
-
-
-
-### 2026-09-16 - Two exports that could be short without saying so
-
-Both export paths were capped at 10,000 rows by `limit=10000`, and neither could
-tell the cap had been reached. `limit=10000` returns 10,000 rows for a period
-holding 10,000 and for a period holding 40,000, and those are different facts.
-
-What each one did with that:
-
-* **`/business-builder/owner/accounting-exports/:id/download`** built a CSV, set
-  `X-Sonara-Export-Rows: 10000`, and handed it to an accountant. The file opened
-  cleanly and was missing records, and nothing in it said so.
-* **`/account/data/export`** returned a payload carrying a field called
-  **`complete`**, computed from whether any table failed to READ. A table that
-  answered with its most recent 10,000 of 40,000 rows had not failed, so the
-  partial copy was labelled complete -- under a page whose own copy promised
-  "Nothing is left out of the kinds listed above".
-
-**Fixed** with `EXPORT_ROW_CAP` and `supabaseListCapped`, which asks for
-`cap + 1` and reports `truncated` when more came back. Same trick
-`listRecordPage` already uses for "is there a next page", and for the same
-reason: it costs nothing.
-
-The two are resolved **differently, on purpose**. The accounting file is now
-**refused** with a 413 naming shorter periods as the answer, because an
-accountant acting on figures that are quietly short is a harm no later
-correction undoes. The data export is still **delivered**, with `complete: false`,
-a `truncated` list, and a note saying the file holds the most recent 10,000 and
-the older records are still in the account -- a customer asking for a copy of
-their own records is better served by that than by nothing. The page's promise
-was rewritten to match, because a fix that leaves the false promise on the page
-fixes the payload and not the thing the customer read.
-
-**The cap was not raised.** Vercel's documented duration is 300 seconds and the
-rows are held in memory to build one response body, so a higher cap trades a
-silent truncation for a timeout. Detecting the cap is the fix; moving it is not.
-
-**Also:** the accounting export read `select=*` and handed the rows to
-`buildRecordCsv(rows, source.columns)`, which writes thirteen columns and
-nothing else. Every other column of up to 10,000 rows was fetched into a file's
-contents and never used. Now selects exactly those columns.
-
-That moved `report-unused-selected-columns.mjs` counts by one in each direction
--- `select=*` 22 -> 21, computed 26 -> 27 -- which is the trade that script's own
-comments warn about. Taken deliberately: the columns cannot be literal here
-because `source.columns` is chosen by export type, and the script already chose
-a computed select over two near-identical query sites for the same reason. What
-replaces the scanner's reading is stronger: the new test asserts the select the
-route actually sends, split on commas, deep-equals `source.columns`.
-
-**Verified by breaking it,** twice:
-
-* the capped read made to ask for exactly `cap` instead of `cap + 1` -- caught by
-  four assertions, including `a period over the cap produced a file anyway` and
-  `a truncated export called itself complete`.
-* `select=*` restored and `complete` reverted to ignore truncation -- caught by
-  `the export still fetches every column to write a declared subset` and the
-  complete assertion.
-
-The first attempt at the test **timed out on all eight assertions** rather than
-failing: `requireCustomer` and `requireBusinessManager` are middleware used
-directly and only `requireWorkspaceAccess` is a factory, so passing all three as
-factories registered no routes at all. The shape is now copied from
-`tests/data-rights.test.js` rather than inferred, with a comment saying why.
-
-The rewritten page copy then tripped `no-page-lies-when-the-database-is-down`:
-`CLAIMS_EMPTY` is `/\b(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i`,
-and "Nothing is transformed, and the file says plainly whether **any**..." matched
-in one clause. Reworded to end that clause with a full stop, which the matcher
-cannot cross, rather than added to `NOT_A_CLAIM_ABOUT_RECORDS` -- an exemption is
-a reason that has to stay true, and this one would have read "not a claim about
-records" over a sentence that is about the customer's records.
-
-`tests/an-export-says-when-it-is-short.test.js`, 8 assertions.
-
-
-
-### 2026-09-16 - Sending to only the people a campaign missed
-
-The other half of the record added earlier today. `growth_campaign_sends` made
-the remainder computable; this makes it sendable.
-
-**Added:** a `remainder_only` mode on the campaign send, a
-`GET /api/growth/campaigns/:campaignId/remainder` read so an owner can see what
-is left before pressing anything, and a "Skip anyone this campaign already
-reached" tickbox on `/growth-studio/your-campaigns`.
-
-**The feature is the refusal.** An unreadable send record produces zero accepted
-rows; zero accepted rows make every recipient look unreached; and "everybody is
-unreached" mails everybody a second time -- under a button that promised not to.
-So `remainderFrom` answers `known: false` on a failed read, and both the send and
-the read pass that refusal through as a 503 with nothing sent, rather than
-softening it into a number.
-
-**The part that was easy to miss.** The charge was keyed `campaign:<id>`, and the
-dispatcher's own header describes the resulting duplicate-charge refusal as the
-thing that removes an owner's one signal. A remainder send keyed the same way
-walks straight into it from the other side: the stragglers get emailed, we pay
-Resend, and the ledger silently declines the charge as a duplicate. So
-`dispatchCampaign` gained `sendAttempt`, and the remainder's key is
-`campaign:<id>:remainder-<16 hex>` digested over the remainder's own sorted,
-case-folded addresses -- stable for a retry of that same remainder, different for
-a different one. A first send's key is byte-identical to what it was.
-
-The remainder is narrowed **before** `authoriseCampaign`, not after, because the
-charge is drawn from the authorised set: narrowing afterwards would bill for
-1,000 while sending to 100. Consent screening still runs first, so somebody who
-withdrew consent since the first send is not pulled back in by being "unreached".
-
-**Verified by breaking it,** three times:
-
-* `remainderFrom` made to return the whole list on a failed read -- caught by
-  `sends nothing when the send record cannot be read` and `refuses rather than
-  reporting everybody as unreached`.
-* the attempt discriminator removed from the charge key -- caught by `the
-  remainder send reused the first send's charge key` and by the two-different-
-  remainders assertion.
-* the `status === "accepted"` filter widened to any row -- caught by `treats a
-  failed row as somebody still to reach`.
-
-The first falsification also **found a weakness in the test itself**. Asserted
-after the status code, the "mailed somebody" check never fired: breaking the
-refusal changed the status too, so the failure an engineer read was `409 !== 503`
--- true, and silent about the harm. The two assertions now come first, so the
-failure prints `a remainder send with an unreadable record mailed somebody`.
-
-`tests/a-remainder-send-refuses-what-it-cannot-know.test.js`, 12 assertions.
-
-**Still open:** the >1,000-recipient cross-invocation queue. It needed this same
-record and now has it, but it also needs the work to be resumable across
-invocations, which is a separate piece.
-
-
-
-### 2026-09-16 - A campaign now records who it actually reached
-
-`lib/growth-studio-dispatch.cjs` has named this gap in its own header since 15
-September, and named it accurately:
-
-> Reaching only the remainder needs a per-recipient record of who was accepted,
-> which is also what the >1,000 cross-invocation queue needs and is why both are
-> still unbuilt.
-
-The harm was specific. A campaign that reached 900 of 1,000 told the owner which
-100 were not attempted, and the only way to reach those 100 was to send the whole
-campaign again -- mailing the first 900 twice. The charge is keyed on
-`campaign:<id>`, so the second send is refused as a duplicate charge and the
-owner is never billed, which removes the one signal that would have told them it
-happened.
-
-**Added:** `public.growth_campaign_sends` (migration 119), and
-`lib/growth-studio-send-records.cjs` holding the pure half -- `sendRowsFor` and
-`remainderFrom` -- plus a Supabase writer and reader. One row per recipient per
-attempt, across the three outcomes the dispatcher already distinguished:
-accepted, failed, not attempted.
-
-`growth_campaign_sends_accepted_once` is the guarantee rather than an
-optimisation: partial on `status = 'accepted'`, keyed on
-`(organization_id, campaign_id, lower(email))`. One accepted row per person per
-campaign, so a retry cannot double-count; failed and not-attempted rows are
-deliberately outside it, because a recipient can legitimately fail twice and
-each attempt is evidence. It is case-folded because `Ann@` and `ann@` are one
-real person who would otherwise get two emails.
-
-## The defect this introduces, and the guard against it
-
-**Zero accepted rows has two opposite causes** -- nothing was sent, or the record
-was not written -- and they are the same value. Read one as the other and the
-product tells an owner it is safe to re-mail everybody, which is worse than the
-gap it replaced because now there is a record to point at.
-
-So `remainderFrom` takes a read OUTCOME and refuses a bare array. `{ ok: false }`
-returns `known: false` with an empty remainder -- declining to answer rather than
-answering "everybody". A genuinely empty record still answers, so the guard
-protects the feature instead of breaking it. That is shape 4 from
-`.claude/skills/checks-that-cannot-lie`.
-
-The dispatcher's owner-facing sentence now follows the record rather than being
-fixed: with one written it says only the remainder needs sending; without one it
-says sending again would re-mail everyone above. The route forwards `recorded`
-for the same reason it had to start forwarding `notAttempted` -- a caller that
-can read the sentence but not the state cannot decide whether offering
-"send to the remainder" is safe.
-
-**A batch 409 is not interpreted.** PostgREST fails the whole insert on a unique
-violation without naming the row, so the batch is re-inserted individually and
-each outcome attributed -- the same choice, for the same reason, as the
-batch-email fallback three files over. Bounded at 200, past which the result says
-which rows landed is unknown rather than claiming success.
-
-Also: the batch send path was reading the provider ids to decide a batch was
-clean and then discarding them. They are index-aligned by the documented
-contract, so each one is now kept against its address.
-
-**Broken to prove each check works.** Treating a failed read as an empty record,
-accepting a bare array, and counting a failed row as reached each failed by name
-and restored to an identical hash.
-
-## Three existing checks this moved, and why none was weakened
-
-- The closed-set probe in `verify-migration-replay` went 26 -> 27 tables closed
-  to everyone but the service role. That is the check working: a new table
-  invisible to anon and authenticated has to be declared deliberately.
-- `a-campaign-sends-only-to-who-was-authorised` asserts exactly one report entry
-  when the ledger fails. There are now two true things to report, so the fixture
-  supplies a working recorder and the assertion stays exact rather than being
-  loosened to "at least one".
-- `an-owner-told-a-hundred-were-missed-can-find-out-which` asserted the old fixed
-  sentence. Its fixture's fetch stub answers the send-record insert too, so the
-  record IS written there -- the assertion now reads the forwarded `recorded.ok`
-  as well as the prose, because a sentence claiming a record while the state says
-  otherwise would be the same defect in a new place.
-
-**Verified:** 4,577 tests passing, `verify:gates` exits 0, 119 migrations replay
-against an empty PostgreSQL, derived figures updated in five documents.
-
-**Still not built:** the >1,000 cross-invocation queue, and the owner-facing
-"send to the remainder" action. Both now have the record they were waiting on;
-neither is wired, and the dispatcher still refuses past its fallback budget
-rather than pretending otherwise.

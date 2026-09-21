@@ -50,6 +50,10 @@ const {
   NON_REPOSITORY_REFERENCES_BATCH12
 } = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
 const {
+  SCREENSHOT_TOOL_RADAR_BATCH13,
+  NON_REPOSITORY_REFERENCES_BATCH13
+} = require("../lib/sonara-screenshot-tool-radar-batch13.cjs");
+const {
   SCREENSHOT_TOOL_RADAR_BATCH14,
   CONFIRMED_EXISTING_RECORDS_BATCH14,
   NON_REPOSITORY_REFERENCES_BATCH14,
@@ -139,6 +143,7 @@ const SCREENSHOT_BATCH5_KEYS = SCREENSHOT_TOOL_RADAR_BATCH5.map((item) => item.k
 const SCREENSHOT_BATCH6_KEYS = SCREENSHOT_TOOL_RADAR_BATCH6.map((item) => item.key);
 const SCREENSHOT_BATCH7_KEYS = SCREENSHOT_TOOL_RADAR_BATCH7.map((item) => item.key);
 const SCREENSHOT_BATCH12_KEYS = SCREENSHOT_TOOL_RADAR_BATCH12.map((item) => item.key);
+const SCREENSHOT_BATCH13_KEYS = SCREENSHOT_TOOL_RADAR_BATCH13.map((item) => item.key);
 const SCREENSHOT_BATCH14_KEYS = SCREENSHOT_TOOL_RADAR_BATCH14.map((item) => item.key);
 const SCREENSHOT_BATCH15_KEYS = VERIFIED_REPOSITORIES_BATCH15.map((item) => item.key);
 const SCREENSHOT_BATCH16_KEYS = SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => item.key);
@@ -148,6 +153,7 @@ const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH6,
   ...NON_REPOSITORY_REFERENCES_BATCH7,
   ...NON_REPOSITORY_REFERENCES_BATCH12,
+  ...NON_REPOSITORY_REFERENCES_BATCH13,
   ...NON_REPOSITORY_REFERENCES_BATCH14,
   ...NON_REPOSITORY_REFERENCES_BATCH15.filter((item) => item.key !== "searchphone"),
   ...NON_REPOSITORY_REFERENCES_BATCH16
@@ -656,12 +662,18 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 114);
-    assert.equal(response.body.verifiedCount, 110);
+    // Batch 13 was recorded on 16 September and reached this surface on
+    // 21 September. Until then the route required batches 12 and 14 with nothing
+    // between them, and these numbers were written from the route rather than
+    // from the batch modules -- so the test agreed with the omission instead of
+    // catching it. 114 + 4 repositories, 110 + 4 verified, 104 + 4 screenshot
+    // records, 50 + 2 non-repository references.
+    assert.equal(response.body.repositoryCount, 118);
+    assert.equal(response.body.verifiedCount, 114);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 104);
+    assert.equal(response.body.screenshotResearchCount, 108);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 50);
+    assert.equal(response.body.nonRepositoryReferenceCount, 52);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -674,6 +686,7 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH6_KEYS,
         ...SCREENSHOT_BATCH7_KEYS,
         ...SCREENSHOT_BATCH12_KEYS,
+        ...SCREENSHOT_BATCH13_KEYS,
         ...SCREENSHOT_BATCH14_KEYS,
         ...SCREENSHOT_BATCH15_KEYS,
         ...SCREENSHOT_BATCH16_KEYS
@@ -687,8 +700,8 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /104 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /50 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /108 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /52 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /Tool gateway boundary: Batch 16 architecture/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
