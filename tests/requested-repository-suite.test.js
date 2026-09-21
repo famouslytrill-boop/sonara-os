@@ -60,6 +60,13 @@ const {
   NON_REPOSITORY_REFERENCES_BATCH15,
   getScreenshotToolReadinessBatch15
 } = require("../lib/sonara-screenshot-tool-radar-batch15.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH16,
+  NON_REPOSITORY_REFERENCES_BATCH16,
+  CONFIRMED_EXISTING_RECORDS_BATCH16,
+  ARCHITECTURE_EXTENSIONS_BATCH16,
+  getScreenshotToolReadinessBatch16
+} = require("../lib/sonara-screenshot-tool-radar-batch16.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -134,6 +141,7 @@ const SCREENSHOT_BATCH7_KEYS = SCREENSHOT_TOOL_RADAR_BATCH7.map((item) => item.k
 const SCREENSHOT_BATCH12_KEYS = SCREENSHOT_TOOL_RADAR_BATCH12.map((item) => item.key);
 const SCREENSHOT_BATCH14_KEYS = SCREENSHOT_TOOL_RADAR_BATCH14.map((item) => item.key);
 const SCREENSHOT_BATCH15_KEYS = VERIFIED_REPOSITORIES_BATCH15.map((item) => item.key);
+const SCREENSHOT_BATCH16_KEYS = SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
@@ -141,7 +149,8 @@ const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH7,
   ...NON_REPOSITORY_REFERENCES_BATCH12,
   ...NON_REPOSITORY_REFERENCES_BATCH14,
-  ...NON_REPOSITORY_REFERENCES_BATCH15
+  ...NON_REPOSITORY_REFERENCES_BATCH15.filter((item) => item.key !== "searchphone"),
+  ...NON_REPOSITORY_REFERENCES_BATCH16
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -564,6 +573,71 @@ describe("Batch 14 agent, browser, voice and business-tool intake", () => {
     assert.ok(readiness.repositories.every((item) => item.canExecute === false));
   });
 
+  it("adds Batch 16 as verified, non-executing, human-reviewed research", () => {
+    const readiness = getScreenshotToolReadinessBatch16();
+    assert.equal(readiness.batch, 16);
+    assert.equal(readiness.repositoryCount, 15);
+    assert.equal(readiness.verifiedCount, 15);
+    assert.equal(readiness.reciprocalLicenseCount, 4);
+    assert.equal(readiness.nonRepositoryReferenceCount, 8);
+    assert.equal(readiness.confirmedExistingRecordCount, 5);
+    assert.equal(readiness.architectureExtensionCount, 7);
+    assert.equal(readiness.productionExecutionCount, 0);
+    assert.deepEqual(readiness.repositories.map((item) => item.key), SCREENSHOT_BATCH16_KEYS);
+    assert.ok(readiness.repositories.every((item) => item.enabledInProduction === false));
+    assert.ok(readiness.repositories.every((item) => item.runtimeStatus === "not_executed"));
+    assert.ok(readiness.repositories.every((item) => item.canExecute === false));
+    assert.ok(readiness.repositories.every((item) => item.humanReviewRequired === true));
+  });
+
+  it("corrects screenshot licence assumptions instead of trusting badges", () => {
+    const byKey = Object.fromEntries(SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => [item.key, item]));
+    assert.match(byKey.lobehub.license, /LobeHub Community License/);
+    assert.doesNotMatch(byKey.lobehub.license, /^Apache-2\.0$/);
+    assert.equal(byKey.lobehub.licenseRisk, "high");
+    assert.equal(byKey.drawdb.license, "AGPL-3.0");
+    assert.equal(byKey.openstock.license, "AGPL-3.0");
+    assert.equal(byKey.sharex.license, "GPL-3.0");
+    assert.equal(byKey.bitchord.license, "GPL-3.0");
+  });
+
+  it("keeps browser, OSINT, MCP and Physical AI capabilities behind explicit boundaries", () => {
+    const byKey = Object.fromEntries(SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => [item.key, item]));
+    assert.match(byKey.agent_reach.blockedUses.join(" "), /CAPTCHA|bot-protection|credential/i);
+    assert.match(byKey.jev_ultrafast.safety.join(" "), /postcondition verification|delegated authority/i);
+    assert.match(byKey.searchphone.blockedUses.join(" "), /doxxing|stalking|covert tracking/i);
+    assert.match(byKey.fastmcp.safety.join(" "), /does not grant tenant|allow-listed/i);
+    assert.match(byKey.spectacles_dimensional_os.safety.join(" "), /emergency stop|simulator-first/i);
+  });
+
+  it("keeps developer-agent clients replaceable and outside merge/release authority", () => {
+    const byKey = Object.fromEntries(SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => [item.key, item]));
+    assert.equal(byKey.cline.license, "Apache-2.0");
+    assert.match(byKey.cline.blockedUses.join(" "), /exact-head CI|protected-branch/i);
+    assert.match(byKey.munder_difflin.safety.join(" "), /branch isolation|merge|release/i);
+    assert.match(
+      ARCHITECTURE_EXTENSIONS_BATCH16.find((item) => item.key === "developer_agent_interchangeability").implementation,
+      /AGENTS.*pnpm.*exact-head CI/i
+    );
+  });
+
+  it("supersedes the old unresolved SearchPhone lead with a verified restricted record", () => {
+    const item = SCREENSHOT_TOOL_RADAR_BATCH16.find((candidate) => candidate.key === "searchphone");
+    assert.equal(item.repository, "HackUnderway/SearchPhone");
+    assert.equal(item.license, "MIT");
+    assert.equal(item.integrationStatus, "research_only_security_gated");
+    assert.match(item.blockedUses.join(" "), /customer-facing unrestricted phone OSINT/i);
+    assert.ok(CONFIRMED_EXISTING_RECORDS_BATCH16.some((entry) => entry.key === "batch15_platform_patterns_confirmed"));
+  });
+
+  it("keeps unresolved social-post paths unresolved rather than inventing repositories", () => {
+    const byKey = Object.fromEntries(NON_REPOSITORY_REFERENCES_BATCH16.map((item) => [item.key, item]));
+    assert.equal(byKey.claude_code_for_beginners_unresolved.status, "repository_unresolved");
+    assert.equal(byKey.wa_akg_gateway_unresolved.status, "repository_unresolved");
+    assert.equal(byKey.claude_mem_unresolved.status, "repository_unresolved");
+    assert.match(byKey.wa_akg_gateway_unresolved.nextStep, /official WhatsApp Business/i);
+  });
+
   it("keeps the industrial agentic engineering paper as a non-repository harness reference", () => {
     assert.equal(NON_REPOSITORY_REFERENCES_BATCH14.length, 1);
     const reference = NON_REPOSITORY_REFERENCES_BATCH14[0];
@@ -582,12 +656,12 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.repositoryCount, 99);
-    assert.equal(response.body.verifiedCount, 95);
+    assert.equal(response.body.repositoryCount, 114);
+    assert.equal(response.body.verifiedCount, 110);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 89);
+    assert.equal(response.body.screenshotResearchCount, 104);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 43);
+    assert.equal(response.body.nonRepositoryReferenceCount, 50);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -601,7 +675,8 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH7_KEYS,
         ...SCREENSHOT_BATCH12_KEYS,
         ...SCREENSHOT_BATCH14_KEYS,
-        ...SCREENSHOT_BATCH15_KEYS
+        ...SCREENSHOT_BATCH15_KEYS,
+        ...SCREENSHOT_BATCH16_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
@@ -612,8 +687,9 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /89 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /43 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /104 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /50 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /Tool gateway boundary: Batch 16 architecture/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
