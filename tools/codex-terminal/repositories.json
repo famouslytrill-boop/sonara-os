@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "researchedAt": "2026-09-20",
+  "policy": {
+    "defaultAction": "plan",
+    "externalRoot": "~/.sonara/external",
+    "noArbitraryInstallScripts": true,
+    "noSubmodulesByDefault": true,
+    "productionActivation": false,
+    "governedRegistryWins": "data/open-source-tools.ts"
+  },
+  "repositories": [
+    {
+      "id": "modelcontextprotocol-typescript-sdk",
+      "repo": "modelcontextprotocol/typescript-sdk",
+      "url": "https://github.com/modelcontextprotocol/typescript-sdk.git",
+      "license": "Apache-2.0/MIT transition",
+      "lane": "review-install",
+      "reason": "MCP v2 interoperability",
+      "enabledInProduction": false
+    },
+    {
+      "id": "temporalio-temporal",
+      "repo": "temporalio/temporal",
+      "url": "https://github.com/temporalio/temporal.git",
+      "license": "MIT",
+      "lane": "optional-worker",
+      "reason": "durable workflow server",
+      "enabledInProduction": false
+    },
+    {
+      "id": "temporalio-sdk-typescript",
+      "repo": "temporalio/sdk-typescript",
+      "url": "https://github.com/temporalio/sdk-typescript.git",
+      "license": "MIT",
+      "lane": "optional-worker",
+      "reason": "durable TypeScript workers",
+      "enabledInProduction": false
+    },
+    {
+      "id": "open-policy-agent-opa",
+      "repo": "open-policy-agent/opa",
+      "url": "https://github.com/open-policy-agent/opa.git",
+      "license": "Apache-2.0",
+      "lane": "optional-service",
+      "reason": "policy evaluation; do not replace SONARA authority implicitly",
+      "enabledInProduction": false
+    },
+    {
+      "id": "qdrant-qdrant",
+      "repo": "qdrant/qdrant",
+      "url": "https://github.com/qdrant/qdrant.git",
+      "license": "Apache-2.0",
+      "lane": "optional-service",
+      "reason": "vector service only if pgvector misses measured requirements",
+      "enabledInProduction": false
+    },
+    {
+      "id": "valkey-io-valkey",
+      "repo": "valkey-io/valkey",
+      "url": "https://github.com/valkey-io/valkey.git",
+      "license": "BSD-3-Clause",
+      "lane": "optional-service",
+      "reason": "cache/queue/coordination",
+      "enabledInProduction": false
+    },
+    {
+      "id": "open-telemetry-opentelemetry-js",
+      "repo": "open-telemetry/opentelemetry-js",
+      "url": "https://github.com/open-telemetry/opentelemetry-js.git",
+      "license": "Apache-2.0",
+      "lane": "review-install",
+      "reason": "Node observability",
+      "enabledInProduction": false
+    },
+    {
+      "id": "open-telemetry-opentelemetry-collector-releases",
+      "repo": "open-telemetry/opentelemetry-collector-releases",
+      "url": "https://github.com/open-telemetry/opentelemetry-collector-releases.git",
+      "license": "Apache-2.0",
+      "lane": "optional-service",
+      "reason": "isolated telemetry collector",
+      "enabledInProduction": false
+    },
+    {
+      "id": "langchain-ai-langgraphjs",
+      "repo": "langchain-ai/langgraphjs",
+      "url": "https://github.com/langchain-ai/langgraphjs.git",
+      "license": "MIT",
+      "lane": "reference-first",
+      "reason": "agent workflow patterns; existing SONARA authority remains canonical",
+      "enabledInProduction": false
+    },
+    {
+      "id": "berriai-litellm",
+      "repo": "BerriAI/litellm",
+      "url": "https://github.com/BerriAI/litellm.git",
+      "license": "MIT core; enterprise directory separately licensed",
+      "lane": "reference-first",
+      "reason": "provider-routing comparison behind SONARA Provider Gateway",
+      "enabledInProduction": false
+    },
+    {
+      "id": "promptfoo-promptfoo",
+      "repo": "promptfoo/promptfoo",
+      "url": "https://github.com/promptfoo/promptfoo.git",
+      "license": "MIT",
+      "lane": "developer-tool",
+      "reason": "prompt/model regression and security evaluation",
+      "enabledInProduction": false
+    },
+    {
+      "id": "vllm-project-vllm",
+      "repo": "vllm-project/vllm",
+      "url": "https://github.com/vllm-project/vllm.git",
+      "license": "Apache-2.0",
+      "lane": "model-runtime",
+      "reason": "isolated GPU inference",
+      "enabledInProduction": false
+    },
+    {
+      "id": "ggml-org-llama-cpp",
+      "repo": "ggml-org/llama.cpp",
+      "url": "https://github.com/ggml-org/llama.cpp.git",
+      "license": "MIT",
+      "lane": "model-runtime",
+      "reason": "local/edge GGUF inference",
+      "enabledInProduction": false
+    },
+    {
+      "id": "ollama-ollama",
+      "repo": "ollama/ollama",
+      "url": "https://github.com/ollama/ollama.git",
+      "license": "MIT",
+      "lane": "model-runtime",
+      "reason": "developer local model serving",
+      "enabledInProduction": false
+    },
+    {
+      "id": "huggingface-transformers",
+      "repo": "huggingface/transformers",
+      "url": "https://github.com/huggingface/transformers.git",
+      "license": "Apache-2.0",
+      "lane": "model-runtime",
+      "reason": "isolated Python model workers",
+      "enabledInProduction": false
+    },
+    {
+      "id": "microsoft-onnxruntime",
+      "repo": "microsoft/onnxruntime",
+      "url": "https://github.com/microsoft/onnxruntime.git",
+      "license": "MIT",
+      "lane": "model-runtime",
+      "reason": "portable/edge inference",
+      "enabledInProduction": false
+    },
+    {
+      "id": "pgvector-pgvector",
+      "repo": "pgvector/pgvector",
+      "url": "https://github.com/pgvector/pgvector.git",
+      "license": "PostgreSQL-style permissive",
+      "lane": "existing-foundation",
+      "reason": "prefer existing Postgres vector path",
+      "enabledInProduction": false
+    },
+    {
+      "id": "systran-faster-whisper",
+      "repo": "SYSTRAN/faster-whisper",
+      "url": "https://github.com/SYSTRAN/faster-whisper.git",
+      "license": "MIT",
+      "lane": "optional-worker",
+      "reason": "isolated speech transcription",
+      "enabledInProduction": false
+    }
+  ]
+}

@@ -169,8 +169,8 @@ const HEADER_LINES = 6;
 // #4 adds one governed shipped research module, taking the exact covered
 // population to 289. Frontend Visual Operations Intelligence adds one governed
 // shipped research module, taking the combined exact covered population to 290.
-// PR #330 added two shipped proprietary source files. Exact-head CI measured
-// 292 covered files; ratchet to that measurement without weakening the check.
+// PR #330's consolidated backend/auth/repository work brings the current exact
+// shipped-source population to 292; keep this as an exact non-vacuous assertion.
 const EXPECTED_FILES = 292;
 const EXPECTED_PUBLIC_FILES = 20;
 

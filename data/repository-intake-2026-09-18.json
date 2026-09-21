@@ -516,7 +516,8 @@
       ],
       "reasonNotInstalled": "A second policy authority would be dangerous until SONARA's existing authorization model has an explicit integration boundary; study semantics first.",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "grafana",
@@ -619,7 +620,8 @@
       ],
       "reasonNotInstalled": "Source-available FSL terms and very large service footprint make source incorporation inappropriate; use the observability patterns or a separately reviewed service.",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     }
   ],
   "installSet": [
@@ -675,7 +677,8 @@
       "activationBoundary": "Expose only explicit allow-listed tools; MCP never grants tenant/provider/account authority by itself.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "opentelemetry_js",
@@ -693,7 +696,8 @@
       "activationBoundary": "Telemetry must redact secrets and tenant-sensitive payloads; exporters remain configuration-gated.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "pino",
@@ -711,7 +715,8 @@
       "activationBoundary": "Structured logs must pass SONARA redaction before emission.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "pino_http",
@@ -746,7 +751,8 @@
       "activationBoundary": "Schemas validate shape only; authorization remains separate.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "zod",
@@ -764,7 +770,8 @@
       "activationBoundary": "Use at input/provider boundaries; never treat schema validity as permission.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "p_retry",
@@ -887,7 +894,8 @@
       "activationBoundary": "Provider-reported billing truth remains authoritative; SDK use cannot infer payment success from redirects.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "supabase_js",
@@ -904,7 +912,8 @@
       "activationBoundary": "Service-role credentials remain server-only; every privileged query must preserve organization filters.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "resend_node",
@@ -921,7 +930,8 @@
       "activationBoundary": "Sending remains explicit and environment-gated; logs never contain API keys or message secrets.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "pg_boss",
@@ -975,7 +985,8 @@
       "activationBoundary": "Requires reviewed Redis infrastructure; remains inactive unless a Redis-backed worker architecture is explicitly selected.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "ioredis",
@@ -1010,7 +1021,8 @@
       "activationBoundary": "Embedding model and vector dimension must be explicitly reviewed; semantic retrieval remains optional.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "node_postgres",
@@ -1063,7 +1075,8 @@
       "activationBoundary": "Use identity/tenant-aware keys where appropriate; rate limiting is not an authorization control.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "helmet",
@@ -1080,7 +1093,8 @@
       "activationBoundary": "Adoption must preserve SONARA's explicit CSP and not silently loosen existing directives.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "playwright",
@@ -1098,7 +1112,8 @@
       "activationBoundary": "Testing/dev dependency only; browser automation does not enter production request handling.",
       "status": "install_target_pinned",
       "executionEnabled": false,
-      "humanReviewRequired": true
+      "humanReviewRequired": true,
+      "promotedToRegistry": true
     },
     {
       "key": "lighthouse",
