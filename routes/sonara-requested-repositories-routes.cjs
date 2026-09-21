@@ -343,7 +343,7 @@ function getLatestScreenshotIntake() {
       ...getNonRepositoryReferencesBatch14(),
       ...getNonRepositoryReferencesBatch15(),
       ...getNonRepositoryReferencesBatch16()
-    ],
+    ].filter((item) => item.key !== "searchphone"),
     deduplicatedReferences: batch5.deduplicatedReferences || [],
     // Refused for what using them would do rather than for what their licence
     // says -- three of the five are permissively licensed, so filing them as
@@ -396,7 +396,7 @@ function getAllNonRepositoryReferences() {
     ...getNonRepositoryReferencesBatch14(),
     ...getNonRepositoryReferencesBatch15(),
     ...getNonRepositoryReferencesBatch16()
-  ];
+  ].filter((item) => item.key !== "searchphone");
 }
 
 function getAllConfirmedExistingRecords() {
