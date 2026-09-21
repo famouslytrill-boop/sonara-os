@@ -228,6 +228,29 @@ the automation goal rather than a preference:
 
 Nothing here is built yet, and this document does not claim it is.
 
+### AI and provider-cost rule — entitlement is not unbounded consumption
+
+Any AI/model/provider capability with a measurable marginal cost follows one
+commercial contract:
+
+1. the subscription grants the entitlement to use the capability;
+2. the plan includes a stated quantity of usage;
+3. the runtime enforces a measurable resource budget before the provider call;
+4. additional usage is funded by prepaid credits or another explicit bounded
+   purchase.
+
+Do **not** market a marginal-cost capability as "unlimited" merely because the
+subscription is inexpensive or because a provider currently offers a generous
+tier. A provider's fair-use policy, token charge, GPU second, media generation,
+voice minute, external action or future pricing change is still a variable
+cost. Public copy may use "unlimited" only for a capability whose production
+cost is demonstrably bounded independently of customer consumption.
+
+This rule extends the prepaid-credit design below the six currently priced
+capabilities to future AI workloads. The actual included quantities are a
+separate pricing decision and must be encoded in one authoritative allowance
+table before the capability is activated; this document does not invent them.
+
 ### Layer 3 — Nothing. Specifically, no lifetime or founding membership
 
 Worth stating because it is the obvious next idea and it is wrong for this

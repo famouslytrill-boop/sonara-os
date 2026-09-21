@@ -19,3 +19,6 @@ High-risk unresolved authorization, tenant-isolation, secret-exposure, or privil
 BreachLab-derived material may be used to build internal training and authorized test playbooks, but BreachLab is not a production dependency and must not be used to test third-party systems without authorization.
 
 See `docs/architecture/SONARA-ENGINEERING-SECURITY-AGENT-ARCHITECTURE.md` for the canonical engineering/security flow.
+
+
+OWASP ASVS traceability: `docs/security/OWASP_ASVS_5_0_0_MAPPING.md` maps current controls and explicit gaps to stable ASVS 5.0.0 identifiers. The map is evidence inventory, not a certification claim.
