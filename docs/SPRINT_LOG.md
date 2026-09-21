@@ -2,6 +2,94 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-21 - The upload sniffer guessed audio/mpeg once in every two thousand runs
+
+`sonara-industries` failed on PR #338 at head `74ab8383`, in
+`tests/an-upload-arrives-intact.test.js`: "returns null for a type it cannot
+tell, rather than guessing" got `'audio/mpeg'` where it expected `null`. It
+passed locally and it passed on the next head, all 53 checks green, which is how
+this kind of defect hides.
+
+## It was not a flake in the test
+
+The test feeds `multipart.sniff` 64 random bytes. The signature for
+`audio/mpeg` was:
+
+```
+b.subarray(0, 3).toString("latin1") === "ID3" || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)
+```
+
+`ID3` is a magic number. **An MPEG frame sync is not**: it is eleven set bits,
+`0xFF` then the top three bits of the next byte, which 1 in 2,048 random byte
+pairs satisfies. Measured rather than reasoned: **974 false positives in
+2,000,000 random 64-byte buffers, 1 in 2,053, every one of them audio/mpeg.**
+
+So the test was right and the sniffer was wrong, and the consequence is not
+cosmetic. `accept` decides on `sniff`, so **a file whose bytes are nothing in
+particular could be accepted as audio/mpeg wherever that type is allowed** --
+which is the failure `sniff`'s own doc comment warns about, reached from the
+other direction:
+
+> A caller deciding whether to accept an upload has to be able to tell "this is
+> a JPEG" from "I could not tell", and folding the second into the first is how
+> a page ends up serving a text/html file as an image.
+
+## What the fix is, and why not the smaller one
+
+Validating the header's reserved fields -- version `01`, layer `00`, bitrate
+index `0000`/`1111`, sample-rate index `11`, none of which a real frame carries
+-- cuts the rate by about two thirds. That is still roughly 1 in 5,500, which
+is worse than useless: a rarer intermittent failure is harder to diagnose than
+a frequent one.
+
+So a frame sync is believed only when the buffer holds a **whole frame** and the
+**next frame begins where this one says it will**. That needs the bitrate and
+sample-rate tables and the Layer I / Layer II-III length formulas, which is
+about forty lines, and it is the actual definition of an MP3 rather than a
+proxy for one.
+
+It also means a 64-byte fragment of a tagless MP3 now returns `null`, and that
+is correct rather than a regression: 64 bytes genuinely cannot identify a
+tagless MP3, the smallest common frame being larger than that, and "I could not
+tell" is the answer this function exists to be able to give. An ID3 tag needs
+none of it.
+
+Measured after:
+
+| input | before | after |
+| --- | --- | --- |
+| 2,000,000 random 64-byte buffers | 974 false `audio/mpeg` | **0** |
+| 300,000 random 4,096-byte buffers | -- | **0** |
+| tagless MPEG1 Layer III, two frames (`FF FB 90 04`, length 417) | `audio/mpeg` | `audio/mpeg` |
+| `ID3` + 32 bytes | `audio/mpeg` | `audio/mpeg` |
+
+## The test was added to, not weakened
+
+Three new cases make the random-byte case deterministic, because a defect that
+takes two thousand runs to show is one that comes back unnoticed:
+
+- a bare frame header with no frame after it is not an MP3;
+- four headers carrying a reserved version, a reserved layer, a bad bitrate
+  index and a reserved sample rate, each `null`;
+- the tagless two-frame MP3 is still recognised, which is why the sync is read
+  at all;
+- and `accept` refuses a bare sync **even when `audio/mpeg` is on the allowed
+  list**, which states the authorisation consequence as a test rather than as a
+  comment.
+
+Falsified by restoring the old one-line signature: both new cases fail by name,
+the first on "a frame header with no frame after it is not an MP3".
+
+## What the next person should not have to rediscover
+
+- A test that feeds random bytes and asserts `null` is a probabilistic test. It
+  is a good test -- it found this -- but when it fails, the rate is the first
+  thing to measure, not the last.
+- `sniff` is an authorisation input, not a convenience. Anything it returns,
+  `accept` will act on.
+- `ID3` is a magic number; a frame sync is two bytes of coincidence. Do not put
+  a bare sync back in the signature table.
+
 ### 2026-09-21 - Eleven places still said the application had one production dependency
 
 Asked to update the repository and the website with what has already been
