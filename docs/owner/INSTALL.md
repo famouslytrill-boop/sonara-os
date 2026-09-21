@@ -1,10 +1,23 @@
 # What you actually have to install
 
-Short answer: **on your own machine, almost nothing.** One command line tool,
-and only if you want to apply database migrations yourself.
+Review by: 2026-12-21
+
+Short answer: **on your own machine, almost nothing.** Two command line tools,
+and both optional — one only if you want to apply database migrations yourself,
+the other only if you want Claude Code in your terminal.
 
 Everything below was run in this repository on 19 August 2026 rather than
-recalled. Where something is unverified it says so.
+recalled, and the dependency counts, the Node major and the two hand-installed
+tools were re-checked on 21 September 2026. Where something is unverified it
+says so.
+
+The review date above is three months out because that is roughly how long the
+19 August figures lasted before two of them were wrong: this document said "one
+production dependency" and "version 22" until 21 September, by which point
+`package.json` declared nine dependencies and `engines.node` said `24.x`.
+`pnpm run verify:dependency-claims` now fails the release if the count here
+drifts again; the Node major and the tool versions are still prose, which is
+what the date is for.
 
 ---
 
@@ -17,10 +30,20 @@ compile step, and no framework build. `pnpm run build` is
 `node --check server.js && node -e "require('./server')"` — it parses the
 server and loads it, and that is the whole build.
 
-It has **one production dependency: `express`.** Four development
-dependencies: `@vercel/node`, `eslint`, `mocha`, `supertest`.
+It has **nine production dependencies.** `express`, plus eight
+`@opentelemetry/*` packages and `@openfeature/server-sdk` that arrived on
+20 September 2026. Five development dependencies: `@playwright/test`,
+`@vercel/node`, `eslint`, `mocha`, `supertest`.
 
-So there is no toolchain to install. If you have Node, you can run it.
+That reads like a change to the paragraph above it and is not one. None of the
+eight is a bundler or a compile step, and **nothing in the running application
+calls either of the two modules that use them** — they are an observability
+capability that was installed and not wired, which `docs/SHIP_READINESS.md`
+records as an open decision for you. It was one production dependency until
+20 September; this document says nine because nine is what `pnpm install` now
+fetches, not because the shape of the thing changed.
+
+So there is still no toolchain to install. If you have Node, you can run it.
 
 ---
 
@@ -30,7 +53,15 @@ You need two things, and you very likely have the first.
 
 ### 1. Node
 
-Version 22 is what this was verified on (`v22.22.2`). Get it from
+**Get Node 24.** `package.json` declares `"engines": { "node": "24.x" }`, and
+on Vercel that field *is* the production runtime rather than a preference —
+`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
+changes. Install anything older and every `pnpm` command prints
+`WARN Unsupported engine: wanted: {"node":"24.x"}`, which is the one warning in
+this repository worth acting on rather than reading past.
+
+This document said "version 22 (`v22.22.2`)" until 21 September 2026, which was
+true when it was written and had stopped being true. Get Node 24 from
 <https://nodejs.org> — the LTS installer is fine.
 
 Check it:
@@ -86,7 +117,7 @@ There is no `dotenv` in this project — the only production dependency is
 with **none** of those variables set, which looks exactly like a working local
 setup until you wonder why the database is not connected.
 
-Node 22 can load the file itself, with no dependency:
+Node can load the file itself, with no dependency:
 
 ```
 pnpm run dev
@@ -149,6 +180,81 @@ a push applies whatever is not yet applied.
 
 ---
 
+## The other tool you install by hand: Claude Code
+
+Optional, and a tool rather than part of the product. It is **not** a
+dependency of this repository, it is not in `package.json`, and nothing in the
+release chain needs it. Adding it to `package.json` would put it on the
+critical path of every production build for something a person runs in a
+terminal, which is the same reason the Supabase CLI is not in there either.
+
+Read from the npm registry on 21 September 2026 rather than recalled: the
+package is `@anthropic-ai/claude-code`, latest `2.1.278`, and its
+`engines.node` is **`>=22.0.0`**. The Node 24 from the section above covers it.
+
+**The installer that involves no package manager**, which is the one to prefer
+here given `AGENTS.md`:
+
+```
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+On Windows PowerShell:
+
+```
+irm https://claude.ai/install.ps1 | iex
+```
+
+Both URLs redirect to `downloads.claude.ai`. The shell script installs
+everything under `$HOME` and **refuses to run under `sudo`** — read on
+21 September 2026, and worth knowing before you reach for it out of habit.
+
+The package-manager route works too:
+
+```
+pnpm add -g @anthropic-ai/claude-code
+```
+
+`npm install -g @anthropic-ai/claude-code` is the form the upstream
+documentation gives. Either is fine: `AGENTS.md`'s "use pnpm only" is about
+**this repository's** dependency tree and lockfile, and a global CLI install
+touches neither — but `pnpm add -g` keeps you from having npm in your shell
+history at all, which is one less way to reach for the wrong one inside the
+repository.
+
+Then, from the repository folder:
+
+```
+claude
+```
+
+The first run opens a browser to sign in with your Claude account. Useful once
+you are in:
+
+| Command | What it does |
+| --- | --- |
+| `claude` | Start a session in the current folder |
+| `claude --continue` | Pick up the last session in this folder |
+| `claude doctor` | Check the install, auth and permissions |
+| `claude update` | Update to the current version |
+| `/help` | The command list, from inside a session |
+| `/clear` | Start fresh without leaving |
+
+Two things specific to this repository. `CLAUDE.md` and `AGENTS.md` load
+automatically on every session, so the safety rules and the pointers to
+`docs/HANDOFF_PROMPT.md` are in front of it before you type anything. And
+`.claude/skills/` holds the working procedures — `checks-that-cannot-lie`,
+`reviewing-an-outside-repository`, `researching-screenshot-tools` — which is
+why a screenshot of a tool gets a licence read rather than an install.
+
+**What it does not change.** It has no more authority than you give it:
+`lib/sonara-agent-authority.cjs` still sends refunds, payout changes, legal
+publishing, customer campaigns, proof publishing, security settings and
+destructive data changes to you for approval, and an unknown action still
+defaults to owner review. Merging and deploying stay yours.
+
+---
+
 ## What you set up outside your machine
 
 None of this is an install. It is four accounts and their settings, and it is
@@ -188,10 +294,10 @@ live in this repository. You install something only if you want to run one.
 
 | Directory | What it is | What you need | What it costs to run |
 | --- | --- | --- | --- |
-| `tools/songsmith` | Web app: a text idea becomes a song. Approval-gated accounts. | Node 22, and Docker if you want `docker compose up` | Free locally. **The generation backend is RunPod, and RunPod bills by the second.** Without a RunPod key it runs, takes requests and reports that generation is not configured. |
+| `tools/songsmith` | Web app: a text idea becomes a song. Approval-gated accounts. | Node 24, and Docker if you want `docker compose up` | Free locally. **The generation backend is RunPod, and RunPod bills by the second.** Without a RunPod key it runs, takes requests and reports that generation is not configured. |
 | `tools/agentkit` | Python toolkit for building single- and multi-agent systems, with a browser dev UI. | Python 3.11 or newer. Nothing else. | Free to run. A model key costs whatever that model charges — Gemini, or anything OpenAI-compatible. With no key the scripted client runs the tests. |
-| `tools/aws-emulator` | Local AWS on one port. S3, DynamoDB, Lambda, SQS. | Node 22, or Docker | Free. No account, no auth token, no paid tier. |
-| `tools/serverless-cli` | Define Lambda functions in YAML, see what a deploy would change before it changes. | Node 22 | Free locally. Deploying costs whatever AWS charges. |
+| `tools/aws-emulator` | Local AWS on one port. S3, DynamoDB, Lambda, SQS. | Node 24, or Docker | Free. No account, no auth token, no paid tier. |
+| `tools/serverless-cli` | Define Lambda functions in YAML, see what a deploy would change before it changes. | Node 24 | Free locally. Deploying costs whatever AWS charges. |
 | `tools/voice-clone` | Upload a voice with recorded consent, type text, get audio in that voice. | Python, `make`, and a GPU for the real engine | Free. **Runs immediately without having cloned anything** — read "Two engines" in its README before assuming otherwise. |
 | `tools/disposable-domains` | The tooling that keeps `lib/sonara-disposable-domains.txt` correct. | Nothing | Free. The list it maintains *is* used by the deployed application. |
 

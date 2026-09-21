@@ -102,11 +102,162 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 386 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 387 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-21 - Eleven places still said the application had one production dependency
+
+Asked to update the repository and the website with what has already been
+installed. The installing happened on 20 September; what had not happened was
+telling the rest of the repository about it.
+
+## What was measured
+
+`package.json` declares **nine** production dependencies and **five**
+development dependencies. Eleven live statements said otherwise, all of them in
+present tense, none of them dated:
+
+- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
+- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
+  `lib/sonara-structured-log.cjs`
+- `lib/sonara-screenshot-tool-radar-batch12.cjs`
+- `scripts/report-register-opportunities.mjs`
+- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
+- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
+- four guidance lines in `data/open-source-tools.ts`
+
+Every one was **load-bearing reasoning**: no multipart parser because there is
+one dependency; no YAML parser because there is one dependency; this module
+"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
+arrives". A second had arrived, eight of them, and the sentences explaining
+decisions by the old count read exactly as they did when they were true. That is
+the defect this repository is organised around, in prose rather than in code.
+
+**The reasoning mostly survives and was checked rather than assumed.** None of
+the nine production dependencies is a multipart parser and nothing in either
+dependency list parses YAML, both measured rather than recalled. So the
+conclusions stand and the premises were wrong, which is the most dangerous
+combination: nothing breaks, and the next person inherits a reason that will not
+hold the next time it is leaned on.
+
+## The register record whose trigger fired and was never read
+
+`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
+ended: "tests/the-auth-surface-stays-small.test.js fails if that single
+dependency stops being single, which is what would make this record worth
+revisiting."
+
+It stopped being single on 20 September. The test **was not weakened** -- it
+still asserts `deepEqual` against the whole manifest, so a tenth dependency
+fails it -- it was updated to the new exact list, correctly, because the change
+was intentional. But the record it was the trigger for was never revisited.
+
+So this is that revisit, written into the record as a dated addendum: the finding
+does not change, because the reason was never really the count. There is still no
+compile step and none of the nine is a TypeScript library needing one. What had
+to be corrected is the **trigger**, since a count that has already moved cannot
+warn about moving.
+
+## The owner's install document was wrong in two ways, one of them worse
+
+`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
+"one production dependency: `express`. Four development dependencies", and it
+said **"Version 22 is what this was verified on (`v22.22.2`)"**.
+
+The second is the one that mattered. `package.json` declares
+`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
+runtime rather than a preference --
+`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
+changes. The document told the owner to install a Node major that production
+does not run, in five places, which is why every `pnpm` command in this session
+printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
+with the reason the warning is worth acting on rather than reading past.
+
+A section on installing Claude Code was added beside the Supabase CLI one,
+because it belongs in the same category and for the same reason: a tool a person
+runs by hand, deliberately not in `package.json`, where adding it would put it
+on the critical path of every production build.
+
+Its facts were read from the npm registry rather than recalled, and the first
+draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
+`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
+`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
+and the shell script installs under `$HOME` and refuses to run under `sudo`. The
+native installer is listed first because it involves no package manager at all,
+which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
+of this repository's dependency tree.
+
+## `verify:dependency-claims`, the 58th chain command
+
+`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
+undated and mostly lived in source comments, so nothing watched it. The new
+check reads `package.json` and fails when a tracked file states a
+production-dependency count that does not match.
+
+Four things about how it is built, each because the first attempt got it wrong:
+
+- **It reads words, not just digits.** The first version matched digits and
+  found **none of the eleven** -- every one was written as "one" or "single".
+  `WORDS` covers zero to twelve plus `single` and `sole`.
+- **Past-tense statements are not current-state claims.** "went from one
+  production dependency to nine" is a true sentence about a change. A count
+  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
+  with an optional article, is skipped. The marker list is short on purpose: an
+  escape hatch wide enough to launder a current-state claim is worse than no
+  check, and "this is an Express 4 application with one production dependency"
+  has no marker and fails.
+- **It fails when it finds nothing.** A reword that drops every claim out of the
+  pattern is the check going blind, not the repository improving. Proved by
+  misspelling the pattern: `ERROR: no production-dependency count claim was
+  found anywhere in the repository`.
+- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
+  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
+  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
+  text can no longer be found fails, so an exemption cannot outlive the sentence
+  it excuses.
+
+Falsified in four directions before being trusted. It also found three of the
+eleven that grepping had missed, including the install document.
+
+## The website was calling an installed adapter a research candidate
+
+`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
+eight of its packages were production dependencies and a tested 195-line adapter
+existed. `setup_required` would have been the other wrong answer: it says
+configuration is what is left, and configuration is not what is left -- nothing
+calls the adapter, so every variable could be set and still nothing would be
+measured.
+
+`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
+`adapter built` and `enabled in production` are three different states, and this
+vocabulary had the first and the last. Added `adapter_built`, rendered
+"Adapter built, not enabled".
+
+The label map falls back to `"Review required"` for an unknown state, so the
+next state added would have gone unlabelled the same quiet way. Two tests now:
+every availability state in use must have a label and that label must appear on
+the page, with `Review required` asserted absent; and the OpenTelemetry entry
+must stay `adapter_built` **while** an `@opentelemetry` package is still a
+production dependency, so if the packages are removed the test says to move the
+entry back rather than leaving a state that overstates.
+
+## What the next person should not have to rediscover
+
+- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
+  words as well as digits.
+- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
+  because production is 24; the `Unsupported engine` warning means the local
+  Node is wrong, not that the field is.
+- A register record's revisit trigger is only as good as somebody reading it.
+  Better Auth's was a dependency count, which fired silently; it is now the
+  build step.
+- "Research candidate" on `/free-launch-stack` means researched. An installed,
+  unwired adapter is `adapter_built`.
+
+
 
 ### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
 
@@ -2162,157 +2313,3 @@ If it is off, the recorded timestamps point at a recovery that cannot be
 performed and the data half of the runbook does not exist. The schema dump cannot
 stand in, because it is schema only by design. Two minutes in the Supabase
 dashboard settles it, and either answer is fine -- not knowing is the problem.
-
-
-
-### 2026-09-16 - The cash position could be understated and still say "complete"
-
-Third hit from the same sweep, and the one with the argument for the fix already
-written in the file. `lib/sonara-cash-position.cjs` defines its own flag:
-
-> `complete` is the flag a caller must check before presenting any total as the
-> whole picture. Both an unreadable table and an undated row make it false,
-> because **both mean money exists that these figures do not include**.
-
-A read that came back capped is a third thing that means exactly that, and it was
-not one of the two the flag counted. `readRows` in
-`routes/sonara-assistant-routes.cjs` reads `ROW_LIMIT = 500` rows per table and
-returned `{ ok: true, rows }`, so a business with more than 500 invoices was
-shown an understated cash position on `/business-builder/owner/money-due`,
-labelled complete, with the confident headline rather than the hedged one.
-
-**Fixed** by reading `ROW_LIMIT + 1`, carrying `truncated` in the outcome, and
-adding it to `complete` alongside `unavailable` and `undated`. The page gets its
-own card, unshifted above the totals the way the other two caveats already are.
-
-Named separately from `unavailable` throughout, because the cause and the remedy
-differ: an unreadable table is an outage worth retrying, and a capped read is a
-size that retrying cannot change. The card says so in as many words -- telling
-somebody to try again would be telling them to do something that cannot work.
-
-**The payments read is the sharpest of the three and the least obvious.**
-Payments are *subtracted* from what is owed, so missing payment rows do not
-understate the total -- they **overstate** money coming in, by failing to reduce
-invoices that have already been settled. That is the same direction of error the
-module's existing `received?.ok` check exists to prevent ("Overstating money
-coming in is the wrong direction to be wrong in"), arriving by a different route.
-
-**Verified by breaking it,** in both halves separately: `readRows` made to ask
-for exactly the cap, and `complete` reverted to ignore truncation. Caught by
-`the page asked for a limit it cannot interpret`, `There is more of this than we
-can add up here`, and `a total summed from a capped read read as the whole
-picture`.
-
-Three assertions added to `tests/cash-position.test.js` and four to
-`tests/a-total-over-a-truncated-read-is-a-wrong-number.test.js`.
-
-One assertion there failed first for a reason that was not the defect: it
-expected `$50,000.00` and `asMoney` is `(Math.abs(amount) / 100).toFixed(2)`,
-which inserts no thousands separator. Format read from the route afterwards
-rather than assumed.
-
-#### What the sweep covered, and the two it examined and left
-
-The sweep was over every literal `limit=` of 100 or more and every
-`limit=${CONST}` in `routes/`, `lib/` and `server.js`, looking only for those
-whose rows then feed a **count or a sum**. Four aggregates found, three wrong:
-the accounting export, the standing-arrangements subtotal, the recorded-evidence
-count, and this one.
-
-Two were examined and deliberately left alone, recorded here so the next reader
-does not re-derive it:
-
-* **`readBookings` in `sonara-public-booking-routes.cjs`** (`limit=1000`) is
-  windowed to the booking horizon, about 21 days, so the cap is roughly 48
-  bookings a day before it binds. It feeds availability rather than a total, and
-  a truncated read there would make a taken slot look free -- so it is the one
-  worth watching if a multi-location operator gets busy. Left because the bound
-  is a date range rather than a whole table.
-* **The rota shift read in `sonara-rota-routes.cjs`** (`limit=1000`) is windowed
-  to about eleven days and renders a week, not a figure.
-
-Both already refuse correctly on `ok: false`, with the right sentence: an
-unreadable rota treated as an empty one reads to a visitor as "nobody works
-here".
-
-#### And a derived check was attempted and deliberately not shipped
-
-Four instances of one bug means the fifth is coming, so the obvious move was a
-release-chain command. It is not tractable: the property is "rows from a capped
-read feed an aggregate", which is dataflow rather than text.
-
-The probe measured 208 `limit=` occurrences across `routes/`, `lib/` and
-`server.js`, 72 of them at 100 or above or computed -- and the regex could not
-see across lines, reporting **zero** `cap + 1` sites when three had just been
-written. A register of 72 entries would rot, and a scanner that weak prints
-"passed" over exactly the bug it was written for, which is shape 6 in
-`.claude/skills/checks-that-cannot-lie`.
-
-So the finding went into the skill instead, as **shape 10, an aggregate over a
-read that was capped**, with all four cases, the `cap + 1` guard, the
-suppress-rather-than-footnote rule, the direction-of-error warning the payments
-read produced, `Prefer: count=exact` as the way to ask for a count, and an
-explicit note that this one is swept by hand and the per-site tests are the
-regression guard. Writing a weak green light would have been worse than writing
-nothing.
-
-
-
-### 2026-09-16 - Two figures computed over a read that had been capped
-
-Found by sweeping for the shape after it turned up twice in the export paths, on
-the principle CLAUDE.md states directly: assume more exist. The sweep was for a
-`limit=` whose rows then feed an **aggregate**. A capped list is fine -- it shows
-what it shows. A capped read that is then counted or summed is a wrong number
-presented as a measurement.
-
-Two hits, both rendered to a customer as a fact.
-
-**`/business-builder/owner/recurring`.** Every arrangement's lines were read in
-one query, `limit=1000`, ordered `position.asc` **across all arrangements**, then
-filtered per arrangement and summed into the money figure on screen. Past the cap
-the truncation falls wherever the ordering puts it, so an arrangement missing
-lines showed a subtotal that was simply too low -- no error, no gap, just a
-smaller number. The route already handled the lines read *failing*; it did not
-handle it returning fewer rows than exist. 200 arrangements averaging five lines
-each is exactly 1,000, so this was the page working correctly right up to the
-point where it quietly stopped.
-
-Fixed by reading `LINE_CAP + 1` and, when short, **suppressing every subtotal**
-with a card at the top saying so. Every subtotal, not some: the lines are ordered
-across all arrangements, so there is no way to tell which ones lost lines. A
-footnote under a printed figure would leave a wrong amount on screen for somebody
-to invoice from. The arrangements themselves are still listed -- an owner who
-cannot see an arrangement exists will set up a second copy of it.
-
-**`/business-builder/market-intelligence`.** Recorded evidence was counted with
-`select=id&limit=1000` and `rows.length`, so a table holding 4,000 rows reported
-1,000 -- the cap, presented as the total, three lines under a comment reading
-"What matters is that the number is real", on the page whose whole subject is
-"without turning estimates into facts". The same defect the record-page caption
-had when a list capped at 100 was captioned "100 records".
-
-Fixed with a `countRows` helper using `Prefer: count=exact` and `limit=1`, the
-pattern `supabaseCount` already used in `sonara-last9-routes.cjs`. Correct *and*
-cheaper: one row transferred instead of up to a thousand ids. `rest` now carries
-`contentRange`, because `count=exact` answers in a header and dropping it is what
-left the count measuring what it had transferred.
-
-Three states kept throughout: a failed read still reports `null` rather than 0 --
-the care the original code already took -- and a successful request whose
-`Content-Range` cannot be parsed is also `null`, because that is a failed
-measurement and 0 is a fact about the business.
-
-**Verified by breaking it,** both at once:
-
-* the subtotal made to sum regardless of truncation -- caught by `a subtotal was
-  printed over a truncated line read`.
-* the count reverted to measuring transferred rows -- caught by `the count is
-  still the cap rather than the total`, `the count still transfers rows to
-  measure them`, and `an unparseable count became zero`.
-
-`tests/a-total-over-a-truncated-read-is-a-wrong-number.test.js`, 10 assertions.
-Its first version named a table that does not exist (`market_segments` rather
-than `market_intelligence_segments`), so every count came back 0 and three
-assertions failed for the wrong reason; the name is now read from the route
-module and stated once.

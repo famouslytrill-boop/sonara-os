@@ -42,8 +42,8 @@ const SYNC_STEP = "- name: Synchronize verified Stripe runtime secret to Vercel 
 
 // The step's shell script, lifted out of the YAML by indentation.
 //
-// No YAML parser: this repository has one production dependency and a test is
-// not a reason to add a second. `run: |` opens a literal block, so the script is
+// No YAML parser: nothing in package.json parses YAML, in either dependency
+// list, and a test is not a reason to be the first thing that does. `run: |` opens a literal block, so the script is
 // every following line indented past the key, dedented by that amount.
 function runScriptOf(stepHeading) {
   const stepAt = WORKFLOW.indexOf(stepHeading);

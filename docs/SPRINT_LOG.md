@@ -2,6 +2,155 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-21 - Eleven places still said the application had one production dependency
+
+Asked to update the repository and the website with what has already been
+installed. The installing happened on 20 September; what had not happened was
+telling the rest of the repository about it.
+
+## What was measured
+
+`package.json` declares **nine** production dependencies and **five**
+development dependencies. Eleven live statements said otherwise, all of them in
+present tense, none of them dated:
+
+- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
+- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
+  `lib/sonara-structured-log.cjs`
+- `lib/sonara-screenshot-tool-radar-batch12.cjs`
+- `scripts/report-register-opportunities.mjs`
+- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
+- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
+- four guidance lines in `data/open-source-tools.ts`
+
+Every one was **load-bearing reasoning**: no multipart parser because there is
+one dependency; no YAML parser because there is one dependency; this module
+"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
+arrives". A second had arrived, eight of them, and the sentences explaining
+decisions by the old count read exactly as they did when they were true. That is
+the defect this repository is organised around, in prose rather than in code.
+
+**The reasoning mostly survives and was checked rather than assumed.** None of
+the nine production dependencies is a multipart parser and nothing in either
+dependency list parses YAML, both measured rather than recalled. So the
+conclusions stand and the premises were wrong, which is the most dangerous
+combination: nothing breaks, and the next person inherits a reason that will not
+hold the next time it is leaned on.
+
+## The register record whose trigger fired and was never read
+
+`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
+ended: "tests/the-auth-surface-stays-small.test.js fails if that single
+dependency stops being single, which is what would make this record worth
+revisiting."
+
+It stopped being single on 20 September. The test **was not weakened** -- it
+still asserts `deepEqual` against the whole manifest, so a tenth dependency
+fails it -- it was updated to the new exact list, correctly, because the change
+was intentional. But the record it was the trigger for was never revisited.
+
+So this is that revisit, written into the record as a dated addendum: the finding
+does not change, because the reason was never really the count. There is still no
+compile step and none of the nine is a TypeScript library needing one. What had
+to be corrected is the **trigger**, since a count that has already moved cannot
+warn about moving.
+
+## The owner's install document was wrong in two ways, one of them worse
+
+`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
+"one production dependency: `express`. Four development dependencies", and it
+said **"Version 22 is what this was verified on (`v22.22.2`)"**.
+
+The second is the one that mattered. `package.json` declares
+`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
+runtime rather than a preference --
+`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
+changes. The document told the owner to install a Node major that production
+does not run, in five places, which is why every `pnpm` command in this session
+printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
+with the reason the warning is worth acting on rather than reading past.
+
+A section on installing Claude Code was added beside the Supabase CLI one,
+because it belongs in the same category and for the same reason: a tool a person
+runs by hand, deliberately not in `package.json`, where adding it would put it
+on the critical path of every production build.
+
+Its facts were read from the npm registry rather than recalled, and the first
+draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
+`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
+`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
+and the shell script installs under `$HOME` and refuses to run under `sudo`. The
+native installer is listed first because it involves no package manager at all,
+which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
+of this repository's dependency tree.
+
+## `verify:dependency-claims`, the 58th chain command
+
+`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
+undated and mostly lived in source comments, so nothing watched it. The new
+check reads `package.json` and fails when a tracked file states a
+production-dependency count that does not match.
+
+Four things about how it is built, each because the first attempt got it wrong:
+
+- **It reads words, not just digits.** The first version matched digits and
+  found **none of the eleven** -- every one was written as "one" or "single".
+  `WORDS` covers zero to twelve plus `single` and `sole`.
+- **Past-tense statements are not current-state claims.** "went from one
+  production dependency to nine" is a true sentence about a change. A count
+  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
+  with an optional article, is skipped. The marker list is short on purpose: an
+  escape hatch wide enough to launder a current-state claim is worse than no
+  check, and "this is an Express 4 application with one production dependency"
+  has no marker and fails.
+- **It fails when it finds nothing.** A reword that drops every claim out of the
+  pattern is the check going blind, not the repository improving. Proved by
+  misspelling the pattern: `ERROR: no production-dependency count claim was
+  found anywhere in the repository`.
+- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
+  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
+  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
+  text can no longer be found fails, so an exemption cannot outlive the sentence
+  it excuses.
+
+Falsified in four directions before being trusted. It also found three of the
+eleven that grepping had missed, including the install document.
+
+## The website was calling an installed adapter a research candidate
+
+`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
+eight of its packages were production dependencies and a tested 195-line adapter
+existed. `setup_required` would have been the other wrong answer: it says
+configuration is what is left, and configuration is not what is left -- nothing
+calls the adapter, so every variable could be set and still nothing would be
+measured.
+
+`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
+`adapter built` and `enabled in production` are three different states, and this
+vocabulary had the first and the last. Added `adapter_built`, rendered
+"Adapter built, not enabled".
+
+The label map falls back to `"Review required"` for an unknown state, so the
+next state added would have gone unlabelled the same quiet way. Two tests now:
+every availability state in use must have a label and that label must appear on
+the page, with `Review required` asserted absent; and the OpenTelemetry entry
+must stay `adapter_built` **while** an `@opentelemetry` package is still a
+production dependency, so if the packages are removed the test says to move the
+entry back rather than leaving a state that overstates.
+
+## What the next person should not have to rediscover
+
+- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
+  words as well as digits.
+- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
+  because production is 24; the `Unsupported engine` warning means the local
+  Node is wrong, not that the field is.
+- A register record's revisit trigger is only as good as somebody reading it.
+  Better Auth's was a dependency count, which fired silently; it is now the
+  build step.
+- "Research candidate" on `/free-launch-stack` means researched. An installed,
+  unwired adapter is `adapter_built`.
+
 ### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
 
 Restarted this branch from the new `main` after PR #305 merged. `main` had moved

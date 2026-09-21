@@ -309,13 +309,13 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     commercialUseStatus: "allowed",
     integrationStatus: "research_only",
     recommendedAction: [
-      "do not adopt while this repository has one production dependency and no build step",
+      "do not adopt while this repository has no build step -- the dependency count moved on 20 September 2026 and the build step did not",
       "revisit only if a compile step is added for some other reason",
     ],
     officialUrl: "https://www.better-auth.com",
     repoUrl: "https://github.com/better-auth/better-auth",
     notes:
-      "LICENSE.md read 19 August 2026: MIT License. Ruled out on architecture rather than licence. It is TypeScript for the Node ecosystem and would be the natural choice on almost any other JavaScript project; this one has express as its single production dependency, no bundler, and a build script that is `node --check server.js`. Adding a TypeScript library means adding a compile step, which is a larger change to how this repository works than swapping an identity provider. tests/the-auth-surface-stays-small.test.js fails if that single dependency stops being single, which is what would make this record worth revisiting.",
+      "LICENSE.md read 19 August 2026: MIT License. Ruled out on architecture rather than licence. It is TypeScript for the Node ecosystem and would be the natural choice on almost any other JavaScript project; this one has express as its single production dependency, no bundler, and a build script that is `node --check server.js`. Adding a TypeScript library means adding a compile step, which is a larger change to how this repository works than swapping an identity provider. tests/the-auth-surface-stays-small.test.js fails if that single dependency stops being single, which is what would make this record worth revisiting. ADDENDUM 21 September 2026: it stopped being single. Eight @opentelemetry packages and @openfeature/server-sdk landed on 20 September, taking production dependencies to nine, and the test was updated to the new exact list rather than loosened -- it still asserts deepEqual against the whole manifest, so a tenth arrival fails it. So the trigger fired, and this is the revisit it asked for: the finding does not change, because the reason was never really the count. There is still no compile step, and none of the nine packages is a TypeScript library needing one. What had to be corrected is the trigger itself -- a count that has already moved cannot warn about moving -- so it is now the absence of a build step, stated in recommendedAction above.",
     safetyBoundaries: ["no build step introduced for authentication alone"],
     humanReviewRequired: false,
   },
@@ -4018,7 +4018,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     recommendedAction: [
       "**the closest thing on this register to something SONARA already ships.** The sub-app builder went in on 19 August 2026 -- a customer defines record types with their own fields and gets pages to fill them in. ToolJet is the mature, forty-thousand-star version of that idea, and it is the one repository here that could have been read as a shortcut",
       "it is not a shortcut, and the licence is only the first reason. AGPL-3.0 on a hosted product means publishing this product's source, which is a business decision nobody has made and not one to arrive at by copying a component",
-      "the second reason is architectural and would apply at any licence. ToolJet is a React front end plus a NestJS server plus Postgres plus Redis, deployed as containers. This product is one Express file with a single production dependency and no build step, running as one serverless function. Adopting it is not adding a library, it is replacing the stack",
+      "the second reason is architectural and would apply at any licence. ToolJet is a React front end plus a NestJS server plus Postgres plus Redis, deployed as containers. This product is one Express file with no build step, running as one serverless function. Adopting it is not adding a library, it is replacing the stack",
       "READ IT FOR THE MODEL, NOT THE CODE. What is worth studying is how it stores a customer-defined schema and validates rows against it -- the exact problem lib/sonara-sub-apps.cjs solves with seven field types. Reading a design and writing your own is not derivation; copying source is",
       "if a customer genuinely needs this, the honest answer is that they run ToolJet themselves and SONARA does not resell it -- the same line drawn for every reciprocal repository here",
     ],
@@ -4264,7 +4264,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
-      "do not install it. This application has one production dependency and the parser it would replace already exists and already passes its own tests",
+      "do not install it. The parser it would replace already exists and already passes its own tests, which is the whole reason -- no dependency count enters into it",
       "use it as a second opinion if a customer ever reports a paste that imported wrongly -- an independent implementation disagreeing is a faster diagnosis than reading the spec again",
     ],
     officialUrl: "https://github.com/vanillaes/csv",
@@ -4785,7 +4785,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     integrationStatus: "research_only",
     recommendedAction: [
       "do not migrate to it as a side effect of any other piece of work -- that is a rewrite, and it is the owner's decision",
-      "keep the single production dependency: this application ships express ^4.18.2 and nothing else, and every page is server-rendered HTML with no build step",
+      "keep the runtime small and server-rendered: every page is HTML built on the server with no bundler and no build step, and that is what makes the cold start and the whole-suite run as cheap as they are. Production dependencies went from one to nine on 20 September 2026 for observability packages nothing calls yet, which is not a precedent for a client framework",
       "record it here so that 'why is this not Next.js' is answered from a record rather than re-argued",
     ],
     officialUrl: "https://nextjs.org",

@@ -7,9 +7,9 @@
  *
  * A few hundred frames is twenty-odd megabytes. This application is a set of
  * serverless functions with a payload ceiling measured in single-digit
- * megabytes and no multipart parser -- there is one production dependency and
- * it is Express -- so uploading the frames is not a thing that can be made to
- * work by trying harder. Extracting them server-side is worse: it needs ffmpeg,
+ * megabytes and no multipart parser -- none of the nine production
+ * dependencies is one, and Express 4 has none built in -- so uploading the
+ * frames is not a thing that can be made to work by trying harder. Extracting them server-side is worse: it needs ffmpeg,
  * which is not in a function either.
  *
  * The browser, meanwhile, already has a video decoder, a canvas, a JPEG
