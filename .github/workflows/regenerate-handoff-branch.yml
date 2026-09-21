@@ -5,6 +5,7 @@ on:
     branches:
       - codex/durable-generation-lifecycle-20260916
       - codex/google-signin-no-legacy-rebase-20260919
+      - integrate/merge-stack-296-326-327-20260920
 
 permissions:
   contents: write
