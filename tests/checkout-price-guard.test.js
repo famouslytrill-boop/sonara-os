@@ -158,7 +158,7 @@ describe("checkout will not sell at a price the page never showed", () => {
       if (String(url).includes("/v1/prices/")) return stripePriceResponse({ unit_amount: 4999, currency: "usd", active: true });
       return stripePriceResponse({ url: "https://checkout.stripe.com/should-not-happen" });
     };
-    const session = await build().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_stale", "org", { id: "user" }, "cus_1");
+    const session = await build().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_stale", "org", { id: "user" }, "cus_1");
     assert.equal(session.ok, false);
     assert.equal(session.code, "price_mismatch");
     assert.equal(
