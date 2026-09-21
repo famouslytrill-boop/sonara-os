@@ -146,6 +146,12 @@ SUITES = (
         "requires": ("pydantic", "pydantic_settings", "sqlalchemy", "typer", "rich"),
     },
     {
+        "root": "tools/codex-terminal",
+        "tests": "tests",
+        "runner": "unittest",
+        "requires": (),
+    },
+    {
         "root": "tools/disposable-domains",
         "tests": "tests",
         "runner": "pytest",
