@@ -415,7 +415,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ error: { message: "no" } }, 401);
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.ok, false);
@@ -438,7 +438,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ error: { message: "bad param" } }, 400);
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.status, 400);
@@ -455,7 +455,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 4999, currency: "usd", active: true });
           throw new Error("a session must not be created when the price is wrong");
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_stale", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_stale", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.code, "price_mismatch");
@@ -473,7 +473,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ url: "https://checkout.stripe.com/c/pay/abc" });
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.ok, true);
@@ -489,7 +489,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ id: "cs_1" });
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       assert.equal(result.ok, false);
@@ -506,7 +506,7 @@ describe("a log line you can count", () => {
           if (String(url).includes("/v1/prices/")) return priceResponse({ unit_amount: 2900, currency: "usd", active: true });
           return priceResponse({ error: { message: "Invalid API Key provided: sk_live_test" } }, 401);
         };
-        return billing().createStripeCheckoutSession({ get: () => "" }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
+        return billing().createStripeCheckoutSession({ get: () => "", body: { workspace: "business_builder" } }, "workspace_monthly", "price_x", "org-7", { id: "user" }, "cus_1");
       });
 
       const serialised = JSON.stringify(events);
