@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "researchedAt": "2026-09-20",
+  "policy": {
+    "downloadByDefault": false,
+    "productionActivation": false,
+    "modelRoot": "~/.sonara/models"
+  },
+  "models": [
+    {
+      "id": "openai/gpt-oss-20b",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "medium-local-reasoning",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "large-gpu-reasoning",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "Qwen/Qwen3.8-27B",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "multimodal-27b",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "Qwen/Qwen3.8-2.4T-A95B",
+      "license": "qwen3.8-max custom",
+      "status": "license-review",
+      "sizeClass": "frontier-server",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "quantized-multimodal-local",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "mistralai/Mistral-Small-4-119B-2603",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "large-multimodal-server",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-V4-Flash",
+      "license": "MIT",
+      "status": "candidate-server-only",
+      "sizeClass": "very-large-server",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-V4-Pro",
+      "license": "MIT",
+      "status": "candidate-server-only",
+      "sizeClass": "frontier-server",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "ibm-granite/granite-4.2-3b",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "small-local",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "ibm-granite/granite-4.2-8b",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "local-reasoning",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "ibm-granite/granite-4.2-30b",
+      "license": "Apache-2.0",
+      "status": "candidate",
+      "sizeClass": "large-local-server",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4",
+      "license": "verify model-specific terms",
+      "status": "terms-review",
+      "sizeClass": "gpu-optimized",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    },
+    {
+      "id": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "license": "Meta Llama custom license + AUP",
+      "status": "custom-license-review",
+      "sizeClass": "multimodal",
+      "defaultDownload": false,
+      "enabledInProduction": false
+    }
+  ]
+}
