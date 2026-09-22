@@ -38,6 +38,11 @@ const {
   DEFAULT_STARTING_ALLOWANCE_MINOR
 } = require("../lib/sonara-usage-meter.cjs");
 const { redactSensitiveText } = require("../lib/sonara-redaction.cjs");
+const {
+  renderFailureCard,
+  renderSetupStateCard,
+  setupStateFor
+} = require("../lib/sonara-setup-state.cjs");
 const CONSENT_TABLE = "creator_voice_consents";
 const ANALYSIS_TABLE = "creator_reference_analyses";
 const EVENT_TABLE = "creator_generation_events";
@@ -182,9 +187,9 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
 
   app.post("/api/creator/generation/jobs", access, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return send(req, res, context, "/creator-studio/generation");
+    if (!context.ok) return send(req, res, context, "/creator-studio/generation", ui);
     const config = getConfig(deps);
-    if (!config.ok) return send(req, res, { ok: false, status: 503, code: "supabase_setup_required" }, "/creator-studio/generation");
+    if (!config.ok) return send(req, res, { ok: false, status: 503, code: "supabase_setup_required" }, "/creator-studio/generation", ui);
 
     const capability = clean(req.body.capability, 80);
     const prompt = clean(req.body.prompt, MAX_PROMPT_LENGTH + 1);
@@ -205,11 +210,11 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       voiceConsentId
     });
     if (!policy.ok && policy.status !== "review_required") {
-      return send(req, res, { ok: false, status: policy.httpStatus, code: policy.code, reasons: policy.reasons }, "/creator-studio/generation");
+      return send(req, res, { ok: false, status: policy.httpStatus, code: policy.code, reasons: policy.reasons }, "/creator-studio/generation", ui);
     }
 
     const selected = chooseProvider(capability, requestedProvider);
-    if (!selected.ok) return send(req, res, { ok: false, status: 400, code: selected.code }, "/creator-studio/generation");
+    if (!selected.ok) return send(req, res, { ok: false, status: 400, code: selected.code }, "/creator-studio/generation", ui);
 
     const initialStatus = policy.status === "review_required"
       ? "review_required"
@@ -239,7 +244,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
           status: authorised.httpStatus,
           code: authorised.code,
           reasons: [authorised.reason]
-        }, "/creator-studio/generation");
+        }, "/creator-studio/generation", ui);
       }
     }
 
@@ -262,7 +267,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       policy_reasons: policy.reasons,
       provider_response: initialStatus === "manual_required" ? { connector: "external_mcp", endpoint: selected.provider.integrationEndpoint || null } : {}
     });
-    if (!created.ok) return send(req, res, { ok: false, status: 502, code: created.code }, "/creator-studio/generation");
+    if (!created.ok) return send(req, res, { ok: false, status: 502, code: created.code }, "/creator-studio/generation", ui);
 
     let job = created.rows[0];
     await event(config, context, job.id, "generation.job_created", "recorded", { capability, provider_key: selected.provider.key, policy_status: policy.status });
@@ -272,7 +277,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       job = dispatched.job || job;
     }
 
-    return send(req, res, { ok: true, status: 201, job }, jobPath(job.id));
+    return send(req, res, { ok: true, status: 201, job }, jobPath(job.id), ui);
   });
 
   app.post("/api/creator/generation/jobs/:jobId/refresh", access, async (req, res) => {
@@ -285,7 +290,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const provider = getProvider(loaded.job.provider_key);
     if (!provider) return res.status(409).json({ ok: false, code: "provider_not_found" });
     const refreshed = await refreshJob(config, context, loaded.job, provider, deps);
-    return send(req, res, { ...refreshed, status: refreshed.ok ? 200 : refreshed.status || 502 }, jobPath(loaded.job.id));
+    return send(req, res, { ...refreshed, status: refreshed.ok ? 200 : refreshed.status || 502 }, jobPath(loaded.job.id), ui);
   });
 
   app.post("/api/creator/generation/jobs/:jobId/cancel", access, async (req, res) => {
@@ -295,10 +300,10 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const loaded = await loadJob(config, context, req.params.jobId);
     if (!loaded.ok) return res.status(loaded.status).json(loaded);
-    if (["completed", "failed", "cancelled"].includes(loaded.job.status)) return send(req, res, { ok: false, status: 409, code: "job_not_cancellable" }, jobPath(loaded.job.id));
+    if (["completed", "failed", "cancelled"].includes(loaded.job.status)) return send(req, res, { ok: false, status: 409, code: "job_not_cancellable" }, jobPath(loaded.job.id), ui);
     const updated = await updateJob(config, context, loaded.job.id, { status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     await event(config, context, loaded.job.id, "generation.job_cancelled", "success", { provider_key: loaded.job.provider_key });
-    return send(req, res, { ok: updated.ok, status: updated.ok ? 200 : 502, job: updated.rows[0], code: updated.code }, jobPath(loaded.job.id));
+    return send(req, res, { ok: updated.ok, status: updated.ok ? 200 : 502, job: updated.rows[0], code: updated.code }, jobPath(loaded.job.id), ui);
   });
 
   app.get("/api/creator/generation/voice-consents", access, async (req, res) => {
@@ -1294,7 +1299,49 @@ function buildUi(deps) {
   const escape = deps.escapeHtml || esc;
   return { layout: deps.layout || basicLayout, card: deps.brandCard || card, link: deps.linkAction || link, escape };
 }
-function send(req, res, result, redirectTo) { const status = Number(result.status || (result.ok ? 200 : 400)); return acceptsHtml(req) ? (result.ok ? res.redirect(303, redirectTo) : res.status(status).type("html").send(`<h1>Generation action not completed</h1><p>${esc(result.code || "request_failed")}</p><p><a href="${esc(redirectTo)}">Return</a></p>`)) : res.status(status).json(result); }
+function generationFailureFor(code) {
+  const state = setupStateFor({ code });
+  if (state) return { state, heading: state.heading, message: state.body, retryable: state.key === "TEMPORARY_PROVIDER_FAILURE" };
+  const messages = {
+    rights_attestation_required: "Confirm that you have the right to use the material before starting.",
+    active_voice_consent_required: "A current voice permission is required before this can run.",
+    voice_consent_scope_mismatch: "The permission on file does not cover this kind of voice work.",
+    source_rights_attestation_required: "Confirm that you have the right to use the source before starting.",
+    analysis_type_required: "Choose the kind of reference analysis you want to create.",
+    prompt_required: "Add a description for the work you want to create.",
+    capability_required: "Choose the kind of work you want to create.",
+    invalid_provider: "Choose one of the available provider options.",
+    job_not_cancellable: "This piece of work has already finished, so it cannot be stopped now."
+  };
+  const message = messages[String(code || "")] || "We could not complete that generation action safely.";
+  return { state: null, heading: "Generation could not start", message, retryable: false };
+}
+
+function send(req, res, result, redirectTo, ui) {
+  const status = Number(result.status || (result.ok ? 200 : 400));
+  if (!acceptsHtml(req)) return res.status(status).json(result);
+  if (result.ok) return res.redirect(303, redirectTo);
+
+  const owner = Boolean(req.sonaraAccess?.ownerOverride || req.sonaraAccess?.mode === "owner");
+  const presentation = generationFailureFor(result.code);
+  const state = presentation.state ? setupStateFor({ code: result.code, owner }) : null;
+  const referenceId = String(result.referenceId || randomUUID());
+  const sections = state
+    ? [renderSetupStateCard(state, ui.escape), `<p class="fine"><strong>Reference:</strong> ${ui.escape(referenceId)}</p>`]
+    : [renderFailureCard({ message: presentation.message, referenceId, retryable: presentation.retryable }, ui.escape)];
+  const actions = [];
+  if (state) actions.push(ui.link(state.primaryHref, state.primaryLabel));
+  actions.push(ui.link(redirectTo, "Return to Creator Studio"), ui.link("/contact", "Contact support"));
+  return res.status(status).type("html").send(ui.layout({
+    title: presentation.heading,
+    eyebrow: "Creator Studio",
+    heading: presentation.heading,
+    body: presentation.message,
+    sections,
+    actions
+  }));
+}
+
 function acceptsHtml(req) { return String(req.get("accept") || "").includes("text/html") || String(req.get("content-type") || "").includes("application/x-www-form-urlencoded"); }
 function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
