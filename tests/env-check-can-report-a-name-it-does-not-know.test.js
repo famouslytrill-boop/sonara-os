@@ -32,6 +32,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
+const { createScriptSandbox } = require("./helpers/script-sandbox.cjs");
+
 const root = path.join(__dirname, "..");
 const script = path.join(root, "scripts", "verify-env.mjs");
 
@@ -40,6 +42,42 @@ function runVerifyEnv() {
     return { ok: true, output: execFileSync("node", [script], { cwd: root, encoding: "utf8" }) };
   } catch (error) {
     return { ok: false, output: `${error.stdout || ""}${error.stderr || ""}` };
+  }
+}
+
+// The two probe cases below wrote a `.cjs` file into the real `lib/` and
+// removed it in a `finally`. That survives a failed assertion and not a signal,
+// and a leftover probe module is the expensive kind: `lib/` is the population
+// `verify:proprietary-notice` counts by equality, `report-unreferenced-modules`
+// reports on and `verify:coverage-floor` measures, so one interrupted run would
+// have turned three unrelated gates red with no hint why.
+//
+// They write into a copy now. `.env.example` is in the copy list because
+// verify-env reads it first and refuses without it -- found by running the
+// script in a sandbox rather than guessed.
+const SANDBOX_COPY = ["scripts", "lib", "routes", "api", "data", "docs", "server.js", "package.json", ".env.example"];
+
+let sandbox = null;
+
+before(() => {
+  sandbox = createScriptSandbox({ prefix: "sonara-envcheck-", copy: SANDBOX_COPY });
+  const clean = sandbox.run("scripts/verify-env.mjs");
+  assert.equal(clean.ok, true, `verify-env fails on an unmodified sandbox, so its failures there mean nothing:\n${clean.output}`);
+});
+
+after(() => {
+  if (sandbox) sandbox.cleanup();
+  sandbox = null;
+});
+
+/** Run verify-env against the copy with one extra module present. */
+function runVerifyEnvWithProbe(relative, contents) {
+  const file = sandbox.file(relative);
+  try {
+    fs.writeFileSync(file, contents);
+    return sandbox.run("scripts/verify-env.mjs");
+  } finally {
+    fs.rmSync(file, { force: true });
   }
 }
 
@@ -85,32 +123,26 @@ describe("the environment check can report a name it has never heard of", () => 
     // The property, stated directly. A declaration the file has never seen must
     // come back as an error -- if it comes back clean, the literal pass has
     // been re-gated on an allow-list and the blind spot is open again.
-    const probe = path.join(root, "lib", "sonara-env-check-probe.cjs");
     const unknown = "SONARA_PROBE_VARIABLE_NOBODY_CLASSIFIED";
-    fs.writeFileSync(probe, `"use strict";\nmodule.exports = { plan: { env: "${unknown}" } };\n`);
-    try {
-      const { ok, output } = runVerifyEnv();
-      assert.equal(ok, false, "an unclassified env: declaration passed; the check cannot report a name it does not know");
-      assert.match(output, new RegExp(unknown), "the check failed without naming the variable it objected to");
-    } finally {
-      fs.unlinkSync(probe);
-    }
+    const { ok, output } = runVerifyEnvWithProbe(
+      path.join("lib", "sonara-env-check-probe.cjs"),
+      `"use strict";\nmodule.exports = { plan: { env: "${unknown}" } };\n`
+    );
+    assert.equal(ok, false, "an unclassified env: declaration passed; the check cannot report a name it does not know");
+    assert.match(output, new RegExp(unknown), "the check failed without naming the variable it objected to");
   });
 
   it("reads envAliases entries the same way", () => {
     // Aliases are fallbacks, so a missing classification there is quieter and
     // no less real -- lib/sonara-readiness.cjs resolves the primary name and
     // then every alias.
-    const probe = path.join(root, "lib", "sonara-env-alias-probe.cjs");
     const unknown = "SONARA_PROBE_ALIAS_NOBODY_CLASSIFIED";
-    fs.writeFileSync(probe, `"use strict";\nmodule.exports = { plan: { envAliases: ["${unknown}"] } };\n`);
-    try {
-      const { ok, output } = runVerifyEnv();
-      assert.equal(ok, false, "an unclassified envAliases entry passed unnoticed");
-      assert.match(output, new RegExp(unknown));
-    } finally {
-      fs.unlinkSync(probe);
-    }
+    const { ok, output } = runVerifyEnvWithProbe(
+      path.join("lib", "sonara-env-alias-probe.cjs"),
+      `"use strict";\nmodule.exports = { plan: { envAliases: ["${unknown}"] } };\n`
+    );
+    assert.equal(ok, false, "an unclassified envAliases entry passed unnoticed");
+    assert.match(output, new RegExp(unknown));
   });
 
   it("still objects to a classified name that nothing reads", () => {

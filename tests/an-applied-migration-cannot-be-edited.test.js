@@ -33,6 +33,7 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chainCommands } = require("../lib/sonara-release-chain.cjs");
+const { createScriptSandbox } = require("./helpers/script-sandbox.cjs");
 
 const root = path.join(__dirname, "..");
 const script = path.join(root, "scripts", "verify-applied-migrations.mjs");
@@ -52,6 +53,30 @@ const GENERATOR_OWNED = [
   require("../scripts/generate-catalog-sync-migration.cjs")
 ].flatMap((module) => [module.migrationName, module.assertionMigrationName, ...(module.migrationNames || [])])
   .filter(Boolean);
+
+// The cases below have to break a frozen migration to prove the checker
+// notices, and one of them deletes it. They used to do that to the real
+// tracked file and put it back in a `finally`, which survives a failed
+// assertion and not a signal -- an interrupted run left FROZEN truncated to 33
+// unterminated `execute '` statements, which `git add -A` would have committed.
+// They mutate a copy now; see tests/helpers/script-sandbox.cjs.
+let sandbox = null;
+
+before(() => {
+  sandbox = createScriptSandbox({ prefix: "sonara-migrations-" });
+  // If the copy is not a working tree as far as the checker is concerned, every
+  // "and the checker failed" assertion below would pass for the wrong reason.
+  const clean = sandbox.run(CHECKER);
+  assert.equal(clean.ok, true, `the checker fails on an unmodified sandbox, so its failures there mean nothing:\n${clean.output}`);
+});
+
+after(() => {
+  if (sandbox) sandbox.cleanup();
+  sandbox = null;
+});
+
+const CHECKER = "scripts/verify-applied-migrations.mjs";
+const MIGRATIONS = "supabase/migrations";
 
 function run(args = []) {
   try {
@@ -116,19 +141,20 @@ describe("an applied migration cannot be edited", () => {
   });
 
   it("fails when a frozen migration changes, which is the whole point", () => {
-    const name = FROZEN;
-    const file = path.join(migrationsDirectory, name);
-    const original = fs.readFileSync(file);
+    const relative = `${MIGRATIONS}/${FROZEN}`;
+    const file = sandbox.snapshot(relative);
     try {
-      // The edit that was invisible: every policy statement removed.
-      fs.writeFileSync(file, original.toString("utf8").replace(/create policy[\s\S]*?;/gi, ""));
-      const result = run();
-      assert.equal(result.ok, false, `${name} lost every policy and the checker passed`);
+      // The edit that was invisible: every policy statement removed. Note the
+      // pattern reaches across `execute '...'` bodies, which is how an
+      // interrupted run of the old version left the real file in 33 pieces.
+      fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/create policy[\s\S]*?;/gi, ""));
+      const result = sandbox.run(CHECKER);
+      assert.equal(result.ok, false, `${FROZEN} lost every policy and the checker passed`);
       assert.match(result.output, /has changed since it shipped/);
     } finally {
-      fs.writeFileSync(file, original);
+      sandbox.restore(relative);
     }
-    assert.equal(run().ok, true, "the tree was not restored");
+    assert.equal(sandbox.run(CHECKER).ok, true, "the sandbox was not restored");
   });
 
   it("catches a generated migration its generator has moved past", () => {
@@ -140,32 +166,41 @@ describe("an applied migration cannot be edited", () => {
     const file = path.join(migrationsDirectory, name);
     assert.ok(fs.existsSync(file), `${name} is gone; this check is asserting about nothing`);
     assert.ok(!GENERATOR_OWNED.includes(name), `${name} is still generator-owned, so it is not the case this test is about`);
-    const original = fs.readFileSync(file);
+    const relative = `${MIGRATIONS}/${name}`;
+    // Snapshotted in the sandbox, and the manifest too: `--write` below rewrites
+    // it, and a rewritten manifest left behind would make the next case pass
+    // against a pin it had just been handed.
+    const sandboxFile = sandbox.snapshot(relative);
+    const manifestRelative = "supabase/applied-migration-checksums.json";
+    sandbox.snapshot(manifestRelative);
     try {
-      fs.appendFileSync(file, "\n-- edited by hand\n");
-      assert.equal(run().ok, false, "a superseded generated migration was edited and the checker passed");
+      fs.appendFileSync(sandboxFile, "\n-- edited by hand\n");
+      assert.equal(sandbox.run(CHECKER).ok, false, "a superseded generated migration was edited and the checker passed");
       // And re-pinning it must not be the way out.
-      const rewritten = run(["--write"]);
+      const rewritten = sandbox.run(CHECKER, ["--write"]);
       assert.equal(rewritten.ok, false, "the edit could be recorded away by regenerating the manifest");
       assert.match(rewritten.output, /is frozen and has changed/);
     } finally {
-      fs.writeFileSync(file, original);
+      sandbox.restore(relative);
+      sandbox.restore(manifestRelative);
     }
-    assert.equal(run().ok, true, "the tree was not restored");
+    assert.equal(sandbox.run(CHECKER).ok, true, "the sandbox was not restored");
   });
 
   it("fails when a frozen migration is deleted", () => {
-    const name = FROZEN;
-    const file = path.join(migrationsDirectory, name);
-    const original = fs.readFileSync(file);
+    // The case that made the old in-place version worst: an interrupted run
+    // left the repository with the migration gone rather than merely edited.
+    const relative = `${MIGRATIONS}/${FROZEN}`;
+    const file = sandbox.snapshot(relative);
     try {
       fs.unlinkSync(file);
-      const result = run();
+      const result = sandbox.run(CHECKER);
       assert.equal(result.ok, false, "a frozen migration was deleted and the checker passed");
       assert.match(result.output, /cannot be deleted/);
     } finally {
-      fs.writeFileSync(file, original);
+      sandbox.restore(relative);
     }
+    assert.equal(sandbox.run(CHECKER).ok, true, "the sandbox was not restored");
   });
 
   it("is in the release chain, not just runnable by hand", () => {

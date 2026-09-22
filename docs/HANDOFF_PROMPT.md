@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 125 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 19 customer routes, 30 admin routes.
-- 362 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 363 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -102,11 +102,180 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 388 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 389 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-22 - Five tests were editing the repository they test, and a finally does not survive a signal
+
+Carried over from the 21 September session as a known defect deliberately left
+alone: two tests mutated real tracked files and restored them in a `finally`.
+Measured properly, it was **five**, and the check written to stop a sixth found
+three of them.
+
+## Why a `finally` is not enough here
+
+It survives a thrown assertion. It does not survive a signal, and this is not
+hypothetical -- it happened during the 19 September session. An interrupted run
+left:
+
+- `supabase/migrations/20260728120000_member_read_policies.sql` **truncated to
+  33 unterminated `execute '` statements**, because the edit under test is
+  `.replace(/create policy[\s\S]*?;/gi, "")` and that pattern reaches across
+  `execute '...'` bodies;
+- `.ai/shared/CURRENT_STATE.md` missing the `<!-- superseded-by: -->` pointer
+  that its own gate reads.
+
+Nothing in the working tree said why. `pnpm run verify:launch` then failed for
+reasons that looked unrelated to the interruption, and **`git add -A` would have
+committed both**. One case in
+`an-applied-migration-cannot-be-edited.test.js` does not edit the frozen
+migration at all -- it **deletes** it.
+
+## The five, and what each would have left behind
+
+| test | wrote into | what an interrupted run leaves |
+| --- | --- | --- |
+| `an-applied-migration-cannot-be-edited` | `supabase/migrations/` | a frozen migration stripped of every policy, or gone |
+| `a-shared-baseline-that-is-behind-must-say-so` | `.ai/shared/` | the baseline missing the pointer its gate requires |
+| `env-check-can-report-a-name-it-does-not-know` | **`lib/`** | a probe module in the population three gates measure |
+| `dated-claims-say-when-to-recheck` | `docs/` | a probe document four doc checks then report on |
+| `orphan-tables` | `supabase/migrations/` | a migration creating a table nothing reads |
+
+The `lib/` one is the most expensive and was the one I had not noticed. `lib/`
+is the population `verify:proprietary-notice` counts **by equality**, that
+`report-unreferenced-modules` reports on, and that `verify:coverage-floor`
+measures -- so a single interrupted run would have turned three unrelated gates
+red at once, and the notice gate's message would have been about a file count
+rather than about a leftover probe.
+
+## The fix, and why not a signal handler
+
+`tests/helpers/script-sandbox.cjs` copies the parts of the tree a release script
+reads into `os.tmpdir()` and runs the script there. The scripts under `scripts/`
+resolve their own root from `import.meta.url`, so a copy carrying `scripts/`,
+`lib/`, `supabase/` and `package.json` is a working tree as far as they can tell
+-- measured rather than assumed: `verify-applied-migrations.mjs` reports the same
+122 frozen and 3 generator-owned migrations inside one as outside, and all three
+of its failure cases reproduce there.
+
+A signal handler was the alternative and is worse: it would still lose to
+SIGKILL, and it leaves the window open while it installs. A disposable copy has
+no window.
+
+Two things the helper needed that guessing would have missed, both found by
+running the script and reading what it asked for:
+
+- `verify-agent-development-sync.mjs` takes its root from `process.cwd()` and
+  asks git three questions, so that sandbox **links** the real `.git`. Checked
+  rather than assumed that all three are reads -- `rev-parse --verify --quiet`,
+  `cat-file -e`, `rev-parse --is-shallow-repository` -- because linking a
+  writable `.git` into a directory tests mutate would be a worse version of the
+  problem being fixed.
+- `verify-env.mjs` refuses without `.env.example`, which is not a directory and
+  would not have been in any list I wrote from memory.
+
+The helper asserts its own copy is real: below 200 files it stops, because a
+sandbox that copied almost nothing would make every "and the checker failed"
+assertion in every calling test pass for the wrong reason. Measured at 498 for
+the default list -- **the first draft of that comment said "1,000+", which was a
+figure I had not checked, and it was corrected to the measured value before
+commit.**
+
+## The check that found the other three
+
+`tests/no-test-writes-a-tracked-file.test.js` reads the test sources, because
+the failure only appears when a run is interrupted and a test cannot arrange
+that for itself. It went through three versions, and the first two are the
+interesting part:
+
+1. **Whole argument list.** It reported
+   `copyFileSync(path.join(ROOT, "server.js"), path.join(base, ...))` as a write
+   into the repository. That call reads **from** the repository into a temp
+   directory, which is what the sandbox helper does -- the check had the
+   direction backwards. Fixed by looking only at the destination argument, which
+   is argument 0 for a write and argument **1** for a copy or a rename.
+2. **Destination only, no resolution.** It then passed, reporting zero
+   offenders, while `orphan-tables.test.js` was writing a real migration --
+   because the destination is the variable `migration`, and the text at the call
+   site says nothing. Fixed by resolving a bare identifier from its nearest
+   preceding declaration, the same technique
+   `scripts/report-tenant-scoped-queries.mjs` uses. That version found all three
+   remaining cases.
+
+So the check caught a real bug in itself twice before it caught anything else,
+and the second version is the dangerous kind: green, specific-looking, and
+measuring nothing.
+
+It also refuses to pass on an empty measurement. Tests write to temp
+directories constantly, so fewer than 20 filesystem writes across the suite
+means the pattern stopped matching rather than the suite got clean. The
+allowance list is two-sided: `tests/helpers/script-sandbox.cjs` is allowed to
+write because it copies out of the repository, and an entry naming a file that
+is gone, or one that no longer writes anything, fails.
+
+## Falsified before trusted
+
+- A planted test writing `path.join(root, "docs", "probe.md")` is named with its
+  resolved destination, exit 1.
+- An allowance pointing at a file with no write: `no longer writes anything`,
+  exit 1.
+- An allowance pointing at a missing file: `is allowed and absent`, exit 1.
+- And the property itself, measured by mtime rather than by content, because a
+  restore rewrites a file even when the bytes match: running all five tests
+  leaves `20260728120000_member_read_policies.sql`,
+  `applied-migration-checksums.json` and `CURRENT_STATE.md` with **unchanged
+  mtimes**, and no probe file anywhere. Running the **old** versions changes
+  them.
+
+One falsification of mine was itself wrong and worth recording: I first tested
+the stale-allowance direction by pointing it at `tests/helpers/system-zip.cjs`,
+it passed, and I nearly called the check broken. That file contains one real
+write, so the allowance was not stale and the check was right. Picking a subject
+that genuinely has the property you are trying to remove proves nothing.
+
+## And the same shape in a test I wrote the day before
+
+The chain went red on `tests/observability.test.js`, in the one case that
+starts the real OpenTelemetry SDK: **timeout of 15000ms exceeded**. It passed
+standalone in 127ms and passed the full release chain twice on 21 September.
+
+The case started the SDK inline, bounded the shutdown flush with a 3s race and
+unregistered the global providers afterwards, asserting the global meter was a
+`NoopMeter` again. The cleanup was sound. What was not sound was starting the
+SDK in the suite's own process at all: `HttpInstrumentation` patches `http` on
+start, and by the time this file runs several hundred supertest requests have
+been through it, so the flush to an endpoint that is not there can hang where
+standalone it fails fast.
+
+Two runs green is not evidence, which is the lesson from the audio/mpeg sniffer
+one day earlier -- 1 in 2,053, green 2,052 times.
+
+The assertion is worth keeping: without it, "plaintext OTLP is refused in
+production" is indistinguishable from a URL parser that rejects `http://`
+everywhere. So it now runs in a **child process** with a 20s timeout and
+`killSignal: "SIGKILL"`. A hung flush costs that one test and nothing else, and
+no global provider can survive into the rest of the suite because the process
+holding it is gone. A killed child is asserted as a failure rather than read as
+a pass -- `result.signal` must be null -- because "the probe died" says nothing
+about the rule.
+
+## What the next person should not have to rediscover
+
+- A test that has to break something breaks a copy.
+  `createScriptSandbox` from `tests/helpers/script-sandbox.cjs`, and the copy
+  list is found by running the script and reading what it asks for.
+- `tests/no-test-writes-a-tracked-file.test.js` resolves one level of variable.
+  A destination built through two hops would slip past it, which is why its
+  message names the helper rather than claiming the suite is clean.
+- Argument 1, not argument 0, is the destination of `copyFileSync`, `cpSync` and
+  `renameSync`. Getting that wrong reports the fix as the defect.
+- Do not start the OpenTelemetry SDK in the suite's own process. The case that
+  needs it runs in a hard-killed child; `tests/observability.test.js` says why.
+
+
 
 ### 2026-09-21 - The upload sniffer guessed audio/mpeg once in every two thousand runs
 
@@ -2175,128 +2344,3 @@ the last deploy run confirms the diagnosis exactly: run 188 on `872d9d0` failed
 at **step 22, "Synchronize verified Stripe runtime secret to Vercel
 production"** -- twenty-one steps spent to report one empty secret. That step is
 now first.
-
-
-
-### 2026-09-17 - The one gate only the owner can pass now fails in seconds, not after a full release chain
-
-The owner's diagnosis, and it is right: *"the engineering bottleneck is no
-longer general code quality -- it is the single protected Stripe runtime
-credential boundary."*
-
-`production-commit-drift.yml` already recorded what that cost, in its own words:
-
-> every deploy run since 5 August had failed, the newest of them at a single
-> step, an empty `STRIPE_RUNTIME_SECRET_KEY`
-
-Six weeks of deployments. The step that noticed -- "Synchronize verified Stripe
-runtime secret to Vercel production" -- is roughly the seventeenth in the job.
-Each attempt therefore paid for dependency install, the audit, the build, the
-whole release test suite, the client-secret scan, lint, route smoke, the
-database and storage contracts, the configuration and route registry, the
-OpenAPI contract, the open-source controls, the project identity check, the
-migration preview and the production environment pull, to learn one fact that
-was available in the first twenty seconds.
-
-**Fixed by moving the question, not the answer.** The synchronization step is
-byte-for-byte unchanged and remains the authority, because validating against
-the live configured prices is the only check that can prove a key works. What
-changed is that "Require protected production credentials" -- the first step in
-the job -- now resolves and classifies that credential too.
-
-**Deliberately no stricter than the step it precedes.** Same resolution order
-(`STRIPE_RUNTIME_SECRET_KEY`, falling back to `STRIPE_SECRET_KEY`), same accept
-rule (`sk_live_`). If it accepted something that step rejects, a deploy would
-still die late; if it rejected something that step accepts, this would have
-broken a working installation rather than diagnosing a broken one. The
-documented compatibility fallback -- a full `sk_live_` key left under
-`STRIPE_SECRET_KEY` -- still passes, and there is a test for exactly that.
-
-What the run summary now says, where before there was one sentence:
-
-* which variable the value came from, including when the fallback was used;
-* which way it is unusable -- nothing configured, a restricted `rk_live_`
-  verifier, a test-mode key, or an unrecognised prefix. These were one message;
-* whether it carries leading or trailing whitespace, which is what a pasted
-  secret picks up. **Reported, not failed on:** a prefix match tolerates it and
-  only the live validation downstream can say whether Stripe does. Failing here
-  would be stricter than the step it precedes.
-
-The five other credentials are now named individually as well.
-`test -n "$X"` under `set -e` exits with **no message at all**, so five secrets
-shared one silent failure and the log showed `+ test -n ''` with nothing to say
-which was missing.
-
-**No key value is printed, logged, written to `GITHUB_ENV`, or put in the step
-summary** -- only the source variable and the shape class. The shell variable
-holding it is `unset` once its shape is known, and there is a canary test that
-supplies a distinctive fake key and asserts it appears in neither the output nor
-the summary, on the passing path and the failing one.
-
-#### The test runs the real script
-
-`tests/the-credential-gate-speaks-before-the-chain-runs.test.js` extracts the
-step's `run:` block from the workflow by indentation and executes it under bash
-with a temporary `GITHUB_STEP_SUMMARY`. A copy of the logic in the test file
-would pass forever after the workflow changed underneath it -- measuring a
-different population from the one claimed. No YAML parser: this repository has
-one production dependency and a test is not a reason to add a second.
-
-Thirteen assertions over eleven input cases: a good key, the documented
-fallback, both-unset, verifier-only, test mode, unrecognised prefix, trailing
-newline, trailing space, leading space, two missing credentials, and the leak
-canary.
-
-**Verified by breaking it three ways.** Relabelling the `rk_live_` arm as
-acceptable, echoing the key value into the summary, and moving the step after
-the test suite -- each caught by name.
-
-**The second falsification found a weak assertion of my own.** The check named
-for the boundary was
-`assert.doesNotMatch(PRECONDITION, /rk_live_\*\)\s*;;/)` -- it looked for an
-empty fallthrough arm. Relabelling the restricted arm to the accepted shape left
-*that* assertion green while the boundary was gone; two other assertions caught
-it, but not the one written for it. Exactly shape 6: a check too weak to catch
-the bug it was written for. Rewritten to read the case arms and assert that only
-the `sk_live_` arm produces the accepted shape name, whatever that name is.
-
-Two input cases were also wrong before they were right: `$(printf 'x\n')`
-strips trailing newlines, so the whitespace case passed a value with no
-whitespace in it and proved nothing. Re-run with `$'x\n'`.
-
-#### GitHub blocked the first push, and it was right to
-
-Push protection rejected the commit: **"Stripe API Key"** at
-`tests/the-credential-gate-speaks-before-the-chain-runs.test.js:79` -- the leak
-canary, which as a literal is shaped exactly like a live key. A scanner
-reasoning about the value cannot know it is invented.
-
-The offered resolution was a URL that marks the secret allowed. **Not taken.**
-Clicking it would have trained the one protection standing between this
-repository and a real leaked key to be clicked through, in the commit whose
-whole subject is a credential boundary. The canaries are assembled from parts at
-run time instead, with a comment saying why, so nobody simplifies them back into
-a literal and gets blocked again.
-
-The test is unchanged in behaviour: it still asserts the distinctive fragment
-appears in neither the step's output nor its summary.
-
-#### And the phase after this one, recorded at the owner's direction
-
-`docs/PRODUCTION_RELIABILITY_AND_OBSERVABILITY_PLAN.md`: structured logs,
-traces, SLOs, error-budget alerts, queue/retry telemetry, webhook
-observability, backup/restore drills, deployment rollback automation, and an
-owner-facing operations dashboard.
-
-Written as a plan with a status per item, because **half of them are partly
-built** and reading the list as nine empty boxes would mean rebuilding things
-that work. Queue and retry telemetry largely exists as of yesterday's send
-record; webhook observability has `billing_webhook_events` and
-`/admin/webhooks`; rollback has the checkpoint and the runbook and lacks only
-the automation. Traces and SLOs are absent outright, and the claim that
-OpenTelemetry was configured was false -- corrected yesterday.
-
-The ordering in that document is dependency, not preference: structured logs
-first because everything measurable rests on them, the PITR answer next because
-it is two minutes and unblocks the restore drill, and the dashboard last because
-it reports on all of it.

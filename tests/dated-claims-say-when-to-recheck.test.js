@@ -30,6 +30,8 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
+const { createScriptSandbox } = require("./helpers/script-sandbox.cjs");
+
 const root = path.join(__dirname, "..");
 const script = path.join(root, "scripts", "report-stale-claims.mjs");
 
@@ -38,6 +40,39 @@ function run(args = []) {
     return { ok: true, output: execFileSync("node", [script, ...args], { cwd: root, encoding: "utf8" }) };
   } catch (error) {
     return { ok: false, output: `${error.stdout || ""}${error.stderr || ""}` };
+  }
+}
+
+// The two probe cases below wrote a markdown file into the real `docs/` and
+// removed it in a `finally`. That survives a failed assertion and not a signal,
+// and `docs/` is read by report-stale-claims itself, verify:doc-counts,
+// verify:doc-script-paths and verify:doc-pnpm-scripts -- so one interrupted run
+// would have left a probe document those four checks then reported on.
+//
+// They write into a copy now; see tests/helpers/script-sandbox.cjs.
+const SANDBOX_COPY = ["scripts", "lib", "docs", "package.json"];
+
+let sandbox = null;
+
+before(() => {
+  sandbox = createScriptSandbox({ prefix: "sonara-dated-", copy: SANDBOX_COPY });
+  const clean = sandbox.run("scripts/report-stale-claims.mjs", ["--check"]);
+  assert.equal(clean.ok, true, `the check fails on an unmodified sandbox, so its verdicts there mean nothing:\n${clean.output}`);
+});
+
+after(() => {
+  if (sandbox) sandbox.cleanup();
+  sandbox = null;
+});
+
+/** Run the check against the copy with one extra document present. */
+function runWithProbe(name, contents) {
+  const file = sandbox.file(path.join("docs", name));
+  try {
+    fs.writeFileSync(file, contents);
+    return sandbox.run("scripts/report-stale-claims.mjs", ["--check"]);
+  } finally {
+    fs.rmSync(file, { force: true });
   }
 }
 
@@ -56,15 +91,12 @@ describe("a document that checked something says when to check it again", () => 
   });
 
   it("fails when a dated document does not say when to re-check it", () => {
-    const probe = path.join(root, "docs", "stale-claim-probe.md");
-    fs.writeFileSync(probe, "# Probe\n\nAudit date: 2026-01-01. This checked something and never says when to look again.\n");
-    try {
-      const { ok, output } = run(["--check"]);
-      assert.equal(ok, false, "a dated document with no review date passed the check");
-      assert.match(output, /stale-claim-probe/, "the check failed without naming the document");
-    } finally {
-      fs.unlinkSync(probe);
-    }
+    const { ok, output } = runWithProbe(
+      "stale-claim-probe.md",
+      "# Probe\n\nAudit date: 2026-01-01. This checked something and never says when to look again.\n"
+    );
+    assert.equal(ok, false, "a dated document with no review date passed the check");
+    assert.match(output, /stale-claim-probe/, "the check failed without naming the document");
   });
 
   it("reports an overdue document loudly and does not fail the release for it", () => {
@@ -72,16 +104,13 @@ describe("a document that checked something says when to check it again", () => 
     // in a minute. A passed date needs a person to go and look at the world
     // again, and failing a release on a calendar would block an unrelated
     // deploy for something no code change caused.
-    const probe = path.join(root, "docs", "overdue-claim-probe.md");
-    fs.writeFileSync(probe, "# Probe\n\nReview by: 2020-01-01\n\nAudit date: 2019-01-01. Long past looking at again.\n");
-    try {
-      const { ok, output } = run(["--check"]);
-      assert.equal(ok, true, "an overdue document failed the release; it should be reported, not fatal");
-      assert.match(output, /Past their review date/);
-      assert.match(output, /overdue-claim-probe/, "the overdue document is not named");
-    } finally {
-      fs.unlinkSync(probe);
-    }
+    const { ok, output } = runWithProbe(
+      "overdue-claim-probe.md",
+      "# Probe\n\nReview by: 2020-01-01\n\nAudit date: 2019-01-01. Long past looking at again.\n"
+    );
+    assert.equal(ok, true, "an overdue document failed the release; it should be reported, not fatal");
+    assert.match(output, /Past their review date/);
+    assert.match(output, /overdue-claim-probe/, "the overdue document is not named");
   });
 
   it("runs in the release chain", () => {
