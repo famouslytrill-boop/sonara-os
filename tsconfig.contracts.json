@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022"
+  },
+  "include": [
+    "data/github-radar-repos.ts",
+    "data/open-source-tools.ts",
+    "data/provider-registry.ts",
+    "data/technology-registry.ts"
+  ]
+}
