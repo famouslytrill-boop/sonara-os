@@ -1,5 +1,10 @@
 export type OpenSourceLicenseRisk = "low" | "medium" | "high" | "critical" | "unknown";
-export type OpenSourceCommercialUseStatus = "allowed_after_review" | "needs_review" | "blocked_until_review";
+export type OpenSourceCommercialUseStatus =
+  | "allowed"
+  | "allowed_after_review"
+  | "needs_review"
+  | "blocked_until_review"
+  | "blocked";
 export type OpenSourceIntegrationStatus =
   | "reference_only"
   | "optional_adapter_after_review"
@@ -67,7 +72,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license: "Elastic License 2.0 (ELv2)",
     licenseRisk: "high",
     reciprocalLicense: false,
-    commercialUseStatus: "blocked_pending_review",
+    commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
       "do not incorporate into SONARA One, which is a hosted service and is exactly what ELv2 forbids offering",
@@ -257,7 +262,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license: "AGPL-3.0",
     licenseRisk: "high",
     reciprocalLicense: true,
-    commercialUseStatus: "blocked_pending_review",
+    commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
       "do not build on it until counsel has read the AGPL question recorded in docs/architecture/DATABASES-AND-AUTHENTICATION.md",
@@ -350,7 +355,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license: "MSCL-1.0-GPL (Monospace Sustainable Core License 1.0)",
     licenseRisk: "high",
     reciprocalLicense: true,
-    commercialUseStatus: "blocked_pending_review",
+    commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
       "do not build on it without the full licence text read by somebody qualified",
@@ -4013,7 +4018,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "AGPL-3.0, read from the GitHub API's detected license.spdx_id on 19 August 2026. Reciprocal, and reciprocal in the way that matters most here: the Affero clause triggers on **network use**, so serving this product to a customer over HTTP is distribution. Incorporating any of it would oblige releasing SONARA's source under the same terms.",
     licenseRisk: "high",
     reciprocalLicense: true,
-    commercialUseStatus: "not_allowed",
+    commercialUseStatus: "blocked",
     integrationStatus: "blocked",
     recommendedAction: [
       "**the closest thing on this register to something SONARA already ships.** The sub-app builder went in on 19 August 2026 -- a customer defines record types with their own fields and gets pages to fill them in. ToolJet is the mature, forty-thousand-star version of that idea, and it is the one repository here that could have been read as a shortcut",
