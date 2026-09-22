@@ -70,7 +70,25 @@ function createScriptSandbox({ prefix = "sonara-sandbox-", copy = DEFAULT_COPY, 
   // --is-shallow-repository` -- checked rather than assumed, because linking a
   // writable `.git` into a directory tests mutate would be a worse version of
   // the problem this helper exists to fix.
-  if (linkGit) fs.symlinkSync(path.join(root, ".git"), path.join(dir, ".git"));
+  if (linkGit) {
+    const gitPath = path.join(root, ".git");
+    const sandboxGitPath = path.join(dir, ".git");
+    if (process.platform === "win32") {
+      // A linked worktree has a file at .git, and creating a directory
+      // symlink for it requires Developer Mode or elevation on Windows.
+      // Git also supports a worktree .git file, which preserves the read-only
+      // repository identity this sandbox needs without changing machine
+      // policy or requiring a privileged filesystem operation.
+      const gitStat = fs.statSync(gitPath);
+      if (gitStat.isFile()) {
+        fs.copyFileSync(gitPath, sandboxGitPath);
+      } else {
+        fs.symlinkSync(gitPath, sandboxGitPath, "junction");
+      }
+    } else {
+      fs.symlinkSync(gitPath, sandboxGitPath);
+    }
+  }
   for (const entry of copy) {
     const from = path.join(root, entry);
     assert.ok(fs.existsSync(from), `${entry} is not in the repository, so this sandbox would be missing it silently`);
