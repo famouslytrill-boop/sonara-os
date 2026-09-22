@@ -105,18 +105,34 @@ const ALLOWED = new Map([
   ]
 ]);
 
+// Both extensions. The first version read `.test.js` only, and its own comment
+// said 363 files while the code saw 359 -- the four `.test.mjs` files were
+// outside the population it claimed to cover. None of them writes to the
+// filesystem today, which is precisely the condition under which a gate stops
+// covering something without anybody noticing: the hole is real and empty, so
+// nothing fails while it opens.
 function testFiles() {
   return fs
     .readdirSync(testsDirectory)
-    .filter((name) => /\.test\.js$/.test(name))
+    .filter((name) => /\.test\.(js|mjs)$/.test(name))
     .sort();
 }
 
 describe("no test writes a tracked file", () => {
   it("finds the test files at all, so this cannot pass by reading nothing", () => {
     const files = testFiles();
-    // 363 on 21 September 2026. The floor is far below that and far above zero.
+    // 363 on 22 September 2026: 359 `.test.js` and 4 `.test.mjs`, counted by
+    // this function rather than quoted from another check that counts a
+    // different set. The floor is far below that and far above zero.
     assert.ok(files.length >= 200, `only ${files.length} test file(s) found; this check has gone blind`);
+
+    // Both extensions are actually present, so widening the pattern above is
+    // not decorative. If the .mjs suites are ever renamed away, this says so
+    // rather than letting the branch sit unexercised.
+    const byExtension = { js: 0, mjs: 0 };
+    for (const name of files) byExtension[name.endsWith(".mjs") ? "mjs" : "js"] += 1;
+    assert.ok(byExtension.js >= 200, `only ${byExtension.js} .test.js file(s); this check has gone blind`);
+    assert.ok(byExtension.mjs >= 1, `no .test.mjs file is being read, so that half of the pattern proves nothing`);
   });
 
   it("names no test that writes through a repository-rooted path", () => {

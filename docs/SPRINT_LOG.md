@@ -156,6 +156,34 @@ holding it is gone. A killed child is asserted as a failure rather than read as
 a pass -- `result.signal` must be null -- because "the probe died" says nothing
 about the rule.
 
+## A follow-up, found by correcting my own comment
+
+The floor assertion in `no-test-writes-a-tracked-file.test.js` carried
+`// 363 on 21 September 2026`, and the code beside it saw **359**. I had quoted
+`verify:doc-counts`, which counts `.test.js` **and** `.test.mjs`, into a check
+that read `.test.js` only.
+
+The wrong figure was the symptom. The hole was that **four `.test.mjs` suites
+were outside the population the gate claimed to cover** -- `brand-assets`,
+`brand-registry`, `brand-routes` and `platform-prep`. None of them writes to the
+filesystem at all today, which is exactly the condition under which a gate stops
+covering something without anybody noticing: the hole is real, it is empty, so
+nothing fails while it sits open.
+
+The pattern is `\.test\.(js|mjs)$` now, the figure is counted by the function
+rather than quoted from a check that counts a different set, and the floor
+asserts **both** extensions are present -- at least 200 `.test.js` and at least
+one `.test.mjs` -- so the new half of the pattern cannot sit unexercised if the
+`.mjs` suites are ever renamed away.
+
+Falsified with a planted `.test.mjs` writing to `docs/`, which the previous
+version ignored entirely and this one names with its resolved destination.
+
+Second time in two days that a figure I had not measured went into a comment I
+wrote -- the sandbox helper's "1,000+" was really 498. Both were caught before
+commit, and both by the same habit: run the thing and read the number rather
+than reusing one that was in front of me.
+
 ## What the next person should not have to rediscover
 
 - A test that has to break something breaks a copy.
@@ -168,6 +196,8 @@ about the rule.
   `renameSync`. Getting that wrong reports the fix as the defect.
 - Do not start the OpenTelemetry SDK in the suite's own process. The case that
   needs it runs in a hard-killed child; `tests/observability.test.js` says why.
+- Suite-wide checks read `.test.js` **and** `.test.mjs`. There are four of the
+  latter and they are easy to leave out of a `readdirSync` filter.
 
 ### 2026-09-21 - The upload sniffer guessed audio/mpeg once in every two thousand runs
 
