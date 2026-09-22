@@ -103,13 +103,14 @@ it works.
 
 ## 4. The skills
 
-Ten in `.claude/skills/`, each a `SKILL.md`, plus two shared ones under
+Eleven in `.claude/skills/`, each a `SKILL.md`, plus two shared ones under
 `.ai/shared/`. They are procedures, not documentation.
 
 | Skill | Lines | Fires when |
 | --- | --- | --- |
 | `checks-that-cannot-lie` | 374 | Writing or auditing any check, gate, test or report |
-| `researching-screenshot-tools` | 174 | A tool arrives as a screenshot, social post or package name |
+| `researching-screenshot-tools` | 178 | A tool arrives as a screenshot, social post or package name |
+| `reviewing-premium-sonara-ui` | 81 | A SONARA page is created, redesigned, polished or reviewed before launch |
 | `adding-a-record-page` | 168 | Any customer-facing page backed by a Supabase table |
 | `writing-sonara-marketing-copy` | 165 | Words going in front of a customer |
 | `comparing-sonara-to-a-competitor` | 161 | A competitor named beside a price or a feature claim |
@@ -124,9 +125,12 @@ Ten in `.claude/skills/`, each a `SKILL.md`, plus two shared ones under
 The repository also keeps machine-readable strategy catalogues in
 `lib/sonara-agent-skill-strategies.cjs`: 5 `AGENT_PATTERNS`
 (`single_shot`, `iterative_react`, `planner_executor`, `reflexive`,
-`verifier_gated`), 11 `SKILL_STRATEGIES` and 10 `BUSINESS_AI_SKILLS`. Those are
-product surfaces, not instructions to you — do not confuse them with the
-`SKILL.md` procedures above.
+`verifier_gated`), 11 core `SKILL_STRATEGIES`, 10 `BUSINESS_AI_SKILLS`, and a
+separate Batch 17 screenshot-derived catalogue of 8 clean-room strategies. The
+supplemental strategies are non-authorizing research patterns; they do not
+change the exact core counts or grant execution authority. These are product
+surfaces, not instructions to you — do not confuse them with the `SKILL.md`
+procedures above.
 
 ---
 
@@ -194,6 +198,16 @@ weakening the rule fails the build rather than shipping quietly.
 ---
 
 ## 6. The formulas
+
+### Batch 17 financial-intelligence helpers
+
+`lib/sonara-financial-intelligence-formulas.cjs` adds 11 transparent arithmetic
+helpers for cash flow, burn, runway, gross margin, growth, CAC, simple LTV, burn
+multiple, customer revenue concentration, deterministic runway scenarios and
+data-quality flags. They are supplemental decision-support primitives, not a
+replacement for the canonical `lib/sonara-formula-engine.cjs` registry. They do
+not move money, post accounting entries, trade, approve credit, or turn
+unreconciled data into financial truth.
 
 ### Paid capability margin floors
 
