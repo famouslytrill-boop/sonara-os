@@ -33,23 +33,34 @@ describe("the tables nothing queries", () => {
     //
     // A migration creating a table nothing references is written, the real
     // script is run against it, and the file is removed whatever happens.
+    // The migration is written into a COPY of the tree, not into the real
+    // supabase/migrations. It used to go into the real directory and be removed
+    // in a `finally`, which survives a failed assertion and not a signal -- and
+    // a leftover migration creating an unread table is the expensive kind:
+    // verify:migration-replay would execute it against an empty database,
+    // verify:applied-migrations would see an unpinned file, and this very gate
+    // would then object to the table on every run.
     const fs = require("node:fs");
-    const migration = path.join(__dirname, "..", "supabase", "migrations", "99999999999999_orphan_gate_selftest.sql");
-    const script = path.join(__dirname, "..", "scripts", "report-orphan-tables.mjs");
-    fs.writeFileSync(migration, "create table if not exists public.sonara_orphan_gate_selftest (\n  id uuid primary key default gen_random_uuid()\n);\n");
+    const { createScriptSandbox } = require("./helpers/script-sandbox.cjs");
+    const sandbox = createScriptSandbox({
+      prefix: "sonara-orphan-",
+      copy: ["scripts", "lib", "routes", "api", "data", "supabase", "server.js", "package.json"]
+    });
     try {
-      let failed = false;
-      let output = "";
-      try {
-        execFileSync(process.execPath, [script, "--check"], { encoding: "utf8", stdio: "pipe" });
-      } catch (error) {
-        failed = true;
-        output = `${error.stdout || ""}${error.stderr || ""}`;
-      }
-      assert.ok(failed, "the gate passed with an unread table in the migrations; it can no longer fail");
+      // If the gate objected to something already, the assertion below would
+      // pass on the wrong table and prove nothing.
+      const clean = sandbox.run("scripts/report-orphan-tables.mjs", ["--check"]);
+      assert.equal(clean.ok, true, `the gate fails on an unmodified sandbox, so its failures there mean nothing:\n${clean.output}`);
+
+      fs.writeFileSync(
+        sandbox.file(path.join("supabase", "migrations", "99999999999999_orphan_gate_selftest.sql")),
+        "create table if not exists public.sonara_orphan_gate_selftest (\n  id uuid primary key default gen_random_uuid()\n);\n"
+      );
+      const { ok, output } = sandbox.run("scripts/report-orphan-tables.mjs", ["--check"]);
+      assert.equal(ok, false, "the gate passed with an unread table in the migrations; it can no longer fail");
       assert.match(output, /sonara_orphan_gate_selftest/, "the gate failed without naming the table it objected to");
     } finally {
-      fs.rmSync(migration, { force: true });
+      sandbox.cleanup();
     }
   });
 

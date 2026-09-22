@@ -2,6 +2,173 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-22 - Five tests were editing the repository they test, and a finally does not survive a signal
+
+Carried over from the 21 September session as a known defect deliberately left
+alone: two tests mutated real tracked files and restored them in a `finally`.
+Measured properly, it was **five**, and the check written to stop a sixth found
+three of them.
+
+## Why a `finally` is not enough here
+
+It survives a thrown assertion. It does not survive a signal, and this is not
+hypothetical -- it happened during the 19 September session. An interrupted run
+left:
+
+- `supabase/migrations/20260728120000_member_read_policies.sql` **truncated to
+  33 unterminated `execute '` statements**, because the edit under test is
+  `.replace(/create policy[\s\S]*?;/gi, "")` and that pattern reaches across
+  `execute '...'` bodies;
+- `.ai/shared/CURRENT_STATE.md` missing the `<!-- superseded-by: -->` pointer
+  that its own gate reads.
+
+Nothing in the working tree said why. `pnpm run verify:launch` then failed for
+reasons that looked unrelated to the interruption, and **`git add -A` would have
+committed both**. One case in
+`an-applied-migration-cannot-be-edited.test.js` does not edit the frozen
+migration at all -- it **deletes** it.
+
+## The five, and what each would have left behind
+
+| test | wrote into | what an interrupted run leaves |
+| --- | --- | --- |
+| `an-applied-migration-cannot-be-edited` | `supabase/migrations/` | a frozen migration stripped of every policy, or gone |
+| `a-shared-baseline-that-is-behind-must-say-so` | `.ai/shared/` | the baseline missing the pointer its gate requires |
+| `env-check-can-report-a-name-it-does-not-know` | **`lib/`** | a probe module in the population three gates measure |
+| `dated-claims-say-when-to-recheck` | `docs/` | a probe document four doc checks then report on |
+| `orphan-tables` | `supabase/migrations/` | a migration creating a table nothing reads |
+
+The `lib/` one is the most expensive and was the one I had not noticed. `lib/`
+is the population `verify:proprietary-notice` counts **by equality**, that
+`report-unreferenced-modules` reports on, and that `verify:coverage-floor`
+measures -- so a single interrupted run would have turned three unrelated gates
+red at once, and the notice gate's message would have been about a file count
+rather than about a leftover probe.
+
+## The fix, and why not a signal handler
+
+`tests/helpers/script-sandbox.cjs` copies the parts of the tree a release script
+reads into `os.tmpdir()` and runs the script there. The scripts under `scripts/`
+resolve their own root from `import.meta.url`, so a copy carrying `scripts/`,
+`lib/`, `supabase/` and `package.json` is a working tree as far as they can tell
+-- measured rather than assumed: `verify-applied-migrations.mjs` reports the same
+122 frozen and 3 generator-owned migrations inside one as outside, and all three
+of its failure cases reproduce there.
+
+A signal handler was the alternative and is worse: it would still lose to
+SIGKILL, and it leaves the window open while it installs. A disposable copy has
+no window.
+
+Two things the helper needed that guessing would have missed, both found by
+running the script and reading what it asked for:
+
+- `verify-agent-development-sync.mjs` takes its root from `process.cwd()` and
+  asks git three questions, so that sandbox **links** the real `.git`. Checked
+  rather than assumed that all three are reads -- `rev-parse --verify --quiet`,
+  `cat-file -e`, `rev-parse --is-shallow-repository` -- because linking a
+  writable `.git` into a directory tests mutate would be a worse version of the
+  problem being fixed.
+- `verify-env.mjs` refuses without `.env.example`, which is not a directory and
+  would not have been in any list I wrote from memory.
+
+The helper asserts its own copy is real: below 200 files it stops, because a
+sandbox that copied almost nothing would make every "and the checker failed"
+assertion in every calling test pass for the wrong reason. Measured at 498 for
+the default list -- **the first draft of that comment said "1,000+", which was a
+figure I had not checked, and it was corrected to the measured value before
+commit.**
+
+## The check that found the other three
+
+`tests/no-test-writes-a-tracked-file.test.js` reads the test sources, because
+the failure only appears when a run is interrupted and a test cannot arrange
+that for itself. It went through three versions, and the first two are the
+interesting part:
+
+1. **Whole argument list.** It reported
+   `copyFileSync(path.join(ROOT, "server.js"), path.join(base, ...))` as a write
+   into the repository. That call reads **from** the repository into a temp
+   directory, which is what the sandbox helper does -- the check had the
+   direction backwards. Fixed by looking only at the destination argument, which
+   is argument 0 for a write and argument **1** for a copy or a rename.
+2. **Destination only, no resolution.** It then passed, reporting zero
+   offenders, while `orphan-tables.test.js` was writing a real migration --
+   because the destination is the variable `migration`, and the text at the call
+   site says nothing. Fixed by resolving a bare identifier from its nearest
+   preceding declaration, the same technique
+   `scripts/report-tenant-scoped-queries.mjs` uses. That version found all three
+   remaining cases.
+
+So the check caught a real bug in itself twice before it caught anything else,
+and the second version is the dangerous kind: green, specific-looking, and
+measuring nothing.
+
+It also refuses to pass on an empty measurement. Tests write to temp
+directories constantly, so fewer than 20 filesystem writes across the suite
+means the pattern stopped matching rather than the suite got clean. The
+allowance list is two-sided: `tests/helpers/script-sandbox.cjs` is allowed to
+write because it copies out of the repository, and an entry naming a file that
+is gone, or one that no longer writes anything, fails.
+
+## Falsified before trusted
+
+- A planted test writing `path.join(root, "docs", "probe.md")` is named with its
+  resolved destination, exit 1.
+- An allowance pointing at a file with no write: `no longer writes anything`,
+  exit 1.
+- An allowance pointing at a missing file: `is allowed and absent`, exit 1.
+- And the property itself, measured by mtime rather than by content, because a
+  restore rewrites a file even when the bytes match: running all five tests
+  leaves `20260728120000_member_read_policies.sql`,
+  `applied-migration-checksums.json` and `CURRENT_STATE.md` with **unchanged
+  mtimes**, and no probe file anywhere. Running the **old** versions changes
+  them.
+
+One falsification of mine was itself wrong and worth recording: I first tested
+the stale-allowance direction by pointing it at `tests/helpers/system-zip.cjs`,
+it passed, and I nearly called the check broken. That file contains one real
+write, so the allowance was not stale and the check was right. Picking a subject
+that genuinely has the property you are trying to remove proves nothing.
+
+## And the same shape in a test I wrote the day before
+
+The chain went red on `tests/observability.test.js`, in the one case that
+starts the real OpenTelemetry SDK: **timeout of 15000ms exceeded**. It passed
+standalone in 127ms and passed the full release chain twice on 21 September.
+
+The case started the SDK inline, bounded the shutdown flush with a 3s race and
+unregistered the global providers afterwards, asserting the global meter was a
+`NoopMeter` again. The cleanup was sound. What was not sound was starting the
+SDK in the suite's own process at all: `HttpInstrumentation` patches `http` on
+start, and by the time this file runs several hundred supertest requests have
+been through it, so the flush to an endpoint that is not there can hang where
+standalone it fails fast.
+
+Two runs green is not evidence, which is the lesson from the audio/mpeg sniffer
+one day earlier -- 1 in 2,053, green 2,052 times.
+
+The assertion is worth keeping: without it, "plaintext OTLP is refused in
+production" is indistinguishable from a URL parser that rejects `http://`
+everywhere. So it now runs in a **child process** with a 20s timeout and
+`killSignal: "SIGKILL"`. A hung flush costs that one test and nothing else, and
+no global provider can survive into the rest of the suite because the process
+holding it is gone. A killed child is asserted as a failure rather than read as
+a pass -- `result.signal` must be null -- because "the probe died" says nothing
+about the rule.
+
+## What the next person should not have to rediscover
+
+- A test that has to break something breaks a copy.
+  `createScriptSandbox` from `tests/helpers/script-sandbox.cjs`, and the copy
+  list is found by running the script and reading what it asks for.
+- `tests/no-test-writes-a-tracked-file.test.js` resolves one level of variable.
+  A destination built through two hops would slip past it, which is why its
+  message names the helper rather than claiming the suite is clean.
+- Argument 1, not argument 0, is the destination of `copyFileSync`, `cpSync` and
+  `renameSync`. Getting that wrong reports the fix as the defect.
+- Do not start the OpenTelemetry SDK in the suite's own process. The case that
+  needs it runs in a hard-killed child; `tests/observability.test.js` says why.
+
 ### 2026-09-21 - The upload sniffer guessed audio/mpeg once in every two thousand runs
 
 `sonara-industries` failed on PR #338 at head `74ab8383`, in

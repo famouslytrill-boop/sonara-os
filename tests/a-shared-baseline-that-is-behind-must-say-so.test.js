@@ -50,7 +50,11 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+// Still used for read-only git questions asked of the real repository --
+// whether the baseline commit is present, and whether this is a shallow
+// clone. Only the rewrites move into the sandbox.
 const { spawnSync } = require("node:child_process");
+const { createScriptSandbox } = require("./helpers/script-sandbox.cjs");
 
 const root = path.resolve(__dirname, "..");
 const STATE = path.join(root, ".ai", "shared", "CURRENT_STATE.md");
@@ -60,17 +64,49 @@ const source = fs.readFileSync(STATE, "utf8");
 const gate = fs.readFileSync(GATE, "utf8");
 
 describe("a shared baseline that is behind must say so", () => {
+// The rewrites below happen in a copy of the tree, not in `.ai/shared/`.
+//
+// This used to write the real tracked CURRENT_STATE.md and put it back in a
+// `finally`. That survives a failed assertion and not a signal: an interrupted
+// run left the real file missing its `<!-- superseded-by: -->` pointer, which
+// is one of the two things the gate reads, and nothing in the working tree
+// said why. `git add -A` would have committed it.
+//
+// The gate takes its root from `process.cwd()` and asks git three read-only
+// questions, so the sandbox links the real `.git` and is run with the copy as
+// its working directory. The copy list was found by running the gate and
+// adding what it asked for, rather than guessed.
+const SANDBOX_COPY = [
+  ".ai", ".github", "scripts", "lib", "docs",
+  "package.json", "pnpm-workspace.yaml", "AGENTS.md", "CLAUDE.md", "SECURITY_NOTES.md", "README.md"
+];
+const STATE_IN_SANDBOX = path.join(".ai", "shared", "CURRENT_STATE.md");
+
+let sandbox = null;
+
+before(() => {
+  sandbox = createScriptSandbox({ prefix: "sonara-baseline-", copy: SANDBOX_COPY, linkGit: true });
+  sandbox.snapshot(STATE_IN_SANDBOX);
+  // Every case below asserts the gate FAILS on a rewrite. If it also failed on
+  // an untouched copy, all of them would pass while measuring nothing.
+  const clean = sandbox.run("scripts/verify-agent-development-sync.mjs");
+  assert.equal(clean.ok, true, `the gate fails on an unmodified sandbox, so its failures there mean nothing:\n${clean.output}`);
+});
+
+after(() => {
+  if (sandbox) sandbox.cleanup();
+  sandbox = null;
+});
+
 /** Run the gate against a temporary rewrite of the shared baseline. */
 function gateWith(rewrite) {
-  const original = fs.readFileSync(STATE, "utf8");
+  const file = sandbox.file(STATE_IN_SANDBOX);
   try {
-    fs.writeFileSync(STATE, rewrite(original));
-    const run = spawnSync("node", [GATE], { cwd: root, encoding: "utf8" });
-    return { status: run.status, output: `${run.stdout}${run.stderr}` };
+    fs.writeFileSync(file, rewrite(fs.readFileSync(file, "utf8")));
+    const run = sandbox.run("scripts/verify-agent-development-sync.mjs");
+    return { status: run.ok ? 0 : 1, output: run.output };
   } finally {
-    // Restored by writing the bytes back, never by `git checkout --`, which
-    // would take unrelated working-tree changes with it.
-    fs.writeFileSync(STATE, original);
+    sandbox.restore(STATE_IN_SANDBOX);
   }
 }
 

@@ -31,7 +31,7 @@ const express = require("express");
 // setImmediate among the Node globals, and widening a shared lint config for
 // one test file is the wrong direction.
 const { setImmediate: onceQueueDrains } = require("node:timers");
-const { metrics, trace } = require("@opentelemetry/api");
+const { spawnSync } = require("node:child_process");
 const request = require("supertest");
 
 const MODULE = path.join(__dirname, "..", "lib", "sonara-observability.cjs");
@@ -117,43 +117,66 @@ describe("OpenTelemetry production boundary", () => {
     assert.equal(event.detail.traces_configured, false);
   });
 
-  it("refuses a plaintext endpoint in production and allows it outside", async () => {
-    const base = { SONARA_OTEL_ENABLED: "true", OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318" };
-
+  it("refuses a plaintext endpoint in production", () => {
     const refused = freshModule();
-    const inProduction = captureStderr(() => refused.startTelemetry({ ...base, NODE_ENV: "production" })).value;
-    assert.equal(inProduction.status, "invalid_configuration", "plaintext OTLP was accepted in production");
+    const state = captureStderr(() => refused.startTelemetry({
+      SONARA_OTEL_ENABLED: "true",
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318",
+      NODE_ENV: "production"
+    })).value;
+    assert.equal(state.status, "invalid_configuration", "plaintext OTLP was accepted in production");
+    assert.equal(state.enabled, false);
+  });
 
-    // Outside production the same endpoint is allowed, so this is a deliberate
-    // production rule rather than a URL parser that rejects http everywhere --
-    // the two look identical from the production case alone.
+  it("allows the same plaintext endpoint outside production, in a child process", () => {
+    // The other half, and the reason it is not asserted in this process.
     //
-    // This is the one case that starts the real SDK, which registers global
-    // trace and metric providers for the whole process. Left running, every
-    // later test in the suite would take a live meter instead of the no-op one,
-    // and the suite's behaviour would depend on file order. So it is shut down
-    // and the globals are unregistered -- and the cleanup is asserted rather
-    // than assumed, because a cleanup nobody checks is how order-dependence
-    // gets in.
-    const allowed = freshModule();
-    const inDevelopment = captureStderr(() => allowed.startTelemetry({ ...base, NODE_ENV: "development" })).value;
-    try {
-      assert.equal(inDevelopment.status, "started");
-      assert.equal(inDevelopment.enabled, true);
-    } finally {
-      if (inDevelopment.sdk) {
-        await Promise.race([
-          inDevelopment.sdk.shutdown().catch(() => undefined),
-          new Promise((resolve) => setTimeout(resolve, 3000).unref())
-        ]);
-      }
-      metrics.disable();
-      trace.disable();
-    }
-    assert.equal(
-      metrics.getMeter("after-shutdown").constructor.name,
-      "NoopMeter",
-      "the global meter provider survived shutdown, so later tests would not be measuring the no-op path"
+    // Outside production that endpoint is accepted, so `startTelemetry`
+    // actually starts the SDK -- which registers global trace and metric
+    // providers for the whole process and, on shutdown, flushes to an endpoint
+    // that is not there. An earlier version of this case did that inline,
+    // bounded the flush with a 3s race and unregistered the globals
+    // afterwards. It passed standalone in 127ms and passed the full release
+    // chain twice, and then **timed out at 15s inside the whole suite** --
+    // after several hundred supertest requests have been through `http`, which
+    // HttpInstrumentation patches on start.
+    //
+    // That is the same shape as the audio/mpeg sniffer on 21 September: green
+    // most runs, and the run where it is not is expensive to diagnose. So the
+    // SDK is started in a child process that is hard-killed on a timeout. A
+    // hung flush costs this test and nothing else, and no global provider
+    // survives into the rest of the suite because the process holding it is
+    // gone.
+    //
+    // Asserting it matters: without it, the production refusal above is
+    // indistinguishable from a URL parser that rejects `http://` everywhere.
+    const probe = [
+      'const { startTelemetry } = require(' + JSON.stringify(MODULE) + ');',
+      'const state = startTelemetry({',
+      '  SONARA_OTEL_ENABLED: "true",',
+      '  OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318",',
+      '  NODE_ENV: "development"',
+      '});',
+      'process.stdout.write("STATUS=" + state.status + " ENABLED=" + state.enabled);',
+      // Nothing is flushed or shut down: the process is about to end, and
+      // exiting hard is the point.
+      'process.exit(0);'
+    ].join("\n");
+
+    const result = spawnSync(process.execPath, ["-e", probe], {
+      encoding: "utf8",
+      timeout: 20000,
+      killSignal: "SIGKILL",
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    // A killed child says nothing about the rule, so it must not read as a pass.
+    assert.equal(result.signal, null, `the probe was killed (${result.signal}); it proved nothing either way`);
+    assert.equal(result.status, 0, `the probe exited ${result.status}:\n${result.stderr}`);
+    assert.match(
+      result.stdout,
+      /STATUS=started ENABLED=true/,
+      `plaintext OTLP was refused outside production too, so the production rule is really a blanket http rejection: ${result.stdout}`
     );
   });
 
