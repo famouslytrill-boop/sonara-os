@@ -153,7 +153,10 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
         `${item.label}: reference only`,
         `${item.observedTheme}. ${item.reason} Next: ${item.nextStep}`
       )),
-      ...getArchitectureExtensionsBatch16().map((item) => brandCard(
+      ...[
+        ...getArchitectureExtensionsBatch16(),
+        ...getArchitectureExtensionsBatch17()
+      ].map((item) => brandCard(
         `${item.title}: Screenshot architecture`,
         `${item.principle} SONARA implementation: ${item.implementation}`
       )),
@@ -194,7 +197,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were already represented in earlier governed records and were not duplicated.`),
       brandCard("Earlier confirmations", `${latest.confirmedExistingRecords.length} submitted projects were already covered by governed records and were re-confirmed instead of duplicated.`),
-      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} repository-owned architecture decisions convert the new research into bounded tool-gateway, developer-agent, multi-agent, evidence-capture, schema, browser-verification, and specialized-runtime rules.`),
+      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} repository-owned architecture decisions convert the latest research into bounded tool-gateway, developer-agent, design-authority, financial-truth, memory-versioning, browser-verification, skill-supply-chain, and automation-recovery rules.`),
       brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging and capability/design documentation are not installation, deployment, or permission to send customer data."),
       ...convergence.capabilities.map((item) => brandCard(
         `${item.label}: ${display(item.capabilityStatus)}`,
@@ -298,7 +301,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Batch 9 design/correctness", `${convergence.batch9Count} non-executing design and correctness records define the current visual authority and unresolved work.`),
       brandCard("Production execution", "0 enabled by the research/convergence records. Every latest-intake repository remains cataloged-disabled and requires human review before implementation."),
       brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} bounded architecture decisions are attached to the latest intake.`),
-      brandCard("Runtime boundaries", "Desktop capture/audio/networking stays on reviewed local companions; browser and MCP tools remain scope/policy gated; media rendering stays in isolated workers; OSINT and market-data projects stay research-only; Physical AI remains simulator-first and safety-gated."),
+      brandCard("Runtime boundaries", "Desktop capture/audio/networking stays on reviewed local companions; browser and MCP tools remain scope/policy gated; media rendering stays in isolated workers; financial intelligence remains deterministic and advisory; external memory, design, skill, network, and model projects stay research-gated until their own evidence proves a bounded need."),
       ...convergence.capabilities.map((item) => brandCard(
         `${item.label}: ${display(item.capabilityStatus)}`,
         `Evidence: ${item.evidence.join(", ")}. ${item.boundaries.join(" ")}`
