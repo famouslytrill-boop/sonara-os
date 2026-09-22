@@ -158,21 +158,26 @@ const HEADER_LINES = 6;
 // nobody looked. The second is not a failure of the code, it is a prompt to
 // re-read this constant deliberately -- which is the only way it stays a
 // measurement rather than a guess.
-// Batch 13 raised the measured population to 280. Batch 14 then added one
-// shipped research module and Platform Foundation v1 added one shipped kernel,
-// taking the exact population to 282. Batch 15 adds four governed shipped
-// runtime/research modules; exact-head CI measured 286 covered source files.
-// The September 20 governed market-intelligence module added one more shipped
-// proprietary source file, taking the exact covered population to 287. Backend
-// Operations Research Pass #3 adds one governed shipped research module, taking
-// the exact covered population to 288. Backend Operations Market Analysis Pass
-// #4 adds one governed shipped research module, taking the exact covered
-// population to 289. Frontend Visual Operations Intelligence adds one governed
-// shipped research module, taking the combined exact covered population to 290.
-// PR #330's consolidated backend/auth/repository work brought the exact
-// shipped-source population to 292. Batch 16 adds one governed shipped research
-// module, and exact-head CI measured the current population at 293.
-const EXPECTED_FILES = 293;
+// ## Why this is regenerated rather than re-typed
+//
+// This constant used to carry a sentence per bump -- "batch 14 added one,
+// taking it to 282", thirteen of them -- and that prose is what made it a merge
+// magnet. Two branches each add a module, each raises the number by one, git
+// merges two identical-looking edits without a conflict, and the value that
+// lands is one short of the tree. It happened on the way to this line: main
+// reached 296 covered files while the constant said 293, and the release chain
+// was red on nothing but arithmetic.
+//
+// So `--write` recomputes both constants from the tree, exposed as
+// `pnpm run fix:proprietary-notice`. The per-bump history is not lost; it is in
+// `git log -L '/^const EXPECTED_FILES/,+1:scripts/verify-proprietary-notice.mjs'`,
+// which is a more reliable ledger than a comment somebody has to remember to
+// extend.
+//
+// `--write` syncs the two counts and nothing else. A file missing its notice,
+// a notice naming the wrong holder, or a stale exclusion still fails the run --
+// a fixer that could launder those would be worse than no fixer.
+const EXPECTED_FILES = 296;
 const EXPECTED_PUBLIC_FILES = 20;
 
 function licenceHolder() {
@@ -198,6 +203,8 @@ if (!holder.ok) {
   console.error("This check exists to keep every file's notice agreeing with LICENSE. It refuses to guess the holder.");
   process.exit(1);
 }
+
+const write = process.argv.includes("--write");
 
 const tracked = execFileSync("git", ["ls-files", ...TRACKED_GLOBS], { cwd: root, encoding: "utf8" })
   .split("\n")
@@ -246,7 +253,12 @@ if (staleExclusions.length) {
   );
 }
 
+// The two counts are the only findings `--write` may resolve, so they are kept
+// apart from `problems` until it is decided whether to rewrite or report them.
+const countMismatches = [];
+
 if (examinedPublic !== EXPECTED_PUBLIC_FILES) {
+  countMismatches.push({ constant: "EXPECTED_PUBLIC_FILES", from: EXPECTED_PUBLIC_FILES, to: examinedPublic });
   problems.push(
     `${examinedPublic} browser-side file(s) examined under public/, and EXPECTED_PUBLIC_FILES says ${EXPECTED_PUBLIC_FILES}.\n`
     + (examinedPublic < EXPECTED_PUBLIC_FILES
@@ -259,6 +271,7 @@ if (examinedPublic !== EXPECTED_PUBLIC_FILES) {
 }
 
 if (examined !== EXPECTED_FILES) {
+  countMismatches.push({ constant: "EXPECTED_FILES", from: EXPECTED_FILES, to: examined });
   problems.push(
     `${examined} shipped source file(s) examined, and EXPECTED_FILES says ${EXPECTED_FILES}.\n`
     + (examined < EXPECTED_FILES
@@ -290,6 +303,38 @@ if (wrongHolder.length) {
     + "\n\n    A notice naming the wrong owner is worse than none: it is the statement somebody relies on.\n"
     + "    Either the company was renamed and these were missed, or LICENSE was changed and these were not."
   );
+}
+
+if (write && countMismatches.length) {
+  const self = path.join(root, "scripts", "verify-proprietary-notice.mjs");
+  let source = fs.readFileSync(self, "utf8");
+  for (const { constant, from, to } of countMismatches) {
+    const pattern = new RegExp(`^const ${constant} = \\d+;$`, "m");
+    // A rewrite whose pattern stopped matching would leave the constant alone
+    // and print that it had been updated. That is this repository's recurring
+    // defect, so it stops the run instead.
+    if (!pattern.test(source)) {
+      console.error(`ERROR: could not find \`const ${constant} = <number>;\` to rewrite in ${path.relative(root, self)}.`);
+      console.error("The declaration was reformatted or renamed. Set it by hand rather than trusting this writer.");
+      process.exit(1);
+    }
+    source = source.replace(pattern, `const ${constant} = ${to};`);
+    console.log(`${constant}: ${from} -> ${to}`);
+  }
+  fs.writeFileSync(self, source);
+  // Only the counts were syncable. Anything else still has to be answered.
+  const remaining = problems.length - countMismatches.length;
+  if (remaining > 0) {
+    console.error(`\nProprietary notice counts rewritten, but ${remaining} point(s) remain that --write must not resolve.\n`);
+    console.error(problems.slice(countMismatches.length).map((problem) => `  - ${problem}`).join("\n\n"));
+    process.exit(1);
+  }
+  console.log(`Counts rewritten from the tree: ${examined} shipped source file(s), ${examinedPublic} under public/.`);
+  process.exit(0);
+}
+
+if (write) {
+  console.log(`Proprietary notice counts already correct: ${examined} shipped source file(s), ${examinedPublic} under public/. Nothing rewritten.`);
 }
 
 if (problems.length) {

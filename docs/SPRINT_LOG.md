@@ -2,6 +2,440 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-21 - The upload sniffer guessed audio/mpeg once in every two thousand runs
+
+`sonara-industries` failed on PR #338 at head `74ab8383`, in
+`tests/an-upload-arrives-intact.test.js`: "returns null for a type it cannot
+tell, rather than guessing" got `'audio/mpeg'` where it expected `null`. It
+passed locally and it passed on the next head, all 53 checks green, which is how
+this kind of defect hides.
+
+## It was not a flake in the test
+
+The test feeds `multipart.sniff` 64 random bytes. The signature for
+`audio/mpeg` was:
+
+```
+b.subarray(0, 3).toString("latin1") === "ID3" || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)
+```
+
+`ID3` is a magic number. **An MPEG frame sync is not**: it is eleven set bits,
+`0xFF` then the top three bits of the next byte, which 1 in 2,048 random byte
+pairs satisfies. Measured rather than reasoned: **974 false positives in
+2,000,000 random 64-byte buffers, 1 in 2,053, every one of them audio/mpeg.**
+
+So the test was right and the sniffer was wrong, and the consequence is not
+cosmetic. `accept` decides on `sniff`, so **a file whose bytes are nothing in
+particular could be accepted as audio/mpeg wherever that type is allowed** --
+which is the failure `sniff`'s own doc comment warns about, reached from the
+other direction:
+
+> A caller deciding whether to accept an upload has to be able to tell "this is
+> a JPEG" from "I could not tell", and folding the second into the first is how
+> a page ends up serving a text/html file as an image.
+
+## What the fix is, and why not the smaller one
+
+Validating the header's reserved fields -- version `01`, layer `00`, bitrate
+index `0000`/`1111`, sample-rate index `11`, none of which a real frame carries
+-- cuts the rate by about two thirds. That is still roughly 1 in 5,500, which
+is worse than useless: a rarer intermittent failure is harder to diagnose than
+a frequent one.
+
+So a frame sync is believed only when the buffer holds a **whole frame** and the
+**next frame begins where this one says it will**. That needs the bitrate and
+sample-rate tables and the Layer I / Layer II-III length formulas, which is
+about forty lines, and it is the actual definition of an MP3 rather than a
+proxy for one.
+
+It also means a 64-byte fragment of a tagless MP3 now returns `null`, and that
+is correct rather than a regression: 64 bytes genuinely cannot identify a
+tagless MP3, the smallest common frame being larger than that, and "I could not
+tell" is the answer this function exists to be able to give. An ID3 tag needs
+none of it.
+
+Measured after:
+
+| input | before | after |
+| --- | --- | --- |
+| 2,000,000 random 64-byte buffers | 974 false `audio/mpeg` | **0** |
+| 300,000 random 4,096-byte buffers | -- | **0** |
+| tagless MPEG1 Layer III, two frames (`FF FB 90 04`, length 417) | `audio/mpeg` | `audio/mpeg` |
+| `ID3` + 32 bytes | `audio/mpeg` | `audio/mpeg` |
+
+## The test was added to, not weakened
+
+Three new cases make the random-byte case deterministic, because a defect that
+takes two thousand runs to show is one that comes back unnoticed:
+
+- a bare frame header with no frame after it is not an MP3;
+- four headers carrying a reserved version, a reserved layer, a bad bitrate
+  index and a reserved sample rate, each `null`;
+- the tagless two-frame MP3 is still recognised, which is why the sync is read
+  at all;
+- and `accept` refuses a bare sync **even when `audio/mpeg` is on the allowed
+  list**, which states the authorisation consequence as a test rather than as a
+  comment.
+
+Falsified by restoring the old one-line signature: both new cases fail by name,
+the first on "a frame header with no frame after it is not an MP3".
+
+## What the next person should not have to rediscover
+
+- A test that feeds random bytes and asserts `null` is a probabilistic test. It
+  is a good test -- it found this -- but when it fails, the rate is the first
+  thing to measure, not the last.
+- `sniff` is an authorisation input, not a convenience. Anything it returns,
+  `accept` will act on.
+- `ID3` is a magic number; a frame sync is two bytes of coincidence. Do not put
+  a bare sync back in the signature table.
+
+### 2026-09-21 - Eleven places still said the application had one production dependency
+
+Asked to update the repository and the website with what has already been
+installed. The installing happened on 20 September; what had not happened was
+telling the rest of the repository about it.
+
+## What was measured
+
+`package.json` declares **nine** production dependencies and **five**
+development dependencies. Eleven live statements said otherwise, all of them in
+present tense, none of them dated:
+
+- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
+- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
+  `lib/sonara-structured-log.cjs`
+- `lib/sonara-screenshot-tool-radar-batch12.cjs`
+- `scripts/report-register-opportunities.mjs`
+- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
+- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
+- four guidance lines in `data/open-source-tools.ts`
+
+Every one was **load-bearing reasoning**: no multipart parser because there is
+one dependency; no YAML parser because there is one dependency; this module
+"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
+arrives". A second had arrived, eight of them, and the sentences explaining
+decisions by the old count read exactly as they did when they were true. That is
+the defect this repository is organised around, in prose rather than in code.
+
+**The reasoning mostly survives and was checked rather than assumed.** None of
+the nine production dependencies is a multipart parser and nothing in either
+dependency list parses YAML, both measured rather than recalled. So the
+conclusions stand and the premises were wrong, which is the most dangerous
+combination: nothing breaks, and the next person inherits a reason that will not
+hold the next time it is leaned on.
+
+## The register record whose trigger fired and was never read
+
+`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
+ended: "tests/the-auth-surface-stays-small.test.js fails if that single
+dependency stops being single, which is what would make this record worth
+revisiting."
+
+It stopped being single on 20 September. The test **was not weakened** -- it
+still asserts `deepEqual` against the whole manifest, so a tenth dependency
+fails it -- it was updated to the new exact list, correctly, because the change
+was intentional. But the record it was the trigger for was never revisited.
+
+So this is that revisit, written into the record as a dated addendum: the finding
+does not change, because the reason was never really the count. There is still no
+compile step and none of the nine is a TypeScript library needing one. What had
+to be corrected is the **trigger**, since a count that has already moved cannot
+warn about moving.
+
+## The owner's install document was wrong in two ways, one of them worse
+
+`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
+"one production dependency: `express`. Four development dependencies", and it
+said **"Version 22 is what this was verified on (`v22.22.2`)"**.
+
+The second is the one that mattered. `package.json` declares
+`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
+runtime rather than a preference --
+`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
+changes. The document told the owner to install a Node major that production
+does not run, in five places, which is why every `pnpm` command in this session
+printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
+with the reason the warning is worth acting on rather than reading past.
+
+A section on installing Claude Code was added beside the Supabase CLI one,
+because it belongs in the same category and for the same reason: a tool a person
+runs by hand, deliberately not in `package.json`, where adding it would put it
+on the critical path of every production build.
+
+Its facts were read from the npm registry rather than recalled, and the first
+draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
+`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
+`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
+and the shell script installs under `$HOME` and refuses to run under `sudo`. The
+native installer is listed first because it involves no package manager at all,
+which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
+of this repository's dependency tree.
+
+## `verify:dependency-claims`, the 58th chain command
+
+`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
+undated and mostly lived in source comments, so nothing watched it. The new
+check reads `package.json` and fails when a tracked file states a
+production-dependency count that does not match.
+
+Four things about how it is built, each because the first attempt got it wrong:
+
+- **It reads words, not just digits.** The first version matched digits and
+  found **none of the eleven** -- every one was written as "one" or "single".
+  `WORDS` covers zero to twelve plus `single` and `sole`.
+- **Past-tense statements are not current-state claims.** "went from one
+  production dependency to nine" is a true sentence about a change. A count
+  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
+  with an optional article, is skipped. The marker list is short on purpose: an
+  escape hatch wide enough to launder a current-state claim is worse than no
+  check, and "this is an Express 4 application with one production dependency"
+  has no marker and fails.
+- **It fails when it finds nothing.** A reword that drops every claim out of the
+  pattern is the check going blind, not the repository improving. Proved by
+  misspelling the pattern: `ERROR: no production-dependency count claim was
+  found anywhere in the repository`.
+- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
+  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
+  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
+  text can no longer be found fails, so an exemption cannot outlive the sentence
+  it excuses.
+
+Falsified in four directions before being trusted. It also found three of the
+eleven that grepping had missed, including the install document.
+
+## The website was calling an installed adapter a research candidate
+
+`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
+eight of its packages were production dependencies and a tested 195-line adapter
+existed. `setup_required` would have been the other wrong answer: it says
+configuration is what is left, and configuration is not what is left -- nothing
+calls the adapter, so every variable could be set and still nothing would be
+measured.
+
+`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
+`adapter built` and `enabled in production` are three different states, and this
+vocabulary had the first and the last. Added `adapter_built`, rendered
+"Adapter built, not enabled".
+
+The label map falls back to `"Review required"` for an unknown state, so the
+next state added would have gone unlabelled the same quiet way. Two tests now:
+every availability state in use must have a label and that label must appear on
+the page, with `Review required` asserted absent; and the OpenTelemetry entry
+must stay `adapter_built` **while** an `@opentelemetry` package is still a
+production dependency, so if the packages are removed the test says to move the
+entry back rather than leaving a state that overstates.
+
+## What the next person should not have to rediscover
+
+- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
+  words as well as digits.
+- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
+  because production is 24; the `Unsupported engine` warning means the local
+  Node is wrong, not that the field is.
+- A register record's revisit trigger is only as good as somebody reading it.
+  Better Auth's was a dependency count, which fired silently; it is now the
+  build step.
+- "Research candidate" on `/free-launch-stack` means researched. An installed,
+  unwired adapter is `adapter_built`.
+
+### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
+
+Restarted this branch from the new `main` after PR #305 merged. `main` had moved
+266 commits and 32 pull requests in the meantime, so the first job was to find
+out whether the base was green. It was not, and looking into why found three
+more things.
+
+## The release chain was red on `main`, on arithmetic
+
+`pnpm run verify:launch` fails at `verify:proprietary-notice`: 296 shipped
+source files examined, `EXPECTED_FILES` says 293. Three `lib/` modules landed
+after the commit that set 293, all three carrying the notice correctly. The gate
+was right; the constant was three behind.
+
+That constant changed **ten times between 18 and 20 September**, each change
+adding a sentence to a prose ledger above it, and
+`git log -L '/^const EXPECTED_FILES/,+1:scripts/verify-proprietary-notice.mjs'`
+shows the mechanism directly: `45a0a916` and `31dc7a1e` **both set it to 288**,
+two branches independently raising 287 by one. Two identical-looking edits merge
+with no conflict, and the value that lands is one short of the tree. It is the same shape as the
+`verify:launch` chain count on 19 September, which merged cleanly at 56 while
+the truth was 57.
+
+So the count is now regenerated rather than re-typed: `--write`, exposed as
+`pnpm run fix:proprietary-notice`, mirroring `fix:doc-counts`. The thirteen-line
+ledger is gone; `git log -L` is a better record than a comment somebody has to
+remember to extend.
+
+`--write` syncs the two counts and nothing else. Falsified in four directions
+before being trusted: a wrong count fails naming `EXPECTED_FILES`; `--write`
+rewrites 999 to 296 and exits 0; a reformatted declaration (`const
+EXPECTED_FILES =\n  295;`) makes it **stop** rather than report a rewrite it did
+not perform; and with a notice-less file planted it rewrote 296 to 297 **and
+still exited 1** naming the file. A fixer that could launder a missing notice
+would be worse than no fixer.
+
+## `lib/sonara-screenshot-tool-radar-batch13.cjs` was wired into nothing
+
+Every other radar batch is required by
+`routes/sonara-requested-repositories-routes.cjs`. Batch 13, recorded 16
+September with four verified repositories and two non-repository references, was
+not. The require list reads `batch12` then `batch14`.
+
+So `openosint`, `pinchtab`, `openshorts` and `every_programmer_should_know`
+reached no catalog, no readiness figure and no page, and the founder control
+plane published `screenshotResearchCount: 104` and
+`productionExecutionCount` as covering all screenshot intake while four records
+sat outside the population being counted. Wired into all five aggregation
+functions: 114 to 118 repositories, 110 to 114 verified, 104 to 108 screenshot
+records, 50 to 52 non-repository references.
+
+**Two checks watched this happen and both reported success**, which is why the
+fix is not just the require.
+
+`scripts/report-unreferenced-modules.mjs` printed "every module under lib/ and
+routes/ is reachable" for five days, because
+`tests/batch13-event-security-media.test.js` names the module and that report
+counts a test as a referencer.
+
+`tests/requested-repository-suite.test.js` asserted the exact key list, the
+exact repository count and the exact page copy, and passed — because the list
+was written from the route rather than from the batch modules. It agreed with
+the omission instead of catching it. That is worth stating plainly: an
+enumeration copied from the implementation cannot disagree with the
+implementation.
+
+`tests/every-screenshot-radar-batch-reaches-the-route.test.js` asserts the
+property instead. It discovers the batch modules from disk, refuses to run on
+fewer than twelve, and requires every key each one holds to appear in the public
+catalog **and** to be included in `screenshotResearchCount`. Falsified both
+ways: dropping batch 13 from `getCombinedPublicCatalog` while keeping the
+require fails naming all four keys, and dropping it from
+`getScreenshotResearchCount` while keeping it in the catalog fails with
+`screenshotResearchCount is 104 but the batch modules hold 108` — the exact
+pre-fix number, so the check reproduces the original defect.
+
+## The measurement that said a tier would catch nothing had expired
+
+`scripts/report-unreferenced-modules.mjs` carried a note: measured 8 September
+2026, two modules were referenced by tests and nothing else, both legitimate, so
+no runtime-versus-test tier was added because it "would carry two permanent
+exemptions and catch nothing". It ended "This note is here so the next person
+can see the measurement rather than repeat it."
+
+Re-measured 21 September: **fourteen**, one of them batch 13. Shape 5 — an
+exemption whose reason stopped describing anything, sitting exactly where the
+next reader looks instead of checking. The note was true when written; the
+conclusion drawn from it was not still true, and the two read identically.
+
+The tier exists now as a two-sided accounted list, thirteen entries after
+batch 13 dropped out, each saying what its module is waiting for. An
+unaccounted test-only module fails; an entry whose module has since been wired
+fails too, so a reason cannot outlive its subject. Both directions falsified
+with real exit codes, read without a pipe in between.
+
+## The tier's first finding was the tier
+
+Its first run reported all thirteen entries as stale. Naming a module in
+`TEST_ONLY` is naming it in a file under `scripts/`, and `scripts/` is in the
+set the report searches, so the bookkeeping made its own subjects look
+reachable. `withoutComments` covers the header, which names modules in prose;
+it does not cover a `Map` whose keys are code.
+
+`ALLOWED` has had this hazard since the file was written and has always been
+empty, so it never bit — and would have bitten silently the first time somebody
+used it, an exempted module reading as referenced and dropping out of the
+population the exemption was written for. The report now excludes its own path
+from the set it searches.
+
+## A second red gate on `main`, hidden behind the first
+
+With the notice count fixed the chain got further and failed again, at
+`verify:coverage-floor`: `lib/sonara-observability.cjs` at **13.8% covered
+(19 of 138 lines)**, under the 35% floor and unregistered. It had been red since
+the module landed; nobody saw it because `verify:proprietary-notice` runs first
+and exits the chain. Worth remembering when a chain goes red: the first failure
+is not necessarily the only one.
+
+The module's single test asserted one thing -- telemetry is disabled unless
+enabled -- and **could not have asserted a second**. `startTelemetry` memoises
+on module state, so the first call in a process decides for the whole process. A
+second `it` calling it with different environment would have received the first
+call's answer, asserted against that, and passed. Registering the module in
+`BELOW_FLOOR` would have recorded that as "hard to test" when what was true is
+"the test surface makes a second case silently meaningless".
+
+So each case now takes a fresh module out of the require cache, and the helper
+**asserts the instance is fresh** (`status === "not_started"`) before using it.
+If the cache key ever stops matching, the tests stop rather than going back to
+measuring one memoised decision. Twelve cases, no production code changed:
+non-`"true"` values read as off, an enabled-with-no-endpoint refusal with its
+recorded reason, plaintext refused under `NODE_ENV=production` and allowed
+outside it, a non-URL endpoint refused, a traces-only configuration refused
+rather than half-started, and the middleware's correlation id, status classes,
+static-asset skip, organization scoping and `unmatched` route label.
+
+Two things the writing of it turned up:
+
+- The first version captured stderr synchronously around a `supertest` call and
+  reported **zero events**. The `finish` handler runs after the response
+  promise resolves, so the capture was restored before the event it existed to
+  read. Had the assertion been "no unexpected events" rather than a count, that
+  would have passed.
+- The one case that starts the real SDK registers global trace and metric
+  providers **for the whole process**, so every later test in the suite would
+  take a live meter instead of the no-op one and the suite's behaviour would
+  depend on file order. It shuts the SDK down, calls `metrics.disable()` and
+  `trace.disable()`, and then asserts the global meter is a `NoopMeter` again --
+  a cleanup nobody checks is how order-dependence gets in.
+
+Floor after: 296 runtime files, 58,906 countable lines, 93.3% overall, one file
+under the floor and it is the one registered with a reason.
+
+## Nine production dependencies for two modules nothing calls
+
+`package.json` went from one production dependency to nine on 20 September:
+eight `@opentelemetry/*` packages and `@openfeature/server-sdk`. Their only
+consumers are `lib/sonara-observability.cjs` and `lib/sonara-feature-flags.cjs`,
+and **neither is required by anything but its own test**. `startTelemetry`,
+`installHttpObservability` and `createFeatureFlagService` have no caller in
+`server.js`, `api/`, `routes/`, `lib/` or `scripts/`.
+
+Nothing unsafe: telemetry needs `SONARA_OTEL_ENABLED=true` and refuses a
+non-HTTPS endpoint under `NODE_ENV=production`, and the flag service fails
+closed on an unknown key. The cost is a bundle carrying an SDK for unreachable
+code and a readiness story that reads as observability being in place. Recorded
+in `docs/SHIP_READINESS.md` for the owner rather than decided here: wiring it
+adds a middleware to every dynamic request and an `X-Request-ID` header to every
+response, and removing it reverses an architecture choice another session made
+deliberately.
+
+**One hazard measured rather than reasoned, for whoever wires it.**
+`installHttpObservability` takes its meter and builds its counter and histogram
+at install time. An OpenTelemetry instrument built before
+`setGlobalMeterProvider` is bound to the no-op provider and stays a no-op after
+a later start — so installing it before `startTelemetry` gives a dashboard that
+looks configured and counts nothing. Confirmed against `@opentelemetry/api`
+1.9.1 and `@opentelemetry/sdk-metrics` 2.11.0 with an in-memory exporter: a
+counter created before the provider was registered, then incremented, was
+absent from `reader.collect()`; one created after reported its value. The
+module's header already warns about the mirror-image ordering problem for HTTP
+instrumentation — this is a second, separate ordering constraint pointing the
+same way.
+
+## What the next person should not have to rediscover
+
+- The proprietary-notice count is now `pnpm run fix:proprietary-notice`. Do not
+  do the arithmetic by hand; that is how it fell three behind.
+- A test-only reference is not reachability. Tier 2 of
+  `report-unreferenced-modules` is the list that means it.
+- `report-unreferenced-modules.mjs` excludes its own file. If that filter is
+  removed, every entry in `ALLOWED` and `TEST_ONLY` silently stops being
+  measured.
+- Batches 8 and 9 are not missing modules: they are
+  `getCapabilityDesignReadiness()`, surfaced as `capabilityBatch8` and
+  `designBatch9`. Batches 10 and 11 never existed as separate modules.
+
 ### 2026-09-19 - The handoff package could not be pasted into the assistant its first line names
 
 Asked to update the handoff package for ChatGPT. Measuring it first turned the

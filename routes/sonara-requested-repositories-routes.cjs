@@ -44,6 +44,18 @@ const {
   getConductRefusalsBatch12,
   getConfirmedExistingRecordsBatch12
 } = require("../lib/sonara-screenshot-tool-radar-batch12.cjs");
+// Batch 13 was recorded on 16 September 2026 and wired here on 21 September.
+// In between, this file required batches 12 and 14 with nothing between them,
+// so four verified repository records and two non-repository references never
+// reached the Research Lab catalog or any readiness count -- while
+// `productionExecutionCount` was reported as covering all screenshot intake.
+// `tests/every-screenshot-radar-batch-reaches-the-route.test.js` now fails when
+// a batch module exists and this file does not name it.
+const {
+  getPublicScreenshotToolCatalogBatch13,
+  getScreenshotToolReadinessBatch13,
+  getNonRepositoryReferencesBatch13
+} = require("../lib/sonara-screenshot-tool-radar-batch13.cjs");
 const {
   getPublicScreenshotToolCatalogBatch14,
   getScreenshotToolReadinessBatch14,
@@ -322,6 +334,7 @@ function getLatestScreenshotIntake() {
   const batch6 = getScreenshotToolReadinessBatch6();
   const batch7 = getScreenshotToolReadinessBatch7();
   const batch12 = getScreenshotToolReadinessBatch12();
+  const batch13 = getScreenshotToolReadinessBatch13();
   const batch14 = getScreenshotToolReadinessBatch14();
   const batch15 = getScreenshotToolReadinessBatch15();
   const batch16 = getScreenshotToolReadinessBatch16();
@@ -331,6 +344,7 @@ function getLatestScreenshotIntake() {
       ...batch6.repositories,
       ...batch7.repositories,
       ...batch12.repositories,
+      ...batch13.repositories,
       ...batch14.repositories,
       ...batch15.repositories,
       ...batch16.repositories
@@ -340,6 +354,7 @@ function getLatestScreenshotIntake() {
       ...getNonRepositoryReferencesBatch6(),
       ...getNonRepositoryReferencesBatch7(),
       ...getNonRepositoryReferencesBatch12(),
+      ...getNonRepositoryReferencesBatch13(),
       ...getNonRepositoryReferencesBatch14(),
       ...getNonRepositoryReferencesBatch15(),
       ...getNonRepositoryReferencesBatch16()
@@ -365,6 +380,7 @@ function getCombinedPublicCatalog() {
     ...getScreenshotToolReadinessBatch6().repositories,
     ...getPublicScreenshotToolCatalogBatch7(),
     ...getPublicScreenshotToolCatalogBatch12(),
+    ...getPublicScreenshotToolCatalogBatch13(),
     ...getPublicScreenshotToolCatalogBatch14(),
     ...getPublicScreenshotToolCatalogBatch15(),
     ...getPublicScreenshotToolCatalogBatch16()
@@ -380,6 +396,7 @@ function getScreenshotResearchCount() {
     + getScreenshotToolReadinessBatch6().repositoryCount
     + getPublicScreenshotToolCatalogBatch7().length
     + getPublicScreenshotToolCatalogBatch12().length
+    + getPublicScreenshotToolCatalogBatch13().length
     + getPublicScreenshotToolCatalogBatch14().length
     + getPublicScreenshotToolCatalogBatch15().length
     + getPublicScreenshotToolCatalogBatch16().length;
@@ -393,6 +410,7 @@ function getAllNonRepositoryReferences() {
     ...getNonRepositoryReferencesBatch6(),
     ...getNonRepositoryReferencesBatch7(),
     ...getNonRepositoryReferencesBatch12(),
+    ...getNonRepositoryReferencesBatch13(),
     ...getNonRepositoryReferencesBatch14(),
     ...getNonRepositoryReferencesBatch15(),
     ...getNonRepositoryReferencesBatch16()
@@ -417,6 +435,7 @@ function getCombinedReadiness() {
   const screenshotBatch6 = getScreenshotToolReadinessBatch6();
   const screenshotBatch7 = getScreenshotToolReadinessBatch7();
   const screenshotBatch12 = getScreenshotToolReadinessBatch12();
+  const screenshotBatch13 = getScreenshotToolReadinessBatch13();
   const screenshotBatch14 = getScreenshotToolReadinessBatch14();
   const screenshotBatch15 = getScreenshotToolReadinessBatch15();
   const screenshotBatch16 = getScreenshotToolReadinessBatch16();
@@ -434,6 +453,7 @@ function getCombinedReadiness() {
     ...screenshotBatch6.repositories,
     ...screenshotBatch7.repositories,
     ...screenshotBatch12.repositories,
+    ...screenshotBatch13.repositories,
     ...screenshotBatch14.repositories,
     ...screenshotBatch15.repositories,
     ...screenshotBatch16.repositories
@@ -452,6 +472,7 @@ function getCombinedReadiness() {
       + screenshotBatch6.repositoryCount
       + screenshotBatch7.repositoryCount
       + screenshotBatch12.repositoryCount
+      + screenshotBatch13.repositoryCount
       + screenshotBatch14.repositoryCount
       + screenshotBatch15.repositoryCount
       + screenshotBatch16.repositoryCount,

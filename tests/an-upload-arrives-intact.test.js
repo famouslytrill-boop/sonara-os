@@ -189,6 +189,54 @@ describe("an upload", () => {
       assert.equal(multipart.sniff(Buffer.from("ab")), null);
     });
 
+    it("does not read a bare MPEG frame sync as an MP3", () => {
+      // The case that failed CI run 35646094440. The test above feeds `sniff`
+      // 64 random bytes and asserts null; 1 in 2,053 random buffers begins
+      // 0xFF followed by three set bits, which the sniffer read as audio/mpeg.
+      // Measured before the fix: 974 false positives in 2,000,000 buffers.
+      // These three are that case made deterministic, so it cannot come back
+      // and wait two thousand runs to be noticed.
+      const bareSync = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x04]), Buffer.alloc(32)]);
+      assert.equal(multipart.sniff(bareSync), null, "a frame header with no frame after it is not an MP3");
+
+      // Reserved fields a genuine frame never carries: version 01, layer 00,
+      // bitrate index 1111, sample-rate index 11.
+      for (const [name, byte1, byte2] of [
+        ["reserved version", 0xf3, 0x90],
+        ["reserved layer", 0xf9, 0x90],
+        ["bad bitrate index", 0xfb, 0xf0],
+        ["reserved sample rate", 0xfb, 0x9c]
+      ]) {
+        const header = Buffer.concat([Buffer.from([0xff, byte1, byte2, 0x04]), Buffer.alloc(1024)]);
+        assert.equal(multipart.sniff(header), null, `${name} was read as an MP3`);
+      }
+    });
+
+    it("still recognises a tagless MP3, which is why the sync is read at all", () => {
+      // MPEG 1 Layer III, 128 kbps, 44100 Hz, no CRC: header FF FB 90 04 and a
+      // frame length of floor(144000 * 128 / 44100) = 417. Two frames, so the
+      // second sync lands exactly where the first frame says it will.
+      const header = Buffer.from([0xff, 0xfb, 0x90, 0x04]);
+      const frame = Buffer.concat([header, Buffer.alloc(413, 0x5a)]);
+      assert.equal(multipart.sniff(Buffer.concat([frame, frame])), "audio/mpeg");
+
+      // An ID3 tag is a real magic number and needs none of that.
+      assert.equal(multipart.sniff(Buffer.concat([Buffer.from("ID3"), Buffer.alloc(32)])), "audio/mpeg");
+    });
+
+    it("refuses a bare frame sync even where audio/mpeg is allowed", () => {
+      // `accept` decides on `sniff`, so a sniffer that guesses is an
+      // authorisation input that guesses. This is the consequence the type
+      // check exists to prevent, stated as a test rather than as a comment.
+      const parsed = multipart.parse(
+        bodyOf([{ name: "f", filename: "track.mp3", type: "audio/mpeg", value: Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x04]), Buffer.alloc(32)]) }]),
+        `multipart/form-data; boundary=${BOUNDARY}`
+      );
+      const verdict = multipart.accept(parsed.files[0], ["audio/mpeg"]);
+      assert.equal(verdict.ok, false);
+      assert.equal(verdict.code, "unknown_type");
+    });
+
     it("recognises what this product actually receives", () => {
       const cases = [
         [Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(16)]), "image/jpeg"],

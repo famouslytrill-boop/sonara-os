@@ -116,8 +116,17 @@ of these is a shape worth recognising elsewhere.
   before every live migration — **that nothing implemented.** A schedule with no
   scheduler reads exactly like a schedule that is running.
 - **It said "Next.js build/deploy logs".** This is an Express 4 application with
-  one production dependency.
-- **It said Sentry and OpenTelemetry placeholders exist.** They do not; the two
-  variable names appeared in this document and nowhere else in the repository.
+  no bundler and no framework build.
+- **It said Sentry and OpenTelemetry placeholders exist.** When this was written
+  they did not: the two variable names appeared in this document and nowhere
+  else in the repository. **Half of that changed on 20 September 2026** and this
+  line is corrected rather than deleted, because the change is smaller than it
+  looks. Eight `@opentelemetry/*` packages are now production dependencies and
+  `lib/sonara-observability.cjs` reads `SONARA_OTEL_ENABLED` and
+  `OTEL_EXPORTER_OTLP_ENDPOINT`, so the variables are real. But nothing in the
+  runtime calls that module, so no trace or metric is emitted and there is still
+  no collector to point it at — which makes it closer to the placeholder this
+  line complained about than to monitoring. `docs/SHIP_READINESS.md` has the
+  measurement and the open decision. Sentry is still nowhere in the repository.
 - **It did not mention the pre-migration checkpoint, PITR, or the rollback
   runbook** — the mechanism that does exist and does work.
