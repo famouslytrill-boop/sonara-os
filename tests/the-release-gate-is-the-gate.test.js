@@ -91,6 +91,12 @@ describe("the release gate is actually the gate", () => {
     assert.ok(gates.length >= 20, `verify:gates expands to ${gates.length} commands; that is too few to be the gate`);
   });
 
+  it("keeps the TypeScript contract check in the production build and release chain", () => {
+    assert.equal(scripts["verify:ts-contracts"], "tsc -p tsconfig.contracts.json --noEmit");
+    assert.match(scripts.build, /pnpm run verify:ts-contracts/);
+    assert.ok(chain.includes("verify:ts-contracts"), "verify:launch no longer reaches the TypeScript contract check");
+  });
+
   it("runs the gates where a missing database is a failure, not a notice", () => {
     // verify:migration-replay is the only check that executes the migrations,
     // and without PostgreSQL it prints a notice and passes. That is right on a

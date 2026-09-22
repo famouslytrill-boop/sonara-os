@@ -1,17 +1,17 @@
 # SONARA OS Express runtime.
 # No secrets are baked into this image; configuration comes from environment
 # variables at run time (see .env.example for names).
-FROM node:22-alpine
+FROM node:24-alpine
 
 ENV NODE_ENV=production \
     PORT=3000
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.contracts.json ./
 RUN corepack enable \
   && corepack prepare pnpm@11.1.1 --activate \
-  && pnpm install --prod --frozen-lockfile
+  && pnpm install --frozen-lockfile
 
 COPY server.js vercel.json ./
 COPY api ./api
@@ -28,6 +28,11 @@ COPY public ./public
 # development-only packages. There is no longer a runtime patch chain to apply
 # first -- the code generators are retired and their output is the source.
 RUN pnpm run build
+
+# The build contract needs the pinned development compiler above, but the
+# shipped runtime does not. Keep the final image production-only after the
+# verification step has completed.
+RUN pnpm prune --prod
 
 RUN chown -R node:node /app
 USER node

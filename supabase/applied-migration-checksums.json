@@ -120,5 +120,6 @@
   "20260917200000_event_consumer_activation_readiness.sql": "ecab7effd1d0fa8636f78e2981007e24d00f3f92c98a2271cad6eecae660d212",
   "20260919032900_prepare_org_owner_helper_for_replay.sql": "d5a10bc77d5361d977cb8e025ceb0d08c5e919c42d7223284cc7b300d4ee0cbd",
   "20260919032950_prepare_org_membership_helpers_for_replay.sql": "77d95597e9dcaad3bfcb210c621baf5ad4fd6e5af11c7ba1eec07d35b2bff94e",
-  "20260919033000_organization_tenant_boundary_hardening.sql": "a02e656c94453f64425e4bfbd075d9e5c0b0de0a1a8fa0ccd9706e16d459f9fb"
+  "20260919033000_organization_tenant_boundary_hardening.sql": "a02e656c94453f64425e4bfbd075d9e5c0b0de0a1a8fa0ccd9706e16d459f9fb",
+  "20260922100000_harden_unreferenced_authorization_rpc_grants.sql": "241176c1e5b569afc5075bd839ca6c88f6f6cce29a16b8c3edca036c4e7a3d80"
 }
