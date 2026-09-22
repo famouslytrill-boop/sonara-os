@@ -39,12 +39,29 @@ describe("SONARA One interface QA", () => {
     assert.doesNotMatch(res.text, /sonara-quick-bar/);
   });
 
-  it("keeps core destinations in desktop and mobile navigation", async () => {
+  it("keeps the simplified public destinations consistent in desktop and mobile navigation", async () => {
     const res = await request(app).get("/");
-    for (const href of ["/start", "/business-builder", "/creator-studio", "/growth-studio", "/free-tools", "/pricing", "/support", "/login", "/signup"]) {
-      const escaped = href.replace(/\//g, "\\/");
-      const matches = res.text.match(new RegExp(`href="${escaped}"`, "g")) || [];
-      assert.ok(matches.length >= 2, `${href} should exist in desktop and mobile navigation`);
+    const desktopStart = res.text.indexOf('<nav class="sonara-desktop-nav" aria-label="Primary">');
+    const desktopEnd = desktopStart >= 0 ? res.text.indexOf("</nav>", desktopStart) : -1;
+    const mobileStart = res.text.indexOf('<nav aria-label="Mobile primary">');
+    const mobileEnd = mobileStart >= 0 ? res.text.indexOf("</nav>", mobileStart) : -1;
+    const desktop = desktopStart >= 0 && desktopEnd >= 0 ? res.text.slice(desktopStart, desktopEnd + 6) : "";
+    const mobile = mobileStart >= 0 && mobileEnd >= 0 ? res.text.slice(mobileStart, mobileEnd + 6) : "";
+    assert.ok(desktop && mobile, "both public navigation surfaces should render");
+
+    for (const href of ["/start", "/free-tools", "/pricing", "/login", "/signup"]) {
+      assert.ok(desktop.includes(`href="${href}"`), `${href} should exist in desktop navigation`);
+      assert.ok(mobile.includes(`href="${href}"`), `${href} should exist in mobile navigation`);
+    }
+
+    for (const href of ["/dashboard", "/support", "/business-builder", "/creator-studio", "/growth-studio"]) {
+      assert.ok(!desktop.includes(`href="${href}"`), `${href} should stay out of primary desktop navigation`);
+      assert.ok(!mobile.includes(`href="${href}"`), `${href} should stay out of primary mobile navigation`);
+    }
+
+    for (const label of ["Products", "Free Tools", "Pricing", "Sign in", "Start free"]) {
+      assert.ok(desktop.includes(`>${label}<`), `${label} should be visible in desktop navigation`);
+      assert.ok(mobile.includes(`>${label}<`), `${label} should be visible in mobile navigation`);
     }
   });
 
