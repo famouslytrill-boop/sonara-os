@@ -71,6 +71,10 @@ const {
   ARCHITECTURE_EXTENSIONS_BATCH16,
   getScreenshotToolReadinessBatch16
 } = require("../lib/sonara-screenshot-tool-radar-batch16.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH17,
+  NON_REPOSITORY_REFERENCES_BATCH17
+} = require("../lib/sonara-screenshot-tool-radar-batch17.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -147,6 +151,7 @@ const SCREENSHOT_BATCH13_KEYS = SCREENSHOT_TOOL_RADAR_BATCH13.map((item) => item
 const SCREENSHOT_BATCH14_KEYS = SCREENSHOT_TOOL_RADAR_BATCH14.map((item) => item.key);
 const SCREENSHOT_BATCH15_KEYS = VERIFIED_REPOSITORIES_BATCH15.map((item) => item.key);
 const SCREENSHOT_BATCH16_KEYS = SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => item.key);
+const SCREENSHOT_BATCH17_KEYS = SCREENSHOT_TOOL_RADAR_BATCH17.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
@@ -156,7 +161,8 @@ const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH13,
   ...NON_REPOSITORY_REFERENCES_BATCH14,
   ...NON_REPOSITORY_REFERENCES_BATCH15.filter((item) => item.key !== "searchphone"),
-  ...NON_REPOSITORY_REFERENCES_BATCH16
+  ...NON_REPOSITORY_REFERENCES_BATCH16,
+  ...NON_REPOSITORY_REFERENCES_BATCH17
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -662,18 +668,15 @@ describe("requested repository runtime surfaces", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    // Batch 13 was recorded on 16 September and reached this surface on
-    // 21 September. Until then the route required batches 12 and 14 with nothing
-    // between them, and these numbers were written from the route rather than
-    // from the batch modules -- so the test agreed with the omission instead of
-    // catching it. 114 + 4 repositories, 110 + 4 verified, 104 + 4 screenshot
-    // records, 50 + 2 non-repository references.
-    assert.equal(response.body.repositoryCount, 118);
-    assert.equal(response.body.verifiedCount, 114);
+    // Counts are intentionally exact here so a newly added governed batch cannot
+    // disappear from the route while its own module tests still pass. Batch 17
+    // adds 22 verified repository records and 16 non-repository references.
+    assert.equal(response.body.repositoryCount, 140);
+    assert.equal(response.body.verifiedCount, 136);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 108);
+    assert.equal(response.body.screenshotResearchCount, 130);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 52);
+    assert.equal(response.body.nonRepositoryReferenceCount, 68);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -689,7 +692,8 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH13_KEYS,
         ...SCREENSHOT_BATCH14_KEYS,
         ...SCREENSHOT_BATCH15_KEYS,
-        ...SCREENSHOT_BATCH16_KEYS
+        ...SCREENSHOT_BATCH16_KEYS,
+        ...SCREENSHOT_BATCH17_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
@@ -700,9 +704,10 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /108 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /52 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
-    assert.match(response.text, /Tool gateway boundary: Batch 16 architecture/);
+    assert.match(response.text, /130 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /68 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /Tool gateway boundary: Screenshot architecture/);
+    assert.match(response.text, /Typed fast-decision lane: Screenshot architecture/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
