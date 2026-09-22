@@ -16,6 +16,14 @@ away from what the code actually does.
   fails the release if it grows past that. It carries the most recent sprint
   entries and says how many it left behind; the full history is
   `docs/SPRINT_LOG.md`, which is read in the repository rather than pasted.
+- **`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md`** — the method half of the
+  handoff, for Codex or any assistant picking up work: the eight defect shapes
+  with the case behind each, the falsification procedure and the traps in it,
+  what each of the twelve skills is for, the agent authority contract as code
+  reads it, and the formulas that are actually numbers — margin floors, the
+  market score bands, the coverage floor, the MPEG frame length. `HANDOFF_PROMPT.md`
+  says what the repository is; this says how to work in it without shipping a
+  signal that reports success without being true.
 - **`docs/SPRINT_LOG.md`** — what changed and why, newest first. The only
   hand-written part of the handoff prompt, because history cannot be derived.
   Add an entry when you finish a piece of work.

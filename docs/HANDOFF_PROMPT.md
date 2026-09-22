@@ -103,11 +103,144 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 389 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 19 most recent entries of 390 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-22 - A Codex handoff for the method, not the state
+
+Asked for a handoff covering the skills, formulas, strategies and agents. The
+repository already had two handoffs and neither was this one, which is worth
+recording so a third does not get written by accident:
+
+- `docs/HANDOFF_PROMPT.md` is generated and says **what the repository is** —
+  live counts of tables and routes and tests, the safety rules quoted, the
+  recent sprint entries. Bounded to 128 KB so it can actually be pasted.
+- `docs/CODEX_TERMINAL_HANDOFF_2026-09-20.md` is dated and situational —
+  machine bootstrap, the model registry, priority lanes for that day.
+- `docs/AGENT_OPERATIONS.md` is 37 lines, and `docs/agents/` holds the
+  architecture and approval-policy documents.
+
+None of them said **how to work here**. That is now
+`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md`, 400 lines, with a `Review by`
+date because most of it quotes measurements.
+
+## What is in it that was not written down anywhere
+
+The defect shapes were in `.claude/skills/checks-that-cannot-lie/SKILL.md` as
+six. Two more have been earned since and are now stated:
+
+- **A pattern that matches prose as if it were code.** `select=*` counted 33
+  until comments were stripped; the true figure is 21, and five of the extras
+  were comments explaining why a file *avoids* `select=*`.
+- **A check whose own bookkeeping hides its subjects.**
+  `report-unreferenced-modules` reported all thirteen of its accounted entries
+  as stale on the run that introduced them, because naming a module in its
+  register names it in a file under `scripts/`, which it searches.
+
+The falsification procedure is written out with the traps in it rather than as
+an instruction to falsify: copy aside rather than `git checkout --`, read the
+exit code before a pipe and not after, falsify a two-sided register in both
+directions, do not pick a subject that already has the property you are trying
+to remove, prove absence by mtime because a restore rewrites a file even when
+the bytes match, and two green runs is not evidence.
+
+The formulas are collected for the first time: the seven paid-capability margin
+floors with price and floor per unit, the market-opportunity dimensions and the
+75/55/35/0 bands, the coverage floor and its blind-check minimums, the handoff
+budget, and the MPEG Layer I versus Layer II/III frame-length formulas.
+
+The agent contract is stated as the code reads it rather than as prose about it:
+seven categories with the reason each carries, seven unattended actions and why
+each is safe, `BREAKER_FAILURES = 3` within `BREAKER_WINDOW = 10`, and the
+actual return of `classifyAction` on an unregistered action -- category
+`unrecognised`, `requiresOwnerApproval: true`.
+
+## The handoff's own count claim exposed a blind spot in the count gate
+
+CI failed the new document on `says 58 commands; verify:launch chains 59`. Main
+had gained `verify:ts-contracts` (`tsc -p tsconfig.contracts.json --noEmit`) in
+PR #341 while this branch was open, which is the merge hazard this file keeps
+recording, caught working. `pnpm run fix:doc-counts` was the whole repair, and
+the re-derived figures held everywhere else: 296 shipped source files, 269
+register targets, 36 reciprocal, 7 margin capabilities. Two moved and were
+corrected by measurement -- 363 to 366 test files, 4,911 to 4,923 tests, and the
+coverage floor from 58,828 to 58,847 countable lines.
+
+**The interesting part is what `fix:doc-counts` did not fix.** The same document
+said "**58 chain commands**" in a second sentence, and that line went out
+unchallenged: the pattern allowed `N verification commands` but not `N chain
+commands`, so a chain-count claim in the most natural phrasing anybody would
+reach for was invisible. `--check` passed on 20 claims without looking at it,
+and only the *other* sentence in the same file turned CI red.
+
+So the qualifier is now `(?:verification |chain |release )?` in both the reading
+pattern and the rewriting one. The claim count went 20 to 21 immediately, which
+is the measurement that says the widening was not decorative. Falsified by
+planting "41 chain commands": `says 41 chain commands; verify:launch chains 59`,
+exit 1.
+
+A pattern that misses a real claim is the same defect as a check that measures
+nothing, one level down -- and this one was found because a document I wrote
+happened to phrase a claim the way a person would rather than the way the regex
+expected. The heading in that document said "The six defect shapes" over a list
+of eight, too; corrected to eight.
+
+## And the observability case, on the third attempt
+
+Writing the handoff's falsification section while the same test failed a third
+time was a useful coincidence.
+
+`tests/observability.test.js` asserts that a plaintext OTLP endpoint refused
+under `NODE_ENV=production` is **accepted** outside it -- without which "refused
+in production" is indistinguishable from a URL parser that rejects `http://`
+everywhere.
+
+- **Attempt 1** started the real SDK inline, bounded the shutdown flush, and
+  unregistered the globals afterwards. 127ms standalone, green in the release
+  chain twice, then timed out at 15s inside the whole suite.
+- **Attempt 2** moved the SDK start into a hard-killed child process. It timed
+  out too, and for a reason of my own making: the child's timeout was 20s
+  against mocha's 15s per-test limit, so mocha killed the test before the
+  child's own guard could fire. Raising one number would have papered over the
+  real problem.
+- **Attempt 3** proves the decision instead of the SDK. The endpoint check
+  happens before the SDK is constructed, so blocking `@opentelemetry/sdk-node`
+  from loading sends `startTelemetry` down its catch path and it returns
+  `start_failed` rather than `invalid_configuration`. **That difference is the
+  property**: the endpoint was accepted outside production and the start failed
+  afterwards, for the reason the test arranged. 7ms, no network, no global
+  provider, nothing to clean up, and the case asserts the `require` patch did
+  not outlive it.
+
+The lesson is not about OpenTelemetry. Two attempts went into making a heavy
+side effect safe, when the assertion never needed the side effect -- it needed
+the decision that precedes it. Worth asking earlier: what is the smallest thing
+that would be false if this rule were wrong?
+
+## One thing it deliberately separates
+
+`lib/sonara-agent-skill-strategies.cjs` exports 5 `AGENT_PATTERNS`, 11
+`SKILL_STRATEGIES` and 10 `BUSINESS_AI_SKILLS`. Those are **product surfaces**,
+not instructions to an assistant, and the document says so -- reading them as
+working procedure is exactly the kind of category error that would have an agent
+treat a catalogue entry as an authority.
+
+## Verified rather than asserted
+
+Every path the document names was checked to exist, and the numbers were read
+out of the repository at the time of writing rather than recalled: the margin
+floors from `verify:margins`, the scoring bands from the registry module, the
+authority constants by requiring the module, the skill line counts by `wc -l`,
+and 36 of 269 register records carrying a reciprocal licence from
+`verify:reciprocal-licences`. The doc gates then held it: `verify:doc-counts`
+went from 19 countable claims to 20 and the new one matches,
+`verify:doc-script-paths` resolves 84 paths across 426 documents, and
+`report-stale-claims` accepted it because it carries a review date.
+
+
 
 ### 2026-09-22 - Five tests were editing the repository they test, and a finally does not survive a signal
 
@@ -2206,172 +2339,3 @@ boundaries and says why.
 
 Eight assertions added to `tests/a-log-line-you-can-count.test.js`, which now
 covers all three callers.
-
-
-
-### 2026-09-17 - Checkout had an anonymous failure, on the path the cutover just fixed
-
-The second caller for the structured emitter, and instrumenting it turned up a
-defect rather than just adding a line.
-
-`createStripeCheckoutSession` in `lib/sonara-billing.cjs` named every refusal it
-made itself -- `price_mismatch`, `price_product_archived` -- and then:
-
-    if (!response?.ok) return { ok: false };
-
-**No code at all,** for the one failure Stripe itself produces. `server.js`
-turns that into a 502 and "Checkout could not be started. Try again after
-payment setup is reviewed." So the customer is told to wait and the server keeps
-no record of why: a 401 from a key that cannot create sessions reads exactly
-like a 400 on a malformed parameter, and exactly like the network not answering.
-
-**It is the failure mode the cutover document warns about**, verbatim: *"a
-verifier restricted to Prices/Products read access can make the price audit pass
-while every customer/Checkout Session write fails."* The documented failure had
-no diagnostic, on the path the owner has just spent six weeks blocked on.
-
-Now returns `stripe_session_rejected` with the HTTP status, and the event
-attributes 401/403 to the credential, any other status to the request, and no
-status at all to the network -- three different remedies that were one silence.
-A 200 carrying no `url` is named separately again, because the credential worked
-and the response did not contain what it is supposed to.
-
-The price guard's refusals emit `refused`, not `failed`. Refusing to sell at a
-price the page does not advertise is that guard working; counting it against an
-error budget would make the budget measure catalog drift rather than
-reliability.
-
-#### And a second Stripe customer, quietly, for as long as one write kept failing
-
-The mapping insert after creating a Stripe customer was
-`.catch(() => undefined)` with the result discarded. Losing it does not produce
-a missing row -- **it produces a second Stripe customer.** The lookup above it
-is the only thing preventing one, so an absent mapping makes the next checkout
-create another for the same person, and they accumulate with a subscription
-possible on each.
-
-Behaviour deliberately unchanged: the checkout proceeds and still returns ok,
-because the customer Stripe just created is real and usable for this session,
-and refusing would turn a bookkeeping failure into a lost sale. What changed is
-that it emits `degraded` naming the consequence in the event itself, rather than
-being invisible.
-
-**Verified by breaking it,** three ways:
-
-* the bare `{ ok: false }` restored -- caught by `the Stripe rejection is still
-  anonymous`;
-* the credential and request rejections collapsed into one reason -- caught by
-  `a 401 was not attributed to the credential`;
-* the price refusal counted as `failed` -- caught by `a price refusal was
-  counted as a failure`.
-
-Six assertions added to `tests/a-log-line-you-can-count.test.js`, including one
-that the Stripe key never reaches an event: these calls carry it in an
-Authorization header, and Stripe's own 401 body quotes the key back.
-
-`tests/checkout-price-guard.test.js` still passes unchanged, which is the point
--- the return contract gained a code and lost nothing.
-
-
-
-### 2026-09-17 - A log line you can count
-
-Item 1 of the observability phase, started at the owner's direction once the
-credential gate was unblocked. `lib/sonara-structured-log.cjs`: one JSON line
-per event with the tenant, the capability, the outcome and a correlation id.
-**No dependency added** -- this application has one and
-`docs/architecture/EXTERNAL-SERVICES.md` sets the rules before a second arrives.
-
-It is first in that plan for a reason that is not taste. An SLO is a rate over
-outcomes and an error budget is arithmetic over it, and neither can be built on
-
-    [campaign-dispatch] batch_fell_back: campaign 33.. batch of 40 did not ...
-
-which is true, useful to somebody reading one incident, and impossible to count.
-
-**It is not a migration.** There are **eight** console calls in the whole
-runtime tree, every one already routed through `lib/sonara-redaction.cjs`, and
-they all stay. `report_unreferenced_modules` refused the new module until it had
-a real caller, which is the right pressure: the dispatcher now emits one
-terminal `campaign.dispatch` event per send plus a
-`campaign.dispatch.degraded` event per named degradation, **beside** its prose
-lines rather than instead of them. A test asserts the human line survives --
-structured logging that replaced it would make one incident harder to read in
-exchange for making a hundred countable.
-
-#### Three decisions that exist to keep the count honest
-
-**The outcome set is closed:** `ok | partial | refused | degraded | failed`.
-Free text is the defect -- "failed", "failure", "error" and "Failed." are four
-values naming one thing and a rate over them is wrong invisibly. `partial` is
-its own member because a campaign where 459 of 460 landed is neither a success
-nor a failure, and counting it as either makes the rate describe nothing.
-**`refused` is separate from `failed`** because a gate saying no is this code
-working; counting a missing unsubscribe key against an error budget would make
-the budget measure configuration rather than reliability.
-
-**`scope` is required,** `organization` (with an id) or `process`. Without it a
-forgotten tenant and a genuinely tenant-less event both read as
-`organization: null` -- shape 4, absent and deliberately-none being different
-facts with the same shape. Every field is always present for the same reason: a
-consumer should never have to tell a missing key from a null value.
-
-**Redaction is field-wise, before serialisation, and that was forced rather than
-chosen.** The obvious shape is
-`console.log(redactSensitiveText(JSON.stringify(record)))` and **it corrupts the
-JSON.** Two patterns in `lib/sonara-redaction.cjs` --
-`authorization_header` and `assigned_secret` -- match an optional closing quote
-and replace with `$1: [redacted...]` without restoring it, so the quote is eaten
-and a second colon appears. Found by reading the patterns before writing the
-emitter rather than by shipping it; the falsification below reproduces it
-exactly.
-
-#### The redaction boundary was extended rather than exempted
-
-`lib/sonara-redaction.cjs` says "every output sink in this application goes
-through one of these two. The test beside this file enforces that rather than
-trusting it" -- and it does, by scanning console calls for `redactSensitiveText`
-in the call text. A new sink had to be accounted for.
-
-It is listed in that test's `ALLOWED` map, and the reason is the real one: it
-redacts per field before serialising, which the scan cannot see. **What earns
-the exemption is a new assertion** that runs all eight of that file's secret
-shapes through the emitter -- in the capability, the reason, the correlation id,
-a detail key, a detail value and a nested array -- and asserts both that the
-secret is gone **and that the line still parses**. That is stronger than the
-scan, because it reads the emitted record rather than the spelling of the call.
-Its counterpart asserts an innocent sentence survives intact, for the reason
-that file already gives: a redactor that replaces everything passes the first
-check and destroys every log line in the product.
-
-**Verified by breaking it,** three ways:
-
-* the outcome check disabled -- caught by `has a closed set of outcomes`;
-* `scope` defaulted to `process` instead of required -- caught by `refuses an
-  event with no scope, because a forgotten tenant is not an absent one`;
-* redaction moved to after `JSON.stringify` -- caught by
-  `authorization_header: emitted a line that is not valid JSON`, which is the
-  corruption above, reproduced.
-
-`tests/a-log-line-you-can-count.test.js`, 18 assertions, plus two added to
-`tests/redaction-boundary.test.js`.
-
-The test harness needed correcting once: with no injected reporter the
-dispatcher's own prose line lands on the same stderr, and the first version
-tried to `JSON.parse` `[campaign-dispatch] ...`. That is the two sinks
-coexisting exactly as intended, so the helper partitions them -- and returns the
-prose lines rather than discarding them, so a change that quietly replaced the
-human line with the structured one fails instead of passing.
-
-#### Where the phase stands
-
-Item 1 is started, not finished: the emitter exists and one module emits. The
-remaining work is callers, not design, and the two worth having next are the
-checkout path and the agent runner because those are the other places an SLO
-would be written against.
-
-The credential gate this phase waited behind is still the owner's to close, and
-the last deploy run confirms the diagnosis exactly: run 188 on `872d9d0` failed
-at **step 22, "Synchronize verified Stripe runtime secret to Vercel
-production"** -- twenty-one steps spent to report one empty secret. That step is
-now first.
