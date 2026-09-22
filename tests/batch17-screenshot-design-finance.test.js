@@ -144,6 +144,20 @@ describe("Batch 17 screenshot, design, finance and strategy convergence", () => 
     assert.equal(finance.revenueConcentrationPercent({ topCustomerRevenue: 25000, totalRevenue: 100000 }), 25);
   });
 
+  it("surfaces the supplemental financial-intelligence catalog without widening financial authority", async () => {
+    const response = await request(app)
+      .get("/api/formulas/definitions")
+      .set("Accept", "application/json");
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.supplementalFinancialIntelligence.count, 11);
+    assert.equal(response.body.supplementalFinancialIntelligence.canMoveMoney, false);
+    assert.equal(response.body.supplementalFinancialIntelligence.canPostAccountingEntries, false);
+    assert.equal(response.body.supplementalFinancialIntelligence.canTrade, false);
+    assert.equal(response.body.supplementalFinancialIntelligence.canApproveCredit, false);
+    assert.ok(response.body.supplementalFinancialIntelligence.formulas.some((item) => item.key === "runway_months"));
+  });
+
   it("models scenarios deterministically and refuses to call unreconciled data decision-ready", () => {
     const scenario = finance.scenarioRunway({
       cashBalance: 120000,
