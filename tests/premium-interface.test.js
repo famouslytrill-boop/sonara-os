@@ -39,12 +39,27 @@ describe("SONARA One interface QA", () => {
     assert.doesNotMatch(res.text, /sonara-quick-bar/);
   });
 
-  it("keeps core destinations in desktop and mobile navigation", async () => {
+  it("keeps the simplified public destinations consistent in desktop and mobile navigation", async () => {
     const res = await request(app).get("/");
-    for (const href of ["/start", "/business-builder", "/creator-studio", "/growth-studio", "/free-tools", "/pricing", "/support", "/login", "/signup"]) {
+    const desktop = res.text.match(/<nav class="sonara-desktop-nav" aria-label="Primary">[\\s\\S]*?<\\/nav>/)?.[0] || "";
+    const mobile = res.text.match(/<nav aria-label="Mobile primary">[\\s\\S]*?<\\/nav>/)?.[0] || "";
+    assert.ok(desktop && mobile, "both public navigation surfaces should render");
+
+    for (const href of ["/start", "/free-tools", "/pricing", "/login", "/signup"]) {
       const escaped = href.replace(/\//g, "\\/");
-      const matches = res.text.match(new RegExp(`href="${escaped}"`, "g")) || [];
-      assert.ok(matches.length >= 2, `${href} should exist in desktop and mobile navigation`);
+      assert.match(desktop, new RegExp(`href="${escaped}"`), `${href} should exist in desktop navigation`);
+      assert.match(mobile, new RegExp(`href="${escaped}"`), `${href} should exist in mobile navigation`);
+    }
+
+    for (const href of ["/dashboard", "/support", "/business-builder", "/creator-studio", "/growth-studio"]) {
+      const escaped = href.replace(/\//g, "\\/");
+      assert.doesNotMatch(desktop, new RegExp(`href="${escaped}"`), `${href} should stay out of primary desktop navigation`);
+      assert.doesNotMatch(mobile, new RegExp(`href="${escaped}"`), `${href} should stay out of primary mobile navigation`);
+    }
+
+    for (const label of ["Products", "Free Tools", "Pricing", "Sign in", "Start free"]) {
+      assert.match(desktop, new RegExp(`>${label}<`), `${label} should be visible in desktop navigation`);
+      assert.match(mobile, new RegExp(`>${label}<`), `${label} should be visible in mobile navigation`);
     }
   });
 
