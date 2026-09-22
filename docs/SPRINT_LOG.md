@@ -2,6 +2,107 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-22 - A Codex handoff for the method, not the state
+
+Asked for a handoff covering the skills, formulas, strategies and agents. The
+repository already had two handoffs and neither was this one, which is worth
+recording so a third does not get written by accident:
+
+- `docs/HANDOFF_PROMPT.md` is generated and says **what the repository is** —
+  live counts of tables and routes and tests, the safety rules quoted, the
+  recent sprint entries. Bounded to 128 KB so it can actually be pasted.
+- `docs/CODEX_TERMINAL_HANDOFF_2026-09-20.md` is dated and situational —
+  machine bootstrap, the model registry, priority lanes for that day.
+- `docs/AGENT_OPERATIONS.md` is 37 lines, and `docs/agents/` holds the
+  architecture and approval-policy documents.
+
+None of them said **how to work here**. That is now
+`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md`, 400 lines, with a `Review by`
+date because most of it quotes measurements.
+
+## What is in it that was not written down anywhere
+
+The defect shapes were in `.claude/skills/checks-that-cannot-lie/SKILL.md` as
+six. Two more have been earned since and are now stated:
+
+- **A pattern that matches prose as if it were code.** `select=*` counted 33
+  until comments were stripped; the true figure is 21, and five of the extras
+  were comments explaining why a file *avoids* `select=*`.
+- **A check whose own bookkeeping hides its subjects.**
+  `report-unreferenced-modules` reported all thirteen of its accounted entries
+  as stale on the run that introduced them, because naming a module in its
+  register names it in a file under `scripts/`, which it searches.
+
+The falsification procedure is written out with the traps in it rather than as
+an instruction to falsify: copy aside rather than `git checkout --`, read the
+exit code before a pipe and not after, falsify a two-sided register in both
+directions, do not pick a subject that already has the property you are trying
+to remove, prove absence by mtime because a restore rewrites a file even when
+the bytes match, and two green runs is not evidence.
+
+The formulas are collected for the first time: the seven paid-capability margin
+floors with price and floor per unit, the market-opportunity dimensions and the
+75/55/35/0 bands, the coverage floor and its blind-check minimums, the handoff
+budget, and the MPEG Layer I versus Layer II/III frame-length formulas.
+
+The agent contract is stated as the code reads it rather than as prose about it:
+seven categories with the reason each carries, seven unattended actions and why
+each is safe, `BREAKER_FAILURES = 3` within `BREAKER_WINDOW = 10`, and the
+actual return of `classifyAction` on an unregistered action -- category
+`unrecognised`, `requiresOwnerApproval: true`.
+
+## And the observability case, on the third attempt
+
+Writing the handoff's falsification section while the same test failed a third
+time was a useful coincidence.
+
+`tests/observability.test.js` asserts that a plaintext OTLP endpoint refused
+under `NODE_ENV=production` is **accepted** outside it -- without which "refused
+in production" is indistinguishable from a URL parser that rejects `http://`
+everywhere.
+
+- **Attempt 1** started the real SDK inline, bounded the shutdown flush, and
+  unregistered the globals afterwards. 127ms standalone, green in the release
+  chain twice, then timed out at 15s inside the whole suite.
+- **Attempt 2** moved the SDK start into a hard-killed child process. It timed
+  out too, and for a reason of my own making: the child's timeout was 20s
+  against mocha's 15s per-test limit, so mocha killed the test before the
+  child's own guard could fire. Raising one number would have papered over the
+  real problem.
+- **Attempt 3** proves the decision instead of the SDK. The endpoint check
+  happens before the SDK is constructed, so blocking `@opentelemetry/sdk-node`
+  from loading sends `startTelemetry` down its catch path and it returns
+  `start_failed` rather than `invalid_configuration`. **That difference is the
+  property**: the endpoint was accepted outside production and the start failed
+  afterwards, for the reason the test arranged. 7ms, no network, no global
+  provider, nothing to clean up, and the case asserts the `require` patch did
+  not outlive it.
+
+The lesson is not about OpenTelemetry. Two attempts went into making a heavy
+side effect safe, when the assertion never needed the side effect -- it needed
+the decision that precedes it. Worth asking earlier: what is the smallest thing
+that would be false if this rule were wrong?
+
+## One thing it deliberately separates
+
+`lib/sonara-agent-skill-strategies.cjs` exports 5 `AGENT_PATTERNS`, 11
+`SKILL_STRATEGIES` and 10 `BUSINESS_AI_SKILLS`. Those are **product surfaces**,
+not instructions to an assistant, and the document says so -- reading them as
+working procedure is exactly the kind of category error that would have an agent
+treat a catalogue entry as an authority.
+
+## Verified rather than asserted
+
+Every path the document names was checked to exist, and the numbers were read
+out of the repository at the time of writing rather than recalled: the margin
+floors from `verify:margins`, the scoring bands from the registry module, the
+authority constants by requiring the module, the skill line counts by `wc -l`,
+and 36 of 269 register records carrying a reciprocal licence from
+`verify:reciprocal-licences`. The doc gates then held it: `verify:doc-counts`
+went from 19 countable claims to 20 and the new one matches,
+`verify:doc-script-paths` resolves 84 paths across 426 documents, and
+`report-stale-claims` accepted it because it carries a review date.
+
 ### 2026-09-22 - Five tests were editing the repository they test, and a finally does not survive a signal
 
 Carried over from the 21 September session as a known defect deliberately left

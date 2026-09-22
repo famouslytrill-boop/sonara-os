@@ -31,7 +31,9 @@ const express = require("express");
 // setImmediate among the Node globals, and widening a shared lint config for
 // one test file is the wrong direction.
 const { setImmediate: onceQueueDrains } = require("node:timers");
-const { spawnSync } = require("node:child_process");
+// Patched for one case below, to prove the endpoint decision without
+// constructing the OpenTelemetry SDK. Restored in that case's `finally`.
+const Module = require("node:module");
 const request = require("supertest");
 
 const MODULE = path.join(__dirname, "..", "lib", "sonara-observability.cjs");
@@ -128,56 +130,66 @@ describe("OpenTelemetry production boundary", () => {
     assert.equal(state.enabled, false);
   });
 
-  it("allows the same plaintext endpoint outside production, in a child process", () => {
-    // The other half, and the reason it is not asserted in this process.
+  it("allows the same plaintext endpoint outside production", () => {
+    // The other half, and the third attempt at it. Without this assertion,
+    // "plaintext OTLP is refused in production" is indistinguishable from a URL
+    // parser that rejects `http://` everywhere -- so it is worth having. What it
+    // is not worth is starting the SDK.
     //
-    // Outside production that endpoint is accepted, so `startTelemetry`
-    // actually starts the SDK -- which registers global trace and metric
-    // providers for the whole process and, on shutdown, flushes to an endpoint
-    // that is not there. An earlier version of this case did that inline,
-    // bounded the flush with a 3s race and unregistered the globals
-    // afterwards. It passed standalone in 127ms and passed the full release
-    // chain twice, and then **timed out at 15s inside the whole suite** --
-    // after several hundred supertest requests have been through `http`, which
-    // HttpInstrumentation patches on start.
+    // Attempt 1 started the real SDK inline, bounded the shutdown flush and
+    // unregistered the globals afterwards. 127ms standalone, green in the
+    // release chain twice, then **timed out at 15s inside the whole suite**:
+    // HttpInstrumentation patches `http` on start, and by the time this file
+    // runs several hundred supertest requests have been through it.
     //
-    // That is the same shape as the audio/mpeg sniffer on 21 September: green
-    // most runs, and the run where it is not is expensive to diagnose. So the
-    // SDK is started in a child process that is hard-killed on a timeout. A
-    // hung flush costs this test and nothing else, and no global provider
-    // survives into the rest of the suite because the process holding it is
-    // gone.
+    // Attempt 2 moved the SDK start into a hard-killed child process. That
+    // timed out too, and for a reason of my own making: the child's timeout was
+    // 20s against mocha's 15s per-test limit, so mocha killed the test before
+    // the child's own guard could fire. Raising one number would have papered
+    // over the real problem, which is that the SDK has no business starting in
+    // a test at all.
     //
-    // Asserting it matters: without it, the production refusal above is
-    // indistinguishable from a URL parser that rejects `http://` everywhere.
-    const probe = [
-      'const { startTelemetry } = require(' + JSON.stringify(MODULE) + ');',
-      'const state = startTelemetry({',
-      '  SONARA_OTEL_ENABLED: "true",',
-      '  OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318",',
-      '  NODE_ENV: "development"',
-      '});',
-      'process.stdout.write("STATUS=" + state.status + " ENABLED=" + state.enabled);',
-      // Nothing is flushed or shut down: the process is about to end, and
-      // exiting hard is the point.
-      'process.exit(0);'
-    ].join("\n");
+    // This proves the decision instead. The endpoint check happens before the
+    // SDK is constructed, so blocking `@opentelemetry/sdk-node` from loading
+    // sends `startTelemetry` down its catch path: `start_failed` rather than
+    // `invalid_configuration`. That difference IS the property -- the plaintext
+    // endpoint was accepted outside production and the start failed afterwards,
+    // for the reason this test arranged. 7ms, no network, no global provider,
+    // nothing to clean up.
+    const blocked = "@opentelemetry/sdk-node";
+    const original = Module.prototype.require;
+    let state;
+    try {
+      Module.prototype.require = function patched(id) {
+        if (String(id).startsWith(blocked)) throw new Error(`${blocked} blocked by this test`);
+        return original.apply(this, arguments);
+      };
+      const { startTelemetry } = freshModule();
+      state = captureStderr(() => startTelemetry({
+        SONARA_OTEL_ENABLED: "true",
+        OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318",
+        NODE_ENV: "development"
+      })).value;
+    } finally {
+      // In-process and synchronous, so this `finally` is enough -- unlike one
+      // guarding a tracked file, which a signal can skip.
+      Module.prototype.require = original;
+    }
 
-    const result = spawnSync(process.execPath, ["-e", probe], {
-      encoding: "utf8",
-      timeout: 20000,
-      killSignal: "SIGKILL",
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-
-    // A killed child says nothing about the rule, so it must not read as a pass.
-    assert.equal(result.signal, null, `the probe was killed (${result.signal}); it proved nothing either way`);
-    assert.equal(result.status, 0, `the probe exited ${result.status}:\n${result.stderr}`);
-    assert.match(
-      result.stdout,
-      /STATUS=started ENABLED=true/,
-      `plaintext OTLP was refused outside production too, so the production rule is really a blanket http rejection: ${result.stdout}`
+    assert.notEqual(
+      state.status,
+      "invalid_configuration",
+      "plaintext OTLP was refused outside production too, so the production rule is really a blanket http rejection"
     );
+    // And the reason it did not start is the one this test arranged, not some
+    // other refusal that would make the assertion above pass for free.
+    assert.equal(state.status, "start_failed");
+    assert.equal(state.enabled, false);
+    assert.equal(state.sdk, null);
+
+    // The guard is real: without the block, the same call starts the SDK. Left
+    // as an assertion on the patch rather than a second live start.
+    assert.equal(Module.prototype.require, original, "the require patch outlived the case that installed it");
   });
 
   it("refuses an endpoint that is not a URL at all", () => {
