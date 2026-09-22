@@ -12,7 +12,7 @@ const USER_ID = "22222222-2222-4222-8222-222222222222";
 const JOB_ID = "33333333-3333-4333-8333-333333333333";
 const ASSET_ID = "44444444-4444-4444-8444-444444444444";
 
-function buildApp({ paid = true } = {}) {
+function buildApp({ paid = true, configOk = true } = {}) {
   const app = express();
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
@@ -27,7 +27,9 @@ function buildApp({ paid = true } = {}) {
       return next();
     },
     getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
-    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
+    getSupabaseServerConfig: () => configOk
+      ? ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
+      : ({ ok: false })
   });
   return app;
 }
@@ -91,6 +93,31 @@ describe("Creator Studio generation platform", () => {
     const result = await request(buildApp({ paid: false })).get("/api/creator/generation/jobs");
     assert.equal(result.status, 402);
     assert.equal(result.body.code, "upgrade_required");
+  });
+
+  it("renders a shared customer-safe page for HTML generation failures", async () => {
+    const result = await request(buildApp())
+      .post("/api/creator/generation/jobs")
+      .set("accept", "text/html")
+      .send({ capability: "text_to_music", provider_key: "elevenlabs", prompt: "Original instrumental" });
+    assert.equal(result.status, 400);
+    assert.match(result.text, /Generation could not start/);
+    assert.match(result.text, /What happened/);
+    assert.match(result.text, /Reference:/);
+    assert.match(result.text, /Confirm that you have the right to use the material/i);
+    assert.doesNotMatch(result.text, /rights_attestation_required|Generation action not completed/);
+  });
+
+  it("renders setup guidance without exposing the API reason code", async () => {
+    const result = await request(buildApp({ configOk: false }))
+      .post("/api/creator/generation/jobs")
+      .set("accept", "text/html")
+      .send({ capability: "text_to_music", provider_key: "elevenlabs", prompt: "Original instrumental" });
+    assert.equal(result.status, 503);
+    assert.match(result.text, /Finish workspace setup/);
+    assert.match(result.text, /workspace connection is not ready/i);
+    assert.match(result.text, /Contact an owner or admin/);
+    assert.doesNotMatch(result.text, /supabase_setup_required|SUPABASE_NOT_CONFIGURED/);
   });
 
   it("rejects generation without a rights attestation", async () => {

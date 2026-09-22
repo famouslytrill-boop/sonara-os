@@ -86,6 +86,7 @@ const registerTwoFactorRoutes = require("./routes/sonara-two-factor-routes.cjs")
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
+const { renderSetupPage } = require("./lib/sonara-setup-state.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -3521,14 +3522,13 @@ async function handleCheckoutSessionRequest(req, res) {
 
 function sendSetupRequired(req, res, status, service, reason) {
   const payload = { ok: false, code: "setup_required", service, reason };
-  if (acceptsHtml(req)) {
-    // The reason code stays in the JSON payload above and out of the prose.
-    // Gluing it in produced "Customer organization is Workspace not ready."
-    return res.status(status).type("html").send(responsePage("Setup required", `${plainLanguage.setupRequiredSentence(service)} Once that is done, this page will work normally.`, [
-      linkAction("/pricing", "Pricing"),
-      linkAction("/docs", "Setup details")
-    ]));
-  }
+  if (acceptsHtml(req)) return res.status(status).type("html").send(renderSetupPage({
+    service,
+    owner: Boolean(req.sonaraAccess?.ownerOverride || req.sonaraAccess?.mode === "owner"),
+    layout,
+    link: linkAction,
+    escapeHtml
+  }));
   return res.status(status).json(payload);
 }
 
