@@ -17,12 +17,15 @@ Read these first:
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH2.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH3.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-14_BATCH4.md`
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH17.md` for the latest decision/design/finance/memory intake
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
 - `lib/sonara-screenshot-tool-radar-batch4.cjs`
+- `lib/sonara-screenshot-tool-radar-batch17.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
+- `DESIGN.md` and `.claude/skills/reviewing-premium-sonara-ui/SKILL.md` when a screenshot contributes design requirements
 
 ## Workflow
 
