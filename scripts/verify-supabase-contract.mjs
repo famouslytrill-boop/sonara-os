@@ -102,7 +102,8 @@ const twoFactorMigrationNames = ["20260901120000_two_factor_authentication.sql"]
 // canonical inventory and do not by themselves enable a broker or worker.
 const durableEventFoundationMigrationNames = [
   "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-  "20260917200000_event_consumer_activation_readiness.sql"
+  "20260917200000_event_consumer_activation_readiness.sql",
+  "20260922211500_event_consumer_p1_hardening.sql"
 ];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
