@@ -73,7 +73,17 @@ function catalogAccessReason(item) {
 // the catalog was open, there was no closed product to find, so the only check
 // on this wording went vacuous. It is a pure function of the reason, so it can
 // live here and be asked directly.
-function catalogRequestLabel(reason) {
+function isSelfServeCatalogItem(item) {
+  return item?.productType === "software_product" || Boolean(item?.serviceKey && item?.planFloor);
+}
+
+function catalogRequestLabel(reason, item = null) {
+  if (item && isSelfServeCatalogItem(item)) {
+    if (reason === "awaiting_review") return "Ask about this one";
+    if (reason === "awaiting_paid_access") return "Compare plans";
+    if (reason === "awaiting_setup") return "Finish setup";
+    return "Open tool";
+  }
   if (reason === "awaiting_review") return "Ask about this one";
   if (reason === "awaiting_paid_access") return "Ask us to open access";
   return "Request this service";
@@ -141,11 +151,23 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   function catalogActions(item, product) {
     const reason = catalogAccessReason(item);
     const canOpen = reason === "open";
-    const actions = [linkAction("/requests", catalogRequestLabel(reason))];
-    if (canOpen) {
-      const detailPath = item.route || (product ? `/${product.slug}` : "/start");
-      actions.push(linkAction(detailPath, item.serviceKey && item.planFloor !== "free" ? "Open paid product" : product ? product.name : "Open product"));
+    const selfServe = isSelfServeCatalogItem(item);
+    const detailPath = item.route || (product ? `/${product.slug}` : "/start");
+
+    if (selfServe && canOpen) {
+      return [linkAction(detailPath, item.planFloor === "free" ? "Open tool" : "Open workspace")];
+    }
+
+    const actions = [];
+    if (selfServe && reason === "awaiting_paid_access") {
+      actions.push(linkAction("/pricing", catalogRequestLabel(reason, item)));
     } else {
+      actions.push(linkAction("/requests", catalogRequestLabel(reason, item)));
+    }
+
+    if (!selfServe && canOpen) {
+      actions.push(linkAction(detailPath, product ? product.name : "Open product"));
+    } else if (!canOpen) {
       actions.push(linkAction("/service-catalog", "See what is ready now"));
     }
     return actions;
