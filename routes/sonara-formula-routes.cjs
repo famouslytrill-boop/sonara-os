@@ -9,6 +9,9 @@ const {
   listFormulaDefinitions,
   productAreaToWorkspace
 } = require("../lib/sonara-formula-library.cjs");
+const {
+  getFinancialIntelligenceFormulaCatalog
+} = require("../lib/sonara-financial-intelligence-formulas.cjs");
 
 const LIVE_PROBE_TIMEOUT_MS = 800;
 
@@ -37,12 +40,16 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
 
   app.get("/formulas", (req, res) => {
     const groups = groupDefinitions(listFormulaDefinitions());
+    const financialIntelligence = getFinancialIntelligenceFormulaCatalog();
     return res.status(200).type("html").send(layout({
       title: "Formula Library",
       eyebrow: "SONARA formulas",
       heading: "Formula Library",
       body: "Business, creator, growth, device, and operating-twin formulas that produce real saved results when database setup is complete.",
-      sections: Object.entries(groups).map(([group, definitions]) => brandCard(formatLabel(group), definitions.map((definition) => definition.publicLabel).join(" / "))),
+      sections: [
+        brandCard("Financial intelligence", `${financialIntelligence.count} deterministic decision-support formulas are available as a supplemental catalog; they cannot move money, post accounting entries, trade, or approve credit.`),
+        ...Object.entries(groups).map(([group, definitions]) => brandCard(formatLabel(group), definitions.map((definition) => definition.publicLabel).join(" / ")))
+      ],
       actions: [
         linkAction("/api/formulas/readiness", "Readiness JSON"),
         linkAction("/api/formulas/definitions", "Definitions JSON"),
@@ -81,7 +88,12 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   });
 
   app.get("/api/formulas/definitions", (req, res) => {
-    return res.status(200).json({ ok: true, count: listFormulaDefinitions().length, formulas: listFormulaDefinitions() });
+    return res.status(200).json({
+      ok: true,
+      count: listFormulaDefinitions().length,
+      formulas: listFormulaDefinitions(),
+      supplementalFinancialIntelligence: getFinancialIntelligenceFormulaCatalog()
+    });
   });
 
   app.post("/api/formulas/evaluate", (req, res) => {
