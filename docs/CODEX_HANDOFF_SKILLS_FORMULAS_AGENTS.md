@@ -38,11 +38,11 @@ is leaned on.
 
 ---
 
-## 2. The six defect shapes
+## 2. The eight defect shapes
 
-From `.claude/skills/checks-that-cannot-lie/SKILL.md` (374 lines — read it
-before writing any check). Each shape is named after a case that actually
-happened here.
+Six are in `.claude/skills/checks-that-cannot-lie/SKILL.md` (374 lines — read it
+before writing any check) and two were earned after it was written. Each shape
+is named after a case that actually happened here.
 
 | # | Shape | The case |
 | --- | --- | --- |
@@ -53,7 +53,7 @@ happened here.
 | 5 | An exemption whose reason has expired | A form-reachability exemption reading "no page displays `location_zones`" while a page had displayed them all along |
 | 6 | A check too weak to catch the bug it was written for | A per-file column comparison that the file's own eight other mentions hid the bug from |
 
-Two additions earned since that file was written:
+The two the skill file does not yet carry:
 
 - **7. A pattern that matches prose as if it were code.** `select=*` counted 33
   occurrences until comments were stripped; the true figure is 21, and five of
@@ -262,7 +262,7 @@ number in a document — regenerate it:
     pnpm run fix:doc-counts            # rewrites derived figures in docs/
     pnpm run fix:proprietary-notice    # recomputes the notice population
 
-Current: **58 chain commands**, 296 shipped source files carrying the notice,
+Current: **59 chain commands**, 296 shipped source files carrying the notice,
 363 test files, 269 unique GitHub targets on the register, 36 of them carrying a
 reciprocal licence and every one at a status that keeps its source out of what
 customers are served.
@@ -328,7 +328,7 @@ One command, and it is the only signal worth reporting:
 
     pnpm run verify:launch
 
-58 commands, ~4,911 tests. Also required before any push:
+59 commands, ~4,911 tests. Also required before any push:
 `pnpm install --frozen-lockfile`, `pnpm audit --audit-level moderate`,
 `pnpm run lint`, `pnpm test`, `pnpm run build`.
 

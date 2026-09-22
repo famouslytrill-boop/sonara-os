@@ -280,15 +280,25 @@ for (const file of walk("docs")) {
   // live claim in the repository was invisible to the check written for it.
   const text = raw.replace(/\*\*/g, "").replace(/`/g, "");
 
-  // "the eighteen-command chain", "18 verification commands", "21 commands"
-  for (const match of text.matchAll(/\b([a-z-]+|\d+)[- ](?:verification )?commands?\b/gi)) {
+  // "the eighteen-command chain", "18 verification commands", "21 commands",
+  // "59 chain commands".
+  //
+  // The qualifier used to be `verification` alone, and
+  // docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md wrote "58 chain commands" --
+  // a chain-count claim in the most natural phrasing anybody would reach for,
+  // which this pattern did not see. The document went out saying 58 while the
+  // chain ran 59, `--check` passed on 20 claims without looking at that line,
+  // and only a different sentence in the same file failed CI. A pattern that
+  // misses a real claim is the same defect as a check that measures nothing,
+  // one level down.
+  for (const match of text.matchAll(/\b([a-z-]+|\d+)[- ](?:verification |chain |release )?commands?\b/gi)) {
     const raw_ = String(match[1]).toLowerCase();
     const claimed = WORDS[raw_] ?? (/^\d+$/.test(raw_) ? Number(raw_) : null);
     if (claimed === null) continue;
     claimsChecked += 1;
     if (claimed !== commandCount) {
       if (write && /^\d+$/.test(raw_)) {
-        const pattern = new RegExp(EMPHASISED_DIGITS + "[- ](?:verification )?commands?\\b", "gi");
+        const pattern = new RegExp(EMPHASISED_DIGITS + "[- ](?:verification |chain |release )?commands?\\b", "gi");
         rewritten = rewritten.replace(pattern, (m, digits) =>
           (Number(String(digits).replace(/,/g, "")) === commandCount ? m : withNumber(m, digits, commandCount)));
       } else {

@@ -51,6 +51,36 @@ each is safe, `BREAKER_FAILURES = 3` within `BREAKER_WINDOW = 10`, and the
 actual return of `classifyAction` on an unregistered action -- category
 `unrecognised`, `requiresOwnerApproval: true`.
 
+## The handoff's own count claim exposed a blind spot in the count gate
+
+CI failed the new document on `says 58 commands; verify:launch chains 59`. Main
+had gained `verify:ts-contracts` (`tsc -p tsconfig.contracts.json --noEmit`) in
+PR #341 while this branch was open, which is the merge hazard this file keeps
+recording, caught working. `pnpm run fix:doc-counts` was the whole repair, and
+the re-derived figures held everywhere else: 296 shipped source files, 269
+register targets, 36 reciprocal, 7 margin capabilities. Two moved and were
+corrected by measurement -- 363 to 366 test files, 4,911 to 4,923 tests, and the
+coverage floor from 58,828 to 58,847 countable lines.
+
+**The interesting part is what `fix:doc-counts` did not fix.** The same document
+said "**58 chain commands**" in a second sentence, and that line went out
+unchallenged: the pattern allowed `N verification commands` but not `N chain
+commands`, so a chain-count claim in the most natural phrasing anybody would
+reach for was invisible. `--check` passed on 20 claims without looking at it,
+and only the *other* sentence in the same file turned CI red.
+
+So the qualifier is now `(?:verification |chain |release )?` in both the reading
+pattern and the rewriting one. The claim count went 20 to 21 immediately, which
+is the measurement that says the widening was not decorative. Falsified by
+planting "41 chain commands": `says 41 chain commands; verify:launch chains 59`,
+exit 1.
+
+A pattern that misses a real claim is the same defect as a check that measures
+nothing, one level down -- and this one was found because a document I wrote
+happened to phrase a claim the way a person would rather than the way the regex
+expected. The heading in that document said "The six defect shapes" over a list
+of eight, too; corrected to eight.
+
 ## And the observability case, on the third attempt
 
 Writing the handoff's falsification section while the same test failed a third

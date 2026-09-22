@@ -103,7 +103,7 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 390 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 19 most recent entries of 390 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
@@ -157,6 +157,36 @@ seven categories with the reason each carries, seven unattended actions and why
 each is safe, `BREAKER_FAILURES = 3` within `BREAKER_WINDOW = 10`, and the
 actual return of `classifyAction` on an unregistered action -- category
 `unrecognised`, `requiresOwnerApproval: true`.
+
+## The handoff's own count claim exposed a blind spot in the count gate
+
+CI failed the new document on `says 58 commands; verify:launch chains 59`. Main
+had gained `verify:ts-contracts` (`tsc -p tsconfig.contracts.json --noEmit`) in
+PR #341 while this branch was open, which is the merge hazard this file keeps
+recording, caught working. `pnpm run fix:doc-counts` was the whole repair, and
+the re-derived figures held everywhere else: 296 shipped source files, 269
+register targets, 36 reciprocal, 7 margin capabilities. Two moved and were
+corrected by measurement -- 363 to 366 test files, 4,911 to 4,923 tests, and the
+coverage floor from 58,828 to 58,847 countable lines.
+
+**The interesting part is what `fix:doc-counts` did not fix.** The same document
+said "**58 chain commands**" in a second sentence, and that line went out
+unchallenged: the pattern allowed `N verification commands` but not `N chain
+commands`, so a chain-count claim in the most natural phrasing anybody would
+reach for was invisible. `--check` passed on 20 claims without looking at it,
+and only the *other* sentence in the same file turned CI red.
+
+So the qualifier is now `(?:verification |chain |release )?` in both the reading
+pattern and the rewriting one. The claim count went 20 to 21 immediately, which
+is the measurement that says the widening was not decorative. Falsified by
+planting "41 chain commands": `says 41 chain commands; verify:launch chains 59`,
+exit 1.
+
+A pattern that misses a real claim is the same defect as a check that measures
+nothing, one level down -- and this one was found because a document I wrote
+happened to phrase a claim the way a person would rather than the way the regex
+expected. The heading in that document said "The six defect shapes" over a list
+of eight, too; corrected to eight.
 
 ## And the observability case, on the third attempt
 
@@ -2309,68 +2339,3 @@ boundaries and says why.
 
 Eight assertions added to `tests/a-log-line-you-can-count.test.js`, which now
 covers all three callers.
-
-
-
-### 2026-09-17 - Checkout had an anonymous failure, on the path the cutover just fixed
-
-The second caller for the structured emitter, and instrumenting it turned up a
-defect rather than just adding a line.
-
-`createStripeCheckoutSession` in `lib/sonara-billing.cjs` named every refusal it
-made itself -- `price_mismatch`, `price_product_archived` -- and then:
-
-    if (!response?.ok) return { ok: false };
-
-**No code at all,** for the one failure Stripe itself produces. `server.js`
-turns that into a 502 and "Checkout could not be started. Try again after
-payment setup is reviewed." So the customer is told to wait and the server keeps
-no record of why: a 401 from a key that cannot create sessions reads exactly
-like a 400 on a malformed parameter, and exactly like the network not answering.
-
-**It is the failure mode the cutover document warns about**, verbatim: *"a
-verifier restricted to Prices/Products read access can make the price audit pass
-while every customer/Checkout Session write fails."* The documented failure had
-no diagnostic, on the path the owner has just spent six weeks blocked on.
-
-Now returns `stripe_session_rejected` with the HTTP status, and the event
-attributes 401/403 to the credential, any other status to the request, and no
-status at all to the network -- three different remedies that were one silence.
-A 200 carrying no `url` is named separately again, because the credential worked
-and the response did not contain what it is supposed to.
-
-The price guard's refusals emit `refused`, not `failed`. Refusing to sell at a
-price the page does not advertise is that guard working; counting it against an
-error budget would make the budget measure catalog drift rather than
-reliability.
-
-#### And a second Stripe customer, quietly, for as long as one write kept failing
-
-The mapping insert after creating a Stripe customer was
-`.catch(() => undefined)` with the result discarded. Losing it does not produce
-a missing row -- **it produces a second Stripe customer.** The lookup above it
-is the only thing preventing one, so an absent mapping makes the next checkout
-create another for the same person, and they accumulate with a subscription
-possible on each.
-
-Behaviour deliberately unchanged: the checkout proceeds and still returns ok,
-because the customer Stripe just created is real and usable for this session,
-and refusing would turn a bookkeeping failure into a lost sale. What changed is
-that it emits `degraded` naming the consequence in the event itself, rather than
-being invisible.
-
-**Verified by breaking it,** three ways:
-
-* the bare `{ ok: false }` restored -- caught by `the Stripe rejection is still
-  anonymous`;
-* the credential and request rejections collapsed into one reason -- caught by
-  `a 401 was not attributed to the credential`;
-* the price refusal counted as `failed` -- caught by `a price refusal was
-  counted as a failure`.
-
-Six assertions added to `tests/a-log-line-you-can-count.test.js`, including one
-that the Stripe key never reaches an event: these calls carry it in an
-Authorization header, and Stripe's own 401 body quotes the key back.
-
-`tests/checkout-price-guard.test.js` still passes unchanged, which is the point
--- the return contract gained a code and lost nothing.
