@@ -10,6 +10,57 @@
 
 process.env.NODE_ENV = "test";
 
+// Supertest creates and closes a fresh loopback listener for every request
+// when it receives an Express function. The full suite makes thousands of
+// those requests; on Windows the closed connections remain in TIME_WAIT long
+// enough to exhaust the dynamic port range during a repeated or instrumented
+// run. Reuse one test-owned listener per app function and close those listeners
+// after the suite. This changes only the test transport lifecycle, not the
+// Express application or any production networking behavior.
+const supertestPath = require.resolve("supertest");
+const supertest = require(supertestPath);
+const sharedServerByApp = new WeakMap();
+const sharedServers = new Set();
+
+function sharedServer(app) {
+  let server = sharedServerByApp.get(app);
+  if (!server) {
+    server = require("node:http").createServer(app);
+    sharedServerByApp.set(app, server);
+    sharedServers.add(server);
+  }
+  return server;
+}
+
+const request = (app, options) => supertest(
+  typeof app === "function" ? sharedServer(app) : app,
+  options
+);
+Object.assign(request, supertest);
+request.agent = (app, options) => supertest.agent(
+  typeof app === "function" ? sharedServer(app) : app,
+  options
+);
+
+// The first request starts the cached server through Supertest. Prevent its
+// normal per-request close so later requests can reuse it.
+const originalEnd = supertest.Test.prototype.end;
+supertest.Test.prototype.end = function end(fn) {
+  if (sharedServers.has(this.app) && this._server === this.app) this._server = null;
+  return originalEnd.call(this, fn);
+};
+
+if (typeof after === "function") {
+  after("close shared test HTTP listeners", async () => {
+    await Promise.all([...sharedServers].map((server) => new Promise((resolve) => {
+      if (!server.listening) return resolve();
+      server.close(() => resolve());
+    })));
+  });
+}
+
+require.cache[supertestPath].exports = request;
+
 const isolatedProviderPrefixes = [
   "SUPABASE_",
   "NEXT_PUBLIC_SUPABASE_",

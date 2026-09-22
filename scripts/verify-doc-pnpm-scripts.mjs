@@ -278,7 +278,9 @@ if (defined.size < 20) {
 }
 
 const docs = [
-  ...markdownFiles(path.join(root, "docs")).map((file) => path.relative(root, file)),
+  ...markdownFiles(path.join(root, "docs")).map((file) =>
+    path.relative(root, file).split(path.sep).join("/")
+  ),
   ...rootMarkdownFiles()
 ].sort();
 const referencedBy = new Map();

@@ -213,7 +213,10 @@ const testFiles = new Set(walk(path.join(root, "tests")));
 const unreferenced = [];
 const testOnly = [];
 for (const candidate of candidates) {
-  const relative = path.relative(root, candidate);
+  // Keep the allowlist portable across Windows and POSIX. `path.relative`
+  // returns backslashes on Windows, while the checked-in registry uses the
+  // repository's forward-slash form.
+  const relative = path.relative(root, candidate).split(path.sep).join("/");
   const base = path.basename(candidate, ".cjs");
   // The module name as it would appear in a require path. Matching the base
   // name rather than the full path catches ../lib/x.cjs, ./x.cjs and
