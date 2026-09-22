@@ -20,7 +20,7 @@ describe("authorization RPC grant hardening", () => {
       "public.is_current_user_admin()",
       "public.sonara_has_org_role(uuid,text[])"
     ]) {
-      assert.match(migration, new RegExp(signature.replace(/[()[\]]/g, "\\$&")));
+      assert.ok(migration.includes(signature), `missing hardened signature: ${signature}`);
     }
 
     for (const policyHelper of [
