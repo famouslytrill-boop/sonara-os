@@ -9,7 +9,9 @@ const registryRequire = createRequire(import.meta.url);
 const {
   BLOCK: REGISTRY_BLOCK,
   registryIntegrity,
-  INTEGRATION_LABELS: REGISTRY_LABELS
+  INTEGRATION_LABELS: REGISTRY_LABELS,
+  COMMERCIAL_USE_STATUS_VALUES,
+  COMMERCIAL_USE_STATUS_ALIASES
 } = registryRequire("../lib/sonara-open-source-registry.cjs");
 
 const root = process.cwd();
@@ -144,6 +146,24 @@ if (toolBlocks.length === 0) errors.push("No open-source tool records were parse
 // non-greedy match. Same class as the policy parser that once read 191 policies
 // where there were 497: a regex over source that prose can end early.
 const withoutComments = toolsSource.replace(/^\s*\/\/.*$/gm, "");
+const commercialStatusUnion = withoutComments.match(/export type OpenSourceCommercialUseStatus =([\s\S]*?);/);
+const declaredCommercialStatuses = new Set(
+  commercialStatusUnion ? [...commercialStatusUnion[1].matchAll(/\|\s*"([a-z_]+)"/g)].map((match) => match[1]) : []
+);
+if (declaredCommercialStatuses.size === 0) {
+  errors.push("Could not read OpenSourceCommercialUseStatus from data/open-source-tools.ts, so no commercial-use status could be checked.");
+} else {
+  for (const status of COMMERCIAL_USE_STATUS_VALUES) {
+    if (!declaredCommercialStatuses.has(status)) {
+      errors.push("OpenSourceCommercialUseStatus is missing canonical status \"" + status + "\".");
+    }
+  }
+  for (const status of declaredCommercialStatuses) {
+    if (!COMMERCIAL_USE_STATUS_VALUES.includes(status)) {
+      errors.push("OpenSourceCommercialUseStatus declares non-canonical status \"" + status + "\".");
+    }
+  }
+}
 const statusUnion = withoutComments.match(/export type OpenSourceIntegrationStatus =([\s\S]*?);/);
 const ALLOWED_STATUSES = new Set(
   statusUnion ? [...statusUnion[1].matchAll(/\|\s*"([a-z_]+)"/g)].map((match) => match[1]) : []
@@ -227,6 +247,14 @@ for (const block of toolBlocks) {
   const unresolvedLicense = /unknown|must be verified|requires? review/i.test(record.license);
   if (unresolvedLicense && record.commercialUseStatus === "allowed_after_review" && record.integrationStatus !== "reference_only") {
     errors.push(`${record.name} cannot be marked allowed_after_review while its license remains unresolved.`);
+  }
+  if (!COMMERCIAL_USE_STATUS_VALUES.includes(record.commercialUseStatus)) {
+    const aliasTarget = COMMERCIAL_USE_STATUS_ALIASES[record.commercialUseStatus];
+    const suffix = aliasTarget ? "; normalize it to \"" + aliasTarget + "\"" : "";
+    errors.push(
+      record.name + " has commercialUseStatus \"" + record.commercialUseStatus +
+        "\", which is not a canonical status" + suffix + "."
+    );
   }
   if (record.integrationStatus && ALLOWED_STATUSES.size > 0 && !ALLOWED_STATUSES.has(record.integrationStatus)) {
     errors.push(`${record.name} has integrationStatus "${record.integrationStatus}", which is not one of: ${[...ALLOWED_STATUSES].join(", ")}.`);
