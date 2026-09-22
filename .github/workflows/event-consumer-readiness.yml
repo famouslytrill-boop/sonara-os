@@ -11,6 +11,7 @@ on:
       - "scripts/run-event-consumer-canary.mjs"
       - "scripts/verify-supabase-contract.mjs"
       - "supabase/migrations/20260917200000_event_consumer_activation_readiness.sql"
+      - "supabase/migrations/20260922211500_event_consumer_p1_hardening.sql"
       - "supabase/applied-migration-checksums.json"
       - "tests/event-consumer-readiness.test.js"
       - ".github/workflows/event-consumer-readiness.yml"
