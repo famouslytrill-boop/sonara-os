@@ -1,6 +1,6 @@
 # Durable Event Consumer Activation Readiness
 
-Status: **source implementation under review; production consumer remains disabled**
+Status: **P1 hardening in review; production consumer remains disabled**
 
 This gate exists between the durable outbox foundation and the first live event
 consumer. A green deployment of the tables and RPCs is not permission to start a
@@ -55,6 +55,11 @@ The function:
 A worker handler is bounded to 30 seconds by default, leaving a large safety
 margin under the five-minute database lease.
 
+The first production lane is **low-risk-only**. Rows whose durable authority is
+`owner_review` are terminally refused before the handler is invoked. Approved
+sensitive execution is intentionally a separate future capability because it
+must resolve canonical approval evidence rather than trusting an outbox row.
+
 ### Retry and backoff
 
 Transient failures are rescheduled with deterministic exponential backoff:
@@ -68,12 +73,23 @@ Transient failures are rescheduled with deterministic exponential backoff:
 The delivery policy remains five attempts. A retryable failure on attempt five
 is dead-lettered. A permanent handler refusal can be dead-lettered immediately.
 
+Migration `20260922211500_event_consumer_p1_hardening.sql` also enforces that
+ceiling during stale-lease recovery. A stale claim already at attempt five is
+atomically dead-lettered with delivery-attempt evidence; it cannot be reclaimed
+as attempt six.
+
 ### Dead-letter behavior
 
 A dead-letter settlement changes the durable row state and appends the normal
 delivery-attempt evidence. Error **codes** may be stored; raw exception messages,
 tokens, request bodies, prompts, and provider responses are not copied into the
 worker telemetry.
+
+Timeouts are cancellation-aware. The worker supplies an `AbortSignal`, sends an
+abort when the handler deadline is exceeded, and waits for the handler to
+terminate before a retry may be released. If cancellation cannot be confirmed,
+the event is dead-lettered instead of being made ready while the original
+handler may still be running.
 
 ### Observability and SLO-ready metrics
 
@@ -101,8 +117,10 @@ The first activation gate is deliberately stricter.
 ## One-tenant synthetic canary
 
 The manual production canary writes **20 synthetic events** into one explicitly
-configured organization. Each run uses a unique producer name, so it cannot pick
-up an earlier run or a customer-originated event.
+configured organization. Each event uses the canonical low-risk
+`check_data_quality` action plus a synthetic canary payload. Each run also uses
+a unique producer name, so it cannot pick up an earlier run or a
+customer-originated event.
 
 Four worker lanes claim those 20 events concurrently. The canary passes only
 when all of these hold:
@@ -137,8 +155,9 @@ failure, or insufficient sample count is not a green canary.
 ## Current non-goals
 
 This phase does not add a broker, a fleet-wide scheduler, multi-consumer fanout,
-or an automatic customer-facing side effect. It does not claim exactly-once
-delivery. It does not enable the durable event consumer in production.
+an approval-resolving sensitive-action consumer, or an automatic customer-facing
+side effect. It does not claim exactly-once delivery. It does not enable the
+durable event consumer in production.
 
 The purpose of this phase is narrower: make activation measurable and reversible
 before activation is allowed.
