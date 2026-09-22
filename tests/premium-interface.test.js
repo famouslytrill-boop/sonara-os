@@ -41,8 +41,12 @@ describe("SONARA One interface QA", () => {
 
   it("keeps the simplified public destinations consistent in desktop and mobile navigation", async () => {
     const res = await request(app).get("/");
-    const desktop = res.text.match(/<nav class="sonara-desktop-nav" aria-label="Primary">[\\s\\S]*?<\\/nav>/)?.[0] || "";
-    const mobile = res.text.match(/<nav aria-label="Mobile primary">[\\s\\S]*?<\\/nav>/)?.[0] || "";
+    const desktopStart = res.text.indexOf('<nav class="sonara-desktop-nav" aria-label="Primary">');
+    const desktopEnd = desktopStart >= 0 ? res.text.indexOf("</nav>", desktopStart) : -1;
+    const mobileStart = res.text.indexOf('<nav aria-label="Mobile primary">');
+    const mobileEnd = mobileStart >= 0 ? res.text.indexOf("</nav>", mobileStart) : -1;
+    const desktop = desktopStart >= 0 && desktopEnd >= 0 ? res.text.slice(desktopStart, desktopEnd + 6) : "";
+    const mobile = mobileStart >= 0 && mobileEnd >= 0 ? res.text.slice(mobileStart, mobileEnd + 6) : "";
     assert.ok(desktop && mobile, "both public navigation surfaces should render");
 
     for (const href of ["/start", "/free-tools", "/pricing", "/login", "/signup"]) {
