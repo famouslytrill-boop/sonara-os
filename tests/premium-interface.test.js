@@ -50,20 +50,18 @@ describe("SONARA One interface QA", () => {
     assert.ok(desktop && mobile, "both public navigation surfaces should render");
 
     for (const href of ["/start", "/free-tools", "/pricing", "/login", "/signup"]) {
-      const escaped = href.replace(/\//g, "\\/");
-      assert.match(desktop, new RegExp(`href="${escaped}"`), `${href} should exist in desktop navigation`);
-      assert.match(mobile, new RegExp(`href="${escaped}"`), `${href} should exist in mobile navigation`);
+      assert.ok(desktop.includes(`href="${href}"`), `${href} should exist in desktop navigation`);
+      assert.ok(mobile.includes(`href="${href}"`), `${href} should exist in mobile navigation`);
     }
 
     for (const href of ["/dashboard", "/support", "/business-builder", "/creator-studio", "/growth-studio"]) {
-      const escaped = href.replace(/\//g, "\\/");
-      assert.doesNotMatch(desktop, new RegExp(`href="${escaped}"`), `${href} should stay out of primary desktop navigation`);
-      assert.doesNotMatch(mobile, new RegExp(`href="${escaped}"`), `${href} should stay out of primary mobile navigation`);
+      assert.ok(!desktop.includes(`href="${href}"`), `${href} should stay out of primary desktop navigation`);
+      assert.ok(!mobile.includes(`href="${href}"`), `${href} should stay out of primary mobile navigation`);
     }
 
     for (const label of ["Products", "Free Tools", "Pricing", "Sign in", "Start free"]) {
-      assert.match(desktop, new RegExp(`>${label}<`), `${label} should be visible in desktop navigation`);
-      assert.match(mobile, new RegExp(`>${label}<`), `${label} should be visible in mobile navigation`);
+      assert.ok(desktop.includes(`>${label}<`), `${label} should be visible in desktop navigation`);
+      assert.ok(mobile.includes(`>${label}<`), `${label} should be visible in mobile navigation`);
     }
   });
 
