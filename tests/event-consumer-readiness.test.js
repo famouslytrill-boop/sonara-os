@@ -10,6 +10,7 @@ const {
 } = require("../lib/sonara-event-outbox.cjs");
 const {
   CANARY_ACTIVATION_GATE,
+  CANARY_ACTION,
   CANARY_KIND,
   CANARY_PRODUCER_PREFIX,
   createEventConsumerWorker,
@@ -32,7 +33,8 @@ function row(overrides = {}) {
     idempotency_key: "evt_deterministic",
     correlation_id: "corr-1",
     kind: CANARY_KIND,
-    action: "consumer_canary",
+    action: CANARY_ACTION,
+    authority: "low_risk",
     producer: `${CANARY_PRODUCER_PREFIX}:run-1`,
     payload: { canary: true },
     state: "claimed",
@@ -165,6 +167,125 @@ describe("event consumer activation readiness", () => {
     assert.equal(settlements[0].outcome, "delivered");
     assert.equal(logs[0].event, "event.consumer");
     assert.equal(logs[0].outcome, "ok");
+  });
+
+  it("refuses owner-review events before any handler can run", async () => {
+    let handled = 0;
+    const settlements = [];
+    const worker = createEventConsumerWorker({
+      repository: {
+        claimNextFiltered: async () => ({
+          ok: true,
+          row: row({ authority: "owner_review", action: "issue_refund" })
+        }),
+        settle: async (input) => {
+          settlements.push(input);
+          return { ok: true, row: {} };
+        }
+      },
+      handlers: {
+        [CANARY_KIND]: async () => {
+          handled += 1;
+          return { ok: true };
+        }
+      },
+      emitEvent: () => undefined,
+      claimIdFactory: () => "claim-owner-review",
+      now: () => new Date("2026-09-17T20:00:01.500Z")
+    });
+
+    const result = await worker.runOnce({
+      enabled: true,
+      organizationId: ORG,
+      consumer: "canary",
+      kinds: [CANARY_KIND],
+      producers: [CANARY_PRODUCER_PREFIX + ":run-1"]
+    });
+
+    assert.equal(handled, 0);
+    assert.equal(result.status, "dead_lettered");
+    assert.equal(result.code, "owner_review_not_supported");
+    assert.equal(settlements.length, 1);
+    assert.equal(settlements[0].outcome, "dead_lettered");
+    assert.equal(settlements[0].errorCode, "owner_review_not_supported");
+  });
+
+  it("waits for cooperative timeout cancellation before scheduling a retry", async () => {
+    const order = [];
+    const settlements = [];
+    const worker = createEventConsumerWorker({
+      repository: {
+        claimNextFiltered: async () => ({ ok: true, row: row() }),
+        settle: async (input) => {
+          order.push("settled");
+          settlements.push(input);
+          return { ok: true, row: {} };
+        }
+      },
+      handlers: {
+        [CANARY_KIND]: async (event) => new Promise((resolve, reject) => {
+          event.signal.addEventListener("abort", () => {
+            order.push("aborted");
+            const error = new Error("cancelled after timeout");
+            error.name = "AbortError";
+            reject(error);
+          }, { once: true });
+        })
+      },
+      emitEvent: () => undefined,
+      claimIdFactory: () => "claim-timeout",
+      handlerTimeoutMs: 5,
+      abortGraceMs: 50,
+      now: () => new Date("2026-09-17T20:00:02.000Z")
+    });
+
+    const result = await worker.runOnce({
+      enabled: true,
+      organizationId: ORG,
+      consumer: "canary",
+      kinds: [CANARY_KIND],
+      producers: [CANARY_PRODUCER_PREFIX + ":run-1"]
+    });
+
+    assert.equal(result.status, "retry");
+    assert.equal(result.code, "handler_timeout");
+    assert.deepEqual(order, ["aborted", "settled"]);
+    assert.equal(settlements[0].outcome, "retry");
+  });
+
+  it("dead-letters a handler that ignores cancellation instead of releasing it for retry", async () => {
+    const settlements = [];
+    const worker = createEventConsumerWorker({
+      repository: {
+        claimNextFiltered: async () => ({ ok: true, row: row() }),
+        settle: async (input) => {
+          settlements.push(input);
+          return { ok: true, row: {} };
+        }
+      },
+      handlers: {
+        [CANARY_KIND]: async () => new Promise(() => undefined)
+      },
+      emitEvent: () => undefined,
+      claimIdFactory: () => "claim-ignore-abort",
+      handlerTimeoutMs: 5,
+      abortGraceMs: 5,
+      now: () => new Date("2026-09-17T20:00:02.500Z")
+    });
+
+    const result = await worker.runOnce({
+      enabled: true,
+      organizationId: ORG,
+      consumer: "canary",
+      kinds: [CANARY_KIND],
+      producers: [CANARY_PRODUCER_PREFIX + ":run-1"]
+    });
+
+    assert.equal(result.status, "dead_lettered");
+    assert.equal(result.code, "handler_abort_unconfirmed");
+    assert.equal(settlements[0].outcome, "dead_lettered");
+    assert.equal(settlements[0].errorCode, "handler_abort_unconfirmed");
+    assert.equal(settlements[0].nextAvailableAt, null);
   });
 
   it("uses a different claim owner for concurrent invocations of the same logical consumer", async () => {
@@ -332,5 +453,19 @@ describe("event consumer activation readiness", () => {
     assert.match(migration, /claimed_at <= p_now - interval '5 minutes'/i);
     assert.match(migration, /revoke all on function public\.claim_sonara_event_outbox_filtered[\s\S]*from public, anon, authenticated/i);
     assert.match(migration, /grant execute on function public\.claim_sonara_event_outbox_filtered[\s\S]*to service_role/i);
+  });
+
+  it("atomically dead-letters an exhausted stale claim instead of creating attempt six", () => {
+    const migration = fs.readFileSync(
+      path.join(__dirname, "../supabase/migrations/20260922211500_event_consumer_p1_hardening.sql"),
+      "utf8"
+    );
+
+    assert.match(migration, /attempt_count >= 5/i);
+    assert.match(migration, /state = 'dead_lettered'/i);
+    assert.match(migration, /claim_lease_expired_attempts_exhausted/i);
+    assert.match(migration, /insert into public\.event_delivery_attempts/i);
+    assert.match(migration, /on conflict \(event_outbox_id, attempt_number\) do nothing/i);
+    assert.match(migration, /attempt_count < 5/i);
   });
 });
