@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SONARA Research Lab — Aggregator Intelligence 2026</title>
+  <meta name="description" content="2026 aggregator market intelligence for governed provider, data, model, workflow, commerce, social, media and industry connectivity across SONARA.">
+  <link rel="stylesheet" href="/sonara-design-system.css">
+  <link rel="stylesheet" href="/sonara-application-ui.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p>SONARA Industries · Research Lab · 2026-09-22</p>
+      <h1>Aggregation Control Plane</h1>
+      <p>One governed connection and normalization layer for models, tools, SaaS systems, data, payments, commerce, social, media, logistics and vertical-industry providers.</p>
+      <p><strong>Research boundary:</strong> this page does not enable a provider, install a dependency, grant agent authority, activate payment rails or count an external catalog as a SONARA-native integration.</p>
+    </header>
+
+    <section>
+      <h2>Architecture decision</h2>
+      <p>SONARA should build one shared Aggregation Control Plane in Nexus, then expose domain-specific connection experiences through Business Builder™, Creator Studio™ and Growth Studio™.</p>
+      <p><code>tenant → connection → capability → policy → adapter → normalization → durable workflow/event → evidence → reconciliation → telemetry</code></p>
+      <p>For external writes: <code>desired state → authority classification → approval when required → idempotent provider call → receipt → reconciliation → settled state</code>.</p>
+    </section>
+
+    <section>
+      <h2>What the control plane owns</h2>
+      <ul>
+        <li>Tenant-scoped connections, external account identity and granted scopes.</li>
+        <li>Credential references without exposing raw secrets to clients, models or telemetry.</li>
+        <li>Per-connection capability negotiation instead of a generic connected/not-connected flag.</li>
+        <li>Canonical SONARA records plus provider IDs, versions, provenance and extension envelopes.</li>
+        <li>Webhooks, incremental cursors, replay protection, retries, dead letters and reconciliation.</li>
+        <li>Rate, quota, concurrency, latency and monetary budgets.</li>
+        <li>Human approval for sensitive financial, destructive, publication, security, legal or bulk actions.</li>
+        <li>Provider health, circuit breakers, degradation and setup-required states.</li>
+        <li>OpenTelemetry correlation by tenant, capability, provider, latency, cost and outcome.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2026 protocol baseline</h2>
+      <table>
+        <thead>
+          <tr><th>Boundary</th><th>Baseline</th><th>Use</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Request/response APIs</td><td>OpenAPI 3.2.1</td><td>Adapter contracts and generated validation/tooling.</td></tr>
+          <tr><td>Event APIs</td><td>AsyncAPI 3.1</td><td>Webhook, queue and streaming contract documentation.</td></tr>
+          <tr><td>Event envelope</td><td>CloudEvents 1.0</td><td>Portable provider-event metadata and correlation.</td></tr>
+          <tr><td>Agent/tool exposure</td><td>MCP 2026-07-28</td><td>Stateless, authorized tools/resources/tasks behind SONARA policy.</td></tr>
+          <tr><td>Telemetry</td><td>OpenTelemetry semantic conventions 1.44.0</td><td>Consistent traces, metrics and logs.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Cross-industry aggregation domains</h2>
+      <table>
+        <thead>
+          <tr><th>Domain</th><th>Examples</th><th>SONARA owner</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AI + model gateway</td><td>LLMs, embeddings, image/audio/video, rerankers</td><td>Nexus / Provider Gateway</td></tr>
+          <tr><td>Agent + tool gateway</td><td>MCP tools, resources, tasks, agent actions</td><td>Nexus</td></tr>
+          <tr><td>SaaS unified APIs</td><td>CRM, HRIS, ATS, accounting, files, support, knowledge</td><td>Nexus</td></tr>
+          <tr><td>Workflow + data</td><td>automation, ETL/ELT, reverse ETL, customer data</td><td>Nexus</td></tr>
+          <tr><td>Banking + financial data</td><td>accounts, balances, transactions, investments, liabilities</td><td>Business Builder™ via regulated partners</td></tr>
+          <tr><td>Payments + marketplaces</td><td>checkout, subscriptions, refunds, payouts, disputes</td><td>Business Builder™ via regulated partners</td></tr>
+          <tr><td>Restaurant + POS</td><td>menus, modifiers, orders, KDS, loyalty, delivery</td><td>Business Builder™</td></tr>
+          <tr><td>Commerce</td><td>catalogs, inventory, storefronts, marketplaces, returns</td><td>Business Builder™</td></tr>
+          <tr><td>Shipping + logistics</td><td>rates, labels, tracking, dispatch, route optimization</td><td>Business Builder™</td></tr>
+          <tr><td>Travel + property</td><td>availability, rates, reservations, listings, rentals</td><td>Business Builder™</td></tr>
+          <tr><td>Social + reputation</td><td>publishing, comments, analytics, places, reviews</td><td>Growth Studio™</td></tr>
+          <tr><td>Creator + media distribution</td><td>video, audio, podcasts, rights, streaming, publishing</td><td>Creator Studio™</td></tr>
+          <tr><td>Identity + auth</td><td>OAuth, OIDC, passkeys, directory sync, KYC handoff</td><td>Nexus</td></tr>
+          <tr><td>Jobs + talent</td><td>job boards, candidates, applications, interviews</td><td>Business Builder™</td></tr>
+          <tr><td>IoT + edge</td><td>devices, telemetry, cameras, GPS, sensors, robotics</td><td>Nexus with safety gates</td></tr>
+          <tr><td>Public sector + open data</td><td>datasets, permits, public records, government APIs</td><td>Business Builder™ with policy review</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Truthful connection states</h2>
+      <p>Do not reduce a connection to a green checkmark. A provider/account should report capability and operating state such as connected, limited, degraded, setup required, reauthorization required, rate limited, budget blocked, disabled or unavailable, with last sync and last reconciliation evidence.</p>
+    </section>
+
+    <section>
+      <h2>Deterministic formulas</h2>
+      <p><strong>Aggregation readiness:</strong> <code>0.20*canonical_model + 0.15*auth_scope + 0.15*events + 0.15*reconciliation + 0.10*observability + 0.15*failure_handling + 0.10*capability_negotiation</code></p>
+      <p><strong>Provider route score after hard policy constraints:</strong> <code>0.25*quality + 0.25*reliability + 0.15*freshness + 0.10*latency_fit + 0.10*cost_fit + 0.15*policy_fit</code></p>
+      <p>Hard constraints such as tenant authorization, data residency, capability support, legal boundaries, approval requirements and budget ceilings run before any score.</p>
+    </section>
+
+    <section>
+      <h2>Native integration proof</h2>
+      <p>A provider counts as a verified SONARA-native connector only after its exact auth flow, scopes, canonical mapping, sync/webhook behavior, tenant isolation, failures and rate limits, secret boundary, telemetry, reconciliation, sandbox evidence, one-tenant canary and production evidence all pass.</p>
+      <p>Research catalogs, compatible SDKs and third-party unified-API catalogs do not count as native SONARA coverage.</p>
+    </section>
+
+    <section>
+      <h2>First production canary</h2>
+      <p>Start with a read-only SaaS/Data Connection Aggregator for one tenant, one low-risk provider and one canonical object type. Prove credential isolation, incremental cursors, webhook handling when available, health, backoff, provenance, OpenTelemetry, reconciliation and disconnect/data-deletion behavior before attempting money movement, banking mutations, publication writes or broad multi-provider routing.</p>
+    </section>
+
+    <section>
+      <h2>Current market references</h2>
+      <p>Research inputs include Merge Unified, OpenRouter, LiteLLM, Airbyte, Fivetran, Workato, n8n, Stripe Connect, Plaid, Deliverect, Ayrshare, Booking.com Connectivity, Google Maps Platform, MCP, OpenAPI, AsyncAPI, CloudEvents and OpenTelemetry.</p>
+      <p>Vendor catalog sizes and vendor-reported operating metrics are comparison inputs only. They are not SONARA production measurements.</p>
+    </section>
+
+    <nav>
+      <a href="/research-2026-market-intelligence.html">2026 market intelligence</a>
+      <a href="/research-2026-backend-operations.html">Backend operations research</a>
+      <a href="/research-2026-frontend-visual-intelligence.html">Frontend + visual operations</a>
+      <a href="/research-lab/requested-repositories">Repository research</a>
+    </nav>
+
+    <footer>
+      <p>Aggregation architecture is not provider authority. Production activation remains behind tenant, security, approval, cost, CI, connector-specific evidence and release gates.</p>
+    </footer>
+  </main>
+</body>
+</html>
