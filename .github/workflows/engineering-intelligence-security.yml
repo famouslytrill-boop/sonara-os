@@ -73,6 +73,45 @@ jobs:
         with:
           category: /language:javascript-typescript
 
+      - name: Preserve CodeQL findings in release evidence
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          sarif="../results/javascript.sarif"
+          if [[ ! -f "$sarif" ]]; then
+            printf 'CodeQL SARIF not found at %s\n' "$sarif" | tee artifacts/security/codeql-sarif-missing.log
+            exit 0
+          fi
+          cp "$sarif" artifacts/security/codeql.sarif
+          SARIF_PATH="$sarif" node --input-type=module <<'NODE' | tee artifacts/security/codeql-high-findings.jsonl
+          import fs from "node:fs";
+
+          const sarif = JSON.parse(fs.readFileSync(process.env.SARIF_PATH, "utf8"));
+          for (const run of sarif.runs || []) {
+            const rules = new Map((run.tool?.driver?.rules || []).map((rule) => [rule.id, rule]));
+            for (const result of run.results || []) {
+              const rule = rules.get(result.ruleId) || {};
+              const securitySeverity = Number(
+                rule.properties?.["security-severity"]
+                ?? rule.properties?.securitySeverity
+                ?? 0
+              );
+              if (!Number.isFinite(securitySeverity) || securitySeverity < 7) continue;
+              const physical = result.locations?.[0]?.physicalLocation || {};
+              console.log(JSON.stringify({
+                ruleId: result.ruleId || null,
+                securitySeverity,
+                level: result.level || null,
+                file: physical.artifactLocation?.uri || null,
+                line: physical.region?.startLine || null,
+                message: result.message?.text || null
+              }));
+            }
+          }
+          NODE
+
       - name: Run static lint
         id: lint
         continue-on-error: true
