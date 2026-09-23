@@ -1122,7 +1122,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       })
     }).catch(() => undefined);
 
-    if (!response?.ok) return refuse(409, "work_order_transition_not_saved", "The job changed before this action completed, or the current work-order migration is not installed.");
+    if (!response?.ok) return refuse(409, "work_order_transition_not_saved", "We could not save that job-stage change. Nothing was reported as changed.");
     const rows = await response.json().catch(() => []);
     const updated = Array.isArray(rows) ? rows[0] : rows;
     const detail = `Job moved from ${decision.current} to ${decision.next}.`;
@@ -1156,7 +1156,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       })
     }).catch(() => undefined);
 
-    if (!response?.ok) return refuse(409, "work_order_not_invoiced", "Complete the job, attach a customer and record an agreed amount before raising its invoice.");
+    if (!response?.ok) return refuse(409, "work_order_not_invoiced", "Complete the job, attach a customer and record an agreed amount before raising its invoice. If those are already set, invoicing is temporarily unavailable.");
     const invoiceId = await response.json().catch(() => null);
     const id = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
     if (!id) return refuse(502, "invoice_id_missing", "The invoice action did not return an invoice reference.");
