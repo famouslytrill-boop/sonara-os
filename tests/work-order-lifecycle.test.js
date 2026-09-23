@@ -122,6 +122,8 @@ describe("Business Builder canonical work-order lifecycle", () => {
     assert.match(sql, /add column if not exists work_order_id uuid references public\.business_work_orders/);
     assert.match(sql, /create unique index if not exists customer_invoices_org_work_order_unique/);
 
+    assert.match(sql, /create or replace function public\.sonara_record_work_order_creation/);
+    assert.match(sql, /create trigger sonara_work_order_created_event/);
     assert.match(sql, /create or replace function public\.sonara_create_work_order_from_quote/);
     assert.match(sql, /create or replace function public\.sonara_transition_work_order/);
     assert.match(sql, /create or replace function public\.sonara_invoice_work_order/);
@@ -133,6 +135,11 @@ describe("Business Builder canonical work-order lifecycle", () => {
     assert.match(sql, /insert into public\.business_work_order_events/);
     assert.match(sql, /insert into public\.customer_invoices/);
     assert.match(sql, /insert into public\.customer_invoice_lines/);
+    assert.match(sql, /route_session_id uuid references public\.route_tracking_sessions/);
+    assert.match(sql, /agreed_amount_cents integer check \(agreed_amount_cents is null or agreed_amount_cents >= 0\)/);
+    assert.match(sql, /check \(scheduled_end_at is null or scheduled_start_at is null or scheduled_end_at >= scheduled_start_at\)/);
+    assert.match(sql, /check \(inventory_item_id is not null or nullif\(trim\(description\), ''\) is not null\)/);
+    assert.match(sql, /check \(file_id is not null or nullif\(trim\(note\), ''\) is not null\)/);
   });
 
   it("exposes the operating record through the owner framework without inventing dispatch automation", () => {
@@ -146,6 +153,8 @@ describe("Business Builder canonical work-order lifecycle", () => {
       "business_work_order_evidence"
     ]);
     assert.equal(REFERENCE_SOURCES.workOrders.table, "business_work_orders");
+    assert.equal(REFERENCE_SOURCES.routeSessions.table, "route_tracking_sessions");
+    assert.equal(page.lifecycleManaged, true);
 
     const routeSource = fs.readFileSync(path.join(root, "routes", "sonara-last9-routes.cjs"), "utf8");
     assert.match(routeSource, /\/api\/business\/quotes\/:quoteId\/work-order/);
