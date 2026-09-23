@@ -17,12 +17,14 @@ Read these first:
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH2.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-13_BATCH3.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-14_BATCH4.md`
-- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH17.md` for the latest decision/design/finance/memory intake
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH17.md` for decision/design/finance/memory intake
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH18.md` for the latest agent/RAG/infrastructure/system-design intake
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
 - `lib/sonara-screenshot-tool-radar-batch4.cjs`
 - `lib/sonara-screenshot-tool-radar-batch17.cjs`
+- `lib/sonara-screenshot-tool-radar-batch18.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 - `DESIGN.md` and `.claude/skills/reviewing-premium-sonara-ui/SKILL.md` when a screenshot contributes design requirements
@@ -49,6 +51,8 @@ Always state these separately:
 4. **Production enablement** — is it actually configured and executing now?
 
 Most screenshot-sourced tools should stop after decision 1 or 2. `researched` does not mean `installed`, and `installed` does not mean `production enabled`.
+
+Concept diagrams, social infographics and vendor architecture posts are **pattern leads**, not implementation specifications. Extract the invariant or failure mode, map it to SONARA-owned authority, and refuse to turn a simplified diagram into a deployment claim. Volatile model names, prices, context windows and API controls must be re-checked against current first-party provider documentation before being recorded as product facts.
 
 ### 4. Choose a runtime placement
 

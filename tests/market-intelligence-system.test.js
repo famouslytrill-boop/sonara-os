@@ -41,6 +41,13 @@ describe("SONARA market intelligence", () => {
     assert.match(framework.markets.creator_studio.priorities.join(" "), /Rights, consent, provenance/i);
     assert.match(framework.markets.growth_studio.priorities.join(" "), /consent ledger/i);
     assert.deepEqual(framework.pricingPosition.currentPlans, ["Free $0", "One workspace $29/month", "All three $59/month", "Team $109/month", "Business Builder setup: quoted"]);
+    assert.equal(framework.researchAndDevelopment.asOf, "2026-09-23");
+    assert.equal(framework.researchAndDevelopment.advancementWave.capabilityPacks.length, 10);
+    assert.match(framework.researchAndDevelopment.advancementWave.objective, /one kernel, one data plane, one execution spine/i);
+    assert.ok(framework.researchAndDevelopment.advancementWave.capabilityPacks.some((pack) => pack.key === "maps_mobility_dispatch"));
+    assert.ok(framework.researchAndDevelopment.advancementWave.capabilityPacks.some((pack) => pack.key === "research_library_rag"));
+    assert.ok(framework.researchAndDevelopment.advancementWave.externalResearchCandidates.some((candidate) => candidate.name === "OpenAlex"));
+    assert.ok(framework.researchAndDevelopment.crossCompanyFixes.some((fix) => fix.key === "database_contract_convergence"));
     assert.ok(framework.sources.length >= 10);
     for (const source of framework.sources) {
       assert.match(source.url, /^https:\/\//);

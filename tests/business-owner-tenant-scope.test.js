@@ -34,6 +34,7 @@ const OWNER_RESOURCES = [
   ["/api/business/locations", "business_locations"],
   ["/api/business/services", "business_service_catalog"],
   ["/api/business/bookings", "business_bookings"],
+  ["/api/business/work-orders", "business_work_orders"],
   ["/api/business/staff", "business_employee_profiles"],
   ["/api/business/schedules", "employee_schedules"],
   ["/api/business/vendors", "vendor_accounts"],

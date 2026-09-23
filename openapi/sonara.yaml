@@ -2056,6 +2056,16 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/studio/capabilities:
+    get:
+      operationId: getCreatorStudioCapabilities
+      tags: [Creator Studio]
+      summary: Return the governed static SONARA Studio capability catalog and adoption states.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/Forbidden" }
   /api/creator/generation/providers:
     get:
       operationId: listCreatorGenerationProviders

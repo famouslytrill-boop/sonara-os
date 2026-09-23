@@ -38,6 +38,7 @@ const {
   DEFAULT_STARTING_ALLOWANCE_MINOR
 } = require("../lib/sonara-usage-meter.cjs");
 const { redactSensitiveText } = require("../lib/sonara-redaction.cjs");
+const studioPlatform = require("../data/sonara-studio-platform-2026-09-22.json");
 const {
   renderFailureCard,
   renderSetupStateCard,
@@ -129,6 +130,58 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
   const access = requireWorkspaceAccess("creator_studio");
   const ui = buildUi(deps);
+
+  app.get("/api/creator/studio/capabilities", access, (req, res) => {
+    return res.status(200).json({
+      ok: true,
+      product: studioPlatform.productDecision,
+      capabilities: studioPlatform.capabilities,
+      technologyPatterns: studioPlatform.technologyPatterns,
+      industryPackOrder: studioPlatform.industryPackOrder,
+      executionEnabledByThisSurface: false
+    });
+  });
+
+  app.get("/creator-studio/studio", access, (req, res) => {
+    const grouped = studioPlatform.capabilities.reduce((groups, capability) => {
+      const domain = String(capability.domain || "other");
+      if (!groups[domain]) groups[domain] = [];
+      groups[domain].push(capability);
+      return groups;
+    }, {});
+
+    const sections = [
+      ui.card(
+        "What this Studio is",
+        "A governed workspace for projects, media, documents, generation, review, publishing preparation, analytics, rights, and agent workflows. This page is a capability map: planned or research-only items do not execute from this surface."
+      ),
+      ui.card(
+        "Production boundary",
+        "Heavy media, GPU, 3D, CAD, game-engine, transcription, and long-running jobs stay in isolated workers or approved companion tools. Publishing, payments, destructive actions, regulated workflows, voice cloning, and likeness-sensitive work remain approval-gated."
+      ),
+      ...Object.entries(grouped).map(([domain, capabilities]) => ui.card(
+        studioDomainLabel(domain),
+        capabilities.map((capability) =>
+          `${capability.surface}: ${studioCapabilityState(capability.adoptionState)} — ${capability.purpose}`
+        ).join(" ")
+      ))
+    ];
+
+    return res.status(200).type("html").send(ui.layout({
+      title: "SONARA Studio",
+      eyebrow: "Creator Studio",
+      heading: "SONARA Studio",
+      body: "Create, organize, review, govern, and prepare media and creative work from one project-centered workspace while keeping execution boundaries explicit.",
+      sections,
+      actions: [
+        ui.link("/creator-studio/generation", "Generation Studio"),
+        ui.link("/creator-studio/assets", "Assets"),
+        ui.link("/creator-studio/rights", "Rights"),
+        ui.link("/creator-studio/music-system", "Music System"),
+        ui.link("/creator-studio/dashboard", "Dashboard")
+      ]
+    }));
+  });
 
   app.get("/api/creator/generation/providers", access, (req, res) => {
     return res.status(200).json({ ok: true, providers: getCreatorGenerationCatalog() });
@@ -503,7 +556,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       heading: "Video, audio, music, and voice generation",
       body: "Create governed media jobs, route them to configured providers, retain private outputs, and preserve rights, consent, provenance, and audit evidence.",
       sections,
-      actions: [ui.link("/creator-studio/launch-readiness", "Setup status"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
+      actions: [ui.link("/creator-studio/studio", "SONARA Studio"), ui.link("/creator-studio/launch-readiness", "Setup status"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
     }));
   });
 
@@ -1299,6 +1352,26 @@ function buildUi(deps) {
   const escape = deps.escapeHtml || esc;
   return { layout: deps.layout || basicLayout, card: deps.brandCard || card, link: deps.linkAction || link, escape };
 }
+function studioCapabilityState(value) {
+  const labels = {
+    existing_foundation_expand: "Foundation exists; expand behind normal release gates",
+    planned: "Planned",
+    future_candidate: "Future candidate",
+    research_candidate: "Research candidate",
+    review_required: "Review required",
+    reference_only: "Reference only",
+    blocked_until_qualified_review: "Blocked until qualified review"
+  };
+  return labels[String(value || "")] || "Not enabled";
+}
+
+function studioDomainLabel(value) {
+  return String(value || "other")
+    .split("-")
+    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
+    .join(" ");
+}
+
 function generationFailureFor(code) {
   const state = setupStateFor({ code });
   if (state) return { state, heading: state.heading, message: state.body, retryable: state.key === "TEMPORARY_PROVIDER_FAILURE" };

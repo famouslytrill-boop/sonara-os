@@ -36,7 +36,7 @@ describe("the infrastructure map says what is configured", () => {
       assert.ok(Array.isArray(res.body.services) && res.body.services.length >= 10, "the manifest returned no services");
       assert.ok(Array.isArray(res.body.pipelineLayers) && res.body.pipelineLayers.length > 0);
       assert.ok(Array.isArray(res.body.mobileExperienceChecks) && res.body.mobileExperienceChecks.length > 0);
-      assert.ok(res.body.capabilityExpansion && res.body.capabilityExpansion.total >= 14, "capability expansion tracks are missing");
+      assert.ok(res.body.capabilityExpansion && res.body.capabilityExpansion.total >= 18, "capability expansion tracks are missing");
       assert.equal(res.body.capabilityExpansion.tracks.length, CAPABILITY_EXPANSION_TRACKS.length);
     });
 
@@ -113,7 +113,7 @@ describe("the infrastructure map says what is configured", () => {
 
   describe("capability expansion", () => {
     it("turns the known limitations into governed build tracks instead of marketing claims", () => {
-      assert.ok(CAPABILITY_EXPANSION_TRACKS.length >= 14, `only ${CAPABILITY_EXPANSION_TRACKS.length} expansion tracks were registered`);
+      assert.ok(CAPABILITY_EXPANSION_TRACKS.length >= 18, `only ${CAPABILITY_EXPANSION_TRACKS.length} expansion tracks were registered`);
       const keys = new Set();
       for (const track of CAPABILITY_EXPANSION_TRACKS) {
         assert.ok(track.key, "an expansion track has no key");
@@ -152,6 +152,61 @@ describe("the infrastructure map says what is configured", () => {
       assert.equal(consumers.status, "gated");
       assert.equal(consumers.productionEnabled, false);
       assert.ok(consumers.proofGates.some((gate) => /canary/i.test(gate)), "consumer activation has no canary gate");
+    });
+
+    it("keeps ecosystem, adoption, vertical and enterprise expansion evidence-gated", () => {
+      const required = [
+        "ecosystem_developer_platform",
+        "commerce_store_operations",
+        "customer_adoption_proof",
+        "vertical_pack_productization",
+        "enterprise_scale_validation"
+      ];
+      for (const key of required) {
+        const track = CAPABILITY_EXPANSION_TRACKS.find((item) => item.key === key);
+        assert.ok(track, `${key} track is missing`);
+        assert.equal(track.productionEnabled, false, `${key} became production-enabled from a planning change`);
+        assert.ok(track.proofGates.length >= 7, `${key} has insufficient proof gates`);
+      }
+    });
+
+    it("keeps unified commerce grounded in one canonical operating contract and production proof", () => {
+      const commerce = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "commerce_store_operations");
+      assert.ok(commerce, "commerce/store-operations track is missing");
+      assert.equal(commerce.productionEnabled, false);
+      assert.match(commerce.target, /existing customer, catalog, inventory, vendor, location, order, invoice, payment/i);
+      assert.match(commerce.target, /stock reservations/i);
+      assert.match(commerce.target, /POS\/kiosk/i);
+      assert.ok(commerce.proofGates.some((gate) => /concurrency-safe stock reservation/i.test(gate)));
+      assert.ok(commerce.proofGates.some((gate) => /provider-confirmed/i.test(gate)));
+      assert.ok(commerce.proofGates.some((gate) => /return and refund reconciliation/i.test(gate)));
+      assert.ok(commerce.proofGates.some((gate) => /accessible storefront POS and kiosk/i.test(gate)));
+      assert.match(commerce.claimBoundary, /Research, UI, formulas, provider documentation, and open-source catalogs do not prove unified commerce/i);
+    });
+
+    it("requires measured adoption rather than invented traction claims", () => {
+      const adoption = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "customer_adoption_proof");
+      assert.match(adoption.target, /time-to-first-value/i);
+      assert.match(adoption.target, /retained organizations/i);
+      assert.match(adoption.claimBoundary, /defined population, time window and denominator/i);
+    });
+
+    it("uses reusable vertical packs instead of duplicating the platform per industry", () => {
+      const verticals = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "vertical_pack_productization");
+      assert.match(verticals.target, /restaurant\/retail/i);
+      assert.match(verticals.target, /trades and field service/i);
+      assert.match(verticals.target, /fleet\/trucking\/delivery/i);
+      assert.match(verticals.target, /construction\/project operations/i);
+      assert.ok(verticals.proofGates.some((gate) => /shared-core reuse/i.test(gate)));
+    });
+
+    it("defines enterprise scale as measured isolation resilience and recovery evidence", () => {
+      const enterprise = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "enterprise_scale_validation");
+      assert.match(enterprise.target, /noisy-neighbor/i);
+      assert.match(enterprise.target, /disaster recovery/i);
+      assert.ok(enterprise.proofGates.some((gate) => /load\/soak\/spike/i.test(gate)));
+      assert.ok(enterprise.proofGates.some((gate) => /RPO\/RTO/i.test(gate)));
+      assert.match(enterprise.claimBoundary, /evidence state/i);
     });
 
     it("does not relabel a third-party integration catalog as SONARA-native coverage", () => {
