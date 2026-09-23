@@ -295,7 +295,8 @@ describe("signed-in workspaces speak plainly", () => {
   // 104 -> 105 on 18 September 2026: /auth/callback is now a real PKCE
   // protocol endpoint. A direct crawl carries no OAuth code/verifier and is
   // correctly refused with 400 rather than rendering application copy.
-  // 105 -> 106 on 23 September 2026: the compiled work-order surface adds a controlled route that does not render customer copy in this crawl.\n  const SIGNED_IN_SKIPPED = 106;
+  // 105 -> 106 on 23 September 2026: the compiled work-order surface adds a controlled route that does not render customer copy in this crawl.
+  const SIGNED_IN_SKIPPED = 106;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
