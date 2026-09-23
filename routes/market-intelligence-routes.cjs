@@ -429,6 +429,31 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui, deps = {
           ui.card("No invented market data", "Everything below the guidance is your own recorded evidence, and nothing else. Static research guidance is labeled by source and date.")
         ];
 
+    if (market?.operatingLoops?.length) {
+      sections.push(ui.card(
+        "Operating loops",
+        market.operatingLoops.map((item) => item.replaceAll("_", " ")).join(". ") + "."
+      ));
+    }
+    if (market?.architecturePriorities?.length) {
+      sections.push(ui.card(
+        "Architecture priorities",
+        market.architecturePriorities.map((item) => item.replaceAll("_", " ")).join(". ") + "."
+      ));
+    }
+    if (market?.agentAndWorkflowPolicy?.executionRule) {
+      sections.push(ui.card(
+        "Agent and workflow rule",
+        market.agentAndWorkflowPolicy.executionRule
+      ));
+    }
+    if (market?.ragPolicy?.required?.length) {
+      sections.push(ui.card(
+        "RAG evidence rule",
+        `Business retrieval must preserve ${market.ragPolicy.required.join(", ")}. Cross-tenant retrieval and secret indexing remain prohibited.`
+      ));
+    }
+
     // The customer's own evidence, appended to whichever set of guidance cards
     // was chosen above.
     const config = getConfig(deps);

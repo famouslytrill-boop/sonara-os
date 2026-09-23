@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-25",
+  "version": "2026-09-22",
   "status": "approved_strategy_baseline",
   "company": "SONARA Industries",
   "positioning": "Affordable governed operating infrastructure for independent founders, creators, local operators, and small teams.",
@@ -24,10 +24,12 @@
       "primary_outcome": "complete the first transaction and operate repeatably",
       "priority_workflows": [
         "offer intake booking or order payment delivery review repeat follow-up",
-        "vertical starter packs",
-        "portable imports and exports",
-        "security and recovery readiness",
-        "cash-flow and operating-health evidence without accounting claims"
+        "lead to cash and job to cash on one shared customer catalog quote booking order job invoice payment spine",
+        "vertical starter packs for restaurant food trades field service retail ecommerce fleet logistics professional services cleaning facilities property rental events memberships and light manufacturing",
+        "deterministic workflow states idempotency retries dead letters approvals audit evidence and rollback boundaries",
+        "tenant scoped RAG with ACL provenance source citations freshness retrieval telemetry and evaluation",
+        "provider neutral adapters for payments POS accounting payroll calendars maps telematics messaging tax ecommerce identity and analytics",
+        "portable imports exports evidence and recovery controls"
       ]
     },
     "creator_studio": {
@@ -56,13 +58,31 @@
   },
   "pricing": {
     "current": [
-      { "plan": "free", "price_usd_monthly": 0 },
-      { "plan": "starter", "price_usd_monthly": 7 },
-      { "plan": "core", "price_usd_monthly": 19 },
-      { "plan": "pro", "price_usd_monthly": 39 },
-      { "plan": "business_builder_setup", "billing": "one_time" }
+      {
+        "plan": "free",
+        "price_usd_monthly": 0
+      },
+      {
+        "plan": "workspace_monthly",
+        "label": "one workspace",
+        "price_usd_monthly": 29
+      },
+      {
+        "plan": "all_three_monthly",
+        "label": "all three",
+        "price_usd_monthly": 59
+      },
+      {
+        "plan": "team_monthly",
+        "label": "team",
+        "price_usd_monthly": 109
+      },
+      {
+        "plan": "business_builder_setup",
+        "billing": "quoted"
+      }
     ],
-    "policy": "Keep the affordable ladder. Explicitly limit or separately price cost-bearing email SMS storage media generation support and third-party API work. Price changes require customer and cost-to-serve evidence plus owner approval."
+    "policy": "Keep the canonical workspace-based ladder synchronized with runtime billing. Cost-bearing model/tool execution, email, SMS, storage, media generation, support and third-party API work must use measurable included usage, customer-supplied accounts, or separate credits/usage. Price changes require customer and cost-to-serve evidence plus owner approval."
   },
   "opportunity_scoring": {
     "positive": {
@@ -110,5 +130,67 @@
     "writes": "authenticated server controlled",
     "reads": "organization scoped through RLS",
     "external_provider_execution": "not enabled by market intelligence"
+  },
+  "business_builder_architecture": {
+    "operating_loops": [
+      "lead_to_customer",
+      "offer_or_catalog_to_quote_or_order",
+      "quote_or_order_to_booking_job_or_fulfillment",
+      "fulfillment_to_invoice_or_payment",
+      "payment_to_reconciliation_and_reporting",
+      "inventory_to_procurement_and_reorder",
+      "schedule_to_time_and_labor_cost",
+      "customer_outcome_to_review_retention_and_follow_up"
+    ],
+    "execution_policy": {
+      "model_assistance": [
+        "classify",
+        "extract",
+        "summarize",
+        "draft",
+        "rank",
+        "plan",
+        "recommend_next_step"
+      ],
+      "deterministic_authority": [
+        "authorization",
+        "entitlement",
+        "money_math",
+        "inventory_mutation",
+        "booking_state",
+        "job_state",
+        "invoice_state",
+        "payment_state",
+        "refund_state",
+        "audit_write"
+      ],
+      "approval_gated": [
+        "outbound_customer_message",
+        "refund",
+        "payout",
+        "destructive_change",
+        "publication",
+        "high_impact_permission_change",
+        "external_purchase"
+      ]
+    },
+    "rag_required": [
+      "tenant_filter",
+      "document_acl",
+      "provenance",
+      "source_citation",
+      "freshness",
+      "retrieval_trace",
+      "evaluation"
+    ],
+    "partner_boundaries": [
+      "payments_and_banking",
+      "tax_filing",
+      "payroll_filing",
+      "regulated_accounting",
+      "telematics_hardware",
+      "robot_machine_control",
+      "government_systems"
+    ]
   }
 }
