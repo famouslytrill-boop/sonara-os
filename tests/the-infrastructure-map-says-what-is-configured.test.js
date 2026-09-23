@@ -157,6 +157,7 @@ describe("the infrastructure map says what is configured", () => {
     it("keeps ecosystem, adoption, vertical and enterprise expansion evidence-gated", () => {
       const required = [
         "ecosystem_developer_platform",
+        "commerce_store_operations",
         "customer_adoption_proof",
         "vertical_pack_productization",
         "enterprise_scale_validation"
@@ -167,6 +168,20 @@ describe("the infrastructure map says what is configured", () => {
         assert.equal(track.productionEnabled, false, `${key} became production-enabled from a planning change`);
         assert.ok(track.proofGates.length >= 7, `${key} has insufficient proof gates`);
       }
+    });
+
+    it("keeps unified commerce grounded in one canonical operating contract and production proof", () => {
+      const commerce = CAPABILITY_EXPANSION_TRACKS.find((track) => track.key === "commerce_store_operations");
+      assert.ok(commerce, "commerce/store-operations track is missing");
+      assert.equal(commerce.productionEnabled, false);
+      assert.match(commerce.target, /existing customer, catalog, inventory, vendor, location, order, invoice, payment/i);
+      assert.match(commerce.target, /stock reservations/i);
+      assert.match(commerce.target, /POS\/kiosk/i);
+      assert.ok(commerce.proofGates.some((gate) => /concurrency-safe stock reservation/i.test(gate)));
+      assert.ok(commerce.proofGates.some((gate) => /provider-confirmed/i.test(gate)));
+      assert.ok(commerce.proofGates.some((gate) => /return and refund reconciliation/i.test(gate)));
+      assert.ok(commerce.proofGates.some((gate) => /accessible storefront POS and kiosk/i.test(gate)));
+      assert.match(commerce.claimBoundary, /Research, UI, formulas, provider documentation, and open-source catalogs do not prove unified commerce/i);
     });
 
     it("requires measured adoption rather than invented traction claims", () => {
