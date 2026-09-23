@@ -98,8 +98,8 @@ function stubFetch() {
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500, rate_type: "hourly", amount_cents: 2500, effective_from: "2026-08-01", variant_name: "Large", price_cents: 2500, currency: "usd" },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000, rate_type: "hourly", amount_cents: 2000, effective_from: "2026-08-02", variant_name: "Small", price_cents: 2000, currency: "usd" }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, quantity_planned: 2, quantity_used: 2, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500, rate_type: "hourly", effective_from: "2026-08-01", variant_name: "Large", price_cents: 2500, currency: "usd", role_label: "Lead tech", assignment_status: "assigned", assigned_at: "2026-08-01T09:00:00Z", evidence_type: "note", captured_at: "2026-08-01T12:00:00Z", note: "Completed cleanly" },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, quantity_planned: 1, quantity_used: 1, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000, rate_type: "hourly", effective_from: "2026-08-02", variant_name: "Small", price_cents: 2000, currency: "usd", role_label: "Helper", assignment_status: "accepted", assigned_at: "2026-08-02T09:00:00Z", evidence_type: "checklist", captured_at: "2026-08-02T12:00:00Z", note: "Checklist completed" }
       ]);
     }
     // The tables behind the pickers. Without these the reference check below
@@ -107,7 +107,7 @@ function stubFetch() {
     // nothing, and passes for the wrong reason.
     const referenceTables = new Set(Object.values(REFERENCE_SOURCES).map((source) => source.table));
     if (referenceTables.has(table)) {
-      return json([{ id: "ref-1", name: "Something to pick", display_name: "Something to pick", sku: "SKU-1" }]);
+      return json([{ id: OURS, name: "Something to pick", display_name: "Something to pick", sku: "SKU-1" }]);
     }
 
     return json([]);
@@ -139,7 +139,13 @@ function requiredBody(page, parentId, extra = {}) {
     // harness that posts it is testing a path no real submission takes. The
     // stub accepts anything, which is exactly why this went unnoticed until a
     // child with a required date arrived.
-    body[field.name] = field.type === "number" ? "1250" : field.type === "date" ? "2026-08-01" : "Something";
+    body[field.name] = field.type === "number"
+      ? "1250"
+      : field.type === "date"
+        ? "2026-08-01"
+        : field.type === "reference"
+          ? OURS
+          : "Something";
   }
   return { ...body, ...extra };
 }
@@ -172,7 +178,10 @@ const LINE_EVIDENCE = Object.freeze({
   merchant_product_variants: "Large",
   recipe_ingredients: "Flour",
   pos_menu_mix_items: "Flour",
-  employee_wage_rates: "hourly"
+  employee_wage_rates: "hourly",
+  business_work_order_assignments: "Lead tech",
+  business_work_order_materials: "Call-out fee",
+  business_work_order_evidence: "Completed cleanly"
 });
 
 describe("line items on the records that have them", () => {
