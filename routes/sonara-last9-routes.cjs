@@ -1065,17 +1065,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     });
     if (!built.ok) return respond(409, built);
 
-    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_create_work_order_from_quote`, {
-      method: "POST",
-      headers: headers(config),
-      body: JSON.stringify({
-        p_organization_id: org.organizationId,
-        p_quote_id: quoteId,
-        p_actor_user_id: org.userId || null
-      })
-    }).catch(() => undefined);
-    if (!response?.ok) return respond(409, { ok: false, code: "work_order_not_started" });
-    const rows = await response.json().catch(() => []);
+    const created = await supabaseInsert(config, "rpc/sonara_create_work_order_from_quote", {
+      p_organization_id: org.organizationId,
+      p_quote_id: quoteId,
+      p_actor_user_id: org.userId || null
+    });
+    if (!created.ok) return respond(409, { ok: false, code: "work_order_not_started" });
+    const rows = created.rows;
     const workOrderId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
     if (!workOrderId) return respond(502, { ok: false, code: "work_order_id_missing" });
 
@@ -1121,20 +1117,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         : "Closing after settlement is a separate controlled step and is not enabled in this wave.");
     }
 
-    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_transition_work_order`, {
-      method: "POST",
-      headers: headers(config),
-      body: JSON.stringify({
-        p_organization_id: org.organizationId,
-        p_work_order_id: workOrderId,
-        p_actor_user_id: org.userId || null,
-        p_to_status: decision.next,
-        p_reason: sanitizeText(req.body?.reason) || null
-      })
-    }).catch(() => undefined);
+    const transitioned = await supabaseInsert(config, "rpc/sonara_transition_work_order", {
+      p_organization_id: org.organizationId,
+      p_work_order_id: workOrderId,
+      p_actor_user_id: org.userId || null,
+      p_to_status: decision.next,
+      p_reason: sanitizeText(req.body?.reason) || null
+    });
 
-    if (!response?.ok) return refuse(409, "work_order_transition_not_saved", "We could not save that job-stage change. Nothing was reported as changed.");
-    const rows = await response.json().catch(() => []);
+    if (!transitioned.ok) return refuse(409, "work_order_transition_not_saved", "We could not save that job-stage change. Nothing was reported as changed.");
+    const rows = transitioned.rows;
     const updated = Array.isArray(rows) ? rows[0] : rows;
     const detail = `Job moved from ${decision.current} to ${decision.next}.`;
     if (!acceptsHtml(req)) return res.status(200).json({ ok: true, workOrder: updated, changed: true, detail });
@@ -1157,18 +1149,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
 
-    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_invoice_work_order`, {
-      method: "POST",
-      headers: headers(config),
-      body: JSON.stringify({
-        p_organization_id: org.organizationId,
-        p_work_order_id: workOrderId,
-        p_actor_user_id: org.userId || null
-      })
-    }).catch(() => undefined);
+    const invoiced = await supabaseInsert(config, "rpc/sonara_invoice_work_order", {
+      p_organization_id: org.organizationId,
+      p_work_order_id: workOrderId,
+      p_actor_user_id: org.userId || null
+    });
 
-    if (!response?.ok) return refuse(409, "work_order_not_invoiced", "Complete the job, attach a customer and record an agreed amount before raising its invoice. If those are already set, invoicing is temporarily unavailable.");
-    const invoiceId = await response.json().catch(() => null);
+    if (!invoiced.ok) return refuse(409, "work_order_not_invoiced", "Complete the job, attach a customer and record an agreed amount before raising its invoice. If those are already set, invoicing is temporarily unavailable.");
+    const invoiceId = invoiced.rows;
     const id = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
     if (!id) return refuse(502, "invoice_id_missing", "The invoice action did not return an invoice reference.");
     if (!acceptsHtml(req)) return res.status(200).json({ ok: true, invoiceId: id, workOrderId });
