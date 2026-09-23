@@ -79,7 +79,8 @@ create table if not exists public.business_work_order_materials (
   material_status text not null default 'planned'
     check (material_status in ('planned','reserved','used','returned','cancelled')),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (inventory_item_id is not null or nullif(trim(description), '') is not null)
 );
 
 create index if not exists business_work_order_materials_org_work_idx
