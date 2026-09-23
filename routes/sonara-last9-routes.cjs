@@ -3,6 +3,7 @@
 "use strict";
 
 const quoteConversion = require("../lib/sonara-quote-conversion.cjs");
+const workOrderLifecycle = require("../lib/sonara-work-order-lifecycle.cjs");
 const {
   ALL_OWNER_PAGES,
   childrenOf,
@@ -115,6 +116,7 @@ const RESOURCE_MAP = {
   // under it are reached through the invoice, the same way invoice lines are.
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
   "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
+  "/api/business/work-orders": { table: "business_work_orders", required: ["title"], person: "created_by", defaults: { status: "draft", priority: "normal", currency: "usd" } },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } },
   // The product catalogue. Status defaults to draft rather than active on
@@ -1101,6 +1103,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
             ...(page.table === "purchase_orders" && parent ? [procurementCard(parent, org, req, ui, req.query.procurement_problem, req.query.procurement_done)] : []),
+            ...(page.table === "business_work_orders" && parent ? [workOrderLifecycleCard(parent, ui, req.query.work_problem, req.query.work_done)] : []),
             ...(recordStatus.hasStatus(page) && parent ? [statusCard(page, parent, ui, req.query.status_problem, req.query.status_done)] : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
@@ -2321,7 +2324,10 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
   // not exist. Declaring the action beside the page means the row that can take
   // it renders it, and the row that cannot says why in the same column rather
   // than showing a button that will refuse.
-  const action = page.rowAction || null;
+  const actions = [
+    ...(page.rowAction ? [page.rowAction] : []),
+    ...(Array.isArray(page.additionalRowActions) ? page.additionalRowActions : [])
+  ];
 
   // And, for the record kinds with no detail page, the status control itself.
   //
@@ -2351,7 +2357,7 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
     // table nobody can read at a glance.
     ...(rowStatus ? ["<th>Change status</th>"] : []),
     ...(archivable ? ["<th>On your list</th>"] : []),
-    ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
+    ...actions.map((action) => `<th>${ui.escape(action.columnLabel || "Action")}</th>`)
   ];
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
   const width = page.columns.length + extraHeads.length;
@@ -2362,7 +2368,7 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
       if (editable) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}/edit`, "Edit")}</td>`);
       if (rowStatus) cells.push(`<td>${statusControl(page, row, rowStatus, ui)}</td>`);
       if (archivable) cells.push(`<td>${archiveControl(page, row, ui)}</td>`);
-      if (action) {
+      for (const action of actions) {
         const id = encodeURIComponent(String(row.id || ""));
         let reason = null;
         try {
@@ -2374,10 +2380,6 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
         cells.push(
           reason
             ? `<td>${ui.escape(reason)}</td>`
-            // Two shapes, because the endpoints are two shapes. Most take the
-            // record in the path; some take it in the body, and forcing those
-            // through a path parameter would mean changing a published API to
-            // suit the renderer.
             : action.idField
               ? `<td><form method="post" action="${ui.escape(action.api)}"><input type="hidden" name="${ui.escape(action.idField)}" value="${ui.escape(String(row.id || ""))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
               : `<td><form method="post" action="${ui.escape(action.api.replace(":id", id))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
