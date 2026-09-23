@@ -1646,7 +1646,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // Scoped by organization as well as by id, because the service key bypasses
     // row level security and a guessed id from another business would otherwise
     // convert.
-    const found = await supabaseList(config, "quotes", `?select=*&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    const found = await supabaseList(config, "quotes", `?select=id,status,customer_id,amount_cents,title&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
     const quote = found.ok ? found.rows[0] : null;
     if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
 
