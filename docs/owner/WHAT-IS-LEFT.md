@@ -139,7 +139,7 @@ Each of the figures below except the last is now derived by
 
 - **312** registered GET routes
 - **342** tables created by the migrations, **245** of them organization-scoped
-- **27** owner record pages
+- **28** owner record pages
 - **60** verification commands in the release chain
 - **269** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
