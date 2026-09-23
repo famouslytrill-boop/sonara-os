@@ -176,7 +176,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   insert into public.business_work_order_events (
     organization_id,
@@ -198,7 +198,7 @@ begin
   );
   return new;
 end;
-$;
+$$;
 
 revoke all on function public.sonara_record_work_order_creation() from public, anon, authenticated;
 
