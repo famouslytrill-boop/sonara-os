@@ -45,6 +45,7 @@ const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
   "014_sonara_restaurant_margin_ops_schema.sql",
+  "015_sonara_device_sensory_location_schema.sql",
   "20260811220000_customer_invoices_accounts_receivable.sql",
   "20260811234500_customer_invoice_lines.sql",
   "20260818100000_merchant_product_catalogue.sql",
@@ -171,6 +172,11 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // six line tables above it.
   "merchant_products",
   "merchant_product_variants",
+  // Existing fleet route sessions are now linked from work orders. Migration
+  // 015 creates the table and enables RLS; keeping it in the reviewed
+  // operations set makes that relationship explicit without rewriting the
+  // frozen canonical 146-table contract.
+  "route_tracking_sessions",
   // Canonical job execution between an accepted quote/booking and an invoice.
   // These postdate the frozen 146-table runtime contract, so they are reviewed
   // through their own migration rather than rewriting historical checksums.
