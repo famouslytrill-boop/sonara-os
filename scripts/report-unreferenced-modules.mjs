@@ -71,14 +71,26 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/sonara-aggregator-sourcing-policy.cjs",
+    "Research-only adapter sourcing economics and verified-depth formulas. It grants no provider or runtime authority; "
+    + "keep it test-only until a reviewed connector control-plane surface explicitly consumes the policy."],
+  ["lib/sonara-connection-registry.cjs",
+    "Research-only Connection Registry contract targeting business_integration_connections. It deliberately requires a future migration "
+    + "and keeps runtime authority disabled until the registry is implemented and production-verified."],
+  ["lib/sonara-read-only-connector-wave.cjs",
+    "Research-only ordered read connector wave and shared sync requirements. It declares zero verified native connectors and "
+    + "stays test-only until the shared checkpoint, reconciliation and telemetry runtime consumes it."],
+  ["lib/creator-studio-market-radar-2026.cjs",
+    "Research-only Creator Studio market radar. It is validated by tests and intentionally grants no runtime authority; "
+    + "keep it test-only until a reviewed product surface explicitly consumes the planning contract."],
+  ["lib/commerce-market-radar-2026.cjs",
+    "Research-only commerce and omnichannel market radar. The module declares runtimeAuthority=none and executionEnabled=false; "
+    + "keep it test-only until a reviewed Business Builder surface consumes the planning contract without granting payment, inventory, "
+    + "provider, publication, or agent-spend authority."],
   ["lib/sonara-aggregation-control-plane.cjs",
     "Research-only aggregation architecture and deterministic planning formulas. It deliberately grants zero "
     + "provider/runtime authority and is surfaced through docs/public research rather than required by the product; "
     + "it remains test-only until a reviewed aggregation runtime explicitly consumes the contract."],
-  ["lib/sonara-connector-verification.cjs",
-    "Research/control-plane evidence contract for connector maturity. It deliberately cannot activate a connector "
-    + "or promote one from research to production; it stays test-only until the first reviewed connector runtime "
-    + "consumes its evidence stages after this research PR is merged and production-verified."],
   ["lib/sonara-compliance-evidence-readiness.cjs",
     "Reports evidence and gaps and deliberately never emits a compliant state. No surface renders it yet; "
     + "wiring it is a product decision about what to show an owner, not a missing require."],

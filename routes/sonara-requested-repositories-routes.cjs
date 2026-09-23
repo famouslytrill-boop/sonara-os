@@ -82,6 +82,13 @@ const {
   getArchitectureExtensionsBatch17
 } = require("../lib/sonara-screenshot-tool-radar-batch17.cjs");
 const {
+  getPublicScreenshotToolCatalogBatch18,
+  getScreenshotToolReadinessBatch18,
+  getNonRepositoryReferencesBatch18,
+  getConfirmedExistingRecordsBatch18,
+  getArchitectureExtensionsBatch18
+} = require("../lib/sonara-screenshot-tool-radar-batch18.cjs");
+const {
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
 const {
@@ -136,7 +143,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots are cataloged as non-executing research records; verification state remains explicit per record.`),
       brandCard("Capability convergence — Batch 8", `${convergence.batch8Count} truth records describe actual SONARA One, Business Builder, Creator Studio, Growth Studio, Claude, ChatGPT/Codex, and cross-agent delivery capability without enabling anything from the research surface.`),
       brandCard("Design and correctness — Batch 9", `${convergence.batch9Count} current design/correctness records preserve the v3 SONARA One identity, Balanced Precision interaction system, truthful loading/state language, cross-agent authority, and named repair/review work.`),
-      brandCard("Latest screenshot intake", "Batch 17 adds verified decision-model, developer-tool, design, finance, memory, mobile/network, and workflow references while preserving non-execution, licence, privacy, tenant, and release boundaries."),
+      brandCard("Latest screenshot intake", "Batch 18 adds verified agent-framework, hybrid-search, local-cloud, enterprise-RAG and executive-advisor research plus production-agent, retrieval, memory, model-routing, workflow and progressive-authority contracts while preserving non-execution, licence, privacy, tenant, and release boundaries."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items are kept as hosted services, learning references, or unresolved non-repository leads outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -349,6 +356,7 @@ function getLatestScreenshotIntake() {
   const batch15 = getScreenshotToolReadinessBatch15();
   const batch16 = getScreenshotToolReadinessBatch16();
   const batch17 = getScreenshotToolReadinessBatch17();
+  const batch18 = getScreenshotToolReadinessBatch18();
   return {
     repositories: [
       ...batch5.repositories,
@@ -359,7 +367,8 @@ function getLatestScreenshotIntake() {
       ...batch14.repositories,
       ...batch15.repositories,
       ...batch16.repositories,
-      ...batch17.repositories
+      ...batch17.repositories,
+      ...batch18.repositories
     ],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
@@ -370,7 +379,8 @@ function getLatestScreenshotIntake() {
       ...getNonRepositoryReferencesBatch14(),
       ...getNonRepositoryReferencesBatch15(),
       ...getNonRepositoryReferencesBatch16(),
-      ...getNonRepositoryReferencesBatch17()
+      ...getNonRepositoryReferencesBatch17(),
+      ...getNonRepositoryReferencesBatch18()
     ].filter((item) => item.key !== "searchphone"),
     deduplicatedReferences: batch5.deduplicatedReferences || [],
     // Refused for what using them would do rather than for what their licence
@@ -380,7 +390,8 @@ function getLatestScreenshotIntake() {
     confirmedExistingRecords: getAllConfirmedExistingRecords(),
     architectureExtensions: [
       ...getArchitectureExtensionsBatch16(),
-      ...getArchitectureExtensionsBatch17()
+      ...getArchitectureExtensionsBatch17(),
+      ...getArchitectureExtensionsBatch18()
     ]
   };
 }
@@ -400,7 +411,8 @@ function getCombinedPublicCatalog() {
     ...getPublicScreenshotToolCatalogBatch14(),
     ...getPublicScreenshotToolCatalogBatch15(),
     ...getPublicScreenshotToolCatalogBatch16(),
-    ...getPublicScreenshotToolCatalogBatch17()
+    ...getPublicScreenshotToolCatalogBatch17(),
+    ...getPublicScreenshotToolCatalogBatch18()
   ];
 }
 
@@ -417,7 +429,8 @@ function getScreenshotResearchCount() {
     + getPublicScreenshotToolCatalogBatch14().length
     + getPublicScreenshotToolCatalogBatch15().length
     + getPublicScreenshotToolCatalogBatch16().length
-    + getPublicScreenshotToolCatalogBatch17().length;
+    + getPublicScreenshotToolCatalogBatch17().length
+    + getPublicScreenshotToolCatalogBatch18().length;
 }
 
 function getAllNonRepositoryReferences() {
@@ -432,7 +445,8 @@ function getAllNonRepositoryReferences() {
     ...getNonRepositoryReferencesBatch14(),
     ...getNonRepositoryReferencesBatch15(),
     ...getNonRepositoryReferencesBatch16(),
-    ...getNonRepositoryReferencesBatch17()
+    ...getNonRepositoryReferencesBatch17(),
+    ...getNonRepositoryReferencesBatch18()
   ].filter((item) => item.key !== "searchphone");
 }
 
@@ -441,7 +455,8 @@ function getAllConfirmedExistingRecords() {
     ...getConfirmedExistingRecordsBatch12(),
     ...getConfirmedExistingRecordsBatch14(),
     ...getConfirmedExistingRecordsBatch16(),
-    ...getConfirmedExistingRecordsBatch17()
+    ...getConfirmedExistingRecordsBatch17(),
+    ...getConfirmedExistingRecordsBatch18()
   ];
 }
 
@@ -460,6 +475,7 @@ function getCombinedReadiness() {
   const screenshotBatch15 = getScreenshotToolReadinessBatch15();
   const screenshotBatch16 = getScreenshotToolReadinessBatch16();
   const screenshotBatch17 = getScreenshotToolReadinessBatch17();
+  const screenshotBatch18 = getScreenshotToolReadinessBatch18();
   const convergence = getCapabilityDesignReadiness();
   const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
   const nonRepositoryReferences = getAllNonRepositoryReferences();
@@ -478,7 +494,8 @@ function getCombinedReadiness() {
     ...screenshotBatch14.repositories,
     ...screenshotBatch15.repositories,
     ...screenshotBatch16.repositories,
-    ...screenshotBatch17.repositories
+    ...screenshotBatch17.repositories,
+    ...screenshotBatch18.repositories
   ];
   return {
     ok: true,
@@ -498,7 +515,8 @@ function getCombinedReadiness() {
       + screenshotBatch14.repositoryCount
       + screenshotBatch15.repositoryCount
       + screenshotBatch16.repositoryCount
-      + screenshotBatch17.repositoryCount,
+      + screenshotBatch17.repositoryCount
+      + screenshotBatch18.repositoryCount,
     unresolvedVisualLeadCount: unresolvedVisualLeads.length,
     nonRepositoryReferenceCount: nonRepositoryReferences.length,
     confirmedExistingRecordCount: confirmedExistingRecords.length,

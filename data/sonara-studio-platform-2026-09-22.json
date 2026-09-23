@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "intakeId": "sonara-studio-platform-2026-09-22",
+  "researchedAt": "2026-09-22",
+  "baseline": {
+    "repository": "famouslytrill-boop/sonara-os",
+    "baseBranch": "main",
+    "baseCommit": "0c290c5694634c2c17391d3649c0fac4a669be04",
+    "runtimeActivationAllowedByThisChange": false
+  },
+  "productDecision": {
+    "name": "SONARA Studio",
+    "placement": "Creator Studio workspace",
+    "newTopLevelProduct": false,
+    "publicBrandRule": "Keep SONARA Industries, SONARA One, Business Builder, Creator Studio, and Growth Studio as the public product architecture.",
+    "purpose": "Unify creation, editing, review, rights, publishing, analytics, and governed agent workflows without turning the web process into a full desktop DAW, NLE, CAD suite, game engine, or unrestricted autonomous agent runtime."
+  },
+  "policy": {
+    "thirdPartyCodeCopiedIntoSonara": false,
+    "dependenciesAddedByThisChange": false,
+    "databaseMigrationAddedByThisChange": false,
+    "providerCredentialsAddedByThisChange": false,
+    "customerFacingClaimsEnabledByThisChange": false,
+    "socialPublishingEnabledByThisChange": false,
+    "paymentsAuthorityExpandedByThisChange": false,
+    "regulatedIndustryAutomationEnabledByThisChange": false,
+    "rules": [
+      "Research presence never grants execution authority.",
+      "Every runtime capability must have a feature flag, tenant boundary, idempotency contract, bounded retries, dead-letter handling, observability, rollback, and explicit approval boundary before activation.",
+      "Media generation and transformation require rights/provenance metadata; voice and likeness operations require explicit consent.",
+      "Customer-impacting publishing, campaigns, payments, refunds, payouts, destructive actions, policy changes, and security-setting changes require explicit approval.",
+      "External repositories and model weights require exact upstream, license, commercial-use, security, provenance, and version review before adoption.",
+      "Heavy media, 3D, model, OCR, transcription, CAD, and rendering workloads stay outside the public web process."
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "studio.project-graph",
+      "domain": "studio-core",
+      "surface": "Project Graph",
+      "purpose": "Canonical project records linking scripts, assets, timelines, versions, rights, exports, campaigns, products, and analytics.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Organization-scoped records with RLS and immutable evidence links."
+    },
+    {
+      "id": "studio.media-vault",
+      "domain": "studio-core",
+      "surface": "Media Vault",
+      "purpose": "Private asset ingestion, tagging, deduplication, provenance, checksums, versions, retention, and archive management.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "existing_foundation_expand",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Private-by-default storage; tenant-scoped object paths; no public provider URLs as durable assets."
+    },
+    {
+      "id": "studio.script-doc-editor",
+      "domain": "creation",
+      "surface": "Script and Document Editor",
+      "purpose": "Scripts, captions, show notes, books, articles, shot lists, briefs, lyrics, metadata, translations, and structured revisions.",
+      "runtimePlacement": "browser_runtime",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Versioned edits, source attribution, explicit publish approval."
+    },
+    {
+      "id": "studio.transcript-editor",
+      "domain": "creation",
+      "surface": "Transcript Editor",
+      "purpose": "Text-based audio/video editing with timestamp-aligned transcript segments and reversible edits.",
+      "runtimePlacement": "browser_runtime",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Original media remains immutable; edits produce a reversible edit decision list."
+    },
+    {
+      "id": "studio.video-timeline",
+      "domain": "media",
+      "surface": "Video Timeline",
+      "purpose": "Non-destructive clip sequencing, trims, transitions, captions, overlays, B-roll references, and export recipes.",
+      "runtimePlacement": "browser_runtime",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Browser timeline edits metadata; heavy transcode/render work executes in an isolated worker."
+    },
+    {
+      "id": "studio.audio-podcast",
+      "domain": "media",
+      "surface": "Audio and Podcast Studio",
+      "purpose": "Multitrack recording plans, cleanup, transcript sync, music/SFX placement, episode packaging, chapters, show notes, and export.",
+      "runtimePlacement": "isolated_worker",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "No hidden recording; consent and visible capture state required; bounded media processing."
+    },
+    {
+      "id": "studio.voice-generation",
+      "domain": "media",
+      "surface": "Voice",
+      "purpose": "Narration, speech generation, voice conversion, dubbing, and accessibility workflows through approved adapters.",
+      "runtimePlacement": "external_api",
+      "adoptionState": "existing_foundation_expand",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Active consent record required for cloning or conversion; no impersonation or unconsented likeness use."
+    },
+    {
+      "id": "studio.music-sound",
+      "domain": "media",
+      "surface": "Music and Sound",
+      "purpose": "Music generation, sound effects, stem analysis, tempo/key/structure intelligence, mastering prep, and release packaging.",
+      "runtimePlacement": "isolated_gpu_worker",
+      "adoptionState": "existing_foundation_expand",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Commercial-use and model-weight licenses reviewed per engine; artist imitation and unauthorized reference copying blocked."
+    },
+    {
+      "id": "studio.image-design",
+      "domain": "media",
+      "surface": "Image and Design",
+      "purpose": "Image generation/editing adapters, campaign graphics, product imagery, thumbnails, cover art, and brand templates.",
+      "runtimePlacement": "external_api",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Rights/provenance and brand-template constraints required before export or publication."
+    },
+    {
+      "id": "studio.video-generation",
+      "domain": "media",
+      "surface": "Generative Video",
+      "purpose": "Text/image-to-video, B-roll, concept scenes, product footage, cinematic drafts, and model-routed generation.",
+      "runtimePlacement": "external_api",
+      "adoptionState": "existing_foundation_expand",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Consent and rights attestation; provider budgets; no unapproved public-figure or protected-work imitation."
+    },
+    {
+      "id": "studio.review-room",
+      "domain": "collaboration",
+      "surface": "Review Room",
+      "purpose": "Timestamped comments, approval states, compare versions, client review links, and evidence-backed signoff.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Signed/expiring links, scoped permissions, immutable approval events."
+    },
+    {
+      "id": "studio.live-collaboration",
+      "domain": "collaboration",
+      "surface": "Live Room",
+      "purpose": "WebRTC audio/video review, screen sharing, co-review, and live creative sessions.",
+      "runtimePlacement": "browser_runtime",
+      "adoptionState": "future_candidate",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Explicit session consent; no covert capture; provider-backed TURN/SFU where required."
+    },
+    {
+      "id": "studio.publish-export",
+      "domain": "distribution",
+      "surface": "Export Center",
+      "purpose": "Deterministic export recipes for aspect ratio, resolution, captions, thumbnails, audio loudness targets, file naming, and package assembly.",
+      "runtimePlacement": "isolated_worker",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Idempotent exports, resource quotas, reproducible settings, checksum and provenance recording."
+    },
+    {
+      "id": "studio.social-publishing",
+      "domain": "distribution",
+      "surface": "Publish",
+      "purpose": "Provider adapters for user-authorized social upload/posting with platform-specific metadata and status tracking.",
+      "runtimePlacement": "external_api",
+      "adoptionState": "review_required",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Per-provider OAuth, explicit consent, platform audit/terms compliance, approval before customer-impacting post."
+    },
+    {
+      "id": "studio.performance-analytics",
+      "domain": "analytics",
+      "surface": "Performance",
+      "purpose": "Unify asset, post, campaign, audience, conversion, retention, and revenue performance with source-aware metrics.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Source and timestamp on every metric; no fabricated engagement or attribution."
+    },
+    {
+      "id": "studio.rights-provenance",
+      "domain": "governance",
+      "surface": "Rights and Provenance",
+      "purpose": "Track ownership, license, consent, source asset, provider/model, prompt, transformation chain, and export provenance.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "existing_foundation_expand",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Fail closed when required ownership, consent, or license evidence is missing."
+    },
+    {
+      "id": "studio.agent-skill-canvas",
+      "domain": "agentic",
+      "surface": "Agent and Workflow Canvas",
+      "purpose": "Compose bounded skills, deterministic steps, agent reasoning, approvals, tools, retries, and evidence into reusable workflows.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Explicit tool allowlists, delegated authority, approval checkpoints, budget limits, stop controls, trace IDs, and audit events."
+    },
+    {
+      "id": "studio.durable-jobs",
+      "domain": "agentic",
+      "surface": "Durable Job Orchestration",
+      "purpose": "Recoverable long-running generation, publishing, rendering, import/export, and agent workflows.",
+      "runtimePlacement": "isolated_worker",
+      "adoptionState": "research_candidate",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Idempotency, retries/backoff, dead letters, cancellation, timeout, concurrency control, and rollback required."
+    },
+    {
+      "id": "studio.rag-knowledge",
+      "domain": "knowledge",
+      "surface": "Knowledge and RAG",
+      "purpose": "Source-cited retrieval over organization documents, projects, transcripts, media metadata, policies, customer records, and approved external sources.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "existing_foundation_expand",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Tenant-filter before retrieval, source citations, ACL-aware chunks, hybrid retrieval, freshness, and no cross-tenant vector leakage."
+    },
+    {
+      "id": "studio.3d-preview",
+      "domain": "3d",
+      "surface": "3D Preview",
+      "purpose": "Browser previews for approved 3D assets, product scenes, spatial layouts, lightweight AR concepts, and interactive presentations.",
+      "runtimePlacement": "browser_runtime",
+      "adoptionState": "future_candidate",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": false,
+      "safetyBoundary": "Progressive enhancement and fallback required; WebGPU is optional and not assumed available."
+    },
+    {
+      "id": "studio.3d-authoring-companion",
+      "domain": "3d",
+      "surface": "3D Authoring Companion",
+      "purpose": "Round-trip jobs and asset handoff to Blender/Unreal/Autodesk-class tools instead of recreating a full DCC/CAD/game engine in-browser.",
+      "runtimePlacement": "owner_device",
+      "adoptionState": "reference_only",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Signed project exchange, no arbitrary local shell authority, explicit user-controlled import/export."
+    },
+    {
+      "id": "studio.game-production",
+      "domain": "games",
+      "surface": "Game Production Pack",
+      "purpose": "Game design documents, asset pipelines, narrative, QA/test plans, telemetry definitions, build/release checklists, and engine companion workflows.",
+      "runtimePlacement": "owner_device",
+      "adoptionState": "future_candidate",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "SONARA orchestrates projects and assets; engine-specific builds stay in approved external engines."
+    },
+    {
+      "id": "platform.vertical-packs",
+      "domain": "business-os",
+      "surface": "Industry Packs",
+      "purpose": "Data setup, workflows, forms, KPIs, templates, integrations, and agent skills for restaurants, trades, trucking, retail, construction, manufacturing, cleaning, professional services, real estate, creators, and other verticals.",
+      "runtimePlacement": "web_process",
+      "adoptionState": "planned",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "Each pack must use shared identity, billing, permissions, audit, records, and approval systems instead of creating a separate OS."
+    },
+    {
+      "id": "platform.regulated-packs",
+      "domain": "regulated",
+      "surface": "Regulated Industry Packs",
+      "purpose": "Research-only pathways for banking, insurance, government, public-sector, critical infrastructure, military/defense-adjacent administration, and high-risk decision support.",
+      "runtimePlacement": "external_api",
+      "adoptionState": "blocked_until_qualified_review",
+      "enabledByThisChange": false,
+      "humanApprovalRequired": true,
+      "safetyBoundary": "No autonomous high-impact decisions; legal/compliance/security review and domain-specific controls required before any customer runtime."
+    }
+  ],
+  "technologyPatterns": [
+    {
+      "name": "OpenFeature",
+      "role": "Vendor-neutral feature flag API for staged rollout, canaries, kill switches, and degraded-mode control.",
+      "status": "already_in_dependencies",
+      "productionDecision": "expand_usage_after_exact-head_validation",
+      "source": "github.com/open-feature/js-sdk",
+      "licensePosture": "Apache-2.0",
+      "adoptionNote": "Already present in package dependencies; prefer canonical use over a second feature-flag framework."
+    },
+    {
+      "name": "OpenTelemetry",
+      "role": "Standard traces, metrics, logs, and correlation across requests, agents, jobs, providers, and background workers.",
+      "status": "already_in_dependencies",
+      "productionDecision": "expand_usage_after_exact-head_validation",
+      "source": "github.com/open-telemetry/opentelemetry-js",
+      "licensePosture": "Apache-2.0",
+      "adoptionNote": "Already present in package dependencies; standardize correlation across web, agents, providers, and workers."
+    },
+    {
+      "name": "Temporal-style durable execution",
+      "role": "Reference architecture for long-running recoverable workflows, signals, timers, retries, and human-in-the-loop suspension.",
+      "status": "research_candidate",
+      "productionDecision": "benchmark_against_existing_event_consumer_before_dependency_change",
+      "source": "github.com/temporalio/sdk-typescript",
+      "licensePosture": "MIT",
+      "adoptionNote": "Benchmark against existing SONARA event-consumer capabilities before adding a service or dependency."
+    },
+    {
+      "name": "MCP 2026-07-28",
+      "role": "Stateless tool/context interoperability reference for governed connectors and agent tools.",
+      "status": "research_candidate",
+      "productionDecision": "preserve_sonara_authority_and_provider_gateway"
+    },
+    {
+      "name": "pgvector",
+      "role": "Postgres-native embeddings and hybrid retrieval for tenant-scoped RAG.",
+      "status": "existing_platform_fit",
+      "productionDecision": "use_tenant_filtering_and_partitioning_strategy_before_scale",
+      "source": "github.com/pgvector/pgvector",
+      "licensePosture": "PostgreSQL",
+      "adoptionNote": "Fits existing Postgres/Supabase path; tenant filtering and retrieval evaluation remain mandatory."
+    },
+    {
+      "name": "OpenFGA / OPA patterns",
+      "role": "Fine-grained relationship/context authorization references for agent delegation, shared projects, review links, and complex organization roles.",
+      "status": "research_candidate",
+      "productionDecision": "do_not_replace_rls_without_separate_authorization_adr",
+      "source": "github.com/openfga/openfga + github.com/open-policy-agent/opa",
+      "licensePosture": "Apache-2.0",
+      "adoptionNote": "Authorization references only until an ADR proves why existing RLS/role controls are insufficient."
+    },
+    {
+      "name": "FFmpeg",
+      "role": "Media transcode, probe, packaging, waveform, thumbnail, and deterministic export worker.",
+      "status": "worker_candidate",
+      "productionDecision": "isolated_worker_only_after_license_and_resource_review",
+      "source": "github.com/FFmpeg/FFmpeg",
+      "licensePosture": "LGPL-2.1+ default with optional GPL components",
+      "adoptionNote": "Use only in an isolated worker with a reviewed build/configuration and distribution posture."
+    },
+    {
+      "name": "Blender 5.2 LTS",
+      "role": "3D/animation/rendering companion and workflow reference.",
+      "status": "external_companion",
+      "productionDecision": "no_source_embedding_into_proprietary_web_runtime",
+      "source": "github.com/blender/blender",
+      "licensePosture": "GPL-3.0 overall",
+      "adoptionNote": "External/owner-device companion; do not embed Blender source into SONARA proprietary web runtime."
+    }
+  ],
+  "industryPackOrder": [
+    "creator-media-and-marketing",
+    "restaurant-and-retail",
+    "trades-hvac-plumbing-electrical-cleaning",
+    "professional-services-and-project-work",
+    "trucking-fleet-and-delivery",
+    "construction-and-field-operations",
+    "manufacturing-and-inventory",
+    "real-estate-and-rental",
+    "education-and-classroom",
+    "regulated-finance-insurance-government-critical-infrastructure"
+  ]
+}

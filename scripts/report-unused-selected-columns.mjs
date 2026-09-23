@@ -232,11 +232,14 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // 22 -> 21 on 16 September 2026. The accounting export download
 // (/business-builder/owner/accounting-exports/:id/download) stopped fetching
 // every column of up to 10,000 rows to write the thirteen its CSV contains.
+// 21 -> 20 on 23 September 2026. Accepted quote -> work-order creation now
+// selects only id, status, customer_id, amount_cents and title, the exact fields
+// passed explicitly to the deterministic work-order lifecycle builder.
 // The full reasoning, and why the replacement is a computed select rather than
 // a literal one, is on COMPUTED_SELECT_COUNT below -- the counts moved by one
 // in opposite directions and it is one change, so reading either figure without
 // the other would misdescribe it.
-const STAR_SELECT_COUNT = 21;
+const STAR_SELECT_COUNT = 20;
 // 23 -> 25 on 13 September 2026. The operations expansion and integration
 // control routes add two helper queries whose select list is passed through a
 // shared request builder at runtime.

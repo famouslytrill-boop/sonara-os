@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SONARA Research Lab — Unified Commerce + Store Operations</title>
+  <meta name="description" content="2026 research translating storefront, POS, kiosk, inventory, own-brand product, fulfillment and brick-and-mortar patterns into governed SONARA priorities.">
+  <link rel="stylesheet" href="/sonara-design-system.css">
+  <link rel="stylesheet" href="/sonara-application-ui.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p>SONARA Industries · Research Lab · 2026-09-22</p>
+      <h1>Unified Commerce + Store Operations</h1>
+      <p>The target is one commerce operating graph across owned web storefronts, physical stores, POS, kiosks, pickup, delivery and approved external sales channels—not separate databases for every surface.</p>
+    </header>
+
+    <section>
+      <h2>Canonical commerce spine</h2>
+      <p>Organization and location → product and variant → SKU/legitimate product identifiers → pricebook → cart/order → provider-confirmed payment state → inventory movement → fulfillment → receipt → return/refund → customer history → reconciliation.</p>
+      <p>Channel-specific interfaces may differ. Product, customer, order, payment-reference, inventory and audit truth must not.</p>
+    </section>
+
+    <section>
+      <h2>Storefront + POS + kiosk</h2>
+      <p>Owned storefronts should use server-authoritative price and availability. Staff POS should add scanner/search, role-gated discounts, tenders, returns, receipts and closeout. Kiosks should expose a constrained order surface with accessible touch interaction, device/session isolation and a staff-assistance path.</p>
+    </section>
+
+    <section>
+      <h2>Inventory + procurement</h2>
+      <p>Track on hand, allocated, safety stock, available to sell, confirmed inbound, movements, adjustments, cycle counts, transfers and supplier receipts by stock location. Replenishment recommendations should use deterministic demand, safety-stock, reorder-point, EOQ, sell-through, turnover, days-on-hand, GMROI, variance and weeks-of-supply calculations.</p>
+    </section>
+
+    <section>
+      <h2>Own-brand product line</h2>
+      <p>Model concept and specification, BOM/recipe, supplier or contract manufacturer, sample approval, purchasing/production, QA, landed cost, packaging/label revision, legitimate identifiers, inventory receipt, launch assortment, sell-through, replenishment, markdown and retirement.</p>
+      <p>Specialist CAD, PLM, laboratory, certification and regulated manufacturing systems remain adapters where appropriate.</p>
+    </section>
+
+    <section>
+      <h2>Brick-and-mortar</h2>
+      <p>A physical store requires operating controls beyond a register: staff roles, receiving, stock locations, cycle counts, opening/closing cash, device health, payment-provider readiness, pickup procedures, returns, accessibility, network resilience, exception review and daily reconciliation.</p>
+    </section>
+
+    <section>
+      <h2>Omnichannel proof</h2>
+      <p>Required proof includes concurrency-safe stock reservations, buy-online-pickup-in-store, ship-from-store, buy-in-store-ship-to-customer, cross-channel returns, offline/degraded reconciliation, provider-confirmed online and in-person payment states, multi-location reconciliation and one-location canary evidence.</p>
+    </section>
+
+    <section>
+      <h2>Agent boundary</h2>
+      <p>Models may draft product copy, summarize reviews, explain anomalies, recommend merchandising and propose replenishment. Deterministic policy retains price arithmetic, tax, stock mutations, payment/refund state, order settlement, purchasing authority, customer consent, cash reconciliation and destructive changes.</p>
+    </section>
+
+    <section>
+      <h2>2026 benchmark pattern</h2>
+      <p>Shopify, Square, Toast, Odoo, Lightspeed, Stripe, Medusa and Saleor all reinforce different parts of the same pattern: unified product and inventory state, multiple sales surfaces, fulfillment and return workflows, and provider-backed payment infrastructure. GS1 and merchant-feed standards reinforce clean product identity.</p>
+      <p>These products and repositories are research inputs. Their feature counts, hardware catalogs and extension catalogs are not SONARA-native capabilities.</p>
+    </section>
+
+    <section>
+      <h2>Build sequence</h2>
+      <ol>
+        <li>Canonical product, variant, channel, location, order and inventory contracts.</li>
+        <li>Deterministic commerce metrics and reconciliation.</li>
+        <li>Owned storefront and one provider-backed online checkout.</li>
+        <li>Returns/refunds and fulfillment evidence.</li>
+        <li>One physical-location POS canary.</li>
+        <li>BOPIS and cross-channel returns.</li>
+        <li>Multi-location transfers, ship-from-store and replenishment.</li>
+        <li>Own-brand sourcing/manufacturing depth.</li>
+        <li>Approved product feeds and marketplace adapters.</li>
+        <li>Scale only after measured reliability, adoption and cost evidence.</li>
+      </ol>
+    </section>
+
+    <nav aria-label="Research links">
+      <a href="/research-2026-market-intelligence.html">2026 market intelligence</a>
+      <a href="/research-2026-ecosystem-adoption-enterprise.html">Ecosystem + adoption + enterprise proof</a>
+      <a href="/api/infrastructure/manifest">Infrastructure proof tracks JSON</a>
+    </nav>
+
+    <footer>
+      <p>This page documents target architecture and proof requirements. It does not activate a processor, terminal, marketplace, supplier, tax service, hardware device, autonomous purchase, refund authority or production commerce claim.</p>
+    </footer>
+  </main>
+</body>
+</html>

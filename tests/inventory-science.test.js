@@ -20,7 +20,14 @@ const {
   demandStatistics,
   safetyStock,
   reorderPoint,
-  economicOrderQuantity
+  economicOrderQuantity,
+  inventoryAvailability,
+  sellThroughRate,
+  inventoryTurnover,
+  daysInventoryOnHand,
+  grossMarginReturnOnInventory,
+  inventoryVariance,
+  weeksOfSupply
 } = require("../lib/sonara-inventory-science.cjs");
 
 // Standard normal quantiles, as tabulated. Not produced by the code under test.
@@ -284,5 +291,115 @@ describe("the arithmetic behind a reorder point", () => {
         assert.equal(answer.code, code);
       }
     });
+  });
+});
+
+
+describe("retail inventory and store-operation arithmetic", () => {
+  it("keeps confirmed inbound separate from stock that can be sold now", () => {
+    const answer = inventoryAvailability({
+      onHandUnits: 100,
+      allocatedUnits: 20,
+      safetyStockUnits: 15,
+      confirmedInboundUnits: 40
+    });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.availableToSellUnits, 65);
+    assert.equal(answer.projectedAvailableUnits, 105);
+    assert.equal(answer.countsInboundAsAvailableNow, false);
+  });
+
+  it("floors current available-to-sell at zero while reporting the shortfall", () => {
+    const answer = inventoryAvailability({
+      onHandUnits: 10,
+      allocatedUnits: 8,
+      safetyStockUnits: 5
+    });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.rawAvailableUnits, -3);
+    assert.equal(answer.availableToSellUnits, 0);
+    assert.equal(answer.shortfallUnits, 3);
+  });
+
+  it("refuses negative stock components", () => {
+    const answer = inventoryAvailability({ onHandUnits: 10, allocatedUnits: -1 });
+    assert.equal(answer.ok, false);
+    assert.equal(answer.code, "allocated_invalid");
+  });
+
+  it("computes sell-through over starting plus received units", () => {
+    const answer = sellThroughRate({ unitsSold: 60, startingUnits: 80, receivedUnits: 20 });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.unitsAvailableDuringPeriod, 100);
+    assert.equal(answer.rate, 0.6);
+    assert.equal(answer.percent, 60);
+  });
+
+  it("refuses sell-through when the recorded stock history cannot explain sales", () => {
+    const answer = sellThroughRate({ unitsSold: 101, startingUnits: 80, receivedUnits: 20 });
+    assert.equal(answer.ok, false);
+    assert.equal(answer.code, "sales_exceed_recorded_available_units");
+  });
+
+  it("computes inventory turnover from average inventory cost", () => {
+    const answer = inventoryTurnover({
+      costOfGoodsSoldCents: 240000,
+      beginningInventoryCostCents: 100000,
+      endingInventoryCostCents: 140000
+    });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.averageInventoryCostCents, 120000);
+    assert.equal(answer.turns, 2);
+  });
+
+  it("computes days of inventory on hand for an explicit reporting period", () => {
+    const answer = daysInventoryOnHand({
+      costOfGoodsSoldCents: 365000,
+      averageInventoryCostCents: 100000,
+      periodDays: 365
+    });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.days, 100);
+  });
+
+  it("allows negative GMROI when the reconciled gross margin is negative", () => {
+    const answer = grossMarginReturnOnInventory({
+      grossMarginCents: -2500,
+      averageInventoryCostCents: 10000
+    });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.ratio, -0.25);
+  });
+
+  it("reports shrink and overage without hiding the sign", () => {
+    const shrink = inventoryVariance({ bookUnits: 100, countedUnits: 94 });
+    assert.equal(shrink.ok, true);
+    assert.equal(shrink.varianceUnits, -6);
+    assert.equal(shrink.shrinkUnits, 6);
+    assert.equal(shrink.shrinkRate, 0.06);
+
+    const overage = inventoryVariance({ bookUnits: 100, countedUnits: 104 });
+    assert.equal(overage.ok, true);
+    assert.equal(overage.varianceUnits, 4);
+    assert.equal(overage.shrinkUnits, -4);
+    assert.equal(overage.shrinkRate, -0.04);
+  });
+
+  it("does not fabricate a percentage when book stock is zero", () => {
+    const answer = inventoryVariance({ bookUnits: 0, countedUnits: 5 });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.varianceUnits, 5);
+    assert.equal(answer.varianceRate, null);
+    assert.equal(answer.percentageUnavailableBecauseBookIsZero, true);
+  });
+
+  it("computes weeks of supply and refuses a zero-demand denominator", () => {
+    const answer = weeksOfSupply({ availableUnits: 120, averageWeeklyDemandUnits: 30 });
+    assert.equal(answer.ok, true);
+    assert.equal(answer.weeks, 4);
+
+    const noDemand = weeksOfSupply({ availableUnits: 120, averageWeeklyDemandUnits: 0 });
+    assert.equal(noDemand.ok, false);
+    assert.equal(noDemand.code, "weekly_demand_required");
   });
 });

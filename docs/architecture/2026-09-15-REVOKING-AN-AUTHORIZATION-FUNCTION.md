@@ -16,7 +16,7 @@ Supabase's security advisor. It says the advisor's remediation — revoking
 `scripts/verify-migration-replay.mjs` arrived since it was written and builds
 exactly such a database on every release. `pnpm run report:authorization-grants`
 runs the experiment on one: a throwaway PostgreSQL cluster, the Supabase
-primitives shimmed, all 126 migrations applied, and the reads attempted as the
+primitives shimmed, all 128 migrations applied, and the reads attempted as the
 `authenticated` role.
 
 Everything below was measured on 15 September 2026 by that script.

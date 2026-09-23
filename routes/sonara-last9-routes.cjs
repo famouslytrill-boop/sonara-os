@@ -3,6 +3,7 @@
 "use strict";
 
 const quoteConversion = require("../lib/sonara-quote-conversion.cjs");
+const workOrderLifecycle = require("../lib/sonara-work-order-lifecycle.cjs");
 const {
   ALL_OWNER_PAGES,
   childrenOf,
@@ -115,6 +116,19 @@ const RESOURCE_MAP = {
   // under it are reached through the invoice, the same way invoice lines are.
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
   "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
+  "/api/business/work-orders": {
+    table: "business_work_orders",
+    required: ["title"],
+    person: "created_by",
+    defaults: { status: "draft", priority: "normal", currency: "usd" },
+    references: {
+      customer_id: "customers",
+      location_id: "business_locations",
+      booking_id: "business_bookings",
+      vehicle_id: "vehicle_records",
+      route_session_id: "route_tracking_sessions"
+    }
+  },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } },
   // The product catalogue. Status defaults to draft rather than active on
@@ -137,7 +151,7 @@ const PUBLIC_GETS = new Map([
 // lib/sonara-owner-record-pages.cjs, which is also where the reason they
 // needed rewriting is recorded.
 const OWNER_PAGES = [
-  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: customers, quotes, invoices and what you are owed, plus locations, staff, services, bookings, inventory, vendors, food costs, vehicles, and maintenance."]
+  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: customers, quotes, work orders, invoices and what you are owed, plus locations, staff, services, bookings, inventory, vendors, food costs, vehicles, and maintenance."]
 ];
 
 // The staff portal.
@@ -208,6 +222,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         name: "business.procurement_mutation",
         windowSeconds: 60,
         maxAttempts: 30,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig: deps.getSupabaseServerConfig
+      })
+    : passthrough;
+  const workOrderMutationLimiter = typeof deps.createRateLimiter === "function"
+    ? deps.createRateLimiter({
+        name: "business.work_order_mutation",
+        windowSeconds: 60,
+        maxAttempts: 45,
         scopes: ["ip", "subject"],
         subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
         getSupabaseServerConfig: deps.getSupabaseServerConfig
@@ -765,6 +789,21 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         const wanted = recordEdit.changesFrom(page, req.body, before);
         if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
 
+        // An edit can change the same foreign records as create. Re-check any
+        // changed reference against this organization before the service-role
+        // PATCH, because a UUID that was never in the picker can still be posted.
+        const editReferences = RESOURCE_MAP[page.api]?.references || {};
+        for (const [field, table] of Object.entries(editReferences)) {
+          if (!Object.prototype.hasOwnProperty.call(wanted.patch, field)) continue;
+          const supplied = wanted.patch[field];
+          if (supplied === null) continue;
+          const id = String(supplied || "");
+          if (!isUuid(id)) return refuse(400, `${field}_invalid`, "That linked record is not one of ours.");
+          const check = await belongsToOrganization(config, table, id, org.organizationId);
+          if (!check.ok) return refuse(502, `${field}_unreadable`, "We could not check that linked record just now. Nothing has been changed.");
+          if (!check.belongs) return refuse(403, `${field}_not_yours`, "That linked record is not in your business.");
+        }
+
         const said = recordEdit.describeEdit(wanted.changed);
         // Nothing differed. Sending an empty PATCH would ask the database to do
         // nothing and then report it as a save.
@@ -993,6 +1032,143 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.redirect(303, `${back}?procurement_done=${encodeURIComponent(detail)}`);
   });
 
+  // Accepted quote -> work order. Idempotent by organization + quote id.
+  app.post("/api/business/quotes/:quoteId/work-order", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const quoteId = String(req.params.quoteId || "");
+    const back = "/business-builder/owner/quotes";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, `/business-builder/owner/work-orders/${encodeURIComponent(payload.workOrderId)}`);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "work_order_not_started")}`);
+    };
+    if (!isUuid(quoteId)) return respond(400, { ok: false, code: "quote_required" });
+
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required" });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    const found = await supabaseList(
+      config,
+      "quotes",
+      `?select=id,status,customer_id,amount_cents,title&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return respond(503, { ok: false, code: "cannot_read_quote" });
+    const quote = found.rows[0];
+    if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
+
+    // This repeats the database function's validation so the customer gets a
+    // useful refusal before persistence. The database remains authoritative.
+    const built = workOrderLifecycle.workOrderFromQuote({
+      id: quote.id,
+      status: quote.status,
+      customer_id: quote.customer_id,
+      amount_cents: quote.amount_cents,
+      title: quote.title
+    }, {
+      organizationId: org.organizationId,
+      userId: org.userId || req.sonaraAccess?.user?.id || null
+    });
+    if (!built.ok) return respond(409, built);
+
+    const created = await supabaseInsert(config, "rpc/sonara_create_work_order_from_quote", {
+      p_organization_id: org.organizationId,
+      p_quote_id: quoteId,
+      p_actor_user_id: org.userId || null
+    });
+    if (!created.ok) return respond(409, { ok: false, code: "work_order_not_started" });
+    const rows = created.rows;
+    const workOrderId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
+    if (!workOrderId) return respond(502, { ok: false, code: "work_order_id_missing" });
+
+    return respond(200, { ok: true, workOrderId });
+  });
+
+  // Work-order transitions use the database RPC so the state change and event
+  // are one transaction. The JavaScript state machine supplies the readable
+  // refusal before persistence and mirrors the database contract.
+  app.post("/api/business/work-orders/:workOrderId/transition", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const workOrderId = String(req.params.workOrderId || "");
+    const back = `/business-builder/owner/work-orders/${encodeURIComponent(workOrderId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?work_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(workOrderId)) return refuse(400, "work_order_required", "That work order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
+
+    const found = await supabaseList(
+      config,
+      "business_work_orders",
+      `?select=id,status&id=eq.${encodeURIComponent(workOrderId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return refuse(503, "work_order_unreadable", "We could not check the job before changing it.");
+    const work = found.rows[0];
+    if (!work) return refuse(404, "work_order_not_yours", "That work order is not in your business.");
+
+    const requested = sanitizeChoice(req.body?.status, "");
+    const decision = workOrderLifecycle.transitionDecision(work.status, requested);
+    if (!decision.ok) return refuse(409, decision.code, `A job cannot move from ${work.status} to ${requested || "that state"}.`);
+    if (decision.noop) {
+      if (!acceptsHtml(req)) return res.status(200).json({ ok: true, workOrder: work, changed: false });
+      return res.redirect(303, `${back}?work_done=${encodeURIComponent("Nothing changed; the job is already in that state.")}`);
+    }
+    if (decision.next === "invoiced" || decision.next === "closed") {
+      return refuse(409, "dedicated_action_required", decision.next === "invoiced"
+        ? "Raise the invoice from this job so the invoice and job move together."
+        : "Closing after settlement is a separate controlled step and is not enabled in this wave.");
+    }
+
+    const transitioned = await supabaseInsert(config, "rpc/sonara_transition_work_order", {
+      p_organization_id: org.organizationId,
+      p_work_order_id: workOrderId,
+      p_actor_user_id: org.userId || null,
+      p_to_status: decision.next,
+      p_reason: sanitizeText(req.body?.reason) || null
+    });
+
+    if (!transitioned.ok) return refuse(409, "work_order_transition_not_saved", "We could not save that job-stage change. Nothing was reported as changed.");
+    const rows = transitioned.rows;
+    const updated = Array.isArray(rows) ? rows[0] : rows;
+    const detail = `Job moved from ${decision.current} to ${decision.next}.`;
+    if (!acceptsHtml(req)) return res.status(200).json({ ok: true, workOrder: updated, changed: true, detail });
+    return res.redirect(303, `${back}?work_done=${encodeURIComponent(detail)}`);
+  });
+
+  // Completed work -> one draft customer invoice. The database function is
+  // idempotent and transactional, so a retry cannot bill the same job twice.
+  app.post("/api/business/work-orders/:workOrderId/invoice", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const workOrderId = String(req.params.workOrderId || "");
+    const back = `/business-builder/owner/work-orders/${encodeURIComponent(workOrderId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?work_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(workOrderId)) return refuse(400, "work_order_required", "That work order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
+
+    const invoiced = await supabaseInsert(config, "rpc/sonara_invoice_work_order", {
+      p_organization_id: org.organizationId,
+      p_work_order_id: workOrderId,
+      p_actor_user_id: org.userId || null
+    });
+
+    if (!invoiced.ok) return refuse(409, "work_order_not_invoiced", "Complete the job, attach a customer and record an agreed amount before raising its invoice. If those are already set, invoicing is temporarily unavailable.");
+    const invoiceId = invoiced.rows;
+    const id = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
+    if (!id) return refuse(502, "invoice_id_missing", "The invoice action did not return an invoice reference.");
+    if (!acceptsHtml(req)) return res.status(200).json({ ok: true, invoiceId: id, workOrderId });
+    return res.redirect(303, `/business-builder/owner/receivables/${encodeURIComponent(String(id))}`);
+  });
+
   // The four pages whose records have line items: purchase orders, stock
   // counts, transfers and vendor invoices. A purchase order with no lines is a
   // number with nothing behind it, so the parent page alone was not the
@@ -1101,6 +1277,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
             ...(page.table === "purchase_orders" && parent ? [procurementCard(parent, org, req, ui, req.query.procurement_problem, req.query.procurement_done)] : []),
+            ...(page.table === "business_work_orders" && parent ? [workOrderLifecycleCard(parent, ui, req.query.work_problem, req.query.work_done)] : []),
             ...(recordStatus.hasStatus(page) && parent ? [statusCard(page, parent, ui, req.query.status_problem, req.query.status_done)] : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
@@ -1166,6 +1343,18 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       if (!org.ok) return respond(403, org);
 
+      // Reference controls are not authorization. The new work-order children
+      // explicitly name the foreign rows whose ownership must be re-checked on
+      // the server; the visible dropdown is only presentation.
+      for (const [fieldName, table] of Object.entries(spec.ownedReferences || {})) {
+        const supplied = String(req.body[fieldName] || "").trim();
+        if (!supplied) continue;
+        if (!isUuid(supplied)) return respond(400, { ok: false, code: `${fieldName}_invalid` });
+        const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+        if (!check.ok) return respond(502, { ok: false, code: `${fieldName}_unreadable` });
+        if (!check.belongs) return respond(403, { ok: false, code: `${fieldName}_not_yours` });
+      }
+
       // The parent has to belong to this business before anything is attached
       // to it. Without this check a line could be written into another
       // organization's order by posting its id.
@@ -1224,7 +1413,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         if (stillMissing.length) return respond(400, { ok: false, code: "missing_required", missing: stillMissing });
       }
 
-      const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
+      const childPerson = spec.person ? { [spec.person]: org.userId || null } : {};
+      const payload = sanitizeObject({ ...submitted, ...derived, ...childPerson, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
 
       // The one product event this application notifies on.
@@ -1450,7 +1640,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // Scoped by organization as well as by id, because the service key bypasses
     // row level security and a guessed id from another business would otherwise
     // convert.
-    const found = await supabaseList(config, "quotes", `?select=*&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    const found = await supabaseList(config, "quotes", `?select=id,status,customer_id,amount_cents,title&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
     const quote = found.ok ? found.rows[0] : null;
     if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
 
@@ -1684,7 +1874,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // else in -- the form on /business-builder/owner/time asks "Who is
     // starting" -- so the employee is not forced to be the caller. It does have
     // to be one of this business's people.
-    for (const [field, table] of [["employee_id", "business_employee_profiles"], ["location_id", "business_locations"]]) {
+    for (const [field, table] of [
+      ["employee_id", "business_employee_profiles"],
+      ["location_id", "business_locations"],
+      ["work_order_id", "business_work_orders"]
+    ]) {
       const supplied = String(req.body[field] || "");
       if (!supplied) continue;
       const check = await belongsToOrganization(config, table, supplied, org.organizationId);
@@ -1695,6 +1889,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       organization_id: org.organizationId,
       employee_id: req.body.employee_id || null,
       location_id: req.body.location_id || null,
+      work_order_id: req.body.work_order_id || null,
       clock_in_at: new Date().toISOString(),
       entry_source: "employee_portal",
       status: "open",
@@ -1916,6 +2111,18 @@ function registerRestResource(app, path, resource, deps, middleware) {
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return respond(403, org);
 
+    // Any foreign record supplied with a tenant-scoped write has to belong to
+    // this organization too. A dropdown is user interface, not authorization:
+    // a caller can post a UUID that never appeared in the dropdown.
+    for (const [field, table] of Object.entries(resource.references || {})) {
+      const supplied = String(req.body[field] || "").trim();
+      if (!supplied) continue;
+      if (!isUuid(supplied)) return respond(400, { ok: false, code: `${field}_invalid` });
+      const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+      if (!check.ok) return respond(502, { ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return respond(403, { ok: false, code: `${field}_not_yours` });
+    }
+
     // Plan limits, for the resources that have one.
     //
     // The count is read before the insert rather than after, and a count that
@@ -1956,6 +2163,15 @@ function registerRestResource(app, path, resource, deps, middleware) {
       for (const key of Object.keys(submitted)) {
         if (key.startsWith("approval_")) delete submitted[key];
       }
+    }
+    if (resource.table === "business_work_orders") {
+      // The lifecycle begins at draft. Quote linkage is written only by the
+      // accepted-quote endpoint, which verifies the quote and makes retries
+      // idempotent. A raw create cannot claim completion or invoicing.
+      submitted.status = "draft";
+      delete submitted.quote_id;
+      delete submitted.actual_start_at;
+      delete submitted.completed_at;
     }
     const payload = sanitizeObject({ ...resource.defaults, ...submitted, ...person, organization_id: org.organizationId });
     const saved = await supabaseInsert(config, resource.table, payload);
@@ -2321,7 +2537,10 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
   // not exist. Declaring the action beside the page means the row that can take
   // it renders it, and the row that cannot says why in the same column rather
   // than showing a button that will refuse.
-  const action = page.rowAction || null;
+  const actions = [
+    ...(page.rowAction ? [page.rowAction] : []),
+    ...(Array.isArray(page.additionalRowActions) ? page.additionalRowActions : [])
+  ];
 
   // And, for the record kinds with no detail page, the status control itself.
   //
@@ -2351,7 +2570,7 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
     // table nobody can read at a glance.
     ...(rowStatus ? ["<th>Change status</th>"] : []),
     ...(archivable ? ["<th>On your list</th>"] : []),
-    ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
+    ...actions.map((action) => `<th>${ui.escape(action.columnLabel || "Action")}</th>`)
   ];
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
   const width = page.columns.length + extraHeads.length;
@@ -2362,7 +2581,7 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
       if (editable) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}/edit`, "Edit")}</td>`);
       if (rowStatus) cells.push(`<td>${statusControl(page, row, rowStatus, ui)}</td>`);
       if (archivable) cells.push(`<td>${archiveControl(page, row, ui)}</td>`);
-      if (action) {
+      for (const action of actions) {
         const id = encodeURIComponent(String(row.id || ""));
         let reason = null;
         try {
@@ -2374,10 +2593,6 @@ function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
         cells.push(
           reason
             ? `<td>${ui.escape(reason)}</td>`
-            // Two shapes, because the endpoints are two shapes. Most take the
-            // record in the path; some take it in the body, and forcing those
-            // through a path parameter would mean changing a published API to
-            // suit the renderer.
             : action.idField
               ? `<td><form method="post" action="${ui.escape(action.api)}"><input type="hidden" name="${ui.escape(action.idField)}" value="${ui.escape(String(row.id || ""))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
               : `<td><form method="post" action="${ui.escape(action.api.replace(":id", id))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
@@ -2646,6 +2861,33 @@ function statusCard(page, row, ui, problem, done) {
   ].join("");
 }
 
+function workOrderLifecycleCard(row, ui, problem, done) {
+  const current = String(row?.status || "draft").toLowerCase();
+  const ordinary = (workOrderLifecycle.TRANSITIONS[current] || []).filter((next) => !["invoiced", "closed"].includes(next));
+  const options = ordinary.map((next) => `<option value="${ui.escape(next)}">${ui.escape(readableStatus(next))}</option>`).join("");
+  const outcome = statusOutcome(ui, problem, done);
+  const transition = options
+    ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/transition">
+        <label>Next job stage<select name="status">${options}</select></label>
+        <label>Reason or note<textarea name="reason" maxlength="1000" rows="3"></textarea></label>
+        <button class="action" type="submit">Move job</button>
+      </form>`
+    : '<p class="fine">There is no ordinary job-stage change available from here.</p>';
+  const invoice = current === "completed"
+    ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/invoice"><button class="action" type="submit">Raise draft invoice</button></form>`
+    : "";
+  return [
+    '<article class="card">',
+    '<h2>Job stage</h2>',
+    `<p>This job is <strong>${ui.escape(readableStatus(current))}</strong>.</p>`,
+    '<p class="fine">Job stages move in a fixed order. Raising an invoice is separate so a completed job cannot be billed twice by a repeated click.</p>',
+    outcome,
+    transition,
+    invoice,
+    '</article>'
+  ].join("");
+}
+
 function procurementCard(row, org, req, ui, problem, done) {
   if (row?.approval_status === undefined) {
     return ui.card(
@@ -2904,6 +3146,7 @@ async function operationsSummary(config, organizationId) {
     ["Bills you owe", "vendor_invoices"],
     ["Customers", "customers"],
     ["Quotes", "quotes"],
+    ["Work orders", "business_work_orders"],
     ["Invoices you have sent", "customer_invoices"],
     ["Recipes", "recipe_cards"],
     ["Menu", "menu_items"],
