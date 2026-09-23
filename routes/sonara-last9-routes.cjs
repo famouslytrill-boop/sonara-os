@@ -1032,14 +1032,6 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return respond(403, org);
 
-    const existing = await supabaseList(
-      config,
-      "business_work_orders",
-      `?select=id,quote_id&organization_id=eq.${encodeURIComponent(org.organizationId)}&quote_id=eq.${encodeURIComponent(quoteId)}&limit=1`
-    );
-    if (!existing.ok) return respond(503, { ok: false, code: "cannot_check_existing_work_order" });
-    if (existing.rows[0]?.id) return respond(200, { ok: true, workOrderId: existing.rows[0].id, existing: true });
-
     const found = await supabaseList(
       config,
       "quotes",
@@ -1049,26 +1041,29 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const quote = found.rows[0];
     if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
 
+    // This repeats the database function's validation so the customer gets a
+    // useful refusal before persistence. The database remains authoritative.
     const built = workOrderLifecycle.workOrderFromQuote(quote, {
       organizationId: org.organizationId,
       userId: org.userId || req.sonaraAccess?.user?.id || null
     });
     if (!built.ok) return respond(409, built);
 
-    const saved = await supabaseInsert(config, "business_work_orders", built.row);
-    const workOrderId = saved.ok ? saved.rows?.[0]?.id : null;
-    if (!workOrderId) return respond(502, { ok: false, code: "work_order_not_saved" });
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_create_work_order_from_quote`, {
+      method: "POST",
+      headers: headers(config),
+      body: JSON.stringify({
+        p_organization_id: org.organizationId,
+        p_quote_id: quoteId,
+        p_actor_user_id: org.userId || null
+      })
+    }).catch(() => undefined);
+    if (!response?.ok) return respond(409, { ok: false, code: "work_order_not_started" });
+    const rows = await response.json().catch(() => []);
+    const workOrderId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
+    if (!workOrderId) return respond(502, { ok: false, code: "work_order_id_missing" });
 
-    await supabaseInsert(config, "business_work_order_events", {
-      organization_id: org.organizationId,
-      work_order_id: workOrderId,
-      event_type: "created_from_quote",
-      to_status: "draft",
-      actor_user_id: org.userId || null,
-      metadata: { quote_id: quoteId }
-    });
-
-    return respond(201, { ok: true, workOrderId, existing: false });
+    return respond(200, { ok: true, workOrderId });
   });
 
   // Work-order transitions use the database RPC so the state change and event
