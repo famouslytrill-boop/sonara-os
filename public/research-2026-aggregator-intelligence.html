@@ -101,6 +101,23 @@
     </section>
 
     <section>
+      <h2>Verified connector depth is now the engineering priority</h2>
+      <p>Architecture breadth is no longer the primary gap. SONARA should measure each connector through evidence stages: research only → adapter contract → sandbox verified → tenant canary verified → production verified.</p>
+      <p>A connector does not count as verified because an SDK exists, OAuth opens, a third-party catalog lists it, or one request returned successfully. Production verification requires tenant isolation, scoped credentials, capability negotiation, sync/event correctness, reconciliation, failure handling, observability, one-tenant canary evidence, rollback, deletion/disconnect proof and exact live-SHA evidence.</p>
+      <table>
+        <thead>
+          <tr><th>Wave</th><th>Mode</th><th>Priority connectors</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Read-only</td><td>Google Search Console → App Store Connect analytics → Google Play Developer Reporting → Google Analytics Data API → PostHog</td></tr>
+          <tr><td>2</td><td>Read first, bounded writes later</td><td>HubSpot → Shopify GraphQL Admin → Microsoft Graph → Slack → QuickBooks Online</td></tr>
+          <tr><td>3</td><td>Consequential / regulated</td><td>Stripe Connect mutations, Plaid mutating products, social publishing, ad mutations, POS order writes and device control</td></tr>
+        </tbody>
+      </table>
+      <p>The target is not a huge unverified connector catalog. The target is a smaller set of deeply verified connectors whose authorization, synchronization, provider receipts, recovery and production behavior can be proven.</p>
+    </section>
+
+    <section>
       <h2>First production canary</h2>
       <p>Start with a read-only SaaS/Data Connection Aggregator for one tenant, one low-risk provider and one canonical object type. Prove credential isolation, incremental cursors, webhook handling when available, health, backoff, provenance, OpenTelemetry, reconciliation and disconnect/data-deletion behavior before attempting money movement, banking mutations, publication writes or broad multi-provider routing.</p>
     </section>
