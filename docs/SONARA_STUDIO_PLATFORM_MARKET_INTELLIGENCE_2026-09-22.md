@@ -573,6 +573,51 @@ MDN still classifies WebGPU as limited availability, so no core workflow may dep
 Source:
 - https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API
 
+## Additional 2026 vertical-market evidence
+
+The broader industry research reinforces the same architecture decision: the winning products combine domain records, mobile/offline execution, real-time operational data, AI assistance, and deterministic business actions.
+
+- **Fleet and trucking:** Samsara's June 2026 platform updates combine AI risk detection, dispatch/navigation, inventory/reorder suggestions, driver communications, forms, maintenance, and agentic operational actions. SONARA should model fleet as drivers + vehicles + routes + jobs + inspections + maintenance + documents + alerts + costs, while leaving regulated telematics hardware and safety-critical inference to approved device/provider adapters.
+  - https://www.samsara.com/blog/announcing-new-innovations-to-reduce-risk-increase-efficiency-and-digitally-transform-operations
+  - https://kb.samsara.com/hc/en-us/articles/29524290420749-Step-7-Configure-Samsara-Fleet-Features
+- **Retail and restaurant:** Square's 2026 releases combine POS, synchronized multi-channel menus, online ordering, kiosks/delivery channels, inventory, customer intelligence, image tooling, and AI over live business data. SONARA's restaurant/retail pack should therefore treat catalog/menu, location, inventory, order, customer, payment, and channel synchronization as one operational graph.
+  - https://squareup.com/us/en/releases/food-and-beverage
+  - https://squareup.com/us/en/releases/retail
+- **Field service and trades:** Dynamics 365 Field Service's 2026 roadmap emphasizes work orders, scheduling, assets, technician mobile/offline performance, and Copilot for natural-language queries and work-order updates. SONARA's trades pack should prioritize offline-friendly mobile work orders, dispatch, estimates, line items, equipment history, photos, signatures, invoices, and approval-safe AI assistance.
+  - https://learn.microsoft.com/en-us/dynamics365/release-plan/2026wave1/service/dynamics365-field-service/
+  - https://learn.microsoft.com/en-us/dynamics365/field-service/copilot-overview
+- **Manufacturing:** Siemens' 2026 industrial AI direction combines digital twins, simulation, real-world engineering/plant data, and AI across design, production, operations, and supply chain. SAP likewise frames manufacturing AI as end-to-end orchestration over trusted enterprise data. SONARA should focus on production records, BOM/reference structures, work orders, inventory, vendors, QC, maintenance, scheduling, traceability, and integrations—not attempt to replace physics simulation or industrial control systems.
+  - https://press.siemens.com/global/en/pressrelease/siemens-unveils-technologies-accelerate-industrial-ai-revolution-ces-2026
+  - https://news.sap.com/2026/04/sap-at-hannover-messe-2026-agentic-ai-resilient-manufacturing/
+- **Real estate:** Zillow's March 2026 AI mode connects live listing/domain data to real actions such as tour scheduling and agent connection, using a central coordinator plus domain-specific skills. SONARA's real-estate pack should use the same general pattern: ground assistance in property/unit/lead/application/lease/work-order/vendor/payment records, then expose narrow skills rather than a free-ranging chatbot.
+  - https://www.zillow.com/news/zillow-debuts-ai-mode/
+  - https://www.zillow.com/news/how-zillows-new-ai-mode-works-throughout-the-real-estate-journey/
+
+### Repository and license posture for priority technology candidates
+
+These are **research/adoption candidates**, not blanket install authorization.
+
+| Technology | Upstream / role | Current license posture | SONARA decision |
+| --- | --- | --- | --- |
+| OpenFeature JS SDK | Feature flags/canaries/kill switches | Apache-2.0 | Already present; expand canonical usage before adding another flag framework. |
+| OpenTelemetry JS | Traces/metrics/log correlation | Apache-2.0 | Already present; standardize Studio/agent/job correlation IDs. |
+| Temporal TypeScript SDK | Durable long-running workflow reference/candidate | MIT | Benchmark against SONARA's existing event consumer before any dependency/service addition. |
+| pgvector | Postgres vector similarity and hybrid retrieval | PostgreSQL license | Fits the existing Postgres/Supabase RAG path; enforce tenant filters before retrieval and test scale. |
+| OpenFGA | Relationship-based authorization reference | Apache-2.0 | Research for delegated/project/client/agent relationships; do not replace RLS without ADR. |
+| OPA | Context/policy authorization reference | Apache-2.0 | Research for policy decisions; avoid introducing a second authority plane casually. |
+| FFmpeg | Media probe/transcode/export worker | LGPL-2.1+ by default; optional GPL components can change the effective license | Worker candidate only with an explicitly reviewed build/configuration. |
+| Blender | 3D authoring/rendering companion | GPL-3.0 overall | Keep as external/owner-device companion; do not embed Blender source into proprietary SONARA web runtime. |
+
+License sources:
+- https://github.com/open-feature/js-sdk
+- https://github.com/open-telemetry/opentelemetry-js
+- https://github.com/temporalio/sdk-typescript/blob/main/LICENSE
+- https://github.com/pgvector/pgvector/blob/master/LICENSE
+- https://github.com/openfga/openfga
+- https://github.com/open-policy-agent/opa
+- https://github.com/FFmpeg/FFmpeg/blob/master/LICENSE.md
+- https://github.com/blender/blender
+
 ## Vertical industry platform strategy
 
 Do not create separate infrastructure stacks for every industry. Build shared primitives once and package them into vertical configurations.
