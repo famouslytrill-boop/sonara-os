@@ -8,7 +8,7 @@ const { getMarketRDPriorities } = require("../lib/sonara-market-rd-priorities.cj
 describe("SONARA market research and development priorities", () => {
   it("defines measurable cross-company fixes", () => {
     const strategy = getMarketRDPriorities();
-    assert.equal(strategy.version, "2026-07-25");
+    assert.equal(strategy.version, "2026-09-23");
     assert.ok(strategy.crossCompanyFixes.length >= 4);
     for (const key of ["time_to_value", "shared_customer_and_consent_spine", "value_and_cost_scorecards", "portable_evidence"]) {
       assert.ok(strategy.crossCompanyFixes.some((item) => item.key === key), `${key} missing`);
