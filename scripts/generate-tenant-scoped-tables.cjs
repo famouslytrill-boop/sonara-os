@@ -155,7 +155,22 @@ fs.writeFileSync(outputPath, contents);
 
 if (process.argv.includes("--check")) {
   if (previous !== contents) {
+    const previousLines = previous.split("\n");
+    const generatedLines = contents.split("\n");
+    const lineCount = Math.max(previousLines.length, generatedLines.length);
+    let firstDifferentLine = -1;
+    for (let index = 0; index < lineCount; index += 1) {
+      if (previousLines[index] !== generatedLines[index]) {
+        firstDifferentLine = index;
+        break;
+      }
+    }
     console.error("[fail] lib/sonara-tenant-scoped-tables.cjs is stale. Run `pnpm run gen:tenant-tables` and commit the result.");
+    if (firstDifferentLine >= 0) {
+      console.error(`[diff] first mismatch at line ${firstDifferentLine + 1}`);
+      console.error(`[diff] committed: ${JSON.stringify(previousLines[firstDifferentLine] ?? "<missing>")}`);
+      console.error(`[diff] generated: ${JSON.stringify(generatedLines[firstDifferentLine] ?? "<missing>")}`);
+    }
     fs.writeFileSync(outputPath, previous || contents);
     process.exit(1);
   }
