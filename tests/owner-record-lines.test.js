@@ -206,7 +206,7 @@ describe("line items on the records that have them", () => {
   });
 
   it("covers every record that has lines", () => {
-    assert.equal(WITH_LINES.length, 10, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
+    assert.equal(WITH_LINES.length, 13, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
     const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
     assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
   });
