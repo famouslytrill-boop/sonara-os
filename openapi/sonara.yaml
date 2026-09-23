@@ -1305,6 +1305,81 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-orders:
+    get:
+      operationId: listBusinessWorkOrders
+      tags: [Operations]
+      summary: List work orders for this business.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessWorkOrder
+      tags: [Operations]
+      summary: Create a work order for this business.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/quotes/{quoteId}/work-order:
+    post:
+      operationId: convertBusinessQuoteToWorkOrder
+      tags: [Operations]
+      summary: Turn an accepted quote into an idempotent work order.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-order-assignments:
+    post:
+      operationId: createBusinessWorkOrderAssignment
+      tags: [Operations]
+      summary: Assign a worker to a work order.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-order-materials:
+    post:
+      operationId: createBusinessWorkOrderMaterial
+      tags: [Operations]
+      summary: Record planned or used material for a work order.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-order-evidence:
+    post:
+      operationId: createBusinessWorkOrderEvidence
+      tags: [Operations]
+      summary: Attach evidence or a note to a work order.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-orders/{workOrderId}/transition:
+    post:
+      operationId: transitionBusinessWorkOrder
+      tags: [Operations]
+      summary: Move a work order through an allowed lifecycle transition.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/work-orders/{workOrderId}/invoice:
+    post:
+      operationId: invoiceBusinessWorkOrder
+      tags: [Operations]
+      summary: Create one draft customer invoice from completed work.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "409": { $ref: "#/components/responses/BadRequest" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/quotes/{quoteId}/invoice:
     post:
       operationId: convertBusinessQuoteToInvoice
