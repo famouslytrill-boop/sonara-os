@@ -6,6 +6,7 @@ const {
   AGGREGATOR_ARCHITECTURE_VERSION,
   PROTOCOL_BASELINE,
   AGGREGATOR_MARKET_SIGNALS_2026,
+  AGGREGATION_CAPABILITY_CLASSES,
   AGGREGATION_DOMAINS,
   AGGREGATION_CONTROL_PLANE_REQUIREMENTS,
   AGGREGATOR_IMPLEMENTATION_SEQUENCE,
@@ -19,11 +20,12 @@ describe("SONARA aggregator control-plane market architecture", () => {
   it("keeps aggregator research current and non-executing", () => {
     const snapshot = getAggregatorMarketArchitecture();
     assert.equal(AGGREGATOR_RESEARCH_DATE, "2026-09-22");
-    assert.equal(AGGREGATOR_ARCHITECTURE_VERSION, "1.0.0");
+    assert.equal(AGGREGATOR_ARCHITECTURE_VERSION, "1.1.0");
     assert.equal(snapshot.researchOnly, true);
     assert.equal(snapshot.productionExecutionCount, 0);
-    assert.ok(AGGREGATOR_MARKET_SIGNALS_2026.length >= 10);
-    assert.ok(AGGREGATION_DOMAINS.length >= 15);
+    assert.ok(AGGREGATOR_MARKET_SIGNALS_2026.length >= 20);
+    assert.equal(AGGREGATION_CAPABILITY_CLASSES.length, 10);
+    assert.ok(AGGREGATION_DOMAINS.length >= 25);
     for (const signal of AGGREGATOR_MARKET_SIGNALS_2026) {
       assert.equal(signal.runtimeAuthority, "none");
       assert.equal(signal.productionCapability, false);
@@ -42,6 +44,18 @@ describe("SONARA aggregator control-plane market architecture", () => {
     assert.equal(PROTOCOL_BASELINE.cloudevents, "1.0");
     assert.equal(PROTOCOL_BASELINE.mcp, "2026-07-28");
     assert.equal(PROTOCOL_BASELINE.opentelemetrySemanticConventions, "1.44.0");
+  });
+
+  it("keeps capability classes explicit instead of treating every integration as the same connector", () => {
+    const keys = new Set(AGGREGATION_CAPABILITY_CLASSES.map((item) => item.key));
+    for (const key of [
+      "common_model_read", "managed_connection_auth", "incremental_sync", "event_ingress",
+      "synchronous_action", "long_running_task", "bidirectional_sync", "policy_routing_gateway",
+      "regulated_mutation", "device_edge_command"
+    ]) {
+      assert.equal(keys.has(key), true, `missing capability class ${key}`);
+    }
+    assert.equal(getAggregatorMarketArchitecture().capabilityClassCount, 10);
   });
 
   it("covers the requested cross-industry aggregation surfaces", () => {
@@ -65,7 +79,17 @@ describe("SONARA aggregator control-plane market architecture", () => {
       "jobs_talent",
       "property_real_estate",
       "iot_edge_robotics",
-      "public_sector_open_data"
+      "public_sector_open_data",
+      "communications_omnichannel",
+      "app_store_distribution_analytics",
+      "ads_search_marketing",
+      "cloud_compute_storage_observability",
+      "manufacturing_supply_chain",
+      "insurance_risk",
+      "utilities_energy",
+      "education_learning_translation",
+      "gaming_platform_services",
+      "mobility_vehicle_fleet"
     ]) {
       assert.equal(keys.has(key), true, `missing aggregation domain ${key}`);
     }
@@ -80,6 +104,10 @@ describe("SONARA aggregator control-plane market architecture", () => {
     assert.match(requirements, /OpenTelemetry/i);
     assert.match(requirements, /capability negotiation/i);
     assert.match(requirements, /human approval/i);
+    assert.match(requirements, /fail closed/i);
+    assert.match(requirements, /deprecation/i);
+    assert.match(requirements, /settled state/i);
+    assert.match(requirements, /verified-native status/i);
     assert.match(getAggregatorMarketArchitecture().guardrails.join(" "), /native integration count/i);
   });
 

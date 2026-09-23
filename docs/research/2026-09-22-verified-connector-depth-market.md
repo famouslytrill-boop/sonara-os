@@ -314,7 +314,7 @@ These can reuse the same connection model later, but they require stronger appro
 
 The user's requested scope is broad, but it does not require separate connector infrastructure for every industry.
 
-### Nexus / shared platform
+### SONARA One / shared platform
 
 One connector system should cover:
 

@@ -2,7 +2,7 @@
 
 **Observed:** 2026-09-22  
 **Repository baseline:** `56772a326b5f005f6b9a3461287a62226575e043`  
-**Status:** research + architecture only; no provider, dependency, credential, migration, payment rail, model, connector, device, worker, or external mutation is enabled by this document.
+**Status:** research + architecture only; no provider, dependency, credential, migration, payment rail, model, connector, device, worker, or external mutation is enabled by this document. Architecture registry version: `1.1.0`.
 
 ## Executive decision
 
@@ -12,7 +12,7 @@ Build one **Aggregation Control Plane** in SONARA Nexus and expose domain-specif
 
 The common control plane owns:
 
-`tenant -> connection -> capability -> policy -> adapter -> normalization -> durable event/workflow -> evidence -> reconciliation -> telemetry`
+`tenant -> connection -> capability class -> capability -> policy -> adapter -> normalization -> durable event/workflow -> evidence -> reconciliation -> telemetry`
 
 For outbound mutations:
 
@@ -75,6 +75,35 @@ The existing architecture already contains pieces an aggregation platform needs:
 - a rule that external catalog size is not SONARA native integration count
 
 The missing step is to converge these pieces into one explicit aggregation contract.
+
+## 2026 market topology and build-vs-buy boundary
+
+The market now separates into distinct layers: common-model/unified APIs; embedded auth/sync/webhook/action infrastructure; enterprise iPaaS/API/agent governance; AI model/tool gateways; and domain aggregators for finance, commerce, logistics, communications, identity, app stores, ads, media and vertical industries.
+
+SONARA should own the control plane, not every commodity adapter.
+
+**SONARA-owned moat:** tenant authority, canonical business state, capability classes, entitlements, budgets, approvals, deterministic workflow execution, receipts, provenance, reconciliation, observability, usage metering, connector certification and product billing.
+
+**Replaceable provider reach:** long-tail OAuth/provider coverage, commodity schema translation, carrier/marketplace/social/financial-institution breadth, specialized model/media compute, and regulated third-party rails.
+
+The rule is: **providers supply reach; SONARA retains workflow truth and authority.**
+
+### Capability classes
+
+| Class | Execution semantics | Default boundary |
+| --- | --- | --- |
+| Common-model read | bounded request/response read | read-only |
+| Managed connection/auth | credential + scope lifecycle | security boundary |
+| Incremental sync | cursor + checkpoint + backfill | read-only |
+| Event ingress | webhook/poll + dedupe/replay | read-only |
+| Synchronous action | bounded provider write | policy-gated |
+| Long-running task | durable async job | policy-gated |
+| Bidirectional sync | desired-state reconciliation | approval-capable |
+| Policy routing gateway | hard constraints then deterministic route | bounded external compute |
+| Regulated mutation | receipt + settlement/reversal lifecycle | human approval by default |
+| Device/edge command | interlock + command + evidence | safety-gated |
+
+A connector's verification stage remains a separate hard-evidence decision in `lib/sonara-connector-verification.cjs`; a capability class never upgrades verification by itself.
 
 ## Aggregation Control Plane
 
@@ -206,7 +235,7 @@ Do not silently route a sensitive write to a different provider merely because t
 
 ## Domain aggregation map
 
-### Nexus / shared platform
+### SONARA One / shared platform
 
 - AI model gateway
 - MCP/tool gateway
@@ -284,6 +313,19 @@ Use truthful states such as:
 - budget blocked
 - disabled
 - unavailable
+
+## Failure modes to design out
+
+- **Connector-count theater:** catalog size is mistaken for verified customer capability.
+- **Green-check connection UX:** OAuth success is shown as healthy even when scopes, quota, sync, webhook or write capability is missing.
+- **Webhook-only state:** missed or out-of-order events corrupt local state because no polling/backfill/reconciliation exists.
+- **Agent authority leakage:** credentials or generic write tools reach a model without deterministic policy, idempotency, approval and receipt boundaries.
+- **Fail-open authority or cost:** execution continues when budget, policy, provider health, rights, residency or authorization cannot be proven.
+- **Provider-shaped core data:** one vendor schema becomes SONARA's business model and makes provider replacement expensive.
+- **2xx equals complete:** accepted requests are treated as settled payments, publications, orders or jobs without confirmation and reconciliation.
+- **SDK/spec drift:** declaring protocol support is confused with proving the installed SDK/transport version actually speaks it.
+- **Rights loss through normalization:** provenance, consent, deletion, licensing or AI-use restrictions disappear in RAG/media pipelines.
+- **Silent provider substitution:** routing swaps a consequential provider without authorization merely because another route scores better.
 
 ## Enterprise requirements
 

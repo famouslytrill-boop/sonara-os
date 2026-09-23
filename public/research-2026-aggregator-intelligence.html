@@ -19,8 +19,9 @@
 
     <section>
       <h2>Architecture decision</h2>
-      <p>SONARA should build one shared Aggregation Control Plane in Nexus, then expose domain-specific connection experiences through Business Builder™, Creator Studio™ and Growth Studio™.</p>
-      <p><code>tenant → connection → capability → policy → adapter → normalization → durable workflow/event → evidence → reconciliation → telemetry</code></p>
+      <p>SONARA should build one shared Aggregation Control Plane in SONARA One, then expose domain-specific connection experiences through Business Builder™, Creator Studio™ and Growth Studio™.</p>
+      <p><code>tenant → connection → capability class → capability → policy → adapter → normalization → durable workflow/event → evidence → reconciliation → telemetry</code></p>
+      <p><strong>Build-vs-buy boundary:</strong> SONARA owns tenant authority, canonical state, workflows, evidence, reconciliation, telemetry and billing. Provider breadth stays replaceable behind adapters.</p>
       <p>For external writes: <code>desired state → authority classification → approval when required → idempotent provider call → receipt → reconciliation → settled state</code>.</p>
     </section>
 
@@ -56,6 +57,11 @@
     </section>
 
     <section>
+      <h2>Aggregator capability classes</h2>
+      <p>A connection is not a capability. SONARA separates managed auth, bounded reads, cursor sync, event ingress, synchronous actions, durable tasks, bidirectional reconciliation, policy routing, regulated mutations and safety-gated device commands.</p>
+    </section>
+
+    <section>
       <h2>Cross-industry aggregation domains</h2>
       <table>
         <thead>
@@ -78,6 +84,12 @@
           <tr><td>Jobs + talent</td><td>job boards, candidates, applications, interviews</td><td>Business Builder™</td></tr>
           <tr><td>IoT + edge</td><td>devices, telemetry, cameras, GPS, sensors, robotics</td><td>Nexus with safety gates</td></tr>
           <tr><td>Public sector + open data</td><td>datasets, permits, public records, government APIs</td><td>Business Builder™ with policy review</td></tr>
+          <tr><td>Communications</td><td>SMS, RCS, WhatsApp, voice, email, chat</td><td>SONARA One</td></tr>
+          <tr><td>App stores + ads</td><td>distribution, subscriptions, analytics, campaigns, conversion reporting</td><td>Growth Studio™</td></tr>
+          <tr><td>Cloud + storage + observability</td><td>compute, objects, queues, logs, metrics, traces</td><td>SONARA One</td></tr>
+          <tr><td>Manufacturing + supply chain</td><td>ERP, MES, procurement, inventory, quality, maintenance</td><td>Business Builder™</td></tr>
+          <tr><td>Insurance + utilities + mobility</td><td>risk, policies, claims, metering, fleets, EV, telematics</td><td>Business Builder™ via reviewed providers</td></tr>
+          <tr><td>Education + gaming</td><td>learning systems, credentials, translation, profiles, entitlements, telemetry</td><td>Business Builder™ / Creator Studio™</td></tr>
         </tbody>
       </table>
     </section>
@@ -124,7 +136,7 @@
 
     <section>
       <h2>Current market references</h2>
-      <p>Research inputs include Merge Unified, OpenRouter, LiteLLM, Airbyte, Fivetran, Workato, n8n, Stripe Connect, Plaid, Deliverect, Ayrshare, Booking.com Connectivity, Google Maps Platform, MCP, OpenAPI, AsyncAPI, CloudEvents and OpenTelemetry.</p>
+      <p>Research inputs include Merge Unified, Nango, Paragon, Pipedream, Composio, Workato, Boomi, MuleSoft, Kong, OpenRouter, LiteLLM, Cloudflare AI Gateway, Airbyte, Fivetran, Stripe Connect, Plaid, Deliverect, Shopify Marketplace Connect, EasyPost, Ayrshare, Twilio, Auth0, Apple App Store Connect, Google Play Developer API, Google Ads API, Spotify, YouTube, Booking.com Connectivity, Google Maps Platform, MCP, OpenAPI, AsyncAPI, CloudEvents and OpenTelemetry.</p>
       <p>Vendor catalog sizes and vendor-reported operating metrics are comparison inputs only. They are not SONARA production measurements.</p>
     </section>
 
