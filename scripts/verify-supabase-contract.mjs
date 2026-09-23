@@ -45,6 +45,7 @@ const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
   "014_sonara_restaurant_margin_ops_schema.sql",
+  "015_sonara_device_sensory_location_schema.sql",
   "20260811220000_customer_invoices_accounts_receivable.sql",
   "20260811234500_customer_invoice_lines.sql",
   "20260818100000_merchant_product_catalogue.sql",
@@ -165,6 +166,8 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "pos_menu_mix_items",
   "employee_wage_rates",
   "reviews",
+  // Route session links a work order to the existing organization-scoped tracking record.
+  "route_tracking_sessions",
   // Selling something that is not a service. Every table above prices work or
   // tracks stock; neither models a thing sold in sizes at different prices.
   // The versions table is the child of the product, on the same footing as the
