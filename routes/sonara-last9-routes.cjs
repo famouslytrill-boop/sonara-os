@@ -215,6 +215,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         getSupabaseServerConfig: deps.getSupabaseServerConfig
       })
     : passthrough;
+  const workOrderMutationLimiter = typeof deps.createRateLimiter === "function"
+    ? deps.createRateLimiter({
+        name: "business.work_order_mutation",
+        windowSeconds: 60,
+        maxAttempts: 45,
+        scopes: ["ip", "subject"],
+        subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
+        getSupabaseServerConfig: deps.getSupabaseServerConfig
+      })
+    : passthrough;
 
   registerVerticalTemplates(app, deps, ui);
 
@@ -993,6 +1003,154 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const detail = `Approval moved from ${decision.currentState} to ${decision.nextState}.`;
     if (!acceptsHtml(req)) return res.status(200).json({ ok: true, order, action: decision.action, detail, audited: true });
     return res.redirect(303, `${back}?procurement_done=${encodeURIComponent(detail)}`);
+  });
+
+  // Accepted quote -> work order. Idempotent by organization + quote id.
+  app.post("/api/business/quotes/:quoteId/work-order", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const quoteId = String(req.params.quoteId || "");
+    const back = "/business-builder/owner/quotes";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, `/business-builder/owner/work-orders/${encodeURIComponent(payload.workOrderId)}`);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "work_order_not_started")}`);
+    };
+    if (!isUuid(quoteId)) return respond(400, { ok: false, code: "quote_required" });
+
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required" });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    const existing = await supabaseList(
+      config,
+      "business_work_orders",
+      `?select=id,quote_id&organization_id=eq.${encodeURIComponent(org.organizationId)}&quote_id=eq.${encodeURIComponent(quoteId)}&limit=1`
+    );
+    if (!existing.ok) return respond(503, { ok: false, code: "cannot_check_existing_work_order" });
+    if (existing.rows[0]?.id) return respond(200, { ok: true, workOrderId: existing.rows[0].id, existing: true });
+
+    const found = await supabaseList(
+      config,
+      "quotes",
+      `?select=*&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return respond(503, { ok: false, code: "cannot_read_quote" });
+    const quote = found.rows[0];
+    if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
+
+    const built = workOrderLifecycle.workOrderFromQuote(quote, {
+      organizationId: org.organizationId,
+      userId: org.userId || req.sonaraAccess?.user?.id || null
+    });
+    if (!built.ok) return respond(409, built);
+
+    const saved = await supabaseInsert(config, "business_work_orders", built.row);
+    const workOrderId = saved.ok ? saved.rows?.[0]?.id : null;
+    if (!workOrderId) return respond(502, { ok: false, code: "work_order_not_saved" });
+
+    await supabaseInsert(config, "business_work_order_events", {
+      organization_id: org.organizationId,
+      work_order_id: workOrderId,
+      event_type: "created_from_quote",
+      to_status: "draft",
+      actor_user_id: org.userId || null,
+      metadata: { quote_id: quoteId }
+    });
+
+    return respond(201, { ok: true, workOrderId, existing: false });
+  });
+
+  // Work-order transitions use the database RPC so the state change and event
+  // are one transaction. The JavaScript state machine supplies the readable
+  // refusal before persistence and mirrors the database contract.
+  app.post("/api/business/work-orders/:workOrderId/transition", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const workOrderId = String(req.params.workOrderId || "");
+    const back = `/business-builder/owner/work-orders/${encodeURIComponent(workOrderId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?work_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(workOrderId)) return refuse(400, "work_order_required", "That work order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
+
+    const found = await supabaseList(
+      config,
+      "business_work_orders",
+      `?select=id,status&id=eq.${encodeURIComponent(workOrderId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return refuse(503, "work_order_unreadable", "We could not check the job before changing it.");
+    const work = found.rows[0];
+    if (!work) return refuse(404, "work_order_not_yours", "That work order is not in your business.");
+
+    const requested = sanitizeChoice(req.body?.status, "");
+    const decision = workOrderLifecycle.transitionDecision(work.status, requested);
+    if (!decision.ok) return refuse(409, decision.code, `A job cannot move from ${work.status} to ${requested || "that state"}.`);
+    if (decision.noop) {
+      if (!acceptsHtml(req)) return res.status(200).json({ ok: true, workOrder: work, changed: false });
+      return res.redirect(303, `${back}?work_done=${encodeURIComponent("Nothing changed; the job is already in that state.")}`);
+    }
+    if (decision.next === "invoiced" || decision.next === "closed") {
+      return refuse(409, "dedicated_action_required", decision.next === "invoiced"
+        ? "Raise the invoice from this job so the invoice and job move together."
+        : "Closing after settlement is a separate controlled step and is not enabled in this wave.");
+    }
+
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_transition_work_order`, {
+      method: "POST",
+      headers: headers(config),
+      body: JSON.stringify({
+        p_organization_id: org.organizationId,
+        p_work_order_id: workOrderId,
+        p_actor_user_id: org.userId || null,
+        p_to_status: decision.next,
+        p_reason: sanitizeText(req.body?.reason) || null
+      })
+    }).catch(() => undefined);
+
+    if (!response?.ok) return refuse(409, "work_order_transition_not_saved", "The job changed before this action completed, or the current work-order migration is not installed.");
+    const rows = await response.json().catch(() => []);
+    const updated = Array.isArray(rows) ? rows[0] : rows;
+    const detail = `Job moved from ${decision.current} to ${decision.next}.`;
+    if (!acceptsHtml(req)) return res.status(200).json({ ok: true, workOrder: updated, changed: true, detail });
+    return res.redirect(303, `${back}?work_done=${encodeURIComponent(detail)}`);
+  });
+
+  // Completed work -> one draft customer invoice. The database function is
+  // idempotent and transactional, so a retry cannot bill the same job twice.
+  app.post("/api/business/work-orders/:workOrderId/invoice", requireBusinessManager, workOrderMutationLimiter, async (req, res) => {
+    const workOrderId = String(req.params.workOrderId || "");
+    const back = `/business-builder/owner/work-orders/${encodeURIComponent(workOrderId)}`;
+    const refuse = (status, code, detail) => {
+      if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+      return res.redirect(303, `${back}?work_problem=${encodeURIComponent(detail || code)}`);
+    };
+    if (!isUuid(workOrderId)) return refuse(400, "work_order_required", "That work order reference is not one of ours.");
+
+    const config = getConfig(deps);
+    if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return refuse(403, org.code || "owner_access_required", "We could not tell which business you are signed in to.");
+
+    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_invoice_work_order`, {
+      method: "POST",
+      headers: headers(config),
+      body: JSON.stringify({
+        p_organization_id: org.organizationId,
+        p_work_order_id: workOrderId,
+        p_actor_user_id: org.userId || null
+      })
+    }).catch(() => undefined);
+
+    if (!response?.ok) return refuse(409, "work_order_not_invoiced", "Complete the job, attach a customer and record an agreed amount before raising its invoice.");
+    const invoiceId = await response.json().catch(() => null);
+    const id = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
+    if (!id) return refuse(502, "invoice_id_missing", "The invoice action did not return an invoice reference.");
+    if (!acceptsHtml(req)) return res.status(200).json({ ok: true, invoiceId: id, workOrderId });
+    return res.redirect(303, `/business-builder/owner/receivables/${encodeURIComponent(String(id))}`);
   });
 
   // The four pages whose records have line items: purchase orders, stock
