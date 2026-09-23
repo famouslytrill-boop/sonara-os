@@ -98,6 +98,9 @@ const FORM_CAPABILITY_ORDER = Object.freeze([
   "sound_effects",
   "text_to_music",
   "music_plan",
+  "text_to_image",
+  "image_to_image",
+  "image_edit",
   "text_to_video",
   "image_to_video",
   "video_extend",
@@ -621,6 +624,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     ["/creator-studio/generation/voice", "Voice Generation", "text_to_speech"],
     ["/creator-studio/generation/music", "Music Generation", "text_to_music"],
     ["/creator-studio/generation/audio", "Audio and Sound Effects", "sound_effects"],
+    ["/creator-studio/generation/image", "Image Generation", "text_to_image"],
     ["/creator-studio/generation/video", "Video Generation", "text_to_video"],
     ["/creator-studio/generation/reference-analysis", "Reference Analysis", "reference_analysis"]
   ]) {
@@ -1089,7 +1093,7 @@ async function fetchSafeOutput(value) {
 
 function findOutputUrl(payload) {
   const candidates = [
-    payload?.output_url, payload?.audio_url, payload?.video_url, payload?.url,
+    payload?.output_url, payload?.image_url, payload?.audio_url, payload?.video_url, payload?.url,
     payload?.output?.url, payload?.result?.url,
     payload?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri,
     payload?.response?.generatedVideos?.[0]?.video?.uri,
@@ -1362,8 +1366,8 @@ function clamp(value, min, max, fallback) { const parsed = Number.parseInt(Strin
 function compact(object) { return Object.fromEntries(Object.entries(object || {}).filter(([, value]) => value !== undefined && value !== null && value !== "")); }
 function normalizePath(value) { const path = String(value || "").trim(); return path.startsWith("/") ? path : `/${path}`; }
 function normalizeMime(value) { return String(value || "application/octet-stream").split(";")[0].trim().toLowerCase(); }
-function extensionForMime(mime) { return ({ "audio/mpeg": "mp3", "audio/wav": "wav", "audio/x-wav": "wav", "audio/flac": "flac", "video/mp4": "mp4", "application/json": "json" })[mime] || "bin"; }
-function mediaTypeFor(capability, mime) { if (mime.startsWith("video/")) return "video"; if (capability === "text_to_music" || capability === "video_to_music") return "music"; if (capability.includes("speech")) return "voice"; if (mime.startsWith("audio/")) return "audio"; return "other"; }
+function extensionForMime(mime) { return ({ "audio/mpeg": "mp3", "audio/wav": "wav", "audio/x-wav": "wav", "audio/flac": "flac", "video/mp4": "mp4", "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/avif": "avif", "application/json": "json" })[mime] || "bin"; }
+function mediaTypeFor(capability, mime) { if (mime.startsWith("image/")) return "image"; if (mime.startsWith("video/")) return "video"; if (capability === "text_to_music" || capability === "video_to_music") return "music"; if (capability.includes("speech")) return "voice"; if (mime.startsWith("audio/")) return "audio"; return "other"; }
 function sanitizeProviderPayload(value) { if (!value || typeof value !== "object") return {}; const copy = JSON.parse(JSON.stringify(value)); for (const key of ["api_key","token","authorization","credential","secret"]) removeSensitive(copy, key); return copy; }
 function removeSensitive(value, target) { if (!value || typeof value !== "object") return; for (const key of Object.keys(value)) { if (key.toLowerCase().includes(target)) value[key] = "[redacted]"; else removeSensitive(value[key], target); } }
 function safeError(error) { return clean(error?.message || error || "Unknown provider error", 1000); }
