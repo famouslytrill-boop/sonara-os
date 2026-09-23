@@ -1338,18 +1338,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       if (!org.ok) return respond(403, org);
 
-      // Reference controls are not authorization. Verify every referenced row
-      // server-side before a child record is written, so a guessed employee or
-      // inventory UUID from another organization cannot be attached here.
-      for (const field of spec.form.fields.filter((entry) => entry.type === "reference")) {
-        const supplied = String(req.body[field.name] || "").trim();
+      // Reference controls are not authorization. The new work-order children
+      // explicitly name the foreign rows whose ownership must be re-checked on
+      // the server; the visible dropdown is only presentation.
+      for (const [fieldName, table] of Object.entries(spec.ownedReferences || {})) {
+        const supplied = String(req.body[fieldName] || "").trim();
         if (!supplied) continue;
-        if (!isUuid(supplied)) return respond(400, { ok: false, code: `${field.name}_invalid` });
-        const source = REFERENCE_SOURCES[field.from];
-        if (!source?.table) return respond(500, { ok: false, code: "unknown_reference_source" });
-        const check = await belongsToOrganization(config, source.table, supplied, org.organizationId);
-        if (!check.ok) return respond(502, { ok: false, code: `${field.name}_unreadable` });
-        if (!check.belongs) return respond(403, { ok: false, code: `${field.name}_not_yours` });
+        if (!isUuid(supplied)) return respond(400, { ok: false, code: `${fieldName}_invalid` });
+        const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+        if (!check.ok) return respond(502, { ok: false, code: `${fieldName}_unreadable` });
+        if (!check.belongs) return respond(403, { ok: false, code: `${fieldName}_not_yours` });
       }
 
       // The parent has to belong to this business before anything is attached
@@ -2159,6 +2157,15 @@ function registerRestResource(app, path, resource, deps, middleware) {
       for (const key of Object.keys(submitted)) {
         if (key.startsWith("approval_")) delete submitted[key];
       }
+    }
+    if (resource.table === "business_work_orders") {
+      // The lifecycle begins at draft. Quote linkage is written only by the
+      // accepted-quote endpoint, which verifies the quote and makes retries
+      // idempotent. A raw create cannot claim completion or invoicing.
+      submitted.status = "draft";
+      delete submitted.quote_id;
+      delete submitted.actual_start_at;
+      delete submitted.completed_at;
     }
     const payload = sanitizeObject({ ...resource.defaults, ...submitted, ...person, organization_id: org.organizationId });
     const saved = await supabaseInsert(config, resource.table, payload);
