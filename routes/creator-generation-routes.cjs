@@ -143,12 +143,13 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   });
 
   app.get("/creator-studio/studio", access, (req, res) => {
-    const grouped = studioPlatform.capabilities.reduce((groups, capability) => {
+    const grouped = new Map();
+    for (const capability of studioPlatform.capabilities) {
       const domain = String(capability.domain || "other");
-      if (!groups[domain]) groups[domain] = [];
-      groups[domain].push(capability);
-      return groups;
-    }, {});
+      const capabilities = grouped.get(domain) || [];
+      capabilities.push(capability);
+      grouped.set(domain, capabilities);
+    }
 
     const sections = [
       ui.card(
@@ -159,7 +160,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
         "Production boundary",
         "Heavy media, GPU, 3D, CAD, game-engine, transcription, and long-running jobs stay in isolated workers or approved companion tools. Publishing, payments, destructive actions, regulated workflows, voice cloning, and likeness-sensitive work remain approval-gated."
       ),
-      ...Object.entries(grouped).map(([domain, capabilities]) => ui.card(
+      ...Array.from(grouped.entries(), ([domain, capabilities]) => ui.card(
         studioDomainLabel(domain),
         capabilities.map((capability) =>
           `${capability.surface}: ${studioCapabilityState(capability.adoptionState)} — ${capability.purpose}`
