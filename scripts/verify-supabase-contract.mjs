@@ -50,7 +50,8 @@ const businessOperationsMigrationNames = [
   "20260818100000_merchant_product_catalogue.sql",
   "20260819070000_shared_links.sql",
   "20260820060000_public_booking_pages.sql",
-  "20260820080000_recurring_invoices.sql"
+  "20260820080000_recurring_invoices.sql",
+  "20260923020000_business_work_order_job_lifecycle.sql"
 ];
 const growthStudioMigrationNames = [
   "20260723120000_growth_studio_control_plane.sql",
@@ -169,7 +170,15 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // The versions table is the child of the product, on the same footing as the
   // six line tables above it.
   "merchant_products",
-  "merchant_product_variants"
+  "merchant_product_variants",
+  // Canonical job execution between an accepted quote/booking and an invoice.
+  // These postdate the frozen 146-table runtime contract, so they are reviewed
+  // through their own migration rather than rewriting historical checksums.
+  "business_work_orders",
+  "business_work_order_assignments",
+  "business_work_order_materials",
+  "business_work_order_evidence",
+  "business_work_order_events"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",
@@ -404,6 +413,20 @@ verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator S
 // failing -- it was in the reviewed set and passed through no create-or-RLS
 // check at all, so a table could be listed here and exist nowhere.
 verifyExtension(BUSINESS_OPERATIONS_TABLES, businessOperationsSql, "Business Builder operations");
+for (const required of [
+  "create or replace function public.sonara_transition_work_order",
+  "create or replace function public.sonara_invoice_work_order",
+  "set search_path = ''",
+  "if auth.role() <> 'service_role'",
+  "for update",
+  "revoke all on function public.sonara_transition_work_order(uuid, uuid, uuid, text, text) from public, anon, authenticated",
+  "grant execute on function public.sonara_transition_work_order(uuid, uuid, uuid, text, text) to service_role",
+  "revoke all on function public.sonara_invoice_work_order(uuid, uuid, uuid) from public, anon, authenticated",
+  "grant execute on function public.sonara_invoice_work_order(uuid, uuid, uuid) to service_role",
+  "add column if not exists work_order_id uuid references public.business_work_orders(id)"
+]) {
+  if (!businessOperationsSql.includes(required.toLowerCase())) fail(`Business Builder work-order extension is missing: ${required}`);
+}
 verifyExtension(AGENT_QUEUE_TABLES, agentQueueSql, "agent approval queue");
 // The queue exists so an approval has something to re-run. A migration that
 // created the table without the column carrying the action's inputs would pass
