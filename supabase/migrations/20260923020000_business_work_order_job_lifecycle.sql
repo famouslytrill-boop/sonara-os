@@ -176,7 +176,7 @@ returns setof public.business_work_orders
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   quote_row public.quotes%rowtype;
   work_row public.business_work_orders%rowtype;
@@ -255,7 +255,7 @@ begin
 
   return next work_row;
 end;
-$;
+$$;
 
 revoke all on function public.sonara_create_work_order_from_quote(uuid, uuid, uuid) from public, anon, authenticated;
 grant execute on function public.sonara_create_work_order_from_quote(uuid, uuid, uuid) to service_role;
@@ -275,7 +275,7 @@ returns setof public.business_work_orders
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   current_row public.business_work_orders%rowtype;
   updated_row public.business_work_orders%rowtype;
@@ -355,7 +355,7 @@ begin
 
   return next updated_row;
 end;
-$;
+$$;
 
 revoke all on function public.sonara_transition_work_order(uuid, uuid, uuid, text, text) from public, anon, authenticated;
 grant execute on function public.sonara_transition_work_order(uuid, uuid, uuid, text, text) to service_role;
@@ -371,7 +371,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   work_row public.business_work_orders%rowtype;
   existing_invoice uuid;
@@ -496,7 +496,7 @@ begin
 
   return new_invoice;
 end;
-$;
+$$;
 
 revoke all on function public.sonara_invoice_work_order(uuid, uuid, uuid) from public, anon, authenticated;
 grant execute on function public.sonara_invoice_work_order(uuid, uuid, uuid) to service_role;
