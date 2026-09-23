@@ -59,7 +59,7 @@ describe("Batch 18 screenshot agent/infrastructure convergence", () => {
     const twenty = readOpenSourceTools().find((item) => item.slug === "twenty-crm-open-salesforce-alternative");
     assert.ok(twenty);
     assert.equal(twenty.commercialUseStatus, "allowed_after_review");
-    assert.equal(twenty.integrationStatus, "optional_adapter_after_review");
+    assert.equal(twenty.integrationStatus, "needs_license_review");
     assert.equal(twenty.reciprocalLicense, true);
     assert.match(twenty.license, /AGPL-3\.0/);
     assert.match(twenty.license, /Enterprise-marked files/i);
@@ -121,7 +121,7 @@ describe("Batch 18 screenshot agent/infrastructure convergence", () => {
 
   it("keeps research records from granting runtime authority", async () => {
     const response = await request(app)
-      .get("/api/ecosystem/readiness")
+      .get("/api/ecosystem/requested-repositories")
       .set("Accept", "application/json");
 
     assert.equal(response.status, 200);
