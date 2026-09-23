@@ -11,6 +11,11 @@ const {
 } = require("../lib/creator-music-system-config.cjs");
 const { workflowTemplates, planMediaWorkflow, buildGenerationJobs } = require("../lib/sonara-creator-media-workflows.cjs");
 const { templates: automationTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
+const {
+  getMediaProductionSchema,
+  validateMediaProject,
+  planMediaProduction
+} = require("../lib/sonara-media-production-fabric.cjs");
 
 module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
@@ -96,12 +101,26 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
         linkAction("/creator-studio/generation/jobs", "Generation jobs")
       ],
       sections: [
-        brandCard("Project fabric", "Brief → source assets → generation/edit steps → review → captions/transcripts → renditions → rights-aware export."),
+        brandCard("Project fabric", "Brief → immutable source assets → generation/edit steps → timeline → review → captions/transcripts → renditions → rights-aware export. The project schema and validator are available at /api/creator/media-production/schema and /api/creator/media-production/validate."),
         brandCard("Timeline and interchange", "Keep editable timeline/project state in SONARA and use explicit interchange boundaries for NLEs, DAWs, render workers, and specialist creative applications."),
         brandCard("Approval boundary", "Generation can consume paid compute; publishing and consequential external actions stay approval-gated."),
         ...mediaTemplates.map((template) => brandCard(template.name, template.steps.join(" → ")))
       ]
     }));
+  });
+
+  app.get("/api/creator/media-production/schema", access, (req, res) => {
+    res.status(200).json({ ok: true, schema: getMediaProductionSchema() });
+  });
+
+  app.post("/api/creator/media-production/validate", access, (req, res) => {
+    const validated = validateMediaProject(req.body || {});
+    return res.status(validated.ok ? 200 : 400).json(validated);
+  });
+
+  app.post("/api/creator/media-production/plan", access, (req, res) => {
+    const planned = planMediaProduction(req.body || {});
+    return res.status(planned.ok ? 200 : 400).json(planned);
   });
 
   app.get(CREATOR_MUSIC_ROUTES.readiness, access, (req, res) => {
