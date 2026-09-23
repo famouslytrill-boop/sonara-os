@@ -2972,7 +2972,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     slug: "hi-events-ticketing",
     category: ["events", "ticketing", "RSVP", "category sweep 2026-08-18"],
     useCase: ["reference for how ticket types, capacity, check-in and door management fit together for a business running an event"],
-    productFit: ["Growth Studio"],
+    productFit: ["Growth Studio", "Business Builder"],
     license:
       "Not classifiable by GitHub. Detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the licence file and could not match it to a known licence. Nobody here has read it, so this record states nothing about what it permits.",
     licenseRisk: "unknown",
@@ -3170,7 +3170,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     slug: "twenty-crm-open-salesforce-alternative",
     category: ["2026 repository sweep research-only", "CRM", "AGPL application exception", "published API/SDK integration", "licence verified 2026-09-22"],
     useCase: ["published API, webhook, application-interface and MIT SDK/UI integration research; Twenty core source incorporation remains licence-gated"],
-    productFit: ["Growth Studio", "Business Builder"],
+    productFit: ["Growth Studio"],
     license: "AGPL-3.0; most of the repository is AGPLv3, Enterprise-marked files use commercial terms, and named SDK/UI/application packages are MIT; the Twenty Application Exception says a separate application using published interfaces does not by itself become AGPL",
     licenseRisk: "high",
     reciprocalLicense: true,
