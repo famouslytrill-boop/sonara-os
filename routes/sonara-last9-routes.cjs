@@ -125,7 +125,8 @@ const RESOURCE_MAP = {
       customer_id: "customers",
       location_id: "business_locations",
       booking_id: "business_bookings",
-      vehicle_id: "vehicle_records"
+      vehicle_id: "vehicle_records",
+      route_session_id: "route_tracking_sessions"
     }
   },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
