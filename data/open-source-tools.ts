@@ -3168,7 +3168,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
   {
     name: "twenty (open Salesforce alternative)",
     slug: "twenty-crm-open-salesforce-alternative",
-    category: ["CRM", "AGPL application exception", "published API/SDK integration", "licence verified 2026-09-22"],
+    category: ["2026 repository sweep research-only", "CRM", "AGPL application exception", "published API/SDK integration", "licence verified 2026-09-22"],
     useCase: ["published API, webhook, application-interface and MIT SDK/UI integration research; Twenty core source incorporation remains licence-gated"],
     productFit: ["Growth Studio", "Business Builder"],
     license: "AGPL-3.0 for most of the repository; Enterprise-marked files use commercial terms; named SDK/UI/application packages are MIT; the Twenty Application Exception says a separate application using published REST/GraphQL APIs, webhooks, manifests/configuration, function/runtime interfaces, front-component interfaces and published SDKs does not by itself become governed by AGPLv3",
