@@ -788,6 +788,21 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         const wanted = recordEdit.changesFrom(page, req.body, before);
         if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
 
+        // An edit can change the same foreign records as create. Re-check any
+        // changed reference against this organization before the service-role
+        // PATCH, because a UUID that was never in the picker can still be posted.
+        const editReferences = RESOURCE_MAP[page.api]?.references || {};
+        for (const [field, table] of Object.entries(editReferences)) {
+          if (!Object.prototype.hasOwnProperty.call(wanted.patch, field)) continue;
+          const supplied = wanted.patch[field];
+          if (supplied === null) continue;
+          const id = String(supplied || "");
+          if (!isUuid(id)) return refuse(400, `${field}_invalid`, "That linked record is not one of ours.");
+          const check = await belongsToOrganization(config, table, id, org.organizationId);
+          if (!check.ok) return refuse(502, `${field}_unreadable`, "We could not check that linked record just now. Nothing has been changed.");
+          if (!check.belongs) return refuse(403, `${field}_not_yours`, "That linked record is not in your business.");
+        }
+
         const said = recordEdit.describeEdit(wanted.changed);
         // Nothing differed. Sending an empty PATCH would ask the database to do
         // nothing and then report it as a save.
