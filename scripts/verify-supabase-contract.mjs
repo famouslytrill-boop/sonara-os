@@ -414,6 +414,8 @@ verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator S
 // check at all, so a table could be listed here and exist nowhere.
 verifyExtension(BUSINESS_OPERATIONS_TABLES, businessOperationsSql, "Business Builder operations");
 for (const required of [
+  "create or replace function public.sonara_record_work_order_creation",
+  "create trigger sonara_work_order_created_event",
   "create or replace function public.sonara_create_work_order_from_quote",
   "create or replace function public.sonara_transition_work_order",
   "create or replace function public.sonara_invoice_work_order",
