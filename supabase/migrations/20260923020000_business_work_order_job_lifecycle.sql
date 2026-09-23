@@ -133,36 +133,61 @@ create unique index if not exists customer_invoices_org_work_order_unique
   on public.customer_invoices(organization_id, work_order_id)
   where work_order_id is not null;
 
-do $$
-declare
-  target text;
-begin
-  foreach target in array array[
-    'business_work_orders',
-    'business_work_order_assignments',
-    'business_work_order_materials',
-    'business_work_order_evidence',
-    'business_work_order_events'
-  ]
-  loop
-    execute format('alter table public.%I enable row level security', target);
-    execute format('revoke all on table public.%I from public, anon, authenticated', target);
-    execute format('grant select on table public.%I to authenticated', target);
-    execute format('grant select, insert, update, delete on table public.%I to service_role', target);
+-- Keep the authorization surface explicit so static release gates can verify every new table.
+alter table public.business_work_orders enable row level security;
+revoke all on table public.business_work_orders from public, anon, authenticated;
+grant select on table public.business_work_orders to authenticated;
+grant select, insert, update, delete on table public.business_work_orders to service_role;
+drop policy if exists "members read business_work_orders" on public.business_work_orders;
+create policy "members read business_work_orders" on public.business_work_orders
+  for select to authenticated using (public.sonara_is_org_member(organization_id));
+drop policy if exists "service role manages business_work_orders" on public.business_work_orders;
+create policy "service role manages business_work_orders" on public.business_work_orders
+  for all to service_role using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
 
-    execute format('drop policy if exists "members read %1$s" on public.%1$I', target);
-    execute format(
-      'create policy "members read %1$s" on public.%1$I for select to authenticated using (public.sonara_is_org_member(organization_id))',
-      target
-    );
+alter table public.business_work_order_assignments enable row level security;
+revoke all on table public.business_work_order_assignments from public, anon, authenticated;
+grant select on table public.business_work_order_assignments to authenticated;
+grant select, insert, update, delete on table public.business_work_order_assignments to service_role;
+drop policy if exists "members read business_work_order_assignments" on public.business_work_order_assignments;
+create policy "members read business_work_order_assignments" on public.business_work_order_assignments
+  for select to authenticated using (public.sonara_is_org_member(organization_id));
+drop policy if exists "service role manages business_work_order_assignments" on public.business_work_order_assignments;
+create policy "service role manages business_work_order_assignments" on public.business_work_order_assignments
+  for all to service_role using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
 
-    execute format('drop policy if exists "service role manages %1$s" on public.%1$I', target);
-    execute format(
-      'create policy "service role manages %1$s" on public.%1$I for all to service_role using (auth.role() = ''service_role'') with check (auth.role() = ''service_role'')',
-      target
-    );
-  end loop;
-end $$;
+alter table public.business_work_order_materials enable row level security;
+revoke all on table public.business_work_order_materials from public, anon, authenticated;
+grant select on table public.business_work_order_materials to authenticated;
+grant select, insert, update, delete on table public.business_work_order_materials to service_role;
+drop policy if exists "members read business_work_order_materials" on public.business_work_order_materials;
+create policy "members read business_work_order_materials" on public.business_work_order_materials
+  for select to authenticated using (public.sonara_is_org_member(organization_id));
+drop policy if exists "service role manages business_work_order_materials" on public.business_work_order_materials;
+create policy "service role manages business_work_order_materials" on public.business_work_order_materials
+  for all to service_role using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+
+alter table public.business_work_order_evidence enable row level security;
+revoke all on table public.business_work_order_evidence from public, anon, authenticated;
+grant select on table public.business_work_order_evidence to authenticated;
+grant select, insert, update, delete on table public.business_work_order_evidence to service_role;
+drop policy if exists "members read business_work_order_evidence" on public.business_work_order_evidence;
+create policy "members read business_work_order_evidence" on public.business_work_order_evidence
+  for select to authenticated using (public.sonara_is_org_member(organization_id));
+drop policy if exists "service role manages business_work_order_evidence" on public.business_work_order_evidence;
+create policy "service role manages business_work_order_evidence" on public.business_work_order_evidence
+  for all to service_role using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+
+alter table public.business_work_order_events enable row level security;
+revoke all on table public.business_work_order_events from public, anon, authenticated;
+grant select on table public.business_work_order_events to authenticated;
+grant select, insert, update, delete on table public.business_work_order_events to service_role;
+drop policy if exists "members read business_work_order_events" on public.business_work_order_events;
+create policy "members read business_work_order_events" on public.business_work_order_events
+  for select to authenticated using (public.sonara_is_org_member(organization_id));
+drop policy if exists "service role manages business_work_order_events" on public.business_work_order_events;
+create policy "service role manages business_work_order_events" on public.business_work_order_events
+  for all to service_role using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
 
 -- Transition evidence is append-only to ordinary authenticated users. The
 -- server may write it with service_role; customers can read their own tenant.
