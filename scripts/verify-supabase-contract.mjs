@@ -414,11 +414,14 @@ verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator S
 // check at all, so a table could be listed here and exist nowhere.
 verifyExtension(BUSINESS_OPERATIONS_TABLES, businessOperationsSql, "Business Builder operations");
 for (const required of [
+  "create or replace function public.sonara_create_work_order_from_quote",
   "create or replace function public.sonara_transition_work_order",
   "create or replace function public.sonara_invoice_work_order",
   "set search_path = ''",
   "if auth.role() <> 'service_role'",
   "for update",
+  "revoke all on function public.sonara_create_work_order_from_quote(uuid, uuid, uuid) from public, anon, authenticated",
+  "grant execute on function public.sonara_create_work_order_from_quote(uuid, uuid, uuid) to service_role",
   "revoke all on function public.sonara_transition_work_order(uuid, uuid, uuid, text, text) from public, anon, authenticated",
   "grant execute on function public.sonara_transition_work_order(uuid, uuid, uuid, text, text) to service_role",
   "revoke all on function public.sonara_invoice_work_order(uuid, uuid, uuid) from public, anon, authenticated",
