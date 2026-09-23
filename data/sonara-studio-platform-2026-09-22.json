@@ -269,7 +269,7 @@
       "id": "studio.game-production",
       "domain": "games",
       "surface": "Game Production Pack",
-      "purpose": "Game design documents, asset pipelines, narrative, QA/test plans, telemetry schemas, build/release checklists, and engine companion workflows.",
+      "purpose": "Game design documents, asset pipelines, narrative, QA/test plans, telemetry definitions, build/release checklists, and engine companion workflows.",
       "runtimePlacement": "owner_device",
       "adoptionState": "future_candidate",
       "enabledByThisChange": false,
