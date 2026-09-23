@@ -166,6 +166,8 @@ if (process.argv.includes("--check")) {
       }
     }
     console.error("[fail] lib/sonara-tenant-scoped-tables.cjs is stale. Run `pnpm run gen:tenant-tables` and commit the result.");
+    console.error(`[diff] generated work-order scoped: ${scoped.filter((name) => name.startsWith("business_work_order")).join(", ") || "<none>"}`);
+    console.error(`[diff] generated work-order global: ${unscoped.filter((name) => name.startsWith("business_work_order")).join(", ") || "<none>"}`);
     if (firstDifferentLine >= 0) {
       console.error(`[diff] first mismatch at line ${firstDifferentLine + 1}`);
       console.error(`[diff] committed: ${JSON.stringify(previousLines[firstDifferentLine] ?? "<missing>")}`);
