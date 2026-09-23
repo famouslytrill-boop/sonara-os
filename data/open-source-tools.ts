@@ -3175,7 +3175,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     licenseRisk: "high",
     reciprocalLicense: true,
     commercialUseStatus: "allowed_after_review",
-    integrationStatus: "optional_adapter_after_review",
+    integrationStatus: "needs_license_review",
     recommendedAction: [
       "prefer Twenty's published REST/GraphQL APIs, webhooks, application interfaces and separately MIT-licensed SDK/UI packages over incorporating or modifying the AGPL core",
       "do not copy or modify AGPL-covered Twenty core into proprietary hosted SONARA paths without an explicit AGPL compliance and architecture decision",
