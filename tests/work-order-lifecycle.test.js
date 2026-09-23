@@ -122,10 +122,12 @@ describe("Business Builder canonical work-order lifecycle", () => {
     assert.match(sql, /add column if not exists work_order_id uuid references public\.business_work_orders/);
     assert.match(sql, /create unique index if not exists customer_invoices_org_work_order_unique/);
 
+    assert.match(sql, /create or replace function public\.sonara_create_work_order_from_quote/);
     assert.match(sql, /create or replace function public\.sonara_transition_work_order/);
     assert.match(sql, /create or replace function public\.sonara_invoice_work_order/);
     assert.match(sql, /for update/);
     assert.match(sql, /if auth\.role\(\) <> 'service_role'/);
+    assert.match(sql, /revoke all on function public\.sonara_create_work_order_from_quote[\s\S]*from public, anon, authenticated/);
     assert.match(sql, /revoke all on function public\.sonara_transition_work_order[\s\S]*from public, anon, authenticated/);
     assert.match(sql, /revoke all on function public\.sonara_invoice_work_order[\s\S]*from public, anon, authenticated/);
     assert.match(sql, /insert into public\.business_work_order_events/);
