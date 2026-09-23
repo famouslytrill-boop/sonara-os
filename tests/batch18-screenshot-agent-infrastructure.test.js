@@ -64,7 +64,8 @@ describe("Batch 18 screenshot agent/infrastructure convergence", () => {
     assert.match(twenty.license, /AGPL-3\.0/);
     assert.match(twenty.license, /Enterprise-marked files/i);
     assert.match(twenty.license, /Application Exception/i);
-    assert.match(twenty.useCase.join(" "), /published API|webhook|SDK/i);
+    assert.match(twenty.category.join(" "), /AGPL application exception|published API\/SDK integration/i);
+    assert.match(twenty.notes, /published Application Interfaces/i);
     assert.match(twenty.safetyBoundaries.join(" "), /AGPL-covered Twenty core/i);
   });
 
