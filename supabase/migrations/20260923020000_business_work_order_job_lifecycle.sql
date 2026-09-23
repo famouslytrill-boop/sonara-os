@@ -16,6 +16,7 @@ create table if not exists public.business_work_orders (
   quote_id uuid references public.quotes(id) on delete set null,
   booking_id uuid references public.business_bookings(id) on delete set null,
   vehicle_id uuid references public.vehicle_records(id) on delete set null,
+  route_session_id uuid references public.route_tracking_sessions(id) on delete set null,
   work_order_number text,
   title text not null,
   description text,
@@ -27,15 +28,16 @@ create table if not exists public.business_work_orders (
   scheduled_end_at timestamptz,
   actual_start_at timestamptz,
   completed_at timestamptz,
-  agreed_amount_cents integer,
-  labor_cost_cents integer,
-  travel_cost_cents integer,
-  other_cost_cents integer,
+  agreed_amount_cents integer check (agreed_amount_cents is null or agreed_amount_cents >= 0),
+  labor_cost_cents integer check (labor_cost_cents is null or labor_cost_cents >= 0),
+  travel_cost_cents integer check (travel_cost_cents is null or travel_cost_cents >= 0),
+  other_cost_cents integer check (other_cost_cents is null or other_cost_cents >= 0),
   currency text not null default 'usd',
   created_by uuid references auth.users(id) on delete set null,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  check (scheduled_end_at is null or scheduled_start_at is null or scheduled_end_at >= scheduled_start_at),
   unique (organization_id, work_order_number)
 );
 
@@ -71,9 +73,9 @@ create table if not exists public.business_work_order_materials (
   work_order_id uuid not null references public.business_work_orders(id) on delete cascade,
   inventory_item_id uuid references public.inventory_items(id) on delete set null,
   description text,
-  quantity_planned numeric(12,2),
-  quantity_used numeric(12,2),
-  unit_cost_cents integer,
+  quantity_planned numeric(12,2) check (quantity_planned is null or quantity_planned >= 0),
+  quantity_used numeric(12,2) check (quantity_used is null or quantity_used >= 0),
+  unit_cost_cents integer check (unit_cost_cents is null or unit_cost_cents >= 0),
   material_status text not null default 'planned'
     check (material_status in ('planned','reserved','used','returned','cancelled')),
   created_at timestamptz not null default now(),
@@ -93,7 +95,8 @@ create table if not exists public.business_work_order_evidence (
   note text,
   captured_at timestamptz not null default now(),
   recorded_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  check (file_id is not null or nullif(trim(note), '') is not null)
 );
 
 create index if not exists business_work_order_evidence_org_work_idx
