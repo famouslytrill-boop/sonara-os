@@ -150,7 +150,7 @@ const PUBLIC_GETS = new Map([
 // lib/sonara-owner-record-pages.cjs, which is also where the reason they
 // needed rewriting is recorded.
 const OWNER_PAGES = [
-  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: customers, quotes, invoices and what you are owed, plus locations, staff, services, bookings, inventory, vendors, food costs, vehicles, and maintenance."]
+  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: customers, quotes, work orders, invoices and what you are owed, plus locations, staff, services, bookings, inventory, vendors, food costs, vehicles, and maintenance."]
 ];
 
 // The staff portal.
@@ -3133,6 +3133,7 @@ async function operationsSummary(config, organizationId) {
     ["Bills you owe", "vendor_invoices"],
     ["Customers", "customers"],
     ["Quotes", "quotes"],
+    ["Work orders", "business_work_orders"],
     ["Invoices you have sent", "customer_invoices"],
     ["Recipes", "recipe_cards"],
     ["Menu", "menu_items"],
