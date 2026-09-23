@@ -164,6 +164,102 @@ end $$;
 -- server may write it with service_role; customers can read their own tenant.
 revoke update, delete on table public.business_work_order_events from authenticated;
 
+-- Accepted quote -> one work order, including its creation event. A retry
+-- returns the existing row. The quote is locked so concurrent clicks cannot
+-- both pass the "none exists yet" check.
+create or replace function public.sonara_create_work_order_from_quote(
+  p_organization_id uuid,
+  p_quote_id uuid,
+  p_actor_user_id uuid
+)
+returns setof public.business_work_orders
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  quote_row public.quotes%rowtype;
+  work_row public.business_work_orders%rowtype;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception 'service_role_required';
+  end if;
+
+  select *
+    into quote_row
+    from public.quotes
+   where id = p_quote_id
+     and organization_id = p_organization_id
+   for update;
+
+  if not found then
+    raise exception 'quote_not_found';
+  end if;
+
+  select *
+    into work_row
+    from public.business_work_orders
+   where organization_id = p_organization_id
+     and quote_id = p_quote_id
+   limit 1;
+
+  if found then
+    return next work_row;
+    return;
+  end if;
+
+  if quote_row.status <> 'accepted' then
+    raise exception 'quote_not_accepted';
+  end if;
+  if quote_row.customer_id is null then
+    raise exception 'quote_customer_required';
+  end if;
+  if quote_row.amount_cents is null or quote_row.amount_cents <= 0 then
+    raise exception 'quote_amount_required';
+  end if;
+
+  insert into public.business_work_orders (
+    organization_id,
+    customer_id,
+    quote_id,
+    title,
+    agreed_amount_cents,
+    status,
+    created_by
+  ) values (
+    p_organization_id,
+    quote_row.customer_id,
+    p_quote_id,
+    coalesce(nullif(trim(quote_row.title), ''), 'Accepted work'),
+    quote_row.amount_cents,
+    'draft',
+    p_actor_user_id
+  )
+  returning * into work_row;
+
+  insert into public.business_work_order_events (
+    organization_id,
+    work_order_id,
+    event_type,
+    to_status,
+    actor_user_id,
+    metadata
+  ) values (
+    p_organization_id,
+    work_row.id,
+    'created_from_quote',
+    'draft',
+    p_actor_user_id,
+    jsonb_build_object('quote_id', p_quote_id)
+  );
+
+  return next work_row;
+end;
+$;
+
+revoke all on function public.sonara_create_work_order_from_quote(uuid, uuid, uuid) from public, anon, authenticated;
+grant execute on function public.sonara_create_work_order_from_quote(uuid, uuid, uuid) to service_role;
+
 -- One transaction changes the job state and writes its event. The application
 -- performs the same transition check for customer-facing errors, but this
 -- function is the persistence boundary: concurrent requests cannot both move a
