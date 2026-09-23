@@ -1059,7 +1059,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
     // This repeats the database function's validation so the customer gets a
     // useful refusal before persistence. The database remains authoritative.
-    const built = workOrderLifecycle.workOrderFromQuote(quote, {
+    const built = workOrderLifecycle.workOrderFromQuote({
+      id: quote.id,
+      status: quote.status,
+      customer_id: quote.customer_id,
+      amount_cents: quote.amount_cents,
+      title: quote.title
+    }, {
       organizationId: org.organizationId,
       userId: org.userId || req.sonaraAccess?.user?.id || null
     });
