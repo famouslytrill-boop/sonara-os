@@ -30,6 +30,8 @@ Shared SONARA Core continues to own identity, organizations, roles, audit, billi
 | Apple App Store Connect Analytics exposes more than 100 measurements plus cohorts, monetization, subscriptions, reports, and API access. | App acquisition and subscription performance should become first-class growth evidence. |
 | Google Play Developer Reporting exposes crash, ANR, slow-rendering, error, and anomaly data. | Growth analytics should connect acquisition to product-quality evidence instead of optimizing traffic into a broken experience. |
 | The San Francisco Fed reported nearly 40% of surveyed small businesses were using or planning to use AI; common uses included marketing/social/SEO, customer service, visuals, analytics, and forecasting. | SMB workflows should use AI aggressively for assistance but deterministic controls for side effects. |
+| DHL surveyed 29,000 online shoppers and 5,800 e-commerce businesses across 29 countries; 63% of surveyed businesses sell on social while 45% of shoppers buy through social channels. | Social content, commerce, delivery/returns and conversion evidence need to be connected, but reach must not be confused with purchase intent. |
+| OWASP released 2026 LLM/GenAI guidance and an Agent Control Standard, while its Agentic Skills Top 10 focuses on the execution layer that gives agents real-world impact. | Agent skills, MCP/tool access and deterministic executors need explicit authority, provenance, input validation and audit boundaries. |
 
 Primary public sources:
 
@@ -43,6 +45,9 @@ Primary public sources:
 - https://developer.apple.com/help/app-store-connect-analytics/
 - https://developers.google.com/play/developer/reporting
 - https://www.frbsf.org/research-and-insights/publications/community-development-research-briefs/2026/07/ai-adoption-in-small-businesses-2024-sbcs/
+- https://www.dhl.com/global-en/microsites/ec/ecommerce-insights/insights/reports/2026-ecommerce-trends-report.html
+- https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
+- https://owasp.org/projects/agentic-skills-top-10
 
 ## Provider-contract changes to research now
 
@@ -204,6 +209,11 @@ Growth Studio RAG must be tenant-scoped and limited to authorized sources. Retai
 Evaluate retrieval separately from generation: retrieval hit rate on a labeled set, provenance coverage, stale-document rate, cross-tenant adversarial tests, answer-support rate, and abstention quality when evidence is missing.
 
 Memory is not authorization. Agent memory cannot expand permissions, bypass consent, infer secrets, or make a research-only provider runnable.
+## 2026 AI and agent security baseline
+
+Apply OWASP LLM/GenAI 2026 and Agentic Skills guidance as a security review input for every agent skill and tool adapter. At minimum, threat-model prompt/tool injection, malicious or over-privileged skills, memory/context poisoning, secret leakage, untrusted external content, unsafe output handling, excessive agency, insecure inter-agent trust, and supply-chain risk.
+
+Every agent skill should declare its allowed resources, side effects, tenant scope, approval class, input schema, output schema, secret requirements, network destinations, cost ceiling, timeout, retry policy, audit event and revocation path. A skill may not inherit authority merely because another agent called it.
 
 ## UX direction
 
