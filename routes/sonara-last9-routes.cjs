@@ -1418,7 +1418,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         if (stillMissing.length) return respond(400, { ok: false, code: "missing_required", missing: stillMissing });
       }
 
-      const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
+      const childPerson = spec.person ? { [spec.person]: org.userId || null } : {};
+      const payload = sanitizeObject({ ...submitted, ...derived, ...childPerson, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
 
       // The one product event this application notifies on.
