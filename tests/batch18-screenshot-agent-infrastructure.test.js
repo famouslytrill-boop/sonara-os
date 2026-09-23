@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const request = require("supertest");
 const app = require("../server");
+const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
 
 const {
   SCREENSHOT_TOOL_RADAR_BATCH18,
@@ -52,6 +53,19 @@ describe("Batch 18 screenshot agent/infrastructure convergence", () => {
     );
     assert.ok(!SCREENSHOT_TOOL_RADAR_BATCH18.some((item) => item.repository === "mutonby/openshorts"));
     assert.ok(!SCREENSHOT_TOOL_RADAR_BATCH18.some((item) => item.repository === "twentyhq/twenty"));
+  });
+
+  it("reconciles Twenty's verified mixed licence without treating its AGPL core as permissive", () => {
+    const twenty = readOpenSourceTools().find((item) => item.slug === "twenty-crm-open-salesforce-alternative");
+    assert.ok(twenty);
+    assert.equal(twenty.commercialUseStatus, "allowed_after_review");
+    assert.equal(twenty.integrationStatus, "optional_adapter_after_review");
+    assert.equal(twenty.reciprocalLicense, true);
+    assert.match(twenty.license, /AGPL-3\.0/);
+    assert.match(twenty.license, /Enterprise-marked files/i);
+    assert.match(twenty.license, /Application Exception/i);
+    assert.match(twenty.useCase.join(" "), /published API|webhook|SDK/i);
+    assert.match(twenty.safetyBoundaries.join(" "), /AGPL-covered Twenty core/i);
   });
 
   it("treats social diagrams and official design articles as references, not executable sources", () => {
