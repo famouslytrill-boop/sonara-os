@@ -304,19 +304,28 @@
       "name": "OpenFeature",
       "role": "Vendor-neutral feature flag API for staged rollout, canaries, kill switches, and degraded-mode control.",
       "status": "already_in_dependencies",
-      "productionDecision": "expand_usage_after_exact-head_validation"
+      "productionDecision": "expand_usage_after_exact-head_validation",
+      "source": "github.com/open-feature/js-sdk",
+      "licensePosture": "Apache-2.0",
+      "adoptionNote": "Already present in package dependencies; prefer canonical use over a second feature-flag framework."
     },
     {
       "name": "OpenTelemetry",
       "role": "Standard traces, metrics, logs, and correlation across requests, agents, jobs, providers, and background workers.",
       "status": "already_in_dependencies",
-      "productionDecision": "expand_usage_after_exact-head_validation"
+      "productionDecision": "expand_usage_after_exact-head_validation",
+      "source": "github.com/open-telemetry/opentelemetry-js",
+      "licensePosture": "Apache-2.0",
+      "adoptionNote": "Already present in package dependencies; standardize correlation across web, agents, providers, and workers."
     },
     {
       "name": "Temporal-style durable execution",
       "role": "Reference architecture for long-running recoverable workflows, signals, timers, retries, and human-in-the-loop suspension.",
       "status": "research_candidate",
-      "productionDecision": "benchmark_against_existing_event_consumer_before_dependency_change"
+      "productionDecision": "benchmark_against_existing_event_consumer_before_dependency_change",
+      "source": "github.com/temporalio/sdk-typescript",
+      "licensePosture": "MIT",
+      "adoptionNote": "Benchmark against existing SONARA event-consumer capabilities before adding a service or dependency."
     },
     {
       "name": "MCP 2026-07-28",
@@ -328,25 +337,37 @@
       "name": "pgvector",
       "role": "Postgres-native embeddings and hybrid retrieval for tenant-scoped RAG.",
       "status": "existing_platform_fit",
-      "productionDecision": "use_tenant_filtering_and_partitioning_strategy_before_scale"
+      "productionDecision": "use_tenant_filtering_and_partitioning_strategy_before_scale",
+      "source": "github.com/pgvector/pgvector",
+      "licensePosture": "PostgreSQL",
+      "adoptionNote": "Fits existing Postgres/Supabase path; tenant filtering and retrieval evaluation remain mandatory."
     },
     {
       "name": "OpenFGA / OPA patterns",
       "role": "Fine-grained relationship/context authorization references for agent delegation, shared projects, review links, and complex organization roles.",
       "status": "research_candidate",
-      "productionDecision": "do_not_replace_rls_without_separate_authorization_adr"
+      "productionDecision": "do_not_replace_rls_without_separate_authorization_adr",
+      "source": "github.com/openfga/openfga + github.com/open-policy-agent/opa",
+      "licensePosture": "Apache-2.0",
+      "adoptionNote": "Authorization references only until an ADR proves why existing RLS/role controls are insufficient."
     },
     {
       "name": "FFmpeg",
       "role": "Media transcode, probe, packaging, waveform, thumbnail, and deterministic export worker.",
       "status": "worker_candidate",
-      "productionDecision": "isolated_worker_only_after_license_and_resource_review"
+      "productionDecision": "isolated_worker_only_after_license_and_resource_review",
+      "source": "github.com/FFmpeg/FFmpeg",
+      "licensePosture": "LGPL-2.1+ default with optional GPL components",
+      "adoptionNote": "Use only in an isolated worker with a reviewed build/configuration and distribution posture."
     },
     {
       "name": "Blender 5.2 LTS",
       "role": "3D/animation/rendering companion and workflow reference.",
       "status": "external_companion",
-      "productionDecision": "no_source_embedding_into_proprietary_web_runtime"
+      "productionDecision": "no_source_embedding_into_proprietary_web_runtime",
+      "source": "github.com/blender/blender",
+      "licensePosture": "GPL-3.0 overall",
+      "adoptionNote": "External/owner-device companion; do not embed Blender source into SONARA proprietary web runtime."
     }
   ],
   "industryPackOrder": [
