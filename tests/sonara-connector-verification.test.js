@@ -56,6 +56,8 @@ describe("SONARA verified connector depth", () => {
     assert.equal(architecture.researchOnly, true);
     assert.equal(architecture.grantsRuntimeAuthority, false);
     assert.match(architecture.rule, /not a verified native connector/i);
+    assert.equal(architecture.checkpointArchitecture.storage.intendedTable, "integration_sync_cursors");
+    assert.equal(architecture.checkpointArchitecture.storage.migrationRequired, true);
     assert.ok(CONNECTION_STATES.includes("reauthorization_required"));
     assert.ok(CONNECTION_STATES.includes("schema_drift"));
     assert.ok(CONNECTION_STATES.includes("provider_outage"));
