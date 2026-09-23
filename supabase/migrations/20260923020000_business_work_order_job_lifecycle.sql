@@ -164,7 +164,46 @@ end $$;
 -- server may write it with service_role; customers can read their own tenant.
 revoke update, delete on table public.business_work_order_events from authenticated;
 
--- Accepted quote -> one work order, including its creation event. A retry
+-- Every work-order creation receives evidence in the same transaction,
+-- regardless of whether it came from an accepted quote or the manual owner
+-- form. That keeps "created" from being a best-effort application log.
+create or replace function public.sonara_record_work_order_creation()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  insert into public.business_work_order_events (
+    organization_id,
+    work_order_id,
+    event_type,
+    to_status,
+    actor_user_id,
+    metadata
+  ) values (
+    new.organization_id,
+    new.id,
+    'created',
+    new.status,
+    new.created_by,
+    jsonb_strip_nulls(jsonb_build_object(
+      'quote_id', new.quote_id,
+      'booking_id', new.booking_id
+    ))
+  );
+  return new;
+end;
+$;
+
+revoke all on function public.sonara_record_work_order_creation() from public, anon, authenticated;
+
+drop trigger if exists sonara_work_order_created_event on public.business_work_orders;
+create trigger sonara_work_order_created_event
+after insert on public.business_work_orders
+for each row execute function public.sonara_record_work_order_creation();
+
+-- Accepted quote -> one work order. A retry
 -- returns the existing row. The quote is locked so concurrent clicks cannot
 -- both pass the "none exists yet" check.
 create or replace function public.sonara_create_work_order_from_quote(
@@ -236,22 +275,6 @@ begin
     p_actor_user_id
   )
   returning * into work_row;
-
-  insert into public.business_work_order_events (
-    organization_id,
-    work_order_id,
-    event_type,
-    to_status,
-    actor_user_id,
-    metadata
-  ) values (
-    p_organization_id,
-    work_row.id,
-    'created_from_quote',
-    'draft',
-    p_actor_user_id,
-    jsonb_build_object('quote_id', p_quote_id)
-  );
 
   return next work_row;
 end;
