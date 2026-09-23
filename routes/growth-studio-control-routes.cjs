@@ -13,6 +13,7 @@ const {
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
+const { getGoogleSearchConsoleReadContract } = require("../lib/sonara-google-search-console-read.cjs");
 
 const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { authoriseCampaign } = require("../lib/growth-studio-sender.cjs");
@@ -92,6 +93,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       ok: true,
       database: config.ok ? "configured" : "setup_required",
       providers,
+      executionCanary: getGoogleSearchConsoleReadContract(),
       configuredProviders: providers.filter((provider) => provider.readiness.configured).map((provider) => provider.key),
       controls: {
         credentials: "server_only",
