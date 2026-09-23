@@ -2848,6 +2848,33 @@ function statusCard(page, row, ui, problem, done) {
   ].join("");
 }
 
+function workOrderLifecycleCard(row, ui, problem, done) {
+  const current = String(row?.status || "draft").toLowerCase();
+  const ordinary = (workOrderLifecycle.TRANSITIONS[current] || []).filter((next) => !["invoiced", "closed"].includes(next));
+  const options = ordinary.map((next) => `<option value="${ui.escape(next)}">${ui.escape(readableStatus(next))}</option>`).join("");
+  const outcome = statusOutcome(ui, problem, done);
+  const transition = options
+    ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/transition">
+        <label>Next job stage<select name="status">${options}</select></label>
+        <label>Reason or note<textarea name="reason" maxlength="1000" rows="3"></textarea></label>
+        <button class="action" type="submit">Move job</button>
+      </form>`
+    : '<p class="fine">There is no ordinary job-stage change available from here.</p>';
+  const invoice = current === "completed"
+    ? `<form method="post" action="/api/business/work-orders/${encodeURIComponent(String(row.id || ""))}/invoice"><button class="action" type="submit">Raise draft invoice</button></form>`
+    : "";
+  return [
+    '<article class="card">',
+    '<h2>Job stage</h2>',
+    `<p>This job is <strong>${ui.escape(readableStatus(current))}</strong>.</p>`,
+    '<p class="fine">Job stages move in a fixed order. Raising an invoice is separate so a completed job cannot be billed twice by a repeated click.</p>',
+    outcome,
+    transition,
+    invoice,
+    '</article>'
+  ].join("");
+}
+
 function procurementCard(row, org, req, ui, problem, done) {
   if (row?.approval_status === undefined) {
     return ui.card(
