@@ -270,7 +270,8 @@ describe("SONARA verified connector depth", () => {
     assert.equal(result.ok, true);
     assert.equal(result.report.rowCount, PAGE_SIZE + 1);
     assert.equal(result.report.reconciliation.status, "matched");
-    assert.equal(result.report.coverage.completeClaimed, true);
+    assert.equal(result.report.coverage.completeClaimed, false);
+    assert.equal(result.report.coverage.providerCoverageContract, "top_rows_not_guaranteed_exhaustive");
     assert.deepEqual(calls.map((call) => call.body.startRow), [0, 0, PAGE_SIZE]);
     assert.equal(calls[1].body.rowLimit, PAGE_SIZE);
     assert.equal(calls[1].body.startDate, "2026-09-21");
