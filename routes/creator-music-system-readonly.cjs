@@ -25,11 +25,13 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
       title: "Music Creation System",
       eyebrow: "Creator Studio",
       heading: "Music Creation System",
-      body: "Build original music systems, song blueprints, production notes, instruction packs, release packages, quality checks, export packages, and approval-aware audio/video production workflows.",
+      body: "Build original music systems, song blueprints, production notes, instruction packs, release packages, quality checks, export packages, and approval-aware image, audio, voice, music, video, and film production workflows.",
       actions: [
         linkAction(CREATOR_MUSIC_ROUTES.createSystem, "Create system"),
         linkAction(CREATOR_MUSIC_ROUTES.songBlueprint, "Song blueprint"),
         linkAction(CREATOR_MUSIC_ROUTES.promptPacks, "Instruction packs"),
+        linkAction("/creator-studio/media-production", "Media production"),
+        linkAction("/creator-studio/generation/image", "Image generation"),
         linkAction("/creator-studio/generation/music", "Music generation"),
         linkAction("/creator-studio/generation/video", "Video generation")
       ],
@@ -38,7 +40,7 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
         brandCard("Required music fields", CREATOR_MUSIC_REQUIRED_FIELDS.join(", ")),
         brandCard(
           "Production workflows",
-          `${mediaTemplates.length} provider-neutral audio/video workflow templates are available through /api/creator/workflows/templates. Planning a workflow never pretends a render happened; worker/provider steps stay marked setup required until a real adapter is configured.`
+          `${mediaTemplates.length} provider-neutral image/audio/voice/music/video workflow templates are available through /api/creator/workflows/templates. Planning a workflow never pretends a render happened; worker/provider steps stay marked setup required until a real adapter is configured.`
         ),
         ...CREATOR_MUSIC_SYSTEM_TABLES.map((table) => brandCard(CREATOR_MUSIC_PUBLIC_LABELS[table] || table, "Ready for saved records."))
       ]
@@ -75,6 +77,30 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
       body: "Save reusable music, vocal, mix, cover, video, and sound-design instructions after review.",
       actions: [linkAction(CREATOR_MUSIC_ROUTES.home, "Music system")],
       sections: CREATOR_MUSIC_SAFETY_RULES.map((rule) => brandCard("Rule", rule))
+    }));
+  });
+
+  app.get("/creator-studio/media-production", access, (req, res) => {
+    const mediaTemplates = workflowTemplates();
+    res.type("html").send(layout({
+      title: "Media Production",
+      eyebrow: "Creator Studio",
+      heading: "Media Production",
+      body: "Plan and execute governed image, video, film, music, sound, and voice work through one project workflow. Source files stay separate from generated renditions, paid generation remains metered, and publishing is never automatic.",
+      actions: [
+        linkAction("/creator-studio/generation/image", "Create images"),
+        linkAction("/creator-studio/generation/video", "Create video"),
+        linkAction("/creator-studio/generation/music", "Create music"),
+        linkAction("/creator-studio/generation/audio", "Create sound"),
+        linkAction("/creator-studio/generation/voice", "Create voice"),
+        linkAction("/creator-studio/generation/jobs", "Generation jobs")
+      ],
+      sections: [
+        brandCard("Project fabric", "Brief → source assets → generation/edit steps → review → captions/transcripts → renditions → rights-aware export."),
+        brandCard("Timeline and interchange", "Keep editable timeline/project state in SONARA and use explicit interchange boundaries for NLEs, DAWs, render workers, and specialist creative applications."),
+        brandCard("Approval boundary", "Generation can consume paid compute; publishing and consequential external actions stay approval-gated."),
+        ...mediaTemplates.map((template) => brandCard(template.name, template.steps.join(" → ")))
+      ]
     }));
   });
 
