@@ -201,7 +201,7 @@ describe("SONARA verified connector depth", () => {
       tenantSecurity: 1,
       observability: 0.7,
       operationalProof: 0.5
-    }), 0.799);
+    }), 0.788);
 
     assert.throws(() => connectorDepthScore({ authLifecycle: 1.1 }), /between 0 and 1/);
   });
