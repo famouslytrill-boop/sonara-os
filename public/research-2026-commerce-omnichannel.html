@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SONARA Research Lab — Commerce + Omnichannel 2026</title>
+  <meta name="description" content="2026 commerce, ecommerce, POS, kiosk, inventory, fulfillment, returns and agentic-commerce research translated into governed SONARA architecture.">
+  <link rel="stylesheet" href="/sonara-design-system.css">
+  <link rel="stylesheet" href="/sonara-application-ui.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p>SONARA Industries · Research Lab · 2026-09-22</p>
+      <h1>Commerce + Omnichannel Intelligence</h1>
+      <p>One canonical commerce graph for owned storefronts, physical stores, POS, kiosks, B2B, fulfillment and reviewed agentic-commerce adapters.</p>
+    </header>
+
+    <section>
+      <h2>Core decision</h2>
+      <p>Do not create separate order, customer, product or inventory truth for every channel. Business Builder should own a shared commerce lifecycle, with SONARA Nexus providing identity, policy, workflow, payments, evidence and adapter controls.</p>
+    </section>
+
+    <section>
+      <h2>What customers should be able to run</h2>
+      <p>Owned ecommerce storefronts, brick-and-mortar stores, staff POS, self-service kiosks, QR order/pay, pickup, local delivery, shipping, B2B ordering, returns, supplier purchasing and eventually approved marketplace and agentic channels.</p>
+    </section>
+
+    <section>
+      <h2>Canonical flow</h2>
+      <p><code>catalog → availability → cart → checkout → order → payment state → fulfillment → return/exchange/refund → reconciliation → analytics</code></p>
+      <p>The same product, inventory and order records must survive the entire journey across web and physical channels.</p>
+    </section>
+
+    <section>
+      <h2>Physical-store depth</h2>
+      <p>POS and kiosk need barcode/PLU support, location inventory, receipt evidence, offline/degraded states, accessibility and deterministic tender handoff. Kiosk remains a constrained channel over the same commerce state rather than a separate application database.</p>
+    </section>
+
+    <section>
+      <h2>Inventory + supply</h2>
+      <p>Track explicit stock movements, reservations, safety stock, transfers, cycle counts, suppliers, purchase orders, partial receiving, unit/landed cost and aging. AI may recommend replenishment; configured policy controls commitment.</p>
+      <p><code>available_to_promise = max(0, on_hand - reserved - safety_stock - blocked)</code></p>
+    </section>
+
+    <section>
+      <h2>Returns are core commerce</h2>
+      <p>Returns, exchanges, inspection/disposition, refund state and fraud evidence belong in the canonical order lifecycle. They should not be handled as unstructured support notes.</p>
+    </section>
+
+    <section>
+      <h2>Agentic commerce</h2>
+      <p>SONARA should remain protocol-neutral. UCP, ACP, MCP commerce tools and payment-network agent standards are adapter surfaces. Agents may search, compare and draft; deterministic commands retain authority over inventory, orders, refunds, pricing, publication and spend.</p>
+    </section>
+
+    <section>
+      <h2>Own-line / private-label products</h2>
+      <p>Support product concept, supplier/manufacturer, samples, specifications, production batch, receiving/QA, identifiers/packaging, allocation, selling, returns, demand evidence and next-production decisions while leaving specialist CAD, regulated manufacturing and safety-critical control to reviewed systems.</p>
+    </section>
+
+    <section>
+      <h2>2026 market references</h2>
+      <p>Research includes the U.S. Census Bureau, NRF, Shopify, Square, Toast, Lightspeed, GS1, Google UCP, OpenAI ACP, Visa, Mastercard, Stripe and Amazon Buy with Prime. These are market references, not claims of installed integrations.</p>
+    </section>
+
+    <section>
+      <h2>Engineering sequence</h2>
+      <ol>
+        <li>Canonical Commerce Graph and state machines.</li>
+        <li>Inventory reservations, movements, procurement and returns.</li>
+        <li>Owned storefront canary.</li>
+        <li>Staff POS canary.</li>
+        <li>Kiosk canary.</li>
+        <li>BOPIS, local delivery and ship-from-store.</li>
+        <li>B2B company accounts and price lists.</li>
+        <li>One marketplace/social adapter.</li>
+        <li>One agentic-commerce adapter only after threat modeling and authority controls.</li>
+      </ol>
+    </section>
+
+    <nav aria-label="Research links">
+      <a href="/research-2026-market-intelligence.html">2026 market intelligence</a>
+      <a href="/research-2026-frontend-visual-intelligence.html">Frontend + visual operations</a>
+      <a href="/research-2026-backend-operations.html">Backend operations</a>
+      <a href="/research-batch15-platform-patterns.html">Platform patterns</a>
+    </nav>
+
+    <footer>
+      <p>Research presence is not runtime authority. Production activation remains behind tenant, security, payment-provider, CI, release, exact-live-SHA and rollback gates.</p>
+    </footer>
+  </main>
+</body>
+</html>
