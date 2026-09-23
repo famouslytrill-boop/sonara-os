@@ -116,7 +116,10 @@ describe("Market intelligence integration contract", () => {
     assert.equal(strategy.companies.business_builder.primary_outcome, "complete the first transaction and operate repeatably");
     assert.equal(strategy.companies.creator_studio.primary_outcome, "turn original work into a portable rights-aware release or client package");
     assert.equal(strategy.companies.growth_studio.primary_outcome, "turn consented first-party signals into measured customer growth");
-    assert.deepEqual(strategy.pricing.current.slice(0, 4).map((plan) => plan.price_usd_monthly), [0, 7, 19, 39]);
+    assert.deepEqual(strategy.pricing.current.slice(0, 4).map((plan) => plan.price_usd_monthly), [0, 29, 59, 109]);
+    assert.ok(strategy.business_builder_architecture.operating_loops.includes("payment_to_reconciliation_and_reporting"));
+    assert.ok(strategy.business_builder_architecture.rag_required.includes("source_citation"));
+    assert.ok(strategy.business_builder_architecture.execution_policy.approval_gated.includes("refund"));
   });
 
   it("publishes an evidence-backed operating runbook with explicit non-goals", function() {

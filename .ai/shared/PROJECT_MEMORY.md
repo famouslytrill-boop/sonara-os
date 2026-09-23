@@ -57,7 +57,7 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 
 ## Commercial truth
 
-- Pricing owner approval: Free $0; Starter $7/month; Core $19/month; Pro $39/month; Business Builder setup one-time. Do not change without new owner approval.
+- Canonical runtime pricing: Free $0; One workspace $29/month; All three $59/month; Team $109/month; annual twins are ten months of their monthly twin when configured; Business Builder setup is quoted. Keep strategy, docs, agents, entitlements and public copy synchronized with `lib/sonara-stripe-plans.cjs`. Do not change prices without owner approval and matching Stripe Price/config verification.
 - Checkout redirects never grant paid access; entitlement truth must come from persisted verified billing state or explicit owner/admin authorization.
 - Payment/customer-facing state must use provider-reported facts. Never invent processor fees, disputes, payment success, customer metrics, provider readiness, or compliance/certification status.
 - Legal/compliance source material is implementation guidance and evidence input, not attorney review or certification.

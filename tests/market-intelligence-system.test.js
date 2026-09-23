@@ -20,14 +20,27 @@ function read(relativePath) {
 describe("SONARA market intelligence", () => {
   it("defines a differentiated strategy for all three companies", function() {
     const framework = getMarketIntelligenceFramework();
-    assert.equal(framework.asOf, "2026-07-25");
+    assert.equal(framework.asOf, "2026-09-22");
     assert.deepEqual(Object.keys(framework.markets), ["business_builder", "creator_studio", "growth_studio"]);
     assert.match(framework.positioning, /affordable/i);
     assert.match(framework.portfolioThesis.join(" "), /first offer to first transaction/i);
     assert.match(framework.markets.business_builder.priorities.join(" "), /First-transaction workflow/i);
+    assert.deepEqual(framework.markets.business_builder.operatingLoops, [
+      "lead_to_customer",
+      "offer_or_catalog_to_quote_or_order",
+      "quote_or_order_to_booking_job_or_fulfillment",
+      "fulfillment_to_invoice_or_payment",
+      "payment_to_reconciliation_and_reporting",
+      "inventory_to_procurement_and_reorder",
+      "schedule_to_time_and_labor_cost",
+      "customer_outcome_to_review_retention_and_follow_up"
+    ]);
+    assert.match(framework.markets.business_builder.agentAndWorkflowPolicy.executionRule, /deterministic command validates authority/i);
+    assert.ok(framework.markets.business_builder.ragPolicy.required.includes("tenant_filter"));
+    assert.ok(framework.markets.business_builder.architecturePriorities.includes("durable_workflows_for_long_running_retries_human_waits_and_compensation"));
     assert.match(framework.markets.creator_studio.priorities.join(" "), /Rights, consent, provenance/i);
     assert.match(framework.markets.growth_studio.priorities.join(" "), /consent ledger/i);
-    assert.deepEqual(framework.pricingPosition.currentPlans, ["Free $0", "Starter $7/month", "Core $19/month", "Pro $39/month", "Business Builder one-time setup"]);
+    assert.deepEqual(framework.pricingPosition.currentPlans, ["Free $0", "One workspace $29/month", "All three $59/month", "Team $109/month", "Business Builder setup: quoted"]);
     assert.ok(framework.sources.length >= 10);
     for (const source of framework.sources) {
       assert.match(source.url, /^https:\/\//);
