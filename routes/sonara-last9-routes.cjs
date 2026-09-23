@@ -116,7 +116,18 @@ const RESOURCE_MAP = {
   // under it are reached through the invoice, the same way invoice lines are.
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
   "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
-  "/api/business/work-orders": { table: "business_work_orders", required: ["title"], person: "created_by", defaults: { status: "draft", priority: "normal", currency: "usd" } },
+  "/api/business/work-orders": {
+    table: "business_work_orders",
+    required: ["title"],
+    person: "created_by",
+    defaults: { status: "draft", priority: "normal", currency: "usd" },
+    references: {
+      customer_id: "customers",
+      location_id: "business_locations",
+      booking_id: "business_bookings",
+      vehicle_id: "vehicle_records"
+    }
+  },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } },
   // The product catalogue. Status defaults to draft rather than active on
@@ -1327,6 +1338,20 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       if (!org.ok) return respond(403, org);
 
+      // Reference controls are not authorization. Verify every referenced row
+      // server-side before a child record is written, so a guessed employee or
+      // inventory UUID from another organization cannot be attached here.
+      for (const field of spec.form.fields.filter((entry) => entry.type === "reference")) {
+        const supplied = String(req.body[field.name] || "").trim();
+        if (!supplied) continue;
+        if (!isUuid(supplied)) return respond(400, { ok: false, code: `${field.name}_invalid` });
+        const source = REFERENCE_SOURCES[field.from];
+        if (!source?.table) return respond(500, { ok: false, code: "unknown_reference_source" });
+        const check = await belongsToOrganization(config, source.table, supplied, org.organizationId);
+        if (!check.ok) return respond(502, { ok: false, code: `${field.name}_unreadable` });
+        if (!check.belongs) return respond(403, { ok: false, code: `${field.name}_not_yours` });
+      }
+
       // The parent has to belong to this business before anything is attached
       // to it. Without this check a line could be written into another
       // organization's order by posting its id.
@@ -1845,7 +1870,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // else in -- the form on /business-builder/owner/time asks "Who is
     // starting" -- so the employee is not forced to be the caller. It does have
     // to be one of this business's people.
-    for (const [field, table] of [["employee_id", "business_employee_profiles"], ["location_id", "business_locations"]]) {
+    for (const [field, table] of [
+      ["employee_id", "business_employee_profiles"],
+      ["location_id", "business_locations"],
+      ["work_order_id", "business_work_orders"]
+    ]) {
       const supplied = String(req.body[field] || "");
       if (!supplied) continue;
       const check = await belongsToOrganization(config, table, supplied, org.organizationId);
@@ -1856,6 +1885,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       organization_id: org.organizationId,
       employee_id: req.body.employee_id || null,
       location_id: req.body.location_id || null,
+      work_order_id: req.body.work_order_id || null,
       clock_in_at: new Date().toISOString(),
       entry_source: "employee_portal",
       status: "open",
@@ -2076,6 +2106,18 @@ function registerRestResource(app, path, resource, deps, middleware) {
     if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return respond(403, org);
+
+    // Any foreign record supplied with a tenant-scoped write has to belong to
+    // this organization too. A dropdown is user interface, not authorization:
+    // a caller can post a UUID that never appeared in the dropdown.
+    for (const [field, table] of Object.entries(resource.references || {})) {
+      const supplied = String(req.body[field] || "").trim();
+      if (!supplied) continue;
+      if (!isUuid(supplied)) return respond(400, { ok: false, code: `${field}_invalid` });
+      const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+      if (!check.ok) return respond(502, { ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return respond(403, { ok: false, code: `${field}_not_yours` });
+    }
 
     // Plan limits, for the resources that have one.
     //
