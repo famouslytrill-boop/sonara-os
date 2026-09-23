@@ -71,6 +71,9 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  ["lib/creator-studio-market-radar-2026.cjs",
+    "Research-only Creator Studio market radar. It records dated planning evidence and grants no runtime authority; "
+    + "it remains test-only until a reviewed product surface explicitly consumes this planning contract."],
   ["lib/sonara-compliance-evidence-readiness.cjs",
     "Reports evidence and gaps and deliberately never emits a compliant state. No surface renders it yet; "
     + "wiring it is a product decision about what to show an owner, not a missing require."],
