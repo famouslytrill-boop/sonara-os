@@ -24,6 +24,9 @@ Shared SONARA Core continues to own identity, organizations, roles, audit, billi
 | Adobe Express schedules/publishes across Instagram, Facebook, X, Pinterest, LinkedIn, YouTube, and TikTok and supports multi-account scheduling and AI captions. | A unified cross-channel calendar and adapter contract are table stakes. |
 | Sprout Social currently lists Standard, Professional, and Advanced at $199, $299, and $399 per seat/month. | SONARA can be materially cheaper only if workflow completeness, reliability, analytics, and collaboration are credible. |
 | HighLevel currently lists $97, $297, and $497 monthly tiers and combines CRM, lead capture, booking, pipelines, social calendar, website building, APIs, and sub-account management. | Growth Studio cannot be only a posting utility; it must connect acquisition to downstream Business Builder work. |
+| HubSpot for Marketers Professional currently starts at $900/month on annual commitment and requires $3,000 onboarding, while Marketing Hub Professional alone starts at $890/month. | SONARA can position below enterprise marketing-suite pricing, but low price cannot subsidize unbounded AI/media/provider costs. |
+| Klaviyo Composer can analyze an account and create campaigns, flows, segments, and channel messages while retaining marketer review/approval before customer-facing work goes live. | SONARA should keep agents grounded in tenant data while preserving explicit approval for external side effects. |
+| Semrush Content Toolkit joins SEO, AI-search visibility, content generation/optimization, social/email repurposing and publishing in one workspace. | SEO and AI-discovery measurement must connect to the campaign/content loop rather than live as an isolated tool. |
 | Apple App Store Connect Analytics exposes more than 100 measurements plus cohorts, monetization, subscriptions, reports, and API access. | App acquisition and subscription performance should become first-class growth evidence. |
 | Google Play Developer Reporting exposes crash, ANR, slow-rendering, error, and anomaly data. | Growth analytics should connect acquisition to product-quality evidence instead of optimizing traffic into a broken experience. |
 | The San Francisco Fed reported nearly 40% of surveyed small businesses were using or planning to use AI; common uses included marketing/social/SEO, customer service, visuals, analytics, and forecasting. | SMB workflows should use AI aggressively for assistance but deterministic controls for side effects. |
@@ -34,6 +37,9 @@ Primary public sources:
 - https://helpx.adobe.com/express/web/publish-and-share/schedule-manage-posts/content-scheduler-overview.html
 - https://sproutsocial.com/pricing/
 - https://www.gohighlevel.com/pricing
+- https://www.hubspot.com/pricing/marketing-plus?product=marketing
+- https://help.klaviyo.com/hc/en-us/articles/52230280693403
+- https://www.semrush.com/kb/1535-getting-started-with-content-toolkit
 - https://developer.apple.com/help/app-store-connect-analytics/
 - https://developers.google.com/play/developer/reporting
 - https://www.frbsf.org/research-and-insights/publications/community-development-research-briefs/2026/07/ai-adoption-in-small-businesses-2024-sbcs/
@@ -170,6 +176,8 @@ Every metric should preserve numerator, denominator, date range, population, cur
 Keep web requests short. Long imports, publishing, campaign fan-out, analytics ingestion, RAG indexing, media handoffs, and provider reconciliation belong on durable workers with idempotency, bounded retry/backoff, dead-letter handling, concurrency control, cancellation, quotas, telemetry, SLOs, and one-tenant canaries.
 
 OpenTelemetry remains the cross-service telemetry contract. Feature flags remain the activation boundary. Provider credentials stay server-side. External adapters translate provider-specific payloads into SONARA canonical commands/events; internal services consume canonical events rather than raw provider JSON.
+
+For mission-critical multi-step growth workflows, use Temporal-style durable execution semantics as the architectural benchmark: workflow state must survive process crashes, network failures, and infrastructure outages and resume from durable state rather than relying on one long HTTP request. Reference: https://docs.temporal.io/
 
 Canonical growth event families should converge on:
 
