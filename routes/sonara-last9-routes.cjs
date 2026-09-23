@@ -1051,7 +1051,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const found = await supabaseList(
       config,
       "quotes",
-      `?select=*&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+      `?select=id,status,customer_id,amount_cents,title&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
     );
     if (!found.ok) return respond(503, { ok: false, code: "cannot_read_quote" });
     const quote = found.rows[0];
