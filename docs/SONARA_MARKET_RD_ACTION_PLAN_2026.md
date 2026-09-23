@@ -38,10 +38,14 @@ Marketing teams are simplifying technology stacks and prioritizing usability, re
 
 ### Business Builder
 
-- Run a 10-owner concierge first-transaction pilot.
-- Compare four vertical starter packs against guided generic setup.
-- Complete a real customer/service-record import trial.
-- Measure first transaction activation, setup time, repeat use, and support minutes.
+- Run a 10-owner concierge first-transaction pilot, but measure the full lead-to-cash path rather than only setup completion.
+- Validate vertical packs against the same shared primitives: restaurant/food, trades and field service, retail/ecommerce, fleet/logistics, professional services, cleaning/facilities, property/rental, events/hire, memberships, and light manufacturing.
+- Complete a real customer/service/catalog import trial plus export/re-import proof so portability is measurable rather than promised.
+- Instrument quote-to-job, job-to-invoice, order-to-payment, payment-to-reconciliation, inventory-to-reorder, and schedule-to-time loops.
+- Keep models above deterministic business commands: AI may classify, extract, summarize, draft, rank, plan, and propose next steps; authorization, entitlements, money math, inventory/job/invoice/payment state, refunds, and audit writes remain deterministic.
+- Require approval for outbound customer messages, refunds, payouts, destructive changes, publication, high-impact permission changes, and external purchases.
+- Build RAG only over organization-scoped records and explicitly approved documents, preserving ACLs, provenance, citations, freshness, retrieval traces, and evaluation.
+- Measure first transaction activation, setup time, repeat use, support minutes, gross margin, provider cost, workflow completion, exception rate, retry/dead-letter rate, and manual-approval rate.
 
 ### Creator Studio
 
@@ -59,7 +63,7 @@ Marketing teams are simplifying technology stacks and prioritizing usability, re
 
 ## Pricing and packaging
 
-Preserve the owner-approved Free $0, Starter $7/month, Core $19/month, and Pro $39/month ladder until conversion, retention, and cost-to-serve evidence justifies a change. Cost-bearing email, SMS, storage, generation, provider API usage, and high-touch support require limits, customer-supplied accounts, or separate usage pricing.
+The canonical runtime ladder is Free $0, One workspace $29/month, All three $59/month, and Team $109/month, with annual twins priced at ten months of the corresponding monthly plan when configured. Business Builder setup is quoted rather than assigned a silent fixed checkout price. Keep market strategy synchronized with that runtime catalog. Cost-bearing model/tool execution, email, SMS, storage, generation, provider API usage, and high-touch support require measurable included usage, customer-supplied accounts, or separate credits/usage pricing.
 
 ## Research sources
 
