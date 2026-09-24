@@ -215,10 +215,12 @@ plus [`docs/PRODUCTION_ROLLBACK_RUNBOOK.md`](PRODUCTION_ROLLBACK_RUNBOOK.md).
 `MONITORING_AND_BACKUPS.md` existed only under `archive/`. Storage objects are
 covered by nothing in this repository. No restore has ever been rehearsed.
 
-**Blocked on the owner:** whether Supabase point-in-time recovery is enabled is
-not visible from the source tree, and the entire data half of the runbook
-depends on it. `OWNER-STEPS.md` item 9. **A drill cannot be designed before that
-answer, because the procedure differs completely depending on it.**
+**Recovery mechanism now identified as missing for the current plan:** on 24
+September 2026 the connected Supabase organization reported the Free plan, so
+PITR must not be treated as available. The next safe drill is therefore an
+isolated logical-database restore plus a separate Storage-object restore, or a
+paid-plan/PITR drill after an explicit billing decision. GitHub artifacts remain
+schema/evidence only and must never become customer-data backup storage.
 
 ## 8. Deployment rollback automation
 
@@ -253,8 +255,10 @@ The dependencies above are not preferences. In order:
    enough to build on: the emitter exists and the campaign dispatcher, the
    checkout path and the agent runner all emit. Further callers are wiring, not
    design, and are no longer blocking.
-2. **The PITR answer** (owner step 9) — unblocks item 7, and it is two minutes.
-3. **Backup and restore drill** (item 7), then **rollback automation** (item 8).
+2. **Choose and fund a real recovery mechanism** (owner step 9) — the current
+   Free-plan environment does not provide PITR.
+3. **Backup and restore drill** (item 7), including Storage objects, then
+   **rollback automation** (item 8).
 4. **SLOs** (item 3), then **error budgets** (item 4).
 5. **Traces** (item 2) and **queue aggregates** (item 5) alongside the above.
 6. **The dashboard** (item 9) last, because it reports on all of them.
