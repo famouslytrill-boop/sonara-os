@@ -46,9 +46,10 @@
 // application keeps its production dependency list small for reasons the
 // client-secret scan, the audit gate and the reciprocal-licence check all
 // depend on. It was one -- Express -- until 20 September 2026, when eight
-// @opentelemetry packages and @openfeature/server-sdk took it to nine for a
-// capability nothing in the runtime calls yet; docs/SHIP_READINESS.md records
-// that as an open owner decision rather than a precedent. Every row below
+// @opentelemetry packages and @openfeature/server-sdk took it to nine. As of
+// 24 September those packages are reached by the runtime control plane, while
+// telemetry export remains explicitly disabled without approved configuration.
+// That wiring is not a precedent for adding unrelated dependencies. Every row below
 // is a **problem somebody solved that we could solve ourselves**, with the
 // licence noted so the boundary is visible.
 
