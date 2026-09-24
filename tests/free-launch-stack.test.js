@@ -51,8 +51,10 @@ describe("Free Launch Stack", () => {
     const fs = require("node:fs");
     const path = require("node:path");
     const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-    assert.match(serverSource, /startTelemetry\(/, "server.js no longer starts the telemetry provider");
-    assert.match(serverSource, /installHttpObservability\(/, "server.js no longer installs HTTP observability");
+    const bootstrapSource = fs.readFileSync(path.join(__dirname, "..", "lib", "sonara-runtime-bootstrap.cjs"), "utf8");
+    assert.match(serverSource, /sonara-runtime-bootstrap\.cjs/, "server.js no longer uses the runtime bootstrap");
+    assert.match(bootstrapSource, /startTelemetry\(/, "runtime bootstrap no longer starts the telemetry provider");
+    assert.match(bootstrapSource, /installHttpObservability\(/, "runtime bootstrap no longer installs HTTP observability");
   });
 
   it("offers the same safe directory data to application clients", async () => {
