@@ -37,7 +37,11 @@ const read = (name) => fs.readFileSync(path.join(PUBLIC, name), "utf8");
 const RECORD_CLIP = `(async () => {
   const canvas = Object.assign(document.createElement("canvas"), { width: 320, height: 180 });
   const ctx = canvas.getContext("2d");
-  const stream = canvas.captureStream(0);
+  // Keep Chromium's normal capture clock active, and request each test frame
+  // explicitly as well. A zero-rate stream can leave MediaRecorder waiting
+  // indefinitely on some GitHub runners; the dual path is deterministic without
+  // depending on that implementation detail.
+  const stream = canvas.captureStream(25);
   const [track] = stream.getVideoTracks();
   if (!track || typeof track.requestFrame !== "function") {
     throw new Error("Chromium does not expose manual canvas frame capture");
@@ -50,11 +54,7 @@ const RECORD_CLIP = `(async () => {
   recorder.ondataavailable = (event) => {
     if (event.data && event.data.size > 0) chunks.push(event.data);
   };
-  await new Promise((resolve, reject) => {
-    recorder.onstart = resolve;
-    recorder.onerror = () => reject(new Error("recorder did not start"));
-    recorder.start(100);
-  });
+  recorder.start(100);
   for (let step = 0; step < 30; step += 1) {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 320, 180);
     ctx.fillStyle = "#fff"; ctx.fillRect(step * 10, 60, 30, 30);

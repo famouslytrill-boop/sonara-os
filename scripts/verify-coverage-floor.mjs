@@ -190,14 +190,25 @@ try {
     process.stdout.write("Using V8 coverage from the current successful release-gate test run.\n");
   } else {
     const mochaBin = path.join(REPO, "node_modules", "mocha", "bin", "mocha.js");
-    const run = spawnSync(process.execPath, [mochaBin, "--pass-with-no-tests"], {
-      cwd: REPO,
-      env: { ...process.env, NODE_V8_COVERAGE: covDir },
-      stdio: ["ignore", "ignore", "pipe"],
-      encoding: "utf8"
-    });
-    if (run.status !== 0) {
-      process.stderr.write(run.stderr || "");
+    // The suite deliberately exercises noisy error paths. Piping all of stderr
+    // through spawnSync can hit Node's maxBuffer and turn a passing suite into
+    // a false coverage failure. Stream it to disk instead; collect() ignores
+    // non-JSON files and the enclosing finally removes the temporary directory.
+    const stderrPath = path.join(covDir, "mocha-stderr.log");
+    const stderrFd = fs.openSync(stderrPath, "w");
+    let run;
+    try {
+      run = spawnSync(process.execPath, [mochaBin, "--pass-with-no-tests"], {
+        cwd: REPO,
+        env: { ...process.env, NODE_V8_COVERAGE: covDir },
+        stdio: ["ignore", "ignore", stderrFd]
+      });
+    } finally {
+      fs.closeSync(stderrFd);
+    }
+    if (run.error || run.status !== 0) {
+      try { process.stderr.write(fs.readFileSync(stderrPath, "utf8")); } catch {}
+      if (run.error) process.stderr.write(`coverage test runner error: ${run.error.message}\n`);
       fail("the test suite did not pass, so its coverage says nothing. Fix the suite first.");
       process.exit(1);
     }
