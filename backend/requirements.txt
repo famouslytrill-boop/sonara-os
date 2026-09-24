@@ -1,3 +1,9 @@
 fastapi==0.139.2
 uvicorn[standard]==0.51.0
 pydantic==2.13.4
+
+# Security floors for transitive ASGI/HTTP dependencies. These are explicit so
+# a resolver cannot silently select versions with known 2025/2026 advisories.
+anyio==4.14.2
+h11==0.16.0
+idna==3.15
