@@ -128,24 +128,97 @@ jobs:
           status=$?
           set -e
           printf '%s\n' "$status" > artifacts/security-open-source/gitleaks.exit
-          REPORT=/tmp/gitleaks-current.json node --input-type=module <<'NODE' > artifacts/security-open-source/gitleaks-summary.json
+          set +e
+          REPORT=/tmp/gitleaks-current.json \
+          BASELINE=.github/security/gitleaks-reviewed-findings.json \
+          RAW_STATUS="$status" \
+          node --input-type=module <<'NODE' > artifacts/security-open-source/gitleaks-summary.json
+          import crypto from "node:crypto";
           import fs from "node:fs";
+
           let findings = [];
+          let parseError = null;
           try {
             const parsed = JSON.parse(fs.readFileSync(process.env.REPORT, "utf8"));
             findings = Array.isArray(parsed) ? parsed : [];
-          } catch {}
-          const safe = findings.map((finding) => ({
-            rule: String(finding.RuleID || finding.ruleID || "unknown").slice(0, 120),
-            file: String(finding.File || finding.file || "unknown").slice(0, 300),
-            line: Number(finding.StartLine || finding.startLine || 0) || null,
-            fingerprint: String(finding.Fingerprint || finding.fingerprint || "").slice(0, 300) || null
-          }));
-          console.log(JSON.stringify({ findingCount: safe.length, findings: safe }, null, 2));
+          } catch (error) {
+            parseError = String(error?.message || error);
+          }
+
+          let baseline = { entries: [] };
+          try {
+            baseline = JSON.parse(fs.readFileSync(process.env.BASELINE, "utf8"));
+          } catch (error) {
+            parseError = parseError || ("baseline: " + String(error?.message || error));
+          }
+
+          const expected = new Map();
+          for (const entry of baseline.entries || []) {
+            const key = [entry.file, entry.rule, entry.lineSha256].join("\u0000");
+            const current = expected.get(key) || { count: 0, entry };
+            current.count += 1;
+            expected.set(key, current);
+          }
+
+          const unreviewed = [];
+          let reviewedCount = 0;
+          for (const finding of findings) {
+            const rule = String(finding.RuleID || finding.ruleID || "unknown").slice(0, 120);
+            const file = String(finding.File || finding.file || "unknown").slice(0, 300);
+            const line = Number(finding.StartLine || finding.startLine || 0) || null;
+            let lineSha256 = null;
+            try {
+              const sourceLines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+              const sourceLine = line ? sourceLines[line - 1] : null;
+              if (typeof sourceLine === "string") {
+                lineSha256 = crypto.createHash("sha256").update(sourceLine).digest("hex");
+              }
+            } catch {}
+            const key = [file, rule, lineSha256].join("\u0000");
+            const reviewed = expected.get(key);
+            if (reviewed && reviewed.count > 0) {
+              reviewed.count -= 1;
+              reviewedCount += 1;
+            } else {
+              unreviewed.push({ rule, file, line, lineSha256 });
+            }
+          }
+
+          const staleBaseline = [];
+          for (const { count, entry } of expected.values()) {
+            if (count > 0) {
+              staleBaseline.push({
+                file: entry.file,
+                rule: entry.rule,
+                lineSha256: entry.lineSha256,
+                remaining: count,
+                reason: entry.reason || null
+              });
+            }
+          }
+
+          const rawStatus = Number(process.env.RAW_STATUS);
+          const scannerError = ![0, 1].includes(rawStatus);
+          console.log(JSON.stringify({
+            findingCount: findings.length,
+            reviewedCount,
+            unreviewedCount: unreviewed.length,
+            staleBaselineCount: staleBaseline.length,
+            rawScannerExit: rawStatus,
+            parseError,
+            unreviewed,
+            staleBaseline
+          }, null, 2));
+
+          if (scannerError || parseError || unreviewed.length || staleBaseline.length) {
+            process.exitCode = 1;
+          }
           NODE
+          classifier_status=$?
+          set -e
           cat artifacts/security-open-source/gitleaks-summary.json
           rm -f /tmp/gitleaks-current.json
-          exit "$status"
+          exit "$classifier_status"
 
       - name: Record sanitized full-history secret evidence
         id: gitleaks_history
