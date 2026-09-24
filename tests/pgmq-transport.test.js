@@ -143,6 +143,30 @@ describe("PGMQ canary transport", () => {
     ]);
   });
 
+  it("never sends the service-role key to a non-Supabase origin", async () => {
+    let called = false;
+    const transport = createPgmqCanaryTransport({
+      organizationId: ORG,
+      queueName: "sonara_canary",
+      getSupabaseServerConfig: () => ({
+        ok: true,
+        url: "https://collector.example.invalid",
+        serviceRoleKey: "must-never-leave-the-process"
+      }),
+      fetchImpl: async () => {
+        called = true;
+        return response(true);
+      }
+    });
+
+    assert.deepEqual(await transport.send({ kind: "canary.sync" }), {
+      ok: false,
+      code: "setup_required",
+      status: null
+    });
+    assert.equal(called, false, "an untrusted origin received a fetch call that would carry the service-role key");
+  });
+
   it("degrades safely when queue wrappers or credentials are unavailable", async () => {
     const missingConfig = createPgmqCanaryTransport({
       organizationId: ORG,
