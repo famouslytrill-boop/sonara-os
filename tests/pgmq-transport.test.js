@@ -192,7 +192,7 @@ describe("PGMQ canary transport", () => {
     });
     await assert.rejects(() => transport.read({ visibilitySeconds: 0 }), /visibilitySeconds/);
     await assert.rejects(() => transport.read({ limit: 11 }), /limit/);
-    assert.throws(
+    await assert.rejects(
       () => transport.archive("9007199254740993"),
       /positive safe integer/
     );
