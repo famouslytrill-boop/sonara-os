@@ -1,0 +1,98 @@
+name: Lighthouse Quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "server.js"
+      - "routes/**"
+      - "lib/**"
+      - "public/**"
+      - "lighthouserc.cjs"
+      - ".github/workflows/lighthouse-quality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked application dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium for the locked Playwright toolchain
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify and install Lighthouse CI 0.15.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='sha512-yhC0oXnXqGHYy1xl4D8YqaydMZ/khFAnXGY/o2m/J3PqPa/D0nj3V6TLoH02oVMFeEF2AQim7UbmdXMiXx2tOw=='
+          actual="$(npm view @lhci/cli@0.15.1 dist.integrity)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::@lhci/cli@0.15.1 registry integrity changed"
+            exit 1
+          fi
+          npm install --global --ignore-scripts @lhci/cli@0.15.1
+          lhci --version
+
+      - name: Build exact head
+        run: pnpm run build
+
+      - name: Start isolated local runtime
+        env:
+          NODE_ENV: test
+          SONARA_OTEL_ENABLED: "false"
+        run: |
+          mkdir -p artifacts/lighthouse
+          node -e 'const app=require("./server"); const server=app.listen(3000,"127.0.0.1",()=>console.log("SONARA Lighthouse runtime ready")); process.on("SIGTERM",()=>server.close(()=>process.exit(0)));' > artifacts/lighthouse/server.log 2>&1 &
+          echo $! > artifacts/lighthouse/server.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat artifacts/lighthouse/server.log
+          exit 1
+
+      - name: Run Lighthouse CI assertions
+        shell: bash
+        run: |
+          export CHROME_PATH="$(node -e 'console.log(require("@playwright/test").chromium.executablePath())')"
+          lhci autorun --config=./lighthouserc.cjs 2>&1 | tee artifacts/lighthouse/lhci.log
+
+      - name: Stop isolated local runtime
+        if: always()
+        run: |
+          if [[ -f artifacts/lighthouse/server.pid ]]; then
+            kill "$(cat artifacts/lighthouse/server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonara-lighthouse-${{ github.run_id }}
+          path: artifacts/lighthouse
+          if-no-files-found: error
+          retention-days: 30
