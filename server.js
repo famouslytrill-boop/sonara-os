@@ -1,5 +1,7 @@
 // Copyright (c) 2026 SONARA Industries. All rights reserved.
 // Proprietary source. No licence is granted; see LICENSE.
+const { startTelemetry, currentTelemetryState, installHttpObservability } = require("./lib/sonara-observability.cjs");
+const telemetryBootState = startTelemetry();
 const express = require("express");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
@@ -56,6 +58,7 @@ const { DATABASE_TABLES, STORAGE_BUCKETS } = require("./lib/sonara-database-cont
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
+const { createDefaultRuntimeCapabilityService } = require("./lib/sonara-runtime-capabilities.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
 const { createBilling } = require("./lib/sonara-billing.cjs");
@@ -135,6 +138,12 @@ tenantGuard.install();
 const app = express();
 // Before any route: an async handler that throws must answer, not hang. See lib/sonara-async-route-safety.cjs.
 installAsyncRouteSafety(app);
+// Correlation IDs, bounded HTTP metrics and structured request evidence are
+// installed before customer routes. OpenTelemetry itself was started above,
+// before Express was required, so automatic HTTP/Express instrumentation can
+// patch the modules before they load.
+installHttpObservability(app);
+const runtimeCapabilities = createDefaultRuntimeCapabilityService();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 
@@ -1557,6 +1566,9 @@ async function getLiveReadiness() {
   readiness.services.googleOAuth = googleStatus;
   readiness.services.googleSignIn = googleStatus;
   readiness.missing.googleOAuth = google.ok ? [] : ["Supabase Google provider"];
+  const telemetry = currentTelemetryState();
+  readiness.services.openTelemetry = telemetry.enabled ? "configured" : telemetry.status;
+  readiness.runtimeCapabilities = runtimeCapabilities.summary();
   return readiness;
 }
 
