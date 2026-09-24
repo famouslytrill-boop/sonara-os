@@ -1,0 +1,91 @@
+name: Reliability Performance Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "server.js"
+      - "lib/sonara-observability.cjs"
+      - "lib/sonara-runtime-capabilities.cjs"
+      - "tests/performance/**"
+      - ".github/workflows/reliability-performance-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-reliability-performance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  k6-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build exact head
+        run: pnpm run build
+
+      - name: Start isolated local runtime
+        env:
+          NODE_ENV: test
+          SONARA_OTEL_ENABLED: "false"
+        run: |
+          mkdir -p artifacts/performance
+          node -e 'const app=require("./server"); const server=app.listen(3000,"127.0.0.1",()=>console.log("SONARA local performance runtime ready")); process.on("SIGTERM",()=>server.close(()=>process.exit(0)));' > artifacts/performance/server.log 2>&1 &
+          echo $! > artifacts/performance/server.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat artifacts/performance/server.log
+          exit 1
+
+      - name: Install pinned k6 v2.3.0
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz \
+            --output /tmp/k6-v2.3.0-linux-amd64.tar.gz
+          echo "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1  /tmp/k6-v2.3.0-linux-amd64.tar.gz" | sha256sum --check
+          tar -xzf /tmp/k6-v2.3.0-linux-amd64.tar.gz -C /tmp
+          /tmp/k6-v2.3.0-linux-amd64/k6 version
+
+      - name: Enforce latency and error thresholds
+        env:
+          SONARA_BASE_URL: http://127.0.0.1:3000
+        run: |
+          set -o pipefail
+          /tmp/k6-v2.3.0-linux-amd64/k6 run tests/performance/health-smoke.k6.js \
+            | tee artifacts/performance/k6.log
+
+      - name: Stop isolated local runtime
+        if: always()
+        run: |
+          if [[ -f artifacts/performance/server.pid ]]; then
+            kill "$(cat artifacts/performance/server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonara-k6-smoke-${{ github.run_id }}
+          path: artifacts/performance
+          if-no-files-found: error
