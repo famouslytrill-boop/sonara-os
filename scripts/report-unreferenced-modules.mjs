@@ -97,10 +97,6 @@ const TEST_ONLY = new Map([
   ["lib/sonara-d1-rollups.cjs",
     "The schema and read rules for the two derived tables D1 may hold. lib/sonara-d1-adapter.cjs is the "
     + "enforcement half and is wired; this half waits on a D1 binding the owner has not provisioned."],
-  ["lib/sonara-feature-flags.cjs",
-    "Wraps @openfeature/server-sdk, which PR #332 added to production dependencies. Nothing evaluates a flag "
-    + "through it, so the dependency ships to Vercel for code the runtime never reaches. Wire it or move the "
-    + "dependency -- see docs/SHIP_READINESS.md."],
   ["lib/sonara-form-reachability.cjs",
     "A measurement three tests share. Test infrastructure that lives in lib/ on purpose, and the one entry "
     + "here that is correct as a permanent state rather than a staging one."],
@@ -122,12 +118,10 @@ const TEST_ONLY = new Map([
   ["lib/sonara-module-runtime.cjs",
     "Validates and orders module manifests into an auditable installation plan, and deliberately installs, "
     + "loads and activates nothing. Waiting on a surface that shows the plan to an owner for approval."],
-  ["lib/sonara-observability.cjs",
-    "Wraps eight @opentelemetry packages PR #332 added to production dependencies. Neither startTelemetry nor "
-    + "installHttpObservability is called anywhere, so the packages ship for unreachable code. Note for "
-    + "whoever wires it: the meter is taken in installHttpObservability, and OpenTelemetry instruments built "
-    + "from the no-op provider stay no-ops after a later start -- installing it before startTelemetry gives a "
-    + "dashboard that looks configured and counts nothing."],
+  ["lib/sonara-pgmq-transport.cjs",
+    "Staging-only PGMQ transport contract added 24 September 2026. It is intentionally not reachable from "
+    + "the production runtime until an isolated Supabase environment exposes pgmq_public, creates one canary "
+    + "queue, and proves tenant isolation, visibility timeout, settlement, retry and recovery evidence."],
   ["lib/sonara-sms-keywords.cjs",
     "Turns an inbound \"STOP\" into an intent. The refusal half is already built and wired "
     + "(authoriseOutbound in lib/sonara-telephony.cjs refuses on consent_revoked), and both candidate carriers "
