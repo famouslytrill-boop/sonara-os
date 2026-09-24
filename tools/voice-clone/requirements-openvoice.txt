@@ -15,6 +15,12 @@
 # NOT VERIFIED HERE. See voiceclone/openvoice_engine.py -- the machine this was
 # written on had no GPU and could not download the checkpoints, so this path
 # has never been executed.
+#
+# Security review 24 September 2026: OSV reports PYSEC-2026-139 against the
+# PyTorch version family an unconstrained install currently selects and records
+# 2.13.0 as the fixed version. Keep this engine disabled until that newer
+# PyTorch line is compatibility-tested with OpenVoice/MeloTTS and the checkpoints
+# in an isolated worker. Do not raise the floor merely to silence the scanner.
 torch
 torchaudio
 librosa==0.9.1
