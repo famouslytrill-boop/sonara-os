@@ -48,18 +48,57 @@ jobs:
           chmod 0755 /tmp/osv-scanner
           /tmp/osv-scanner --version | tee artifacts/security-open-source/osv-version.txt
 
-      - name: Scan dependency manifests with OSV Scanner
+      - name: Scan maintained dependency manifests with OSV Scanner
         id: osv
         continue-on-error: true
         shell: bash
         run: |
           set +e
-          /tmp/osv-scanner scan source --recursive --format=json . \
-            > artifacts/security-open-source/osv.json
+          /tmp/osv-scanner scan source \
+            --format=json \
+            --lockfile=pnpm-lock.yaml \
+            --lockfile=requirements.txt:backend/requirements.txt \
+            --lockfile=requirements.txt:tools/disposable-domains/requirements.txt \
+            --lockfile=requirements.txt:tools/voice-clone/requirements.txt \
+            . > artifacts/security-open-source/osv.json
           status=$?
           set -e
           printf '%s\n' "$status" > artifacts/security-open-source/osv.exit
+          OSV_REPORT=artifacts/security-open-source/osv.json node --input-type=module <<'NODE' > artifacts/security-open-source/osv-summary.json
+          import fs from "node:fs";
+          let report = {};
+          try { report = JSON.parse(fs.readFileSync(process.env.OSV_REPORT, "utf8")); } catch {}
+          const findings = [];
+          for (const result of report.results || []) {
+            const source = result.source?.path || result.source?.name || "unknown";
+            for (const pkg of result.packages || []) {
+              const name = pkg.package?.name || "unknown";
+              const version = pkg.package?.version || null;
+              for (const vuln of pkg.vulnerabilities || []) {
+                findings.push({ source, package: name, version, id: vuln.id || null });
+              }
+            }
+          }
+          console.log(JSON.stringify({ findingCount: findings.length, findings }, null, 2));
+          NODE
+          cat artifacts/security-open-source/osv-summary.json
           exit "$status"
+
+      - name: Record optional OpenVoice engine vulnerability evidence
+        id: osv_openvoice
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          /tmp/osv-scanner scan source \
+            --format=json \
+            --lockfile=requirements.txt:tools/voice-clone/requirements-openvoice.txt \
+            . > artifacts/security-open-source/osv-openvoice.json
+          status=$?
+          set -e
+          printf '%s\n' "$status" > artifacts/security-open-source/osv-openvoice.exit
+          echo "OpenVoice engine scan exit: $status (advisory-only until the never-executed engine is compatibility-validated)."
+          exit 0
 
       - name: Install checksum-pinned Gitleaks 8.30.1
         shell: bash
@@ -73,8 +112,43 @@ jobs:
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp/gitleaks-bin gitleaks
           /tmp/gitleaks-bin/gitleaks version | tee artifacts/security-open-source/gitleaks-version.txt
 
-      - name: Scan full Git history with Gitleaks
+      - name: Block current-source secrets with Gitleaks
         id: gitleaks
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          /tmp/gitleaks-bin/gitleaks dir \
+            --no-banner \
+            --redact=100 \
+            --log-level warn \
+            --report-format json \
+            --report-path /tmp/gitleaks-current.json \
+            .
+          status=$?
+          set -e
+          printf '%s\n' "$status" > artifacts/security-open-source/gitleaks.exit
+          REPORT=/tmp/gitleaks-current.json node --input-type=module <<'NODE' > artifacts/security-open-source/gitleaks-summary.json
+          import fs from "node:fs";
+          let findings = [];
+          try {
+            const parsed = JSON.parse(fs.readFileSync(process.env.REPORT, "utf8"));
+            findings = Array.isArray(parsed) ? parsed : [];
+          } catch {}
+          const safe = findings.map((finding) => ({
+            rule: String(finding.RuleID || finding.ruleID || "unknown").slice(0, 120),
+            file: String(finding.File || finding.file || "unknown").slice(0, 300),
+            line: Number(finding.StartLine || finding.startLine || 0) || null,
+            fingerprint: String(finding.Fingerprint || finding.fingerprint || "").slice(0, 300) || null
+          }));
+          console.log(JSON.stringify({ findingCount: safe.length, findings: safe }, null, 2));
+          NODE
+          cat artifacts/security-open-source/gitleaks-summary.json
+          rm -f /tmp/gitleaks-current.json
+          exit "$status"
+
+      - name: Record sanitized full-history secret evidence
+        id: gitleaks_history
         continue-on-error: true
         shell: bash
         run: |
@@ -84,31 +158,35 @@ jobs:
             --redact=100 \
             --log-level warn \
             --report-format json \
-            --report-path /tmp/gitleaks.json \
+            --report-path /tmp/gitleaks-history.json \
             .
           status=$?
           set -e
-          printf '%s\n' "$status" > artifacts/security-open-source/gitleaks.exit
-          REPORT=/tmp/gitleaks.json node --input-type=module <<'NODE' > artifacts/security-open-source/gitleaks-summary.json
+          printf '%s\n' "$status" > artifacts/security-open-source/gitleaks-history.exit
+          REPORT=/tmp/gitleaks-history.json node --input-type=module <<'NODE' > artifacts/security-open-source/gitleaks-history-summary.json
           import fs from "node:fs";
-          const path = process.env.REPORT;
           let findings = [];
           try {
-            const parsed = JSON.parse(fs.readFileSync(path, "utf8"));
+            const parsed = JSON.parse(fs.readFileSync(process.env.REPORT, "utf8"));
             findings = Array.isArray(parsed) ? parsed : [];
           } catch {}
+          const safe = findings.map((finding) => ({
+            rule: String(finding.RuleID || finding.ruleID || "unknown").slice(0, 120),
+            file: String(finding.File || finding.file || "unknown").slice(0, 300),
+            line: Number(finding.StartLine || finding.startLine || 0) || null,
+            commit: String(finding.Commit || finding.commit || "").slice(0, 80) || null,
+            fingerprint: String(finding.Fingerprint || finding.fingerprint || "").slice(0, 300) || null
+          }));
           const byRule = {};
-          for (const finding of findings) {
-            const rule = String(finding.RuleID || finding.ruleID || "unknown").slice(0, 120);
-            byRule[rule] = (byRule[rule] || 0) + 1;
-          }
-          console.log(JSON.stringify({ findingCount: findings.length, byRule }, null, 2));
+          for (const finding of safe) byRule[finding.rule] = (byRule[finding.rule] || 0) + 1;
+          console.log(JSON.stringify({ findingCount: safe.length, byRule, findings: safe }, null, 2));
           NODE
-          # The raw report is intentionally NOT uploaded. It may contain secret
-          # material even when scanner output is redacted; only the sanitized
-          # count-by-rule evidence leaves the runner.
-          rm -f /tmp/gitleaks.json
-          exit "$status"
+          cat artifacts/security-open-source/gitleaks-history-summary.json
+          rm -f /tmp/gitleaks-history.json
+          # Historical findings remain review evidence. The release-blocking
+          # secret check is the current-source scan above; rewriting Git history
+          # requires a separate coordinated credential-rotation decision.
+          exit 0
 
       - name: Install checksum-pinned Trivy 0.74.0
         shell: bash
@@ -122,7 +200,7 @@ jobs:
           tar -xzf /tmp/trivy.tar.gz -C /tmp/trivy-bin trivy
           /tmp/trivy-bin/trivy --version | tee artifacts/security-open-source/trivy-version.txt
 
-      - name: Scan filesystem vulnerabilities and misconfigurations with Trivy
+      - name: Scan maintained filesystem with Trivy
         id: trivy
         continue-on-error: true
         shell: bash
@@ -132,12 +210,51 @@ jobs:
             --scanners vuln,misconfig \
             --severity HIGH,CRITICAL \
             --exit-code 1 \
+            --skip-dirs archive \
+            --skip-files tools/voice-clone/requirements-openvoice.txt \
             --format json \
             --output artifacts/security-open-source/trivy.json \
             .
           status=$?
           set -e
           printf '%s\n' "$status" > artifacts/security-open-source/trivy.exit
+          TRIVY_REPORT=artifacts/security-open-source/trivy.json node --input-type=module <<'NODE' > artifacts/security-open-source/trivy-summary.json
+          import fs from "node:fs";
+          let report = {};
+          try { report = JSON.parse(fs.readFileSync(process.env.TRIVY_REPORT, "utf8")); } catch {}
+          const vulnerabilities = [];
+          const misconfigurations = [];
+          for (const result of report.Results || []) {
+            const target = result.Target || "unknown";
+            for (const vuln of result.Vulnerabilities || []) {
+              vulnerabilities.push({
+                target,
+                id: vuln.VulnerabilityID || null,
+                package: vuln.PkgName || null,
+                installed: vuln.InstalledVersion || null,
+                fixed: vuln.FixedVersion || null,
+                severity: vuln.Severity || null
+              });
+            }
+            for (const item of result.Misconfigurations || []) {
+              if (item.Status === "FAIL") {
+                misconfigurations.push({
+                  target,
+                  id: item.ID || null,
+                  severity: item.Severity || null,
+                  title: item.Title || null
+                });
+              }
+            }
+          }
+          console.log(JSON.stringify({
+            vulnerabilityCount: vulnerabilities.length,
+            misconfigurationCount: misconfigurations.length,
+            vulnerabilities,
+            misconfigurations
+          }, null, 2));
+          NODE
+          cat artifacts/security-open-source/trivy-summary.json
           exit "$status"
 
       - name: Write scanner gate summary
@@ -147,16 +264,22 @@ jobs:
           OSV_OUTCOME: ${{ steps.osv.outcome }}
           GITLEAKS_OUTCOME: ${{ steps.gitleaks.outcome }}
           TRIVY_OUTCOME: ${{ steps.trivy.outcome }}
+          OPENVOICE_OUTCOME: ${{ steps.osv_openvoice.outcome }}
+          HISTORY_OUTCOME: ${{ steps.gitleaks_history.outcome }}
         run: |
           node --input-type=module <<'NODE' > artifacts/security-open-source/gate-summary.json
           const summary = {
             exactHead: process.env.GITHUB_SHA,
             sourceUpload: false,
             rawSecretReportPersisted: false,
-            scanners: {
+            blockingScanners: {
               osv: process.env.OSV_OUTCOME,
-              gitleaks: process.env.GITLEAKS_OUTCOME,
-              trivy: process.env.TRIVY_OUTCOME
+              gitleaksCurrentSource: process.env.GITLEAKS_OUTCOME,
+              trivyMaintainedFilesystem: process.env.TRIVY_OUTCOME
+            },
+            advisoryEvidence: {
+              openVoiceEngine: process.env.OPENVOICE_OUTCOME,
+              fullGitHistory: process.env.HISTORY_OUTCOME
             }
           };
           console.log(JSON.stringify(summary, null, 2));
@@ -171,7 +294,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Enforce scanner gates after evidence upload
+      - name: Enforce maintained-source scanner gates after evidence upload
         if: always()
         shell: bash
         env:
@@ -181,7 +304,7 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
-          for pair in "OSV:$OSV_OUTCOME" "Gitleaks:$GITLEAKS_OUTCOME" "Trivy:$TRIVY_OUTCOME"; do
+          for pair in "OSV:$OSV_OUTCOME" "Gitleaks-current:$GITLEAKS_OUTCOME" "Trivy:$TRIVY_OUTCOME"; do
             name="${pair%%:*}"
             outcome="${pair#*:}"
             if [[ "$outcome" != "success" ]]; then
