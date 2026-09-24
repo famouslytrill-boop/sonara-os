@@ -1,0 +1,192 @@
+name: Open Source Security Scans
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "backend/**"
+      - "python/**"
+      - "tools/**"
+      - "Dockerfile"
+      - ".github/workflows/**"
+      - "lib/**"
+      - "routes/**"
+      - "scripts/**"
+      - "server.js"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-open-source-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scanners:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact head with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Prepare evidence directory
+        run: mkdir -p artifacts/security-open-source
+
+      - name: Install checksum-pinned OSV Scanner 2.6.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64 \
+            --output /tmp/osv-scanner
+          echo "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108  /tmp/osv-scanner" | sha256sum --check
+          chmod 0755 /tmp/osv-scanner
+          /tmp/osv-scanner --version | tee artifacts/security-open-source/osv-version.txt
+
+      - name: Scan dependency manifests with OSV Scanner
+        id: osv
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          /tmp/osv-scanner scan source --recursive --format=json . \
+            > artifacts/security-open-source/osv.json
+          status=$?
+          set -e
+          printf '%s\n' "$status" > artifacts/security-open-source/osv.exit
+          exit "$status"
+
+      - name: Install checksum-pinned Gitleaks 8.30.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output /tmp/gitleaks.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz" | sha256sum --check
+          mkdir -p /tmp/gitleaks-bin
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp/gitleaks-bin gitleaks
+          /tmp/gitleaks-bin/gitleaks version | tee artifacts/security-open-source/gitleaks-version.txt
+
+      - name: Scan full Git history with Gitleaks
+        id: gitleaks
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          /tmp/gitleaks-bin/gitleaks git \
+            --no-banner \
+            --redact=100 \
+            --log-level warn \
+            --report-format json \
+            --report-path /tmp/gitleaks.json \
+            .
+          status=$?
+          set -e
+          printf '%s\n' "$status" > artifacts/security-open-source/gitleaks.exit
+          REPORT=/tmp/gitleaks.json node --input-type=module <<'NODE' > artifacts/security-open-source/gitleaks-summary.json
+          import fs from "node:fs";
+          const path = process.env.REPORT;
+          let findings = [];
+          try {
+            const parsed = JSON.parse(fs.readFileSync(path, "utf8"));
+            findings = Array.isArray(parsed) ? parsed : [];
+          } catch {}
+          const byRule = {};
+          for (const finding of findings) {
+            const rule = String(finding.RuleID || finding.ruleID || "unknown").slice(0, 120);
+            byRule[rule] = (byRule[rule] || 0) + 1;
+          }
+          console.log(JSON.stringify({ findingCount: findings.length, byRule }, null, 2));
+          NODE
+          # The raw report is intentionally NOT uploaded. It may contain secret
+          # material even when scanner output is redacted; only the sanitized
+          # count-by-rule evidence leaves the runner.
+          rm -f /tmp/gitleaks.json
+          exit "$status"
+
+      - name: Install checksum-pinned Trivy 0.74.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz \
+            --output /tmp/trivy.tar.gz
+          echo "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a  /tmp/trivy.tar.gz" | sha256sum --check
+          mkdir -p /tmp/trivy-bin
+          tar -xzf /tmp/trivy.tar.gz -C /tmp/trivy-bin trivy
+          /tmp/trivy-bin/trivy --version | tee artifacts/security-open-source/trivy-version.txt
+
+      - name: Scan filesystem vulnerabilities and misconfigurations with Trivy
+        id: trivy
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          /tmp/trivy-bin/trivy fs \
+            --scanners vuln,misconfig \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format json \
+            --output artifacts/security-open-source/trivy.json \
+            .
+          status=$?
+          set -e
+          printf '%s\n' "$status" > artifacts/security-open-source/trivy.exit
+          exit "$status"
+
+      - name: Write scanner gate summary
+        if: always()
+        shell: bash
+        env:
+          OSV_OUTCOME: ${{ steps.osv.outcome }}
+          GITLEAKS_OUTCOME: ${{ steps.gitleaks.outcome }}
+          TRIVY_OUTCOME: ${{ steps.trivy.outcome }}
+        run: |
+          node --input-type=module <<'NODE' > artifacts/security-open-source/gate-summary.json
+          const summary = {
+            exactHead: process.env.GITHUB_SHA,
+            sourceUpload: false,
+            rawSecretReportPersisted: false,
+            scanners: {
+              osv: process.env.OSV_OUTCOME,
+              gitleaks: process.env.GITLEAKS_OUTCOME,
+              trivy: process.env.TRIVY_OUTCOME
+            }
+          };
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+
+      - name: Upload sanitized scanner evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonara-open-source-security-${{ github.run_id }}
+          path: artifacts/security-open-source
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce scanner gates after evidence upload
+        if: always()
+        shell: bash
+        env:
+          OSV_OUTCOME: ${{ steps.osv.outcome }}
+          GITLEAKS_OUTCOME: ${{ steps.gitleaks.outcome }}
+          TRIVY_OUTCOME: ${{ steps.trivy.outcome }}
+        run: |
+          set -euo pipefail
+          failed=0
+          for pair in "OSV:$OSV_OUTCOME" "Gitleaks:$GITLEAKS_OUTCOME" "Trivy:$TRIVY_OUTCOME"; do
+            name="${pair%%:*}"
+            outcome="${pair#*:}"
+            if [[ "$outcome" != "success" ]]; then
+              echo "::error::${name} security gate outcome: ${outcome}"
+              failed=1
+            fi
+          done
+          exit "$failed"
