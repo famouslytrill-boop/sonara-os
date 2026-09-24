@@ -36,12 +36,15 @@ It has **nine production dependencies.** `express`, plus eight
 `@vercel/node`, `eslint`, `mocha`, `supertest`.
 
 That reads like a change to the paragraph above it and is not one. None of the
-eight is a bundler or a compile step, and **nothing in the running application
-calls either of the two modules that use them** — they are an observability
-capability that was installed and not wired, which `docs/SHIP_READINESS.md`
-records as an open decision for you. It was one production dependency until
-20 September; this document says nine because nine is what `pnpm install` now
-fetches, not because the shape of the thing changed.
+eight is a bundler or a compile step. As of 24 September 2026, the running
+application **does call** the OpenTelemetry and OpenFeature-backed control-plane
+modules: telemetry bootstrap runs before Express is loaded, HTTP observability
+is installed afterwards, and the first event-consumer canary evaluates through
+the runtime capability service. Export remains disabled without approved OTLP
+configuration, so runtime wiring is not a claim that a telemetry backend is
+live. It was one production dependency until 20 September; this document says
+nine because nine is what `pnpm install` now fetches, not because the app gained
+a compile toolchain.
 
 So there is still no toolchain to install. If you have Node, you can run it.
 
