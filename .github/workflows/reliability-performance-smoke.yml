@@ -7,7 +7,7 @@ on:
       - "server.js"
       - "lib/sonara-observability.cjs"
       - "lib/sonara-runtime-capabilities.cjs"
-      - "tests/performance/**"
+      - "performance/**"
       - ".github/workflows/reliability-performance-smoke.yml"
   workflow_dispatch:
 
@@ -72,7 +72,7 @@ jobs:
           SONARA_BASE_URL: http://127.0.0.1:3000
         run: |
           set -o pipefail
-          /tmp/k6-v2.3.0-linux-amd64/k6 run tests/performance/health-smoke.k6.js \
+          /tmp/k6-v2.3.0-linux-amd64/k6 run performance/health-smoke.k6.js \
             | tee artifacts/performance/k6.log
 
       - name: Stop isolated local runtime
