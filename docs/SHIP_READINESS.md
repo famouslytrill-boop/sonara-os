@@ -501,41 +501,30 @@ reports these tables as used.
   path, and it is a fee and a delay rather than code —
   `docs/architecture/2026-09-10-CARRIER-VENDOR-COMPARISON.md` has both, with the
   vendor prices they were read from.
-- **Nine production dependencies were added for two modules the runtime never
-  reaches.** `package.json` went from one production dependency (`express`) to
-  nine on 20 September 2026: eight `@opentelemetry/*` packages and
-  `@openfeature/server-sdk`. They are consumed by `lib/sonara-observability.cjs`
-  and `lib/sonara-feature-flags.cjs`, and **neither module is required by
-  anything but its own test** — `startTelemetry`, `installHttpObservability` and
-  `createFeatureFlagService` have no caller in `server.js`, `api/`, `routes/`,
-  `lib/` or `scripts/`. Measured 21 September 2026; both are now listed in
-  `TEST_ONLY` in `scripts/report-unreferenced-modules.mjs`, which fails if a
-  third one appears unaccounted.
+- **The nine production dependencies added on 20 September now have a runtime
+  caller, but live telemetry is still unproven.** Eight `@opentelemetry/*`
+  packages and `@openfeature/server-sdk` remain production dependencies.
+  On 24 September 2026, `server.js` was wired to call `startTelemetry` before
+  Express is loaded and to install HTTP observability after the provider-start
+  decision. The canonical runtime-capability service now evaluates the first
+  event-consumer canary through OpenFeature rather than treating environment
+  variables as execution authority.
 
-  Nothing is unsafe about the current state: telemetry is off unless
-  `SONARA_OTEL_ENABLED` is `true`, refuses a non-HTTPS endpoint when
-  `NODE_ENV=production`, and `createFeatureFlagService` fails closed on an
-  unknown flag. The cost is a serverless bundle carrying an SDK for unreachable
-  code, and a readiness story that reads as observability being in place.
+  This closes the **unreachable dependency** defect; it does not create a live
+  observability claim. Telemetry still fails closed unless
+  `SONARA_OTEL_ENABLED=true` and an approved OTLP endpoint is configured, and
+  no Collector/backend receipt has yet been proved. Startup failures are passed
+  through the shared redaction boundary before structured logging. The
+  customer-facing free-stack status therefore says **runtime wired, export
+  disabled**, not “available in SONARA.”
 
-  **The decision is the owner's**, because both directions are real changes:
-  wiring OpenTelemetry adds a middleware to every dynamic request and an
-  `X-Request-ID` header to every response, and removing it reverses an
-  architecture choice another session made deliberately.
+  The ordering hazard measured on 21 September remains a real constraint and is
+  now enforced by the bootstrap shape: the telemetry provider decision happens
+  before Express is required, and HTTP counters/histograms are installed only
+  afterwards. `scripts/report-unreferenced-modules.mjs` no longer carries the
+  stale test-only exemptions for OpenTelemetry or OpenFeature; it will fail if
+  those modules become test-only again without a new accounted decision.
 
-  **One measured hazard for whoever wires it.** `installHttpObservability`
-  takes its meter with `metrics.getMeter(...)` and builds the counter and
-  histogram at install time. An OpenTelemetry instrument built before
-  `setGlobalMeterProvider` runs is bound to the no-op provider and stays a
-  no-op after a later start — so installing it before `startTelemetry` yields a
-  dashboard that looks configured and counts nothing, which is this
-  repository's recurring defect in its purest form. Confirmed rather than
-  reasoned, on 21 September 2026 against `@opentelemetry/api` 1.9.1 and
-  `@opentelemetry/sdk-metrics` 2.11.0: a counter created before the provider
-  was registered, then incremented, was absent from `reader.collect()`, while
-  one created after the registration reported its value. The module's header
-  already warns about the mirror-image ordering problem for HTTP
-  instrumentation; this one is separate and applies in the same direction.
 - **Fourteen entries in `data/open-source-tools.ts` still carry a generic
   `https://github.com/` placeholder.** The gate warns about each on every run.
   They are resolved one at a time with the licence read from the project, not
