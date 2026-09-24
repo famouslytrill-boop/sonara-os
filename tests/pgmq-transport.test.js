@@ -134,11 +134,11 @@ describe("PGMQ canary transport", () => {
     assert.deepEqual(calls, [
       {
         url: "https://example.supabase.co/rest/v1/rpc/archive",
-        body: { queue_name: "sonara_canary", message_id: "12" }
+        body: { queue_name: "sonara_canary", message_id: 12 }
       },
       {
         url: "https://example.supabase.co/rest/v1/rpc/delete",
-        body: { queue_name: "sonara_canary", message_id: "13" }
+        body: { queue_name: "sonara_canary", message_id: 13 }
       }
     ]);
   });
@@ -192,5 +192,10 @@ describe("PGMQ canary transport", () => {
     });
     await assert.rejects(() => transport.read({ visibilitySeconds: 0 }), /visibilitySeconds/);
     await assert.rejects(() => transport.read({ limit: 11 }), /limit/);
+    assert.throws(
+      () => transport.archive("9007199254740993"),
+      /positive safe integer/
+    );
+
   });
 });
