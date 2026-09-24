@@ -222,7 +222,7 @@ lines.push("- **No bundler and no build step.** Pages are HTML strings built on 
 lines.push("- Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.");
 lines.push("- Supabase over PostgREST for data. " + migrationCount + " migrations, " + contract.DATABASE_TABLES.length + " canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.");
 lines.push("- " + routeRegistry.PUBLIC_ROUTES.length + " public routes, " + routeRegistry.CUSTOMER_ROUTES.length + " customer routes, " + routeRegistry.ADMIN_ROUTES.length + " admin routes.");
-lines.push("- " + testCount + " test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.");
+lines.push("- " + testCount + " test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.");
 lines.push("");
 lines.push("Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.");
 lines.push("");
