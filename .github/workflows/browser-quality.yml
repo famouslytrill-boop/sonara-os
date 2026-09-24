@@ -8,7 +8,7 @@ on:
       - "routes/**"
       - "lib/**"
       - "public/**"
-      - "tests/browser/**"
+      - "browser-tests/**"
       - ".github/workflows/browser-quality.yml"
   workflow_dispatch:
 
@@ -67,7 +67,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
         run: |
           set -o pipefail
-          pnpm exec playwright test tests/browser/public-experience.spec.js \
+          pnpm exec playwright test browser-tests/public-experience.spec.js \
             --browser=chromium \
             --reporter=line 2>&1 | tee artifacts/browser/playwright.log
 
