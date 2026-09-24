@@ -326,9 +326,24 @@ repository, in miniature.
 
 ---
 
-## What you do not have to install, and should not
+## Optional local open-source adapter stack
 
-The application names six optional service adapters: Ollama, Langflow, Open
+If you explicitly want the self-hosted adapter software, use
+`docs/owner/OPEN-SOURCE-LOCAL-STACK.md`. The repository now has one bounded
+local orchestration path: `pnpm run open-source:up` starts the reviewed core
+services on loopback only, while `pnpm run open-source:up:reviewed` adds the
+separately reviewed Open WebUI profile. The setup helper generates local-only
+secrets and can write the matching `SONARA_*` adapter variables into `.env`.
+
+This does **not** make a laptop reachable from Vercel production, and it does
+not turn optional software into a launch dependency. Dify, RAGFlow, n8n,
+whisper.cpp and the consent-gated voice-clone engine remain separately managed
+because their licence, data, infrastructure, model, or consent boundaries need
+an explicit owner decision.
+
+## What you do not have to install for the application to work
+
+The application names optional service adapters including Ollama, Langflow, Open
 WebUI, Crawl4AI, Dify and RAGFlow. **Every one of them is off, and the product
 is complete without them.** Each degrades to a stated "setup required" rather
 than an error, and the release checks enforce that none may become a launch

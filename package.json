@@ -109,7 +109,13 @@
     "verify:repository-intake": "node scripts/verify-repository-intake-20260918.mjs",
     "verify:android-twa": "node scripts/verify-android-twa.mjs",
     "android:twa:assetlinks": "node scripts/generate-android-assetlinks.mjs",
-    "verify:legal-governance": "node scripts/verify-legal-governance.cjs"
+    "verify:legal-governance": "node scripts/verify-legal-governance.cjs",
+    "open-source:init": "node scripts/setup-open-source-local.mjs init",
+    "open-source:pull": "node scripts/setup-open-source-local.mjs pull",
+    "open-source:up": "node scripts/setup-open-source-local.mjs up",
+    "open-source:up:reviewed": "node scripts/setup-open-source-local.mjs up --reviewed",
+    "open-source:status": "node scripts/setup-open-source-local.mjs status",
+    "open-source:down": "node scripts/setup-open-source-local.mjs down"
   },
   "license": "UNLICENSED",
   "devDependencies": {
