@@ -37,19 +37,38 @@ const read = (name) => fs.readFileSync(path.join(PUBLIC, name), "utf8");
 const RECORD_CLIP = `(async () => {
   const canvas = Object.assign(document.createElement("canvas"), { width: 320, height: 180 });
   const ctx = canvas.getContext("2d");
-  const stream = canvas.captureStream(25);
+  const stream = canvas.captureStream(0);
+  const [track] = stream.getVideoTracks();
+  if (!track || typeof track.requestFrame !== "function") {
+    throw new Error("Chromium does not expose manual canvas frame capture");
+  }
   const chunks = [];
-  const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
-  recorder.ondataavailable = (event) => chunks.push(event.data);
-  recorder.start();
+  const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
+    ? "video/webm;codecs=vp8"
+    : "video/webm";
+  const recorder = new MediaRecorder(stream, { mimeType });
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) chunks.push(event.data);
+  };
+  await new Promise((resolve, reject) => {
+    recorder.onstart = resolve;
+    recorder.onerror = () => reject(new Error("recorder did not start"));
+    recorder.start(100);
+  });
   for (let step = 0; step < 30; step += 1) {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 320, 180);
     ctx.fillStyle = "#fff"; ctx.fillRect(step * 10, 60, 30, 30);
-    await new Promise((r) => setTimeout(r, 35));
+    track.requestFrame();
+    await new Promise((r) => setTimeout(r, 40));
   }
-  recorder.stop();
-  await new Promise((r) => { recorder.onstop = r; });
-  const blob = new Blob(chunks, { type: "video/webm" });
+  await new Promise((r) => setTimeout(r, 100));
+  await new Promise((resolve, reject) => {
+    recorder.onstop = resolve;
+    recorder.onerror = () => reject(new Error("recorder failed while stopping"));
+    recorder.stop();
+  });
+  track.stop();
+  const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
   window.__clip = blob;
   return { bytes: blob.size };
 })()`;
