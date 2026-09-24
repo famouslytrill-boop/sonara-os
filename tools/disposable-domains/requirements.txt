@@ -3,4 +3,6 @@
 # is a blocklist that stops being maintained.
 #
 # Tests only:
+# Explicit security pin: avoid the vulnerable Pygments 2.9.0 resolution reported by OSV.
+Pygments==2.21.0
 pytest==9.0.3
