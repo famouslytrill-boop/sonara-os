@@ -139,16 +139,27 @@ along that item 3 is the next real work rather than more wiring.
 
 ## 2. Traces
 
-**Absent entirely, and the previous claim that it was configured was false.**
-`docs/MONITORING_AND_BACKUPS.md` said OpenTelemetry placeholders existed through
-`OTEL_EXPORTER_OTLP_ENDPOINT`. That name is read by no code and is not in the
-registry `verify:env` checks; it appeared in that document and nowhere else.
-Corrected 16 September 2026.
+**Runtime instrumentation is now wired; exported telemetry is not yet proved.**
+On 24 September 2026, `server.js` was changed so `startTelemetry` makes the
+provider-start decision before Express is required and
+`installHttpObservability` installs request instrumentation afterwards. The
+runtime stays fail-closed unless `SONARA_OTEL_ENABLED=true` and an approved
+OTLP endpoint is configured. Startup failures are redacted before structured
+logging.
 
-**Constraint that shapes this:** a serverless function cannot hold a socket
-open, and the documented duration is 300 seconds. A trace exporter that batches
-in the background loses the batch when the invocation ends, so export has to be
-synchronous-before-response or through a collector the function posts to once.
+That is source-level observability, not a production backend claim. There is
+still no deployed Collector/backend receipt, retention policy, dashboard, or
+measured production trace coverage in evidence. Until a controlled
+non-production run proves request -> exporter -> Collector -> backend and
+correlates it with the structured request ID, the customer-facing state remains
+**runtime wired, export disabled**.
+
+**Constraint that still shapes export:** a serverless function cannot rely on a
+long-lived background batch surviving process teardown. Export therefore has to
+finish within the invocation lifecycle or post to a Collector that owns
+buffering/retry outside the request process. The first live proof must include a
+forced exporter/backend failure and show bounded failure without leaking the
+endpoint, credentials, prompt content, or customer payloads.
 
 ## 3. Service level objectives
 
