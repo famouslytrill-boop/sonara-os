@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "lib/sonara-event-consumer.cjs"
+      - "lib/sonara-event-consumer-gate.cjs"
+      - "lib/sonara-runtime-capabilities.cjs"
+      - "lib/sonara-feature-flags.cjs"
       - "lib/sonara-event-outbox.cjs"
       - "lib/sonara-database-contract.cjs"
       - "lib/sonara-environment-classification.cjs"
@@ -13,6 +16,7 @@ on:
       - "supabase/migrations/20260917200000_event_consumer_activation_readiness.sql"
       - "supabase/applied-migration-checksums.json"
       - "tests/event-consumer-readiness.test.js"
+      - "tests/runtime-capabilities.test.js"
       - ".github/workflows/event-consumer-readiness.yml"
   workflow_dispatch:
     inputs:
@@ -59,7 +63,7 @@ jobs:
           node --check scripts/run-event-consumer-canary.mjs
 
       - name: Prove claim, settle, retry, dead-letter, concurrency, canary, and SLO behavior
-        run: pnpm exec mocha --config .mocharc.targeted.json tests/event-outbox.test.js tests/event-consumer-readiness.test.js --reporter dot
+        run: pnpm exec mocha --config .mocharc.targeted.json tests/event-outbox.test.js tests/event-consumer-readiness.test.js tests/runtime-capabilities.test.js --reporter dot
 
       - name: Verify environment classification remains fail-closed
         run: pnpm run verify:env
