@@ -27,15 +27,15 @@ test.describe("public experience browser contract", () => {
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
   });
 
-  test("keyboard focus can enter the interactive surface", async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+  test("first steady-state Tab lands on the skip link", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(BASE_URL, { waitUntil: "load" });
+    await expect(page.locator("#sonara-loader")).toBeHidden({ timeout: 3000 });
+
+    const skip = page.locator(".sonara-skip");
+    await expect(skip).toHaveAttribute("href", "#sonara-main");
     await page.keyboard.press("Tab");
-    const focused = await page.evaluate(() => ({
-      tag: document.activeElement?.tagName || "",
-      body: document.activeElement === document.body
-    }));
-    expect(focused.body).toBe(false);
-    expect(focused.tag).not.toBe("");
+    await expect(skip).toBeFocused();
   });
 
   test("reduced-motion preference reaches the rendered page", async ({ page }) => {
