@@ -10,20 +10,20 @@ const {
   CANARY_PRODUCER_PREFIX,
   CANARY_ACTIVATION_GATE,
   createEventConsumerWorker,
-  evaluateCanaryActivation,
-  readEventConsumerActivationConfig
+  evaluateCanaryActivation
 } = require("../lib/sonara-event-consumer.cjs");
+const { evaluateEventConsumerCanaryGate } = require("../lib/sonara-event-consumer-gate.cjs");
 
 const SAMPLE_COUNT = CANARY_ACTIVATION_GATE.minSamples;
 const CONCURRENCY = 4;
 
-const activation = readEventConsumerActivationConfig();
-if (!activation.ok) {
-  console.error("Event consumer canary configuration is invalid: SONARA_EVENT_CONSUMER_CANARY_ORG_ID must be a UUID when the consumer flag is enabled.");
+const activation = await evaluateEventConsumerCanaryGate();
+if (!activation.ok && activation.reason !== "flag_disabled") {
+  console.error(`Event consumer canary capability gate refused activation: ${activation.reason}.`);
   process.exit(1);
 }
-if (!activation.enabled) {
-  console.error("Event consumer canary is disabled. Set SONARA_EVENT_CONSUMER_ENABLED=true only for the controlled one-tenant canary run.");
+if (!activation.allowed) {
+  console.error("Event consumer canary is disabled. Enable only the controlled one-tenant runtime capability and explicit canary organization.");
   process.exit(2);
 }
 
