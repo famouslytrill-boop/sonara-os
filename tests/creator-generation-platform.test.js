@@ -12,7 +12,7 @@ const USER_ID = "22222222-2222-4222-8222-222222222222";
 const JOB_ID = "33333333-3333-4333-8333-333333333333";
 const ASSET_ID = "44444444-4444-4444-8444-444444444444";
 
-function buildApp({ paid = true, configOk = true } = {}) {
+function buildApp({ paid = true, configOk = true, activityEvents = null } = {}) {
   const app = express();
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
@@ -29,7 +29,11 @@ function buildApp({ paid = true, configOk = true } = {}) {
     getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
     getSupabaseServerConfig: () => configOk
       ? ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
-      : ({ ok: false })
+      : ({ ok: false }),
+    insertActivityEvent: async (organizationId, userId, eventType, eventData) => {
+      if (Array.isArray(activityEvents)) activityEvents.push({ organizationId, userId, eventType, eventData });
+      return { ok: true };
+    }
   });
   return app;
 }
@@ -574,6 +578,7 @@ describe("Creator Studio generation platform", () => {
 
   it("signs a private output on the server and never hands over the storage key", async () => {
     const calls = [];
+    const activityEvents = [];
     global.fetch = async (url, options = {}) => {
       const stringUrl = String(url);
       calls.push({ url: stringUrl, method: options.method || "GET", headers: options.headers });
@@ -581,13 +586,20 @@ describe("Creator Studio generation platform", () => {
       if (stringUrl.includes("creator_generation_assets")) return jsonResponse(200, [{ id: ASSET_ID, bucket_id: "creator-assets", object_path: "org/user/job/out.mp3" }]);
       return jsonResponse(200, [jobRecord({ status: "completed" })]);
     };
-    const result = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}/outputs/${ASSET_ID}`);
+    const result = await request(buildApp({ activityEvents })).get(`/creator-studio/generation/jobs/${JOB_ID}/outputs/${ASSET_ID}`);
     assert.equal(result.status, 302);
     assert.match(result.headers.location, /token=short-lived/);
     assert.doesNotMatch(result.headers.location, /server-only/);
     const signing = calls.find((call) => call.url.includes("/storage/v1/object/sign/"));
     assert.equal(signing.method, "POST");
     assert.equal(signing.headers.Authorization, "Bearer server-only");
+    assert.deepEqual(activityEvents, [{
+      organizationId: ORGANIZATION_ID,
+      userId: USER_ID,
+      eventType: "creator_studio.output_downloaded",
+      eventData: { job_id: JOB_ID, asset_id: ASSET_ID, provider_key: "elevenlabs" }
+    }]);
+    assert.equal(Object.hasOwn(activityEvents[0].eventData, "prompt"), false, "creator prompt leaked into product analytics");
   });
 
   it("will not hand somebody another workspace's file", async () => {

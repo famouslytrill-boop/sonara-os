@@ -6,17 +6,27 @@ const app = require("../server");
 
 describe("SONARA SaaS functional routes", () => {
   it("returns readiness without secret values", async () => {
-    const res = await request(app).get("/api/readiness").expect(200);
-    assert.equal(res.body.ok, true);
-    for (const key of ["accountDatabase", "paymentConnection", "paymentUpdates", "emailDelivery", "founderAccess"]) {
-      assert.ok(["configured", "deferred", "missing"].includes(res.body[key]), `bad readiness value for ${key}`);
+    const prefixes = ["SUPABASE_", "NEXT_PUBLIC_SUPABASE_", "STRIPE_", "RESEND_", "GOOGLE_"];
+    const keys = Object.keys(process.env).filter((key) => prefixes.some((prefix) => key.startsWith(prefix))
+      || ["ADMIN_EMAIL", "ADMIN_EMAILS", "SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"].includes(key));
+    const saved = new Map(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+    try {
+      const res = await request(app).get("/api/readiness").expect(200);
+      assert.equal(res.body.ok, true);
+      for (const key of ["accountDatabase", "paymentConnection", "paymentUpdates", "emailDelivery", "founderAccess"]) {
+        assert.ok(["configured", "deferred", "missing"].includes(res.body[key]), `bad readiness value for ${key}`);
+      }
+      assert.ok(
+        ["configured", "setup_required"].includes(res.body.googleSignIn),
+        `bad readiness value for googleSignIn: ${res.body.googleSignIn}`
+      );
+      assert.equal(JSON.stringify(res.body).includes("sk_"), false);
+      assert.equal(JSON.stringify(res.body).includes("whsec_"), false);
+    } finally {
+      for (const key of keys) delete process.env[key];
+      for (const [key, value] of saved) process.env[key] = value;
     }
-    assert.ok(
-      ["configured", "setup_required"].includes(res.body.googleSignIn),
-      `bad readiness value for googleSignIn: ${res.body.googleSignIn}`
-    );
-    assert.equal(JSON.stringify(res.body).includes("sk_"), false);
-    assert.equal(JSON.stringify(res.body).includes("whsec_"), false);
   });
 
   it("rejects invalid Stripe webhook signatures", async () => {
