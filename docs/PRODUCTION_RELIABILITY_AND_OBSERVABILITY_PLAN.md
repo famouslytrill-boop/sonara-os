@@ -139,16 +139,27 @@ along that item 3 is the next real work rather than more wiring.
 
 ## 2. Traces
 
-**Absent entirely, and the previous claim that it was configured was false.**
-`docs/MONITORING_AND_BACKUPS.md` said OpenTelemetry placeholders existed through
-`OTEL_EXPORTER_OTLP_ENDPOINT`. That name is read by no code and is not in the
-registry `verify:env` checks; it appeared in that document and nowhere else.
-Corrected 16 September 2026.
+**Runtime instrumentation is now wired; exported telemetry is not yet proved.**
+On 24 September 2026, `server.js` was changed so `startTelemetry` makes the
+provider-start decision before Express is required and
+`installHttpObservability` installs request instrumentation afterwards. The
+runtime stays fail-closed unless `SONARA_OTEL_ENABLED=true` and an approved
+OTLP endpoint is configured. Startup failures are redacted before structured
+logging.
 
-**Constraint that shapes this:** a serverless function cannot hold a socket
-open, and the documented duration is 300 seconds. A trace exporter that batches
-in the background loses the batch when the invocation ends, so export has to be
-synchronous-before-response or through a collector the function posts to once.
+That is source-level observability, not a production backend claim. There is
+still no deployed Collector/backend receipt, retention policy, dashboard, or
+measured production trace coverage in evidence. Until a controlled
+non-production run proves request -> exporter -> Collector -> backend and
+correlates it with the structured request ID, the customer-facing state remains
+**runtime wired, export disabled**.
+
+**Constraint that still shapes export:** a serverless function cannot rely on a
+long-lived background batch surviving process teardown. Export therefore has to
+finish within the invocation lifecycle or post to a Collector that owns
+buffering/retry outside the request process. The first live proof must include a
+forced exporter/backend failure and show bounded failure without leaking the
+endpoint, credentials, prompt content, or customer payloads.
 
 ## 3. Service level objectives
 
@@ -215,10 +226,12 @@ plus [`docs/PRODUCTION_ROLLBACK_RUNBOOK.md`](PRODUCTION_ROLLBACK_RUNBOOK.md).
 `MONITORING_AND_BACKUPS.md` existed only under `archive/`. Storage objects are
 covered by nothing in this repository. No restore has ever been rehearsed.
 
-**Blocked on the owner:** whether Supabase point-in-time recovery is enabled is
-not visible from the source tree, and the entire data half of the runbook
-depends on it. `OWNER-STEPS.md` item 9. **A drill cannot be designed before that
-answer, because the procedure differs completely depending on it.**
+**Recovery mechanism now identified as missing for the current plan:** on 24
+September 2026 the connected Supabase organization reported the Free plan, so
+PITR must not be treated as available. The next safe drill is therefore an
+isolated logical-database restore plus a separate Storage-object restore, or a
+paid-plan/PITR drill after an explicit billing decision. GitHub artifacts remain
+schema/evidence only and must never become customer-data backup storage.
 
 ## 8. Deployment rollback automation
 
@@ -253,8 +266,10 @@ The dependencies above are not preferences. In order:
    enough to build on: the emitter exists and the campaign dispatcher, the
    checkout path and the agent runner all emit. Further callers are wiring, not
    design, and are no longer blocking.
-2. **The PITR answer** (owner step 9) — unblocks item 7, and it is two minutes.
-3. **Backup and restore drill** (item 7), then **rollback automation** (item 8).
+2. **Choose and fund a real recovery mechanism** (owner step 9) — the current
+   Free-plan environment does not provide PITR.
+3. **Backup and restore drill** (item 7), including Storage objects, then
+   **rollback automation** (item 8).
 4. **SLOs** (item 3), then **error budgets** (item 4).
 5. **Traces** (item 2) and **queue aggregates** (item 5) alongside the above.
 6. **The dashboard** (item 9) last, because it reports on all of them.

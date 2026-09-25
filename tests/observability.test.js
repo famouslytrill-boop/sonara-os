@@ -192,6 +192,34 @@ describe("OpenTelemetry production boundary", () => {
     assert.equal(Module.prototype.require, original, "the require patch outlived the case that installed it");
   });
 
+  it("redacts credentials from OpenTelemetry startup failures", () => {
+    const original = Module.prototype.require;
+    const secret = "eyJabcdefghijk.abcdefghijk.abcdefghijk";
+    let lines = [];
+    try {
+      Module.prototype.require = function patched(id) {
+        if (String(id).startsWith("@opentelemetry/sdk-node")) {
+          throw new Error(`failed exporter authorization: Bearer ${secret}`);
+        }
+        return original.apply(this, arguments);
+      };
+      const { startTelemetry } = freshModule();
+      lines = captureStderr(() => startTelemetry({
+        SONARA_OTEL_ENABLED: "true",
+        OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318",
+        NODE_ENV: "development"
+      })).lines;
+    } finally {
+      Module.prototype.require = original;
+    }
+
+    const event = JSON.parse(lines.find((line) => line.includes("observability.otel_start")));
+    assert.equal(event.outcome, "failed");
+    assert.equal(event.reason, "sdk_start_failed");
+    assert.equal(event.detail.error.includes(secret), false);
+    assert.match(event.detail.error, /\[redacted-(?:jwt|credential)\]/);
+  });
+
   it("refuses an endpoint that is not a URL at all", () => {
     const { startTelemetry } = freshModule();
     const state = captureStderr(() =>

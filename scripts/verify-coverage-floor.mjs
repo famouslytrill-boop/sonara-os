@@ -67,7 +67,6 @@
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -177,7 +176,7 @@ function lineCoverage(rel, rangeLists) {
 const cachedCoverageIsCurrent = hasCurrentSuccessfulCoverage();
 const covDir = cachedCoverageIsCurrent
   ? COVERAGE_DIR
-  : fs.mkdtempSync(path.join(os.tmpdir(), "sonara-coverage-"));
+  : fs.mkdtempSync(path.join(REPO, ".sonara-coverage-"));
 try {
   // verify:launch records coverage while running its one authoritative test
   // suite. Reuse it only when a content fingerprint proves it came from this
@@ -190,16 +189,32 @@ try {
     process.stdout.write("Using V8 coverage from the current successful release-gate test run.\n");
   } else {
     const mochaBin = path.join(REPO, "node_modules", "mocha", "bin", "mocha.js");
-    const run = spawnSync(process.execPath, [mochaBin, "--pass-with-no-tests"], {
-      cwd: REPO,
-      env: { ...process.env, NODE_V8_COVERAGE: covDir },
-      stdio: ["ignore", "ignore", "pipe"],
-      encoding: "utf8"
-    });
-    if (run.status !== 0) {
-      process.stderr.write(run.stderr || "");
-      fail("the test suite did not pass, so its coverage says nothing. Fix the suite first.");
-      process.exit(1);
+    // The suite deliberately exercises noisy error paths. Piping all of stderr
+    // through spawnSync can hit Node's maxBuffer and turn a passing suite into
+    // a false coverage failure. Stream it to disk instead; collect() ignores
+    // non-JSON files and the enclosing finally removes the temporary directory.
+    const stderrPath = path.join(covDir, "mocha-stderr.log");
+    const stderrFd = fs.openSync(stderrPath, "wx+", 0o600);
+    let run;
+    try {
+      run = spawnSync(process.execPath, [mochaBin, "--pass-with-no-tests"], {
+        cwd: REPO,
+        env: { ...process.env, NODE_V8_COVERAGE: covDir },
+        stdio: ["ignore", "ignore", stderrFd]
+      });
+      if (run.error || run.status !== 0) {
+        try {
+          const stat = fs.fstatSync(stderrFd);
+          const stderr = Buffer.alloc(stat.size);
+          fs.readSync(stderrFd, stderr, 0, stat.size, 0);
+          process.stderr.write(stderr.toString("utf8"));
+        } catch {}
+        if (run.error) process.stderr.write(`coverage test runner error: ${run.error.message}\n`);
+        fail("the test suite did not pass, so its coverage says nothing. Fix the suite first.");
+        process.exit(1);
+      }
+    } finally {
+      fs.closeSync(stderrFd);
     }
   }
 

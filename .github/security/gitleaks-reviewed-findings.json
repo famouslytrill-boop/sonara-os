@@ -1,0 +1,351 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-24",
+  "scanner": "gitleaks 8.30.1",
+  "matching": "file + rule + SHA-256(exact source line without newline)",
+  "policy": "Only reviewed false positives belong here. Any changed source line, new finding, scanner error, or stale baseline entry fails CI.",
+  "entries": [
+    {
+      "file": "lib/sonara-huggingface-catalog.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "dda5416794a0210bc679c2678ebdb15caeba43bcbd24ab1b356ca69e4cdf5b9b",
+      "reason": "catalog identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-huggingface-catalog.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "31ddef0cdebdb43cba74ddf65493ecee6222a4a2c142f2ff14a5201b95b5e095",
+      "reason": "catalog identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-connected-payments.cjs",
+      "rule": "stripe-access-token",
+      "lineSha256": "cd316a1e0d2914968004fe73edaf474740a31a59f2231cf42394cf6dd0e29c8e",
+      "reason": "placeholder validation branch, not a credential"
+    },
+    {
+      "file": "lib/sonara-market-intelligence-registry.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "e840bbb1529526fd63ede1849668ee634318255fba2f4bc27468eaf7d6946291",
+      "reason": "market-source identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-market-intelligence-registry.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "934360936b4fa9b976094e66351edbbe9318d518649948a5ed0d7c0f7a660f4f",
+      "reason": "market-source identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-market-intelligence-registry.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "2257d5472d2a85a49f82d7e92dde174aa82c14a3e862dc0d4588ec2365844cb4",
+      "reason": "market-source identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-market-intelligence-registry.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "858ec373f8f585a37b0573a487ce01ea05904795c8b5e3b1d277459e455226fb",
+      "reason": "market-source identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-industry-algorithm-expansion.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "5d6b083b13298c1eb61716f048eae938cd0297525db59aa9f7952fba306082d2",
+      "reason": "industry identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-backend-operations-market-analysis-2026.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "cd01c91779ed731efad02d2f2fed0635235d517ec2a18a66926c7b6cad5b3157",
+      "reason": "research signal identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-environment-classification.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "4c7d0880d756b750710a06f2490b77b6eeed4e9ad73b72fb870205c7d800aed4",
+      "reason": "environment variable names only"
+    },
+    {
+      "file": "lib/sonara-screenshot-tool-radar-batch5.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "60842ce8f537c00ede46c2a026c9508710e858864ae124fa09c46a9e7c6e0270",
+      "reason": "tool identifier, not a credential"
+    },
+    {
+      "file": "lib/sonara-2026-market-intelligence.cjs",
+      "rule": "generic-api-key",
+      "lineSha256": "bc944ae8a2e7bdb64c58375ae7f4e8c5d406e6b664252b0a6ff0c04684aba8c0",
+      "reason": "research signal identifier, not a credential"
+    },
+    {
+      "file": "public/sonara-experience-controls.js",
+      "rule": "generic-api-key",
+      "lineSha256": "7a3303b7a4341d498848ebfd58a9750755fc68d2f2c85fe07d002c3712339576",
+      "reason": "browser storage key name, not a credential"
+    },
+    {
+      "file": "scripts/security-scan-plan.mjs",
+      "rule": "generic-api-key",
+      "lineSha256": "3aee3240710b558cf61fba9e17e21695a124de31bdd408c4e51e84bd37794c63",
+      "reason": "security-scan prose, not a credential"
+    },
+    {
+      "file": "supabase/applied-migration-checksums.json",
+      "rule": "generic-api-key",
+      "lineSha256": "c257cb6d4ea897082b97e6b32ccfa12692726e97c54ba0bcbefe1ce9ae6d561f",
+      "reason": "immutable migration SHA-256 checksum"
+    },
+    {
+      "file": "supabase/applied-migration-checksums.json",
+      "rule": "generic-api-key",
+      "lineSha256": "bcab1964e52677c343b13f76fa64ff9a16859d6ce09f5d942776ea5859e8c11a",
+      "reason": "immutable migration SHA-256 checksum"
+    },
+    {
+      "file": "supabase/applied-migration-checksums.json",
+      "rule": "generic-api-key",
+      "lineSha256": "8784a3b86acea6e91ff079cfc2c960f4e829f91bfc534d692a3671bcb4e4213a",
+      "reason": "immutable migration SHA-256 checksum"
+    },
+    {
+      "file": "supabase/applied-migration-checksums.json",
+      "rule": "generic-api-key",
+      "lineSha256": "7882a90435fffde6582a56f12fc8719ca1bbbefe880c60d281ed5439f689fc44",
+      "reason": "immutable migration SHA-256 checksum"
+    },
+    {
+      "file": "supabase/applied-migration-checksums.json",
+      "rule": "generic-api-key",
+      "lineSha256": "1ca266c91c897610802e91fbd2823b92c2ea8e87cfce55e8122ab10abc6e64b5",
+      "reason": "immutable migration SHA-256 checksum"
+    },
+    {
+      "file": "supabase/applied-migration-checksums.json",
+      "rule": "generic-api-key",
+      "lineSha256": "186d4421acbdb1717ae906f2f67419c4aeff00b30c73cc105921380f0a599897",
+      "reason": "immutable migration SHA-256 checksum"
+    },
+    {
+      "file": "tests/a-browser-that-agreed-can-be-reached.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "e6b362251ad3b5a19add6a1d0239329f75affd0c0d8a8721e02ae6d564139fe7",
+      "reason": "public Web Push test fixture"
+    },
+    {
+      "file": "tests/a-business-can-be-paid-by-its-own-customers.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "17d6be5fb8132116a12cb0a4f6775229adce72486ca360965af8ecf6a3fbcd15",
+      "reason": "explicit Stripe placeholder fixture"
+    },
+    {
+      "file": "tests/a-read-only-key-is-enough-to-check-a-price.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "cac6281a174e6c0812c67ccf0ac518214fb365320d5bf034e5eb1ba97067e24f",
+      "reason": "synthetic restricted Stripe key"
+    },
+    {
+      "file": "tests/a-password-alone-is-not-enough.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "cdf1fa296e22bf459b93c9a77c4ec93bf89e0a96dce80a9a15e1ee31300146b3",
+      "reason": "deterministic local test key"
+    },
+    {
+      "file": "tests/agent-runner.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "5d224c826da6c08298fe8c2a28f61d3aa702efdc9c7ce85d5d72f35e561bb535",
+      "reason": "synthetic credential-bearing error fixture"
+    },
+    {
+      "file": "tests/a-route-nobody-declared-still-answers.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "6df9c0309fae6114686c7198a875bc6fead864fddfac277437dd87538b2721b8",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/auth-form-recovery.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "131f57dc4f66a9fa708b1d647691b08f4a8726458389483bf2c4c320a170178e",
+      "reason": "synthetic password test fixture"
+    },
+    {
+      "file": "tests/a-product-is-priced-through-its-versions.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "a4fb45c8eb0ebed3d70e00806aef4da48ce0f6a3f0c881b75b336dcd829ebcac",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/a-push-message-matches-the-rfc-test-vector.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "13447bffdec796dba9f78734cfad93977f6178041f5c1fdf44ef0ecdec0e4377",
+      "reason": "public RFC Web Push test vector"
+    },
+    {
+      "file": "tests/a-push-message-matches-the-rfc-test-vector.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "590b2647c4cd03b57709353072b039caf3939612baf14e708b03e16b54363bfc",
+      "reason": "public RFC Web Push test vector"
+    },
+    {
+      "file": "tests/a-business-can-build-its-own-record-type.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "64724bd3a05c1f719071caf48248f7ce42af9d24fd93b97005a90c3bbb51c520",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/a-shared-link-is-a-link-not-a-leak.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "b1839729c58f8877dfd4d4362709a66a341828dd985beab54f0a774205719bdf",
+      "reason": "synthetic sharing/privacy fixture"
+    },
+    {
+      "file": "tests/a-shared-link-is-a-link-not-a-leak.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "4c30d72b9b8ffd534431ff7506e0454db9e6ed53b84b02fae49a75874be6fa27",
+      "reason": "synthetic sharing/privacy fixture"
+    },
+    {
+      "file": "tests/a-shared-link-is-a-link-not-a-leak.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "0b9a2e4fdb84942f7c6102c1aa23ba3dfc38457ad603ec06addc80106bd19062",
+      "reason": "synthetic sharing/privacy fixture"
+    },
+    {
+      "file": "tests/every-page-is-reachable.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "c876584dd3fdcda2797b51d76d26985a7e6a3293c33deb895c75bc5b771a4ce3",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/no-endpoint-reports-success-on-a-failed-read.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "da6aa923bed0b12b5d2581487a389f9ae7ec3d21778ad3bdb023230b8a834b7e",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/no-page-lies-when-the-database-is-down.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "b892969163e870d5ee36396da26f6b130e5d5616eb91e08dc14e2cced8b4ae40",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/paid-launch-finalization.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "87e8197c7ad21ab11b7cf69ca94acdaa8adddc5102604513e699875c7d8b6c9e",
+      "reason": "synthetic configured Stripe test key"
+    },
+    {
+      "file": "tests/leaked-password.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "988bfc2582c4ab33479051ca6b527e058040929a0959ce104547d1ef2b8c720b",
+      "reason": "synthetic password fixture"
+    },
+    {
+      "file": "tests/growth-studio-platform.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "d0a62a02b73248d1288986ab3c639b0f2cb990799332c751b25779c549768b5c",
+      "reason": "provider key identifier in test payload"
+    },
+    {
+      "file": "tests/page-reachability.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "e978d9d257ae4051c5f8cc8cb8a704ccbcf2e9f1b056c22c190ff0c96c4f1e5a",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/marketing-surface-rule.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "1338d8bd990367bf8f5a908d5be4d882e1b940821ea3715058d845a084e915e6",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/a-log-line-you-can-count.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "30080eb47bb96c7255355ccb7417f860b53a2c592bdac60bfcb3eae65de56db4",
+      "reason": "synthetic credential used to assert log redaction"
+    },
+    {
+      "file": "tests/a-log-line-you-can-count.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "6eadf1a5e6f0458d0eee87a93447bd10f7f7f493d62f56db2c64fd81d30843b4",
+      "reason": "synthetic credential used to assert log redaction"
+    },
+    {
+      "file": "tests/a-log-line-you-can-count.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "60b7fb20c0abb89e86caa05212e5041533416dfe8a469daffdc08d6104afd9cf",
+      "reason": "synthetic credential-bearing URL used to assert log redaction"
+    },
+    {
+      "file": "tests/a-log-line-you-can-count.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "f329728f22d39106da6bb6b7ddbbb4992a07a3639c03c1bf834c851edaabe547",
+      "reason": "synthetic credential-bearing URL used to assert log redaction"
+    },
+    {
+      "file": "tests/owner-record-inserts.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "d0499be9b4a6ad09afd99bc684f14fd9019ee97acd8a79e6ca77e59a5573857e",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/signed-in-workspace-crawl.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "8e6b0f269c1ddf7f1a11d951524fe8b798ef63c96b669e3683109e4e5fc142aa",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/growth-record-pages-paid.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "3a271aae9d54d574c3b99bc72076fac956e5977bd3b8caea0ae4049bd2b71a3e",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/the-credential-gate-speaks-before-the-chain-runs.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "28702be1fde5b9f3b74c8998a127f154e5131a9273994c37e2643a46fa4752f6",
+      "reason": "synthetic Stripe gate fixture"
+    },
+    {
+      "file": "tests/the-credential-gate-speaks-before-the-chain-runs.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "9a2c47e3b6c94b3a95eed9767310cc0e95c4fed9feec84d314d8e4e5b62c34cd",
+      "reason": "synthetic Stripe gate fixture"
+    },
+    {
+      "file": "tests/the-credential-gate-speaks-before-the-chain-runs.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "8da2646e31d0a6f650aba0441a7c16644be758ec8a800e44fe7f99cbae6c8294",
+      "reason": "synthetic Stripe gate fixture"
+    },
+    {
+      "file": "tests/what-a-module-saves-is-what-a-stranger-can-read.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "5b52beab93b463358818762d3f381a8f44694a16630bc9182bf009b04b0d80e2",
+      "reason": "explicit anonymous-key placeholder"
+    },
+    {
+      "file": "tests/redaction-boundary.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "f61c8988abb673b471f52d4c92c76d2e1f7e9b9671e0285c63a34eb854f2346e",
+      "reason": "synthetic redaction fixture"
+    },
+    {
+      "file": "tests/redaction-boundary.test.js",
+      "rule": "jwt",
+      "lineSha256": "c0594ff2dcd37261ad5a1d259d4e1b90204cf75c916b87eff46408efdbdc5863",
+      "reason": "synthetic JWT redaction fixture"
+    },
+    {
+      "file": "tests/server.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "79407d3ae47283d1620f6aca8ca648d976d680b904f0c8574dd5d8e0ff1f3f33",
+      "reason": "explicit Stripe placeholder fixture"
+    },
+    {
+      "file": "tests/server.test.js",
+      "rule": "stripe-access-token",
+      "lineSha256": "79407d3ae47283d1620f6aca8ca648d976d680b904f0c8574dd5d8e0ff1f3f33",
+      "reason": "explicit Stripe placeholder fixture"
+    }
+  ]
+}

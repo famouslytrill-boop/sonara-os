@@ -17,6 +17,7 @@ const {
   evaluateCanaryActivation,
   readEventConsumerActivationConfig
 } = require("../lib/sonara-event-consumer.cjs");
+const { evaluateEventConsumerCanaryGate } = require("../lib/sonara-event-consumer-gate.cjs");
 
 const ORG = "00000000-0000-4000-8000-000000000111";
 
@@ -65,6 +66,32 @@ describe("event consumer activation readiness", () => {
     assert.equal(enabled.ok, true);
     assert.equal(enabled.enabled, true);
     assert.equal(enabled.organizationId, ORG);
+  });
+
+  it("routes activation through the canonical runtime capability gate", async () => {
+    const disabled = await evaluateEventConsumerCanaryGate({ env: {} });
+    assert.equal(disabled.ok, true);
+    assert.equal(disabled.allowed, false);
+    assert.equal(disabled.reason, "flag_disabled");
+
+    const invalid = await evaluateEventConsumerCanaryGate({
+      env: { SONARA_EVENT_CONSUMER_ENABLED: "true" }
+    });
+    assert.equal(invalid.ok, false);
+    assert.equal(invalid.allowed, false);
+    assert.equal(invalid.reason, "canary_org_required");
+
+    const allowed = await evaluateEventConsumerCanaryGate({
+      env: {
+        NODE_ENV: "test",
+        SONARA_EVENT_CONSUMER_ENABLED: "true",
+        SONARA_EVENT_CONSUMER_CANARY_ORG_ID: ORG
+      }
+    });
+    assert.equal(allowed.ok, true);
+    assert.equal(allowed.allowed, true);
+    assert.equal(allowed.organizationId, ORG);
+    assert.equal(allowed.reason, "enabled");
   });
 
   it("does not touch the queue while the feature flag is off", async () => {

@@ -3,8 +3,14 @@
 # used and tested before anybody commits to a multi-gigabyte model.
 fastapi==0.141.1
 uvicorn[standard]==0.51.0
-python-multipart==0.0.20
+python-multipart==0.0.31
+
+# Explicit security floors for transitive ASGI/IDNA dependencies.
+anyio==4.14.2
+idna==3.15
 
 # Tests only.
-pytest==8.3.4
+# Explicit security pin: avoid the vulnerable Pygments 2.9.0 resolution reported by OSV.
+Pygments==2.21.0
+pytest==9.0.3
 httpx==0.28.1

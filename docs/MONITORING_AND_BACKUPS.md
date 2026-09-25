@@ -43,22 +43,31 @@ closing out.
 
 Read it before an incident rather than during one.
 
-## What the owner has to confirm, and why it is load-bearing
+## Current recovery constraint
 
-**Point-in-time recovery has to be enabled on the Supabase project, and this
-repository cannot tell whether it is.**
+The recovery-plan ambiguity was resolved on **24 September 2026**: the connected
+Supabase organization reports the **Free** plan. Supabase documents managed
+daily backup retention for Pro, Team, and Enterprise projects, and PITR as a
+paid add-on on eligible paid projects. The current SONARA environment therefore
+must **not** treat PITR as an available rollback mechanism.
 
-The deploy workflow records a PITR restore target on every release, and the
-runbook's database-rollback step depends on PITR existing. Whether it is
-actually available is a setting on the Supabase project and a function of the
-plan — neither of which is visible from the source tree, so nothing here may
-claim it either way.
+The deploy workflow still records a UTC pre-migration timestamp because it is
+useful evidence and becomes an actionable restore target if PITR is later
+enabled. Today, however, that timestamp by itself is not a data backup.
 
-If PITR is not enabled, **the recorded timestamps point at a recovery that
-cannot be performed**, and the data half of the rollback procedure does not
-exist. That is the single largest unverified assumption in this document.
+Before any destructive production migration, SONARA needs one of these reviewed
+recovery mechanisms:
 
-See [`docs/owner/OWNER-STEPS.md`](owner/OWNER-STEPS.md) for the step.
+1. upgrade to an eligible plan, enable PITR, and complete a dated restore drill;
+   or
+2. create a logical database backup to approved off-site storage and separately
+   back up Storage objects, then rehearse restoring both into an isolated
+   environment.
+
+Customer data backups must never be uploaded as GitHub Actions artifacts.
+
+See [`docs/owner/OWNER-STEPS.md`](owner/OWNER-STEPS.md) for the owner-facing
+decision record.
 
 ## Monitoring
 
@@ -72,28 +81,31 @@ Express 4 application served through `api/index.js` on Vercel:
 - Cron route failures.
 - Release-chain failures in CI, which is where `verify:launch` reports.
 
-**There is no error-reporting service wired up.** The previous version of this
-file said Sentry and OpenTelemetry "placeholders exist through env variables"
-and named `SENTRY_DSN` and `OTEL_EXPORTER_OTLP_ENDPOINT`. Neither name is read
-by any code in this repository, and neither appears in the environment registry
-that `pnpm run verify:env` checks. Setting them does nothing at all. Adding real
-error reporting is open work, not configuration.
+**OpenTelemetry is now wired into the Express runtime in source.** Startup is
+fail-closed: telemetry remains disabled unless `SONARA_OTEL_ENABLED=true` and a
+valid OTLP endpoint are configured, and startup failures pass through the shared
+redaction boundary before structured logging. This is runtime instrumentation,
+not production observability proof: no collector/backend deployment or live
+trace/metric receipt is claimed yet. Sentry remains unwired.
 
 ## Backups
 
-Supabase's own platform backups and point-in-time recovery are the database
-backup. There is **no backup script in this repository and no workflow that runs
-one** — the only backup- or restore-related step in `.github/workflows/` is the
-pre-migration checkpoint described above.
+There is **no repository-managed customer-data backup workflow**. The only
+automatic recovery evidence in GitHub today is the pre-migration checkpoint and
+schema-only dump described above.
 
 What that means in practice:
 
-- **Database** — Supabase platform backups and PITR, subject to the owner
-  confirmation above.
+- **Database data** — no PITR claim and no repository-managed data backup is
+  currently valid for the Free-plan environment. A manual logical backup is a
+  possible interim mechanism only when stored outside GitHub and actually
+  restore-tested.
 - **Source code** — GitHub.
 - **Schema at each release** — the per-deployment `pre-migration-schema.sql`
   artifact.
-- **Storage objects** — not covered by anything in this repository. Open work.
+- **Storage objects** — not included in database backups and not yet protected
+  by a SONARA backup workflow. They require a separate copy/export and restore
+  drill.
 - **Environment variables** — the owner's own record, in a password manager.
   `pnpm run verify:env` checks that every variable the code reads is classified,
   which is a different thing from having a copy of their values.

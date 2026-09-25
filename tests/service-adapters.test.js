@@ -27,7 +27,7 @@ function setEnv(values) {
 
 const ADAPTERS = [
   { name: "Ollama", keys: ollama.ENV_KEYS, readiness: (o) => ollama.getOllamaReadiness(o), extras: { model: "llama3" } },
-  { name: "Langflow", keys: langflow.ENV_KEYS, readiness: (o) => langflow.getLangflowReadiness(o), extras: { flow: "flow-1" } },
+  { name: "Langflow", keys: langflow.ENV_KEYS, readiness: (o) => langflow.getLangflowReadiness(o), extras: { flow: "flow-1", key: "secret-key-value" }, secrets: ["key"] },
   { name: "Open WebUI", keys: openWebUi.ENV_KEYS, readiness: (o) => openWebUi.getOpenWebUiReadiness(o), extras: { model: "llama3", key: "secret-key-value" } },
   { name: "Crawl4AI", keys: crawl.ENV_KEYS, readiness: (o) => crawl.getCrawl4aiReadiness(o), extras: {} },
   { name: "Dify", keys: dify.ENV_KEYS, readiness: (o) => dify.getDifyReadiness(o), extras: { key: "secret-key-value" }, secrets: ["key"] },
@@ -201,6 +201,35 @@ describe("Langflow flow ids", () => {
 
   it("accepts an ordinary id", () => {
     assert.ok(langflow.FLOW_ID.test("my_flow-1"));
+  });
+
+  it("sends the configured API key without rendering it", async () => {
+    setEnv({
+      [langflow.ENV_KEYS.enabled]: "true",
+      [langflow.ENV_KEYS.baseUrl]: "http://service.internal:8080",
+      [langflow.ENV_KEYS.flow]: "flow-1",
+      [langflow.ENV_KEYS.key]: "secret-key-value"
+    });
+    const readiness = langflow.getLangflowReadiness({ isServerless: false });
+    assert.equal(JSON.stringify(readiness).includes("secret-key-value"), false);
+
+    let sentHeaders = null;
+    const result = await langflow.runFlow("hello", {
+      readiness,
+      fetchImpl: async (_url, options) => {
+        sentHeaders = options.headers;
+        return {
+          ok: true,
+          json: async () => ({
+            outputs: [{ outputs: [{ results: { message: { text: "flow answered" } } }] }]
+          })
+        };
+      }
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.text, "flow answered");
+    assert.equal(sentHeaders["x-api-key"], "secret-key-value");
   });
 });
 

@@ -1,0 +1,64 @@
+# SONARA local open-source service stack.
+#
+# Development/operator infrastructure only. Every published port binds to
+# loopback so starting the stack does not publish a model, crawler or workflow
+# service to the LAN or Internet.
+name: sonara-open-source
+
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - sonara_ollama:/root/.ollama
+    restart: unless-stopped
+
+  langflow:
+    image: ${LANGFLOW_IMAGE:-langflowai/langflow:latest}
+    ports:
+      - "127.0.0.1:7860:7860"
+    environment:
+      LANGFLOW_AUTO_LOGIN: "false"
+      LANGFLOW_SUPERUSER: ${LANGFLOW_SUPERUSER}
+      LANGFLOW_SUPERUSER_PASSWORD: ${LANGFLOW_SUPERUSER_PASSWORD}
+      LANGFLOW_SECRET_KEY: ${LANGFLOW_SECRET_KEY}
+      LANGFLOW_API_KEY_SOURCE: env
+      LANGFLOW_API_KEY: ${LANGFLOW_API_KEY}
+    volumes:
+      - sonara_langflow:/app/langflow
+    restart: unless-stopped
+
+  crawl4ai:
+    image: ${CRAWL4AI_IMAGE:-unclecode/crawl4ai:latest}
+    ports:
+      - "127.0.0.1:11235:11235"
+    shm_size: "1gb"
+    restart: unless-stopped
+
+  # Open WebUI carries additional upstream branding/deployment conditions in
+  # SONARA's review register, so it never starts in the default profile.
+  open-webui:
+    profiles: ["reviewed"]
+    image: ${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:main}
+    depends_on:
+      - ollama
+    ports:
+      - "127.0.0.1:3001:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
+      ENABLE_SIGNUP: "False"
+      ENABLE_API_KEYS: "True"
+      ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS: "True"
+      API_KEYS_ALLOWED_ENDPOINTS: "/api/models,/api/chat/completions"
+      ENABLE_COMMUNITY_SHARING: "False"
+      ENABLE_DIRECT_CONNECTIONS: "False"
+    volumes:
+      - sonara_open_webui:/app/backend/data
+    restart: unless-stopped
+
+volumes:
+  sonara_ollama:
+  sonara_langflow:
+  sonara_open_webui:

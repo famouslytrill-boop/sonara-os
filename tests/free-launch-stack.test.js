@@ -30,6 +30,7 @@ describe("Free Launch Stack", () => {
       in_use: "Available in SONARA",
       setup_required: "Setup required",
       adapter_built: "Adapter built, not enabled",
+      runtime_wired: "Runtime wired, export disabled",
       research_only: "Research candidate"
     };
     for (const state of states) {
@@ -39,22 +40,21 @@ describe("Free Launch Stack", () => {
     assert.doesNotMatch(page.text, /Review required/, "an availability state reached the fallback label");
   });
 
-  it("does not call an installed adapter a research candidate", async () => {
-    // Eight @opentelemetry packages are production dependencies and
-    // lib/sonara-observability.cjs is written and tested, so "researched" is
-    // false. Nothing calls it, so "in_use" and "setup_required" are false too.
+  it("distinguishes runtime-wired telemetry from live export", async () => {
     const response = await request(app).get("/api/free-launch-stack").set("Accept", "application/json");
     const otel = response.body.items.find((item) => item.name === "OpenTelemetry");
     assert.ok(otel, "the OpenTelemetry entry is gone; this check no longer measures anything");
-    assert.equal(otel.availability, "adapter_built");
+    assert.equal(otel.availability, "runtime_wired");
+    assert.match(otel.freeBoundary, /runtime is instrumented/i);
+    assert.match(otel.freeBoundary, /export stays disabled/i);
 
-    const manifest = require("../package.json");
-    const installed = Object.keys(manifest.dependencies || {}).filter((name) => name.startsWith("@opentelemetry/"));
-    assert.ok(
-      installed.length > 0,
-      "no @opentelemetry package is a production dependency any more, so adapter_built overstates it -- "
-        + "move the entry back to research_only"
-    );
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+    const bootstrapSource = fs.readFileSync(path.join(__dirname, "..", "lib", "sonara-runtime-bootstrap.cjs"), "utf8");
+    assert.match(serverSource, /sonara-runtime-bootstrap\.cjs/, "server.js no longer uses the runtime bootstrap");
+    assert.match(bootstrapSource, /startTelemetry\(/, "runtime bootstrap no longer starts the telemetry provider");
+    assert.match(bootstrapSource, /installHttpObservability\(/, "runtime bootstrap no longer installs HTTP observability");
   });
 
   it("offers the same safe directory data to application clients", async () => {

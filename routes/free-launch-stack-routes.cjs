@@ -8,7 +8,7 @@ const STACK_ITEMS = Object.freeze([
   item("database", "Hosted data service", "Managed accounts, private records, file storage, and access rules.", "Free capacity is limited; production requires backups, monitoring, and access policy review.", "Store organization records, approvals, audit events, and private customer files.", "in_use", "https://supabase.com/"),
   item("database", "Private search extension", "Similarity search for organization-scoped knowledge and memory.", "An embedding provider or local model is still required before semantic search can run.", "Keep namespaces, ownership, deletion, and audit boundaries explicit.", "setup_required", "https://github.com/pgvector/pgvector"),
   item("email", "Resend", "Transactional email for contact requests, account notices, and approved customer messages.", "A verified sender domain, recipient settings, and provider key are required before sending.", "Show delivery status, retries, and support references without exposing provider details.", "in_use", "https://resend.com/"),
-  item("analytics", "OpenTelemetry", "Server-side traces, metrics, and structured operational events.", "Collection and storage destinations have their own cost and retention limits, and nothing is being collected today.", "Measure route errors and job outcomes while redacting secrets and private content.", "adapter_built", "https://opentelemetry.io/"),
+  item("analytics", "OpenTelemetry", "Server-side traces, metrics, and structured operational events.", "The Express runtime is instrumented, but export stays disabled until an approved OTLP collector/backend is configured and verified.", "Measure route errors and job outcomes while redacting secrets and private content.", "runtime_wired", "https://opentelemetry.io/"),
   item("design", "Penpot", "Open-source design collaboration for wireframes, flow maps, and brand direction.", "Self-hosting needs its own authentication, storage, and maintenance plan.", "Turn approved designs into accessible, tested SONARA interfaces.", "research_only", "https://penpot.app/"),
   item("media", "FFmpeg", "Worker-side conversion, thumbnails, audio metadata, and export preparation for owned media.", "It requires isolated compute, resource limits, and review of input ownership.", "Queue work, retain provenance, and show a real job state instead of a fake progress bar.", "research_only", "https://ffmpeg.org/"),
   item("maps", "OpenStreetMap and Leaflet", "Maps and venue context with user-selected or opt-in locations.", "Public tiles are not an unlimited production backend; attribution and rate limits apply.", "Keep location optional, coarse by default, and separate from customer marketing consent.", "research_only", "https://www.openstreetmap.org/"),
@@ -92,16 +92,12 @@ function stackCard(entry, escapeHtml) {
   const availability = {
     in_use: "Available in SONARA",
     setup_required: "Setup required",
-    // .claude/skills/researching-screenshot-tools is explicit that
-    // `researched`, `adapter built` and `enabled in production` are different
-    // states. This map had the first and the last, so OpenTelemetry read as a
-    // "Research candidate" from 20 September 2026, when eight of its packages
-    // became production dependencies and a tested adapter was written, until
-    // 21 September. "Setup required" would have been the other wrong answer:
-    // it says configuration is what is left, and configuration is not what is
-    // left -- nothing calls the adapter, so the variables could all be set and
-    // still nothing would be measured.
+    // Research, an adapter, runtime wiring, and live exported telemetry are
+    // separate evidence states. OpenTelemetry is now required by server.js and
+    // installed after startTelemetry(), but no collector/backend receipt is
+    // claimed until an approved OTLP destination is configured and proven.
     adapter_built: "Adapter built, not enabled",
+    runtime_wired: "Runtime wired, export disabled",
     research_only: "Research candidate"
   }[entry.availability] || "Review required";
   const action = entry.officialUrl.startsWith("/")

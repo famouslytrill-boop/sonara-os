@@ -314,11 +314,12 @@ Four decisions, always stated separately (from the screenshot-research skill):
 3. **Architecture fit** — where would it run if adopted?
 4. **Production enablement** — is it actually configured and executing now?
 
-`researched`, `adapter built`, and `enabled in production` are three different
-states. `/free-launch-stack` renders them as "Research candidate", "Adapter
-built, not enabled" and "Available in SONARA" respectively — the middle one
-exists because OpenTelemetry sat as a "research candidate" for a day while eight
-of its packages were production dependencies and a tested adapter existed.
+`researched`, `adapter built`, `runtime wired`, and `enabled in production`
+are separate evidence states. `/free-launch-stack` renders the relevant states
+as "Research candidate", "Adapter built, not enabled", "Runtime wired, export
+disabled", and "Available in SONARA". The runtime-wired state exists because
+OpenTelemetry is now imported and installed by the Express bootstrap while live
+collector/backend receipt remains unproved.
 
 Facts that come up repeatedly:
 
@@ -399,10 +400,11 @@ the owner's alone.
   is legal publishing.
 - Whether the `?v=` asset token is bumped, at the cost of invalidating every
   cached asset plus the service-worker `VERSION`.
-- Whether the nine production dependencies added for OpenTelemetry and
-  OpenFeature are wired in or removed — `docs/SHIP_READINESS.md` has the
-  measurement and the meter-ordering hazard.
-- Supabase PITR, which blocks the backup/restore drill.
+- Whether and when to enable a live OTLP Collector/backend. The runtime wiring
+  is now present; `docs/SHIP_READINESS.md` keeps the export boundary explicit.
+- Which customer-data recovery mechanism to fund and operate: an eligible paid
+  Supabase/PITR path or an off-site logical database plus separate Storage
+  backup/restore path. The current connected organization is on the Free plan.
 - The checkout and campaign SLO numbers.
 - `LICENSE` wording now the repository is deliberately public.
 

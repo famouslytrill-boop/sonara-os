@@ -1,6 +1,6 @@
 // Copyright (c) 2026 SONARA Industries. All rights reserved.
 // Proprietary source. No licence is granted; see LICENSE.
-const express = require("express");
+const { express, createRuntimeApp, decorateRuntimeReadiness } = require("./lib/sonara-runtime-bootstrap.cjs");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
@@ -132,7 +132,7 @@ const {
 // docs/audits/2026-07-27-ENGINEERING_AUDIT.md.
 tenantGuard.install();
 
-const app = express();
+const app = createRuntimeApp();
 // Before any route: an async handler that throws must answer, not hang. See lib/sonara-async-route-safety.cjs.
 installAsyncRouteSafety(app);
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
@@ -1557,7 +1557,7 @@ async function getLiveReadiness() {
   readiness.services.googleOAuth = googleStatus;
   readiness.services.googleSignIn = googleStatus;
   readiness.missing.googleOAuth = google.ok ? [] : ["Supabase Google provider"];
-  return readiness;
+  return decorateRuntimeReadiness(readiness);
 }
 
 app.get("/api/health", (req, res) => res.status(200).json({
