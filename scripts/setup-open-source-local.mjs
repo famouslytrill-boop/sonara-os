@@ -101,13 +101,13 @@ function ensureLocalEnv() {
   try {
     fd = fs.openSync(LOCAL_ENV_FILE, "wx", 0o600);
     fs.writeFileSync(fd, text, "utf8");
+    try { fs.fchmodSync(fd, 0o600); } catch { /* Windows ACLs differ. */ }
   } catch (error) {
     if (error?.code === "EEXIST") return readEnvFile(LOCAL_ENV_FILE);
     throw error;
   } finally {
     if (fd !== undefined) fs.closeSync(fd);
   }
-  try { fs.chmodSync(LOCAL_ENV_FILE, 0o600); } catch { /* Windows ACLs differ. */ }
   process.stdout.write("Created .env.open-source.local with generated local-only secrets.\n");
   return parseEnvText(text);
 }
@@ -165,8 +165,14 @@ function syncAppEnv(options) {
   }
 
   for (const [key, value] of Object.entries(updates)) text = replaceEnv(text, key, value);
-  fs.writeFileSync(APP_ENV_FILE, text, { mode: 0o600 });
-  try { fs.chmodSync(APP_ENV_FILE, 0o600); } catch { /* Windows ACLs differ. */ }
+  let appEnvFd;
+  try {
+    appEnvFd = fs.openSync(APP_ENV_FILE, "w", 0o600);
+    fs.writeFileSync(appEnvFd, text, "utf8");
+    try { fs.fchmodSync(appEnvFd, 0o600); } catch { /* Windows ACLs differ. */ }
+  } finally {
+    if (appEnvFd !== undefined) fs.closeSync(appEnvFd);
+  }
   process.stdout.write("Updated .env with local service addresses and SONARA adapter variables.\n");
   if (!model) process.stdout.write("Ollama callable adapter stays off until --model names a reviewed model.\n");
   if (!flow) process.stdout.write("Langflow callable adapter stays off until --langflow-flow names an approved flow.\n");
