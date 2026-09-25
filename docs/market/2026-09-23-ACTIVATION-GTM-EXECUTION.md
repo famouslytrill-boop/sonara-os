@@ -1,6 +1,6 @@
 # SONARA Activation-Led Go-to-Market Execution
 
-**Date:** 2026-09-23  
+**Date:** 2026-09-23
 **Status:** execution contract; no customer outcome claim is implied by this document.
 
 ## Decision

@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 24448)
-Total output lines: 1501
-
 // Copyright (c) 2026 SONARA Industries. All rights reserved.
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
@@ -542,7 +539,564 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const providers = getCreatorGenerationCatalog();
     const sections = [
       generationForm(providers, ui.escape, consents),
-      ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent rec…9448 tokens truncated…t organization = await deps.getCustomerPrimaryOrganization(user);
+      ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent record. Direct celebrity, artist, or identity imitation is held for review."),
+      ui.card("Provider execution", "ElevenLabs and Google Veo use server-side adapters when configured. Suno requires the exact account API contract. Higgsfield uses its official external MCP connector. Open-source models run only on an isolated GPU worker."),
+      jobTable(jobs, ui.escape),
+      // Was `display(item.readiness.status)`, which put "setup required" and
+      // "reference only" on a creator's screen -- internal words, and three of
+      // them implying the creator should go and fix something none of them can.
+      // The detail says whose job it is, or that it is nobody's.
+      ...providers.map((item) => ui.card(
+        `${item.label}: ${generationAvailabilityLabel(item.readiness.status)}`,
+        `${generationAvailability(item.readiness.status).detail} ${item.capabilities.join(", ")}. ${item.license}`
+      ))
+    ];
+    return res.status(200).type("html").send(ui.layout({
+      title: "Generation Studio",
+      eyebrow: "Creator Studio",
+      heading: "Video, audio, music, and voice generation",
+      body: "Create governed media jobs, route them to configured providers, retain private outputs, and preserve rights, consent, provenance, and audit evidence.",
+      sections,
+      actions: [ui.link("/creator-studio/studio", "SONARA Studio"), ui.link("/creator-studio/launch-readiness", "Setup status"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
+    }));
+  });
+
+  // Everything below renders jobs as pages. Before these existed the only way
+  // to see your own work was /api/creator/generation/jobs -- raw JSON, linked
+  // from the studio page and from every row of its table, and the place a
+  // customer landed after submitting the create form. The data was reachable
+  // and unreadable at the same time.
+  app.get("/creator-studio/generation/jobs", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    let jobs = [];
+    let unavailable = null;
+    if (!context.ok) unavailable = "We could not confirm your workspace. Sign in and try again.";
+    else if (!config.ok) unavailable = "Your account database is not connected yet, so saved work cannot be listed.";
+    else {
+      const listed = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,status,progress_percent,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=${clamp(req.query.limit, 1, 100, 50)}`);
+      if (!listed.ok) unavailable = "We could not load your work just now. Try again shortly.";
+      else jobs = listed.rows;
+    }
+    return res.status(200).type("html").send(ui.layout({
+      title: "Your generation work",
+      eyebrow: "Creator Studio",
+      heading: "Your generation work",
+      body: "Everything you have asked us to make, newest first, with what it is waiting on.",
+      sections: unavailable ? [ui.card("Not available right now", unavailable)] : [jobListCard(jobs, ui.escape)],
+      actions: [ui.link("/creator-studio/generation", "Make something new"), ui.link("/creator-studio/dashboard", "Dashboard")]
+    }));
+  });
+
+  app.get("/creator-studio/generation/jobs/:jobId", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    if (!context.ok || !config.ok) return res.status(context.ok ? 200 : 401).type("html").send(ui.layout({
+      title: "Generation work",
+      eyebrow: "Creator Studio",
+      heading: "We cannot show this right now",
+      body: context.ok ? "Your account database is not connected yet." : "We could not confirm your workspace. Sign in and try again.",
+      sections: [],
+      actions: [ui.link("/creator-studio/generation/jobs", "Your generation work")]
+    }));
+
+    const loaded = await loadJob(config, context, req.params.jobId);
+    if (!loaded.ok) return res.status(loaded.status === 404 ? 404 : loaded.status).type("html").send(ui.layout({
+      title: "Generation work",
+      eyebrow: "Creator Studio",
+      heading: "We could not find that piece of work",
+      body: "It may have been removed, or it belongs to a different workspace.",
+      sections: [],
+      actions: [ui.link("/creator-studio/generation/jobs", "Your generation work")]
+    }));
+
+    const job = loaded.job;
+    const [assets, events] = await Promise.all([
+      // Named rather than `select=*`, which is what hid the provenance: the row
+      // carried the provider, the attestations and the checksum, the page
+      // loaded all three and printed none of them, and
+      // report-unused-selected-columns.mjs could not see the query to say so.
+      // Written out literally on purpose -- a list joined from a constant is
+      // readable to a person and opaque to that script, which is the other
+      // half of the same blindness.
+      rest(config, ASSET_TABLE, `select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`),
+      rest(config, EVENT_TABLE, `select=event_type,event_status,details,created_at&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.desc&limit=50`)
+    ]);
+
+    return res.status(200).type("html").send(ui.layout({
+      title: jobTitle(job),
+      eyebrow: "Creator Studio",
+      heading: jobTitle(job),
+      body: generationStatus(job.status).detail,
+      sections: [
+        jobSummaryCard(job, ui.escape),
+        jobOutputsCard(job, assets.ok ? assets.rows : null, ui.escape),
+        jobControlsCard(job, ui.escape),
+        jobRequestCard(job, ui.escape),
+        jobHistoryCard(events.ok ? events.rows : null, ui.escape)
+      ],
+      actions: [ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/generation", "Make something new")]
+    }));
+  });
+
+  // Private outputs were unreachable: the file lands in a private bucket and
+  // nothing minted a URL for it, so a finished job produced something the
+  // customer owned and could not collect. The signing happens here so the
+  // service key stays on the server and the link expires.
+  app.get("/creator-studio/generation/jobs/:jobId/outputs/:assetId", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.redirect(303, "/creator-studio/generation/jobs");
+    const config = getConfig(deps);
+    if (!config.ok) return res.redirect(303, "/creator-studio/generation/jobs");
+    const loaded = await loadJob(config, context, req.params.jobId);
+    if (!loaded.ok) return res.redirect(303, "/creator-studio/generation/jobs");
+    if (!validUuid(req.params.assetId)) return res.redirect(303, jobPath(loaded.job.id));
+    const found = await rest(config, ASSET_TABLE, `select=${provenanceOf.PROVENANCE_COLUMNS.join(",")}&id=eq.${encodeURIComponent(req.params.assetId)}&job_id=eq.${encodeURIComponent(loaded.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+    const asset = found.ok ? found.rows[0] : undefined;
+    if (!asset) return res.redirect(303, jobPath(loaded.job.id));
+    const signed = await signAsset(config, asset);
+    if (!signed.ok) return res.redirect(303, jobPath(loaded.job.id));
+    // What was collected, not only that something was. The event used to carry
+    // the asset id alone, so the history could say a file left and not which
+    // service had made it or what its fingerprint was -- the two facts anybody
+    // asking about a download afterwards actually wants.
+    await event(
+      config,
+      context,
+      loaded.job.id,
+      "generation.output_downloaded",
+      "success",
+      provenanceOf.downloadEventDetails(req.params.assetId, provenanceOf.describeAsset(asset))
+    );
+    if (typeof deps.insertActivityEvent === "function") {
+      await deps.insertActivityEvent(context.organizationId, context.userId, "creator_studio.output_downloaded", {
+        job_id: loaded.job.id,
+        asset_id: req.params.assetId,
+        provider_key: loaded.job.provider_key || null
+      });
+    }
+    return res.redirect(302, signed.url);
+  });
+
+  for (const [path, title, capability] of [
+    ["/creator-studio/generation/voice", "Voice Generation", "text_to_speech"],
+    ["/creator-studio/generation/music", "Music Generation", "text_to_music"],
+    ["/creator-studio/generation/audio", "Audio and Sound Effects", "sound_effects"],
+    ["/creator-studio/generation/video", "Video Generation", "text_to_video"],
+    ["/creator-studio/generation/reference-analysis", "Reference Analysis", "reference_analysis"]
+  ]) {
+    app.get(path, access, (req, res) => res.redirect(302, `/creator-studio/generation?capability=${encodeURIComponent(capability)}&title=${encodeURIComponent(title)}`));
+  }
+};
+
+async function dispatchJob(config, context, job, provider, deps) {
+  const readiness = getProviderReadiness(provider);
+  if (!readiness.configured) return { ok: false, job };
+  await updateJob(config, context, job.id, { status: "submitted", submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+  await event(config, context, job.id, "generation.dispatch_started", "recorded", { provider_key: provider.key, capability: job.capability });
+  try {
+    if (provider.key === "elevenlabs") return await dispatchElevenLabs(config, context, job, provider, deps);
+    if (provider.key === "google_veo") return await dispatchGoogleVeo(config, context, job, provider);
+    if (provider.key === "suno") return await dispatchSuno(config, context, job, provider);
+    if (provider.key === "open_source_media_worker") return await dispatchWorker(config, context, job, provider);
+    const updated = await updateJob(config, context, job.id, { status: "manual_required", provider_response: { connector: provider.adapterMode }, updated_at: new Date().toISOString() });
+    return { ok: true, job: updated.rows[0] };
+  } catch (error) {
+    const failed = await failJob(config, context, job.id, "provider_dispatch_failed", safeError(error));
+    return { ok: false, job: failed.rows[0], status: 502 };
+  }
+}
+
+async function dispatchElevenLabs(config, context, job, provider, deps) {
+  const base = String(process.env[provider.baseUrlEnv] || provider.defaultBaseUrl).replace(/\/$/, "");
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const headers = { "xi-api-key": apiKey, Accept: "application/json" };
+  let endpoint;
+  let body;
+  let expectsBinary = false;
+
+  if (job.capability === "text_to_speech") {
+    const voiceId = clean(job.parameters?.voice_id || job.parameters?.voiceId, 200);
+    if (!voiceId) return failedValidation(config, context, job, "voice_id_required");
+    const outputFormat = encodeURIComponent(clean(job.parameters?.output_format, 80) || "mp3_44100_128");
+    endpoint = `${base}/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=${outputFormat}`;
+    body = { text: job.prompt, model_id: clean(job.parameters?.model_id, 120) || "eleven_multilingual_v2", voice_settings: job.parameters?.voice_settings || undefined };
+    expectsBinary = true;
+  } else if (job.capability === "sound_effects") {
+    endpoint = `${base}/v1/sound-generation`;
+    body = { text: job.prompt, duration_seconds: numberOrUndefined(job.parameters?.duration_seconds), prompt_influence: numberOrUndefined(job.parameters?.prompt_influence) };
+    expectsBinary = true;
+  } else if (job.capability === "text_to_music") {
+    endpoint = `${base}/v1/music`;
+    body = { prompt: job.prompt, music_length_ms: integerOr(job.parameters?.music_length_ms, 30000), model_id: clean(job.parameters?.model_id, 100) || "music_v2", force_instrumental: truthy(job.parameters?.force_instrumental) };
+    expectsBinary = true;
+  } else if (job.capability === "music_plan") {
+    endpoint = `${base}/v1/music/plan`;
+    body = { prompt: job.prompt, music_length_ms: integerOr(job.parameters?.music_length_ms, 30000), model_id: clean(job.parameters?.model_id, 100) || "music_v2" };
+  } else {
+    return failedValidation(config, context, job, "elevenlabs_capability_requires_private_asset_pipeline");
+  }
+
+  const response = await fetch(endpoint, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(compact(body)) });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "elevenlabs_request_failed");
+
+  if (!expectsBinary) {
+    const payload = await response.json().catch(() => ({}));
+    const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: sanitizeProviderPayload(payload), completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    await event(config, context, job.id, "generation.completed", "success", { provider_key: provider.key, output: "json" });
+    // Charged even though no asset was stored: the provider ran and billed us
+    // for it. "Produced a file" and "consumed compute" are different things,
+    // and the meter follows the second.
+    const charge = await chargeCompletedGeneration({ config, context, job, payload, deps });
+    return { ok: true, job: completed.rows[0], charge };
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const mime = normalizeMime(response.headers.get("content-type") || (job.capability === "text_to_music" ? "audio/mpeg" : "audio/mpeg"));
+  const stored = await storeOutput(config, context, job, bytes, mime, provider.key);
+  if (!stored.ok) return failJobResult(config, context, job, "output_storage_failed", stored.code);
+  const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: { asset_id: stored.asset.id, mime_type: mime, byte_size: bytes.length }, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+  await event(config, context, job.id, "generation.completed", "success", { provider_key: provider.key, asset_id: stored.asset.id });
+  const charge = await chargeCompletedGeneration({ config, context, job, payload: null, deps });
+  return { ok: true, job: completed.rows[0], asset: stored.asset, charge };
+}
+
+async function dispatchGoogleVeo(config, context, job, provider) {
+  const base = String(process.env[provider.baseUrlEnv] || provider.defaultBaseUrl).replace(/\/$/, "");
+  const model = String(process.env[provider.modelEnv] || provider.defaultModel);
+  const body = {
+    instances: [{ prompt: job.prompt, ...(job.parameters?.instance || {}) }],
+    parameters: compact({
+      aspectRatio: job.parameters?.aspect_ratio || "16:9",
+      resolution: job.parameters?.resolution || "720p",
+      durationSeconds: integerOr(job.parameters?.duration_seconds, undefined),
+      negativePrompt: job.negative_prompt || undefined,
+      sampleCount: integerOr(job.parameters?.sample_count, 1),
+      ...(job.parameters?.provider_parameters || {})
+    })
+  };
+  const response = await fetch(`${base}/models/${encodeURIComponent(model)}:predictLongRunning`, {
+    method: "POST",
+    headers: { "x-goog-api-key": process.env.GEMINI_API_KEY, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "google_veo_submission_failed");
+  const payload = await response.json().catch(() => ({}));
+  const operationName = clean(payload.name, 500);
+  if (!operationName) return failJobResult(config, context, job, "google_veo_operation_missing", "Provider did not return an operation name.");
+  const updated = await updateJob(config, context, job.id, { status: "running", progress_percent: 5, provider_job_id: operationName, provider_response: sanitizeProviderPayload(payload), started_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+  await event(config, context, job.id, "generation.provider_submitted", "success", { provider_key: provider.key, operation_name: operationName });
+  return { ok: true, job: updated.rows[0] };
+}
+
+async function dispatchSuno(config, context, job, _provider) {
+  const base = String(process.env.SUNO_API_BASE_URL || "").replace(/\/$/, "");
+  const path = normalizePath(process.env.SUNO_GENERATE_PATH);
+  const response = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}`, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ capability: job.capability, prompt: job.prompt, negative_prompt: job.negative_prompt, parameters: job.parameters })
+  });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "suno_submission_failed");
+  const payload = await response.json().catch(() => ({}));
+  const providerJobId = clean(payload.id || payload.job_id || payload.task_id, 500);
+  const status = providerJobId ? "running" : payload.output_url || payload.audio_url ? "running" : "failed";
+  const updated = await updateJob(config, context, job.id, { status, progress_percent: status === "running" ? 5 : 0, provider_job_id: providerJobId || null, provider_response: sanitizeProviderPayload(payload), started_at: new Date().toISOString(), error_code: status === "failed" ? "suno_job_id_missing" : null, updated_at: new Date().toISOString() });
+  return { ok: status !== "failed", job: updated.rows[0] };
+}
+
+async function dispatchWorker(config, context, job, _provider) {
+  const base = String(process.env.CREATOR_MEDIA_WORKER_URL || "").replace(/\/$/, "");
+  const response = await fetch(`${base}/v1/jobs`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.CREATOR_MEDIA_WORKER_TOKEN}`, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ idempotency_key: job.id, organization_id: context.organizationId, user_id: context.userId, capability: job.capability, prompt: job.prompt, negative_prompt: job.negative_prompt, input_assets: job.input_assets, parameters: job.parameters })
+  });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "media_worker_submission_failed");
+  const payload = await response.json().catch(() => ({}));
+  const providerJobId = clean(payload.id || payload.job_id, 500);
+  if (!providerJobId) return failJobResult(config, context, job, "media_worker_job_id_missing", "Worker did not return a job id.");
+  const updated = await updateJob(config, context, job.id, { status: "running", progress_percent: integerOr(payload.progress_percent, 1), provider_job_id: providerJobId, provider_response: sanitizeProviderPayload(payload), started_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+  return { ok: true, job: updated.rows[0] };
+}
+
+async function refreshJob(config, context, job, provider, deps) {
+  if (["completed", "failed", "cancelled", "review_required", "manual_required", "setup_required"].includes(job.status)) return { ok: true, job, unchanged: true };
+  try {
+    if (provider.key === "google_veo") return refreshGoogleVeo(config, context, job, provider, deps);
+    if (provider.key === "suno") return refreshSuno(config, context, job, deps);
+    if (provider.key === "open_source_media_worker") return refreshWorker(config, context, job, deps);
+    return { ok: true, job, unchanged: true };
+  } catch (error) {
+    const failed = await failJob(config, context, job.id, "provider_refresh_failed", safeError(error));
+    return { ok: false, status: 502, job: failed.rows[0], code: "provider_refresh_failed" };
+  }
+}
+
+async function refreshGoogleVeo(config, context, job, provider, deps) {
+  if (!job.provider_job_id) return { ok: false, status: 409, code: "provider_job_id_missing" };
+  const base = String(process.env[provider.baseUrlEnv] || provider.defaultBaseUrl).replace(/\/$/, "");
+  const response = await fetch(`${base}/${String(job.provider_job_id).replace(/^\//, "")}`, { headers: { "x-goog-api-key": process.env.GEMINI_API_KEY, Accept: "application/json" } });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "google_veo_refresh_failed");
+  const payload = await response.json().catch(() => ({}));
+  if (!payload.done) {
+    const updated = await updateJob(config, context, job.id, { status: "running", progress_percent: Math.max(Number(job.progress_percent || 5), 10), provider_response: sanitizeProviderPayload(payload), updated_at: new Date().toISOString() });
+    return { ok: true, job: updated.rows[0] };
+  }
+  if (payload.error) return failJobResult(config, context, job, "google_veo_generation_failed", clean(payload.error.message || JSON.stringify(payload.error), 2000));
+  const uri = findOutputUrl(payload);
+  if (!uri) return failJobResult(config, context, job, "google_veo_output_missing", "Completed operation did not include a downloadable video URI.");
+  const download = await fetch(uri, { headers: { "x-goog-api-key": process.env.GEMINI_API_KEY } });
+  if (!download.ok) return failProviderResponse(config, context, job, download, "google_veo_download_failed");
+  const bytes = Buffer.from(await download.arrayBuffer());
+  const mime = normalizeMime(download.headers.get("content-type") || "video/mp4");
+  const stored = await storeOutput(config, context, job, bytes, mime, provider.key);
+  if (!stored.ok) return failJobResult(config, context, job, "output_storage_failed", stored.code);
+  const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: { operation: sanitizeProviderPayload(payload), asset_id: stored.asset.id }, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+  await event(config, context, job.id, "generation.completed", "success", { provider_key: provider.key, asset_id: stored.asset.id });
+  const charge = await chargeCompletedGeneration({ config, context, job, payload, deps });
+  return { ok: true, job: completed.rows[0], asset: stored.asset, charge };
+}
+
+async function refreshSuno(config, context, job, deps) {
+  if (!job.provider_job_id) return { ok: false, status: 409, code: "provider_job_id_missing" };
+  const base = String(process.env.SUNO_API_BASE_URL || "").replace(/\/$/, "");
+  const path = normalizePath(String(process.env.SUNO_STATUS_PATH_TEMPLATE || "").replace("{id}", encodeURIComponent(job.provider_job_id)));
+  const response = await fetch(`${base}${path}`, { headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}`, Accept: "application/json" } });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "suno_refresh_failed");
+  const payload = await response.json().catch(() => ({}));
+  return completeFromProviderPayload(config, context, job, payload, "suno", deps);
+}
+
+async function refreshWorker(config, context, job, deps) {
+  if (!job.provider_job_id) return { ok: false, status: 409, code: "provider_job_id_missing" };
+  const base = String(process.env.CREATOR_MEDIA_WORKER_URL || "").replace(/\/$/, "");
+  const response = await fetch(`${base}/v1/jobs/${encodeURIComponent(job.provider_job_id)}`, { headers: { Authorization: `Bearer ${process.env.CREATOR_MEDIA_WORKER_TOKEN}`, Accept: "application/json" } });
+  if (!response.ok) return failProviderResponse(config, context, job, response, "media_worker_refresh_failed");
+  const payload = await response.json().catch(() => ({}));
+  return completeFromProviderPayload(config, context, job, payload, "open_source_media_worker", deps);
+}
+
+async function completeFromProviderPayload(config, context, job, payload, providerKey, deps) {
+  const providerStatus = String(payload.status || "").toLowerCase();
+  if (["failed", "error"].includes(providerStatus)) return failJobResult(config, context, job, `${providerKey}_generation_failed`, clean(payload.error || payload.message, 2000));
+  const outputUrl = findOutputUrl(payload);
+  if (["completed", "succeeded", "done"].includes(providerStatus) && outputUrl) {
+    const downloaded = await fetchSafeOutput(outputUrl);
+    if (!downloaded.ok) return failJobResult(config, context, job, "provider_output_download_failed", downloaded.code);
+    const stored = await storeOutput(config, context, job, downloaded.bytes, downloaded.mime, providerKey);
+    if (!stored.ok) return failJobResult(config, context, job, "output_storage_failed", stored.code);
+    const completed = await updateJob(config, context, job.id, { status: "completed", progress_percent: 100, provider_response: { payload: sanitizeProviderPayload(payload), asset_id: stored.asset.id }, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    // Charged after the asset is stored and the job is marked complete, so a
+    // ledger failure cannot cost the customer their output. See
+    // chargeCompletedGeneration for why a failed charge is reported rather than
+    // raised, and why a failed job is never charged at all.
+    const charge = await chargeCompletedGeneration({ config, context, job, payload, deps });
+    return { ok: true, job: completed.rows[0], asset: stored.asset, charge };
+  }
+  const updated = await updateJob(config, context, job.id, { status: "running", progress_percent: clamp(payload.progress_percent, 1, 99, Math.max(Number(job.progress_percent || 1), 5)), provider_response: sanitizeProviderPayload(payload), updated_at: new Date().toISOString() });
+  return { ok: true, job: updated.rows[0] };
+}
+
+// Is there credit to run this, and what would it cost?
+//
+// Wired through `deps` so a test can inject a ledger rather than reach for a
+// database, and so this file keeps no opinion about pricing --
+// lib/creator-generation-billing.cjs decides the units and
+// lib/sonara-usage-meter.cjs decides whether they are affordable.
+async function authoriseGenerationCredit({ config, context, capability, parameters, deps }) {
+  const basis = generationPreflight({ capability, parameters });
+  if (!basis.ok) {
+    // A capability with no cost estimate is refused rather than run free. This
+    // is reachable only by adding a capability and not costing it, which is
+    // exactly when a default of "free" would be silently expensive.
+    return { allowed: false, httpStatus: 500, code: basis.code, reason: basis.detail };
+  }
+
+  const readLedger = typeof deps.readUsageLedger === "function"
+    ? deps.readUsageLedger
+    : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
+
+  const history = await readLedger({ organizationId: context.organizationId }).catch((error) => ({
+    ok: false,
+    rows: [],
+    reason: String(error?.message || error)
+  }));
+
+  // The starting allowance keeps generation working for an organization that has
+  // never bought credit, which is every organization on the day this deploys.
+  // It exhausts as draws accumulate, so it is a free tier rather than a bypass.
+  // Overridable through deps so a test can set it to zero and see the refusal.
+  const allowanceMinor = typeof deps.generationStartingAllowanceMinor === "number"
+    ? deps.generationStartingAllowanceMinor
+    : DEFAULT_STARTING_ALLOWANCE_MINOR;
+
+  const decision = authoriseUsage({ capability: basis.capability, units: basis.units, history, allowanceMinor });
+  if (decision.allowed) return { allowed: true, decision, basis };
+
+  // 402 for "no credit" and 503 for "we could not check" -- different things,
+  // and a customer does something different about each. A blanket 402 would
+  // have somebody buy credit to fix a database blip.
+  const httpStatus = decision.code === "insufficient_credit" ? 402 : 503;
+  return { allowed: false, httpStatus, code: decision.code, reason: decision.reason, decision, basis };
+}
+
+// Charge for the work, once it has actually produced something.
+//
+// Called only from the completed branch: **a failed job is not charged.** It
+// consumed real GPU time and we absorb that deliberately -- billing somebody
+// for output they never received is the kind of charge that loses a customer
+// permanently, and absorbing it is the right incentive to make failures rare.
+// The decision is a business one and is recorded here rather than left implicit
+// in where the call happens to sit.
+//
+// A failure to record the charge does NOT fail the job. The customer's asset is
+// already stored; refusing to hand it over because our own ledger write failed
+// would punish them for our fault. It is reported instead, loudly, because a
+// meter that silently stops charging is the defect this repository is named for.
+async function chargeCompletedGeneration({ config, context, job, payload, deps }) {
+  const cost = generationGpuSecondsFor({ capability: job.capability, parameters: job.parameters, payload });
+  if (!cost.ok) {
+    (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: cost.code, detail: cost.detail });
+    return { ok: false, code: cost.code };
+  }
+
+  const entry = drawEntry({
+    capability: BILLED_GENERATION_CAPABILITY,
+    units: cost.gpuSeconds,
+    organizationId: context.organizationId,
+    actorUserId: context.userId,
+    // The job id is the idempotency key. A job is charged once however many
+    // times a poll, a retry or a duplicated webhook reaches this line, and the
+    // partial unique index on the ledger enforces it in the database rather
+    // than only here.
+    idempotencyKey: `generation:${job.id}`
+  });
+  if (!entry.ok) {
+    (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: entry.code, detail: entry.detail });
+    return { ok: false, code: entry.code };
+  }
+
+  const append = typeof deps.appendUsageLedger === "function"
+    ? deps.appendUsageLedger
+    : createLedgerAppender({ getSupabaseServerConfig: () => config });
+
+  // usage_basis is on the row rather than in a comment: "we billed 96 GPU
+  // seconds" means two different things depending on whether that was measured
+  // or estimated, and revenue cannot be reconciled against cost without knowing
+  // which.
+  const written = await append({
+    ...entry.row,
+    metadata: { usage_basis: cost.basis, usage_detail: cost.detail, job_id: job.id, capability: job.capability }
+  }).catch((error) => ({ ok: false, code: "ledger_write_threw", detail: String(error?.message || error) }));
+
+  if (!written.ok) {
+    (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: written.code, detail: `charge of ${entry.row.amount_minor} was not recorded` });
+    return { ok: false, code: written.code };
+  }
+
+  return { ok: true, duplicate: Boolean(written.duplicate), amountMinor: entry.row.amount_minor, basis: cost.basis };
+}
+
+function defaultBillingGapReport({ jobId, code, detail }) {
+  // Redacted for the same reason every other log line here is: a failure detail
+  // can carry a provider URL, and a provider URL can carry a key.
+  console.error(`[generation-billing] job ${redactSensitiveText(String(jobId || "unknown"))} produced output that was not charged: ${redactSensitiveText(String(code))} ${redactSensitiveText(String(detail || ""))}`);
+}
+
+async function evaluatePolicy({ config, context, capability, prompt, rightsAttested, consentAttested, voiceConsentId }) {
+  const reasons = [];
+  if (!capability) return { ok: false, httpStatus: 400, code: "capability_required", reasons };
+  if (!prompt && capability !== "reference_analysis") return { ok: false, httpStatus: 400, code: "prompt_required", reasons };
+  if (prompt.length > MAX_PROMPT_LENGTH) return { ok: false, httpStatus: 400, code: "prompt_too_long", reasons: [`Maximum ${MAX_PROMPT_LENGTH} characters.`] };
+  if (!rightsAttested) return { ok: false, httpStatus: 400, code: "rights_attestation_required", reasons };
+  for (const pattern of IMITATION_PATTERNS) if (pattern.test(prompt)) reasons.push("direct_identity_or_work_imitation_language");
+  if (reasons.length) return { ok: false, status: "review_required", httpStatus: 202, code: "human_review_required", reasons };
+  if (VOICE_CAPABILITIES.has(capability)) {
+    if (!consentAttested || !validUuid(voiceConsentId)) return { ok: false, httpStatus: 400, code: "active_voice_consent_required", reasons };
+    const consent = await rest(config, CONSENT_TABLE, `select=id,consent_attested,consent_scope,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&id=eq.${encodeURIComponent(voiceConsentId)}&limit=1`);
+    const row = consent.rows[0];
+    if (!consent.ok || !row || !row.consent_attested || row.revoked_at || (row.expires_at && Date.parse(row.expires_at) <= Date.now())) return { ok: false, httpStatus: 400, code: "active_voice_consent_required", reasons };
+    // The permission is live. Whether it is a permission for *this* is the
+    // question the scope column exists to answer.
+    //
+    // A capability with no entry here is refused rather than allowed through on
+    // the blanket scope alone -- adding one to VOICE_CAPABILITIES without
+    // deciding what covers it must fail closed, and
+    // tests/creator-generation-platform.test.js refuses the missing entry so it
+    // fails at the build instead.
+    const accepted = CONSENT_SCOPE_FOR_CAPABILITY[capability];
+    if (!accepted) return { ok: false, httpStatus: 400, code: "active_voice_consent_required", reasons };
+    const scope = String(row.consent_scope || "");
+    if (scope !== BLANKET_CONSENT_SCOPE && !accepted.includes(scope)) {
+      // Named separately from "no permission on file", because the two need
+      // different things from the person reading it. One is "go and record a
+      // permission"; this one is "the permission you picked is for something
+      // else", and telling them the first would have them create a duplicate.
+      return {
+        ok: false,
+        httpStatus: 400,
+        code: "voice_consent_scope_mismatch",
+        reasons: [`The permission you chose covers ${scope.replaceAll("_", " ")}, and this needs ${(accepted.length ? accepted : [BLANKET_CONSENT_SCOPE]).map((entry) => entry.replaceAll("_", " ")).join(" or ")}.`]
+      };
+    }
+  }
+  return { ok: true, status: "approved", reasons };
+}
+
+async function storeOutput(config, context, job, bytes, mime, providerKey) {
+  const bucket = job.capability === "text_to_music" || job.capability === "music_plan" || job.capability === "video_to_music" ? "music-stems" : "creator-assets";
+  const extension = extensionForMime(mime);
+  const objectPath = `${context.organizationId}/${context.userId}/${job.id}/${randomUUID()}.${extension}`;
+  const storageResponse = await fetch(`${config.url}/storage/v1/object/${bucket}/${objectPath.split("/").map(encodeURIComponent).join("/")}`, {
+    method: "POST",
+    headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": mime, "x-upsert": "false" },
+    body: bytes
+  }).catch(() => undefined);
+  if (!storageResponse?.ok) return { ok: false, code: `storage_upload_failed_${storageResponse?.status || "unreachable"}` };
+  const checksum = createHash("sha256").update(bytes).digest("hex");
+  const inserted = await insert(config, ASSET_TABLE, {
+    organization_id: context.organizationId,
+    user_id: context.userId,
+    job_id: job.id,
+    asset_role: "output",
+    media_type: mediaTypeFor(job.capability, mime),
+    bucket_id: bucket,
+    object_path: objectPath,
+    mime_type: mime,
+    byte_size: bytes.length,
+    checksum_sha256: checksum,
+    provenance: { provider_key: providerKey, generated: true, rights_attested: job.rights_attested, consent_attested: job.consent_attested },
+    metadata: {}
+  });
+  if (!inserted.ok) return { ok: false, code: inserted.code };
+  return { ok: true, asset: inserted.rows[0] };
+}
+
+async function loadJob(config, context, jobId) {
+  if (!validUuid(jobId)) return { ok: false, status: 400, code: "invalid_job_id" };
+  // Named rather than `select=*`. The list is every field the job page and the
+  // JSON endpoint actually read, derived by grepping this file for `job.` and
+  // `job?.` rather than by eye -- `jobTitle()` reaches `title` through optional
+  // chaining, and a first pass that matched only `job.` missed it, which would
+  // have retitled every job page.
+  //
+  // What is deliberately not here: `provider_response`, the raw body an
+  // external provider sent back. Nothing reads it, and a JSON endpoint that
+  // returns a provider's whole reply is publishing whatever that provider
+  // decides to put in it, forever, to anybody who later gets hold of the
+  // response.
+  const result = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,provider_job_id,status,progress_percent,prompt,negative_prompt,parameters,input_assets,policy_status,policy_reasons,rights_attested,consent_attested,error_code,error_message,created_at,completed_at&id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+  if (!result.ok) return { ok: false, status: 502, code: result.code };
+  if (!result.rows[0]) return { ok: false, status: 404, code: "generation_job_not_found" };
+  return { ok: true, job: result.rows[0] };
+}
+
+async function resolveContext(req, deps) {
+  const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user || null;
+  if (!user?.id) return { ok: false, status: 401, code: "creator_auth_required" };
+  if (typeof deps.getCustomerPrimaryOrganization !== "function") return { ok: false, status: 503, code: "organization_resolver_unavailable" };
+  const organization = await deps.getCustomerPrimaryOrganization(user);
   if (!organization?.ok) return { ok: false, status: 409, code: organization?.code || "organization_setup_required" };
   return { ok: true, organizationId: organization.organizationId, userId: user.id };
 }
