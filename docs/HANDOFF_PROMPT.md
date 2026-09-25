@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 32354)
-Total output lines: 2341
-
 # SONARA Handoff Prompt
 
 Paste this whole file as the first message to ChatGPT, Codex, or any other assistant picking up work on this repository. It is kept under 128 KB (roughly 33k tokens) so that instruction is actually possible; `scripts/generate-handoff-prompt.mjs` fails the release if it grows past that.
@@ -527,7 +524,1279 @@ the first on "a frame header with no frame after it is not an MP3".
 - A test that feeds random bytes and asserts `null` is a probabilistic test. It
   is a good test -- it found this -- but when it fails, the rate is the first
   thing to measure, not the last.
-- `sniff` is an authorisation input, not a …17354 tokens truncated…r in the day.
+- `sniff` is an authorisation input, not a convenience. Anything it returns,
+  `accept` will act on.
+- `ID3` is a magic number; a frame sync is two bytes of coincidence. Do not put
+  a bare sync back in the signature table.
+
+
+
+### 2026-09-21 - Eleven places still said the application had one production dependency
+
+Asked to update the repository and the website with what has already been
+installed. The installing happened on 20 September; what had not happened was
+telling the rest of the repository about it.
+
+## What was measured
+
+`package.json` declares **nine** production dependencies and **five**
+development dependencies. Eleven live statements said otherwise, all of them in
+present tense, none of them dated:
+
+- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
+- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
+  `lib/sonara-structured-log.cjs`
+- `lib/sonara-screenshot-tool-radar-batch12.cjs`
+- `scripts/report-register-opportunities.mjs`
+- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
+- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
+- four guidance lines in `data/open-source-tools.ts`
+
+Every one was **load-bearing reasoning**: no multipart parser because there is
+one dependency; no YAML parser because there is one dependency; this module
+"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
+arrives". A second had arrived, eight of them, and the sentences explaining
+decisions by the old count read exactly as they did when they were true. That is
+the defect this repository is organised around, in prose rather than in code.
+
+**The reasoning mostly survives and was checked rather than assumed.** None of
+the nine production dependencies is a multipart parser and nothing in either
+dependency list parses YAML, both measured rather than recalled. So the
+conclusions stand and the premises were wrong, which is the most dangerous
+combination: nothing breaks, and the next person inherits a reason that will not
+hold the next time it is leaned on.
+
+## The register record whose trigger fired and was never read
+
+`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
+ended: "tests/the-auth-surface-stays-small.test.js fails if that single
+dependency stops being single, which is what would make this record worth
+revisiting."
+
+It stopped being single on 20 September. The test **was not weakened** -- it
+still asserts `deepEqual` against the whole manifest, so a tenth dependency
+fails it -- it was updated to the new exact list, correctly, because the change
+was intentional. But the record it was the trigger for was never revisited.
+
+So this is that revisit, written into the record as a dated addendum: the finding
+does not change, because the reason was never really the count. There is still no
+compile step and none of the nine is a TypeScript library needing one. What had
+to be corrected is the **trigger**, since a count that has already moved cannot
+warn about moving.
+
+## The owner's install document was wrong in two ways, one of them worse
+
+`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
+"one production dependency: `express`. Four development dependencies", and it
+said **"Version 22 is what this was verified on (`v22.22.2`)"**.
+
+The second is the one that mattered. `package.json` declares
+`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
+runtime rather than a preference --
+`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
+changes. The document told the owner to install a Node major that production
+does not run, in five places, which is why every `pnpm` command in this session
+printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
+with the reason the warning is worth acting on rather than reading past.
+
+A section on installing Claude Code was added beside the Supabase CLI one,
+because it belongs in the same category and for the same reason: a tool a person
+runs by hand, deliberately not in `package.json`, where adding it would put it
+on the critical path of every production build.
+
+Its facts were read from the npm registry rather than recalled, and the first
+draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
+`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
+`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
+and the shell script installs under `$HOME` and refuses to run under `sudo`. The
+native installer is listed first because it involves no package manager at all,
+which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
+of this repository's dependency tree.
+
+## `verify:dependency-claims`, the 58th chain command
+
+`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
+undated and mostly lived in source comments, so nothing watched it. The new
+check reads `package.json` and fails when a tracked file states a
+production-dependency count that does not match.
+
+Four things about how it is built, each because the first attempt got it wrong:
+
+- **It reads words, not just digits.** The first version matched digits and
+  found **none of the eleven** -- every one was written as "one" or "single".
+  `WORDS` covers zero to twelve plus `single` and `sole`.
+- **Past-tense statements are not current-state claims.** "went from one
+  production dependency to nine" is a true sentence about a change. A count
+  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
+  with an optional article, is skipped. The marker list is short on purpose: an
+  escape hatch wide enough to launder a current-state claim is worse than no
+  check, and "this is an Express 4 application with one production dependency"
+  has no marker and fails.
+- **It fails when it finds nothing.** A reword that drops every claim out of the
+  pattern is the check going blind, not the repository improving. Proved by
+  misspelling the pattern: `ERROR: no production-dependency count claim was
+  found anywhere in the repository`.
+- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
+  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
+  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
+  text can no longer be found fails, so an exemption cannot outlive the sentence
+  it excuses.
+
+Falsified in four directions before being trusted. It also found three of the
+eleven that grepping had missed, including the install document.
+
+## The website was calling an installed adapter a research candidate
+
+`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
+eight of its packages were production dependencies and a tested 195-line adapter
+existed. `setup_required` would have been the other wrong answer: it says
+configuration is what is left, and configuration is not what is left -- nothing
+calls the adapter, so every variable could be set and still nothing would be
+measured.
+
+`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
+`adapter built` and `enabled in production` are three different states, and this
+vocabulary had the first and the last. Added `adapter_built`, rendered
+"Adapter built, not enabled".
+
+The label map falls back to `"Review required"` for an unknown state, so the
+next state added would have gone unlabelled the same quiet way. Two tests now:
+every availability state in use must have a label and that label must appear on
+the page, with `Review required` asserted absent; and the OpenTelemetry entry
+must stay `adapter_built` **while** an `@opentelemetry` package is still a
+production dependency, so if the packages are removed the test says to move the
+entry back rather than leaving a state that overstates.
+
+## What the next person should not have to rediscover
+
+- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
+  words as well as digits.
+- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
+  because production is 24; the `Unsupported engine` warning means the local
+  Node is wrong, not that the field is.
+- A register record's revisit trigger is only as good as somebody reading it.
+  Better Auth's was a dependency count, which fired silently; it is now the
+  build step.
+- "Research candidate" on `/free-launch-stack` means researched. An installed,
+  unwired adapter is `adapter_built`.
+
+
+
+### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
+
+Restarted this branch from the new `main` after PR #305 merged. `main` had moved
+266 commits and 32 pull requests in the meantime, so the first job was to find
+out whether the base was green. It was not, and looking into why found three
+more things.
+
+## The release chain was red on `main`, on arithmetic
+
+`pnpm run verify:launch` fails at `verify:proprietary-notice`: 296 shipped
+source files examined, `EXPECTED_FILES` says 293. Three `lib/` modules landed
+after the commit that set 293, all three carrying the notice correctly. The gate
+was right; the constant was three behind.
+
+That constant changed **ten times between 18 and 20 September**, each change
+adding a sentence to a prose ledger above it, and
+`git log -L '/^const EXPECTED_FILES/,+1:scripts/verify-proprietary-notice.mjs'`
+shows the mechanism directly: `45a0a916` and `31dc7a1e` **both set it to 288**,
+two branches independently raising 287 by one. Two identical-looking edits merge
+with no conflict, and the value that lands is one short of the tree. It is the same shape as the
+`verify:launch` chain count on 19 September, which merged cleanly at 56 while
+the truth was 57.
+
+So the count is now regenerated rather than re-typed: `--write`, exposed as
+`pnpm run fix:proprietary-notice`, mirroring `fix:doc-counts`. The thirteen-line
+ledger is gone; `git log -L` is a better record than a comment somebody has to
+remember to extend.
+
+`--write` syncs the two counts and nothing else. Falsified in four directions
+before being trusted: a wrong count fails naming `EXPECTED_FILES`; `--write`
+rewrites 999 to 296 and exits 0; a reformatted declaration (`const
+EXPECTED_FILES =\n  295;`) makes it **stop** rather than report a rewrite it did
+not perform; and with a notice-less file planted it rewrote 296 to 297 **and
+still exited 1** naming the file. A fixer that could launder a missing notice
+would be worse than no fixer.
+
+## `lib/sonara-screenshot-tool-radar-batch13.cjs` was wired into nothing
+
+Every other radar batch is required by
+`routes/sonara-requested-repositories-routes.cjs`. Batch 13, recorded 16
+September with four verified repositories and two non-repository references, was
+not. The require list reads `batch12` then `batch14`.
+
+So `openosint`, `pinchtab`, `openshorts` and `every_programmer_should_know`
+reached no catalog, no readiness figure and no page, and the founder control
+plane published `screenshotResearchCount: 104` and
+`productionExecutionCount` as covering all screenshot intake while four records
+sat outside the population being counted. Wired into all five aggregation
+functions: 114 to 118 repositories, 110 to 114 verified, 104 to 108 screenshot
+records, 50 to 52 non-repository references.
+
+**Two checks watched this happen and both reported success**, which is why the
+fix is not just the require.
+
+`scripts/report-unreferenced-modules.mjs` printed "every module under lib/ and
+routes/ is reachable" for five days, because
+`tests/batch13-event-security-media.test.js` names the module and that report
+counts a test as a referencer.
+
+`tests/requested-repository-suite.test.js` asserted the exact key list, the
+exact repository count and the exact page copy, and passed — because the list
+was written from the route rather than from the batch modules. It agreed with
+the omission instead of catching it. That is worth stating plainly: an
+enumeration copied from the implementation cannot disagree with the
+implementation.
+
+`tests/every-screenshot-radar-batch-reaches-the-route.test.js` asserts the
+property instead. It discovers the batch modules from disk, refuses to run on
+fewer than twelve, and requires every key each one holds to appear in the public
+catalog **and** to be included in `screenshotResearchCount`. Falsified both
+ways: dropping batch 13 from `getCombinedPublicCatalog` while keeping the
+require fails naming all four keys, and dropping it from
+`getScreenshotResearchCount` while keeping it in the catalog fails with
+`screenshotResearchCount is 104 but the batch modules hold 108` — the exact
+pre-fix number, so the check reproduces the original defect.
+
+## The measurement that said a tier would catch nothing had expired
+
+`scripts/report-unreferenced-modules.mjs` carried a note: measured 8 September
+2026, two modules were referenced by tests and nothing else, both legitimate, so
+no runtime-versus-test tier was added because it "would carry two permanent
+exemptions and catch nothing". It ended "This note is here so the next person
+can see the measurement rather than repeat it."
+
+Re-measured 21 September: **fourteen**, one of them batch 13. Shape 5 — an
+exemption whose reason stopped describing anything, sitting exactly where the
+next reader looks instead of checking. The note was true when written; the
+conclusion drawn from it was not still true, and the two read identically.
+
+The tier exists now as a two-sided accounted list, thirteen entries after
+batch 13 dropped out, each saying what its module is waiting for. An
+unaccounted test-only module fails; an entry whose module has since been wired
+fails too, so a reason cannot outlive its subject. Both directions falsified
+with real exit codes, read without a pipe in between.
+
+## The tier's first finding was the tier
+
+Its first run reported all thirteen entries as stale. Naming a module in
+`TEST_ONLY` is naming it in a file under `scripts/`, and `scripts/` is in the
+set the report searches, so the bookkeeping made its own subjects look
+reachable. `withoutComments` covers the header, which names modules in prose;
+it does not cover a `Map` whose keys are code.
+
+`ALLOWED` has had this hazard since the file was written and has always been
+empty, so it never bit — and would have bitten silently the first time somebody
+used it, an exempted module reading as referenced and dropping out of the
+population the exemption was written for. The report now excludes its own path
+from the set it searches.
+
+## A second red gate on `main`, hidden behind the first
+
+With the notice count fixed the chain got further and failed again, at
+`verify:coverage-floor`: `lib/sonara-observability.cjs` at **13.8% covered
+(19 of 138 lines)**, under the 35% floor and unregistered. It had been red since
+the module landed; nobody saw it because `verify:proprietary-notice` runs first
+and exits the chain. Worth remembering when a chain goes red: the first failure
+is not necessarily the only one.
+
+The module's single test asserted one thing -- telemetry is disabled unless
+enabled -- and **could not have asserted a second**. `startTelemetry` memoises
+on module state, so the first call in a process decides for the whole process. A
+second `it` calling it with different environment would have received the first
+call's answer, asserted against that, and passed. Registering the module in
+`BELOW_FLOOR` would have recorded that as "hard to test" when what was true is
+"the test surface makes a second case silently meaningless".
+
+So each case now takes a fresh module out of the require cache, and the helper
+**asserts the instance is fresh** (`status === "not_started"`) before using it.
+If the cache key ever stops matching, the tests stop rather than going back to
+measuring one memoised decision. Twelve cases, no production code changed:
+non-`"true"` values read as off, an enabled-with-no-endpoint refusal with its
+recorded reason, plaintext refused under `NODE_ENV=production` and allowed
+outside it, a non-URL endpoint refused, a traces-only configuration refused
+rather than half-started, and the middleware's correlation id, status classes,
+static-asset skip, organization scoping and `unmatched` route label.
+
+Two things the writing of it turned up:
+
+- The first version captured stderr synchronously around a `supertest` call and
+  reported **zero events**. The `finish` handler runs after the response
+  promise resolves, so the capture was restored before the event it existed to
+  read. Had the assertion been "no unexpected events" rather than a count, that
+  would have passed.
+- The one case that starts the real SDK registers global trace and metric
+  providers **for the whole process**, so every later test in the suite would
+  take a live meter instead of the no-op one and the suite's behaviour would
+  depend on file order. It shuts the SDK down, calls `metrics.disable()` and
+  `trace.disable()`, and then asserts the global meter is a `NoopMeter` again --
+  a cleanup nobody checks is how order-dependence gets in.
+
+Floor after: 296 runtime files, 58,906 countable lines, 93.3% overall, one file
+under the floor and it is the one registered with a reason.
+
+## Nine production dependencies for two modules nothing calls
+
+`package.json` went from one production dependency to nine on 20 September:
+eight `@opentelemetry/*` packages and `@openfeature/server-sdk`. Their only
+consumers are `lib/sonara-observability.cjs` and `lib/sonara-feature-flags.cjs`,
+and **neither is required by anything but its own test**. `startTelemetry`,
+`installHttpObservability` and `createFeatureFlagService` have no caller in
+`server.js`, `api/`, `routes/`, `lib/` or `scripts/`.
+
+Nothing unsafe: telemetry needs `SONARA_OTEL_ENABLED=true` and refuses a
+non-HTTPS endpoint under `NODE_ENV=production`, and the flag service fails
+closed on an unknown key. The cost is a bundle carrying an SDK for unreachable
+code and a readiness story that reads as observability being in place. Recorded
+in `docs/SHIP_READINESS.md` for the owner rather than decided here: wiring it
+adds a middleware to every dynamic request and an `X-Request-ID` header to every
+response, and removing it reverses an architecture choice another session made
+deliberately.
+
+**One hazard measured rather than reasoned, for whoever wires it.**
+`installHttpObservability` takes its meter and builds its counter and histogram
+at install time. An OpenTelemetry instrument built before
+`setGlobalMeterProvider` is bound to the no-op provider and stays a no-op after
+a later start — so installing it before `startTelemetry` gives a dashboard that
+looks configured and counts nothing. Confirmed against `@opentelemetry/api`
+1.9.1 and `@opentelemetry/sdk-metrics` 2.11.0 with an in-memory exporter: a
+counter created before the provider was registered, then incremented, was
+absent from `reader.collect()`; one created after reported its value. The
+module's header already warns about the mirror-image ordering problem for HTTP
+instrumentation — this is a second, separate ordering constraint pointing the
+same way.
+
+## What the next person should not have to rediscover
+
+- The proprietary-notice count is now `pnpm run fix:proprietary-notice`. Do not
+  do the arithmetic by hand; that is how it fell three behind.
+- A test-only reference is not reachability. Tier 2 of
+  `report-unreferenced-modules` is the list that means it.
+- `report-unreferenced-modules.mjs` excludes its own file. If that filter is
+  removed, every entry in `ALLOWED` and `TEST_ONLY` silently stops being
+  measured.
+- Batches 8 and 9 are not missing modules: they are
+  `getCapabilityDesignReadiness()`, surfaced as `capabilityBatch8` and
+  `designBatch9`. Batches 10 and 11 never existed as separate modules.
+
+
+
+### 2026-09-19 - The handoff package could not be pasted into the assistant its first line names
+
+Asked to update the handoff package for ChatGPT. Measuring it first turned the
+task into a different one.
+
+## What it measured
+
+`docs/HANDOFF_PROMPT.md` opens with:
+
+> Paste this whole file as the first message to ChatGPT, Codex, or any other
+> assistant picking up work on this repository.
+
+On 19 September 2026 that file was **1.25 MB, 23,536 lines, roughly 328,000
+tokens**, of which **99.4% was `docs/SPRINT_LOG.md` embedded verbatim** -- 1.24
+MB of the 1.25. The derived half, which is the part nobody can reconstruct
+without the repository, was **6,933 bytes**: lines 1 to 102.
+
+No ChatGPT tier accepts a 328k-token first message. The document could not do
+the one thing it opens by instructing you to do, and it had been growing into
+that state for months with nothing measuring it. That is this repository's
+named defect -- a confident claim that is not true -- sitting at the top of the
+file whose entire job is to be the first thing somebody reads.
+
+## What changed
+
+The history is bounded; the derived half is not. Counts, the quoted safety
+rules, the seven approval categories read out of the authority module, and the
+real `verify:launch` chain are always included in full, because they are small
+and cannot be obtained any other way.
+
+**1.25 MB -> 123 KB. 23,536 lines -> 2,268. ~328k tokens -> ~31k.** It now
+carries the 22 most recent entries of 384 and says so, with the rest pointed at
+rather than dropped: the wording is that they "are not omitted, they are in
+`docs/SPRINT_LOG.md`", read in the repository rather than pasted.
+
+Sliced on **dated** headings only. There are 393 `###` headings and 384 dated
+ones; the difference is sub-headings inside recent entries, several of them
+written earlier in this same session. Slicing on all of them would cut entries
+in half and then call the halves entries.
+
+## Why a budget rather than a fixed entry count
+
+`HANDOFF_BUDGET_BYTES = 128 * 1024` is about 32,000 tokens -- a first message
+that fits any current tier with the conversation still ahead of it. A fixed
+entry count would drift the moment entries got longer, which is exactly how the
+old one grew.
+
+And the budget is **asserted on the finished document**, in `--check` as well as
+on write, so `verify:handoff` in the release chain fails rather than a person
+noticing. The derived half can grow too -- more gates, more tables -- and a
+document that has quietly gone back over the limit has quietly stopped being
+pastable.
+
+Falsified two ways: lowering the budget to 8 KB makes the generator refuse with
+*"the newest sprint entry alone exceeds the remaining handoff budget"* rather
+than shipping a handoff with no history, and appending a line to the committed
+file makes `--check` fail with *"is out of date"*.
+
+## A second thing this fixed, unplanned
+
+`verify:text-encoding` reports the files above the 393,216-byte write cap --
+the cap whose mechanism destroyed 274 sprint-log entries on 18 September. That
+count went from **3 to 2**: the handoff prompt is no longer in the danger zone
+at all. The document most likely to be regenerated by a tool with that cap was
+also the one most exposed to it.
+
+`CLAUDE.md`'s description of the handoff was updated to say it is bounded and
+where the full history lives, because it described the old shape and would
+otherwise be the next false claim about this file.
+
+
+
+
+### 2026-09-19 - The external-repository-health trigger split, and a test that guarded a filename
+
+The follow-up owed since PR #294, held out of #297 and #299 because AGENTS.md
+says to keep CI fixes separate from product features.
+
+## What was wrong
+
+`verify:action-pins:network` reads each pinned action's manifest at the pinned
+commit and confirms `runs.using` still matches the register. The event that
+should run it is "a workflow changed", so its `paths` filter needs
+`.github/workflows/**`.
+
+It was added to `external-repository-health.yml`, which meant widening THAT
+workflow's filter -- and the job it shares starts with the registry sweep, which
+makes roughly 239 authenticated GitHub API requests across every record in
+`data/open-source-tools.ts`. So every edit to any workflow file bought a full
+registry sweep with no reason to run, and on 18 September a burst of those runs
+exhausted the hourly rate limit for an unrelated branch. The checker refused to
+report success on a run that established nothing, which was correct; the runs
+should not have been triggered.
+
+Now `.github/workflows/action-pin-runtime-health.yml` carries the
+`.github/workflows/**` filter and the registry workflow has its narrower list
+back. The new workflow references no `secrets.` at all -- it fetches eight files
+from raw.githubusercontent.com, which is not the metadata API the sweep
+authenticates against, and a token-less workflow cannot leak one.
+
+## The test that failed, and why that was the right failure
+
+`tests/a-pinned-action-says-which-runtime-it-is.test.js` went red:
+
+    nothing runs the networked confirmation, so the register can be wrong
+    indefinitely
+
+It read `external-repository-health.yml` **by name**. The step had not gone
+anywhere -- it had moved -- so the test failed for the filename rather than for
+the guarantee. Exactly the right alarm on the wrong axis.
+
+The property is "something runs the networked confirmation", so it now searches
+every workflow, and asserts **exactly one** runs it (duplicating an
+eight-manifest fetch is a rate limit waiting to happen) and that whichever one
+does references no `secrets.`. Three assertions where there was one, none of
+them tied to a filename. Falsified all three: removing `--network` fails with
+the original message, adding the step to a second workflow names both files, and
+handing the runner a `GITHUB_TOKEN` fails on the token-less claim.
+
+## A security-evidence file named for 13 assertions, containing 4,779
+
+Added to this branch after the owner passed on a Codex session's finding, which
+was right and is worth stating as a measurement rather than a description.
+
+`.mocharc.json` declares `spec: ["tests/**/*.js", "tests/**/*.mjs"]`. Mocha
+treats a positional path as an **addition** to that list, not a replacement. So
+
+    pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
+      > artifacts/security/tenant-adversarial.json
+
+in `engineering-intelligence-security.yml` ran **4,779 tests** and wrote all of
+them into a file named for the **13** in `tests/cross-tenant-isolation.test.js`.
+Measured both ways: 4,779 with the repository config, 13 with a config carrying
+no spec.
+
+That file is release security evidence. Two consequences, both the shape this
+repository is organised around:
+
+- **Any unrelated failure anywhere in the suite appeared in it and read as a
+  tenant-isolation failure.** That is the mechanism by which three failing
+  assertions elsewhere propagated into the security gate and looked like an
+  isolation bug. The static tenant-query audit was reporting `0 tenant-scoped
+  and NOT filtered` the whole time.
+- **The file's name claimed a population it did not measure** -- shape 2, in the
+  artifact a release decision reads.
+
+The same applied to `artifacts/security/rls-contract.log`, to the
+event-consumer readiness step, and to `verify:tenant-adversarial` in
+`package.json`, which `test:security` runs. Four sites.
+
+`.mocharc.targeted.json` carries the same `require` and `timeout` and declares
+**no `spec`**, so a positional path is the whole population. All four
+invocations now pass it: 13 and 17 tests where there were 4,779, and the
+tenant-isolation step went from 31s to 3s.
+
+**A claim retracted from this entry's own first version.** It said this
+explained the `tests/every-test-file-can-fail-the-suite.test.js` timeout earlier
+tonight, because that test "spawns mocha subprocesses per file; each was loading
+the entire suite". Opening the file shows both halves wrong: it spawns mocha
+**once**, as `mocha --dry-run` with **no positional path**, and loading the
+whole suite is the deliberate point -- its job is to enumerate every test file,
+and its own comment says `--dry-run` "loads every file and reports the cases
+without running their bodies, which is the only answer that cannot disagree with
+the runner". The spec leak cannot have affected it, because it wants the full
+spec. It remains **unexplained and untouched**, and three hypotheses were eliminated
+on 19 September 2026 so the next person does not re-derive them:
+
+| hypothesis | measurement |
+| --- | --- |
+| the `--dry-run` spawn is inherently slow | **1.9s** standalone, against a 15s limit |
+| coverage instrumentation inherited by the child | **2.0s** with `NODE_V8_COVERAGE` set; the child writes 2 coverage files and is not slowed by it |
+| CPU contention with the parent suite | **1.9s** while two additional full-suite runs saturated all 4 cores |
+
+So it does roughly two seconds of work under a fifteen-second limit, and has
+failed once, in one `verify:launch` run, on a machine also doing other things.
+The timeout is **not** raised: that would be a speculative fix to a test nobody
+can show failing, which is how a limit stops meaning anything. It is left alone
+with the measurements written down, because "I could not reproduce it" is a
+finding and "it is probably slow" is a guess.
+
+Written into a commit message and this log before being checked, while fixing a
+defect about evidence claiming more than it measured.
+
+## Self-review after Codex ran out of credits, and what it found
+
+Codex hit its usage limits and posted so on PR #305, which removes the reader
+that produced 19 real findings across #297 and #299. So the gap was filled by
+reading this diff adversarially. It found three things, in the work above.
+
+**The gate's population was "wherever I happened to look".** It scanned
+`package.json` and the workflows, because that is where the four known
+invocations were. A mocha spawned from `scripts/` or `tests/` is the same
+defect. Widened to both.
+
+**And the widening was decorative until it was falsified.** A spawned call is an
+array of quoted strings -- `["mocha", "tests/x.test.js", "--reporter", "dot"]` --
+and the tokeniser split on whitespace and tested `/^tests\//`, so every token
+still carried a quote or a comma and nothing matched. It scanned those files and
+could not see anything in them. A planted unpinned spawn exited 0. Caught only
+by planting one instead of trusting the change.
+
+**Then the check flagged its own header comment**, for the example invocation
+quoted there -- shape 7, a pattern reading prose as code, written while fixing a
+defect about evidence claiming more than it measures. Stripping comments fixed
+it, and stripping them by hand was wrong too: the first attempt used two passes,
+block comments then line comments, and
+`tests/a-line-comment-cannot-open-a-block-comment.test.js` failed it by name --
+*"strips comments without using the shared stripper; that is how the same bug
+shipped three times"*. It was right. `lib/sonara-comment-stripping.cjs` exists
+for that bug, does it in one alternation, and now carries the `#` form for YAML
+so this is the fourth caller rather than a fifth copy.
+
+Five falsifications on the final version: an unpinned spawn in `scripts/` fails,
+the same text in a comment stays green, a line comment containing `/*` followed
+by a real spawn still fails, a pinned spawn passes, and a workflow losing its
+`--config` fails.
+
+`verify:targeted-mocha` is the 56th chain command. It scans `package.json` and
+every workflow for a mocha invocation naming a path under `tests/` and requires
+`--config .mocharc.targeted.json`; it also refuses if that config gains a
+`spec`, or loses a `require` or `timeout` that `.mocharc.json` sets, because
+either would quietly restore the old behaviour. `pnpm test` has no positional
+path and is deliberately untouched.
+
+Falsified three ways: reintroducing the original `package.json` command fails
+naming it, adding a `spec` to the targeted config fails, and deleting its
+`require` fails with the value `.mocharc.json` sets.
+
+
+## Sweeping what chat raised across 18-19 September
+
+Asked to close out everything raised in conversation over the two days. Four
+items were live; two were already closed and saying so is the point, because an
+open list that contains closed items is the same defect as a document claiming
+more than it measures.
+
+### Closed by verification, not by work
+
+**PR #296's missing auth rate limiter.** Reviewing that branch on 18 September
+found `/auth/google` and `/auth/callback` reaching Supabase with no limiter
+while `/auth/signup` and `/auth/login` both had one. On `main` today both carry
+one: `server.js:1140` mounts `googleOAuthStartRateLimiter` and `server.js:1272`
+mounts `googleOAuthCallbackRateLimiter`. Addressed by whoever owns that branch.
+Off the list.
+
+**The Google readiness signal reporting on three variables nothing reads.**
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_REDIRECT_URI` appear in
+no readiness surface on `main` -- measured across `lib/`, `routes/`, `api/` and
+`server.js`, zero files read any of them. The only code reference is
+`scripts/client-secret-scan.cjs`, which lists `GOOGLE_CLIENT_SECRET` as a name
+to scan *for* in client bundles, which is correct. Nothing to remove.
+
+### A post-deploy document telling operators a shipped feature was deferred
+
+`docs/POST_DEPLOY_VERIFY.md` said, under **Environment and security**:
+
+> Google sign-in remains deferred until `GOOGLE_REDIRECT_URI` is configured and
+> verified.
+
+Google sign-in ships. `server.js:1140` serves `GET /auth/google` behind a rate
+limiter and begins a PKCE flow against Supabase; `server.js:1272` completes it
+at `/auth/callback`. The provider's client id and secret live in the Supabase
+dashboard, and nothing in this application reads `GOOGLE_REDIRECT_URI`.
+
+So the document an operator opens **immediately after a deploy** told them a
+working feature was deferred, pending a variable no code reads.
+`docs/owner/INSTALL-ALL-KEYS.md` had recorded the truth about those three
+variables the whole time, so two documents disagreed and the one giving
+post-deploy instructions was the wrong one. Corrected, with the retraction kept
+in place and the verification rewritten to say what to actually do: sign in.
+
+### A near-miss worth writing down: killing a test run corrupts tracked files
+
+While measuring something unrelated I ran two full suites in the background and
+then `pkill`ed them. That left the working tree holding:
+
+- `.ai/shared/CURRENT_STATE.md` with its `<!-- superseded-by: -->` pointer
+  **deleted**, which fails `verify:agent-development-sync`;
+- `supabase/migrations/20260728120000_member_read_policies.sql` **corrupted** --
+  33 `create policy ... using (public.is_org_member(organization_id))` statements
+  truncated to an unterminated `execute '`;
+- `supabase/migrations/20260728130000_sync_published_catalog_names.sql` also
+  modified.
+
+The cause is not mysterious and is not a bug in those tests' logic.
+`tests/a-shared-baseline-that-is-behind-must-say-so.test.js:67` writes the real
+tracked file, runs the gate against it, and restores it in a `finally`. A
+`finally` survives an exception; it does not survive SIGTERM. Killing the
+process mid-window leaves the mutation on disk, and for the migration the kill
+landed mid-write, so the file was left truncated rather than merely changed.
+
+**The dangerous part is what comes next.** Every commit in this session is made
+with `git add -A`. Had that run while the tree was in that state, it would have
+committed 33 broken SQL statements into an applied, content-checksummed
+migration -- and the corruption looks nothing like a deliberate edit, so the
+diff would have been the only warning. It was caught because `git status`
+listed two `supabase/migrations/` files that nothing in this work touches.
+
+Restored from `HEAD` with `git show HEAD:<path> > <path>` rather than
+`git checkout --`, and verified: `verify:applied-migrations` reports
+**119 frozen and unchanged**, `verify:agent-development-sync` exits 0, and each
+of the five commits already pushed was checked individually for unterminated
+`execute '` lines -- all zero, so nothing corrupt was ever committed or pushed.
+
+Two practices follow, and they are the actual output of this:
+
+1. **Do not `pkill` a running suite.** Let it finish, or run it in a scratch
+   worktree where a mutation cannot reach the tree being committed.
+2. **Read `git status` before `git add -A`, for files the work does not
+   explain.** A file appearing that the change has no reason to touch is the
+   signal; the contents may look plausible.
+
+Not fixed here, and flagged rather than half-fixed: those tests mutate tracked
+files in place, so any interrupted run leaves the repository dirty. Adding
+`SIGTERM`/`SIGINT` handlers alongside the `finally` would cover `pkill`'s
+default signal but not `SIGKILL`, and the durable fix is for such a test to
+operate on a copy rather than the real path. That is somebody's deliberate
+change to make, not a passenger on a CI-trigger PR.
+
+### The derived counts are now writable, because remembering them is the hazard
+
+Every figure `verify:doc-counts` checks is derived from the repository and typed
+into a document by hand. That is not only a staleness hazard, it is a **merge**
+hazard, and it cost a CI cycle on PR #305 hours ago: main took the
+release-chain count 55 -> 56 for an Android gate while this branch took the
+same count 55 -> 56 for `verify:targeted-mocha`. Identical text on both sides,
+so git raised no conflict, and the merged tree held both gates and was 57. CI
+was the only thing that could catch it, because the number was remembered
+rather than derived.
+
+`verify:doc-counts --write` (`pnpm run fix:doc-counts`) now rewrites every
+derived figure to its measured value. The check is untouched and remains the
+gate; this removes the arithmetic from the person resolving it. With PR #304 in
+flight and carrying gates of its own, the same collision was due to recur.
+
+Deliberately narrow, in three ways:
+
+- **Word-spelled counts are never rewritten.** "the eighteen-command chain" is
+  invisible to every pattern here, as this script already recorded, so such a
+  number cannot be checked and must not be silently edited either.
+- **A `passing` count is never rewritten.** The rule for those is that a
+  document may not state one at all, so there is no correct value to write.
+- **The rewrite patterns are built from the check's own patterns**, by
+  substituting an emphasis-tolerant prefix, rather than kept as a second copy
+  of thirteen regular expressions that could drift from the ones that gate.
+
+Falsified by reproducing tonight's collision exactly: setting the document to 56
+against a chain of 57 fails `--check`, `pnpm run fix:doc-counts` repairs both
+sentences, `**57**` keeps its emphasis, `--check` passes, and the file is
+byte-identical to the original by `md5sum -c`. Then three refusals confirmed: a
+word-spelled count survives untouched, a `9999 tests passing` claim is reported
+and left alone, and a non-chain derived claim (`999 reviewed repositories`)
+rewrites to 237.
+
+
+## Two things established while doing it, both by being wrong first
+
+**A monitor that exits on "no checks pending" reports success on a population
+that has not been assembled.** Mine fired `ALL TERMINAL: 10 checks, 0 not
+passing` against a matrix of 53 -- accurate and useless -- and I relayed it as
+green before catching it. It now requires >=40 checks before calling a matrix
+terminal and emits `STALLED` otherwise. That guard then did its job twice: once
+on a partial matrix, and once when #299 merged and its workflows stopped, which
+is why only 10 checks ever existed on the final head.
+
+**A failure read from the wrong line.** Running `verify:gates` standalone
+printed three "Tenant-scoped query audit failed" blocks and I reported a broken
+tenant-isolation gate on `main`. Wrong on both counts: those blocks are a test
+fixture's stderr, and the real message was `verify:coverage-floor` saying it had
+no successful coverage to read, because `verify:gates` was run outside the chain
+order that populates it. The audit passes on `main` and in this branch --
+`0 tenant-scoped and NOT filtered` -- confirmed by running it in a clean
+worktree of `origin/main`. A security gate is the last thing to be wrong about,
+and the check that corrected me was running the thing itself rather than reading
+its neighbour's output.
+
+## The equality assertion, on someone else's branch
+
+`EXPECTED_FILES` was introduced on #299 to replace a floor that had been wrong
+twice. Within the hour it caught drift on two independent branches: mine, when
+`lib/sonara-licence-trigger.cjs` became tracked, and a separate Batch 13 intake
+branch, whose commit `1f11d48f` is titled "Repair proprietary notice ratchet for
+Batch 13 intake". Somebody had to update that constant deliberately rather than
+having a floor absorb it. That is the design working, measured rather than hoped.
+
+
+
+### 2026-09-19 - Five findings on the fixes for the eight, and a floor that was wrong twice
+
+A third review round. Five findings, all real, all on the previous commit. The
+pattern across three rounds is now clear enough to state: **the defects are not
+in the code being fixed, they are in the fixes.**
+
+## A number typed into the fix for numbers being wrong
+
+The previous entry fixed the reciprocal-licence report and corrected the
+sentence in `scripts/generate-handoff-prompt.mjs`. That corrected sentence read
+*"Twenty of the thirty-one reciprocal records are the first kind"* -- a literal,
+written into the document other assistants read to learn how licences work here,
+in the same commit whose subject was licence misclassification, and it disagreed
+with the classifier it was supposedly corrected against (which said eighteen).
+
+The fix is not 20 -> 18. Classification now lives in
+`lib/sonara-licence-trigger.cjs` and the handoff **derives** its sentence from
+it, because two places stating one fact is how one of them goes wrong. The
+generator fails rather than publishing a zero if the register ever yields no
+reciprocal records.
+
+## The report truncated the identifiers it exists to show
+
+`split(/[,.]/)` splits on every period, so the rows printed `GPL-3.0` as
+`GPL-3`, `LGPL-3.0` as `LGPL-3`, `MPL-2.0` as `MPL-2` and `MSCL-1.0-GPL` as
+`MSCL-1`. An operator could not tell which licence or which version a row meant,
+in the one report whose whole subject is that distinction. **This was visible in
+output printed into the previous round's own transcript and went unread.**
+
+Splitting now happens on prose delimiters only -- comma, semicolon, open
+bracket, or a full stop *followed by whitespace*. Fixing it moved the counts to
+**17 / 11 / 3**, because `AGPL-3.0 upstream with a stated commercial-licence
+option` had been classifying as plain AGPL once the period cut it short. Three
+unclassifiable is the more honest answer: a dual-licensed record is exactly the
+case where a bucket label should not be asserted.
+
+## A floor that was wrong, raised, and wrong again
+
+`MINIMUM_FILES` was 150 against a population of 258, then still 150 at 279
+(round two), then raised to 278 -- by which point adding
+`lib/sonara-env-value-checks.cjs` in the same commit had already made it 279. So
+deleting any one covered file would still have passed, which is the identical
+defect the raise was meant to close.
+
+Any fixed floor below its measurement leaves exactly that much slack, and the
+slack reappears the moment somebody adds a file. So it is no longer a floor:
+`EXPECTED_FILES` asserts **equality**, failing when the count drops *and* when
+it grows. Growth is not a code failure -- it is a prompt to re-read the constant
+deliberately, which is the only thing that keeps it a measurement.
+
+Falsified both ways, which no floor could do: deleting one covered file gives
+278 and fails; adding one gives 280 and fails.
+
+## A fallback that was kindness and a false pass
+
+`scripts/test-email-config.mjs` was fixed to read `SUPPORT_TO_EMAIL ||
+CONTACT_TO_EMAIL`, and then *also* accepted the legacy `SUPPORT_EMAIL` /
+`CONTACT_EMAIL` last, reasoning that an operator mid-rotation should not be
+stranded. But `server.js:2777` sends support mail to
+`getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])` and nothing else. So the
+`--send` test would have succeeded on a configuration where the application
+cannot route support mail -- in the same commit whose documentation said nothing
+in the runtime reads those names.
+
+The fallback is gone. The legacy values are still read, only to name them in the
+failure message: *"SUPPORT_EMAIL or CONTACT_EMAIL is set and neither is read by
+anything... Rename the variable rather than adding a second one."* That helps the
+operator without reporting success.
+
+## Corrected guidance appended above a contradiction
+
+`docs/SUPPORT_CONTACT_SETUP.md` and `docs/email/EMAIL_ROUTING_AND_RESEND_SETUP.md`
+were updated to say both commands work and `--send` posts to Resend -- directly
+above a surviving paragraph reading *"So outbound email cannot be verified from
+this repository today... until there is a script here that proves it."* Two
+mutually exclusive instructions, three lines apart, because the update was
+appended without deleting what it replaced. Removed, and replaced with the
+distinction that actually matters: provider acceptance is not delivery.
+
+## Nineteen findings, three rounds
+
+Every one real. What is worth recording is not the count but where they lived:
+round one found defects in the codebase, rounds two and three found defects in
+the repairs -- a false number inside a fix for false numbers, a floor raised to a
+value already stale, a fallback that recreated the false positive it replaced,
+and a correction appended above the text it contradicted.
+
+Nothing here was found by being careful. It was found by another reader looking
+at the diff, and before that by `require('./server')`, `--max-warnings=0`, and
+reading printed output instead of an exit code. The output that showed `GPL-3`
+was on screen in the previous round and nobody read it.
+
+
+
+### 2026-09-18 - Eight more findings, and the one that would have reached customers
+
+Codex reviewed the fixes for the entry below and found **eight** further
+defects. All eight were real. Six were consequences of those fixes being
+incomplete, which is the useful part of the record: fixing a defect class in one
+place and not its sibling is itself a defect.
+
+## The one that would have reached customers
+
+Widening `verify:proprietary-notice` to cover `public/**/*.js` put
+
+    // Proprietary source. No licence is granted; see LICENSE.
+
+into `public/sonara-scroll.js`. That file is not only served to browsers.
+`routes/sonara-scroll-routes.cjs:57` reads it and `lib/sonara-scroll-export.cjs`
+writes it into **every Creator Studio site export** as `scroll.js`, beside a
+README that tells the customer *"A static site. Put these files on any web host
+and it works... Drop the whole folder in."*
+
+So the download a customer paid for would have arrived carrying a sentence
+denying them permission to use it. Not a notice -- a contradiction of the thing
+they bought. The notice was removed from that file and the file excluded from the
+gate, with the reason recorded where the next person widening that population
+will read it.
+
+Giving that runtime an explicit customer-facing licence **grant** is deliberately
+not done here: AGENTS.md reserves legal and policy publishing to the owner, and
+no check may write a grant on their behalf. The gap is named for them.
+
+Checked rather than assumed: exactly one of the 21 public scripts is
+customer-distributed. `lib/sonara-zip.cjs` requires `public/sonara-zip-core.js`,
+but that is the ZIP *builder* running server-side, not a file in the download.
+
+## A check advertised as the way to verify email, saying yes to what the product says no to
+
+`scripts/verify-email-env.mjs` accepted any non-empty value except four exact
+sentinel words. `lib/sonara-readiness.cjs` rejects a key under 12 characters or
+matching a much broader placeholder test, and requires an address to parse. So
+`RESEND_API_KEY=replace-me` and `RESEND_FROM_EMAIL=fake` made the new check exit
+0 and report email ready while the application treated delivery as
+unconfigured.
+
+**My own falsification had used `RESEND_API_KEY=x`.** A one-character key. The
+proof that the permissive direction worked was conducted with a value the
+application rejects, it passed, and it was reported as evidence.
+
+Fixed by extracting `isPlaceholderValue`, `extractEmailAddress`, `isEmailLike`
+and `isPlaceholderEmail` out of `server.js` into
+`lib/sonara-env-value-checks.cjs`, so `server.js`, `createReadiness` and the
+script all call one implementation. `server.js` 3903 -> 3885 lines, and the
+ratchet in `tests/server-split.test.js` follows it down, because a ceiling left
+above a real reduction is slack nobody decided to grant.
+
+Two things caught this extraction rather than review catching them:
+`node -e "require('./server')"` failed with *"Cannot access
+'isPlaceholderValue' before initialization"* -- function declarations hoist and a
+`const` destructure does not, and these are used at line 270 -- and
+`--max-warnings=0` then flagged `extractEmailAddress` as unused in `server.js`.
+
+## The sibling script nobody fixed
+
+`scripts/test-email-config.mjs` still read `SUPPORT_EMAIL || CONTACT_EMAIL`.
+Nothing in the runtime has ever read those names; the declared recipients are
+`SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`. A correctly configured production
+therefore aborted every `--send` test as unconfigured -- the delivery test
+failing on the one environment it exists to test. One script was fixed and its
+sibling left holding the same defect.
+
+## An exemption that swallowed a live instruction
+
+`docs/HANDOFF_PROMPT.md` was exempted whole as a changelog, on the stated
+grounds that it is not where a live instruction lives. Its own "## Before you
+push" section lists the release chain. The exemption now starts at the
+`## Sprint log` heading, and a named boundary that cannot be found in the
+document fails rather than silently exempting everything.
+
+Falsified both ways: the same dead command fails when placed in the preamble and
+passes when placed below the heading.
+
+## A floor far below its population is not a floor
+
+`MINIMUM_FILES` stayed at **150** while the population went from 258 to 279. If
+the two `public/` pathspecs were ever removed, the check would fall back to the
+258 server-side files, clear 150, and report everything compliant -- recreating
+the exact blind spot widening it was meant to close. Ratcheted to 278, with a
+separate floor of 20 for the browser-side half, because that half is the one a
+single edited glob would silently drop.
+
+## Flattening, again, one category narrower
+
+The reciprocal-licence fix below replaced "all 31 trigger on network use" with
+"20 network, 11 distribution". Directus is
+`MSCL-1.0-GPL (Monospace Sustainable Core License 1.0)`, and its own register
+note says *"It is a licence written this year whose abbreviation carries GPL, and
+it is not OSI open source. Nothing should be built on it from a summary."*
+Printing it under "triggers on distribution" because a regex missed is building
+on a summary.
+
+Now three buckets -- **17 network, 11 distribution, 3 stated as unclassifiable**
+(Directus, Codegraff's modified AGPL, and OBLITERATUS's AGPL-with-commercial-option)
+-- and
+classification reads the leading licence identifier against known SPDX families
+rather than searching for a substring, so the GPL inside MSCL-1.0-GPL does not
+match. The first attempt put two plain `AGPL-3.0` records in `unknown` because
+their provenance sentence left a trailing full stop on the identifier; caught by
+reading the output rather than the exit code.
+
+The counts above read 18 / 11 / 2 when this entry was first written, and moved to
+17 / 11 / 3 in the entry above it: the identifier splitter was still cutting at
+every period, which both truncated the printed identifiers and let
+`AGPL-3.0 upstream with a stated commercial-licence option` classify as plain
+AGPL. Recorded rather than quietly edited, because the second number is the one
+to trust and the reason it moved is the finding.
+
+**The same error was in the generated handoff prompt**, the file handed to other
+assistants: *"a reciprocal licence (AGPL, GPL, OSL) triggers on network use"*.
+Corrected in `scripts/generate-handoff-prompt.mjs`, where it was produced.
+
+## Four documents made false by fixing a fifth
+
+Wiring `verify:email-env` and `test:email` made four setup documents wrong: each
+carried a note saying no email tooling exists and neither command is defined.
+All four now say what the commands do, that the recipient variables are
+`SUPPORT_TO_EMAIL` / `CONTACT_TO_EMAIL`, and that `--send` reaches a real
+provider.
+
+## One finding answered with a recorded decision instead of a change
+
+The notices changed the bytes of `public/sonara-one.js` while its URL keeps the
+token `?v=sonara-ui-20260914-v12-palette`, and `server.js:316` serves anything
+with a `?v=` as `immutable` for a year. The mechanism is real. The token is
+**not** bumped, and the reasoning is written into
+`scripts/verify-proprietary-notice.mjs` rather than left as an omission: a notice
+exists so a copied file is attributable, somebody copying takes it from the
+repository or a fresh load rather than from a year-old cache entry, every new
+visitor gets current bytes, and bumping the shared token would invalidate every
+cached asset for every visitor -- plus the service worker version, which
+`verify:customer-ready-production-experience` asserts must match -- to deliver a
+two-line comment. The customer export is unaffected: it reads from disk at
+require time.
+
+## What two rounds of this establish
+
+Fourteen findings across two reviews, every one real, and three of them were
+false statements written *while fixing false statements*. What caught them was
+never thinking harder -- it was `require('./server')`, `--max-warnings=0`,
+printing output instead of trusting an exit code, and opening the file named in
+my own comment.
+
+
+
+### 2026-09-18 - Six findings on my own diff, and the one that was a false claim
+
+An automated reviewer (Codex) left six findings on PR #297. All six were real,
+all six were in work added in that PR, and four were instances of shapes
+`.claude/skills/checks-that-cannot-lie` already names. Recorded in full because a
+review round that finds six genuine defects in one diff is worth more as a
+record than as a fix.
+
+## The one that mattered: a stated gap that did not exist
+
+The entry above this one claimed **"Nothing in the repository generates a QR
+code"**, and offered as evidence that `qrcode`, `QRCode` and `generateQr` appear
+nowhere. All three absences are true. The function is called `encode`, in
+`lib/sonara-qr.cjs` -- 25 KB of QR Code Model 2 with the ISO/IEC 18004 capacity
+tables, shipped 25 August 2026, already rendering an inline SVG on `/book/:slug`
+from `routes/sonara-public-booking-routes.cjs:532`, and round-tripped by an
+independently written decoder in `tests/a-qr-code-can-be-read-back.test.js`
+(33 assertions, passing).
+
+The generated handoff prompt contained the false claim at line 230 and the
+entry describing the encoder at line 14,082 of the same file.
+
+The mechanism is the point. The entry **published its own search terms**, which
+is the only reason the error was findable -- and then asserted a conclusion three
+guessed identifiers cannot support. A negative grep is evidence about the terms,
+not about the capability. It was also handed to the owner as a decision they did
+not have, which is worse than the log entry.
+
+## A check that could not fail, and a list of variables nothing read
+
+`verify:email-env` and `test:email` were registered as history with the reason
+"no email tooling exists here". Both scripts existed, since 25 August. The
+reason was false and it is the kind of false reason this codebase treats as
+worse than no exemption, because it is what the next reader believes instead of
+looking.
+
+Wiring the aliases was not enough, because the check they point at could not
+fail. `scripts/verify-email-env.mjs` guarded its only `process.exit(1)` behind
+`formsEnabled && strict`, and computed `formsEnabled` from the existence of
+`app/contact/page.tsx` and three sibling Next.js App Router paths. There is no
+`app/` directory in this repository. The branch was unreachable; the script
+printed `[MISSING]` for every unset variable and exited 0 saying "Email env
+check completed."
+
+Its list was wrong too. Of nine required variables, **seven were read by
+nothing**, and the two address variables the runtime does read are named
+`SUPPORT_TO_EMAIL` and `CONTACT_TO_EMAIL` -- so five names existed nowhere and
+two were misspellings. Rewritten to read the requirement from
+`lib/sonara-infrastructure-manifest.cjs`, which is the declaration
+`/api/readiness` already uses, and which resolves to three requirement groups
+including the "either of these two" pair. It refuses to run at all if that
+declaration is empty.
+
+Falsified in four directions, all without a pipe in the way of `$?`: unset and
+strict exits 1, all three set exits 0, either alternate name satisfies its
+group, and `placeholder` is rejected.
+
+## An exemption keyed by name, when it needed to be keyed by document
+
+`SUPABASE_SETUP.md` step 4 told an operator setting up a database to run
+`pnpm run db:types`, which does not exist. `verify:doc-pnpm-scripts` could not
+see it for two reasons: it walked only `docs/`, and `db:types` was exempted **by
+name** because `docs/DATABASE_SCHEMA.md` records, correctly, that no
+type-generation script exists here. One honest historical note silenced the
+check everywhere, including a live setup instruction.
+
+The register is now keyed by name **and document**, with a fourth check for a
+listed document that has stopped naming the script. That fourth check
+immediately caught a stale entry of my own: `validate:infrastructure` was
+recorded as named in `docs/SUPABASE_MIGRATION_FIX.md`, which does not name it.
+Falsified both ways -- a dead command added to `README.md` fails by document
+name, and a listed document that does not name its script fails too.
+
+## The notice gate measured a different population from the one it claimed
+
+`verify:proprietary-notice`'s own comment named `public/**` as shipped content,
+quoting `vercel.json`, and then the glob list omitted it. All **21** tracked
+public JavaScript files had no notice and the check passed -- shape 2. These are
+the files most likely to be copied, because a browser hands the reader the
+source. Notices added to all 21, population now 279. Checked before editing that
+nothing under `scripts/` writes into `public/`, and that no subresource-integrity
+hash pins them. The four stylesheets and one HTML file under `public/` are left
+out as a **named** decision rather than an unexamined one.
+
+## A headline that disagreed with the rows under it
+
+`report:register-opportunities` grouped with `record.productFit || [...]`. An
+empty array is truthy, so it selected the empty array, the loop ran zero times,
+and the record vanished from every section while still counting in the headline.
+Three of 23 -- Superpowers, Claude Skills Collection, Harness. The grouping now
+tests length, and a new assertion aborts the report when the headline and the
+rows disagree. Falsified by reintroducing the exact original expression: 23
+qualify, 20 appear, exit 1.
+
+## Flattening eleven licences into one legal claim
+
+The same report said all **31** reciprocal records "trigger on network use". That
+is true of the 20 AGPL/OSL records and false of the other 11 -- nine GPL, one
+LGPL, one MPL -- which trigger on distribution, with obligations that differ per
+licence. AGENTS.md is explicit about not handing anyone an incorrect boundary.
+The two are now counted separately and the eleven are listed by name.
+
+**And a retraction inside the fix.** The first version of that new comment
+blamed `.claude/skills/reviewing-an-outside-repository/SKILL.md` for the error.
+Opening the file shows it says the opposite: *"Do not equate GPL with AGPL."*
+The guidance was already right and the script ignored it. A reason reasoned
+rather than checked, written while fixing a defect of exactly that kind.
+
+## What this round is evidence of
+
+Two of the six were false statements written in the same PR whose stated purpose
+was catching false statements, and a seventh was written while fixing the sixth.
+The discipline that caught all of them was not care -- it was opening the file
+and re-running the measurement. Nothing here was found by thinking harder about
+it.
+
+
+
+### 2026-09-18 - The action pins were immutable and unreadable, and the Node-20 question had no answer in source
+
+Asked to confirm the workflows carry no Node-20 actions, and to pin third-party
+actions to immutable SHAs. The second was already done: all 64 `uses:` references
+across 15 workflow files were pinned to 40-character commits, and
+`verify:action-pins` refused anything else. The first could not be answered from
+this repository at all.
+
+`scripts/verify-github-action-pins.mjs` held seven action names mapped to seven
+SHAs, and nothing else. A SHA is immutable and opaque, and those are different
+properties: nothing said which release `3d3c42e5` was or which runtime it
+declared. The version lived only in a trailing `# v7.0.1` comment, which this
+script explicitly skips, so the comment could have said v7 while the SHA was v4.
+
+Resolved against upstream rather than guessed. `git ls-remote --tags` mapped each
+SHA to a tag, and `runs.using` was read out of each manifest **at the pinned
+commit**:
+
+| action | release | runtime |
+| --- | --- | --- |
+| actions/checkout | 7.0.1 | node24 |
+| actions/setup-node | 7.0.0 | node24 |
+| actions/upload-artifact | 7.0.1 | node24 |
+| actions/setup-python | 7.0.0 | node24 |
+| pnpm/action-setup | 6.0.10 | node24 |
+| github/codeql-action | 4.38.0 | node24 |
+| supabase/setup-cli | 3.0.0 | composite |
+
+So the answer is that no action runs on Node 20, and `supabase/setup-cli` is
+composite -- it runs steps rather than a JS entrypoint, so there is no Node
+runtime there to deprecate. But **nothing enforced that**, which made it luck
+rather than a gate: the next pin bump to a Node-20 release would have passed
+green. The register now carries the release, the runtime, and the date the
+manifest was read, and the check refuses a retired runtime by name.
+
+Application Node stays at `22.x`. The CI-runtime repair is deliberately kept
+separate from any application-runtime migration.
+
+**The gate also passed over an empty directory.** Falsified before the rewrite by
+running it against a tree whose `.github/workflows` held nothing, and then against
+one holding a single `actions/checkout@v1` in a file named `.yaml.txt`:
+
+    GitHub Actions supply-chain policy verified: 0 external action reference(s)
+    use approved immutable commits across 0 workflow file(s).
+    exit=0
+
+Shape 1 -- the zero was printed in the success line and read by nothing. Floors of
+10 workflow files and 40 references now sit against a measurement of 15 and 64.
+
+The upstream re-verification is `verify:action-pins:network`, run from
+`external-repository-health.yml` and deliberately **not** in `verify:gates`. The
+offline half can only catch a pin disagreeing with what somebody wrote down; it
+cannot catch the writing-down being wrong, which is the failure that made the
+Node-20 question unanswerable. Keeping it out of the release chain follows
+`verify:open-source:network`: a networked check inside `verify:launch` either
+makes the chain flaky or acquires a `catch` that lets it pass when the fetch
+fails. It refuses on an unreadable manifest, and refuses on having read zero.
+
+Broken six ways, each caught by name, each restored with `md5sum -c` confirming
+byte-identity: an empty workflow directory; a register entry moved to `node20`; a
+comment rewritten to `# v4.1.7` against a v7.0.1 pin; a pin bumped to an
+unreviewed SHA; a floating `v7` tag; and a reviewed entry no workflow references.
+Then the test itself was falsified against three weakenings of the script --
+floors deleted, retired-runtime refusal deleted, and a version downgraded to the
+major alias `"7"` -- and failed on all three.
+
+`tests/a-pinned-action-says-which-runtime-it-is.test.js` executes the real script
+against temporary trees rather than re-implementing the policy, and asserts the
+population is non-empty before asserting anything about it.
+
+**Not done, and it is the owner's:** the CI matrix cannot be declared green from
+here. Pushing this branch runs the pull-request workflows; the controlled
+production deployment is not triggered and will not be without explicit
+authorization.
+
+
+
+### 2026-09-18 - 237 reviews, 9 adapters: asking the register the question nobody had asked
+
+Asked to take everything useful from the 237 registered repositories and apply
+it. The honest version of that is not "install 237 repositories" -- every skill
+here forbids it, and it would cost the guarantees a single production dependency
+buys. The useful version is a question nobody had put to the register:
+**what have we learned and not used?**
+
+`scripts/report-register-opportunities.mjs` derives it:
+
+| integrationStatus | | commercialUseStatus | |
+| --- | --- | --- | --- |
+| reference_only | 90 | allowed_after_review | 120 |
+| blocked | 50 | blocked_until_review | 61 |
+| research_only | 41 | needs_review | 44 |
+| optional_adapter_after_review | 29 | allowed | 6 |
+| needs_license_review | 14 | blocked (3 spellings) | 6 |
+| **adapter_built** | **9** | | |
+| needs_security_review | 4 | | |
+
+**9 of 237.** The other 228 produced no implementation, and mostly that is
+correct: 50 are blocked outright, 35 carry a critical licence risk, 31 are
+reciprocal and this is a hosted product, which is the case a reciprocal licence
+is written for. The register earning its keep looks like refusal far more often
+than adoption, and the numbers say so.
+
+The interesting slice is narrow: **23 records** already reviewed to
+`optional_adapter_after_review`, low licence risk, non-reciprocal, commercially
+permitted -- ideas somebody has already decided SONARA *may* build on and has
+not. Grouped by product: Creator Studio 11, Business Builder 10, Growth Studio
+8, Admin Command Center 4, Internal Development 3.
+
+**It is a report, not a gate, and deliberately outside `verify:launch`.** There
+is no correct number of unbuilt opportunities. A gate over one would either never
+fire or would pressure somebody into adopting a dependency to turn a check green,
+which is the opposite of what the register is for.
+
+## Two gaps checked rather than assumed
+
+The register's Growth Studio entry for `disposable-email-domains` says to flag a
+lead whose address is a throwaway. **`lib/sonara-disposable-email.cjs` already
+exists** -- that one is built, and looking first is the only reason it was not
+duplicated.
+
+The entry for Project Nayuki's QR generator says to "put /book/:slug on a poster,
+a van or a receipt so somebody can book".
+
+**The first version of this entry said that gap was real. It was not, and the
+claim was mine.** It read: *"Nothing in the repository generates a QR code -- no
+`qrcode`, `QRCode` or `generateQr` in `lib/`, `routes/`, `server.js` or
+`public/`."* Every one of those three search terms is absent from this
+repository. The function is called `encode`, exported from
+`lib/sonara-qr.cjs` -- 25 KB of QR Code Model 2, whose header credits Project
+Nayuki as the reference it was checked against, with the ISO/IEC 18004 capacity
+tables read from there on 25 August 2026 rather than recalled.
+`lib/sonara-qr-png.cjs` renders the grid to PNG or SVG.
+`routes/sonara-public-booking-routes.cjs:532` already calls it and inlines the
+SVG on `/book/:slug`; the lead-capture and two-factor routes call it too. And
+`tests/a-qr-code-can-be-read-back.test.js` is an independently written *decoder*
+that round-trips every case -- 33 assertions, passing -- because an encoder and
+a decoder written from the same misunderstanding could still agree.
+
+So everything the retracted paragraph said "building it means" -- implementing
+ISO/IEC 18004, proving it against vectors rather than eyeballing a bitmap -- had
+been done three weeks earlier, and was on `main` the whole time.
+
+Recorded rather than quietly deleted, because the mechanism matters and it is
+the one CLAUDE.md warns about: the entry **listed its own search terms**, which
+is what made the error findable, and then stated a conclusion those terms could
+not support. A negative result from three guessed identifiers is not the absence
+of a capability. Codex caught it on PR #297; had it not, the next person reading
+this log would have been pointed at duplicating a shipped, tested feature. It
+was also handed to the owner as an open decision they did not have, which is
+worse than the log entry.
+
+## Two instrument errors, both caught by printing the output
+
+The first parse of the register **returned 0 records and printed tidy tables of
+zero without erroring**: `indexOf("[")` found the `[]` inside the type annotation
+`OpenSourceToolRecord[]` and depth-matched an empty array. The reader is now
+anchored past the annotation, and `MINIMUM_RECORDS = 150` refuses to report on a
+register it has stopped reading -- falsified by emptying the literal, which fails
+with "parsed only 0 records ... Refusing to report".
+
+The second was in a falsification harness: `m.index` where `m.end()` was meant,
+so the register was never emptied and the case was silently measuring the intact
+file. It reported exit 0 and proved nothing. Caught only because the output was
+printed rather than the exit code trusted -- the same shape as the `$?`-after-a-pipe
+error earlier in the day.
 
 
 
