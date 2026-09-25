@@ -1,6 +1,7 @@
 # SONARA Platform Completeness and Market Convergence
 
 Updated: 2026-09-25
+Review by: 2026-10-25
 
 ## Decision
 
