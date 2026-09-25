@@ -668,6 +668,13 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       "success",
       provenanceOf.downloadEventDetails(req.params.assetId, provenanceOf.describeAsset(asset))
     );
+    if (typeof deps.insertActivityEvent === "function") {
+      await deps.insertActivityEvent(context.organizationId, context.userId, "creator_studio.output_downloaded", {
+        job_id: loaded.job.id,
+        asset_id: req.params.assetId,
+        provider_key: loaded.job.provider_key || null
+      });
+    }
     return res.redirect(302, signed.url);
   });
 

@@ -62,6 +62,8 @@ const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
+const { createActivityEventWriter } = require("./lib/sonara-activity-writer.cjs");
+const { getWorkspaceDashboardSummary: summarizeWorkspaceDashboard } = require("./lib/sonara-workspace-dashboard-summary.cjs");
 const {
   splitList,
   listFieldsWithNothingIn,
@@ -73,6 +75,7 @@ const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards, renderRecordsUnavailable } = require("./lib/sonara-module-crud.cjs");
 const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employee-invites.cjs");
 const { createWorkspaceBootstrap } = require("./lib/sonara-workspace-bootstrap.cjs");
+const insertActivityEvent = createActivityEventWriter({ getSupabaseAdminClient, supabaseHeaders });
 const registerLeadforgeRoutes = require("./routes/sonara-leadforge-routes.cjs");
 const registerLeadCaptureRoutes = require("./routes/sonara-lead-capture-routes.cjs");
 const registerScrollRoutes = require("./routes/sonara-scroll-routes.cjs");
@@ -632,7 +635,8 @@ registerCreatorGenerationRoutes(app, {
   requireWorkspaceAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
-  supabaseHeaders
+  supabaseHeaders,
+  insertActivityEvent
 });
 
 registerGrowthStudioControlRoutes(app, {
@@ -645,6 +649,7 @@ registerGrowthStudioControlRoutes(app, {
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
   supabaseHeaders,
+  insertActivityEvent,
   // Both for the campaign send. AGENTS.md requires email to be off unless
   // configured, and `dispatchCampaign` enforces that by asking getReadiness --
   // which, passed as null, is a check that never runs. A guard whose dependency
@@ -2046,6 +2051,7 @@ function registerProduct(slug, config) {
           brandCard("Paid tools", `Upgrade to use: ${routes.paid.map((page) => page.label).join(", ")}.`),
           workspaceRecordsCard(dashboard),
           workspaceActivityCard(dashboard),
+          workspaceActivationCard(dashboard),
           brandCard("Next actions", "Open a free tool, submit a real form, or upgrade for paid workspace operations."),
           workspaceIndexCard(productKey)
         ],
@@ -2342,30 +2348,13 @@ function readinessCards(readiness) {
 
 
 async function getWorkspaceDashboardSummary(access, productKey) {
-  const readiness = getReadiness();
-  if (readiness.services.supabase !== "configured") return { ok: false, code: "setup_required", service: "account_database", counts: null, activity: [] };
-  const organization = await getCustomerPrimaryOrganization(access?.user);
-  if (!organization.ok) return { ok: false, code: organization.code || "organization_membership_missing", service: "organization", counts: null, activity: [] };
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { ok: false, code: "setup_required", service: "account_database", counts: null, activity: [] };
-  const [intake, checklist, support, activity] = await Promise.all([
-    safeCountFiltered(config, "intake_requests", `?organization_id=eq.${encodeURIComponent(organization.organizationId)}&select=id&limit=1`),
-    safeCountFiltered(config, "launch_checklist_items", `?organization_id=eq.${encodeURIComponent(organization.organizationId)}&select=id&limit=1`),
-    safeCountFiltered(config, "support_requests", `?organization_id=eq.${encodeURIComponent(organization.organizationId)}&select=id&limit=1`),
-    safeListTable("activity_events", `?select=event_type,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=6`)
-  ]);
-  return {
-    ok: true,
-    productKey,
-    organizationId: organization.organizationId,
-    counts: { intake, checklist, support },
-    // `activity.ok ? activity.rows : []` was here, and the card below reads
-    // "No activity yet." off an empty array -- so a read that failed told a
-    // customer nothing had ever happened in their workspace. countLabel beside
-    // it already answers "unavailable" for a failed count, so the two halves of
-    // the same card disagreed about what a failure looks like.
-    activity: { ok: activity.ok === true, rows: activity.ok ? activity.rows : [] }
-  };
+  return summarizeWorkspaceDashboard(access, productKey, {
+    getReadiness,
+    getCustomerPrimaryOrganization,
+    getSupabaseServerConfig,
+    safeCountFiltered,
+    safeListTable
+  });
 }
 
 function workspaceRecordsCard(summary) {
@@ -2383,6 +2372,17 @@ function workspaceActivityCard(summary) {
   if (summary.activity?.ok !== true) return brandCard("Recent activity", "We could not load your recent activity just now. Try again shortly.");
   if (!summary.activity.rows.length) return brandCard("Recent activity", "No activity yet.");
   return brandCard("Recent activity", summary.activity.rows.map((event) => `${displayStatus(event.event_type || "activity")} ${event.created_at || ""}`.trim()).join(" / "));
+}
+
+function workspaceActivationCard(summary) {
+  if (!summary.ok) return brandCard("Activation progress", "Activation evidence appears after the account database and organization membership are ready.");
+  if (summary.activation?.ok !== true) return brandCard("Activation progress", "We could not load activation evidence just now. Try again shortly.");
+  const activation = summary.activation.summary;
+  const firstValue = activation.firstValueReached
+    ? `First value recorded: ${displayStatus(activation.firstValueEvent)}${activation.timeToFirstValueSeconds === null ? "" : ` after ${activation.timeToFirstValueSeconds} seconds`}.`
+    : "First value has not been recorded yet.";
+  const paid = activation.paidConversionReached ? "Paid conversion is recorded." : "Paid conversion has not been recorded.";
+  return brandCard("Activation progress", `${activation.workspaceActivated ? "Workspace activation is recorded." : "Workspace activation has not been recorded."} ${firstValue} ${paid}`);
 }
 
 function countLabel(result) {
@@ -3047,8 +3047,7 @@ async function saveBusinessBuilderIntake(req, output) {
     record
   );
   await insertActivityEvent(organization.organizationId, req.sonaraUser?.id, "business_builder.intake_created", {
-    intake_request_id: rows[0]?.id || null,
-    service_interest: req.body.serviceInterest || null
+    intake_request_id: rows[0]?.id || null
   });
   const email = await sendIntakeConfirmationEmail({ email: record.email, referenceId: rows[0]?.id || output.referenceId, contactName: record.contact_name });
   return {
@@ -3150,17 +3149,6 @@ async function deleteChecklistItem(req) {
   if (!response?.ok) return { ok: false, saved: false, code: "checklist_delete_failed" };
   await insertActivityEvent(organization.organizationId, req.sonaraUser?.id, "business_builder.checklist_deleted", { checklist_item_id: id });
   return { ok: true, saved: true, code: "deleted" };
-}
-
-async function insertActivityEvent(organizationId, userId, eventType, eventData = {}) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok || !organizationId) return { ok: false };
-  const response = await fetch(`${config.url}/rest/v1/activity_events`, {
-    method: "POST",
-    headers: supabaseHeaders(config),
-    body: JSON.stringify({ organization_id: organizationId, user_id: userId || null, event_type: eventType, event_data: eventData })
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok) };
 }
 
 async function sendIntakeConfirmationEmail({ email, referenceId, contactName }) {

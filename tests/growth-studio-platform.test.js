@@ -11,8 +11,9 @@ const CAMPAIGN_ID = "33333333-3333-4333-8333-333333333333";
 const CONTENT_ID = "55555555-5555-4555-8555-555555555555";
 const JOB_ID = "66666666-6666-4666-8666-666666666666";
 const SNAPSHOT_ID = "77777777-7777-4777-8777-777777777777";
+const CONVERSION_ID = "99999999-9999-4999-8999-999999999999";
 
-function buildApp({ paid = true } = {}) {
+function buildApp({ paid = true, activityEvents = null } = {}) {
   const app = express();
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
@@ -27,7 +28,11 @@ function buildApp({ paid = true } = {}) {
       return next();
     },
     getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
-    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
+    getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+    insertActivityEvent: async (organizationId, userId, eventType, eventData) => {
+      if (Array.isArray(activityEvents)) activityEvents.push({ organizationId, userId, eventType, eventData });
+      return { ok: true };
+    }
   });
   return app;
 }
@@ -116,6 +121,7 @@ describe("Growth Studio operating system", () => {
 
   it("creates tenant-scoped campaigns and append-only events", async () => {
     const calls = [];
+    const activityEvents = [];
     global.fetch = async (url, options = {}) => {
       const stringUrl = String(url);
       const body = options.body ? JSON.parse(options.body) : null;
@@ -124,10 +130,49 @@ describe("Growth Studio operating system", () => {
       if (stringUrl.includes("/rest/v1/growth_control_events")) return jsonResponse(201, []);
       return jsonResponse(200, []);
     };
-    const result = await request(buildApp()).post("/api/growth/campaigns").send({ name: "Neighborhood launch", goal: "Qualified consultations", channel: "multi_channel" });
+    const result = await request(buildApp({ activityEvents })).post("/api/growth/campaigns").send({ name: "Neighborhood launch", goal: "Qualified consultations", channel: "multi_channel" });
     assert.equal(result.status, 201);
     assert.equal(result.body.campaign.organization_id, ORGANIZATION_ID);
     assert.equal(calls.find((call) => call.url.includes("growth_control_events")).body.event_type, "campaign.created");
+    assert.deepEqual(activityEvents, [{
+      organizationId: ORGANIZATION_ID,
+      userId: USER_ID,
+      eventType: "growth_studio.campaign_created",
+      eventData: { campaign_id: CAMPAIGN_ID, channel: "multi_channel" }
+    }]);
+    assert.equal(Object.hasOwn(activityEvents[0].eventData, "name"), false, "campaign free text leaked into product analytics");
+  });
+
+  it("records a conversion as first-value evidence without copying customer text", async () => {
+    const activityEvents = [];
+    global.fetch = async (url, options = {}) => {
+      const stringUrl = String(url);
+      const body = options.body ? JSON.parse(options.body) : null;
+      if (stringUrl.includes("/rest/v1/growth_conversions") && options.method === "POST") return jsonResponse(201, [{ id: CONVERSION_ID, ...body }]);
+      if (stringUrl.includes("/rest/v1/growth_control_events")) return jsonResponse(201, []);
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp({ activityEvents })).post("/api/growth/conversions").send({
+      conversion_type: "purchase",
+      attribution_model: "last_touch",
+      attribution_confidence: "high",
+      source: "Customer typed source",
+      value: 250
+    });
+    assert.equal(result.status, 201, JSON.stringify(result.body));
+    assert.deepEqual(activityEvents, [{
+      organizationId: ORGANIZATION_ID,
+      userId: USER_ID,
+      eventType: "growth_studio.conversion_recorded",
+      eventData: {
+        conversion_id: CONVERSION_ID,
+        conversion_type: "purchase",
+        attribution_model: "last_touch",
+        attribution_confidence: "high"
+      }
+    }]);
+    assert.equal(Object.hasOwn(activityEvents[0].eventData, "source"), false, "free-text attribution source leaked into product analytics");
+    assert.equal(Object.hasOwn(activityEvents[0].eventData, "value"), false, "customer revenue value was copied into activation analytics");
   });
 
   it("enforces tracking, consent, publishing, and automation safety boundaries", async () => {

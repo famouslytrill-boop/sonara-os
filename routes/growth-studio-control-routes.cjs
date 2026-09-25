@@ -192,7 +192,15 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       status: oneOf(req.body.status, ["draft", "active", "paused", "completed", "archived"], "draft"),
       metadata: parseObject(req.body.metadata, {})
     });
-    if (created.ok) await controlEvent(config, context, "campaign.created", "success", { campaign_id: created.rows[0]?.id, name });
+    if (created.ok) {
+      await controlEvent(config, context, "campaign.created", "success", { campaign_id: created.rows[0]?.id, name });
+      if (typeof deps.insertActivityEvent === "function") {
+        await deps.insertActivityEvent(context.organizationId, context.userId, "growth_studio.campaign_created", {
+          campaign_id: created.rows[0]?.id || null,
+          channel: created.rows[0]?.channel || null
+        });
+      }
+    }
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, campaign: created.rows[0], code: created.code });
   });
 
@@ -907,7 +915,17 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       occurred_at: validDate(req.body.occurred_at || req.body.occurredAt) || new Date().toISOString(),
       metadata: parseObject(req.body.metadata, {})
     });
-    if (created.ok) await controlEvent(config, context, "conversion.recorded", "success", { conversion_id: created.rows[0]?.id, conversion_type: conversionType, attribution_model: model, attribution_confidence: confidence }, created.rows[0]?.campaign_id);
+    if (created.ok) {
+      await controlEvent(config, context, "conversion.recorded", "success", { conversion_id: created.rows[0]?.id, conversion_type: conversionType, attribution_model: model, attribution_confidence: confidence }, created.rows[0]?.campaign_id);
+      if (typeof deps.insertActivityEvent === "function") {
+        await deps.insertActivityEvent(context.organizationId, context.userId, "growth_studio.conversion_recorded", {
+          conversion_id: created.rows[0]?.id || null,
+          conversion_type: conversionType,
+          attribution_model: model,
+          attribution_confidence: confidence
+        });
+      }
+    }
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, conversion: created.rows[0], code: created.code });
   });
 
