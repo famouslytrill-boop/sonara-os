@@ -1,12 +1,15 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const request = require("supertest");
+const app = require("../server");
 const { ROUTE_REGISTRY } = require("../lib/sonara-route-registry.cjs");
 const {
   CURRENT_TECH_BASELINES,
   DOMAIN_FAMILIES,
   OUTPUT_FALLBACKS,
   PLATFORM_COMPLETENESS_CONTRACT,
+  getPlatformCompletenessSummary,
   validateCompletenessContract
 } = require("../lib/sonara-platform-completeness.cjs");
 
@@ -25,6 +28,30 @@ describe("platform completeness contract", () => {
       .map((item) => item.route)
       .filter((route) => !registered.has(route));
     assert.deepEqual(missing, []);
+  });
+
+  it("surfaces the contract summary without claiming every capability is deployed", () => {
+    const summary = getPlatformCompletenessSummary();
+    assert.equal(summary.asOf, CURRENT_TECH_BASELINES.asOf);
+    assert.equal(summary.contractStatus, "valid");
+    assert.deepEqual(summary.issues, []);
+    assert.equal(summary.capabilities.length, PLATFORM_COMPLETENESS_CONTRACT.length);
+    assert.deepEqual(summary.outputs, OUTPUT_FALLBACKS.map(({ output }) => output));
+    assert.match(summary.note, /does not prove each capability is deployed/i);
+    assert.ok(summary.capabilities.every(({ route, purpose, emptyState }) => route.startsWith("/") && purpose && emptyState));
+  });
+
+  it("serves the dated market update as a reachable public research page", async () => {
+    const response = await request(app).get("/research-2026-market-expansion.html").set("Accept", "text/html");
+    assert.equal(response.status, 200);
+    assert.match(response.headers["content-type"], /text\/html/);
+    assert.match(response.text, /Market Expansion \+ Execution/);
+    assert.match(response.text, /2026-09-25/);
+    assert.match(response.text, /NFIB/);
+    assert.match(response.text, /Does not certify product capability/i);
+    for (const source of ["uschamber.com", "nfib.com", "restaurant.org", "iab.com", "servicetitan.com", "developers.google.com"]) {
+      assert.ok(response.text.includes(`${source}/`), `research source ${source} must be linked beside its claim`);
+    }
   });
 
   it("requires purpose, authority, useful empty state, and deterministic execution", () => {
