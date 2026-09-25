@@ -49,10 +49,28 @@ function replaceEnv(text, key, value) {
   return output.join("\n").replace(/\n*$/, "\n");
 }
 
-function readEnvFile(file) {
+function readTextFile(file) {
+  let fd;
+  try {
+    fd = fs.openSync(file, "r");
+    return fs.readFileSync(fd, "utf8");
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+function readTextFileIfExists(file) {
+  try {
+    return readTextFile(file);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function parseEnvText(text) {
   const values = {};
-  if (!fs.existsSync(file)) return values;
-  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+  for (const line of String(text || "").split(/\r?\n/)) {
     if (!line || /^\s*#/.test(line)) continue;
     const index = line.indexOf("=");
     if (index < 1) continue;
@@ -61,9 +79,16 @@ function readEnvFile(file) {
   return values;
 }
 
+function readEnvFile(file) {
+  const text = readTextFileIfExists(file);
+  return text === null ? {} : parseEnvText(text);
+}
+
 function ensureLocalEnv() {
-  if (fs.existsSync(LOCAL_ENV_FILE)) return readEnvFile(LOCAL_ENV_FILE);
-  let text = fs.readFileSync(TEMPLATE_FILE, "utf8");
+  const existing = readTextFileIfExists(LOCAL_ENV_FILE);
+  if (existing !== null) return parseEnvText(existing);
+
+  let text = readTextFile(TEMPLATE_FILE);
   const generated = {
     LANGFLOW_SUPERUSER_PASSWORD: randomHex(24),
     LANGFLOW_SECRET_KEY: randomHex(32),
@@ -71,10 +96,20 @@ function ensureLocalEnv() {
     OPEN_WEBUI_SECRET_KEY: randomHex(32)
   };
   for (const [key, value] of Object.entries(generated)) text = replaceEnv(text, key, value);
-  fs.writeFileSync(LOCAL_ENV_FILE, text, { mode: 0o600 });
+
+  let fd;
+  try {
+    fd = fs.openSync(LOCAL_ENV_FILE, "wx", 0o600);
+    fs.writeFileSync(fd, text, "utf8");
+  } catch (error) {
+    if (error?.code === "EEXIST") return readEnvFile(LOCAL_ENV_FILE);
+    throw error;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
   try { fs.chmodSync(LOCAL_ENV_FILE, 0o600); } catch { /* Windows ACLs differ. */ }
   process.stdout.write("Created .env.open-source.local with generated local-only secrets.\n");
-  return readEnvFile(LOCAL_ENV_FILE);
+  return parseEnvText(text);
 }
 
 function requireDocker() {
@@ -97,9 +132,10 @@ function syncAppEnv(options) {
   const model = options.model;
   const flow = options.flow;
   const reviewed = options.reviewed;
-  let text = fs.existsSync(APP_ENV_FILE)
-    ? fs.readFileSync(APP_ENV_FILE, "utf8")
-    : fs.readFileSync(APP_ENV_EXAMPLE, "utf8");
+  const currentAppEnv = readTextFileIfExists(APP_ENV_FILE);
+  let text = currentAppEnv === null
+    ? readTextFile(APP_ENV_EXAMPLE)
+    : currentAppEnv;
 
   const updates = {
     OLLAMA_ENABLED: "true",
