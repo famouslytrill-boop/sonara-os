@@ -350,8 +350,8 @@
     {
       "file": "supabase/applied-migration-checksums.json",
       "rule": "generic-api-key",
-      "lineSha256": "3ea9a6318eb60a11bf6c581c13af3e95ba17940926b109f0feb894d274ab0de1",
-      "reason": "Immutable migration SHA-256 checksum; not a credential."
+      "lineSha256": "ed905a60d45d146fe82d732156acd89c4dd9145898d5fc7500efe854ec9b2944",
+      "reason": "timestamped migration filename in the checksum manifest, not a credential"
     }
   ]
 }
