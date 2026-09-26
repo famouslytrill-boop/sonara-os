@@ -569,7 +569,7 @@ your production database**. (28 were pending at that run; the repository has
 added more since.)
 
 It is in the repository. `010_sonara_platform_current_schema.sql` creates it,
-and `pnpm run verify:migration-replay` applies all 129 migrations to an empty
+and `pnpm run verify:migration-replay` applies all 134 migrations to an empty
 PostgreSQL and gets a working schema every time. So the migration set is fine.
 What has gone wrong is that production's migration history says
 `010_sonara_platform_current_schema.sql` is already applied and the table it
@@ -663,7 +663,7 @@ where it was.
 One thing that is **not** claimed: that the 42-table repair is what let the run
 get this far. Run #125's dry-run, before anything was applied, already listed
 the pending set starting at `20260819030000` — so your migration history had
-both `20260811` migrations recorded as applied *before that run started*.
+all existing migrations recorded as applied *before that run started*.
 Something moved it between 27 August and 3 September and it was not this
 deployment. Nobody here knows what, and guessing would be the same mistake as
 assuming absent tables were the whole story.

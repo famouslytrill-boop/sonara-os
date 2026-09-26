@@ -104,7 +104,14 @@ const twoFactorMigrationNames = ["20260901120000_two_factor_authentication.sql"]
 // canonical inventory and do not by themselves enable a broker or worker.
 const durableEventFoundationMigrationNames = [
   "20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-  "20260917200000_event_consumer_activation_readiness.sql"
+  "20260917200000_event_consumer_activation_readiness.sql",
+  "20260926025411_durable_worker_contract.sql"
+];
+const translationFoundationMigrationNames = [
+  "20260926025412_translation_records_and_glossary.sql",
+  "20260926025656_translation_policy_and_index_hardening.sql",
+  "20260926033255_translation_authenticated_read_only.sql",
+  "20260926033557_translation_data_api_grants.sql"
 ];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
@@ -325,6 +332,8 @@ const {
   DATABASE_TABLES,
   DURABLE_EVENT_FOUNDATION_FUNCTIONS,
   DURABLE_EVENT_FOUNDATION_TABLES,
+  DURABLE_WORKER_FUNCTIONS,
+  TRANSLATION_FOUNDATION_TABLES,
   STORAGE_BUCKETS
 } = require(path.join(root, "lib", "sonara-database-contract.cjs"));
 const { getAllManifestTables } = require(path.join(root, "lib", "sonara-ecosystem-manifest.cjs"));
@@ -371,6 +380,7 @@ const callSql = readExtension(callMigrationNames, "calls");
 const recordChangeLogSql = readExtension(recordChangeLogMigrationNames, "record change log");
 const twoFactorSql = readExtension(twoFactorMigrationNames, "two-factor authentication");
 const durableEventFoundationSql = readExtension(durableEventFoundationMigrationNames, "durable event foundation");
+const translationFoundationSql = readExtension(translationFoundationMigrationNames, "translation foundation");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
 // Two migrations: the one that created the table, and the one that gave
@@ -473,6 +483,7 @@ verifyExtension(CALL_TABLES, callSql, "Calls");
 verifyExtension(RECORD_CHANGE_LOG_TABLES, recordChangeLogSql, "Record change log");
 verifyExtension(TWO_FACTOR_TABLES, twoFactorSql, "Two-factor authentication");
 verifyExtension(DURABLE_EVENT_FOUNDATION_TABLES, durableEventFoundationSql, "Durable event foundation");
+verifyExtension(TRANSLATION_FOUNDATION_TABLES, translationFoundationSql, "Translation foundation");
 const normalizedDurableEventFoundationSql = durableEventFoundationSql.replace(/\s+/g, "");
 for (const signature of DURABLE_EVENT_FOUNDATION_FUNCTIONS) {
   const functionName = signature.slice("public.".length, signature.indexOf("("));
@@ -481,6 +492,28 @@ for (const signature of DURABLE_EVENT_FOUNDATION_FUNCTIONS) {
   if (!normalizedDurableEventFoundationSql.includes(`grantexecuteonfunction${signature}toservice_role`)) {
     fail(`durable event foundation does not grant ${signature} to service_role`);
   }
+}
+const normalizedDurableWorkerSql = durableEventFoundationSql.replace(/\s+/g, "");
+for (const signature of DURABLE_WORKER_FUNCTIONS) {
+  const functionName = signature.slice("public.".length, signature.indexOf("("));
+  const createPattern = new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${functionName}\\s*\\(`, "i");
+  if (!createPattern.test(durableEventFoundationSql)) fail(`durable worker foundation does not define ${signature}`);
+  if (!normalizedDurableWorkerSql.includes("securityinvokersetsearch_path=public,pg_temp")) {
+    fail(`durable worker RPC must use SECURITY INVOKER and a pinned search_path: ${signature}`);
+  }
+  if (!normalizedDurableWorkerSql.includes(`revokeallonfunction${signature}frompublic,anon,authenticated`)) {
+    fail(`durable worker RPC is executable by an untrusted role: ${signature}`);
+  }
+  if (!normalizedDurableWorkerSql.includes(`grantexecuteonfunction${signature}toservice_role`)) {
+    fail(`durable worker RPC is not granted to service_role: ${signature}`);
+  }
+}
+const normalizedTranslationFoundationSql = translationFoundationSql.replace(/\s+/g, "");
+if (!normalizedTranslationFoundationSql.includes("forselecttoauthenticatedusing") || !translationFoundationSql.includes("organization_memberships") || !normalizedTranslationFoundationSql.includes("(selectauth.uid())")) {
+  fail("translation foundation is missing tenant-scoped authenticated read policies");
+}
+if (!normalizedTranslationFoundationSql.includes("foralltoservice_roleusing(true)withcheck(true)")) {
+  fail("translation foundation is missing service-role write policies");
 }
 
 // Nothing in the second factor is stored in a form somebody could use.
@@ -648,7 +681,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -772,7 +805,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime
