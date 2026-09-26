@@ -67,6 +67,7 @@ describe("Market intelligence integration contract", () => {
   it("registers parent and studio workspaces", function() {
     const registry = read("lib/sonara-route-registry.cjs");
     const server = read("server.js");
+    const marketRoutes = read("routes/market-intelligence-routes.cjs");
     for (const route of [
       "/market-intelligence",
       "/business-builder/market-intelligence",
@@ -74,7 +75,7 @@ describe("Market intelligence integration contract", () => {
       "/growth-studio/market-intelligence"
     ]) assert.match(registry, new RegExp(route.replaceAll("/", "\\/")));
     assert.match(server, /registerMarketIntelligenceRoutes/);
-    assert.match(server, /Market intelligence/);
+    assert.match(marketRoutes, /Market Intelligence/);
   });
 
   it("documents every registered market API in OpenAPI", function() {

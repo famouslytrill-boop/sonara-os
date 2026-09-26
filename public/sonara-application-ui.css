@@ -169,6 +169,20 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
 .sonara-workspace-choice p{margin:0;color:var(--nx-muted);line-height:1.55}
 .sonara-workspace-choice .action{width:100%;justify-content:center}
 .sonara-workspace-notice{grid-column:1/-1}
+.sonara-module-directory{display:grid;grid-column:1/-1;gap:12px}
+.sonara-module-directory__workspace{min-width:0;overflow:hidden}
+.sonara-module-directory__workspace>summary{min-height:52px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;list-style:none}
+.sonara-module-directory__workspace>summary::-webkit-details-marker{display:none}
+.sonara-module-directory__workspace>summary span{font-weight:800}
+.sonara-module-directory__workspace>summary small{color:var(--nx-muted);white-space:nowrap}
+.sonara-module-directory__workspace>summary::after{content:"+";color:var(--nx-muted);font-size:20px;line-height:1}
+.sonara-module-directory__workspace[open]>summary::after{content:"−"}
+.sonara-module-directory__categories{padding:0 18px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px}
+.sonara-module-directory__category h3{margin:8px 0;color:var(--nx-muted);font:800 11px/1.4 var(--nx-mono);letter-spacing:.08em;text-transform:uppercase}
+.sonara-module-directory__links{margin:0;padding:0;display:grid;gap:5px;list-style:none}
+.sonara-module-directory__links a{min-height:44px;padding:9px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:9px;text-decoration:none;color:var(--nx-text)}
+.sonara-module-directory__links a:hover{background:var(--nx-surface-2)}
+.sonara-module-directory__links a span{color:var(--nx-muted)}
 /* A closed <details> does not stop an absolutely positioned child being laid
    out. Measured: ten menu links sitting at right=440 in a 390px viewport while
    the menu was shut -- off-screen, but still in the tab order and still found

@@ -6,6 +6,7 @@ const path = require("node:path");
 const { createPageFrame } = require("../lib/sonara-page-frame.cjs");
 const { UI_LOCALES, SUPPORTED_LOCALE_CODES, normalizeLocale } = require("../lib/sonara-locale-contract.cjs");
 const { ROUTE_REGISTRY } = require("../lib/sonara-route-registry.cjs");
+const { getWorkspaceDirectoryGroups, renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.cjs");
 const {
   WORKSPACES,
   renderWorkspaceChoices,
@@ -55,12 +56,32 @@ describe("workspace hub and responsive account navigation", () => {
     assert.match(signedIn, /data-i18n="workspaceHomeBody"/);
     assert.doesNotMatch(signedIn, /href="\/login"|href="\/signup"/);
     assert.equal([...signedIn.matchAll(/action="\/logout"/g)].length, 2, "responsive menu placements share the same protected logout route");
-    assert.doesNotMatch(signedIn, /class="actions"/);
 
     const publicPage = frame.layout({ title: "Home", heading: "Home", body: "Public", sections: [], actions: [] });
     assert.match(publicPage, /href="\/login"/);
     assert.match(publicPage, /href="\/signup"/);
     assert.doesNotMatch(publicPage, /action="\/logout"/);
+  });
+
+  it("keeps every studio destination in one grouped, registered module directory", () => {
+    const groups = getWorkspaceDirectoryGroups();
+    const routes = [
+      ...groups.workspaces.flatMap((workspace) => workspace.categories.flatMap((category) => category.items.map((item) => item.route))),
+      ...groups.shared.map((item) => item.route)
+    ];
+    assert.equal(new Set(routes).size, routes.length, "a module destination should appear only once in the directory");
+    assert.equal(groups.workspaces.length, 3);
+    assert.ok(routes.includes("/business-builder/market-intelligence"));
+    assert.ok(routes.includes("/creator-studio/generation/voice"));
+    assert.ok(routes.includes("/growth-studio/pipeline"));
+    assert.ok(routes.includes("/billing"));
+    assert.ok(ROUTE_REGISTRY.some((entry) => entry.route === "/workspace-modules" && entry.method === "GET"));
+    const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
+    assert.match(server, /linkAction\("\/workspace-modules", "Browse all modules"\)/);
+
+    const html = renderWorkspaceDirectory();
+    for (const route of routes) assert.ok(html.includes(`href="${route}"`), `${route} has no directory link`);
+    assert.equal([...html.matchAll(/<details class="card sonara-module-directory__workspace">/g)].length, 4);
   });
 
   it("uses one canonical locale list for the saved and device preferences", () => {

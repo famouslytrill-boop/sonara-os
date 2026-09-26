@@ -24,7 +24,7 @@
       businessBuilder: "Business Builder", businessBuilderDescription: "Plan and run your business.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organize and publish your creative work.", growthStudio: "Growth Studio", growthStudioDescription: "Find and keep customers.", openWorkspace: "Open workspace",
       workspaceSetupTitle: "Set up your workspace", workspaceSetupDescription: "Create or connect an organization before saving work to your account.", workspaceSetupAction: "Continue setup",
       workspaceCheckTitle: "Workspace connection needs a check", workspaceCheckDescription: "We could not confirm the saved workspace connection. This check did not change customer data.", workspaceCheckAction: "Check setup", contactSupport: "Contact support",
-      tools: "Free tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Create account", dashboard: "Dashboard", settings: "Settings", admin: "Administration", logout: "Log out",
+      tools: "Free Tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Create account", dashboard: "Dashboard", settings: "Settings", admin: "Administration", logout: "Log out",
       menu: "Menu", command: "Command", experience: "Experience", heroEyebrow: "Build. Create. Grow.",
       heroHeading: "Launch your work. Run it professionally. Grow with evidence.",
       heroBody: "Business Builder, Creator Studio, and Growth Studio give founders, creators, and small teams focused tools inside one connected account.",

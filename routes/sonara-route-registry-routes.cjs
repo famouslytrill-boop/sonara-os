@@ -11,6 +11,7 @@ const { isPasswordLeaked, LEAKED_PASSWORD_MESSAGE } = require("../lib/sonara-lea
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { getGuide } = require("../lib/sonara-guides.cjs");
 const { UI_LOCALES, SUPPORTED_LOCALE_CODES, normalizeLocale } = require("../lib/sonara-locale-contract.cjs");
+const { renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -122,6 +123,15 @@ function registerRouteRegistryRoutes(app, deps) {
       actionCard("Growth Studio", "Attract customers, leads, and referrals with campaigns, follow-up, offers, and growth systems you can actually keep up with.", [linkAction("/growth-studio", "Explore Growth Studio"), linkAction("/tutorials/growth-studio", "Tutorial")])
     ],
     actions: [linkAction("/free-tools", "Try a free tool"), linkAction("/pricing", "See pricing"), linkAction("/start", "Get started")]
+  }));
+
+  app.get("/workspace-modules", requireCustomer, (req, res) => sendPage(res, {
+    title: "Workspace modules",
+    eyebrow: "Your workspaces",
+    heading: "Browse workspace modules",
+    body: "Choose a destination by workspace and purpose. Each link opens its registered page; setup and plan requirements are checked there.",
+    sections: [renderWorkspaceDirectory()],
+    actions: [linkAction("/dashboard", "All workspaces")]
   }));
 
   app.get("/free-tools", (req, res) => sendMarketingPage(res, {
