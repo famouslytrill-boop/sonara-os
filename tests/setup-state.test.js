@@ -46,6 +46,8 @@ describe("customer-facing setup states", () => {
     assert.match(html, /What happens next/);
     assert.match(html, /Contact an owner or admin/);
     assert.match(html, /saved work is not changed/i);
+    assert.match(html, /<li><span class="sonara-checklist__content"><strong>Next step:<\/strong>/);
+    assert.equal([...html.matchAll(/<li>/g)].length, 3);
     assert.doesNotMatch(html, /supabase_setup_required|SUPABASE_NOT_CONFIGURED|SERVICE_ROLE/i);
   });
 

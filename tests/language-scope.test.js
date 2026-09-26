@@ -1,19 +1,9 @@
 "use strict";
 
-// The language control changes about a tenth of the page.
-//
-// The dictionaries are not the problem -- all five languages carry all 36 keys
-// and cover every one of the 24 data-i18n keys the server renders. The problem
-// is how little of a page those keys reach. Measured on the homepage: 905 of
-// 7,672 visible characters, so picking Español translates the navigation, the
-// buttons, and the section headings, and leaves 88% of what a customer reads in
-// English.
-//
-// The help text said "Updates the core interface language", which is true in
-// the narrow sense and not how anyone selecting Español would read it. The
-// honest fix is not to claim less quietly -- it is to say what the control
-// does. Translating the product properly needs human translators and is a
-// separate piece of work.
+// The dictionaries contain selected interface translations, but a small part
+// of the server-rendered copy is marked for localization. The help text and
+// these checks keep that scope visible instead of implying full-page machine
+// translation. Human-reviewed catalogs can grow one workflow at a time.
 //
 // What these checks hold:
 //
@@ -34,6 +24,9 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 const source = read("public/sonara-one.js");
+const { createPageFrame } = require("../lib/sonara-page-frame.cjs");
+const { UI_LOCALES } = require("../lib/sonara-locale-contract.cjs");
+const { WORKSPACES } = require("../lib/sonara-workspace-hub.cjs");
 
 function dictionaries() {
   const start = source.indexOf("const dictionaries");
@@ -76,12 +69,14 @@ describe("the language control", () => {
   it("offers exactly the languages it can actually serve", () => {
     // The settings dialog lists these. A language in the dialog with no
     // dictionary would silently fall back to English for everything.
-    const frame = read("lib/sonara-page-frame.cjs");
+    const frame = createPageFrame({ legalPages: () => [], safeListTable: async () => ({ ok: false, rows: [] }) })
+      .layout({ title: "Settings", heading: "Settings", body: "Settings", sections: [], actions: [] });
     const select = frame.slice(frame.indexOf('data-sonara-preference="language"'));
-    const offered = [...select.slice(0, select.indexOf("</select>")).matchAll(/value="([a-z-]+)"/g)].map((match) => match[1]);
+    const offered = [...select.slice(0, select.indexOf("</select>")).matchAll(/value="([A-Za-z-]+)"/g)].map((match) => match[1]);
     assert.ok(offered.length > 0, "the language selector was not found");
-    const unserved = offered.filter((code) => !dicts[code]);
+    const unserved = offered.filter((code) => !dicts[code.split("-")[0]]);
     assert.deepEqual(unserved, [], `the dialog offers languages with no dictionary: ${unserved.join(", ")}`);
+    assert.deepEqual(offered, UI_LOCALES.map(({ code }) => code));
   });
 
   it("gives every language the same keys", () => {
@@ -101,9 +96,21 @@ describe("the language control", () => {
     }
   });
 
+  it("translates the workspace cards in each supported locale", () => {
+    const keys = [
+      "workspaceHomeHeading",
+      "workspaceHomeBody",
+      "openWorkspace",
+      ...WORKSPACES.flatMap(({ key }) => [key, `${key}Description`])
+    ];
+    for (const language of languages) {
+      const missing = keys.filter((key) => !dicts[language].has(key));
+      assert.deepEqual(missing, [], `${language} is missing workspace translations: ${missing.join(", ")}`);
+    }
+  });
+
   it("tells the customer what it will and will not translate", () => {
-    // Not "updates the interface language", which is true in a narrow sense and
-    // is not how someone choosing Español would read it.
+    // The controls translate only the catalogued portions of the product UI.
     const help = [...source.matchAll(/languageHelp: "([^"]*)"/g)].map((match) => match[1]);
     assert.equal(help.length, languages.length, "not every language has help text for the language control");
     assert.match(help[0], /headings/i);

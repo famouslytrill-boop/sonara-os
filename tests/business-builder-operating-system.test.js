@@ -149,6 +149,7 @@ describe("Business Builder operating system", () => {
     const result = await request(buildApp()).get("/business-builder/dashboard").set("Accept", "text/html");
     assert.equal(result.status, 200);
     assert.match(result.text, /Run the business from one workspace/);
+    assert.doesNotMatch(result.text, /Everything in this workspace|All \d+ pages/);
     assert.match(result.text, /Customers/);
     assert.match(result.text, /Open orders/);
     assert.match(result.text, /Upcoming bookings/);

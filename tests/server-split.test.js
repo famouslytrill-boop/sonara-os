@@ -1280,8 +1280,9 @@ describe("the extracted module stands on its own", () => {
   it("builds action bars through the injected helper rather than its own", () => {
     const pages = createProductPages({ linkAction: (href, label) => `LINK:${href}:${label}`, logoutAction: () => "LOGOUT" });
     const actions = pages.productDashboardActions("business-builder");
-    assert.ok(actions.every((action) => /^LINK:|^LOGOUT$/.test(action)), "every action must come from the injected helpers");
-    assert.ok(actions.includes("LOGOUT"), "a signed-in workspace bar must offer logout");
+    assert.ok(actions.every((action) => /^LINK:/.test(action)), "every workspace action must come from the injected link helper");
+    assert.equal(actions.length, 3, "workspace dashboards keep only three direct actions");
+    assert.ok(!actions.includes("LOGOUT"), "sign-out is supplied by the shared account menu");
   });
 
   it("has a sensible answer for a product it has never heard of", () => {

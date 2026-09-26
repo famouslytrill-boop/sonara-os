@@ -1,5 +1,7 @@
 # What revoking an authorization function actually does
 
+Date: 2026-09-15
+
 Review by: 2026-12-15
 
 `docs/SHIP_READINESS.md` item 3 records twelve `SECURITY DEFINER` authorization

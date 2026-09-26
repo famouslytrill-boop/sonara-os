@@ -36,7 +36,8 @@ describe("application-wide route presentation", () => {
 
   it("keeps product workflows linked without decorative preview devices", async () => {
     const response = await request(app).get("/").set("Accept", "text/html");
-    for (const href of ["/business-builder/dashboard", "/creator-studio/dashboard", "/growth-studio/dashboard", "/free-tools", "/pricing", "/service-catalog", "/requests", "/deliverables"]) {
+    assert.match(response.text, /<nav class="card-actions sonara-existing-customer" aria-label="Existing customer workspaces"><a class="action" href="\/dashboard">Open your workspaces/);
+    for (const href of ["/free-tools", "/pricing", "/service-catalog"]) {
       assert.match(response.text, new RegExp(`href="${href.replace(/\//g, "\\/")}"`));
     }
     assert.doesNotMatch(response.text, /Launch command center|Live configuration|Mobile-ready/i);

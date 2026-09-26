@@ -50,7 +50,7 @@ describe("SONARA One product experience", () => {
     for (const language of ["en", "es", "fr", "de"]) {
       assert.match(engine.text, new RegExp(`${language}\\s*:\\s*\\{`));
     }
-    for (const value of ["en", "es", "fr", "de"]) assert.match(page.text, new RegExp(`<option value="${value}"`));
+    for (const value of ["en-US", "es", "fr", "de"]) assert.match(page.text, new RegExp(`<option value="${value}"`));
     assert.match(page.text, /aria-live="polite"/);
     assert.match(page.text, /aria-labelledby="sonara-settings-title"/);
   });

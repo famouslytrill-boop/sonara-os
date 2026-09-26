@@ -86,6 +86,7 @@ describe("public site", () => {
     assert.match(res.text, /href="\/favicon.svg"/);
     assert.match(res.text, /rel="apple-touch-icon"/);
     assert.match(res.text, /href="\/site.webmanifest"/);
+    assert.doesNotMatch(res.text, /sonara-existing-user-links/, "workspace dashboards must not be repeated beneath the company cards");
   });
 
   it("business builder includes Launch Setup Checklist", async function() {
@@ -713,16 +714,22 @@ describe("auth setup", () => {
     global.fetch = originalFetch;
 
     assert.equal(dashboard.status, 200);
-    assert.match(dashboard.text, /Dashboard/);
-    assert.match(dashboard.text, /Free access/);
-    assert.match(dashboard.text, /Paid access/);
-    assert.match(dashboard.text, /Logout/);
+    assert.match(dashboard.text, /Your workspaces/);
+    assert.match(dashboard.text, /Business Builder/);
+    assert.match(dashboard.text, /Creator Studio/);
+    assert.match(dashboard.text, /Growth Studio/);
+    assert.match(dashboard.text, /Workspace connection needs a check/);
+    assert.doesNotMatch(dashboard.text, /href="\/login"|href="\/signup"/);
+    assert.doesNotMatch(dashboard.text, /Free access|Paid access|Next best action/);
+    assert.match(dashboard.text, /Log out/);
     assert.equal(settings.status, 200);
     assert.match(settings.text, /Language preference/);
-    assert.match(settings.text, /Logout/);
+    assert.match(settings.text, /Log out/);
     assert.equal(businessBuilder.status, 200);
-    assert.match(businessBuilder.text, /Business Builder Dashboard/);
-    assert.match(businessBuilder.text, /Logout/);
+    assert.match(businessBuilder.text, /What business are you building\?|Business Builder/);
+    assert.match(businessBuilder.text, /Log out/);
+    assert.equal([...businessBuilder.text.matchAll(/action="\/logout"/g)].length, 2);
+    assert.doesNotMatch(businessBuilder.text, /Everything in this workspace|All \d+ pages/);
     assert.equal(businessIntake.status, 303);
     assert.equal(businessIntake.headers.location, "/business-builder/launch-readiness?from=%2Fbusiness-builder%2Fintake");
     assert.equal(creatorAssets.status, 200);
@@ -812,9 +819,9 @@ describe("auth setup", () => {
     assert.equal(JSON.stringify(login.body).includes("customer-session-token"), false);
     assert.equal(JSON.stringify(login.body).includes("customer-refresh-token"), false);
     assert.equal(dashboard.status, 200);
-    assert.match(dashboard.text, /Free access/);
-    assert.match(dashboard.text, /Paid access/);
-    assert.match(dashboard.text, /Paid workspaces stay locked/);
+    assert.match(dashboard.text, /Your workspaces/);
+    assert.match(dashboard.text, /Workspace connection needs a check/);
+    assert.match(dashboard.text, /href="\/creator-studio\/dashboard"/);
   });
 
   it("renews an expired browser session with a refresh cookie and rotates both cookies", async function() {
@@ -2042,7 +2049,7 @@ describe("auth and admin", () => {
     for (const route of ["/dashboard", "/business-builder/dashboard", "/business-builder/customers", "/business-builder/employees", "/creator-studio/dashboard", "/creator-studio/monetization", "/growth-studio/dashboard", "/growth-studio/analytics"]) {
       const res = await request(app).get(route).set("Authorization", "Bearer owner-session").set("Accept", "text/html");
       assert.equal(res.status, 200, route);
-      assert.match(res.text, /Owner\/Admin access|Employee access|Dashboard|Analytics|Monetization/);
+      assert.match(res.text, /Owner\/Admin access|Employee access|Dashboard|Analytics|Monetization/, route);
       assert.doesNotMatch(res.text, /owner-session/);
     }
     mock.restore();

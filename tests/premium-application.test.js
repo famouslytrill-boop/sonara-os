@@ -107,7 +107,7 @@ describe("premium application rebuild", () => {
       assert.match(engine, /navigator\.vibrate/);
       assert.match(engine, /localStorage/);
       assert.match(engine, /prefers-reduced-motion/);
-      assert.match(engine, /language\s*:\s*"en"/);
+      assert.match(engine, /language\s*:\s*"en-US"/);
       assert.doesNotMatch(engine, /requestAdapter/);
     });
 

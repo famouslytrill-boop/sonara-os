@@ -10,7 +10,7 @@
   const startupStartedAt = window.performance?.now?.() || Date.now();
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
   const defaults = {
-    language: "en",
+    language: "en-US",
     theme: "system",
     motion: reducedMotion ? "off" : "on",
     sound: "off",
@@ -19,8 +19,12 @@
 
   const dictionaries = {
     en: {
-      platform: "SONARA One", products: "Companies", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
-      tools: "Free tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Create account", dashboard: "Dashboard", settings: "Settings", admin: "Administration", logout: "Log out",
+      platform: "SONARA One", products: "Companies", productsNav: "Products", workspaces: "Workspaces", account: "Account", preferences: "Preferences",
+      workspaceHomeHeading: "Your workspaces", workspaceHomeBody: "One account. Choose where you want to work.",
+      businessBuilder: "Business Builder", businessBuilderDescription: "Plan and run your business.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organize and publish your creative work.", growthStudio: "Growth Studio", growthStudioDescription: "Find and keep customers.", openWorkspace: "Open workspace",
+      workspaceSetupTitle: "Set up your workspace", workspaceSetupDescription: "Create or connect an organization before saving work to your account.", workspaceSetupAction: "Continue setup",
+      workspaceCheckTitle: "Workspace connection needs a check", workspaceCheckDescription: "We could not confirm the saved workspace connection. This check did not change customer data.", workspaceCheckAction: "Check setup", contactSupport: "Contact support",
+      tools: "Free Tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Create account", dashboard: "Dashboard", settings: "Settings", admin: "Administration", logout: "Log out",
       menu: "Menu", command: "Command", experience: "Experience", heroEyebrow: "Build. Create. Grow.",
       heroHeading: "Launch your work. Run it professionally. Grow with evidence.",
       heroBody: "Business Builder, Creator Studio, and Growth Studio give founders, creators, and small teams focused tools inside one connected account.",
@@ -29,11 +33,15 @@
       flowKicker: "One connected operating path", flowHeading: "Move from first setup to measurable progress.",
       ctaKicker: "Start with the next real step", ctaHeading: "Create a free account. Add paid tools only once they are proven to work.",
       searchPlaceholder: "Search companies, pages, and actions", settingsTitle: "Experience settings", language: "Language",
-      languageHelp: "Translates menus, buttons, and page headings. Page content stays in English for now.", appearance: "Appearance", appearanceHelp: "Follow your device or choose light or dark.",
+      languageHelp: "Changes supported menus and selected headings on this device. Most page content stays in English.", appearance: "Appearance", appearanceHelp: "Follow your device or choose light or dark.",
       motion: "Motion", sound: "Sound feedback", haptics: "Tactile feedback"
     },
     es: {
-      platform: "SONARA One", products: "Empresas", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Empresas", productsNav: "Productos", workspaces: "Espacios de trabajo", account: "Cuenta", preferences: "Preferencias",
+      workspaceHomeHeading: "Tus espacios de trabajo", workspaceHomeBody: "Una cuenta. Elige dónde quieres trabajar.",
+      businessBuilder: "Business Builder", businessBuilderDescription: "Prepara ofertas y gestiona las operaciones diarias.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organiza archivos, derechos y planes de lanzamiento.", growthStudio: "Growth Studio", growthStudioDescription: "Planifica campañas y da seguimiento a clientes potenciales.", openWorkspace: "Abrir espacio de trabajo",
+      workspaceSetupTitle: "Configura tu espacio de trabajo", workspaceSetupDescription: "Crea o conecta una organización antes de guardar trabajo en tu cuenta.", workspaceSetupAction: "Continuar configuración",
+      workspaceCheckTitle: "Revisa la conexión del espacio de trabajo", workspaceCheckDescription: "No pudimos confirmar la conexión guardada. Esta comprobación no modificó los datos de clientes.", workspaceCheckAction: "Revisar configuración", contactSupport: "Contactar soporte",
       tools: "Herramientas gratis", pricing: "Precios", support: "Soporte", login: "Iniciar sesión", start: "Crear cuenta", dashboard: "Panel", settings: "Ajustes", admin: "Administración", logout: "Cerrar sesión",
       menu: "Menú", command: "Comandos", experience: "Experiencia", heroEyebrow: "Crea. Construye. Crece.",
       heroHeading: "Lanza tu trabajo. Opéralo profesionalmente. Crece con evidencia.",
@@ -43,11 +51,15 @@
       flowKicker: "Una ruta operativa conectada", flowHeading: "Pasa de la configuración inicial al progreso medible.",
       ctaKicker: "Empieza con el siguiente paso real", ctaHeading: "Crea una cuenta gratis. Añade sistemas de pago solo cuando estén verificados.",
       searchPlaceholder: "Buscar empresas, páginas y acciones", settingsTitle: "Ajustes de experiencia", language: "Idioma",
-      languageHelp: "Traduce los menús, los botones y los títulos. Por ahora, el contenido de las páginas permanece en inglés.", appearance: "Apariencia", appearanceHelp: "Sigue tu dispositivo o elige claro u oscuro.",
+      languageHelp: "Cambia menús compatibles y algunos títulos en este dispositivo. La mayor parte del contenido sigue en inglés.", appearance: "Apariencia", appearanceHelp: "Sigue tu dispositivo o elige claro u oscuro.",
       motion: "Movimiento", sound: "Sonido", haptics: "Respuesta táctil"
     },
     fr: {
-      platform: "SONARA One", products: "Entreprises", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Entreprises", productsNav: "Produits", workspaces: "Espaces de travail", account: "Compte", preferences: "Préférences",
+      workspaceHomeHeading: "Vos espaces de travail", workspaceHomeBody: "Un compte. Choisissez où travailler.",
+      businessBuilder: "Business Builder", businessBuilderDescription: "Préparez vos offres et gérez les opérations quotidiennes.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organisez les ressources, les droits et les plans de sortie.", growthStudio: "Growth Studio", growthStudioDescription: "Planifiez des campagnes et assurez le suivi des prospects.", openWorkspace: "Ouvrir l’espace de travail",
+      workspaceSetupTitle: "Configurez votre espace de travail", workspaceSetupDescription: "Créez ou reliez une organisation avant d’enregistrer votre travail.", workspaceSetupAction: "Continuer la configuration",
+      workspaceCheckTitle: "Vérifiez la connexion de l’espace de travail", workspaceCheckDescription: "Nous n’avons pas pu confirmer la connexion enregistrée. Cette vérification n’a modifié aucune donnée client.", workspaceCheckAction: "Vérifier la configuration", contactSupport: "Contacter l’assistance",
       tools: "Outils gratuits", pricing: "Tarifs", support: "Assistance", login: "Connexion", start: "Créer un compte", dashboard: "Tableau de bord", settings: "Réglages", admin: "Administration", logout: "Déconnexion",
       menu: "Menu", command: "Commande", experience: "Expérience", heroEyebrow: "Créez. Construisez. Développez.",
       heroHeading: "Lancez votre travail. Gérez-le professionnellement. Progressez avec des preuves.",
@@ -57,11 +69,15 @@
       flowKicker: "Un parcours opérationnel connecté", flowHeading: "Passez de la configuration initiale à des progrès mesurables.",
       ctaKicker: "Commencez par la prochaine étape réelle", ctaHeading: "Créez un compte gratuit. Ajoutez des systèmes payants uniquement après vérification.",
       searchPlaceholder: "Rechercher des entreprises, pages et actions", settingsTitle: "Réglages de l’expérience", language: "Langue",
-      languageHelp: "Traduit les menus, les boutons et les titres. Le contenu des pages reste en anglais pour le moment.", appearance: "Apparence", appearanceHelp: "Suivez l’appareil ou choisissez clair ou sombre.",
+      languageHelp: "Modifie les menus pris en charge et certains titres sur cet appareil. La plupart des pages restent en anglais.", appearance: "Apparence", appearanceHelp: "Suivez l’appareil ou choisissez clair ou sombre.",
       motion: "Animation", sound: "Retour sonore", haptics: "Retour tactile"
     },
     de: {
-      platform: "SONARA One", products: "Unternehmen", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Unternehmen", productsNav: "Produkte", workspaces: "Arbeitsbereiche", account: "Konto", preferences: "Einstellungen",
+      workspaceHomeHeading: "Ihre Arbeitsbereiche", workspaceHomeBody: "Ein Konto. Wählen Sie Ihren Arbeitsbereich.",
+      businessBuilder: "Business Builder", businessBuilderDescription: "Erstellen Sie Angebote und steuern Sie den Tagesbetrieb.", creatorStudio: "Creator Studio", creatorStudioDescription: "Verwalten Sie Medien, Rechte und Veröffentlichungspläne.", growthStudio: "Growth Studio", growthStudioDescription: "Planen Sie Kampagnen und verfolgen Sie Interessenten.", openWorkspace: "Arbeitsbereich öffnen",
+      workspaceSetupTitle: "Arbeitsbereich einrichten", workspaceSetupDescription: "Erstellen oder verbinden Sie eine Organisation, bevor Sie Arbeit speichern.", workspaceSetupAction: "Einrichtung fortsetzen",
+      workspaceCheckTitle: "Verbindung zum Arbeitsbereich prüfen", workspaceCheckDescription: "Die gespeicherte Verbindung konnte nicht bestätigt werden. Diese Prüfung hat keine Kundendaten geändert.", workspaceCheckAction: "Einrichtung prüfen", contactSupport: "Support kontaktieren",
       tools: "Kostenlose Tools", pricing: "Preise", support: "Support", login: "Anmelden", start: "Konto erstellen", dashboard: "Übersicht", settings: "Einstellungen", admin: "Administration", logout: "Abmelden",
       menu: "Menü", command: "Befehl", experience: "Erlebnis", heroEyebrow: "Aufbauen. Gestalten. Wachsen.",
       heroHeading: "Starten Sie Ihre Arbeit. Führen Sie sie professionell. Wachsen Sie mit Nachweisen.",
@@ -71,11 +87,15 @@
       flowKicker: "Ein verbundener Betriebsweg", flowHeading: "Von der ersten Einrichtung zu messbarem Fortschritt.",
       ctaKicker: "Mit dem nächsten echten Schritt beginnen", ctaHeading: "Erstellen Sie ein kostenloses Konto. Fügen Sie bezahlte Systeme erst nach der Verifizierung hinzu.",
       searchPlaceholder: "Unternehmen, Seiten und Aktionen durchsuchen", settingsTitle: "Erlebniseinstellungen", language: "Sprache",
-      languageHelp: "Übersetzt Menüs, Schaltflächen und Überschriften. Die Seiteninhalte bleiben vorerst auf Englisch.", appearance: "Darstellung", appearanceHelp: "Gerät verwenden oder Hell/Dunkel wählen.",
+      languageHelp: "Ändert unterstützte Menüs und ausgewählte Überschriften auf diesem Gerät. Die meisten Seiten bleiben auf Englisch.", appearance: "Darstellung", appearanceHelp: "Gerät verwenden oder Hell/Dunkel wählen.",
       motion: "Bewegung", sound: "Klangfeedback", haptics: "Haptisches Feedback"
     },
     pt: {
-      platform: "SONARA One", products: "Empresas", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Empresas", productsNav: "Produtos", workspaces: "Espaços de trabalho", account: "Conta", preferences: "Preferências",
+      workspaceHomeHeading: "Seus espaços de trabalho", workspaceHomeBody: "Uma conta. Escolha onde trabalhar.",
+      businessBuilder: "Business Builder", businessBuilderDescription: "Prepare ofertas e gerencie as operações diárias.", creatorStudio: "Creator Studio", creatorStudioDescription: "Organize ativos, direitos e planos de lançamento.", growthStudio: "Growth Studio", growthStudioDescription: "Planeje campanhas e acompanhe clientes potenciais.", openWorkspace: "Abrir espaço de trabalho",
+      workspaceSetupTitle: "Configure seu espaço de trabalho", workspaceSetupDescription: "Crie ou conecte uma organização antes de salvar seu trabalho.", workspaceSetupAction: "Continuar configuração",
+      workspaceCheckTitle: "Verifique a conexão do espaço de trabalho", workspaceCheckDescription: "Não foi possível confirmar a conexão salva. Esta verificação não alterou dados de clientes.", workspaceCheckAction: "Verificar configuração", contactSupport: "Falar com o suporte",
       tools: "Ferramentas grátis", pricing: "Preços", support: "Suporte", login: "Entrar", start: "Criar conta", dashboard: "Painel", settings: "Configurações", admin: "Administração", logout: "Sair",
       menu: "Menu", command: "Comando", experience: "Experiência", heroEyebrow: "Construa. Crie. Cresça.",
       heroHeading: "Lance seu trabalho. Opere profissionalmente. Cresça com evidências.",
@@ -85,17 +105,26 @@
       flowKicker: "Um caminho operacional conectado", flowHeading: "Passe da configuração inicial para um progresso mensurável.",
       ctaKicker: "Comece com o próximo passo real", ctaHeading: "Crie uma conta gratuita. Adicione sistemas pagos somente quando forem verificados.",
       searchPlaceholder: "Pesquisar empresas, páginas e ações", settingsTitle: "Configurações de experiência", language: "Idioma",
-      languageHelp: "Traduz menus, botões e títulos. Por enquanto, o conteúdo das páginas permanece em inglês.", appearance: "Aparência", appearanceHelp: "Siga o dispositivo ou escolha claro ou escuro.",
+      languageHelp: "Altera menus compatíveis e alguns títulos neste dispositivo. A maior parte do conteúdo permanece em inglês.", appearance: "Aparência", appearanceHelp: "Siga o dispositivo ou escolha claro ou escuro.",
       motion: "Movimento", sound: "Som", haptics: "Resposta tátil"
     }
   };
 
+  function canonicalLanguage(value) {
+    const aliases = { en: "en-US", "en-US": "en-US", es: "es", fr: "fr", de: "de", pt: "pt-BR", "pt-BR": "pt-BR" };
+    return Object.prototype.hasOwnProperty.call(aliases, value) ? aliases[value] : "en-US";
+  }
+
+  function normalizePreferences(value) {
+    return { ...defaults, ...value, language: canonicalLanguage(value.language) };
+  }
+
   function readPreferences() {
     try {
       const current = JSON.parse(window.localStorage.getItem(preferenceKey) || "null");
-      if (current && typeof current === "object") return { ...defaults, ...current };
+      if (current && typeof current === "object") return normalizePreferences(current);
       const legacy = JSON.parse(window.localStorage.getItem(legacyPreferenceKey) || "null");
-      if (legacy && typeof legacy === "object") return { ...defaults, ...legacy, haptics: legacy.haptics === "on" ? "on" : "off" };
+      if (legacy && typeof legacy === "object") return normalizePreferences({ ...legacy, haptics: legacy.haptics === "on" ? "on" : "off" });
     } catch {}
     return { ...defaults };
   }
@@ -119,7 +148,7 @@
   }
 
   function dictionary() {
-    return dictionaries[preferences.language] || dictionaries.en;
+    return dictionaries[preferences.language.split("-")[0]] || dictionaries.en;
   }
 
   function translate() {

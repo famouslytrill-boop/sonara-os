@@ -751,6 +751,12 @@
   line-height: 1.45;
 }
 
+.sonara-checklist__content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
 .sonara-checklist li::before {
   content: counter(sonara-step) ".";
   font-variant-numeric: tabular-nums;

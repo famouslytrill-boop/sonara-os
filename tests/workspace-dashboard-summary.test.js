@@ -50,4 +50,12 @@ describe("workspace dashboard summary", () => {
     assert.equal(result.ok, true);
     assert.deepEqual(result.activation, { ok: false, summary: null });
   });
+
+  it("skips five activation event reads when the dashboard does not display activation", async () => {
+    const deps = dependencies();
+    const result = await getWorkspaceDashboardSummary({ user: { id: "user-1" } }, "creator_studio", deps, { includeActivation: false });
+    assert.equal(result.ok, true);
+    assert.equal(Object.hasOwn(result, "activation"), false);
+    assert.equal(deps.listCalls.length, 1, "only the visible recent-activity list is read");
+  });
 });

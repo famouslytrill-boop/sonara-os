@@ -22,10 +22,10 @@ describe("premium public conversion experience", () => {
     for (const route of ["/business-builder", "/creator-studio", "/growth-studio"]) {
       assert.match(res.text, new RegExp(`href="${route}"`));
     }
-    for (const route of ["/business-builder/dashboard", "/creator-studio/dashboard", "/growth-studio/dashboard"]) {
-      assert.match(res.text, new RegExp(`href="${route}"`));
-    }
-    assert.match(res.text, /aria-label="Existing customer workspaces"/);
+    const existingCustomer = res.text.match(/<nav\b[^>]*aria-label="Existing customer workspaces"[^>]*>[\s\S]*?<\/nav>/);
+    assert.ok(existingCustomer, "existing customers should have one clear route to their workspace hub");
+    assert.match(existingCustomer[0], /href="\/dashboard"/);
+    assert.doesNotMatch(existingCustomer[0], /business-builder\/dashboard|creator-studio\/dashboard|growth-studio\/dashboard/);
   });
 
   it("keeps lifecycle and entitlement restrictions visible", async () => {

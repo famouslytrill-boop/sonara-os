@@ -10,6 +10,8 @@ const {
 const { isPasswordLeaked, LEAKED_PASSWORD_MESSAGE } = require("../lib/sonara-leaked-password.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { getGuide } = require("../lib/sonara-guides.cjs");
+const { UI_LOCALES, SUPPORTED_LOCALE_CODES, normalizeLocale } = require("../lib/sonara-locale-contract.cjs");
+const { renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -121,6 +123,15 @@ function registerRouteRegistryRoutes(app, deps) {
       actionCard("Growth Studio", "Attract customers, leads, and referrals with campaigns, follow-up, offers, and growth systems you can actually keep up with.", [linkAction("/growth-studio", "Explore Growth Studio"), linkAction("/tutorials/growth-studio", "Tutorial")])
     ],
     actions: [linkAction("/free-tools", "Try a free tool"), linkAction("/pricing", "See pricing"), linkAction("/start", "Get started")]
+  }));
+
+  app.get("/workspace-modules", requireCustomer, (req, res) => sendPage(res, {
+    title: "Workspace modules",
+    eyebrow: "Your workspaces",
+    heading: "Browse workspace modules",
+    body: "Choose a destination by workspace and purpose. Each link opens its registered page; setup and plan requirements are checked there.",
+    sections: [renderWorkspaceDirectory()],
+    actions: [linkAction("/dashboard", "All workspaces")]
   }));
 
   app.get("/free-tools", (req, res) => sendMarketingPage(res, {
@@ -306,8 +317,8 @@ function registerRouteRegistryRoutes(app, deps) {
       title: "Preferences",
       eyebrow: "Your account",
       heading: "Preferences",
-      body: result.ok ? "These settings are saved to your account and applied on this device when supported." : setupMessage,
-      sections: [`<form class="card" method="post" action="/account/preferences"><label>Appearance<select name="appearanceMode" data-sonara-appearance-select>${option("system", "System", preference.appearance_mode || "system")}${option("light", "Light", preference.appearance_mode)}${option("dark", "Dark", preference.appearance_mode)}</select></label><label>Language<select name="language">${option("en-US", "English (US)", preference.language || "en-US")}${option("es", "Español", preference.language)}${option("fr", "Français", preference.language)}${option("pt-BR", "Português (Brasil)", preference.language)}</select></label><label>Units<select name="unitSystem">${option("imperial", "US customary", preference.unit_system || "imperial")}${option("metric", "Metric", preference.unit_system)}</select></label><label>Time zone<input name="timezone" value="${escapeHtml(preference.timezone || "")}" maxlength="80" placeholder="America/New_York"></label><label><input type="checkbox" name="notificationsEnabled" value="true"${preference.notifications_enabled === false ? "" : " checked"}> Account notifications enabled</label><button type="submit">Save preferences</button></form>`],
+      body: result.ok ? "Account preferences are saved to your account. The Experience menu's interface language is saved separately on this device." : setupMessage,
+      sections: [`<form class="card" method="post" action="/account/preferences"><label>Appearance<select name="appearanceMode" data-sonara-appearance-select>${option("system", "System", preference.appearance_mode || "system")}${option("light", "Light", preference.appearance_mode)}${option("dark", "Dark", preference.appearance_mode)}</select></label><label>Account language<select name="language">${UI_LOCALES.map(({ code, language }) => option(code, language, normalizeLocale(preference.language || "en-US"))).join("")}</select></label><label>Units<select name="unitSystem">${option("imperial", "US customary", preference.unit_system || "imperial")}${option("metric", "Metric", preference.unit_system)}</select></label><label>Time zone<input name="timezone" value="${escapeHtml(preference.timezone || "")}" maxlength="80" placeholder="America/New_York"></label><label><input type="checkbox" name="notificationsEnabled" value="true"${preference.notifications_enabled === false ? "" : " checked"}> Account notifications enabled</label><button type="submit">Save preferences</button></form>`],
       actions: [linkAction("/settings", "Device settings"), linkAction("/account", "Account")]
     });
   });
@@ -317,7 +328,7 @@ function registerRouteRegistryRoutes(app, deps) {
     const language = String(req.body.language || "en-US");
     const unitSystem = String(req.body.unitSystem || "imperial");
     const timezone = String(req.body.timezone || "").trim().slice(0, 80) || null;
-    if (!["system", "light", "dark"].includes(appearanceMode) || !["en-US", "es", "fr", "pt-BR"].includes(language) || !["imperial", "metric"].includes(unitSystem)) {
+    if (!["system", "light", "dark"].includes(appearanceMode) || !SUPPORTED_LOCALE_CODES.includes(language) || !["imperial", "metric"].includes(unitSystem)) {
       return res.status(400).type("html").send(responsePage("Check your preferences", "Choose a supported appearance, language, and unit setting.", [linkAction("/account/preferences", "Try again")]));
     }
     const config = getSupabaseServerConfig();
