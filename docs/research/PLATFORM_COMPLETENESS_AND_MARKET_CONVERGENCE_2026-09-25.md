@@ -245,8 +245,29 @@ WebGPU and GPU acceleration are enhancement paths. No core workflow should fail 
 
 ## Owner/manual actions that remain outside source-only engineering
 
-- reconnect the local Desktop Commander host before local installs or local full-matrix execution can be performed remotely
-- approve any paid infrastructure or production environment that creates cost
+- run the database migration in the hosted Supabase project after the pull request is reviewed
 - supply/authorize production provider credentials without exposing them in chat or source
 - approve destructive production migrations or data deletion
 - approve final production publish/deploy/activation after exact-head evidence is green
+
+## Screenshot repair and implementation review — 2026-09-26
+
+The supplied mobile screenshots expose two concrete layout/auth defects and one product-structure defect:
+
+1. **Setup checklist words stack vertically.** The list is a two-column CSS grid: the generated step number occupies the first column, and the rest of each list item's direct children are independently auto-placed. The markup emitted `<strong>` and the following text as sibling grid items, so at the 708 px viewport the prose was placed in the narrow number column. Each row now wraps its label and prose in one width-constrained content element, preserving normal word wrapping at small widths.
+2. **Signed-in workspace navigation is inconsistent.** The global page frame previously always rendered public sign-in links; some protected pages separately rendered a sign-out form at the bottom. The frame now accepts an explicit authenticated state, provides one responsive account/menu system, and removes duplicate in-page sign-out actions. Account, preferences, support and sign-out stay together on mobile and desktop.
+3. **A dashboard was acting as an entire sitemap.** The Business Builder onboarding/dashboard route is intercepted by its data-backed control-plane module before the generic dashboard route. It rendered the product route registry as a long customer-facing list, while the shared dashboard independently loaded unrelated billing, deliverable and request summaries. The parent dashboard is now a 3-choice workspace hub with one organization-readiness notice. Business Builder keeps its saved-record snapshot, key modules and next useful action, without the registry dump. Workspace paths remain registered and are reached through the owning tool/module routes.
+
+The new hub routes map directly to the three registered workspaces. Screens describe unknown or failed reads as unavailable rather than as empty data. Owner/admin access gets an explicit explanation on setup and paid product pages. Sign-in is handled by the existing server session and cookie rotation; this repair changes the navigation around that flow, not its credential or cookie contract.
+
+The browser language menu and saved account language now share one canonical list: `en-US`, `es`, `fr`, `de`, and `pt-BR`; legacy `en` and `pt` browser preferences normalize to their canonical codes. The database constraint is extended idempotently for German. Browser catalogs translate only the interface strings actually present in the catalog. They do not claim to translate arbitrary customer content. The existing locale formatting APIs are the deterministic tool for number/date formatting; translation services remain optional governed adapters.
+
+For mobile controls, keep primary pointer targets at least 44 CSS pixels where the layout permits. WCAG 2.2 SC 2.5.8 sets a 24×24 CSS pixel minimum with spacing and other exceptions, not a blanket 44 px requirement; the 44 px implementation target is the product's more forgiving touch baseline. See the [W3C criterion](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum).
+
+### Open-source implementation path
+
+- **Translations:** keep message catalogs, glossary keys, human review, and saved source/target rows as the deterministic core. LibreTranslate can be self-hosted and its docs identify Argos Translate as its engine; evaluate exact model package licenses and language-pair quality before commercial use. A local model improves coverage but does not make a neural translation deterministic or guarantee quality. [LibreTranslate documentation](https://docs.libretranslate.com/), [installation and offline model option](https://docs.libretranslate.com/guides/build_from_sources/), [Argos Translate](https://www.argosopentech.com/).
+- **Audio/video:** use user-owned recordings, score/sample synthesis and transcript output for the deterministic baseline. Run FFmpeg as a pinned, isolated worker with fixed inputs, toolchain, fonts, timestamps and codec settings, then record output checksums. FFmpeg's `bitexact` flag limits platform/build/time-dependent data, but its documentation does not promise that every arbitrary codec, hardware path or media model yields identical bytes. [FFmpeg bitexact option](https://www.ffmpeg.org/ffmpeg-all.html).
+- **Design and access:** keep 3 focused workspace choices, concise route actions, keyboard/touch behavior, and readable zero/setup/failure states. Reuse interaction patterns rather than copying the identity of popular apps. Treat contrast, keyboard operation and target sizing as testable acceptance criteria; the screen should reflow without horizontal scrolling at the supplied phone width.
+
+The existing broad 2026 market/domain map above is still the research source of truth for vertical expansion. This repair is intentionally a reusable platform improvement rather than adding unverified product promises for every named industry. Before a new vertical is marketed, prove its route, schema owner, tenant policy, workflow, support path, adapter and empty/failure states in the current repository.

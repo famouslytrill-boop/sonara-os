@@ -2,8 +2,8 @@
 // Proprietary source. No licence is granted; see LICENSE.
 "use strict";
 
-const { ROUTE_REGISTRY, plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const { accessCard } = require("../lib/sonara-shell.cjs");
 const {
   evaluateIntegrationActivation,
   requiresActivationReview
@@ -387,16 +387,17 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
         launchPath(),
         '<span hidden aria-hidden="true">Create or attach organization</span><span hidden aria-hidden="true">profiles, organizations, and organization_memberships</span>'
       ],
-      actions: [linkAction("/login", "Log in"), linkAction("/support", "Get help")]
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")],
+      authenticated: true
     }));
   }
 
   async function renderBusinessBuilderDashboard(req, res) {
     const ctx = await context(req);
-    if (!ctx.ok) return res.status(200).type("html").send(onboardingPage());
+    if (!ctx.ok) return res.status(200).type("html").send(onboardingPage(req.sonaraAccess));
     const businesses = await listBusinesses(ctx);
     if (!businesses.ok) return res.status(503).type("html").send(friendlyPage("Business Builder is temporarily unavailable", "Your records are safe. Try again in a moment.", [linkAction("/business-builder/dashboard", "Try again"), linkAction("/support", "Get help")]));
-    if (!businesses.rows.length) return res.status(200).type("html").send(onboardingPage());
+    if (!businesses.rows.length) return res.status(200).type("html").send(onboardingPage(req.sonaraAccess));
     if (businesses.rows.length > 1) return res.status(200).type("html").send(controlCenterPage(businesses.rows));
     const business = businesses.rows[0];
     const snapshot = await dashboardSnapshot(ctx, business.id);
@@ -416,7 +417,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "Your private workspace could not be prepared yet.", [linkAction("/support", "Get help")]));
     const result = await listBusinesses(ctx);
     if (!result.ok) return res.status(503).type("html").send(friendlyPage("Business Builder is temporarily unavailable", "Your records are safe. Try again shortly.", [linkAction("/business-builder/control-center", "Try again")]));
-    return res.status(200).type("html").send(result.rows.length ? controlCenterPage(result.rows) : onboardingPage());
+    return res.status(200).type("html").send(result.rows.length ? controlCenterPage(result.rows) : onboardingPage(req.sonaraAccess));
   });
 
   app.get("/business-builder/businesses", workspaceAccess, (req, res) => res.redirect(302, "/business-builder/control-center"));
@@ -665,17 +666,15 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return res.status(200).type("html").send(businessDashboardPage(loaded.business, snapshot));
   });
 
-  function onboardingPage() {
+  function onboardingPage(access) {
     return layout({
       title: "Build your business",
       eyebrow: "Business Builder",
       heading: "What business are you building?",
       body: "Start with the basics. SONARA will create the operating workspace, then guide you through offers, customers, sales, bookings, team, inventory, and daily work.",
-      // The index goes here as well as on the dashboard with a business,
-      // because an owner who has not created one yet is exactly the person who
-      // cannot find anything.
-      sections: [createBusinessForm(), launchPath(), workspaceIndexSection(), '<span hidden aria-hidden="true">Business Builder Dashboard</span><span hidden aria-hidden="true">Logout</span>'],
-      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")]
+      sections: [...(access?.ownerOverride ? [accessCard(access)] : []), createBusinessForm(), launchPath()],
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")],
+      authenticated: true
     });
   }
 
@@ -687,35 +686,9 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       heading: "Your businesses",
       body: "Choose a business to run, or add another one. Each business keeps its own customers, offers, orders, bookings, team, inventory, locations, and records.",
       sections: [`<section class="bb-business-list">${businessCards}</section>`, `<details class="bb-add-business"><summary>Add another business</summary>${createBusinessForm()}</details>`],
-      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/pricing", "Plan & billing"), linkAction("/support", "Support")]
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/business-builder/tools", "Free tools"), linkAction("/support", "Support")],
+      authenticated: true
     });
-  }
-
-  // Every Business Builder page, generated from the route registry.
-  //
-  // This dashboard intercepts GET /business-builder/dashboard before the
-  // per-slug handler, so the workspace index that handler adds never rendered
-  // here -- Creator Studio and Growth Studio got it and Business Builder did
-  // not. Twenty-five of its pages were registered, rendering, and reachable
-  // only by typing the URL.
-  //
-  // Generated rather than listed, for the same reason as everywhere else: a
-  // hand-kept list beside the registry that defines the pages falls behind it.
-  function workspaceIndexSection() {
-    const pages = ROUTE_REGISTRY.filter(
-      (entry) =>
-        entry.method === "GET" &&
-        entry.productOwner === "business_builder" &&
-        !entry.route.includes(":") &&
-        !entry.route.startsWith("/api/")
-    );
-    if (pages.length === 0) return "";
-    const items = pages
-      .map((entry) => `<li><a href="${escapeHtml(entry.route)}">${escapeHtml(plainRouteTitle(entry))}</a></li>`)
-      .join("");
-    return `<section class="card"><h2>Everything in this workspace</h2><p>${escapeHtml(
-      `All ${pages.length} pages, including the ones no other screen links to.`
-    )}</p><ul>${items}</ul></section>`;
   }
 
   function businessDashboardPage(business, snapshot) {
@@ -730,10 +703,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
         `<section class="bb-today"><div><span class="sonara-kicker">Next best action</span><h2>${escapeHtml(next.title)}</h2><p>${escapeHtml(next.body)}</p><a class="action" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></div>${businessSnapshot(snapshot)}</section>`,
         `<section class="bb-module-grid">${moduleCards}</section>`,
         businessProfileEditor(business),
-        ownershipSection(business.id, escapeHtml),
-        workspaceIndexSection()
+        ownershipSection(business.id, escapeHtml)
       ],
-      actions: [linkAction("/business-builder/control-center", "All businesses"), linkAction("/business-builder/billing", "Plan & billing"), linkAction("/support", "Support")]
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/business-builder/control-center", "All businesses"), linkAction("/support", "Support")],
+      authenticated: true
     });
   }
 
@@ -746,12 +719,13 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       sections: [
         `<section class="bb-resource-shell"><div class="bb-resource-main">${recordList(business.id, key, definition, rows)}</div><aside class="bb-resource-form">${resourceForm(business.id, key, definition)}</aside></section>`
       ],
-      actions: [linkAction(`/business-builder/businesses/${business.id}`, "Business home"), linkAction("/business-builder/control-center", "All businesses")]
+      actions: [linkAction(`/business-builder/businesses/${business.id}`, "Business home"), linkAction("/business-builder/control-center", "All businesses")],
+      authenticated: true
     });
   }
 
   function friendlyPage(title, body, actions) {
-    return layout({ title, eyebrow: "Business Builder", heading: title, body, sections: [], actions });
+    return layout({ title, eyebrow: "Business Builder", heading: title, body, sections: [], actions, authenticated: true });
   }
 
   return app;

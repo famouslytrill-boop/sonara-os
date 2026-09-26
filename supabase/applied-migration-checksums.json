@@ -129,5 +129,6 @@
   "20260926025412_translation_records_and_glossary.sql": "3c8948170c051f7f4791b90aee8bd3ecefc961cf931462140fd5723a51f81ae2",
   "20260926025656_translation_policy_and_index_hardening.sql": "43f6c5dc749951e54fdaaf00e1ae7a5ede19528ca6db7d2bf14460c1aca97d5e",
   "20260926033255_translation_authenticated_read_only.sql": "b079f2c7b28b168ae7ac5aca3968707323a5740d875621d4ff79550589a5109b",
-  "20260926033557_translation_data_api_grants.sql": "19f3078405364d34225e5f61e3a9130a20272186ecf2c05b26d3e2cf7a6006be"
+  "20260926033557_translation_data_api_grants.sql": "19f3078405364d34225e5f61e3a9130a20272186ecf2c05b26d3e2cf7a6006be",
+  "20260926040000_align_user_preference_locales.sql": "cdb92fca405732b322d9d8f53b1799e272822f63864f5d15031cb5f778cce831"
 }

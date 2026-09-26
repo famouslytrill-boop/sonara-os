@@ -161,6 +161,14 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
 .sonara-mobile-menu{display:none;margin-left:auto}.sonara-mobile-menu>summary{min-width:44px;min-height:44px;padding:10px 12px;display:grid;place-items:center;border:1px solid var(--nx-line);border-radius:12px;background:var(--nx-surface);color:var(--nx-ink);font-weight:800;cursor:pointer;list-style:none}
 .sonara-mobile-menu>nav{position:absolute;top:100%;left:0;right:0;padding:12px max(12px,calc((100% - var(--nx-content))/2));display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border-bottom:1px solid var(--nx-line);background:color-mix(in srgb,var(--nx-bg) 96%,transparent);box-shadow:var(--nx-shadow);backdrop-filter:blur(18px)}
 .sonara-mobile-menu a{width:100%;justify-content:flex-start;white-space:normal}
+.sonara-mobile-menu form{margin:0;min-width:0}
+.sonara-mobile-menu form button{width:100%;justify-content:flex-start}
+.sonara-workspace-choices{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.sonara-workspace-choice{display:flex;min-width:0;min-height:0;flex-direction:column;justify-content:space-between;gap:24px;padding:24px}
+.sonara-workspace-choice h2{margin:0 0 8px;font-size:clamp(22px,2.2vw,30px);line-height:1.08;overflow-wrap:anywhere}
+.sonara-workspace-choice p{margin:0;color:var(--nx-muted);line-height:1.55}
+.sonara-workspace-choice .action{width:100%;justify-content:center}
+.sonara-workspace-notice{grid-column:1/-1}
 /* A closed <details> does not stop an absolutely positioned child being laid
    out. Measured: ten menu links sitting at right=440 in a 390px viewport while
    the menu was shut -- off-screen, but still in the tab order and still found
@@ -304,10 +312,12 @@ html.sonara-leaving main{opacity:.88;transition:opacity .12s ease}
 
 @media(max-width:920px){
   .sonara-desktop-nav{display:none}.sonara-mobile-menu{display:block}
+  .sonara-account-menu{display:none}
   .sonara-header-tools{margin-left:auto}
   .hero{grid-template-columns:1fr;min-height:auto;padding-top:62px}
   .sonara-hero-scene{min-height:390px}.sonara-prism-stage{width:min(390px,90%)}
   .sonara-product-grid,.sonara-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sonara-workspace-choices{grid-template-columns:1fr}
   .sonara-flow{grid-template-columns:1fr}
   .sonara-cta{grid-template-columns:1fr;align-items:start}.sonara-cta .card-actions{justify-content:flex-start}
 }
