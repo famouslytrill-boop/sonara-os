@@ -11,6 +11,7 @@ const {
 } = require("../lib/creator-music-system-config.cjs");
 const { workflowTemplates, planMediaWorkflow, buildGenerationJobs } = require("../lib/sonara-creator-media-workflows.cjs");
 const { templates: automationTemplates, validateWorkflow } = require("../lib/sonara-workflow-planner.cjs");
+const { makeMelodyScore, renderScoreWav, renderTranscriptVtt } = require("../lib/sonara-deterministic-media.cjs");
 
 module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
@@ -40,6 +41,16 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
           "Production workflows",
           `${mediaTemplates.length} provider-neutral audio/video workflow templates are available through /api/creator/workflows/templates. Planning a workflow never pretends a render happened; worker/provider steps stay marked setup required until a real adapter is configured.`
         ),
+        `<article class="card"><h2>Download an original sound</h2><p>Enter 1 to 16 notes as eighth notes (C3–B5, #, b, or - for a rest). This creates a real mono WAV file on this server without a model or a provider. It is a simple tone sequence, not natural speech.</p>
+<form method="post" action="/api/creator/media/score.wav">
+<label for="score-notes">Notes</label> <input id="score-notes" name="notes" type="text" required maxlength="80" placeholder="C4 E4 G4 C5" autocomplete="off">
+<label for="score-bpm">Tempo (BPM)</label> <input id="score-bpm" name="bpm" type="number" min="60" max="180" value="120" required>
+<button type="submit">Download WAV</button></form></article>`,
+        `<article class="card"><h2>Download captions</h2><p>Type an approved transcript and its duration. The resulting WebVTT file can be attached to your own video. This does not transcribe or translate speech.</p>
+<form method="post" action="/api/creator/media/captions.vtt">
+<label for="caption-text">Transcript</label> <textarea id="caption-text" name="text" required maxlength="500" rows="3"></textarea>
+<label for="caption-seconds">Duration in seconds</label> <input id="caption-seconds" name="durationSeconds" type="number" min="1" max="60" value="10" required>
+<button type="submit">Download captions</button></form></article>`,
         ...CREATOR_MUSIC_SYSTEM_TABLES.map((table) => brandCard(CREATOR_MUSIC_PUBLIC_LABELS[table] || table, "Ready for saved records."))
       ]
     }));
@@ -115,7 +126,37 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
     const validated = validateWorkflow(req.body || {});
     return res.status(validated.ok ? 200 : 400).json(validated);
   });
+
+  // Pure, bounded exports: no tenant record, external provider, GPU worker,
+  // recording, voice reference, or production database write is involved.
+  app.post("/api/creator/media/score.wav", access, (req, res) => {
+    try {
+      const wav = renderScoreWav(makeMelodyScore(req.body));
+      return res.status(200).set({ "Content-Type": "audio/wav", "Content-Disposition": 'attachment; filename="sonara-score.wav"', "Cache-Control": "private, no-store" }).send(wav);
+    } catch (error) {
+      if (!(error instanceof TypeError || error instanceof RangeError)) throw error;
+      return mediaInputError(req, res, error.message, layout, linkAction);
+    }
+  });
+
+  app.post("/api/creator/media/captions.vtt", access, (req, res) => {
+    try {
+      const vtt = renderTranscriptVtt(req.body);
+      return res.status(200).set({ "Content-Type": "text/vtt; charset=utf-8", "Content-Disposition": 'attachment; filename="sonara-captions.vtt"', "Cache-Control": "private, no-store" }).send(vtt);
+    } catch (error) {
+      if (!(error instanceof TypeError || error instanceof RangeError)) throw error;
+      return mediaInputError(req, res, error.message, layout, linkAction);
+    }
+  });
 };
+
+function mediaInputError(req, res, message, layout, linkAction) {
+  if (!req.accepts("html")) return res.status(400).json({ ok: false, code: "invalid_media_input", message });
+  return res.status(400).type("html").send(layout({
+    title: "Check your media input", eyebrow: "Creator Studio", heading: "Check your media input",
+    body: message, sections: [], actions: [linkAction(CREATOR_MUSIC_ROUTES.home, "Return to Music System")]
+  }));
+}
 
 function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
