@@ -64,6 +64,7 @@ const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-cu
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createActivityEventWriter } = require("./lib/sonara-activity-writer.cjs");
 const { getWorkspaceDashboardSummary: summarizeWorkspaceDashboard } = require("./lib/sonara-workspace-dashboard-summary.cjs");
+const { getPlatformCompletenessSummary } = require("./lib/sonara-platform-completeness.cjs");
 const {
   splitList,
   listFieldsWithNothingIn,
@@ -1875,13 +1876,22 @@ app.get("/admin/catalog", requireAdmin, async (req, res) => {
 app.get("/admin/system", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "admin.system.view", { path: req.path });
   const readiness = await getLiveReadiness();
+  const platformSummary = getPlatformCompletenessSummary();
   return res.status(200).type("html").send(
     layout({
       title: "System",
       eyebrow: "Founder operations",
       heading: "System status",
-      body: "Non-secret system readiness and route map for launch operations.",
-      sections: [deploymentCard(), ...readinessCards(readiness), ...getRouteMapCards()],
+      body: "Non-secret system readiness, route map, capability ownership, and deterministic output requirements for launch operations.",
+      sections: [
+        brandCard(
+          "Platform completeness contract",
+          `${platformSummary.capabilities.length} canonical capabilities across ${platformSummary.domainFamilies.length} domain families. Contract validation: ${platformSummary.contractStatus}. Covered outputs: ${platformSummary.outputs.join(", ")}. ${platformSummary.note}`
+        ),
+        deploymentCard(),
+        ...readinessCards(readiness),
+        ...getRouteMapCards()
+      ],
       actions: adminActions()
     })
   );

@@ -2071,6 +2071,11 @@ describe("auth and admin", () => {
       assert.match(res.text, /Founder operations/);
       assert.doesNotMatch(res.text, /owner-session/);
       assert.doesNotMatch(res.text, /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
+      if (route === "/admin/system") {
+        assert.match(res.text, /Platform completeness contract/);
+        assert.match(res.text, /Covered outputs: text, image, audio, video, map, data, file/);
+        assert.match(res.text, /does not prove each capability is deployed/i);
+      }
     }
     mock.restore();
   });

@@ -26,16 +26,17 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// The files that render the live research-lab surface. Named rather than
-// globbed over routes/, because "some file somewhere" is a weaker statement
-// than "these files", and the weaker one passes when a page moves out.
+// Files that render live research surfaces. Named rather than globbed, because
+// "some file somewhere" is a weaker statement than "these files", and the
+// weaker one passes when a page moves out.
 const SURFACES = [
   "routes/sonara-open-source-routes.cjs",
   "routes/sonara-huggingface-routes.cjs",
   "routes/sonara-requested-repositories-routes.cjs",
   "routes/sonara-subsystem-routes.cjs",
   "lib/sonara-open-source-registry.cjs",
-  "lib/sonara-subsystem-registry.cjs"
+  "lib/sonara-subsystem-registry.cjs",
+  "public/research-2026-market-expansion.html"
 ];
 
 // A claim of shipped relationship. "integrated" alone is not the problem --
