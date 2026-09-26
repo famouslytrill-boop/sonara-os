@@ -180,6 +180,12 @@ describe("form reachability", () => {
     }
   });
 
+  it("counts actual media-download form actions with file extensions", () => {
+    const forms = literalFormActions();
+    assert.ok(forms.has("/api/creator/media/score.wav"));
+    assert.ok(forms.has("/api/creator/media/captions.vtt"));
+  });
+
   it("finds enough create endpoints to be measuring something", () => {
     assert.ok(creates.length >= 40, `only ${creates.length} create-shaped endpoints found; this check has gone blind`);
   });

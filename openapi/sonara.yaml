@@ -2043,6 +2043,40 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+  /api/creator/media/score.wav:
+    post:
+      operationId: downloadCreatorScoreWav
+      tags: [Creator Studio]
+      summary: Render a bounded note sequence to a provider-free PCM WAV download.
+      description: Requires Creator Studio workspace access; renders only simple tones, not speech. No record is saved.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/MediaScore" }
+      responses:
+        "200":
+          description: Private, noncached 24 kHz mono PCM WAV attachment.
+          content:
+            audio/wav:
+              schema: { type: string, format: binary }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/creator/media/captions.vtt:
+    post:
+      operationId: downloadCreatorCaptionsVtt
+      tags: [Creator Studio]
+      summary: Render approved transcript text to a WebVTT attachment without transcription.
+      description: Requires Creator Studio workspace access; customer supplies text and its duration. No record is saved.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/MediaCaptions" }
+      responses:
+        "200":
+          description: Private, noncached WebVTT caption attachment.
+          content:
+            text/vtt:
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/sensory/profiles:
     get:
       operationId: listSensoryProfiles
@@ -3302,6 +3336,20 @@ components:
           schema: { $ref: "#/components/schemas/JsonObject" }
         application/x-www-form-urlencoded:
           schema: { $ref: "#/components/schemas/JsonObject" }
+    MediaScore:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/MediaScoreInput" }
+        application/x-www-form-urlencoded:
+          schema: { $ref: "#/components/schemas/MediaScoreInput" }
+    MediaCaptions:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/MediaCaptionsInput" }
+        application/x-www-form-urlencoded:
+          schema: { $ref: "#/components/schemas/MediaCaptionsInput" }
     StripeEvent:
       required: true
       content:
@@ -3361,6 +3409,18 @@ components:
     JsonObject:
       type: object
       additionalProperties: true
+    MediaScoreInput:
+      type: object
+      required: [notes, bpm]
+      properties:
+        notes: { type: string, minLength: 1, maxLength: 80, description: "1 to 16 space-separated note names from C3 through B5; - is a rest." }
+        bpm: { type: [number, string], description: "Tempo from 60 to 180 BPM." }
+    MediaCaptionsInput:
+      type: object
+      required: [text, durationSeconds]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 500, description: "Customer-approved plain transcript text." }
+        durationSeconds: { type: [number, string], description: "One cue with a duration from 1 to 60 seconds." }
     SuccessResponse:
       type: object
       required: [ok]
