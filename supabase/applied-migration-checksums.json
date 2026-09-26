@@ -124,5 +124,10 @@
   "20260922100000_harden_unreferenced_authorization_rpc_grants.sql": "241176c1e5b569afc5075bd839ca6c88f6f6cce29a16b8c3edca036c4e7a3d80",
   "20260923020000_business_work_order_job_lifecycle.sql": "581cbed3eeac28833d91fbd9dc7f41fbf2663f2e8266fe5f1f96fecbe546a09f",
   "20260913193000_member_read_policies_purchase_orders.sql": "4e2d4398f532cf154f6687bcaa9b47313295b5d965c831faf8e999d28a87432a",
-  "20260923015900_restore_files_replay_precondition.sql": "6455f826579b2ec119844768e25b46bc04557eb18528ff36ec223a5f5b1f555f"
+  "20260923015900_restore_files_replay_precondition.sql": "6455f826579b2ec119844768e25b46bc04557eb18528ff36ec223a5f5b1f555f",
+  "20260926025411_durable_worker_contract.sql": "9a77443d09fd6b693c166b738d3bd80e43a02a68209b65b134b05a15db1e680d",
+  "20260926025412_translation_records_and_glossary.sql": "3c8948170c051f7f4791b90aee8bd3ecefc961cf931462140fd5723a51f81ae2",
+  "20260926025656_translation_policy_and_index_hardening.sql": "43f6c5dc749951e54fdaaf00e1ae7a5ede19528ca6db7d2bf14460c1aca97d5e",
+  "20260926033255_translation_authenticated_read_only.sql": "b079f2c7b28b168ae7ac5aca3968707323a5740d875621d4ff79550589a5109b",
+  "20260926033557_translation_data_api_grants.sql": "19f3078405364d34225e5f61e3a9130a20272186ecf2c05b26d3e2cf7a6006be"
 }

@@ -6,6 +6,9 @@ const {
   DATABASE_SCHEMAS,
   DATABASE_TABLE_GROUPS,
   DATABASE_TABLES,
+  DURABLE_EVENT_FOUNDATION_TABLES,
+  DURABLE_WORKER_FUNCTIONS,
+  TRANSLATION_FOUNDATION_TABLES,
   STORAGE_BUCKETS
 } = require("../lib/sonara-database-contract.cjs");
 
@@ -97,6 +100,15 @@ describe("Supabase database contract", () => {
       const normalized = signature.toLowerCase();
       assert.ok(sql.includes(`'${normalized}'`) || sql.includes(normalized), `${signature} must be checked or declared by the migrations`);
     }
+  });
+
+  it("reviews the additive durable worker and translation extensions", () => {
+    assert.ok(DURABLE_EVENT_FOUNDATION_TABLES.includes("platform_job_events"));
+    assert.deepEqual(DURABLE_WORKER_FUNCTIONS, [
+      "public.claim_platform_job(text,text)",
+      "public.enqueue_platform_job(text,text,jsonb,integer,integer)"
+    ]);
+    assert.deepEqual(TRANSLATION_FOUNDATION_TABLES, ["translation_records", "translation_glossary_terms"]);
   });
 
   it("repairs the known production operations-table drift additively", () => {
