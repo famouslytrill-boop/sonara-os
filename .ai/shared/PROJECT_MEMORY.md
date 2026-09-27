@@ -14,15 +14,22 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Production: `https://sonaraindustries.com` on Vercel.
 - Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
 
-## Batch 1-10 convergence
+## Batch convergence (research through Batch 19)
 
-- `lib/sonara-batch-convergence-engine.cjs` aggregates Batches 1–10 plus the requested-repository registry and maintained formal open-source registry.
+- `lib/sonara-batch-convergence-engine.cjs` aggregates screenshot and operational research through Batch 19 plus the requested-repository registry and maintained formal open-source registry.
 - `data/open-source-tools.ts`, read through `lib/sonara-open-source-registry.cjs`, is the maintained adoption/licence decision surface. Its stricter decision wins over older screenshot/intake metadata when records conflict.
 - `lib/sonara-source-evidence-register.cjs` maps uploaded PDFs, diagrams, graphs, design documents, model registries, research reports, and Batch 10 visual evidence into bounded source-derived requirements. Source evidence is not executable authority.
 - `lib/sonara-model-engine-control-plane.cjs` classifies explicit model/engine runtime placement and all converged repositories into permissive candidates, copyleft review, blocked/unknown, or research-only groups.
 - `lib/sonara-agent-skill-strategies.cjs` is the shared strategy contract for Claude and ChatGPT/Codex. Skills do not grant credentials, connected-app access, provider access, tenant access, or release authority.
 - Claude repository work uses `.claude/skills/governed-batch-convergence/SKILL.md`.
 - ChatGPT/Codex repository work uses `AGENTS.md` plus `.ai/shared/CHATGPT_CODEX_BATCH_1_10_STRATEGY.md`. This does not mean a ChatGPT app/plugin is installed; workspace/user authorization remains separate.
+
+### 2026-09-27 screenshot research intake
+
+- Batch 19 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BATCH19.md` and cataloged by `lib/sonara-screenshot-tool-radar-batch19.cjs`; its public and founder readiness routes remain non-executing.
+- Batch 19 records 17 source-checked repositories, 15 hosted/educational/unresolved references and 8 deduplicated existing sources. License exceptions, per-skill licenses, user data, model weights, and public-data terms are item-specific.
+- `lib/sonara-agent-skill-strategies.cjs` includes Batch 19 patterns for reusable skill contracts and typed business decisions. Skill metadata does not grant tools, permissions, provider access, tenant scope or release authority.
+- The six architecture patterns cover skill assurance/supply chain, known-choice deterministic decisions, isolated code visualization, user-controlled media retention and public-data provenance/uncertainty. No external project code or dependencies were installed.
 
 ### 2026-09-18 cross-host repository intake
 

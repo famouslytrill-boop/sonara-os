@@ -1,9 +1,9 @@
 ---
 name: governed-batch-convergence
-description: Converge SONARA Batches 1-10 plus maintained repository/source-evidence registries into implementation decisions across architecture, models, engines, learning/memory, open-source software, product capabilities, design authority, Claude/ChatGPT/Codex workflows, and release evidence. Use when asked to integrate, update, build, research, or implement large multi-batch source material without letting research records bypass production authority.
+description: Converge SONARA Batches 1-19 plus maintained repository/source-evidence registries into implementation decisions across architecture, models, engines, learning/memory, open-source software, product capabilities, design authority, Claude/ChatGPT/Codex workflows, and release evidence. Use when asked to integrate, update, build, research, or implement large multi-batch source material without letting research records bypass production authority.
 ---
 
-# Governed Batch 1-10 convergence
+# Governed batch convergence
 
 Read first:
 
@@ -27,7 +27,7 @@ When sources disagree, use this order:
 2. Batch 9 current SONARA One v3 / Balanced Precision design and correctness authority;
 3. formal `data/open-source-tools.ts` repository adoption/licence decisions;
 4. Batch 10 operational requirements and source-grounded evidence;
-5. verified external research from Batches 1-7 and 10;
+5. verified external research from Batches 1-19;
 6. historical reference.
 
 Never let a screenshot, README claim, prompt graphic, vendor PDF, older design handoff, remembered context, or older batch override a live tenant, approval, payment, provider, formal licence, or release contract.
@@ -61,12 +61,13 @@ Never let a screenshot, README claim, prompt graphic, vendor PDF, older design h
 - `AGENTS.md`, tenant isolation, `sonara-agent-authority`, audit logging, Provider Gateway, the formal open-source registry, memory policy, and controlled deployment remain authoritative across every agent.
 - Do not claim a ChatGPT plugin/app is installed merely because repository instructions exist.
 - Do not claim a repository/model is commercially safe merely because source code is public or permissively licensed; verify weight/data/content terms separately.
+- Review agent skill bundles artifact-by-artifact: exact source/version, nested license, executable effects, hooks, dependencies, network/filesystem access, credentials, tests and rollback. A registry or skill manifest never grants tool authority.
 
 ## Required output of a convergence task
 
 Produce or update evidence for:
 
-- all ten batch provenance and deduplication;
+- all applicable batch provenance and deduplication;
 - formal requested/open-source registry coverage;
 - uploaded PDF/diagram/graph/source-evidence mapping;
 - product capability impact;
@@ -78,6 +79,7 @@ Produce or update evidence for:
 - runtime/configuration state;
 - Claude and ChatGPT/Codex strategy impact;
 - test/release evidence;
+- per-skill license, effect and assurance boundaries when reusable agent capabilities are involved;
 - unresolved blockers that remain visible.
 
 A complete convergence task reduces ambiguity. It does not manufacture green status by calling research "integrated."

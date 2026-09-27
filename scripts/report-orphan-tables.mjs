@@ -43,6 +43,10 @@ const INVENTORIES = [
   "lib/sonara-tenant-scoped-tables.cjs",
   "lib/sonara-member-read-policies.cjs",
   "lib/sonara-orphan-tables.cjs",
+  // The capability map lists every active table and its migrations for
+  // reference. Like the other generated contracts, that inventory is not a
+  // runtime query and must not make an unused table appear in use.
+  "data/capability-inventory.json",
   "scripts/generate-tenant-scoped-tables.cjs",
   "scripts/generate-member-read-policies.cjs",
   "scripts/report-orphan-tables.mjs",
