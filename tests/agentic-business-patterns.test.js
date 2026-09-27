@@ -36,6 +36,8 @@ describe("agent execution patterns and business AI control plane", () => {
     assert.ok(BUSINESS_AI_SKILLS.some((item) => item.products.includes("Business Builder")));
     assert.ok(BUSINESS_AI_SKILLS.some((item) => item.products.includes("Creator Studio")));
     assert.ok(BUSINESS_AI_SKILLS.some((item) => item.products.includes("Growth Studio")));
+    assert.ok(BUSINESS_AI_SKILLS.find((item) => item.key === "data_analysis_with_ai").outcomes.includes("typed_decisions"));
+    assert.ok(BUSINESS_AI_SKILLS.find((item) => item.key === "data_analysis_with_ai").outcomes.includes("confidence_calibration"));
   });
 
   it("records GPT-6 Astra only as verified configuration metadata", () => {
@@ -59,6 +61,8 @@ describe("agent execution patterns and business AI control plane", () => {
     assert.equal(catalog.strategyCount, SKILL_STRATEGIES.length);
     assert.ok(SKILL_STRATEGIES.some((item) => item.key === "agent_execution_pattern_routing"));
     assert.ok(SKILL_STRATEGIES.some((item) => item.key === "business_ai_capability_delivery"));
+    assert.ok(SKILL_STRATEGIES.some((item) => item.key === "reusable_agent_skill_contracts"));
+    assert.ok(SKILL_STRATEGIES.some((item) => item.key === "typed_business_decisions"));
     assert.match(catalog.businessAI.publicClaimPolicy, /must not be marketed as live/i);
     assert.ok(catalog.boundaries.some((item) => /tenant isolation/i.test(item)));
   });

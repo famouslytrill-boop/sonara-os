@@ -7,6 +7,7 @@ const { getMarketExpansionRegistry } = require("../lib/sonara-market-expansion-r
 const { getMarketExpansionSchemaPlan } = require("../lib/sonara-market-expansion-schema-plan.cjs");
 const { getIndustryAlgorithmExpansion } = require("../lib/sonara-industry-algorithm-expansion.cjs");
 const { getThirdSearchConvergence } = require("../lib/sonara-third-search-convergence.cjs");
+const { SKILL_STRATEGIES } = require("../lib/sonara-agent-skill-strategies.cjs");
 const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
 const { STATUS, getCreatorStudioMarketRadar2026 } = require("../lib/creator-studio-market-radar-2026.cjs");
 
@@ -61,7 +62,7 @@ describe("SONARA ecosystem manifest", () => {
     const convergence = getThirdSearchConvergence();
     assert.equal(convergence.authority, "research_and_source_convergence_only");
     assert.equal(convergence.inventory.governedRepositoryRecords, readOpenSourceTools().length);
-    assert.equal(convergence.inventory.sharedAgentStrategies, 11);
+    assert.equal(convergence.inventory.sharedAgentStrategies, SKILL_STRATEGIES.length);
     assert.equal(convergence.inventory.sourceEvidenceRecords, 14);
     assert.ok(convergence.inventory.deterministicFormulas >= 30);
     assert.equal(convergence.deliveryFoundation.sourceStatus, "implemented_in_source_pending_controlled_migration");

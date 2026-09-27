@@ -9,7 +9,7 @@ Turn an external-tool lead into a verified SONARA decision without importing unk
 ## Procedure
 
 1. **Identify the real upstream.** Resolve the exact `owner/repository`. Do not guess from a screenshot. If identity is uncertain, stop at `unverified` rather than manufacturing a URL.
-2. **Verify current facts.** Read repository metadata, README, license, release/activity state, runtime/language, security/advisory state when relevant, and the smallest relevant source/config files. Social copy is not evidence.
+2. **Verify current facts.** Read repository metadata, README, license, release/activity state, runtime/language, security/advisory state when relevant, and the smallest relevant source/config files. Record the authoritative URLs and checked-on date. Social copy is not evidence.
 3. **Classify the capability.** Choose the narrowest placement: reference only, local developer tool, documentation worker, browser worker, media worker, document worker, security lab, provider-routing experiment, optional adapter, or blocked.
 4. **Check legal and commercial boundaries.** Verify the actual license file, not a badge. Separate code license from model weights, templates, media, generated assets, datasets, fonts, API/service terms, social-platform terms, and affiliate/vendor claims. A public repository without a license is not automatically open source.
 5. **Check security boundaries.** List secrets, filesystem access, network egress, shell execution, browser control, telemetry, customer-data access, tenant isolation, destructive actions, resource exhaustion, and current security advisories.
@@ -88,6 +88,12 @@ The fourth 2026-09-14 batch is documented in `docs/research/SCREENSHOT_TOOL_RADA
 - Archify and three.ws were repeated screenshots and remain deduplicated in Batch 3. BreachLab remains a hosted-service reference rather than an executable repository record.
 
 The consolidated 2026-09-15 Batch 7 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-15_BATCH7.md` and represented in `lib/sonara-screenshot-tool-radar-batch7.cjs`. It includes the later specification, OCR, memory, evaluation, feature-flag, communications, desktop, business-operations, agent-platform, and restricted-security leads. The aggregate API and readiness views include Batches 5 through 7; all remain disabled research records.
+
+The 2026-09-22 Batch 18 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH18.md` and represented in `lib/sonara-screenshot-tool-radar-batch18.cjs`. It covers agent loops, retrieval, memory, local execution, model routing and workflow reliability. Those patterns are architecture research only and do not authorize a framework or runtime change.
+
+The 2026-09-27 Batch 19 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BATCH19.md` and represented in `lib/sonara-screenshot-tool-radar-batch19.cjs`. It covers agent-skill contracts, coding workspaces, media capture, algorithm visualization, robotics and video research, model catalogs, learning workflows, public-data visualization and personal job-search tools. Record source evidence and each nested license separately. Every candidate stays disabled; ambiguous owners remain unresolved; previously governed sources stay deduplicated.
+
+Batch 19 contributes six bounded architecture patterns: tested skill contracts, per-artifact supply-chain review, typed deterministic decisions for known-choice tasks, isolated user-code visualization, user-controlled media capture/retention, and public-data provenance/uncertainty. It does not install Skillware, Ponytail, OpenWork, Cap, a model, or any other screenshot project.
 
 ## Output format for future intakes
 

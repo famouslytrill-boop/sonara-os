@@ -19,12 +19,14 @@ Read these first:
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-14_BATCH4.md`
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH17.md` for decision/design/finance/memory intake
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH18.md` for the latest agent/RAG/infrastructure/system-design intake
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BATCH19.md` for agent skills, business applications, media, code education and public-data references
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
 - `lib/sonara-screenshot-tool-radar-batch4.cjs`
 - `lib/sonara-screenshot-tool-radar-batch17.cjs`
 - `lib/sonara-screenshot-tool-radar-batch18.cjs`
+- `lib/sonara-screenshot-tool-radar-batch19.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 - `DESIGN.md` and `.claude/skills/reviewing-premium-sonara-ui/SKILL.md` when a screenshot contributes design requirements
@@ -175,6 +177,33 @@ A green test that cannot fail on the bad case is not evidence.
 - **Quarkdown** (`iamgio/quarkdown`, GPL-3.0; CLI/LSP AGPL-3.0): document/typesetting benchmark; runtime adoption is reciprocal-license gated.
 - **Generative AI Arbitrage** (`cporter202/generative-ai-arbitrage`, no declared license): provider/pricing lead directory only; independently verify provider identity, terms, model provenance, cost, retention, rights, reliability, and quality.
 - **Archify** and **three.ws** are repeated screenshot leads and remain deduplicated in Batch 3. **BreachLab** remains a hosted-service reference rather than an executable repository record.
+
+## Current 2026-09-27 Batch 19 decisions
+
+The current source record is `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BATCH19.md` and the catalog is `lib/sonara-screenshot-tool-radar-batch19.cjs`. Seventeen repositories were source-checked; none was installed or enabled. Each record includes source URLs and the checked-on date.
+
+- **Reactive Resume** (`reactive-resume/reactive-resume`, MIT): screenshot owner path moved; use as a privacy/document workflow reference, not as permission to reuse templates or résumé data.
+- **Antigravity Manager** (`lbjlaq/Antigravity-Manager`, CC-BY-NC-SA-4.0): external desktop-tool reference only; its non-commercial/share-alike terms and account/proxy access rule out default commercial reuse or credential integration.
+- **OpenWork** (`different-ai/openwork`, mixed MIT and FSL-1.1-MIT/OpenWork EE License): local-agent workspace reference; `ee/` has separate source-available/commercial terms.
+- **Cap** (`CapSoftware/Cap`, AGPL-3.0 with named MIT crate families): local media workflow reference; no AGPL application code is copied into the hosted product.
+- **OpenMAIC** (`THU-MAIC/OpenMAIC`, MIT root, with `packages/mathml2omml` LGPL-3.0-or-later): learning workflow reference; model, content and learner-data terms stay separate.
+- **Microduck** (`pollen-robotics/microduck`, Apache-2.0 source): robotics/learning reference only; no physical-robot control or policy execution is connected to SONARA.
+- **Awesome Qwen Image** (`wildminder/awesome-qwen-image`, no repository license declared): model catalog reference only; Qwen weights have a separate research license and linked community assets need item-specific review.
+- **Algorithm Visualizer** (`algorithm-visualizer/algorithm-visualizer`, MIT): educational animation reference; never run user code in the web request process.
+- **Roboflow Trackers** (`roboflow/trackers`, Apache-2.0): offline video-analytics reference; no live video or individual surveillance path.
+- **Skillware** (`ARPAHLS/skillware`, MIT repository): contract/effect/directive/assurance/interface checklist; no third-party skill is trusted or executed from registry presence.
+- **Window Sweaters** (`saragordic/window-sweaters`, GPL-3.0): macOS design inspiration only; no code reuse in SONARA.
+- **Ponytail** (`DietrichGebert/ponytail`, MIT): concise coding-agent instruction reference; do not enable unreviewed hooks or weaken tests/release policy.
+- **RockyVoice** (`Lagunaswift/RockyVoice`, MIT code): persona/off-switch design reference only; code licensing does not cover the fan character, voice clone or bundled audio.
+- **God's Eye View** (`bilawalsidhu/gods-eye-view`, MIT code, separate public-data/media terms): source-provenance and visualization reference; no individual surveillance or decisioning from unverified feeds.
+- **Scientific Agent Skills** (`K-Dense-AI/scientific-agent-skills`, MIT root, variable per-skill license): inspect a specific artifact before any later use; root license is not blanket permission.
+- **MiniMind** (`jingyaogong/minimind`, Apache-2.0 source): educational model-training reference only; weights and datasets are separate.
+- **Career Ops** (`career-ops-hq/career-ops`, MIT source): personal user-controlled job-search reference only; no automated hiring, candidate ranking or unsolicited outreach.
+- Archify, Excalidraw, Quickemu, OpenMontage, Qdrant, OpenCV, Three.js and Storybook are already represented; do not duplicate them.
+- ENZO, DeepSeek Harness, Anidoodle, WolfCut, AX, and the screenshot owner paths for Orca and OmniVoice Studio remain unresolved. Similar names are not enough to match a source.
+- Oracle free-cloud and X creator-rewards screenshots are volatile service/program claims, not verified product or revenue facts.
+
+Batch 19 adds six bounded patterns: tested skill contracts, per-artifact supply-chain review, deterministic typed choices, isolated code visualization, user-controlled media retention and public-data provenance/uncertainty. See the research note for source links and the evidence matrix.
 
 ## What not to do
 
