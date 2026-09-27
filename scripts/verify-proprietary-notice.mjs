@@ -208,8 +208,7 @@ const write = process.argv.includes("--write");
 
 const tracked = execFileSync("git", ["ls-files", ...TRACKED_GLOBS], { cwd: root, encoding: "utf8" })
   .split("\n")
-  .filter(Boolean)
-  .filter((file) => !file.startsWith("archive/"));
+  .filter(Boolean);
 
 const files = tracked.filter((file) => !Object.prototype.hasOwnProperty.call(CUSTOMER_DISTRIBUTED, file));
 

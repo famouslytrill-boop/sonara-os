@@ -25,10 +25,11 @@
 // is worse than no reason, because it is what the next person reads instead of
 // checking.
 //
-// The archive/ tree is excluded throughout, and that exclusion is the finding
-// that prompted this file: 489 of the repository's 500 TypeScript files and 4
-// of its 5 CSS-bearing app directories are archived. The Languages panel counts
-// them, so it describes a product that stopped existing.
+// This file was prompted by a retired `archive/` tree that held 489 of the
+// repository's 500 TypeScript files and 4 of its 5 CSS-bearing app directories,
+// which made GitHub's Languages panel describe a product that had stopped
+// existing. That tree was deleted on 27 September 2026, so every count below is
+// now over the whole repository and no exclusion stands between the two.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -81,7 +82,7 @@ const LANGUAGE_ASSURANCE = [
       "scripts/check-license-risk.mjs"
     ],
     reason:
-      "Every live .ts file is a data register under data/. Nothing compiles or executes them -- `pnpm run typecheck` is a parse check over the runtime .js and .cjs -- so executed-line coverage would be zero for a reason that says nothing about whether they are correct. They are instead parsed and asserted field by field by the checks named above, which is a stronger statement about a register than a coverage percentage would be. Measured 7 September 2026: 11 live .ts files, all under data/; the other 489 are in archive/."
+      "Every live .ts file is a data register under data/. Nothing compiles or executes them -- `pnpm run typecheck` is a parse check over the runtime .js and .cjs -- so executed-line coverage would be zero for a reason that says nothing about whether they are correct. They are instead parsed and asserted field by field by the checks named above, which is a stronger statement about a register than a coverage percentage would be. Measured 27 September 2026: every live .ts file is under data/; the 489 that were not were in the retired archive/ tree, deleted that day."
   },
   {
     language: "CSS",
@@ -105,14 +106,14 @@ const failures = [];
 
 function trackedFiles() {
   const out = execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" });
-  return out.split("\n").filter(Boolean).filter((file) => !file.startsWith("archive/"));
+  return out.split("\n").filter(Boolean);
 }
 
 const files = trackedFiles();
 
 // Shape 1: an empty listing would clear every language below.
 if (files.length < 1000) {
-  console.error(`[fail] only ${files.length} tracked files outside archive/; this check has gone blind.`);
+  console.error(`[fail] only ${files.length} tracked files; this check has gone blind.`);
   process.exit(1);
 }
 
@@ -164,7 +165,7 @@ for (const [language, count] of [...counts].sort()) {
 for (const entry of LANGUAGE_ASSURANCE) {
   if (!counts.has(entry.language)) {
     failures.push(
-      `LANGUAGE_ASSURANCE still describes ${entry.language}, which no longer appears outside archive/. ` +
+      `LANGUAGE_ASSURANCE still describes ${entry.language}, which no longer appears in the repository. ` +
         "Remove the entry rather than leaving a reason that describes nothing."
     );
   }
@@ -182,6 +183,6 @@ const summary = [...counts]
   .join(", ");
 const floors = LANGUAGE_ASSURANCE.filter((entry) => entry.floor).length;
 console.log(
-  `Language coverage assurance verified: ${counts.size} languages outside archive/ (${summary}); ` +
+  `Language coverage assurance verified: ${counts.size} languages (${summary}); ` +
     `${floors} held to the ${FLOOR_PERCENT}% floor by an executed check, ${LANGUAGE_ASSURANCE.length - floors} governed by named non-execution checks.`
 );

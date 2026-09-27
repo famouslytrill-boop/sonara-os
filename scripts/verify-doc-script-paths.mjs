@@ -12,10 +12,11 @@
 //     - `scripts/backup-storage.sh`
 //     - `scripts/restore-postgres.sh`
 //
-// None of the three exist. All three live under `archive/`, which eslint is
-// explicitly told to ignore. So the instruction for recovering the database
-// pointed at a path that answers "No such file or directory", at the one moment
-// nobody has time to work out why.
+// None of the three exist. All three lived under the retired `archive/` tree,
+// which eslint was explicitly told to ignore and which was deleted on
+// 27 September 2026. So the instruction for recovering the database pointed at
+// a path that answers "No such file or directory", at the one moment nobody has
+// time to work out why.
 //
 // A second instance was in `docs/owner/INSTALL-ALL-KEYS.md`, which told the
 // owner that `scripts/verify-no-client-secrets.mjs` fails the build if the
@@ -68,11 +69,11 @@ const HISTORICAL_SCRIPTS = Object.freeze({
   "scripts/verify-no-client-secrets.mjs":
     "Named in docs/HANDOFF_PROMPT.md and docs/SPRINT_LOG.md only, in the entry recording that docs/owner/INSTALL-ALL-KEYS.md used this wrong name; the real script is scripts/client-secret-scan.cjs, run as `pnpm run scan:client-secrets`.",
   "scripts/backup-postgres.sh":
-    "Named in docs/SPRINT_LOG.md in the entry recording that docs/MONITORING_AND_BACKUPS.md pointed at it during an incident while it existed only under archive/.",
+    "Named in docs/SPRINT_LOG.md in the entry recording that docs/MONITORING_AND_BACKUPS.md pointed at it during an incident while it existed only under archive/, a tree deleted on 27 September 2026.",
   "scripts/backup-storage.sh":
-    "Same entry as backup-postgres.sh: archive-only, and the sprint log names it as part of recording that.",
+    "Same entry as backup-postgres.sh: it was archive-only until that tree was deleted, and the sprint log names it as part of recording that.",
   "scripts/restore-postgres.sh":
-    "Same entry as backup-postgres.sh: archive-only, and the sprint log names it as part of recording that.",
+    "Same entry as backup-postgres.sh: it was archive-only until that tree was deleted, and the sprint log names it as part of recording that.",
   "scripts/apply-advanced-builder-ui.cjs":
     "A one-shot codemod named in docs/ADVANCED_BUILDER_REDESIGN.md as what produced that redesign.",
   "scripts/apply-motion-brand-system.cjs":
@@ -114,8 +115,8 @@ function markdownFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      // archive/ is retired code that eslint is also told to ignore, and its
-      // own documents describe a tree that no longer exists.
+      // docs/archive/ holds retired records -- legacy product names and an old
+      // master prompt -- which describe a tree that no longer exists.
       if (entry.name !== "archive" && entry.name !== "node_modules") markdownFiles(full, out);
       continue;
     }

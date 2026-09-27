@@ -1,1 +1,0 @@
-import { DivisionShell } from "@/components/layout/DivisionShell"; import { MusicDashboard } from "@/components/music/MusicDashboard"; export default function Page(){ return <DivisionShell division="music"><MusicDashboard /></DivisionShell>; }

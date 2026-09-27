@@ -117,7 +117,6 @@ const tracked = execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" 
   .split("\n")
   .filter(Boolean)
   .filter((file) => /\.(js|cjs|mjs|ts|md)$/.test(file))
-  .filter((file) => !file.startsWith("archive/"))
   // This file states the claim in its own header, in prose, to explain itself.
   // A check that fails on its own explanation is one somebody deletes.
   .filter((file) => file !== "scripts/verify-dependency-claims.mjs");

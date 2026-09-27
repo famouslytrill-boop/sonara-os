@@ -122,7 +122,7 @@ function collect(covDir) {
       if (!file.startsWith(REPO)) continue;
       const rel = path.relative(REPO, file).split(path.sep).join("/");
       if (rel.startsWith("node_modules/") || rel.includes("/node_modules/")) continue;
-      if (rel.startsWith("archive/") || rel.startsWith("tests/")) continue;
+      if (rel.startsWith("tests/")) continue;
       const ranges = [];
       for (const fn of script.functions || []) {
         for (const range of fn.ranges || []) ranges.push(range);

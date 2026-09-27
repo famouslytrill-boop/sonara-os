@@ -103,11 +103,74 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 19 most recent entries of 390 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 19 most recent entries of 391 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-27 - Delete archive/, and the twelve exemptions written for it
+
+`archive/` held 646 tracked files -- `frontend/`, `my-app/`, `packages/`,
+`src/`, `sonara-industries/` -- moved aside on 2026-07-27 as HIGH-3 of the
+engineering audit rather than removed. Its README said the problem being solved
+was that "searches returned dead code, and the tree implied a Next.js
+application that is not deployed". Moving it did not solve that; the files were
+still there to be searched. `git log --follow` reaches every one of them after
+a delete, so the guarantee the README actually made -- "nothing here is
+deleted" in the sense that history survives -- is unaffected.
+
+## The part that mattered was not the delete
+
+Twelve places told a gate to skip that tree. Removing the tree and leaving them
+would have left twelve reasons describing nothing, which is shape 5 in
+`.claude/skills/checks-that-cannot-lie`: a stale reason is worse than no reason,
+because it is what the next person reads instead of checking. All twelve went
+with it -- `SKIP_DIRECTORIES` in `typecheck.mjs`, the `rel.startsWith` branch in
+`verify-coverage-floor.mjs`, the tracked-file filters in
+`verify-dependency-claims.mjs` and `verify-proprietary-notice.mjs`, the filter
+plus three message strings in `verify-language-coverage-floors.mjs`,
+`SKIP_PREFIXES` in `verify-tracked-text-encoding.mjs`, `NOT_OURS` in
+`verify-source-licence.mjs`, the `parts` check in
+`verify-python-coverage-floor.py`, the `linguist-vendored` block in
+`.gitattributes`, and the ignore patterns in `.vercelignore` and
+`package.json`.
+
+Three things were kept deliberately, and the next person should not have to
+re-derive why:
+
+- **`docs/archive/` stays.** It holds `legacy-names.md`, which `AGENTS.md`
+  requires as the home for retired public names.
+- **The two doc-walkers keep their `entry.name !== "archive"` skip.** Both are
+  called on `docs/`, so that line skips `docs/archive/` and never touched the
+  root tree. Deleting it would have started reading retired records.
+- **`SPRINT_LOG.md` and `docs/audits/` keep their references.** They are
+  history. Rewriting history to match the present is how a repository forgets
+  why it did something.
+
+## How this was verified, rather than hoped
+
+Every gate already excluded the tree, which makes the change falsifiable:
+deleting it must leave every number identical. The baseline was taken on
+`0358225` before anything was touched, and the chain re-run after:
+
+| | before | after |
+|---|---|---|
+| tests passing | 5,111 | 5,111 |
+| chain commands | 62 | 62 |
+| proprietary-notice files | 326 | 326 |
+| UTF-8 tracked files | 1,797 | 1,797 |
+| languages | 6 (JS 928, SQL 138, Py 51, CSS 16, HTML 14, TS 11) | identical |
+| coverage floor | 326 files, 66,041 lines, 93.6% | identical |
+| python floor | 14 files, 1,564 lines, 54.2% | identical |
+| dependency claims | 48 across 40 files | identical |
+| countable doc claims | 19 | 19 |
+
+`pnpm run verify:launch` exits 0 on both. A number that had moved would have
+meant a gate was still reaching that tree through a path this change missed --
+none did.
+
+
 
 ### 2026-09-22 - A Codex handoff for the method, not the state
 
@@ -2257,85 +2320,3 @@ with six explicit media-test pendings, secret scan, lint, route smoke, database
 contracts, governance gates, and coverage. Live Stripe price comparison and
 external-repository network health remain the chain's declared credentialed/CI
 checks rather than claims made by this workstation.
-
-
-
-### 2026-09-17 - The production cutover is green, and the agent runner now emits
-
-**The gate is closed.** At 02:29 UTC the owner installed a new `sk_live_`
-runtime secret and dispatched Controlled Production Deployment run **189**,
-which succeeded on `872d9d0`. Run **190** then succeeded on the merge commit
-`39dec4a`. Run 188 was the last failure in a sequence
-`production-commit-drift.yml` recorded as starting 5 August.
-
-The four proofs `docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md` requires were read
-back from the live apex rather than inferred from a green CI run:
-`services.stripe: configured`, `paymentConnection: configured`,
-`services.checkout: enabled`, `invalid.stripe: []`.
-
-Worth stating plainly because it was the owner's own diagnosis and it was right:
-the bottleneck was one protected credential, not code quality, and closing it
-unlocked the pipeline without redesigning the workflow.
-
-#### The third structured-log caller
-
-`lib/sonara-agent-runner.cjs` -- the module CLAUDE.md calls "the one path that
-executes: classify, decide, run, record" -- now emits `agent.run` across its four
-statuses, plus `agent.autonomy_breaker` when the safety check in front of a run
-could not be evaluated at all.
-
-That second event is separate deliberately. A run can complete perfectly while
-the breaker guarding it was blind, and those are two facts; this module already
-reported a degraded breaker out loud precisely because three of the four rate
-limiters in this codebase failed open in silence for months. Now it is
-countable.
-
-**One mapping is arguable, and it is written down as a decision rather than as
-an obvious reading.** `unimplemented` -- allowed to run, and nothing implements
-it -- emits `degraded`, not `failed`:
-
-* not `refused`, because the gate said yes;
-* not `failed`, or a known capability gap would spend error budget every time
-  somebody pressed the button, and the rate would measure the roadmap rather
-  than reliability.
-
-`degraded` is the closest true member: the run was accepted and the guarantee
-that approving an action changes something did not hold, which is exactly what
-CLAUDE.md says the state exists to say -- "the one thing a button here must
-never do is report a job as done when it was not." If an owner wants it counted
-on its own, `OUTCOMES` in `lib/sonara-structured-log.cjs` is the place, and
-adding a member there is a deliberate act.
-
-#### Attribution is explicit, because the module says context is not inspected
-
-`lib/sonara-agent-runner.cjs` states that `context` "is never inspected here,
-because a runner that understands the work is a runner that has to change every
-time the work does." Reading `context.organizationId` would have been the easy
-route and would have quietly broken that. So `run()` takes `organizationId` and
-`scope` explicitly, and all six call sites pass one or the other.
-
-Scope defaults to `organization` rather than to `process`. That is the safe
-default here precisely because the emitter refuses an organization-scoped event
-with no id: a caller that forgets produces a loud `log.event_rejected` naming the
-omission, instead of a plausible tenant-less line that would quietly under-count
-a tenant. The one runner with genuinely no organization -- the admin drafting
-runner in `routes/sonara-ai-integrations-routes.cjs`, which drafts from a
-provider and a prompt with no customer behind it -- declares `scope: "process"`.
-
-A derived assertion scans `lib/` and `routes/` for `runner.run` call sites and
-fails if any passes neither, so a new one cannot be added unattributed.
-
-**Verified by breaking it,** three ways: a gated refusal counted as `failed`, the
-breaker event dropped, and the scope defaulted to `process`. Each caught by
-name.
-
-**And one of my own mistakes worth recording.** The derived call-site scan
-reported all six sites as unattributed when I knew several carried an
-`organizationId`. The cause was not the product: the test was written through a
-Python heredoc where `\b` is a **backspace character**, so the regex became
-`/\x08organizationId/` and matched nothing. A check that fails on everything
-looks like a discovery and is a broken instrument; the file now escapes those
-boundaries and says why.
-
-Eight assertions added to `tests/a-log-line-you-can-count.test.js`, which now
-covers all three callers.

@@ -2,6 +2,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-27 - Delete archive/, and the twelve exemptions written for it
+
+`archive/` held 646 tracked files -- `frontend/`, `my-app/`, `packages/`,
+`src/`, `sonara-industries/` -- moved aside on 2026-07-27 as HIGH-3 of the
+engineering audit rather than removed. Its README said the problem being solved
+was that "searches returned dead code, and the tree implied a Next.js
+application that is not deployed". Moving it did not solve that; the files were
+still there to be searched. `git log --follow` reaches every one of them after
+a delete, so the guarantee the README actually made -- "nothing here is
+deleted" in the sense that history survives -- is unaffected.
+
+## The part that mattered was not the delete
+
+Twelve places told a gate to skip that tree. Removing the tree and leaving them
+would have left twelve reasons describing nothing, which is shape 5 in
+`.claude/skills/checks-that-cannot-lie`: a stale reason is worse than no reason,
+because it is what the next person reads instead of checking. All twelve went
+with it -- `SKIP_DIRECTORIES` in `typecheck.mjs`, the `rel.startsWith` branch in
+`verify-coverage-floor.mjs`, the tracked-file filters in
+`verify-dependency-claims.mjs` and `verify-proprietary-notice.mjs`, the filter
+plus three message strings in `verify-language-coverage-floors.mjs`,
+`SKIP_PREFIXES` in `verify-tracked-text-encoding.mjs`, `NOT_OURS` in
+`verify-source-licence.mjs`, the `parts` check in
+`verify-python-coverage-floor.py`, the `linguist-vendored` block in
+`.gitattributes`, and the ignore patterns in `.vercelignore` and
+`package.json`.
+
+Three things were kept deliberately, and the next person should not have to
+re-derive why:
+
+- **`docs/archive/` stays.** It holds `legacy-names.md`, which `AGENTS.md`
+  requires as the home for retired public names.
+- **The two doc-walkers keep their `entry.name !== "archive"` skip.** Both are
+  called on `docs/`, so that line skips `docs/archive/` and never touched the
+  root tree. Deleting it would have started reading retired records.
+- **`SPRINT_LOG.md` and `docs/audits/` keep their references.** They are
+  history. Rewriting history to match the present is how a repository forgets
+  why it did something.
+
+## How this was verified, rather than hoped
+
+Every gate already excluded the tree, which makes the change falsifiable:
+deleting it must leave every number identical. The baseline was taken on
+`0358225` before anything was touched, and the chain re-run after:
+
+| | before | after |
+|---|---|---|
+| tests passing | 5,111 | 5,111 |
+| chain commands | 62 | 62 |
+| proprietary-notice files | 326 | 326 |
+| UTF-8 tracked files | 1,797 | 1,797 |
+| languages | 6 (JS 928, SQL 138, Py 51, CSS 16, HTML 14, TS 11) | identical |
+| coverage floor | 326 files, 66,041 lines, 93.6% | identical |
+| python floor | 14 files, 1,564 lines, 54.2% | identical |
+| dependency claims | 48 across 40 files | identical |
+| countable doc claims | 19 | 19 |
+
+`pnpm run verify:launch` exits 0 on both. A number that had moved would have
+meant a gate was still reaching that tree through a path this change missed --
+none did.
+
 ### 2026-09-22 - A Codex handoff for the method, not the state
 
 Asked for a handoff covering the skills, formulas, strategies and agents. The
