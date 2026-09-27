@@ -6,11 +6,17 @@ Written 8 September 2026. Every state below was read from the live site, the
 live Stripe account `acct_1TRSqj0dKtlEU3lA`, and this repository on that date.
 Nothing here is recalled from an earlier document.
 
-You asked for the whole install. Most of it is already done, so this is ordered
-by what is actually left rather than by what a fresh setup would need. Section 1
-is the one that is costing you money today. Sections 2 and 3 are the rest of the
-open work. Section 4 is the reference for every key, for the day you rebuild
-this somewhere else.
+Current production release: controlled deployment run #248 is green for
+commit `9a105da6abc0e46aff170bebf690de80dc957886`; Vercel is READY and the live
+route smoke test passed. The release verified live Stripe prices and Google
+provider configuration. The Supabase database was already up to date.
+
+This guide separates provider setup from owner-only proof. The deployment did
+not make a real customer purchase, complete an interactive Google login, or
+establish the current state of owner-controlled Supabase settings and Stripe
+Connect. Section 1 is the canonical billing reference; sections 2 and 3 cover
+sign-in and deployment configuration; section 4 is for rebuilding in another
+environment.
 
 ---
 
@@ -103,19 +109,26 @@ pulling the production Vercel environment and **before** rollback checkpoint,
 database migration, or Vercel deployment. If Google is not enabled at Supabase,
 the release stops with production untouched.
 
-### The owner steps that are still real
+### Owner-only actions and current release evidence
 
-From `docs/owner/OWNER-STEPS.md`, with today's state against each:
-
-| # | Step | State on 8 September 2026 |
+| # | Action | Current evidence |
 | --- | --- | --- |
-| 1 | Buy a plan in production, once | **Open.** Blocked by section 1 above — no plan on the page can complete checkout. Do section 1, then this. |
-| 2 | Supabase leaked-password protection, **and** `SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true` | **Open, and not visible from here.** The dashboard toggle and the variable are two halves and people do one. Until the variable is set, a green deploy tells you nothing about whether the toggle is on. |
-| 4 | Try one `EXECUTE` revoke on a preview branch | Open. Blocks nothing. |
-| 6 | Make the `sonara-uploads` bucket, and make it **private** | Open. A public bucket makes every signed link pointless. |
-| 7 | Enable Stripe Connect, so your customers can be paid | Open. Read what you are agreeing to in that section before switching it on. |
+| 1 | Complete one customer checkout and confirm its entitlement | Owner-only. The release verified configured prices; it did not make a real purchase. |
+| 2 | Verify Supabase leaked-password protection and its production enforcement flag | Not checked by the release workflow; confirm both in the live project and Vercel. |
+| 4 | Try the authorization grant change on a preview branch | Not run by the release; keep it preview-only and inspect the result before any production change. |
+| 6 | Verify the `sonara-uploads` bucket is private | Not checked by the release; confirm in Supabase Storage before using customer uploads. |
+| 7 | Decide whether to enable Stripe Connect | Requires the business owner's platform agreement and was not enabled by this release. |
 
-Items 3 and 8 are closed and kept as records.
+The 27 September release also confirmed Google provider configuration, but a
+real OAuth login remains an owner-side user-journey check.
+
+### Other manual items from the project request
+
+- **Repository visibility:** the repository is still public. In GitHub open
+  **Settings → General → Danger Zone → Change repository visibility → Private**
+  and confirm the repository name.
+- **Personal ChatGPT workspace:** no personal workspace connector was available
+  here. Export or copy the context you want the engineering team to use.
 
 ---
 

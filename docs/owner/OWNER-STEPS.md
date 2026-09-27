@@ -1,16 +1,28 @@
-# The steps only you can take
+# Owner-only setup and verification
 
-Six of them, and two records of what is already closed — items 3 and 8. Each is
-written to be run, not interpreted: the SQL, the exact dashboard path, and how
-to tell whether it worked.
+Updated: 2026-09-27
 
-**Start with item 5.** As of 8 September 2026 the pricing page advertises three
-plans that cannot be bought, because no Stripe price exists at the amounts it
-names. Item 1 is blocked behind it.
+## Current production evidence
 
-Nothing in this list can be done from inside the repository, which is why it is
-a list rather than a commit. Everything that could be done from inside it has
-been.
+Controlled Production Deployment run #248 completed successfully for `main`
+commit `9a105da6abc0e46aff170bebf690de80dc957886`. Vercel deployment
+`dpl_7YKcMPxTLwTt7FCNsPijrtsrWMVR` is **READY**. The production smoke test
+passed 282 assertions. Google sign-in configuration and Stripe prices matched
+the production requirements. Supabase reported the remote database was up to
+date; no migrations ran in this deployment.
+
+The historical price cutover in section 5 is complete and the live price
+configuration was reverified by run #248. Do not create prices, repoint
+variables, or follow the old cutover instructions in that section. Section 8
+is a historical database incident record; its former repair instructions are
+not current production instructions.
+
+The following owner-controlled checks were **not proven by this release**:
+one real customer purchase and entitlement; the live Supabase leaked-password
+setting and enforcement flag; a preview-only authorization experiment; the
+private upload bucket; and Stripe Connect activation. Confirm their current
+state in the relevant account before acting. Section 3 is a closed record;
+section 4 describes a reversible preview-only check.
 
 ---
 
@@ -252,121 +264,22 @@ Then tell me, and I will write whatever survived as a migration.
 
 ---
 
-## 5 — Create three Stripe prices at the amounts the page now advertises
+## 5 — Historical Stripe price cutover (completed)
 
-> **Rewritten 8 September 2026, because this step as previously written no
-> longer worked and following it exactly produced the live defect below.**
->
-> The page advertises **$29 / $59 / $109**. The live account holds no price at
-> any of those amounts, so the three `STRIPE_PRICE_*_MONTHLY` variables cannot
-> be pointing at one, and **every headline plan on the pricing page refuses
-> checkout** — `assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs`
-> compares the Stripe amount against the advertised one and returns
-> `price_mismatch` rather than creating the session. Nobody is charged wrongly;
-> nobody can buy anything either.
->
-> **The three prices now exist.** Created 8 September 2026 at the owner's
-> instruction, on the existing products, and read back from Stripe:
->
->     One workspace  $29.00/mo  price_1UDTj00dKtlEU3lAmimC5cN7  sonara_workspace_monthly_v2
->     All three      $59.00/mo  price_1UDToK0dKtlEU3lAWURVCj6H  sonara_all_three_monthly_v2
->     Team          $109.00/mo  price_1UDUKr0dKtlEU3lAJzu0pVoe  sonara_team_monthly_v2
->
-> **This did not fix anything by itself and could not have.** The three
-> environment variables still point at the 13 August prices, so the mismatch and
-> the refused checkouts are unchanged until they are repointed. What remains is
-> in `docs/owner/SETUP-STEP-BY-STEP.md` section 1: set the three variables to
-> the ids above, redeploy, then run
-> `STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live`,
-> then buy one with a real card. Archive the old prices last.
->
-> The table below is kept because the price ids in it are real and you will see
-> them in the dashboard. **It is a record of August, not an instruction.**
+On 8 September 2026 the canonical Stripe prices and production environment
+pointers were updated. The controlled release on 27 September verified the
+live prices against the pricing page and passed the production catalog checks.
 
-### What was in Stripe on 19 August 2026 — historical, do not set these
+**No price setup action is currently required.** Do not recreate products,
+restore retired price IDs, or repoint production variables from the historical
+tables that used to live here. The current provider-read price IDs and the safe
+verification sequence are in
+[SETUP-STEP-BY-STEP.md](SETUP-STEP-BY-STEP.md).
 
-Read from `acct_1TRSqj0dKtlEU3lA` in live mode. All three amounts matched
-`lib/sonara-stripe-plans.cjs` **as it stood on that date**, when the plans cost
-$19 / $39 / $79. Each product's description on Stripe matched the description in
-that file verbatim. The amounts moved on 6 September 2026 and these price ids
-did not, because a Stripe price is immutable:
-
-| Plan | Amount | Price id | Variable to set |
-| --- | --- | --- | --- |
-| One workspace | $19.00/mo | `price_1U47yP0dKtlEU3lAvkakKNgm` | `STRIPE_PRICE_WORKSPACE_MONTHLY` |
-| All three | $39.00/mo | `price_1U47yd0dKtlEU3lAeTBQ8o3D` | `STRIPE_PRICE_ALL_THREE_MONTHLY` |
-| Team | $79.00/mo | `price_1U47yp0dKtlEU3lAhPqsCS7r` | `STRIPE_PRICE_TEAM_MONTHLY` |
-
-Price ids are not secrets — they travel to the browser during checkout — so they
-are written down here rather than described.
-
-They were created on 13 August 2026, carry lookup keys
-(`sonara_workspace_monthly`, `sonara_all_three_monthly`, `sonara_team_monthly`)
-and nicknames, and sit on products named `SONARA One — One workspace`, `— All
-three` and `— Team`.
-
-### Do this
-
-**Not what this section used to say.** Follow
-`docs/owner/SETUP-STEP-BY-STEP.md` section 1: create three new prices at $29,
-$59 and $109 on the existing products, set the three variables to the new price
-ids, and redeploy.
-
-### How to tell it worked
-
-```
-STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live
-```
-
-With `STRIPE_SECRET_KEY` present it fetches each price from Stripe and compares
-the amount against what the pricing page promises.
-
-`--require-live` is not optional here, and it is the lesson of this section.
-Without it the script skips the live comparison when there is no key **and
-exits 0 anyway**, so this step used to end with the instruction "read the last
-line rather than the exit code". Somebody did read it, and the mismatch shipped
-regardless. With the flag, every reason for not comparing is a failure.
-
-Once all three are set, the pricing page switches ladders on its own. Free /
-Starter $7 / Core $19 / Pro $39 drops off and Free / One workspace $19 / All
-three $39 / Team $79 replaces it, because `offeredPlanKeys` in
-`lib/sonara-stripe-plans.cjs` moves both ladders as sets — a superseded plan
-leaves only once its replacement can be bought, and a replacement stays hidden
-while any plan it replaces is still buyable. Setting all three at once is the
-clean switchover.
-
-### A duplicate set was found and archived
-
-There were **two** of each plan. A second set — bare products named `One
-workspace`, `All three` and `Team`, with no descriptions and no lookup keys —
-was created on 19 August 2026 at the same three amounts.
-
-Two live prices at the same amount, differing only in which one carries the
-customer-facing description, is a trap: point a variable at the wrong one and
-the invoice a customer receives names a product with no description. Neither set
-had a single subscriber, so the duplicate products were archived:
-`prod_V6FejKrPFMI61v`, `prod_V6FgqpmKZeEth5`, `prod_V6FgGMeVSnnwR2`.
-
-**This is reversible.** Setting a product back to `active: true` in the
-dashboard restores it. Nothing was deleted, and Stripe does not permit deleting
-a price in any case.
-
-One consequence worth knowing, because this repository already guards against
-it: archiving a product does **not** clear its prices' `active` flag. Those
-three prices still read active on their own and cannot be sold, because their
-product is archived. `lib/sonara-billing.cjs` carries that exact guard for the
-three retired SONARA OS plans, and it now applies to three more.
-
-### What this confirmed about step 1
-
-The account has had **one subscription in its entire history** — $9.99/mo,
-started 4 May 2026, cancelled the same day, on a price that is now archived.
-
-That is independent confirmation of item 1: **nobody has completed a paid signup
-in production.** It is not an inference from the deploy output; it is the
-subscription list.
-
----
+The 27 September deployment did not perform a real customer payment. Section 1
+remains the owner-only end-to-end proof: complete one checkout with a card you
+control, confirm the persisted entitlement, then refund or cancel the test
+transaction if appropriate.
 
 ---
 
@@ -509,30 +422,24 @@ payment-redirection fraud — and that advice protects your customers only while
 it is always true. Connecting an account and collecting a payment are separate
 pieces of work; this is the first.
 
-## 8 — Closed 8 September 2026
+## 8 — Historical production database incident (resolved)
 
-**Production is serving current code.** `/api/health` reports commit `6f4c7b1`
-on branch `main`, which is the head of `main`. Controlled Production Deployment
-run **#134** was the first end-to-end green run since #110 on 5 August 2026: all
-30 substantive steps passed, and #135 landed the merge after it.
+The earlier schema and migration investigation below is retained as an incident
+record. Its 3 September diagnosis and owner remediation steps are not current
+instructions.
 
-Three separate causes had to be found and fixed, and each one was invisible to
-the check that should have caught it:
+On 27 September, controlled deployment run #248 verified the production schema
+and catalog. Supabase reported **Remote database is up to date**; no migration
+was applied. The release recorded a pre-migration recovery checkpoint and
+completed Vercel deployment and live route checks on commit
+`9a105da6abc0e46aff170bebf690de80dc957886`.
 
-- **Thirteen tables the migrations create and production did not have**, because
-  early migrations were marked applied rather than run when an existing database
-  was adopted into the CLI.
-- **Forty-eight tables with no `service_role` grant**, added after the 18 July
-  hardening and never declared, so PostgREST could not see them.
-- **`public.reviews`**, missing outright.
-
-The record of the diagnosis is kept below, because the shape of it recurs: a
-migration marked applied that never ran leaves a database that no replay against
-an empty PostgreSQL can detect. `pnpm run verify:migration-replay` now says that
-limit in its own output rather than leaving it to be inferred.
+Use a fresh controlled deployment report before considering any production
+database change. Do not run the SQL, merge, or migration advice inside the
+historical incident below as a current repair plan.
 
 <details>
-<summary>The original diagnosis, written 3 September 2026</summary>
+<summary>Historical diagnosis from 3 September 2026 — superseded by run #248</summary>
 
 **This is the one that matters most, and it needs your database.**
 
