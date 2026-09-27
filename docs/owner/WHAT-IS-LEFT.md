@@ -1,80 +1,64 @@
 # How many steps are left
 
-## Production status — 14 September 2026
+Updated: 2026-09-27
 
-The repository gates are green, but the current head of `main` is **not yet the
-production commit**. Controlled Production Deployment run #170 failed closed at
-`Synchronize verified Stripe runtime secret to Vercel production`, before the
-rollback checkpoint, database mutation, or Vercel deploy. Production therefore
-remains on the previously verified commit while the runtime Stripe credential is
-repaired.
+## Current production status
 
-The blocking owner action is now precise: add the live `sk_live_...` runtime key
-as the GitHub `production` environment secret `STRIPE_RUNTIME_SECRET_KEY`. Do
-**not** replace or expose the existing `STRIPE_SECRET_KEY` read-only verifier and
-do not paste either value into a commit, issue, chat, or log. The complete
-installation, rotation, and proof sequence is in
-`docs/owner/STRIPE-RUNTIME-KEY-CUTOVER.md`.
+PR [#373](https://github.com/famouslytrill-boop/sonara-os/pull/373) is merged to
+`main` at `9a105da6abc0e46aff170bebf690de80dc957886`. Controlled Production
+Deployment run #248 completed successfully. Vercel deployment
+`dpl_7YKcMPxTLwTt7FCNsPijrtsrWMVR` is **READY** for production, and
+https://sonaraindustries.com serves that exact commit.
 
-Why two credentials: the deployment verifier only reads Stripe Prices/Products,
-while the application runtime creates customers and Checkout Sessions. A
-restricted `rk_live_...` verifier is deliberately rejected from runtime
-synchronization. The controlled deployment validates the separate runtime key,
-stores it in Vercel as a sensitive Production variable, then continues through
-the existing migration, deployment, alias/auth, readiness, and catalog gates.
+The live smoke test passed 282 assertions: `/api/health` returned the exact
+commit, readiness reported configured providers, public pages loaded, and a
+customer-only route correctly required authentication. Production Google
+sign-in configuration and Stripe price configuration passed the release
+checks. Supabase reported that the remote database was up to date, so this
+release applied no migrations and changed no production schema or data.
 
-Live evidence immediately after run #170 still reports
-`paymentConnection = "invalid"`, `services.stripe = "invalid"`, and
-`invalid.stripe[0].reason = "invalid_prefix"`; `/api/health` still reports the
-previous production commit. That is the expected fail-closed state until the
-runtime secret is installed and the controlled deployment completes.
+The release adds a generated route/schema/capability inventory, refreshes the
+verified pnpm toolchain, and hardens deterministic security tests and report
+escaping. It does **not** implement every product, industry, or service named
+in the original request. The inventory is source-level evidence; it does not
+prove every listed feature is live, every production table is populated, or
+every user journey works. See
+[the coverage inventory](../CAPABILITY_ROUTE_SCHEMA_COVERAGE.md) and
+[the 2026 market and platform research](../research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md)
+for the verified scope and follow-up gaps. There are no open pull requests in
+the repository as of this update.
+
+## Manual owner actions
+
+These actions require your accounts, payment method, or explicit business
+decision:
+
+1. **Make the repository private, if that remains your choice.** It is currently
+   public. In GitHub open **Settings → General → Danger Zone → Change
+   repository visibility → Private**, then confirm the repository name. See
+   [GitHub's visibility instructions](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility).
+2. **Prove one real customer checkout and entitlement.** The release verified
+   live price configuration, but did not use a real customer card or prove a
+   persisted entitlement. Use a card you control and refund/cancel the proof
+   transaction if appropriate.
+3. **Review the owner-controlled settings in
+   [OWNER-STEPS.md](OWNER-STEPS.md)** against the live dashboards before
+   changing them. The release does not establish the current state of leaked
+   password protection, preview-only RLS experiments, the private upload
+   bucket, or Stripe Connect.
+4. **Share any personal ChatGPT workspace material manually.** This workspace
+   has no connector to your personal ChatGPT workspaces. Export or copy only
+   the material you want included; private workspace contents were not read.
+5. **Local setup:** follow [the step-by-step owner setup guide](SETUP-STEP-BY-STEP.md)
+   and the commands in the final response. These steps are optional for the
+   already deployed production release.
+
+Dated production diagnoses later in this file are retained as history. Their
+older claims about a stale deployment, missing prices, failed migrations, or
+pending owner actions are superseded by the 27 September run #248 evidence
+above; do not repeat an old remediation without fresh live evidence.
 
 ---
-
-Written 12 August 2026. The honest answer is two numbers, because "completely
-done" means two different things and only one of them is countable.
-
----
-
-## Shipping what exists: 7 steps, all yours
-
-The repository side is finished. There are no TODOs, no unimplemented paths, no
-failing checks: the whole suite passes and the `verify:launch` chain is green
-across all 61 commands. The test count is deliberately not written here
--- it changes every time anybody adds one, and a number typed into prose has
-nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
-
-**Green here does not mean shipped.** Updated 8 September 2026: production is
-now serving current code -- `/api/health` reports the head of `main`, and
-Controlled Production Deployment run #134 was the first end-to-end green run
-since #110 on 5 August. Step 8 in OWNER-STEPS.md is closed.
-
-What replaced it is the same shape one layer out. **The pricing page advertises
-$29 / $59 / $109 and the live Stripe account holds no price at any of those
-amounts**, so every headline plan refuses checkout. Nothing in this repository
-could see that either: the check that compares advertised amounts against live
-Stripe prices skips without `STRIPE_SECRET_KEY`, which is every CI run, and it
-used to exit 0 while skipping. It now takes `--require-live`, which makes not
-comparing a failure. That is step 5 in OWNER-STEPS.md and section 1 of
-`docs/owner/SETUP-STEP-BY-STEP.md`, and it is the first one to do.
-
-The six remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
-rather than interpreted. The numbers below are that document's own, so items 3
-and 8 are absent: both are closed and kept there as records.
-
-| # | Step | Why it cannot be done here |
-| --- | --- | --- |
-| 5 | Create three Stripe prices at $29 / $59 / $109 and repoint the variables | Needs the live Stripe account. **Do this first** — until it is done, no plan on the pricing page can be bought |
-| 1 | Buy a plan in production, once | Needs a real card on the live account, and is blocked behind item 5 |
-| 2 | Turn on Supabase leaked-password protection, and set the env var that makes it a gate | Dashboard toggle; the MCP connection is read-only by contract |
-| 4 | Try one `EXECUTE` revoke on a preview branch | Needs a database you can afford to break |
-| 6 | Make a private `sonara-uploads` bucket in Supabase Storage | A dashboard setting nothing here can read, and a public bucket would make every signed link pointless |
-| 7 | Enable Stripe Connect, so your customers can be paid | Accepting a platform agreement is a decision, not a setting |
-
-Nothing else is blocking a launch of what is built. `OWNER-STEPS.md` carries one
-further item below those six, deliberately unnumbered because it blocks nothing:
-asking HyperFormula's vendor for a price, which is the single open fact left from
-the reciprocal-licence decision of 18 August 2026.
 
 ## Building everything discussed: not a number, and here is why
 
