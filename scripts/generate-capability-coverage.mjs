@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { markdownTableCell as cell } from "./markdown-table-cell.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -58,7 +59,6 @@ for (const layer of app._router.stack) {
 }
 const registered = new Map(ROUTE_REGISTRY.map((item) => [item.route, item]));
 const sortedRoutes = [...routeMethods].sort(([a], [b]) => a.localeCompare(b));
-const cell = (value) => String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 const tableEvidence = (table) => {
   const names = tableMigrations.get(table) || [];
   return names.length ? `${table} (${names[0]})` : `${table} (migration unresolved)`;
