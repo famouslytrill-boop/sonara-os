@@ -72,16 +72,16 @@ const TEXT_EXTENSIONS = new Set([
   ".sql", ".py", ".css", ".html", ".txt", ".sh", ".toml", ".ini", ".env"
 ]);
 
-// archive/ is retired code that eslint is explicitly told to ignore, and it
-// already contains a UTF-16 capture nobody reads.
-const SKIP_PREFIXES = ["archive/"];
+// Nothing is skipped. The retired archive/ tree, which held a UTF-16 capture
+// nobody read, was deleted on 27 September 2026 and its exemption with it.
+const SKIP_PREFIXES = [];
 
 // The cap the observed corruption wrote at. Named so the failure message can
 // say "this is that bug" instead of leaving the next person to work it out from
 // a hex offset, which took a morning the first time.
 const OBSERVED_WRITE_CAP = 393216;
 
-// Measured 18 September 2026: 1,589 tracked text files outside archive/.
+// Measured 27 September 2026: 1,797 tracked text files, the whole repository.
 // A floor, because a check that reads nothing reports success -- shape 1 in
 // .claude/skills/checks-that-cannot-lie, and the reason this file has one.
 const MINIMUM_FILES = 1000;
@@ -160,6 +160,6 @@ const large = candidates.filter((file) => {
 });
 
 console.log(
-  `Tracked text encoding verified: ${examined} file(s) outside archive/ decode as UTF-8, `
+  `Tracked text encoding verified: ${examined} file(s) decode as UTF-8, `
   + `${large.length} of them above the ${OBSERVED_WRITE_CAP}-byte write cap that has corrupted files here before.`
 );

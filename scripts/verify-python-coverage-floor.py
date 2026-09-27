@@ -170,7 +170,7 @@ SUITES = (
     },
 )
 
-# Directories holding Python this repository ships or runs, excluding archive/.
+# Directories holding Python this repository ships or runs.
 SOURCE_ROOTS = ("tools", "python", "backend")
 
 # Measured on 3 September 2026 and under the floor, with what was measured.
@@ -290,7 +290,7 @@ def source_files():
             continue
         for path in sorted(base.rglob("*.py")):
             parts = path.relative_to(REPO).parts
-            if "archive" in parts or "tests" in parts or "__pycache__" in parts:
+            if "tests" in parts or "__pycache__" in parts:
                 continue
             found.append(path)
     return found

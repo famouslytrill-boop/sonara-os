@@ -70,7 +70,7 @@ const FOREIGN_HOLDER = /\b(GitLab B\.?V\.?|GitHub, Inc|Vercel, Inc|Meta Platform
 
 // Directories that hold somebody else's code, where a permissive licence is
 // theirs to grant and none of this applies.
-const NOT_OURS = new Set(["node_modules", ".git", "archive", ".next", "dist", "build"]);
+const NOT_OURS = new Set(["node_modules", ".git", ".next", "dist", "build"]);
 
 // Licence files that are permissive **by an owner's decision**, with the date
 // and the reason. Empty today: nothing here has been deliberately released.
@@ -248,8 +248,7 @@ for (const relative of readmes) {
 // walk that found nothing would leave this printing "passed" having examined
 // nothing at all. The floors are set below what the repository holds today
 // rather than at it, so adding a subproject does not fail this line. Counted on
-// 26 August 2026: 7 licence files, 4 manifests outside archive/ and
-// node_modules/. Three of the six tools/ subprojects carry no package.json --
+// 26 August 2026: 7 licence files, 4 manifests outside node_modules/. Three of the six tools/ subprojects carry no package.json --
 // agentkit is Python, voice-clone and disposable-domains ship none -- which is
 // why the manifest floor sits lower than the licence floor.
 if (licenceFiles.length < 5) {

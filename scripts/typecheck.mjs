@@ -19,12 +19,11 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// Directories the deployed runtime can reach. `archive/` is excluded because it
-// is not deployed and does not compile; see archive/README.md.
+// Directories the deployed runtime can reach.
 const RUNTIME_ROOTS = ["api", "routes", "lib"];
 const RUNTIME_FILES = ["server.js"];
 const EXTENSIONS = new Set([".js", ".cjs", ".mjs"]);
-const SKIP_DIRECTORIES = new Set(["node_modules", ".git", ".next", "archive"]);
+const SKIP_DIRECTORIES = new Set(["node_modules", ".git", ".next"]);
 
 function collect(directory) {
   const found = [];

@@ -6,7 +6,8 @@
 // `scripts/verify-doc-script-paths.mjs` already enforces this for backticked
 // `scripts/...` paths, and it was written because
 // `docs/MONITORING_AND_BACKUPS.md` -- the document an owner opens *during* an
-// incident -- named three backup scripts that lived only under `archive/`.
+// incident -- named three backup scripts that lived only under the retired
+// `archive/` tree, deleted on 27 September 2026.
 //
 // It could not see the other notation. Almost nothing in this repository is run
 // as `node scripts/thing.mjs`; it is run as `pnpm run thing`. So the same defect
