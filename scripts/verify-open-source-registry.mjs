@@ -89,8 +89,8 @@ if (packageText) {
         }
       }
     }
-    if (packageJson.packageManager !== "pnpm@11.1.1") {
-      warnings.push(`Expected packageManager pnpm@11.1.1, found ${packageJson.packageManager || "missing"}.`);
+    if (packageJson.packageManager !== "pnpm@12.7.0") {
+      warnings.push(`Expected packageManager pnpm@12.7.0, found ${packageJson.packageManager || "missing"}.`);
     }
   }
 }

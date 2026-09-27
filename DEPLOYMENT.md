@@ -7,7 +7,7 @@ This repo deploys from the repository root as a pnpm-based Next.js app.
 Use the repo root as the project root.
 
 - Framework preset: Next.js
-- Install command: `corepack enable && corepack prepare pnpm@11.1.1 --activate && pnpm install --frozen-lockfile`
+- Install command: `corepack enable && corepack prepare pnpm@12.7.0 --activate && pnpm install --frozen-lockfile`
 - Build command: `pnpm run build`
 - Output directory: Next.js default
 

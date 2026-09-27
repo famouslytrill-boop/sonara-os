@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.contracts.json ./
 RUN corepack enable \
-  && corepack prepare pnpm@11.1.1 --activate \
+  && corepack prepare pnpm@12.7.0 --activate \
   && pnpm install --frozen-lockfile
 
 COPY server.js vercel.json ./

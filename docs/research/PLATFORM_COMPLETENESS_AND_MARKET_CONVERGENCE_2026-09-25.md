@@ -1,7 +1,7 @@
 # SONARA Platform Completeness and Market Convergence
 
-Updated: 2026-09-25
-Review by: 2026-10-25
+Updated: 2026-09-27
+Review by: 2026-10-27
 
 ## Decision
 
@@ -38,6 +38,21 @@ Primary-source checks performed on 2026-09-25 support these boundaries:
   - https://ffmpeg.org/download.html
 - Godot: 4.7.2 is stable; 4.8 is still development. Use Godot as an external authoring/runtime adapter, not as a dependency of the core web request path.
   - https://godotengine.org/download/archive/
+
+## Toolchain refresh — 2026-09-27
+
+These checks are from primary project/vendor release pages. They update the runtime and install-tool decisions above without turning preview versions into production dependencies.
+
+- Node.js 24.21.0 is the latest 24.x LTS patch; Node 26.10.0 is Current. Keep production on Node 24. Vercel supports the `24.x` major and automatically rolls in minor and patch releases. The repository's `24.x` engine declaration is already correct.
+  - https://nodejs.org/en/blog/release
+  - https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
+- pnpm 12.7.0 was the latest stable pnpm release observed on September 27 (released September 25). Its release includes security fixes involving executable shims, workspace lifecycle scripts, and environment-variable expansion in registry user-agent values. The repository pin and active setup paths now use 12.7.0. The lockfile adds only pnpm's versioned cross-platform manager metadata; application dependency resolutions are unchanged, and a repeat frozen install passes without further edits.
+  - https://github.com/pnpm/pnpm/releases
+- Supabase CLI 2.118.0 is the latest stable release observed on September 27. The 2.118.1 entries published that day are beta releases, so keep CI on 2.118.0.
+  - https://github.com/supabase/cli/releases
+- PostgreSQL upstream lists 18.6 and 17.11 among its current stable updates, while 19 is beta. The connected production Supabase project reported PostgreSQL 17.6.1.155 on September 27. Keep the managed project on its supported 17 major until Supabase maintenance status, backup/restore evidence, and application compatibility have been reviewed; don't force a major-version change from a source-only deploy.
+  - https://www.postgresql.org/docs/current/release.html
+  - https://www.postgresql.org/support/versioning/
 
 ## Product architecture
 

@@ -13,7 +13,12 @@ SONARA uses pnpm only. Do not use npm, yarn, bun, `npm audit fix`, or create
 | **Every ordinary workflow** | 24 | `tests/the-runtime-ci-tests-is-one-production-may-run.test.js` asserts each non-compatibility workflow pins exactly 24, so CI cannot drift from production. |
 | **Blocking compatibility** | 24 **and** 26 | `.github/workflows/node-runtime-compatibility.yml`, matrix `[24, 26]`, no `continue-on-error`. Node 26 reaches LTS on 2026-10-28, so it is tested ahead of that. |
 | **Forward compatibility** | 27 | Prewired, manual, `continue-on-error: true`. Node 27 does not exist yet — its release is **2027-04-22** per `nodejs/Release`. |
-| **Package manager** | `pnpm@11.1.1` | From `package.json`. |
+| **Package manager** | `pnpm@12.7.0` | Current stable pnpm release, selected after frozen-lockfile install, audit, tests, and release-gate verification. |
+
+As of 2026-09-27, Node 24.21.0 is the latest Node 24 LTS patch. Production stays on
+the `24.x` major range: Vercel automatically rolls minor and patch releases into
+that range. The local shell used for the verification below was Node 24.19.0;
+CI and Vercel select the current 24.x patch.
 
 **Do not widen `engines.node` to make a warning go away.** Running Node 26 prints
 
@@ -52,7 +57,7 @@ production stays on 24 until the host is confirmed for a newer major.
 node -v
 pnpm -v
 corepack enable
-corepack prepare pnpm@11.1.1 --activate
+corepack prepare pnpm@12.7.0 --activate
 pnpm install --frozen-lockfile
 ```
 
