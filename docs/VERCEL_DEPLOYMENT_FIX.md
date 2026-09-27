@@ -10,7 +10,7 @@ This repo uses pnpm. Do not use npm for install or deploy preparation.
 
 Evidence:
 
-- `package.json` declares `packageManager: pnpm@11.1.1`.
+- `package.json` declares `packageManager: pnpm@12.7.0`.
 - `pnpm-lock.yaml` is the committed lockfile.
 - `package-lock.json` should not exist.
 - CI and local verification commands use pnpm.

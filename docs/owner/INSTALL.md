@@ -75,7 +75,7 @@ node --version
 
 ### 2. pnpm
 
-`package.json` pins `pnpm@11.1.1` via the `packageManager` field, so the
+`package.json` pins `pnpm@12.7.0` via the `packageManager` field, so the
 cleanest way to get the right one is Corepack, which ships inside Node:
 
 ```

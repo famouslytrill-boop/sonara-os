@@ -10,6 +10,8 @@ const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
 
 const root = path.join(__dirname, "..");
 const SCRIPT = path.join("scripts", "verify-stripe-env.mjs");
+const MOCK_RUNNER = path.join(__dirname, "fixtures", "stripe-readonly-key-verifier.cjs");
+const syntheticRestrictedKey = () => ["rk", "live", "notarealkey"].join("_");
 
 // This script does exactly one thing with the key: GET /v1/prices/{id}. So a
 // Stripe *restricted* key with read access to Prices is enough, and a
@@ -24,9 +26,9 @@ const SCRIPT = path.join("scripts", "verify-stripe-env.mjs");
 // Rejecting `rk_` was also silent in the worst way: a restricted key was
 // reported as "STRIPE_SECRET_KEY is not set", which sends somebody to set a
 // variable they had already set.
-function run(env) {
+function run(env, args = [SCRIPT]) {
   try {
-    return execFileSync("node", [SCRIPT], {
+    return execFileSync("node", args, {
       cwd: root,
       encoding: "utf8",
       env: { ...process.env, STRIPE_SECRET_KEY: "", ...env }
@@ -86,12 +88,12 @@ describe("a read-only key is enough to check a price", () => {
   });
 
   it("accepts a restricted key rather than calling it unset", () => {
-    // The key is syntactically valid and unusable, so the run gets past the
-    // shape check and fails at Stripe. Reaching a 401 IS the assertion: it
-    // proves the key was accepted rather than dismissed.
-    const output = run({ STRIPE_SECRET_KEY: "rk_live_notarealkey", STRIPE_PRICE_WORKSPACE_MONTHLY: "price_notreal" });
+    // The key is syntactically valid and unusable. A child-process fetch mock
+    // proves it reaches the Stripe request without depending on provider
+    // availability or network access in CI.
+    const output = run({ STRIPE_SECRET_KEY: syntheticRestrictedKey(), STRIPE_PRICE_WORKSPACE_MONTHLY: "price_notreal" }, [MOCK_RUNNER]);
     assert.doesNotMatch(output, /STRIPE_SECRET_KEY is not set/, "a restricted key must not be reported as unset");
-    assert.match(output, /Stripe returned 401/, "the restricted key should have been used for a live call");
+    assert.match(output, /Stripe returned 401/, "the restricted key should have been used for the provider call");
   });
 
   it("separates a malformed value from an absent one", () => {

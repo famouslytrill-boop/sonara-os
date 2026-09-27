@@ -33,7 +33,7 @@ if(pkg.name!=="sonara-os") die("Expected package name sonara-os.");
 check("git"); check("node"); check("corepack");
 
 run("corepack",["enable"]);
-run("corepack",["prepare","pnpm@11.1.1","--activate"]);
+run("corepack",["prepare","pnpm@12.7.0","--activate"]);
 run("pnpm",["install","--frozen-lockfile"]);
 run("pnpm",["audit","--audit-level","moderate"]);
 if(!skipVerify) run("pnpm",["run","verify:launch"]);
