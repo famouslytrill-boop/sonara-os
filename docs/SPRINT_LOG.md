@@ -2,6 +2,44 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
+
+`no-dead-links` follows every internal `href`. Nothing read the other half of
+the interactive surface: `<form action="...">`. A form naming a path with no
+handler for its method renders a button at full contrast that does nothing when
+clicked, and from outside is indistinguishable from a working feature.
+
+It survived every existing check for the same reason three times.
+`verify:route-surface` and `verify:route-registry` read **routes**, not pages,
+so a form pointing at a path that was never registered is not a route and
+neither direction can see it. `no-dead-links` matches `href="..."`; its own
+regex says so. `signed-in-workspace-crawl` asserts pages render, and a page
+renders perfectly well with a dead form in it.
+
+Measured 27 September 2026: 291 pages answered 200, 302 POST routes registered,
+141 distinct form targets -- 119 POST, 22 GET, **none dead**. So this was
+written over a clean application. It exists because 119 submit targets had
+nothing standing behind them, and "none are broken today" is a measurement with
+a date rather than a property.
+
+**The first falsification failed, and that is the useful part.** Planting a dead
+action on a row-action form in `growth-studio-control-routes.cjs` left the check
+green -- which looks exactly like a broken gate. It was not: the crawl stubs
+every table empty, so a form rendered once per row renders zero times and the
+planted form was never on a page. A second attempt against `/account/preferences`
+failed correctly, naming the dead path and the page submitting to it. Breaking
+the method regex fires the two-sided guard and reclassifies the 22 GET forms.
+Both subjects copied aside and restored with `md5sum -c`, never `git checkout --`.
+
+The scope proved is therefore every form present in the **empty state**, not
+row-level actions, which need a seeded crawl. That limit is in the test header
+as something established by breaking it rather than reasoned about.
+
+Verified: `verify:launch` exit 0, tests 5,111 -> 5,114.
+`tests/the-handoff-counts-what-mocha-runs.test.js` caught the addition first
+("the handoff says 391 test files; mocha's own spec matches 392"), which is that
+test doing its job; regenerating the handoff carried the count.
+
 ### 2026-09-27 - Delete archive/, and the twelve exemptions written for it
 
 `archive/` held 646 tracked files -- `frontend/`, `my-app/`, `packages/`,
