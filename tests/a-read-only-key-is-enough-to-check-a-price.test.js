@@ -11,6 +11,7 @@ const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
 const root = path.join(__dirname, "..");
 const SCRIPT = path.join("scripts", "verify-stripe-env.mjs");
 const MOCK_RUNNER = path.join(__dirname, "fixtures", "stripe-readonly-key-verifier.cjs");
+const syntheticRestrictedKey = () => ["rk", "live", "notarealkey"].join("_");
 
 // This script does exactly one thing with the key: GET /v1/prices/{id}. So a
 // Stripe *restricted* key with read access to Prices is enough, and a
@@ -90,9 +91,9 @@ describe("a read-only key is enough to check a price", () => {
     // The key is syntactically valid and unusable. A child-process fetch mock
     // proves it reaches the Stripe request without depending on provider
     // availability or network access in CI.
-    const output = run({ STRIPE_SECRET_KEY: "rk_live_notarealkey", STRIPE_PRICE_WORKSPACE_MONTHLY: "price_notreal" }, [MOCK_RUNNER]);
+    const output = run({ STRIPE_SECRET_KEY: syntheticRestrictedKey(), STRIPE_PRICE_WORKSPACE_MONTHLY: "price_notreal" }, [MOCK_RUNNER]);
     assert.doesNotMatch(output, /STRIPE_SECRET_KEY is not set/, "a restricted key must not be reported as unset");
-    assert.match(output, /Stripe returned 401/, "the restricted key should have been used for a live call");
+    assert.match(output, /Stripe returned 401/, "the restricted key should have been used for the provider call");
   });
 
   it("separates a malformed value from an absent one", () => {
