@@ -8,9 +8,10 @@ Updated: 2026-09-18 UTC during operational maturity hardening.
   the latest `origin/main` baseline.
 - [x] Keep the first viewport readable and actionable across desktop and mobile
   widths without introducing a WebGL or provider dependency.
-- [ ] Complete full local tests, smoke routes, and final diff review.
-- [ ] Open the review PR; merge and deploy only after required checks and owner
-  approval.
+- [x] Complete full local tests, smoke routes, and final diff review.
+- [x] Open the review PR and merge it after all required checks passed.
+- [ ] Keep production deployment owner-controlled; no provider-side deployment
+  was triggered by this design integration.
 
 ## In progress
 
