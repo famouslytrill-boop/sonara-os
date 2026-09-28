@@ -2,6 +2,16 @@
 
 Updated: 2026-09-18 UTC during operational maturity hardening.
 
+## Current visual integration
+
+- [x] Reconcile the visible homepage frame and cache-busted public assets with
+  the latest `origin/main` baseline.
+- [x] Keep the first viewport readable and actionable across desktop and mobile
+  widths without introducing a WebGL or provider dependency.
+- [ ] Complete full local tests, smoke routes, and final diff review.
+- [ ] Open the review PR; merge and deploy only after required checks and owner
+  approval.
+
 ## In progress
 
 

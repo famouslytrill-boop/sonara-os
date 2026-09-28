@@ -248,3 +248,17 @@
 - Verification: contrast, theme agreement, customer-ready checks, build, and
   lint pass. The palette remains reversible and no provider, secret, migration,
   or payment wiring changed.
+
+## 2026-09-27 - Visible homepage design integration
+
+- Reconciled the homepage frame and public asset cache token with the latest
+  `origin/main` implementation so the production Express route serves the
+  visible design system and application UI assets consistently.
+- Tightened the live homepage first viewport: left-aligned product message,
+  readable responsive heading, visible primary actions, and the interface
+  preview all render without horizontal overflow on desktop or mobile.
+- Kept the change additive and reversible. No provider credentials, schema
+  migrations, payment wiring, or production deployment state changed.
+- Verification completed so far: frozen install, audit, build, focused route
+  and overflow tests, lint, and client-secret scan. Full suite and route smoke
+  verification remain the final local gates before review.
