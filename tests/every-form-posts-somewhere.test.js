@@ -87,6 +87,8 @@ const MINIMUM_POST_TARGETS = 160;   // measured 215 across both passes
 // reporting success twice. Measured: 141 empty, 237 combined -- 96 row controls
 // that only exist once a table has a row in it.
 const MINIMUM_SEEDED_ONLY = 40;
+// Row links reachable only with a row present. Measured 28 September 2026: 30.
+const MINIMUM_SEEDED_ONLY_LINKS = 10;
 
 function json(body, status = 200) {
   return { ok: status < 400, status, headers: { get: () => null }, json: async () => body };
@@ -109,7 +111,12 @@ const SEEDED_ROW = Object.freeze({
   currency: "usd", locale: "en-US", timezone: "America/New_York",
   created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
   starts_at: "2026-09-01T00:00:00Z", ends_at: "2026-09-02T00:00:00Z",
-  metadata: {}, settings: {}, tags: []
+  metadata: {}, settings: {}, tags: [], fields: [],
+  // schema_key is `text not null` on business_sub_app_database_schemas and the
+  // sub-app detail page reads it without a guard. Omitting it made that page
+  // throw a 500 and this check report a dead link that is not dead: a real row
+  // always carries the column. The fixture was wrong, not the page.
+  schema_key: "sample_records"
 });
 
 function stubFetch({ seeded = false } = {}) {
@@ -185,6 +192,7 @@ describe("every form on every page submits to a route that exists", function () 
 
   let realFetch;
   let targets;
+  let links;
   let pagesRendered;
   let postRoutes;
   let getRoutes;
@@ -198,6 +206,7 @@ describe("every form on every page submits to a route that exists", function () 
     getRoutes = [...new Set(routes.filter((r) => r.methods.includes("get")).map((r) => r.path))];
 
     targets = new Map();
+    links = new Map();
     pagesRendered = 0;
 
     for (const seeded of [false, true]) {
@@ -221,6 +230,17 @@ describe("every form on every page submits to a route that exists", function () 
       if (res.status !== 200) continue;
       if (!/text\/html/.test(res.headers["content-type"] || "")) continue;
       renderedThisPass += 1;
+
+      // Row links, collected in the same pass. tests/no-dead-links.test.js
+      // follows every href but crawls logged out, so a link rendered once per
+      // row is one it can never reach. Only the seeded-only ones are new
+      // information, and those are the ones fetched below.
+      for (const match of res.text.matchAll(/href="(\/[^"#?]*)"/g)) {
+        const target = match[1];
+        if (!links.has(target)) links.set(target, { from: [], seededOnly: seeded });
+        else if (!seeded) links.get(target).seededOnly = false;
+        links.get(target).from.push(page);
+      }
 
       for (const tag of res.text.matchAll(/<form\b([^>]*)>/gi)) {
         const attributes = tag[1];
@@ -288,6 +308,35 @@ describe("every form on every page submits to a route that exists", function () 
         "Either row controls stopped rendering or the seeded stub stopped seeding, " +
         "and this file is running the empty crawl twice while reporting success twice."
     );
+  });
+
+  // Fetched rather than matched against the route table, because express.static
+  // serves fonts, icons and stylesheets that are not registered routes. Matching
+  // reports all nine of those as dead; fetching returns 200 for every one.
+  it("every row link the logged-out crawl cannot reach still resolves", async () => {
+    const rowLinks = [...links].filter(([, value]) => value.seededOnly);
+    assert.ok(
+      rowLinks.length >= MINIMUM_SEEDED_ONLY_LINKS,
+      `only ${rowLinks.length} link(s) appeared solely in the seeded pass; row links are no longer being reached`
+    );
+
+    const broken = [];
+    for (const [target, value] of rowLinks) {
+      let res;
+      try {
+        res = await request(app).get(target).set("Accept", "text/html")
+          .set("Cookie", [`${CUSTOMER_SESSION_COOKIE}=stub-session`]);
+      } catch (error) {
+        broken.push(`${target} threw ${error.message}`);
+        continue;
+      }
+      // 303 is a protected page redirecting, 503 is this codebase's
+      // "not configured yet" signal. Both mean the route exists.
+      if ([200, 303, 403, 503].includes(res.status)) continue;
+      broken.push(`${res.status}  ${target}  (linked from ${[...new Set(value.from)].slice(0, 2).join(", ")})`);
+    }
+
+    assert.deepEqual(broken, [], `${broken.length} row link(s) lead nowhere:\n  ${broken.join("\n  ")}`);
   });
 
   it("every form action resolves to a registered handler for its own method", () => {

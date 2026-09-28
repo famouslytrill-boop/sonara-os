@@ -2,6 +2,37 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-28 - And seven dead Edit links, from the same cause
+
+Third instance. `recordEdit.canEdit(page)` is a page-shape predicate,
+`ALL_OWNER_PAGES.forEach` registers the edit routes, the Creator Studio loop did
+not. **26 `/edit` routes existed, every one Business Builder**, while all seven
+Creator Studio pages rendered an Edit link per row. Clicking Edit answered 404.
+So Creator Studio had fourteen dead controls, not seven.
+
+No migration: the edit form writes the same page-declared fields the create API
+writes. `registerEditRoutes(page, guard)` joins the archive and status helpers.
+
+`no-dead-links` follows every `href` but crawls **logged out**, so a link
+rendered once per row is unreachable to it. The seeded pass now collects links
+too and fetches the ones appearing only when a row exists -- exactly the gap
+between the two crawls.
+
+**Fetched, not matched against the route table.** Matching reported nine dead
+links (favicon, fonts, stylesheets, webmanifest) because `express.static` serves
+them and they are not registered routes; fetching returns 200 for all nine. A
+route-table match would have shipped nine false findings beside seven real ones.
+
+One finding withdrawn: the check also reported `500` on
+`/business-builder/owner/sub-apps/:id`, where the page reads
+`row.schema_key.replace(...)` unguarded while defending `row.status` one
+expression later. `schema_key` is `text not null` and the query selects it, so a
+real row always carries it. The fixture was wrong, not the page -- corrected
+there rather than by widening what the check accepts.
+
+Falsified: removing the registration names all seven 404s with their source
+pages. Paths 753 -> 767, routes 898 -> 912.
+
 ### 2026-09-28 - Seven Creator Studio buttons that did nothing
 
 Archive on music projects, device cues, sound identity, album cycles, prompt

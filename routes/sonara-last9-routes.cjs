@@ -627,6 +627,159 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // The guard differs per set: Business Builder pages are manager-gated, and
   // Creator Studio pages gate on workspace access to creator_studio. That is
   // the only difference, so it is the only parameter.
+  // Opening a record to change it. Same story as archive and status: the
+  // renderer offers an Edit link from recordEdit.canEdit(page), a page-shape
+  // predicate, while only ALL_OWNER_PAGES registered the routes. 26 /edit
+  // routes existed and every one was Business Builder, so Edit on any of the
+  // seven Creator Studio record pages answered 404.
+  //
+  // Unlike archive, this needs no migration: the edit form writes the same
+  // page-declared fields the create API already writes, so every column it
+  // touches is one the table already has.
+  function registerEditRoutes(page, guard) {
+  if (recordEdit.canEdit(page)) {
+    app.get(`${page.path}/:recordId/edit`, guard, async (req, res) => {
+      const recordId = String(req.params.recordId || "");
+      const notFound = (detail) => res.status(404).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: "Not found",
+        body: detail,
+        sections: [ui.card("Nothing to correct", "Go back to the list and choose a record from there.")],
+        actions: [ui.link(page.path, page.title), ui.link("/business-builder/owner", "Owner Dashboard")]
+      }));
+      if (!isUuid(recordId)) return notFound("That record reference is not one of ours.");
+
+      const config = getConfig(deps);
+      const org = await resolveOrganization(req, deps);
+      if (!config.ok) return res.status(503).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: page.title,
+        body: page.body,
+        sections: [ui.card("Not available right now", "Your account database is not connected yet, so there is nothing to correct.")],
+        actions: [ui.link(page.path, page.title)]
+      }));
+      if (!org.ok) return res.status(403).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: page.title,
+        body: page.body,
+        sections: [ui.card("Not available right now", "We could not tell which business you are signed in to. Sign in again and this will fill up.")],
+        actions: [ui.link(page.path, page.title)]
+      }));
+
+      // Scoped by organization as well as by id, because the service key
+      // bypasses row level security and a guessed id would otherwise open
+      // another business's record in an editable form.
+      const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+      if (!found.ok) return res.status(502).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: page.title,
+        body: page.body,
+        // A read that failed is not a record that is missing, and offering an
+        // empty form for one would invite somebody to retype a record that is
+        // still there and then save the blanks over it.
+        sections: [ui.card("Not available right now", "We could not read that record just now. Nothing has been changed.")],
+        actions: [ui.link(page.path, page.title)]
+      }));
+      const row = found.rows[0];
+      if (!row) return notFound("That record is not in your business, or it has been removed.");
+
+      const references = await loadReferences(config, org.organizationId, page);
+      // Shown here rather than on a page of its own: somebody is on this page
+      // because they are about to change something, and "a manager changed the
+      // price an hour ago" matters at exactly that moment.
+      const history = await changeLog.historyOf(
+        (table, query) => supabaseList(config, table, query),
+        { organizationId: org.organizationId, table: page.table, recordId }
+      );
+      return res.status(200).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: page.title,
+        body: page.body,
+        sections: [editFormCard(page, row, references, ui, req.query.edit_problem), historyCard(history, ui)],
+        actions: [
+          ui.link(page.path, `All ${page.title.toLowerCase()}`),
+          ui.link("/business-builder/owner", "Owner Dashboard"),
+          ui.link("/business-builder/dashboard", "Dashboard")
+        ]
+      }));
+    });
+
+    app.post(`${page.path}/:recordId`, guard, async (req, res) => {
+      const recordId = String(req.params.recordId || "");
+      const edit = `${page.path}/${encodeURIComponent(recordId)}/edit`;
+      const refuse = (status, code, detail) => {
+        if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+        return res.redirect(303, `${edit}?edit_problem=${encodeURIComponent(detail || code)}`);
+      };
+      if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+      const config = getConfig(deps);
+      if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+      const org = await resolveOrganization(req, deps);
+      if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+      // Read first. The previous values are what turn "saved" into a sentence
+      // naming what actually changed, and they are also what stops an
+      // unchanged field being rewritten over somebody else's edit.
+      const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+      if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
+      const before = found.rows[0];
+      if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+      // Built from the page's own field declaration, so a body key the form
+      // never declared is not written whatever it is called. That is the
+      // point rather than a tidiness: the patch goes out with the service
+      // key, and a body carrying organization_id would otherwise be a way to
+      // move a record between businesses.
+      const wanted = recordEdit.changesFrom(page, req.body, before);
+      if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
+
+      // An edit can change the same foreign records as create. Re-check any
+      // changed reference against this organization before the service-role
+      // PATCH, because a UUID that was never in the picker can still be posted.
+      const editReferences = RESOURCE_MAP[page.api]?.references || {};
+      for (const [field, table] of Object.entries(editReferences)) {
+        if (!Object.prototype.hasOwnProperty.call(wanted.patch, field)) continue;
+        const supplied = wanted.patch[field];
+        if (supplied === null) continue;
+        const id = String(supplied || "");
+        if (!isUuid(id)) return refuse(400, `${field}_invalid`, "That linked record is not one of ours.");
+        const check = await belongsToOrganization(config, table, id, org.organizationId);
+        if (!check.ok) return refuse(502, `${field}_unreadable`, "We could not check that linked record just now. Nothing has been changed.");
+        if (!check.belongs) return refuse(403, `${field}_not_yours`, "That linked record is not in your business.");
+      }
+
+      const said = recordEdit.describeEdit(wanted.changed);
+      // Nothing differed. Sending an empty PATCH would ask the database to do
+      // nothing and then report it as a save.
+      if (!wanted.changed.length) {
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: [], detail: said });
+        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
+      }
+
+      const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, wanted.patch);
+      if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
+      if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+      // The column names rather than the labels, because the log is data and
+      // the labels are wording that will be rewritten.
+      const logged = await changeLog.record(
+        (table, row) => supabaseInsert(config, table, row),
+        { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "fields", fields: Object.keys(wanted.patch) }
+      );
+      const told = logged.ok ? said : `${said} We could not record who changed it.`;
+
+      if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: told, recorded: logged.ok });
+      return res.redirect(303, `${page.path}?edited=${encodeURIComponent(told)}`);
+    });
+  }
+  }
+
   function registerArchiveRoute(page, guard) {
   if (recordArchive.canArchive(page)) {
     app.post(`${page.path}/:recordId/archive`, guard, async (req, res) => {
@@ -817,147 +970,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // under the list. Only nine of the twenty-seven pages have a detail page,
     // and a form reachable on nine of them is the gap the status control was
     // just fixed for.
-    if (recordEdit.canEdit(page)) {
-      app.get(`${page.path}/:recordId/edit`, requireBusinessManager, async (req, res) => {
-        const recordId = String(req.params.recordId || "");
-        const notFound = (detail) => res.status(404).type("html").send(ui.layout({
-          title: page.title,
-          eyebrow: "Business Builder operations",
-          heading: "Not found",
-          body: detail,
-          sections: [ui.card("Nothing to correct", "Go back to the list and choose a record from there.")],
-          actions: [ui.link(page.path, page.title), ui.link("/business-builder/owner", "Owner Dashboard")]
-        }));
-        if (!isUuid(recordId)) return notFound("That record reference is not one of ours.");
-
-        const config = getConfig(deps);
-        const org = await resolveOrganization(req, deps);
-        if (!config.ok) return res.status(503).type("html").send(ui.layout({
-          title: page.title,
-          eyebrow: "Business Builder operations",
-          heading: page.title,
-          body: page.body,
-          sections: [ui.card("Not available right now", "Your account database is not connected yet, so there is nothing to correct.")],
-          actions: [ui.link(page.path, page.title)]
-        }));
-        if (!org.ok) return res.status(403).type("html").send(ui.layout({
-          title: page.title,
-          eyebrow: "Business Builder operations",
-          heading: page.title,
-          body: page.body,
-          sections: [ui.card("Not available right now", "We could not tell which business you are signed in to. Sign in again and this will fill up.")],
-          actions: [ui.link(page.path, page.title)]
-        }));
-
-        // Scoped by organization as well as by id, because the service key
-        // bypasses row level security and a guessed id would otherwise open
-        // another business's record in an editable form.
-        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
-        if (!found.ok) return res.status(502).type("html").send(ui.layout({
-          title: page.title,
-          eyebrow: "Business Builder operations",
-          heading: page.title,
-          body: page.body,
-          // A read that failed is not a record that is missing, and offering an
-          // empty form for one would invite somebody to retype a record that is
-          // still there and then save the blanks over it.
-          sections: [ui.card("Not available right now", "We could not read that record just now. Nothing has been changed.")],
-          actions: [ui.link(page.path, page.title)]
-        }));
-        const row = found.rows[0];
-        if (!row) return notFound("That record is not in your business, or it has been removed.");
-
-        const references = await loadReferences(config, org.organizationId, page);
-        // Shown here rather than on a page of its own: somebody is on this page
-        // because they are about to change something, and "a manager changed the
-        // price an hour ago" matters at exactly that moment.
-        const history = await changeLog.historyOf(
-          (table, query) => supabaseList(config, table, query),
-          { organizationId: org.organizationId, table: page.table, recordId }
-        );
-        return res.status(200).type("html").send(ui.layout({
-          title: page.title,
-          eyebrow: "Business Builder operations",
-          heading: page.title,
-          body: page.body,
-          sections: [editFormCard(page, row, references, ui, req.query.edit_problem), historyCard(history, ui)],
-          actions: [
-            ui.link(page.path, `All ${page.title.toLowerCase()}`),
-            ui.link("/business-builder/owner", "Owner Dashboard"),
-            ui.link("/business-builder/dashboard", "Dashboard")
-          ]
-        }));
-      });
-
-      app.post(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
-        const recordId = String(req.params.recordId || "");
-        const edit = `${page.path}/${encodeURIComponent(recordId)}/edit`;
-        const refuse = (status, code, detail) => {
-          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
-          return res.redirect(303, `${edit}?edit_problem=${encodeURIComponent(detail || code)}`);
-        };
-        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
-
-        const config = getConfig(deps);
-        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
-        const org = await resolveOrganization(req, deps);
-        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
-
-        // Read first. The previous values are what turn "saved" into a sentence
-        // naming what actually changed, and they are also what stops an
-        // unchanged field being rewritten over somebody else's edit.
-        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
-        if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
-        const before = found.rows[0];
-        if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
-
-        // Built from the page's own field declaration, so a body key the form
-        // never declared is not written whatever it is called. That is the
-        // point rather than a tidiness: the patch goes out with the service
-        // key, and a body carrying organization_id would otherwise be a way to
-        // move a record between businesses.
-        const wanted = recordEdit.changesFrom(page, req.body, before);
-        if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
-
-        // An edit can change the same foreign records as create. Re-check any
-        // changed reference against this organization before the service-role
-        // PATCH, because a UUID that was never in the picker can still be posted.
-        const editReferences = RESOURCE_MAP[page.api]?.references || {};
-        for (const [field, table] of Object.entries(editReferences)) {
-          if (!Object.prototype.hasOwnProperty.call(wanted.patch, field)) continue;
-          const supplied = wanted.patch[field];
-          if (supplied === null) continue;
-          const id = String(supplied || "");
-          if (!isUuid(id)) return refuse(400, `${field}_invalid`, "That linked record is not one of ours.");
-          const check = await belongsToOrganization(config, table, id, org.organizationId);
-          if (!check.ok) return refuse(502, `${field}_unreadable`, "We could not check that linked record just now. Nothing has been changed.");
-          if (!check.belongs) return refuse(403, `${field}_not_yours`, "That linked record is not in your business.");
-        }
-
-        const said = recordEdit.describeEdit(wanted.changed);
-        // Nothing differed. Sending an empty PATCH would ask the database to do
-        // nothing and then report it as a save.
-        if (!wanted.changed.length) {
-          if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: [], detail: said });
-          return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
-        }
-
-        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, wanted.patch);
-        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
-        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
-
-        // The column names rather than the labels, because the log is data and
-        // the labels are wording that will be rewritten.
-        const logged = await changeLog.record(
-          (table, row) => supabaseInsert(config, table, row),
-          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "fields", fields: Object.keys(wanted.patch) }
-        );
-        const told = logged.ok ? said : `${said} We could not record who changed it.`;
-
-        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: told, recorded: logged.ok });
-        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(told)}`);
-      });
-    }
+    registerEditRoutes(page, requireBusinessManager);
 
     // Taking a record off the list, and putting it back.
     //
@@ -1801,6 +1814,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // renderer offers them from the page's shape, and until this existed it
     // offered them with nothing listening: six Archive buttons and the artist
     // Status control submitted to paths no route matched.
+    registerEditRoutes(page, requireWorkspaceAccess("creator_studio"));
     registerArchiveRoute(page, requireWorkspaceAccess("creator_studio"));
     registerStatusRoute(page, requireWorkspaceAccess("creator_studio"));
 
