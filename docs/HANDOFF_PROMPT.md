@@ -103,11 +103,136 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 392 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 394 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
+
+The header fix earlier today found one property decided in three media queries
+where only the widest ran. That is a class of defect, not an instance, and
+nothing here could detect it. `verify:breakpoints` now does, and the chain is
+63 commands.
+
+**It reported two confident falsehoods before it was right, and both matter.**
+
+First version compared bounds: same selector, property and value, a wider
+bound, no differing rule in between. It called
+`.sonara-header-tools { gap: 6px }` at 760px dead because the base rule also
+says 6px. Deleting it changed the rendered gap below 680px from 6px to 5px --
+a 680px rule sets 5px and sits *earlier* in the file, and media queries add no
+specificity, so among equal selectors source order decides. The 760px rule was
+overriding the 680px one, which no comparison of bounds can see. The check now
+simulates the cascade: the winner at a width is the last admitted declaration
+in source order, and a declaration is dead only when removing it leaves the
+winner identical at every bound, every bound minus one, and above them all.
+
+Second, it reported `button { min-height: 48px }` as always overridden by
+`.sonara-record-table :is(a, button, input, select)`. The parser split selector
+lists on every comma, so that `:is()` became four selectors including a bare
+`button` -- a fabricated rule appearing to govern every button on the site.
+Splitting only top-level commas fixed it. Deleting on that verdict would have
+dropped mobile buttons from 48px to 46px.
+
+**What caught both was a browser probe, not reasoning.** 9,456 computed values
+-- 43 selector-and-property pairs, 5 pages, 24 widths -- captured before and
+after and diffed. It also caught an over-deletion of mine: stripping three
+selectors the gate never flagged took tap targets from 48px to 44px on phones,
+against the AGENTS.md rule on tap-target size. The final diff is empty, so the
+cleanup is behaviour-neutral by measurement rather than by argument. A check
+agreeing with your reasoning is not evidence; it was built from that reasoning.
+
+**Findings, in two classes, because they need different answers.** 31 dead
+declarations. Twenty-three said something already decided -- deleting them
+changes nothing. Eight expressed an intent that has never once reached a
+screen, every rule beating them saying otherwise: `main` capped at 640px below
+680px and `calc(100% - 20px)` below 420px, both beaten by a later 760px rule;
+`.hero { padding: 48px 0 38px }`; `.card { padding: 18px }` at 420px; icon
+buttons and the account summary at 42px; `.sonara-header-tools { gap: 5px }`.
+All were deleted, which keeps today's appearance exactly. **Honouring any of
+them instead would change what customers see on a phone, and that is the
+owner's decision, not a cleanup** -- the list above is the record of what was
+intended and never happened. Also fixed: `.sonara-product-grid` was listed
+twice inside one selector list, in two places.
+
+**Its own blind-spot guard failed first too.** Truncating the whole of
+sonara-design-system.css to twenty lines left the check green, because
+application-ui.css alone clears any total worth setting. Floors are now per
+stylesheet, and the numbers in that comment are what the parser reports (67
+rules / 170 declarations, and 701 / 2,199) rather than figures that merely read
+as measured -- the first draft carried invented ones.
+
+Falsified four ways, each restored with `md5sum -c`: a repeated declaration, an
+always-overridden one, an emptied stylesheet, and an `:is()` list that must not
+fabricate a bare selector. 72 selector-and-property groups are deliberately
+left unjudged for carrying a `min-width`, a range or an `!important` this model
+cannot evaluate, and the count is printed so the gap is visible.
+
+**An existing gate then caught the new one**, which is the system working.
+`a-line-comment-cannot-open-a-block-comment` failed: the script had its own
+comment stripper, "that is how the same bug shipped three times". It now uses
+the shared pattern -- but `CSS_COMMENT`, a new single branch in
+`lib/sonara-comment-stripping.cjs`, not the JavaScript `COMMENT`. `//` is not a
+comment in CSS, and that alternation reads `url(//cdn.example.com/x.png)` as one
+and blanks the rest of the line, closing brace included. Neither stylesheet
+holds such a value today, which is precisely the "works until somebody writes
+one" this module exists to stop repeating. Two tests cover the CSS form, and
+pointing `withoutCssComments` at `COMMENT` fails "the url was read as a
+comment". Line numbers survive stripping because this caller keeps the newlines
+rather than collapsing each comment to a space: a rule planted past a four-line
+block comment is reported at 2391 and really is on 2391.
+
+Verified: `verify:launch` exit 0, 63 chain commands.
+
+
+
+### 2026-09-28 - The navigation a laptop could not see, and three rules deciding it
+
+`.sonara-desktop-nav` was dropped by **three** separate media rules -- 1300px,
+1120px and 920px -- so the widest silently governed and the other two were dead
+code. The tool labels had the same shape at 1400px, 1120px and 1080px. Nothing
+in `tests/` or `scripts/` asserted any of the six widths.
+
+All of them carried one stated reason: the nav "has eight items". It renders
+**five** links signed out and **three** signed in. The reason had expired; the
+rule it justified had not. The cost was the entire primary navigation of a
+767-route application collapsing into a hamburger on every laptop from 920px to
+1300px, while the header had room to spare at every width in that band.
+
+Measured in Chromium, `document.fonts.ready` awaited so links are sized in Geist
+rather than a fallback -- without that wait the widths are a different font's:
+
+    nav + labelled tools    clean at 1040px, first clips at 1020px
+    nav + icon-only tools   clean at  840px, first clips at  830px
+
+So one rule each at the measured boundary with margin: labels 1080px, nav 920px.
+Verified across fourteen viewports -- nav returns at 930px instead of 1301px,
+labels at 1081px instead of 1401px, nothing clipped, nothing wrapped, no
+sideways scroll at any width, phone handover intact.
+
+Two tests in `browser-tests/public-experience.spec.js` hold it, asserting the
+**fit** rather than the width, so a future rule may move it while one that hides
+the navigation on a laptop or lets it clip fails. Falsified both ways: replanting
+the 1300px rule failed "the desktop nav is hidden at 1280px, which is an ordinary
+laptop" and that test alone; deleting the 920px handover failed "the desktop nav
+is still showing on a phone". Restored from a copy and confirmed with `md5sum -c`.
+
+**What not to rediscover.** A first detector of mine flagged wrapped nav links at
+1400px, where everything demonstrably fits -- a link-height heuristic tripping on
+ordinary padding, not a finding. Discarded rather than reported. Also: this
+container's Playwright browser build is 1194 while the locked `@playwright/test`
+wants 1243, so the runner cannot find a browser until the path is bridged
+locally; nothing in the repository needs changing for it.
+
+Asset cache token v14 -> v15 across all 31 occurrences, because a changed
+stylesheet served under the old token reaches nobody.
+
+Verified: `verify:launch` exit 0, 5,115 passing, 62 chain commands, 19 doc
+claims, 26 contrast pairs, 3 theme states agreeing.
+
+
 
 ### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
 
@@ -2234,129 +2359,3 @@ population that was real, non-empty and silently cut in half, which is worse
 because every symptom of shape 1 is absent. The corrupt commit's own diff stat
 read **+1,453 / −30,251** and was merged -- the number was on the pull request
 the whole time.
-
-
-
-### 2026-09-18 - Half the sprint log was binary, committed on main
-
-`docs/SPRINT_LOG.md` was clean UTF-8 to offset 393216 -- exactly 0x60000, 384 KiB
--- and from there to the end was 111,879 bytes of binary garbage, breaking off
-mid-sentence at "What changes is that a third-party o". Found by a write to this
-file failing to decode it, not by any check.
-
-`6c4f13ed` "Integrate third-search platform convergence" took the file from
-1,232,848 clean bytes to 786,445 corrupt ones, discarding 446,403 bytes and 274
-of its 377 entries. It arrived on `main` through PR #292 and was the newest commit
-touching the file, so nothing had been written over the damage.
-
-CLAUDE.md calls this file "the only hand-written part of the handoff prompt,
-because history cannot be derived". That is exactly why the loss mattered: no
-generator could have rebuilt it.
-
-Reconstructed rather than restored, because the corrupt commit did carry one
-legitimate new entry in its surviving head. The corrupt file was
-`preamble + one new entry + the parent's content`, truncated. So the rebuild is
-the clean parent (`ceb1df53`) with that 3,962-byte entry prepended, and it was
-proved rather than assumed: the tail from the parent's first heading is
-byte-identical to the parent's, the head matches the corrupt file's surviving
-text, the result is valid UTF-8, and the heading count is 378 -- the parent's 377
-plus the one new entry. Nothing was lost and nothing was invented.
-
-**No check caught this**, and that is the finding worth keeping. Every gate that
-reads this file reads it as text; a file that is half binary still has a first
-384 KiB that parses, still contains the phrases a grep looks for, and still
-answers a line count. `verify:doc-counts` and `verify:handoff` both passed over
-it. A truncation that keeps the head intact is invisible to every check that
-only ever looks at the head.
-
-So `scripts/verify-doc-script-paths.mjs` -- which already walks every document
-in `docs/` and had been reading them with `readFileSync(path, "utf8")`, which
-substitutes U+FFFD for an invalid byte and says nothing -- now decodes strictly
-and refuses a document that is not text, naming the file and the true byte offset
-of the first bad byte. Falsified against a document corrupted the same way, head
-kept and binary appended: it reported offset 1200 for a byte injected at 1200.
-
-**The corruption had already propagated into a gate.** Once the lost entries took
-two sentences with them, the two-sided historical-script register correctly
-reported `scripts/verify-stripe-config.mjs` and `scripts/seed-stripe-products.mjs`
-as registered-but-named-by-nothing -- and `5e40f28d` "remove expired documented-script
-exemptions" resolved that by deleting the two exemptions. The check told the truth
-and the remedy trusted the damaged input. Both entries are restored verbatim from
-`ceb1df53`, because both references exist again.
-
-A sweep of all 1,590 tracked text files outside `archive/` found one other file
-that was not UTF-8: `test-output.txt`, a PowerShell capture (`>` writes UTF-16LE)
-of `pnpm --dir frontend run test` against a `frontend/` directory that no longer
-exists. It was already NICE-2 in `docs/audits/2026-07-27-ENGINEERING_AUDIT.md`.
-Removed and ignored. The other paths NICE-2 names were left alone --
-`_claude_workbench/` holds tracked documentation, so that part of the finding is
-not simply correct.
-
-
-
-### 2026-09-17 - The third search became one convergence plan, not another product pile
-
-The broad request covered repositories, PDFs, US/European/Chinese companies,
-industrial systems, creator media, calling, streaming, manufacturing, CAD,
-robotics, 3D, agents, SEO, customer service, and new business ideas. Most of
-those categories already existed in source as governed registries, formulas,
-industry packs, or bounded product foundations. Copying the request into more
-capability names would have increased surface area without advancing the
-architecture.
-
-`lib/sonara-third-search-convergence.cjs` now reads the canonical inventories
-instead: 237 governed repository records, 27 market-expansion capabilities, 13
-reuse-first schema contracts, 18 industry systems, 38 formulas, 17 algorithms,
-11 shared agent strategies, and 14 source-evidence records at the time of this
-change. The endpoint derives those counts; it does not preserve them as stale
-constants.
-
-The representative market synthesis is explicit about inference. US platform
-suites support one identity/data/workflow layer; European industrial software
-supports vertical composition and durable records; Chinese mobile ecosystems
-support low-friction communication/commerce loops; installed-base businesses
-support reliability and service as the moat; creator platforms support a
-creation/community/distribution/monetization loop. None of that is presented as
-a claim about an undisclosed competitor stack.
-
-The product decision is a private Creator and Growth Commons over existing
-profiles, follows, assets, calls, notifications, content queues, and commerce.
-The schema plan now records the reuse-first contract and its safety gate.
-Public feeds/federation, biometric storage, Wi-Fi credential features, a global
-media network, regulated rails, and bulk repository installation remain
-explicitly deferred or rejected.
-
-The infrastructure advance beneath it is the preceding durable event/evaluation
-foundation: four service-only, RLS-protected tables, an atomic claim/settle
-path, and the owner queue as the first compact event producer. Source now says
-clearly that the migration is pending the controlled path and that no worker is
-enabled.
-
-The competitor-comparison skill now requires primary sources, representative
-archetypes, labeled inference, repository inspection, and a bounded
-build/integrate/research/defer sequence for portfolio-wide searches. Its skill
-validator and adapted-skill provenance gate pass.
-
-Focused tests pass 21/21. The full suite passes 4,707 tests with six explicit
-pending tests; typecheck, lint, build, dependency audit, stale-claim review, and
-adapted-skill verification are green. The dated research record carries a
-2026-10-17 review deadline.
-
-The release gates found two useful bookkeeping edges before review. The outbox
-duplicate lookup originally built its selected columns at run time, increasing
-the unauditable-query ratchet; it now asks for the exact three fields it reads
-instead. The new migration also changes the derived schema to 121 migrations,
-337 tables, 240 organization-scoped tables, and 31 of 311 RLS tables deliberately
-closed to every browser role. Those counts and the exact two-sided closed-table
-set now agree across the replay assertion and owner documentation.
-
-`pnpm run verify:gates` passes. This workstation has no PostgreSQL binaries, so
-the fresh-database replay read all 121 migration files but explicitly did not
-execute them; CI keeps `SONARA_MIGRATION_REPLAY_REQUIRED=1`, making that replay a
-hard failure rather than the local notice recorded here.
-
-The final `pnpm run verify:launch` chain passes end to end: build, 4,707 tests
-with six explicit media-test pendings, secret scan, lint, route smoke, database
-contracts, governance gates, and coverage. Live Stripe price comparison and
-external-repository network health remain the chain's declared credentialed/CI
-checks rather than claims made by this workstation.

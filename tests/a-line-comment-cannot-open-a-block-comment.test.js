@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { withoutComments, withoutSqlComments } = require("../lib/sonara-comment-stripping.cjs");
+const { withoutComments, withoutSqlComments , withoutCssComments } = require("../lib/sonara-comment-stripping.cjs");
 
 // Two release-chain reports decide what the code "names" by stripping comments
 // first, so this function is the parser both of them measure through. When it
@@ -126,6 +126,30 @@ describe("stripping comments before measuring what code names", () => {
           `scripts/${name} has its own copy again; the next bug in it will only be fixed here`
         );
       }
+    });
+  });
+
+  describe("the CSS form", () => {
+    // `//` is not a comment in CSS. The JavaScript alternation would treat a
+    // protocol-relative url() as one and blank the rest of the line, taking the
+    // closing brace with it -- so a stylesheet needs its own single branch.
+    // Substring checks rather than `assert.match`, because that is what these
+    // three actually are: the question is whether stripping left the text in
+    // place, not whether the text has a shape. CodeQL was right to object to
+    // the first draft -- an unanchored regex over a hostname is a URL check
+    // that matches anywhere, and even in a test it is the habit worth not
+    // having.
+    it("leaves a protocol-relative url alone", () => {
+      const css = ".a { background: url(//cdn.example.com/x.png); color: red; }";
+      const stripped = withoutCssComments(css);
+      assert.ok(stripped.includes("url(//cdn.example.com/x.png)"), "the url was read as a comment");
+      assert.ok(stripped.includes("color: red"), "the rest of the rule was swallowed");
+      assert.ok(stripped.includes("}"), "the closing brace was swallowed");
+    });
+
+    it("still removes the comments it is for", () => {
+      assert.doesNotMatch(withoutCssComments("/* note */ .a { color: red }"), /note/);
+      assert.doesNotMatch(withoutCssComments(".a { color: red } /* trailing\nover two lines */"), /trailing/);
     });
   });
 
