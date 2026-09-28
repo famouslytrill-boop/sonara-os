@@ -318,12 +318,44 @@ html.sonara-leaving main{opacity:.88;transition:opacity .12s ease}
 @keyframes nxEnter{from{opacity:.2}to{opacity:1}}
 @keyframes nxExit{to{opacity:.6}}
 
+/* The tool labels are the cheapest ~180px to reclaim when the header row runs
+ * out of room: each button already carries an aria-label and a recognisable
+ * icon, so dropping the visible word costs nothing to a screen reader and
+ * nothing to recognition.
+ *
+ * 1080px is measured, not estimated. 28 September 2026, Chromium, both the
+ * desktop nav and the tool labels forced on, waiting on document.fonts.ready
+ * so the links are sized in Geist rather than a fallback: the fully labelled
+ * header renders clean at 1040px and first clips a nav link at 1020px. This is
+ * that boundary with 40px of margin.
+ *
+ * This is the only place the labels are dropped. Two further rules used to drop
+ * them as well, at 1400px and 1120px, so the widest quietly governed and the
+ * measurement in either of the others described nothing. */
 @media(max-width:1080px){
   .sonara-tool-label,.sonara-key{display:none}
   .hero{grid-template-columns:minmax(0,1fr) minmax(310px,.65fr);gap:28px}
   .sonara-operations-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
+/* Below some width the brand, the nav and the tools stop fitting, and something
+ * has to give. Clipping the nav hides whole links; shrinking the brand
+ * truncates the product name. Handing over to the mobile menu is the only
+ * option that loses nothing -- that menu carries every link the desktop nav
+ * does, so this changes where the links live at a given width, not whether
+ * they are reachable.
+ *
+ * 920px is measured the same way and on the same day: with the tool labels
+ * already dropped above, the five-link signed-out nav renders clean at 840px
+ * and first clips at 830px. The signed-in header is narrower still -- three
+ * links -- so the signed-out case is the binding one and the one measured.
+ *
+ * This is the only place the desktop nav is dropped, which it was not before.
+ * Rules at 1300px and 1120px did the same thing, so 1300px won and the primary
+ * navigation of the whole application collapsed into a hamburger on every
+ * laptop from 920px to 1300px while the header had room to spare at every
+ * width in that band. Both of those carried the same stated reason -- "eight
+ * nav items" -- and the nav renders five signed out and three signed in. */
 @media(max-width:920px){
   .sonara-desktop-nav{display:none}.sonara-mobile-menu{display:block}
   .sonara-account-menu{display:none}
@@ -611,11 +643,11 @@ html[data-theme="dark"] .card {
 [data-sonara-reveal] { transform: translateY(12px); transition-duration: .45s; }
 .sonara-route-progress { height: 3px; background: linear-gradient(90deg, var(--sonara-accent), var(--sonara-accent-2), var(--sonara-warm)); }
 
+/* The nav, the mobile menu and the tool labels were all decided here too, and
+ * are not any more -- they have one home each, above. The strapline under the
+ * wordmark is the only decision this width still owns. */
 @media (max-width: 1120px) {
   .sonara-brand-copy small { display: none; }
-  .sonara-desktop-nav { display: none; }
-  .sonara-mobile-menu { display: block; }
-  .sonara-header-tools .sonara-tool-label, .sonara-key { display: none; }
 }
 @media (max-width: 760px) {
   main { width: min(100% - 20px, var(--sonara-page-max)); padding-block: 20px; }
@@ -1295,18 +1327,10 @@ body.sonara-home-v3 table { max-width: 100%; }
 }
 
 /* Header fit ------------------------------------------------------------
- * The primary nav has eight items and the tools have three controls. Below
- * roughly 1200px they do not both fit, and the nav ran underneath the tools --
- * the "Create account" button sat behind "Command" at 1280px, which is an
- * ordinary laptop width.
- *
- * The tool labels are the cheapest ~180px to reclaim: each button already
- * carries an aria-label and a recognisable icon, so dropping the visible word
- * costs nothing to a screen reader and nothing to recognition. */
-@media (max-width: 1400px) {
-  .sonara-tool-label { display: none; }
-  .sonara-icon-button .sonara-key { display: none; }
-}
+ * The two widths the header changes shape at -- tool labels out, then the whole
+ * desktop nav out -- are declared once each, further up this file, next to the
+ * measurement that chose them. They were declared three times each before, at
+ * three different widths, and only the widest of each ever took effect. */
 
 /* The brand must not be the thing that gets clipped ---------------------
  * The header is a flex row of brand, primary nav and tools. The nav has eight
@@ -1325,17 +1349,6 @@ body > header .brand {
 .sonara-site-header .sonara-brand-copy strong,
 body > header .sonara-brand-copy strong {
   white-space: nowrap;
-}
-
-/* Eight nav items, a brand and three tools do not fit on a 1280px laptop, and
- * something has to give. Clipping the nav hid whole links; shrinking the brand
- * truncated the product name. Handing over to the mobile menu is the only
- * option that loses nothing -- that menu carries every link the desktop nav
- * does, so this changes where the links live at a given width, not whether
- * they are reachable. The full nav returns once there is genuinely room. */
-@media (max-width: 1300px) {
-  .sonara-desktop-nav { display: none; }
-  .sonara-mobile-menu { display: block; }
 }
 
 /* Print ----------------------------------------------------------------
