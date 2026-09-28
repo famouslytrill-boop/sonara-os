@@ -27,17 +27,25 @@
 // 119 submit targets had nothing standing behind them, and "none are broken
 // today" is a measurement with a date on it rather than a property.
 //
-// What this does NOT cover, established by trying to break it rather than by
-// reasoning about it. The first falsification planted a dead action on a
-// row-action form in routes/growth-studio-control-routes.cjs and the check
-// stayed green. The check was right and the subject was wrong: the crawl stubs
-// every table as empty, so a form rendered once per row renders zero times.
-// What is verified here is therefore every form that exists in the empty state
-// -- 141 of them -- and not the row-level actions that only appear once an
-// account has data. A second falsification against a form the crawl does render
-// (/account/preferences) failed correctly, naming both the dead path and the
-// page submitting to it. Covering row actions needs a seeded crawl, which is a
-// larger change than this and is not pretended at here.
+// This crawls TWICE, and the second pass is the one that earns its keep.
+//
+// The first version crawled only with every table stubbed empty. That was
+// established as a real limit by falsifying it: a dead action planted on a
+// row-action form left the check green, because a form rendered once per row
+// renders zero times when there are no rows. The note recorded that row-level
+// actions were not covered.
+//
+// They are now. The seeded pass returns one plausible row for every list read,
+// so row controls render. What it found immediately, on 27 September 2026:
+// **seven Creator Studio buttons that submitted to no route at all** -- six
+// Archive controls and the artist Status control. Six of those tables had no
+// archived_at column either. Empty-state crawling could never have seen any of
+// them, and neither could the logged-out crawl, verify:route-surface or
+// verify:route-registry.
+//
+// Both passes are kept rather than the seeded one replacing the empty one. They
+// render different pages: 291 answered 200 empty against 301 seeded, and the
+// empty state is the one every new account is actually in.
 //
 // The session stub is the one from signed-in-workspace-crawl, and for the same
 // reason: most forms only exist behind authentication, so a logged-out crawl
@@ -71,16 +79,40 @@ const ORGANIZATION_ID = "44444444-4444-4444-8444-444444444444";
 // does not fail the check while a directory rename or a broken walk does.
 // Every one of these guards shape 1: an empty population would otherwise clear
 // every assertion below by having nothing to disagree with.
-const MINIMUM_PAGES = 200;          // measured 291
+const MINIMUM_PAGES = 200;          // measured 291 empty, 301 seeded
 const MINIMUM_POST_ROUTES = 200;    // measured 302
-const MINIMUM_FORM_TARGETS = 100;   // measured 141
-const MINIMUM_POST_TARGETS = 80;    // measured 119
+const MINIMUM_FORM_TARGETS = 180;   // measured 237 across both passes
+const MINIMUM_POST_TARGETS = 160;   // measured 215 across both passes
+// The seeded pass has to contribute, or it is a second run of the first one
+// reporting success twice. Measured: 141 empty, 237 combined -- 96 row controls
+// that only exist once a table has a row in it.
+const MINIMUM_SEEDED_ONLY = 40;
 
 function json(body, status = 200) {
   return { ok: status < 400, status, headers: { get: () => null }, json: async () => body };
 }
 
-function stubFetch() {
+// One plausible row, carrying the column names these pages read. It is a fixed
+// shape rather than per-table, because the question here is whether a rendered
+// action has a handler, not whether a page renders a column correctly.
+const SEEDED_ROW = Object.freeze({
+  id: "11111111-1111-4111-8111-111111111111",
+  organization_id: ORGANIZATION_ID, workspace_id: "workspace",
+  name: "Sample", title: "Sample", label: "Sample", slug: "sample",
+  description: "Sample record", summary: "Sample", body: "Sample",
+  status: "active", state: "active", stage: "active", lifecycle_status: "active",
+  archived: false, is_archived: false, published: false, is_published: false,
+  visibility: "private", role: "owner", kind: "sample", type: "sample",
+  email: "sample@example.com", phone: "+15555550100", handle: "sample",
+  amount: 1000, amount_cents: 1000, price: 1000, price_cents: 1000,
+  quantity: 1, count: 1, position: 1, sort_order: 1,
+  currency: "usd", locale: "en-US", timezone: "America/New_York",
+  created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
+  starts_at: "2026-09-01T00:00:00Z", ends_at: "2026-09-02T00:00:00Z",
+  metadata: {}, settings: {}, tags: []
+});
+
+function stubFetch({ seeded = false } = {}) {
   return async (url, options = {}) => {
     const target = String(url);
     const method = (options.method || "GET").toUpperCase();
@@ -109,7 +141,7 @@ function stubFetch() {
         return json(granted ? [{ entitlement_key: granted, status: "active" }] : []);
       }
       if (method === "POST" || method === "PATCH") return json([{ id: "created" }], 201);
-      return json([]);
+      return json(seeded ? [SEEDED_ROW] : []);
     }
 
     return undefined;
@@ -160,7 +192,6 @@ describe("every form on every page submits to a route that exists", function () 
   before(async () => {
     Object.assign(process.env, SUPABASE_ENV);
     realFetch = global.fetch;
-    global.fetch = stubFetch();
 
     const routes = registeredRoutes();
     postRoutes = [...new Set(routes.filter((r) => r.methods.includes("post")).map((r) => r.path))];
@@ -169,7 +200,15 @@ describe("every form on every page submits to a route that exists", function () 
     targets = new Map();
     pagesRendered = 0;
 
-    for (const page of crawlablePages(routes)) {
+    for (const seeded of [false, true]) {
+      global.fetch = stubFetch({ seeded });
+      await crawl(crawlablePages(routes), seeded);
+    }
+  });
+
+  async function crawl(pages, seeded) {
+    let renderedThisPass = 0;
+    for (const page of pages) {
       let res;
       try {
         res = await request(app)
@@ -181,7 +220,7 @@ describe("every form on every page submits to a route that exists", function () 
       }
       if (res.status !== 200) continue;
       if (!/text\/html/.test(res.headers["content-type"] || "")) continue;
-      pagesRendered += 1;
+      renderedThisPass += 1;
 
       for (const tag of res.text.matchAll(/<form\b([^>]*)>/gi)) {
         const attributes = tag[1];
@@ -196,11 +235,15 @@ describe("every form on every page submits to a route that exists", function () 
         if (!path.startsWith("/")) continue;
 
         const key = `${method} ${path}`;
-        if (!targets.has(key)) targets.set(key, { method, path, from: [] });
+        if (!targets.has(key)) targets.set(key, { method, path, from: [], seededOnly: seeded });
+        else if (!seeded) targets.get(key).seededOnly = false;
         targets.get(key).from.push(page);
       }
     }
-  });
+    // The floor is per pass, not the sum: two passes over a broken walk would
+    // otherwise clear a floor neither pass could clear alone.
+    pagesRendered = Math.max(pagesRendered, renderedThisPass);
+  }
 
   after(() => {
     global.fetch = realFetch;
@@ -235,6 +278,16 @@ describe("every form on every page submits to a route that exists", function () 
     // Both halves asserted, so a regex that silently stopped matching one of
     // them cannot leave the other reporting success.
     assert.ok(getting.length > 0, "no GET form targets found; the method default is probably not being applied");
+  });
+
+  it("the seeded pass reaches row controls the empty pass cannot", () => {
+    const seededOnly = [...targets.values()].filter((t) => t.seededOnly);
+    assert.ok(
+      seededOnly.length >= MINIMUM_SEEDED_ONLY,
+      `only ${seededOnly.length} form target(s) appeared solely in the seeded pass. ` +
+        "Either row controls stopped rendering or the seeded stub stopped seeding, " +
+        "and this file is running the empty crawl twice while reporting success twice."
+    );
   });
 
   it("every form action resolves to a registered handler for its own method", () => {
