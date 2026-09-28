@@ -62,6 +62,14 @@ describe("premium public conversion experience", () => {
     assert.match(styles, /\.sonara-interface-preview/);
     assert.match(styles, /min-height:48px/);
     assert.match(styles, /grid-template-columns:1fr/);
+    assert.match(styles, /Visible first viewport/);
+    assert.match(styles, /font-size:\s*2rem/);
+    assert.match(styles, /overflow-wrap:\s*anywhere/);
+  });
+
+  it("serves the visible-design cache version from the real page frame", async () => {
+    const res = await request(app).get("/").set("Accept", "text/html");
+    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260919-v13-visible-design/);
   });
 
   it("keeps localized client copy synchronized with the server-rendered hero", () => {
