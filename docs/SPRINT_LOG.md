@@ -2,6 +2,55 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-28 - Seven Creator Studio buttons that did nothing
+
+Archive on music projects, device cues, sound identity, album cycles, prompt
+blueprints and video treatments, and Status on artists. All seven rendered at
+full contrast and submitted to paths no route matched.
+
+The renderer offers these controls from the page's **shape** -- `canArchive()`
+and `hasStatus()` ask whether a page has a table, a path and no terminal status
+of its own. Registration happens elsewhere: `ALL_OWNER_PAGES.forEach` registers
+archive and status for the seventeen Business Builder resources, and
+`CREATOR_RECORD_PAGES.forEach` registered only the GET. Two decisions from two
+sources assumed to agree, with nothing comparing them.
+
+**Registering the routes alone would not have fixed it.** `archivePatch` writes
+`archived_at`, and `20260901150000` added that column to sixteen tables, all
+Business Builder. No Creator Studio table had it, so the write would have
+failed 502 and the button would still have done nothing. Hence the migration.
+`creator_artist_profiles` is deliberately excluded: it declares
+`status in ('active','paused','archived')`, so `canArchive` correctly declines
+to offer it two ways to retire a record; it needed only the route.
+
+All seven tables were checked for `organization_id` first. `supabasePatchScoped`
+filters on it, and with the service-role key bypassing RLS that filter is the
+whole tenant boundary.
+
+## How it was found, and what that says about yesterday
+
+`tests/every-form-posts-somewhere.test.js` shipped yesterday with a documented
+limit: it crawled with every table stubbed empty, so row controls -- rendered
+once per row -- rendered zero times. That limit was hiding these seven.
+
+It now crawls **twice**, empty and seeded. Targets went 141 -> 237. Both passes
+are kept: they render different pages (291 against 301), and the empty state is
+what every new account sees. A guard asserts the seeded pass contributes at
+least 40 targets the empty pass cannot reach, so it cannot quietly become the
+empty crawl run twice reporting success twice.
+
+Falsified both ways: removing the registration names all seven with the page
+each submits from; forcing both passes empty trips the new guard. Subjects
+restored with `md5sum -c`.
+
+Two gates also fired correctly on the way. A new migration is unpinned by
+definition, so `an-applied-migration-cannot-be-edited` refused the suite at
+`before all` and named `gen:applied-migrations`; the follow-on `rmSync(undefined)`
+in the credential-gate test's `after all` is cascade noise from an aborted
+setup, not a second defect.
+
+Verified: `verify:launch` exit 0, 5,115 passing, 136 migrations, 133 frozen.
+
 ### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
 
 `no-dead-links` follows every internal `href`. Nothing read the other half of

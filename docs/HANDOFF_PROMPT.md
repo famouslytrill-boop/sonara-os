@@ -26,7 +26,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3772 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 135 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
 - 392 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
@@ -103,11 +103,62 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 392 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 393 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-28 - Seven Creator Studio buttons that did nothing
+
+Archive on music projects, device cues, sound identity, album cycles, prompt
+blueprints and video treatments, and Status on artists. All seven rendered at
+full contrast and submitted to paths no route matched.
+
+The renderer offers these controls from the page's **shape** -- `canArchive()`
+and `hasStatus()` ask whether a page has a table, a path and no terminal status
+of its own. Registration happens elsewhere: `ALL_OWNER_PAGES.forEach` registers
+archive and status for the seventeen Business Builder resources, and
+`CREATOR_RECORD_PAGES.forEach` registered only the GET. Two decisions from two
+sources assumed to agree, with nothing comparing them.
+
+**Registering the routes alone would not have fixed it.** `archivePatch` writes
+`archived_at`, and `20260901150000` added that column to sixteen tables, all
+Business Builder. No Creator Studio table had it, so the write would have
+failed 502 and the button would still have done nothing. Hence the migration.
+`creator_artist_profiles` is deliberately excluded: it declares
+`status in ('active','paused','archived')`, so `canArchive` correctly declines
+to offer it two ways to retire a record; it needed only the route.
+
+All seven tables were checked for `organization_id` first. `supabasePatchScoped`
+filters on it, and with the service-role key bypassing RLS that filter is the
+whole tenant boundary.
+
+## How it was found, and what that says about yesterday
+
+`tests/every-form-posts-somewhere.test.js` shipped yesterday with a documented
+limit: it crawled with every table stubbed empty, so row controls -- rendered
+once per row -- rendered zero times. That limit was hiding these seven.
+
+It now crawls **twice**, empty and seeded. Targets went 141 -> 237. Both passes
+are kept: they render different pages (291 against 301), and the empty state is
+what every new account sees. A guard asserts the seeded pass contributes at
+least 40 targets the empty pass cannot reach, so it cannot quietly become the
+empty crawl run twice reporting success twice.
+
+Falsified both ways: removing the registration names all seven with the page
+each submits from; forcing both passes empty trips the new guard. Subjects
+restored with `md5sum -c`.
+
+Two gates also fired correctly on the way. A new migration is unpinned by
+definition, so `an-applied-migration-cannot-be-edited` refused the suite at
+`before all` and named `gen:applied-migrations`; the follow-on `rmSync(undefined)`
+in the credential-gate test's `after all` is cascade noise from an aborted
+setup, not a second defect.
+
+Verified: `verify:launch` exit 0, 5,115 passing, 136 migrations, 133 frozen.
+
+
 
 ### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
 
@@ -2291,72 +2342,3 @@ exists. It was already NICE-2 in `docs/audits/2026-07-27-ENGINEERING_AUDIT.md`.
 Removed and ignored. The other paths NICE-2 names were left alone --
 `_claude_workbench/` holds tracked documentation, so that part of the finding is
 not simply correct.
-
-
-
-### 2026-09-17 - The third search became one convergence plan, not another product pile
-
-The broad request covered repositories, PDFs, US/European/Chinese companies,
-industrial systems, creator media, calling, streaming, manufacturing, CAD,
-robotics, 3D, agents, SEO, customer service, and new business ideas. Most of
-those categories already existed in source as governed registries, formulas,
-industry packs, or bounded product foundations. Copying the request into more
-capability names would have increased surface area without advancing the
-architecture.
-
-`lib/sonara-third-search-convergence.cjs` now reads the canonical inventories
-instead: 237 governed repository records, 27 market-expansion capabilities, 13
-reuse-first schema contracts, 18 industry systems, 38 formulas, 17 algorithms,
-11 shared agent strategies, and 14 source-evidence records at the time of this
-change. The endpoint derives those counts; it does not preserve them as stale
-constants.
-
-The representative market synthesis is explicit about inference. US platform
-suites support one identity/data/workflow layer; European industrial software
-supports vertical composition and durable records; Chinese mobile ecosystems
-support low-friction communication/commerce loops; installed-base businesses
-support reliability and service as the moat; creator platforms support a
-creation/community/distribution/monetization loop. None of that is presented as
-a claim about an undisclosed competitor stack.
-
-The product decision is a private Creator and Growth Commons over existing
-profiles, follows, assets, calls, notifications, content queues, and commerce.
-The schema plan now records the reuse-first contract and its safety gate.
-Public feeds/federation, biometric storage, Wi-Fi credential features, a global
-media network, regulated rails, and bulk repository installation remain
-explicitly deferred or rejected.
-
-The infrastructure advance beneath it is the preceding durable event/evaluation
-foundation: four service-only, RLS-protected tables, an atomic claim/settle
-path, and the owner queue as the first compact event producer. Source now says
-clearly that the migration is pending the controlled path and that no worker is
-enabled.
-
-The competitor-comparison skill now requires primary sources, representative
-archetypes, labeled inference, repository inspection, and a bounded
-build/integrate/research/defer sequence for portfolio-wide searches. Its skill
-validator and adapted-skill provenance gate pass.
-
-Focused tests pass 21/21. The full suite passes 4,707 tests with six explicit
-pending tests; typecheck, lint, build, dependency audit, stale-claim review, and
-adapted-skill verification are green. The dated research record carries a
-2026-10-17 review deadline.
-
-The release gates found two useful bookkeeping edges before review. The outbox
-duplicate lookup originally built its selected columns at run time, increasing
-the unauditable-query ratchet; it now asks for the exact three fields it reads
-instead. The new migration also changes the derived schema to 121 migrations,
-337 tables, 240 organization-scoped tables, and 31 of 311 RLS tables deliberately
-closed to every browser role. Those counts and the exact two-sided closed-table
-set now agree across the replay assertion and owner documentation.
-
-`pnpm run verify:gates` passes. This workstation has no PostgreSQL binaries, so
-the fresh-database replay read all 121 migration files but explicitly did not
-execute them; CI keeps `SONARA_MIGRATION_REPLAY_REQUIRED=1`, making that replay a
-hard failure rather than the local notice recorded here.
-
-The final `pnpm run verify:launch` chain passes end to end: build, 4,707 tests
-with six explicit media-test pendings, secret scan, lint, route smoke, database
-contracts, governance gates, and coverage. Live Stripe price comparison and
-external-repository network health remain the chain's declared credentialed/CI
-checks rather than claims made by this workstation.
