@@ -2,6 +2,69 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
+
+The header fix earlier today found one property decided in three media queries
+where only the widest ran. That is a class of defect, not an instance, and
+nothing here could detect it. `verify:breakpoints` now does, and the chain is
+63 commands.
+
+**It reported two confident falsehoods before it was right, and both matter.**
+
+First version compared bounds: same selector, property and value, a wider
+bound, no differing rule in between. It called
+`.sonara-header-tools { gap: 6px }` at 760px dead because the base rule also
+says 6px. Deleting it changed the rendered gap below 680px from 6px to 5px --
+a 680px rule sets 5px and sits *earlier* in the file, and media queries add no
+specificity, so among equal selectors source order decides. The 760px rule was
+overriding the 680px one, which no comparison of bounds can see. The check now
+simulates the cascade: the winner at a width is the last admitted declaration
+in source order, and a declaration is dead only when removing it leaves the
+winner identical at every bound, every bound minus one, and above them all.
+
+Second, it reported `button { min-height: 48px }` as always overridden by
+`.sonara-record-table :is(a, button, input, select)`. The parser split selector
+lists on every comma, so that `:is()` became four selectors including a bare
+`button` -- a fabricated rule appearing to govern every button on the site.
+Splitting only top-level commas fixed it. Deleting on that verdict would have
+dropped mobile buttons from 48px to 46px.
+
+**What caught both was a browser probe, not reasoning.** 9,456 computed values
+-- 43 selector-and-property pairs, 5 pages, 24 widths -- captured before and
+after and diffed. It also caught an over-deletion of mine: stripping three
+selectors the gate never flagged took tap targets from 48px to 44px on phones,
+against the AGENTS.md rule on tap-target size. The final diff is empty, so the
+cleanup is behaviour-neutral by measurement rather than by argument. A check
+agreeing with your reasoning is not evidence; it was built from that reasoning.
+
+**Findings, in two classes, because they need different answers.** 31 dead
+declarations. Twenty-three said something already decided -- deleting them
+changes nothing. Eight expressed an intent that has never once reached a
+screen, every rule beating them saying otherwise: `main` capped at 640px below
+680px and `calc(100% - 20px)` below 420px, both beaten by a later 760px rule;
+`.hero { padding: 48px 0 38px }`; `.card { padding: 18px }` at 420px; icon
+buttons and the account summary at 42px; `.sonara-header-tools { gap: 5px }`.
+All were deleted, which keeps today's appearance exactly. **Honouring any of
+them instead would change what customers see on a phone, and that is the
+owner's decision, not a cleanup** -- the list above is the record of what was
+intended and never happened. Also fixed: `.sonara-product-grid` was listed
+twice inside one selector list, in two places.
+
+**Its own blind-spot guard failed first too.** Truncating the whole of
+sonara-design-system.css to twenty lines left the check green, because
+application-ui.css alone clears any total worth setting. Floors are now per
+stylesheet, and the numbers in that comment are what the parser reports (67
+rules / 170 declarations, and 701 / 2,199) rather than figures that merely read
+as measured -- the first draft carried invented ones.
+
+Falsified four ways, each restored with `md5sum -c`: a repeated declaration, an
+always-overridden one, an emptied stylesheet, and an `:is()` list that must not
+fabricate a bare selector. 72 selector-and-property groups are deliberately
+left unjudged for carrying a `min-width`, a range or an `!important` this model
+cannot evaluate, and the count is printed so the gap is visible.
+
+Verified: `verify:launch` exit 0, 63 chain commands.
+
 ### 2026-09-28 - The navigation a laptop could not see, and three rules deciding it
 
 `.sonara-desktop-nav` was dropped by **three** separate media rules -- 1300px,

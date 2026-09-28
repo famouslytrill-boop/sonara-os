@@ -103,11 +103,76 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 393 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 394 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
+
+The header fix earlier today found one property decided in three media queries
+where only the widest ran. That is a class of defect, not an instance, and
+nothing here could detect it. `verify:breakpoints` now does, and the chain is
+63 commands.
+
+**It reported two confident falsehoods before it was right, and both matter.**
+
+First version compared bounds: same selector, property and value, a wider
+bound, no differing rule in between. It called
+`.sonara-header-tools { gap: 6px }` at 760px dead because the base rule also
+says 6px. Deleting it changed the rendered gap below 680px from 6px to 5px --
+a 680px rule sets 5px and sits *earlier* in the file, and media queries add no
+specificity, so among equal selectors source order decides. The 760px rule was
+overriding the 680px one, which no comparison of bounds can see. The check now
+simulates the cascade: the winner at a width is the last admitted declaration
+in source order, and a declaration is dead only when removing it leaves the
+winner identical at every bound, every bound minus one, and above them all.
+
+Second, it reported `button { min-height: 48px }` as always overridden by
+`.sonara-record-table :is(a, button, input, select)`. The parser split selector
+lists on every comma, so that `:is()` became four selectors including a bare
+`button` -- a fabricated rule appearing to govern every button on the site.
+Splitting only top-level commas fixed it. Deleting on that verdict would have
+dropped mobile buttons from 48px to 46px.
+
+**What caught both was a browser probe, not reasoning.** 9,456 computed values
+-- 43 selector-and-property pairs, 5 pages, 24 widths -- captured before and
+after and diffed. It also caught an over-deletion of mine: stripping three
+selectors the gate never flagged took tap targets from 48px to 44px on phones,
+against the AGENTS.md rule on tap-target size. The final diff is empty, so the
+cleanup is behaviour-neutral by measurement rather than by argument. A check
+agreeing with your reasoning is not evidence; it was built from that reasoning.
+
+**Findings, in two classes, because they need different answers.** 31 dead
+declarations. Twenty-three said something already decided -- deleting them
+changes nothing. Eight expressed an intent that has never once reached a
+screen, every rule beating them saying otherwise: `main` capped at 640px below
+680px and `calc(100% - 20px)` below 420px, both beaten by a later 760px rule;
+`.hero { padding: 48px 0 38px }`; `.card { padding: 18px }` at 420px; icon
+buttons and the account summary at 42px; `.sonara-header-tools { gap: 5px }`.
+All were deleted, which keeps today's appearance exactly. **Honouring any of
+them instead would change what customers see on a phone, and that is the
+owner's decision, not a cleanup** -- the list above is the record of what was
+intended and never happened. Also fixed: `.sonara-product-grid` was listed
+twice inside one selector list, in two places.
+
+**Its own blind-spot guard failed first too.** Truncating the whole of
+sonara-design-system.css to twenty lines left the check green, because
+application-ui.css alone clears any total worth setting. Floors are now per
+stylesheet, and the numbers in that comment are what the parser reports (67
+rules / 170 declarations, and 701 / 2,199) rather than figures that merely read
+as measured -- the first draft carried invented ones.
+
+Falsified four ways, each restored with `md5sum -c`: a repeated declaration, an
+always-overridden one, an emptied stylesheet, and an `:is()` list that must not
+fabricate a bare selector. 72 selector-and-property groups are deliberately
+left unjudged for carrying a `min-width`, a range or an `!important` this model
+cannot evaluate, and the count is printed so the gap is visible.
+
+Verified: `verify:launch` exit 0, 63 chain commands.
+
+
 
 ### 2026-09-28 - The navigation a laptop could not see, and three rules deciding it
 
@@ -2280,60 +2345,3 @@ population that was real, non-empty and silently cut in half, which is worse
 because every symptom of shape 1 is absent. The corrupt commit's own diff stat
 read **+1,453 / −30,251** and was merged -- the number was on the pull request
 the whole time.
-
-
-
-### 2026-09-18 - Half the sprint log was binary, committed on main
-
-`docs/SPRINT_LOG.md` was clean UTF-8 to offset 393216 -- exactly 0x60000, 384 KiB
--- and from there to the end was 111,879 bytes of binary garbage, breaking off
-mid-sentence at "What changes is that a third-party o". Found by a write to this
-file failing to decode it, not by any check.
-
-`6c4f13ed` "Integrate third-search platform convergence" took the file from
-1,232,848 clean bytes to 786,445 corrupt ones, discarding 446,403 bytes and 274
-of its 377 entries. It arrived on `main` through PR #292 and was the newest commit
-touching the file, so nothing had been written over the damage.
-
-CLAUDE.md calls this file "the only hand-written part of the handoff prompt,
-because history cannot be derived". That is exactly why the loss mattered: no
-generator could have rebuilt it.
-
-Reconstructed rather than restored, because the corrupt commit did carry one
-legitimate new entry in its surviving head. The corrupt file was
-`preamble + one new entry + the parent's content`, truncated. So the rebuild is
-the clean parent (`ceb1df53`) with that 3,962-byte entry prepended, and it was
-proved rather than assumed: the tail from the parent's first heading is
-byte-identical to the parent's, the head matches the corrupt file's surviving
-text, the result is valid UTF-8, and the heading count is 378 -- the parent's 377
-plus the one new entry. Nothing was lost and nothing was invented.
-
-**No check caught this**, and that is the finding worth keeping. Every gate that
-reads this file reads it as text; a file that is half binary still has a first
-384 KiB that parses, still contains the phrases a grep looks for, and still
-answers a line count. `verify:doc-counts` and `verify:handoff` both passed over
-it. A truncation that keeps the head intact is invisible to every check that
-only ever looks at the head.
-
-So `scripts/verify-doc-script-paths.mjs` -- which already walks every document
-in `docs/` and had been reading them with `readFileSync(path, "utf8")`, which
-substitutes U+FFFD for an invalid byte and says nothing -- now decodes strictly
-and refuses a document that is not text, naming the file and the true byte offset
-of the first bad byte. Falsified against a document corrupted the same way, head
-kept and binary appended: it reported offset 1200 for a byte injected at 1200.
-
-**The corruption had already propagated into a gate.** Once the lost entries took
-two sentences with them, the two-sided historical-script register correctly
-reported `scripts/verify-stripe-config.mjs` and `scripts/seed-stripe-products.mjs`
-as registered-but-named-by-nothing -- and `5e40f28d` "remove expired documented-script
-exemptions" resolved that by deleting the two exemptions. The check told the truth
-and the remedy trusted the damaged input. Both entries are restored verbatim from
-`ceb1df53`, because both references exist again.
-
-A sweep of all 1,590 tracked text files outside `archive/` found one other file
-that was not UTF-8: `test-output.txt`, a PowerShell capture (`>` writes UTF-16LE)
-of `pnpm --dir frontend run test` against a `frontend/` directory that no longer
-exists. It was already NICE-2 in `docs/audits/2026-07-27-ENGINEERING_AUDIT.md`.
-Removed and ignored. The other paths NICE-2 names were left alone --
-`_claude_workbench/` holds tracked documentation, so that part of the finding is
-not simply correct.
