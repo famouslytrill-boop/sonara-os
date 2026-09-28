@@ -170,6 +170,20 @@ fabricate a bare selector. 72 selector-and-property groups are deliberately
 left unjudged for carrying a `min-width`, a range or an `!important` this model
 cannot evaluate, and the count is printed so the gap is visible.
 
+**An existing gate then caught the new one**, which is the system working.
+`a-line-comment-cannot-open-a-block-comment` failed: the script had its own
+comment stripper, "that is how the same bug shipped three times". It now uses
+the shared pattern -- but `CSS_COMMENT`, a new single branch in
+`lib/sonara-comment-stripping.cjs`, not the JavaScript `COMMENT`. `//` is not a
+comment in CSS, and that alternation reads `url(//cdn.example.com/x.png)` as one
+and blanks the rest of the line, closing brace included. Neither stylesheet
+holds such a value today, which is precisely the "works until somebody writes
+one" this module exists to stop repeating. Two tests cover the CSS form, and
+pointing `withoutCssComments` at `COMMENT` fails "the url was read as a
+comment". Line numbers survive stripping because this caller keeps the newlines
+rather than collapsing each comment to a space: a rule planted past a four-line
+block comment is reported at 2391 and really is on 2391.
+
 Verified: `verify:launch` exit 0, 63 chain commands.
 
 

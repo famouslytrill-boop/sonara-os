@@ -51,8 +51,27 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
-const root = path.dirname(new URL(import.meta.url).pathname).replace(/\/scripts$/, "");
+const require = createRequire(import.meta.url);
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+// The single alternation from lib/sonara-comment-stripping.cjs, not a copy of
+// it. That module exists because two scripts stripped block comments and then
+// line comments in two passes, so a line comment mentioning a path turned its
+// own `/*` into an opener and swallowed the code after it. The reason is
+// written out there; what matters here is using that pattern rather than
+// writing a third one.
+//
+// CSS_COMMENT rather than COMMENT, because `//` is not a comment in CSS: the
+// JavaScript alternation would read `url(//cdn.example.com/x.png)` as one and
+// blank the rest of that line, closing brace included.
+//
+// Its `withoutCssComments` collapses each comment to a single space, which is
+// right for measuring what code names and wrong here -- this check reports a
+// file and a line, so byte offsets have to survive stripping. So the shared
+// pattern is applied with a replacement of our own that keeps every newline.
+const { CSS_COMMENT } = require(path.join(root, "lib", "sonara-comment-stripping.cjs"));
 const STYLESHEETS = ["public/sonara-design-system.css", "public/sonara-application-ui.css"];
 
 // Below these, the walk has gone blind rather than found a clean stylesheet.
@@ -73,10 +92,11 @@ const MINIMUM_DECLARATIONS = 1500;
 const MINIMUM_RULES = 500;
 const MINIMUM_MEDIA_RULES = 80;
 
-function stripComments(css) {
-  // Replaced with spaces rather than removed, so byte offsets still map to
-  // line numbers for the message.
-  return css.replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, " "));
+function blankComments(css) {
+  // Every non-newline character becomes a space and every newline is kept, so
+  // the stripped text is the same length and the same shape as the source and
+  // a byte offset still names the right line.
+  return css.replace(new RegExp(CSS_COMMENT.source, "g"), (match) => match.replace(/[^\n]/g, " "));
 }
 
 // Only a condition that is exactly one max-width, and nothing else, gets a
@@ -113,7 +133,7 @@ function splitSelectors(prelude) {
 }
 
 function parse(css, file) {
-  const source = stripComments(css);
+  const source = blankComments(css);
   const rules = [];
   let declarations = 0;
   const stack = [];
