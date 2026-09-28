@@ -67,9 +67,24 @@ describe("premium public conversion experience", () => {
     assert.match(styles, /overflow-wrap:\s*anywhere/);
   });
 
-  it("serves the visible-design cache version from the real page frame", async () => {
+  it("serves the page frame's own cache version, whatever it currently is", async () => {
+    // This hardcoded the version string, so it failed on every legitimate asset
+    // bump -- including the one that shipped the design it is named for. A test
+    // that has to be edited to let a correct change through is a tripwire rather
+    // than a check.
+    //
+    // What matters is not which version is current but that the rendered page
+    // carries a well-formed one AND that it is the one the frame declares. That
+    // catches a missing bump and frame-to-output drift, and survives the next
+    // bump untouched.
+    const frame = fs.readFileSync(path.join(__dirname, "..", "lib", "sonara-page-frame.cjs"), "utf8");
+    const declared = frame.match(/sonara-application-ui\.css\?v=(sonara-ui-\d{8}-v\d+-[a-z0-9-]+)/)?.[1];
+    assert.ok(declared, "the page frame declares no cache version for the application stylesheet");
+
     const res = await request(app).get("/").set("Accept", "text/html");
-    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260919-v13-visible-design/);
+    const served = res.text.match(/sonara-application-ui\.css\?v=(sonara-ui-\d{8}-v\d+-[a-z0-9-]+)/)?.[1];
+    assert.ok(served, "the rendered page serves the application stylesheet with no cache version");
+    assert.equal(served, declared, "the served cache version is not the one the page frame declares");
   });
 
   it("keeps localized client copy synchronized with the server-rendered hero", () => {
