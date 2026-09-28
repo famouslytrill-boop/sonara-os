@@ -39,45 +39,50 @@
   color-scheme: dark light;
 
   /* Brand ---------------------------------------------------------------
-   * Evergreen is the operating anchor; cobalt, coral, and amber remain
-   * available in the application palette for navigation, creative work, and
-   * growth signals. The logo gradients retain their own identity. */
-  --sonara-accent: #1F7A62;
-  --sonara-accent-2: #1B8294;
-  --sonara-warm: #D18A42;
-  --sonara-accent-strong: #1C493F;
-  --sonara-accent-soft: rgba(40 92 79 / 0.16);
+   * Indigo is the operating anchor as of 28 September 2026, replacing
+   * evergreen: saturation belongs on accents and signals so surfaces can stay
+   * calm, which is what AGENTS.md asks of work screens while public screens
+   * stay marketable. Cobalt, cyan, orchid and amber carry navigation, creative
+   * work and growth signals. The logo gradients retain their own identity.
+   * White on --sonara-accent measures 5.42:1, so accent-contrast is safe as a
+   * button label rather than assumed to be. */
+  --sonara-accent: #6D4AEF;
+  --sonara-accent-2: #2AA8C4;
+  --sonara-warm: #E09A4A;
+  --sonara-accent-strong: #3A2A8C;
+  --sonara-accent-soft: rgba(109 74 239 / 0.16);
   --sonara-accent-contrast: #ffffff;
-  --sonara-brand-cobalt: #245DAF;
-  --sonara-brand-cyan: #65D1DE;
-  --sonara-create-highlight: #8E5CC7;
-  --sonara-grow-highlight: #E6AE61;
+  --sonara-brand-cobalt: #2F63D8;
+  --sonara-brand-cyan: #5FD2E8;
+  --sonara-create-highlight: #C46BD8;
+  --sonara-grow-highlight: #F0B45F;
 
-  --sonara-build: #2DA878;   /* Business Builder */
-  --sonara-create: #B15A96;  /* Creator Studio   */
-  --sonara-grow: #D18A42;    /* Growth Studio    */
+  --sonara-build: #4FC98F;   /* Business Builder */
+  --sonara-create: #D06BA8;  /* Creator Studio   */
+  --sonara-grow: #E09A4A;    /* Growth Studio    */
 
   /* Surfaces (dark-first) ---------------------------------------------
    * Deeper and cooler than the previous set. The step between surface and
    * surface-2 is what separates a card from the page behind it, and at the
    * old values that step was 7 points of luminance -- visible on a good
    * monitor, invisible on a phone in daylight. */
-  --sonara-bg: #04050B;
-  --sonara-surface: #0A0D16;
-  --sonara-surface-2: #111624;
-  --sonara-surface-3: #192031;
+  --sonara-bg: #0A0C16;
+  --sonara-surface: #151929;
+  --sonara-surface-2: #1D2235;
+  --sonara-surface-3: #262C42;
   --sonara-border: rgba(255 255 255 / 0.10);
   --sonara-border-strong: rgba(255 255 255 / 0.18);
 
   /* Text — contrast measured against --sonara-bg, not estimated ---------
-   * text 19.3:1   text-2 12.0:1   text-3 7.2:1
-   * All three clear WCAG AAA for body copy. text-3 was 5.1:1 before, which
-   * cleared AA and not AAA, and it is the token used for the quiet
+   * Re-measured 28 September 2026 against the Indigo Signal surfaces, with
+   * lib/sonara-contrast.cjs rather than by eye:
+   * text 18.4:1   text-2 11.4:1   text-3 7.6:1
+   * All three still clear WCAG AAA for body copy. text-3 is the quiet
    * supporting line under a heading -- the text most often read on a phone
-   * outdoors. It is the one that moved most. */
-  --sonara-text: #F7F9FF;
-  --sonara-text-2: #BCC6E4;
-  --sonara-text-3: #8E99B8;
+   * outdoors -- and it improved from 7.2:1 to 7.6:1 on this palette. */
+  --sonara-text: #F7F8FF;
+  --sonara-text-2: #BFC5E0;
+  --sonara-text-3: #9AA1C0;
 
   /* Status ------------------------------------------------------------- */
   --sonara-ok: #3FD68A;
