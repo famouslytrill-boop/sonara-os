@@ -975,7 +975,7 @@ body.sonara-home-v3 {
 /* Hero ------------------------------------------------------------------ */
 body.sonara-home-v3 .hero.sonara-hero-stage {
   position: relative;
-  padding-block: clamp(3rem, 9vw, 6.5rem);
+  padding-block: 3rem;
   padding-inline: var(--marketing-gutter);
   overflow: clip; /* contains the glow without creating a scrollbar */
 }
@@ -998,8 +998,8 @@ body.sonara-home-v3 .sonara-hero-copy {
   position: relative;
   z-index: 1;
   max-width: 62ch;
-  margin-inline: auto;
-  text-align: center;
+  margin-inline: 0;
+  text-align: left;
   animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
 }
 
@@ -1017,7 +1017,7 @@ body.sonara-home-v3 .sonara-hero-copy .eyebrow {
 
 body.sonara-home-v3 .sonara-hero-copy h1 {
   margin-block: var(--sonara-4) var(--sonara-3);
-  font-size: var(--sonara-text-3xl);
+  font-size: 3.5rem;
   line-height: 1.04;
   letter-spacing: 0;
   text-wrap: balance;
@@ -1259,6 +1259,9 @@ body.sonara-home-v3 .card-actions {
 
 /* Mobile ---------------------------------------------------------------- */
 @media (max-width: 640px) {
+  /* Visible first viewport: keep the heading and actions before the preview. */
+  body.sonara-home-v3 .hero.sonara-hero-stage { padding-block: 2rem 1.5rem; }
+  body.sonara-home-v3 .sonara-hero-copy h1 { font-size: 2rem; overflow-wrap: anywhere; }
   body.sonara-home-v3 .sonara-product-grid { perspective: none; }
   body.sonara-home-v3 .sonara-product-mark { transform: none; }
   body.sonara-home-v3 .sonara-hero-copy .actions .action { width: 100%; }
