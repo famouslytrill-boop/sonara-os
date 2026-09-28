@@ -133,12 +133,18 @@ describe("stripping comments before measuring what code names", () => {
     // `//` is not a comment in CSS. The JavaScript alternation would treat a
     // protocol-relative url() as one and blank the rest of the line, taking the
     // closing brace with it -- so a stylesheet needs its own single branch.
+    // Substring checks rather than `assert.match`, because that is what these
+    // three actually are: the question is whether stripping left the text in
+    // place, not whether the text has a shape. CodeQL was right to object to
+    // the first draft -- an unanchored regex over a hostname is a URL check
+    // that matches anywhere, and even in a test it is the habit worth not
+    // having.
     it("leaves a protocol-relative url alone", () => {
       const css = ".a { background: url(//cdn.example.com/x.png); color: red; }";
       const stripped = withoutCssComments(css);
-      assert.match(stripped, /cdn\.example\.com/, "the url was read as a comment");
-      assert.match(stripped, /color: red/, "the rest of the rule was swallowed");
-      assert.match(stripped, /\}/, "the closing brace was swallowed");
+      assert.ok(stripped.includes("url(//cdn.example.com/x.png)"), "the url was read as a comment");
+      assert.ok(stripped.includes("color: red"), "the rest of the rule was swallowed");
+      assert.ok(stripped.includes("}"), "the closing brace was swallowed");
     });
 
     it("still removes the comments it is for", () => {
