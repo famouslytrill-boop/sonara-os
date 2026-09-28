@@ -11,12 +11,12 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 891,
+    "routeOperationCount": 898,
     "routesByMethod": {
       "DELETE": 3,
       "GET": 576,
       "PATCH": 10,
-      "POST": 302
+      "POST": 309
     },
     "workspaceCount": 12,
     "declaredPageCount": 313,
@@ -24,7 +24,7 @@
       "admin_operations": 32,
       "business_builder": 320,
       "business_builder_agent_ops": 7,
-      "creator_studio": 98,
+      "creator_studio": 105,
       "cross_workspace_formulas": 5,
       "growth_studio": 116,
       "research_catalog": 12,
@@ -36,7 +36,7 @@
     },
     "actionDestinationCounts": {
       "exact": 367,
-      "form_reference": 278,
+      "form_reference": 285,
       "machine_ingress": 2,
       "parent_route": 52,
       "route_pair": 104,
@@ -46,7 +46,7 @@
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 151,
-      "explicit_resource_registry": 238,
+      "explicit_resource_registry": 245,
       "handler_source_table_reference": 201,
       "needs_explicit_data_contract": 297
     },
@@ -59,7 +59,7 @@
     "databaseContractCoreTableCount": 146,
     "queriedTableCount": 313,
     "neverQueriedTableCount": 19,
-    "migrationCount": 135,
+    "migrationCount": 136,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
@@ -418,7 +418,7 @@
         "/api/creator-studio",
         "/api/creator"
       ],
-      "routeCount": 98,
+      "routeCount": 105,
       "registeredPageCount": 65,
       "registeredPageRoutes": [
         "/creator-studio/album-cycles",
@@ -2630,7 +2630,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1500
+        "line": 1522
       },
       "contractCompleteness": {
         "route": true,
@@ -2777,7 +2777,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1535
+        "line": 1557
       },
       "contractCompleteness": {
         "route": true,
@@ -14501,7 +14501,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -14911,7 +14911,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -15246,7 +15246,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -15555,7 +15555,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -15914,7 +15914,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -16323,7 +16323,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -16638,7 +16638,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -16933,7 +16933,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -17465,7 +17465,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -17805,7 +17805,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -18603,7 +18603,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -18906,7 +18906,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -19415,7 +19415,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -19806,7 +19806,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -20130,7 +20130,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -20656,7 +20656,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -20969,7 +20969,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -21304,7 +21304,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -21717,7 +21717,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -22037,7 +22037,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -22350,7 +22350,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -22645,7 +22645,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -22935,7 +22935,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -23421,7 +23421,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -24137,7 +24137,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -25621,7 +25621,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -25733,13 +25734,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -26012,7 +26014,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -26969,7 +26971,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -27110,13 +27113,14 @@
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -27400,7 +27404,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -27502,13 +27507,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -27691,7 +27697,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -27810,13 +27817,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -28116,7 +28124,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -28219,13 +28228,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -35284,7 +35294,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -35441,7 +35451,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1860
+        "line": 1889
       },
       "contractCompleteness": {
         "route": true,
@@ -36185,7 +36195,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -36512,13 +36523,14 @@
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2068
+        "line": 2097
       },
       "contractCompleteness": {
         "route": true,
@@ -36860,7 +36872,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -39806,7 +39818,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -40033,7 +40045,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -40217,7 +40229,8 @@
               "changedBy": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
                 "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -40310,13 +40323,14 @@
         "schemaMigrations": [
           "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "contractCompleteness": {
         "route": true,
@@ -45247,7 +45261,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -45713,7 +45727,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -46020,7 +46034,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -46324,7 +46338,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -46888,7 +46902,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -47483,7 +47497,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -48074,7 +48088,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -48348,7 +48362,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -48892,7 +48906,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -49501,7 +49515,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -49822,7 +49836,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -50196,7 +50210,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -50566,7 +50580,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -50936,7 +50950,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -51649,7 +51663,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -51926,7 +51940,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -52186,7 +52200,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -52442,7 +52456,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -52738,7 +52752,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -53029,7 +53043,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -53461,7 +53475,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -53716,7 +53730,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -54021,7 +54035,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -54322,7 +54336,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -54623,7 +54637,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -54964,7 +54978,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -55302,7 +55316,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -55640,7 +55654,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -55908,7 +55922,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -56171,7 +56185,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -56645,7 +56659,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -57118,7 +57132,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -57591,7 +57605,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -57947,7 +57961,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -58299,7 +58313,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -58651,7 +58665,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -59033,7 +59047,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -59318,7 +59332,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -59650,7 +59664,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -59982,7 +59996,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -60314,7 +60328,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -60592,7 +60606,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -60866,7 +60880,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -61253,7 +61267,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -61550,7 +61564,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -61928,7 +61942,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -62302,7 +62316,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -62676,7 +62690,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -62961,7 +62975,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -63241,7 +63255,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -63521,7 +63535,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -64071,7 +64085,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -64349,7 +64363,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -64622,7 +64636,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -64895,7 +64909,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -65155,7 +65169,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -65412,7 +65426,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -65667,7 +65681,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -65919,7 +65933,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -66186,7 +66200,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -66454,7 +66468,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -67135,7 +67149,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -67638,7 +67652,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -68141,7 +68155,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -69598,7 +69612,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2980
+        "line": 3009
       },
       "contractCompleteness": {
         "route": true,
@@ -72190,7 +72204,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -72302,13 +72317,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -72544,7 +72560,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -73965,7 +73981,8 @@
               "changedBy": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
                 "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -74058,13 +74075,14 @@
         "schemaMigrations": [
           "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -75976,7 +75994,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -76117,13 +76136,14 @@
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -76979,7 +76999,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -77081,13 +77102,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -78591,7 +78613,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -78710,13 +78733,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -80741,7 +80765,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -80844,13 +80869,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1777
+        "line": 1799
       },
       "contractCompleteness": {
         "route": true,
@@ -95556,7 +95582,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1843
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -96146,7 +96172,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1745
+        "line": 1767
       },
       "contractCompleteness": {
         "route": true,
@@ -96276,7 +96302,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1745
+        "line": 1767
       },
       "contractCompleteness": {
         "route": true,
@@ -96406,7 +96432,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1745
+        "line": 1767
       },
       "contractCompleteness": {
         "route": true,
@@ -96536,7 +96562,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1745
+        "line": 1767
       },
       "contractCompleteness": {
         "route": true,
@@ -96666,7 +96692,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1745
+        "line": 1767
       },
       "contractCompleteness": {
         "route": true,
@@ -96796,7 +96822,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1745
+        "line": 1767
       },
       "contractCompleteness": {
         "route": true,
@@ -100618,7 +100644,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1594
+        "line": 1616
       },
       "contractCompleteness": {
         "route": true,
@@ -109012,7 +109038,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -109446,7 +109472,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -109793,7 +109819,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -110112,7 +110138,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -110659,7 +110685,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -111019,7 +111045,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -111362,7 +111388,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -111783,7 +111809,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -112111,7 +112137,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -112419,7 +112445,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -112762,7 +112788,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -113062,7 +113088,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -113412,7 +113438,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -113719,7 +113745,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -114037,7 +114063,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -114426,7 +114452,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -114723,7 +114749,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 983
+        "line": 1005
       },
       "contractCompleteness": {
         "route": true,
@@ -115035,7 +115061,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -115404,7 +115430,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1625
+        "line": 1647
       },
       "contractCompleteness": {
         "route": true,
@@ -115779,7 +115805,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1036
+        "line": 1058
       },
       "contractCompleteness": {
         "route": true,
@@ -116142,7 +116168,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -116666,7 +116692,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -117027,7 +117053,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -117429,7 +117455,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -118396,7 +118422,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -118665,7 +118691,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1691
+        "line": 1713
       },
       "contractCompleteness": {
         "route": true,
@@ -119227,7 +119253,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -119551,7 +119577,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -119897,7 +119923,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -120322,7 +120348,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -120614,7 +120640,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -120943,7 +120969,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -121719,7 +121745,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1868
+        "line": 1897
       },
       "contractCompleteness": {
         "route": true,
@@ -122014,7 +122040,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1918
+        "line": 1947
       },
       "contractCompleteness": {
         "route": true,
@@ -122297,7 +122323,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -122619,7 +122645,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -122926,7 +122952,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -123228,7 +123254,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -123588,7 +123614,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -124320,7 +124346,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -124608,7 +124634,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -124896,7 +124922,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -125209,7 +125235,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1181
+        "line": 1203
       },
       "contractCompleteness": {
         "route": true,
@@ -125947,7 +125973,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -126333,7 +126359,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1144
+        "line": 1166
       },
       "contractCompleteness": {
         "route": true,
@@ -126621,7 +126647,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1090
+        "line": 1112
       },
       "contractCompleteness": {
         "route": true,
@@ -129897,7 +129923,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -130009,13 +130036,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -130297,7 +130325,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -131927,7 +131955,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -132068,13 +132097,14 @@
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -132268,7 +132298,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -132370,13 +132401,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -132717,7 +132749,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -132836,13 +132869,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -133036,7 +133070,8 @@
                 "supabase/migrations/016_creator_artist_system_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/016_creator_artist_system_schema.sql"
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -133139,13 +133174,14 @@
         "sourceModule": "module:routes/sonara-last9-routes.cjs",
         "moduleTableCandidateCount": 59,
         "schemaMigrations": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -141611,7 +141647,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -142532,7 +142568,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1950
+        "line": 1979
       },
       "contractCompleteness": {
         "route": true,
@@ -142886,7 +142922,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -144508,7 +144544,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2044
+        "line": 2073
       },
       "contractCompleteness": {
         "route": true,
@@ -147389,7 +147425,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -147627,7 +147663,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -147822,7 +147858,8 @@
               "changedBy": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
                 "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -147915,13 +147952,14 @@
         "schemaMigrations": [
           "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "contractCompleteness": {
         "route": true,
@@ -150341,7 +150379,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -150375,12 +150413,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -150389,23 +150431,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "created_at",
+          "detail",
           "error_message",
           "export_type",
           "id",
+          "ok",
           "period_end",
           "period_start",
           "provider_key",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -150606,14 +150658,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -150918,7 +150970,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -150952,12 +151004,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -150966,22 +151022,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "id",
           "latitude",
           "longitude",
           "name",
+          "ok",
           "radius_meters",
+          "recorded",
           "status",
           "zone_type"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -151222,14 +151287,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -151528,7 +151593,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -151562,12 +151627,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -151576,22 +151645,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "customer_email",
           "customer_name",
           "customer_phone",
           "id",
           "notes",
+          "ok",
+          "recorded",
           "starts_at",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -151826,14 +151904,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -151860,12 +151938,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -151874,23 +151956,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "business_date",
+          "detail",
           "food_cost_cents",
           "food_cost_percent",
           "gross_profit_cents",
           "id",
           "labor_cost_cents",
           "labor_cost_percent",
-          "net_sales_cents"
+          "net_sales_cents",
+          "ok",
+          "recorded"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -152020,14 +152112,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -152296,7 +152388,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -152330,12 +152422,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -152344,21 +152440,30 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "email",
           "id",
           "name",
+          "ok",
           "phone",
+          "recorded",
           "source",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -152566,14 +152671,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -152895,7 +153000,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -152929,12 +153034,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -152943,23 +153052,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "cost_cents",
+          "detail",
           "id",
           "name",
+          "ok",
           "quantity",
+          "recorded",
           "reorder_level",
           "sku",
           "status",
           "unit"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -153216,14 +153335,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -153593,7 +153712,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -153627,12 +153746,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -153641,23 +153764,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "currency",
+          "detail",
           "due_date",
           "id",
           "invoice_date",
           "invoice_number",
+          "ok",
           "payment_status",
           "processing_status",
+          "recorded",
           "total_cents"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -153963,14 +154096,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -154248,7 +154381,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -154282,12 +154415,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -154296,23 +154433,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
           "address_line1",
+          "archived",
           "city",
+          "detail",
           "id",
           "location_type",
           "name",
+          "ok",
           "phone",
+          "recorded",
           "region",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -154525,14 +154672,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -154788,7 +154935,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -154822,12 +154969,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -154836,23 +154987,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "cost_cents",
           "currency",
           "description",
+          "detail",
           "id",
           "next_due_at",
+          "ok",
+          "recorded",
           "service_type",
           "serviced_at",
           "vendor"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -155044,14 +155205,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -155341,7 +155502,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -155375,12 +155536,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -155389,22 +155554,32 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "currency",
+          "detail",
           "id",
           "name",
+          "ok",
+          "recorded",
           "selling_price_cents",
           "status",
           "target_food_cost_percent",
           "theoretical_cost_cents"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -155632,14 +155807,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -155895,7 +156070,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -155929,12 +156104,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -155943,22 +156122,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
           "amount_cents",
+          "changed",
           "currency",
           "id",
+          "ok",
           "paid_at",
           "payment_reference",
+          "recorded",
           "scheduled_for",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -156150,14 +156338,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -156609,7 +156797,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -156643,12 +156831,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -156657,20 +156849,29 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
           "category",
+          "changed",
           "created_at",
           "id",
           "name",
+          "ok",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -156910,14 +157111,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -157256,7 +157457,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -157290,12 +157491,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -157304,23 +157509,32 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "created_at",
           "currency",
           "expected_at",
           "id",
           "notes",
+          "ok",
           "po_number",
+          "recorded",
           "status",
           "total_cents"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -157594,14 +157808,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -157862,7 +158076,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -157896,12 +158110,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -157910,21 +158128,30 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
           "amount_cents",
+          "changed",
           "created_at",
           "customer_id",
           "id",
+          "ok",
+          "recorded",
           "status",
           "title"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -158125,14 +158352,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -158608,7 +158835,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -158642,12 +158869,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -158656,22 +158887,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "currency",
           "due_on",
           "id",
           "invoice_number",
           "issued_on",
+          "ok",
+          "recorded",
           "status",
           "total_cents"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -159081,14 +159321,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -159439,7 +159679,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -159473,12 +159713,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -159487,21 +159731,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "category",
+          "detail",
           "id",
           "name",
+          "ok",
+          "recorded",
           "status",
           "yield_quantity",
           "yield_unit"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -159791,14 +160045,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -160083,7 +160337,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -160117,12 +160371,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -160131,23 +160389,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "crawl_status",
           "created_at",
+          "detail",
           "id",
           "notes",
+          "ok",
           "permission_status",
           "rate_limit_note",
+          "recorded",
           "source_type",
           "source_url"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -160368,14 +160636,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -160709,7 +160977,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -160743,12 +161011,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -160757,25 +161029,35 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "business_date",
+          "detail",
           "discounts_cents",
           "gross_sales_cents",
           "id",
           "location_id",
           "net_sales_cents",
+          "ok",
+          "recorded",
           "refunds_cents",
           "source",
           "tickets_count",
           "tips_cents"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -161041,14 +161323,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -161321,7 +161603,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -161355,12 +161637,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -161369,21 +161655,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
+          "detail",
           "ends_at",
           "id",
           "notes",
+          "ok",
+          "recorded",
           "role_label",
           "starts_at",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -161595,14 +161891,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -161899,7 +162195,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -161933,12 +162229,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -161947,22 +162247,31 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
           "category",
+          "changed",
           "currency",
           "duration_minutes",
           "id",
           "name",
+          "ok",
           "price_cents",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -162196,14 +162505,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -162577,7 +162886,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -162611,12 +162920,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -162625,23 +162938,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
+          "detail",
           "display_name",
           "email",
           "employment_type",
           "hire_date",
           "id",
           "job_title",
+          "ok",
           "phone",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -162951,14 +163274,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -163236,7 +163559,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -163270,12 +163593,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -163284,20 +163611,29 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "count_date",
           "created_at",
           "id",
           "notes",
+          "ok",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -163516,14 +163852,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -163550,12 +163886,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -163564,20 +163904,30 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
           "break_minutes",
           "clock_in_at",
           "clock_out_at",
+          "detail",
           "id",
+          "ok",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -163804,14 +164154,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -164082,7 +164432,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -164116,12 +164466,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "status"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -164130,19 +164484,28 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "changed",
           "created_at",
           "id",
           "notes",
+          "ok",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -164355,14 +164718,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 669
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -164619,7 +164982,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -164653,12 +165016,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -164667,23 +165034,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
+          "detail",
           "id",
           "make",
           "model",
+          "ok",
           "plate_number",
+          "recorded",
           "registration_expires_at",
           "status",
           "vehicle_type",
           "year"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -164876,14 +165253,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -165135,7 +165512,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -165169,12 +165546,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -165183,23 +165564,33 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
           "account_number",
+          "archived",
           "contact_name",
+          "detail",
           "email",
           "id",
           "name",
+          "ok",
           "payment_terms",
           "phone",
+          "recorded",
           "status"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -165387,14 +165778,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -165664,7 +166055,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -165698,12 +166089,16 @@
         "pathParams": [
           "recordId"
         ],
-        "body": [],
+        "body": [
+          "archived"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -165712,22 +166107,32 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "json",
+          "redirect"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [
+          "archived",
+          "detail",
           "estimated_cost_cents",
           "id",
           "item_name",
           "logged_at",
+          "ok",
           "quantity",
           "reason",
+          "recorded",
           "unit"
         ],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_resource_registry",
@@ -165932,14 +166337,14 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 632
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
@@ -166451,7 +166856,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 616
+        "line": 746
       },
       "contractCompleteness": {
         "route": true,
@@ -168330,6 +168735,526 @@
       "action": true
     },
     {
+      "id": "POST /creator-studio/album-cycles/:recordId/archive",
+      "method": "POST",
+      "route": "/creator-studio/album-cycles/:recordId/archive",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/album-cycles",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "archived"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "archived",
+          "concept_summary",
+          "detail",
+          "id",
+          "ok",
+          "project_type",
+          "recorded",
+          "release_status",
+          "slug",
+          "target_release_date",
+          "title"
+        ],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "creator_album_cycles"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_album_cycles",
+            "tableId": "table:creator_album_cycles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/album-cycles",
+          "operationKind": "archive",
+          "requiredFields": [
+            "artist_profile_id",
+            "title",
+            "slug"
+          ],
+          "editableFields": [
+            "artist_profile_id",
+            "title",
+            "slug",
+            "project_type",
+            "target_release_date",
+            "concept_summary",
+            "visual_direction"
+          ],
+          "fields": [
+            {
+              "name": "artist_profile_id",
+              "type": "reference",
+              "required": true,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "slug",
+              "type": "text",
+              "required": true,
+              "maxLength": 120,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "project_type",
+              "type": "select",
+              "required": false,
+              "maxLength": null,
+              "options": [
+                "single",
+                "ep",
+                "album",
+                "deluxe",
+                "mixtape",
+                "video_project",
+                "campaign",
+                "other"
+              ],
+              "default": null
+            },
+            {
+              "name": "target_release_date",
+              "type": "date",
+              "required": false,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "concept_summary",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 2000,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "visual_direction",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 2000,
+              "options": [],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "concept_summary",
+            "id",
+            "project_type",
+            "release_status",
+            "slug",
+            "target_release_date",
+            "title"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 632
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/artists/:recordId/status",
+      "method": "POST",
+      "route": "/creator-studio/artists/:recordId/status",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/artists",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "status"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "artist_key",
+          "artist_name",
+          "changed",
+          "id",
+          "ok",
+          "public_description",
+          "recorded",
+          "status"
+        ],
+        "redirectTargetsObserved": [
+          "${back}?status_done=${encodeURIComponent(said)}",
+          "${back}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "creator_artist_profiles"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_artist_profiles",
+            "tableId": "table:creator_artist_profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260819080000_public_creator_profiles_and_follows.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/artists",
+          "operationKind": "status_transition",
+          "requiredFields": [
+            "artist_name",
+            "artist_key"
+          ],
+          "editableFields": [
+            "artist_name",
+            "artist_key",
+            "public_description",
+            "status"
+          ],
+          "fields": [
+            {
+              "name": "artist_name",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "artist_key",
+              "type": "text",
+              "required": true,
+              "maxLength": 100,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "public_description",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 1000,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "required": false,
+              "maxLength": null,
+              "options": [
+                "active",
+                "paused",
+                "archived"
+              ],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "artist_key",
+            "artist_name",
+            "id",
+            "public_description",
+            "status"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819080000_public_creator_profiles_and_follows.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 669
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /creator-studio/assets/:id/file",
       "method": "POST",
       "route": "/creator-studio/assets/:id/file",
@@ -168480,6 +169405,1133 @@
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/device-cues/:recordId/archive",
+      "method": "POST",
+      "route": "/creator-studio/device-cues/:recordId/archive",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/device-cues",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "archived"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "archived",
+          "detail",
+          "duration_ms",
+          "event_name",
+          "id",
+          "name",
+          "ok",
+          "recorded",
+          "sound_type",
+          "status"
+        ],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "sound_cues"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "sound_cues",
+            "tableId": "table:sound_cues",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/device-cues",
+          "operationKind": "archive",
+          "requiredFields": [
+            "cue_key",
+            "name",
+            "event_name"
+          ],
+          "editableFields": [
+            "cue_key",
+            "name",
+            "event_name",
+            "sound_type",
+            "duration_ms"
+          ],
+          "fields": [
+            {
+              "name": "cue_key",
+              "type": "text",
+              "required": true,
+              "maxLength": 100,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "event_name",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "sound_type",
+              "type": "select",
+              "required": false,
+              "maxLength": null,
+              "options": [
+                "tone",
+                "sample",
+                "notification"
+              ],
+              "default": null
+            },
+            {
+              "name": "duration_ms",
+              "type": "number",
+              "required": false,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "duration_ms",
+            "event_name",
+            "id",
+            "name",
+            "sound_type",
+            "status"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 632
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/music-projects/:recordId/archive",
+      "method": "POST",
+      "route": "/creator-studio/music-projects/:recordId/archive",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/music-projects",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "archived"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "archived",
+          "artist_name",
+          "bpm",
+          "detail",
+          "id",
+          "musical_key",
+          "ok",
+          "project_type",
+          "recorded",
+          "status",
+          "title"
+        ],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "music_projects"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "music_projects",
+            "tableId": "table:music_projects",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "music_projects_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/music-projects",
+          "operationKind": "archive",
+          "requiredFields": [
+            "title"
+          ],
+          "editableFields": [
+            "title",
+            "artist_name",
+            "project_type",
+            "bpm",
+            "musical_key"
+          ],
+          "fields": [
+            {
+              "name": "title",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "artist_name",
+              "type": "text",
+              "required": false,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "project_type",
+              "type": "select",
+              "required": false,
+              "maxLength": null,
+              "options": [
+                "song",
+                "album",
+                "ep",
+                "single",
+                "session"
+              ],
+              "default": null
+            },
+            {
+              "name": "bpm",
+              "type": "number",
+              "required": false,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "musical_key",
+              "type": "text",
+              "required": false,
+              "maxLength": 40,
+              "options": [],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "artist_name",
+            "bpm",
+            "id",
+            "musical_key",
+            "project_type",
+            "status",
+            "title"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+          "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+          "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 632
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/prompt-blueprints/:recordId/archive",
+      "method": "POST",
+      "route": "/creator-studio/prompt-blueprints/:recordId/archive",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/prompt-blueprints",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "archived"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "archived",
+          "blueprint_key",
+          "detail",
+          "id",
+          "max_characters",
+          "name",
+          "ok",
+          "purpose",
+          "recorded",
+          "status"
+        ],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "creator_prompt_blueprints"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_prompt_blueprints",
+            "tableId": "table:creator_prompt_blueprints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/prompt-blueprints",
+          "operationKind": "archive",
+          "requiredFields": [
+            "artist_profile_id",
+            "name",
+            "blueprint_key",
+            "prompt_template"
+          ],
+          "editableFields": [
+            "artist_profile_id",
+            "name",
+            "blueprint_key",
+            "purpose",
+            "prompt_template",
+            "negative_prompt_rules",
+            "max_characters"
+          ],
+          "fields": [
+            {
+              "name": "artist_profile_id",
+              "type": "reference",
+              "required": true,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "blueprint_key",
+              "type": "text",
+              "required": true,
+              "maxLength": 100,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "purpose",
+              "type": "text",
+              "required": false,
+              "maxLength": 300,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "prompt_template",
+              "type": "textarea",
+              "required": true,
+              "maxLength": 4000,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "negative_prompt_rules",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 2000,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "max_characters",
+              "type": "number",
+              "required": false,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "blueprint_key",
+            "id",
+            "max_characters",
+            "name",
+            "purpose",
+            "status"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 632
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/sound-identity/:recordId/archive",
+      "method": "POST",
+      "route": "/creator-studio/sound-identity/:recordId/archive",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/sound-identity",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "archived"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "archived",
+          "bpm_range",
+          "detail",
+          "drum_language",
+          "harmonic_identity",
+          "id",
+          "name",
+          "ok",
+          "profile_key",
+          "recorded",
+          "status",
+          "vocal_mode"
+        ],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "creator_sonic_profiles"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_sonic_profiles",
+            "tableId": "table:creator_sonic_profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/sound-identity",
+          "operationKind": "archive",
+          "requiredFields": [
+            "artist_profile_id",
+            "name",
+            "profile_key"
+          ],
+          "editableFields": [
+            "artist_profile_id",
+            "name",
+            "profile_key",
+            "bpm_range",
+            "drum_language",
+            "harmonic_identity",
+            "vocal_mode",
+            "mix_notes",
+            "avoid_notes"
+          ],
+          "fields": [
+            {
+              "name": "artist_profile_id",
+              "type": "reference",
+              "required": true,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "profile_key",
+              "type": "text",
+              "required": true,
+              "maxLength": 100,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "bpm_range",
+              "type": "text",
+              "required": false,
+              "maxLength": 60,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "drum_language",
+              "type": "text",
+              "required": false,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "harmonic_identity",
+              "type": "text",
+              "required": false,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "vocal_mode",
+              "type": "text",
+              "required": false,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "mix_notes",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 1000,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "avoid_notes",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 1000,
+              "options": [],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "bpm_range",
+            "drum_language",
+            "harmonic_identity",
+            "id",
+            "name",
+            "profile_key",
+            "status",
+            "vocal_mode"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 632
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
       },
       "action": true
     },
@@ -169663,6 +171715,272 @@
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/video-treatments/:recordId/archive",
+      "method": "POST",
+      "route": "/creator-studio/video-treatments/:recordId/archive",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/video-treatments",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "recordId"
+        ],
+        "body": [
+          "archived"
+        ],
+        "query": [],
+        "params": [
+          "recordId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "archived",
+          "concept",
+          "detail",
+          "duration_seconds",
+          "id",
+          "ok",
+          "platform_target",
+          "recorded",
+          "status",
+          "sync_notes",
+          "title"
+        ],
+        "redirectTargetsObserved": [
+          "${page.path}?edited=${encodeURIComponent(said)}",
+          "${page.path}?status_problem=${encodeURIComponent(detail || code)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_resource_registry",
+        "directTables": [
+          "creator_video_treatments"
+        ],
+        "candidateTables": [
+          "accounting_exports",
+          "audio_assets",
+          "bill_payment_records",
+          "bookings",
+          "business_bookings",
+          "business_employee_profiles",
+          "business_locations",
+          "business_service_catalog",
+          "business_vertical_templates",
+          "business_work_orders",
+          "creator_album_cycles",
+          "creator_artist_profiles",
+          "creator_prompt_blueprints",
+          "creator_sonic_profiles",
+          "creator_video_treatments",
+          "customer_invoice_lines",
+          "customer_invoice_payments",
+          "customer_invoices",
+          "customers",
+          "daily_profit_snapshots",
+          "employee_announcements",
+          "employee_schedules",
+          "employee_tasks",
+          "employee_time_entries",
+          "haptic_patterns",
+          "integration_jobs",
+          "integration_providers",
+          "integrations",
+          "inventory_count_sessions",
+          "inventory_items",
+          "location_events",
+          "location_transfers",
+          "location_zones",
+          "maintenance_logs",
+          "menu_items",
+          "merchant_products",
+          "motion_sensor_events",
+          "music_projects",
+          "organizations",
+          "payments",
+          "pos_sales_summaries",
+          "products",
+          "profiles",
+          "purchase_orders",
+          "quotes",
+          "recipe_cards",
+          "research_sources",
+          "reviews",
+          "route_tracking_sessions",
+          "sensory_feedback_profiles",
+          "shared_links",
+          "sonara_platforms",
+          "sound_cues",
+          "support_requests",
+          "tactile_events",
+          "vehicle_records",
+          "vendor_accounts",
+          "vendor_invoices",
+          "waste_logs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_video_treatments",
+            "tableId": "table:creator_video_treatments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/016_creator_artist_system_schema.sql",
+                "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/016_creator_artist_system_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": {
+          "resourceId": "record-page:/creator-studio/video-treatments",
+          "operationKind": "archive",
+          "requiredFields": [
+            "artist_profile_id",
+            "title"
+          ],
+          "editableFields": [
+            "artist_profile_id",
+            "title",
+            "platform_target",
+            "duration_seconds",
+            "concept",
+            "sync_notes"
+          ],
+          "fields": [
+            {
+              "name": "artist_profile_id",
+              "type": "reference",
+              "required": true,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "required": true,
+              "maxLength": 200,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "platform_target",
+              "type": "select",
+              "required": false,
+              "maxLength": null,
+              "options": [
+                "social",
+                "youtube",
+                "shorts",
+                "reels",
+                "tiktok",
+                "music_video",
+                "commercial",
+                "other"
+              ],
+              "default": null
+            },
+            {
+              "name": "duration_seconds",
+              "type": "number",
+              "required": false,
+              "maxLength": null,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "concept",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 2000,
+              "options": [],
+              "default": null
+            },
+            {
+              "name": "sync_notes",
+              "type": "textarea",
+              "required": false,
+              "maxLength": 2000,
+              "options": [],
+              "default": null
+            }
+          ],
+          "defaults": {},
+          "statuses": [],
+          "referencedTables": [],
+          "outputFields": [
+            "concept",
+            "duration_seconds",
+            "id",
+            "platform_target",
+            "status",
+            "sync_notes",
+            "title"
+          ],
+          "actionLabel": null,
+          "rowIdField": null,
+          "childTables": []
+        },
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-last9-routes.cjs",
+        "moduleTableCandidateCount": 59,
+        "schemaMigrations": [
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
+        ],
+        "persistenceMode": "resource_registry_contract"
+      },
+      "source": {
+        "file": "routes/sonara-last9-routes.cjs",
+        "line": 632
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_resource_registry",
+        "openApi": false,
+        "requestFieldSource": "resource_registry_plus_handler_observation"
       },
       "action": true
     },
@@ -181746,7 +184064,7 @@
       "id": "table:creator_album_cycles",
       "schema": "public",
       "name": "creator_album_cycles",
-      "columnCount": 13,
+      "columnCount": 14,
       "columns": [
         {
           "name": "id",
@@ -181869,6 +184187,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -181876,7 +184202,8 @@
           "supabase/migrations/016_creator_artist_system_schema.sql"
         ],
         "changedBy": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -183538,7 +185865,7 @@
       "id": "table:creator_prompt_blueprints",
       "schema": "public",
       "name": "creator_prompt_blueprints",
-      "columnCount": 13,
+      "columnCount": 14,
       "columns": [
         {
           "name": "id",
@@ -183647,6 +185974,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -183654,7 +185989,8 @@
           "supabase/migrations/016_creator_artist_system_schema.sql"
         ],
         "changedBy": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -184782,7 +187118,7 @@
       "id": "table:creator_sonic_profiles",
       "schema": "public",
       "name": "creator_sonic_profiles",
-      "columnCount": 17,
+      "columnCount": 18,
       "columns": [
         {
           "name": "id",
@@ -184923,6 +187259,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -184930,7 +187274,8 @@
           "supabase/migrations/016_creator_artist_system_schema.sql"
         ],
         "changedBy": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -185179,7 +187524,7 @@
       "id": "table:creator_video_treatments",
       "schema": "public",
       "name": "creator_video_treatments",
-      "columnCount": 14,
+      "columnCount": 15,
       "columns": [
         {
           "name": "id",
@@ -185309,6 +187654,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -185316,7 +187669,8 @@
           "supabase/migrations/016_creator_artist_system_schema.sql"
         ],
         "changedBy": [
-          "supabase/migrations/016_creator_artist_system_schema.sql"
+          "supabase/migrations/016_creator_artist_system_schema.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/016_creator_artist_system_schema.sql"
@@ -202079,7 +204433,7 @@
       "id": "table:music_projects",
       "schema": "public",
       "name": "music_projects",
-      "columnCount": 13,
+      "columnCount": 14,
       "columns": [
         {
           "name": "id",
@@ -202202,6 +204556,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -202223,7 +204585,8 @@
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -214840,7 +217203,7 @@
       "id": "table:sound_cues",
       "schema": "public",
       "name": "sound_cues",
-      "columnCount": 15,
+      "columnCount": 16,
       "columns": [
         {
           "name": "id",
@@ -214973,6 +217336,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -214983,7 +217354,8 @@
         "changedBy": [
           "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260928001500_creator_records_can_be_archived.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -223144,6 +225516,21 @@
       "creates": [],
       "alters": [
         "user_preferences"
+      ],
+      "drops": [],
+      "rlsEnabled": [],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20260928001500_creator_records_can_be_archived.sql",
+      "creates": [],
+      "alters": [
+        "creator_album_cycles",
+        "creator_prompt_blueprints",
+        "creator_sonic_profiles",
+        "creator_video_treatments",
+        "music_projects",
+        "sound_cues"
       ],
       "drops": [],
       "rlsEnabled": [],
@@ -255395,7 +257782,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1500
+        "line": 1522
       },
       "destination": {
         "route": "/account/data",
@@ -256932,7 +259319,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1860
+        "line": 1889
       },
       "destination": {
         "route": "/dashboard",
@@ -268409,7 +270796,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268419,7 +270806,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1860
+        "line": 1889
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268439,7 +270826,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2068
+        "line": 2097
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268579,7 +270966,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268589,7 +270976,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2080
+        "line": 2109
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268639,7 +271026,7 @@
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 983
+        "line": 1005
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268709,7 +271096,7 @@
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1144
+        "line": 1166
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268719,7 +271106,7 @@
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1090
+        "line": 1112
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268839,7 +271226,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268849,7 +271236,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1950
+        "line": 1979
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -268919,7 +271306,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2044
+        "line": 2073
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -269059,7 +271446,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -269069,7 +271456,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2095
+        "line": 2124
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
