@@ -259,6 +259,7 @@
   preview all render without horizontal overflow on desktop or mobile.
 - Kept the change additive and reversible. No provider credentials, schema
   migrations, payment wiring, or production deployment state changed.
-- Verification completed so far: frozen install, audit, build, focused route
-  and overflow tests, lint, and client-secret scan. Full suite and route smoke
-  verification remain the final local gates before review.
+- Verification completed: frozen install, audit, build, typecheck, lint, full
+  suite (`5,109 passing`, `6 pending`), route smoke, client-secret scan, and
+  desktop/mobile browser checks. Hosted CI was green and PR #379 merged into
+  `main` as `24a2fdc5`.
