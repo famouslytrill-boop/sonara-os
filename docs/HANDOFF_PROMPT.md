@@ -103,11 +103,57 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 392 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 393 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-28 - The navigation a laptop could not see, and three rules deciding it
+
+`.sonara-desktop-nav` was dropped by **three** separate media rules -- 1300px,
+1120px and 920px -- so the widest silently governed and the other two were dead
+code. The tool labels had the same shape at 1400px, 1120px and 1080px. Nothing
+in `tests/` or `scripts/` asserted any of the six widths.
+
+All of them carried one stated reason: the nav "has eight items". It renders
+**five** links signed out and **three** signed in. The reason had expired; the
+rule it justified had not. The cost was the entire primary navigation of a
+767-route application collapsing into a hamburger on every laptop from 920px to
+1300px, while the header had room to spare at every width in that band.
+
+Measured in Chromium, `document.fonts.ready` awaited so links are sized in Geist
+rather than a fallback -- without that wait the widths are a different font's:
+
+    nav + labelled tools    clean at 1040px, first clips at 1020px
+    nav + icon-only tools   clean at  840px, first clips at  830px
+
+So one rule each at the measured boundary with margin: labels 1080px, nav 920px.
+Verified across fourteen viewports -- nav returns at 930px instead of 1301px,
+labels at 1081px instead of 1401px, nothing clipped, nothing wrapped, no
+sideways scroll at any width, phone handover intact.
+
+Two tests in `browser-tests/public-experience.spec.js` hold it, asserting the
+**fit** rather than the width, so a future rule may move it while one that hides
+the navigation on a laptop or lets it clip fails. Falsified both ways: replanting
+the 1300px rule failed "the desktop nav is hidden at 1280px, which is an ordinary
+laptop" and that test alone; deleting the 920px handover failed "the desktop nav
+is still showing on a phone". Restored from a copy and confirmed with `md5sum -c`.
+
+**What not to rediscover.** A first detector of mine flagged wrapped nav links at
+1400px, where everything demonstrably fits -- a link-height heuristic tripping on
+ordinary padding, not a finding. Discarded rather than reported. Also: this
+container's Playwright browser build is 1194 while the locked `@playwright/test`
+wants 1243, so the runner cannot find a browser until the path is bridged
+locally; nothing in the repository needs changing for it.
+
+Asset cache token v14 -> v15 across all 31 occurrences, because a changed
+stylesheet served under the old token reaches nobody.
+
+Verified: `verify:launch` exit 0, 5,115 passing, 62 chain commands, 19 doc
+claims, 26 contrast pairs, 3 theme states agreeing.
+
+
 
 ### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
 
@@ -2291,72 +2337,3 @@ exists. It was already NICE-2 in `docs/audits/2026-07-27-ENGINEERING_AUDIT.md`.
 Removed and ignored. The other paths NICE-2 names were left alone --
 `_claude_workbench/` holds tracked documentation, so that part of the finding is
 not simply correct.
-
-
-
-### 2026-09-17 - The third search became one convergence plan, not another product pile
-
-The broad request covered repositories, PDFs, US/European/Chinese companies,
-industrial systems, creator media, calling, streaming, manufacturing, CAD,
-robotics, 3D, agents, SEO, customer service, and new business ideas. Most of
-those categories already existed in source as governed registries, formulas,
-industry packs, or bounded product foundations. Copying the request into more
-capability names would have increased surface area without advancing the
-architecture.
-
-`lib/sonara-third-search-convergence.cjs` now reads the canonical inventories
-instead: 237 governed repository records, 27 market-expansion capabilities, 13
-reuse-first schema contracts, 18 industry systems, 38 formulas, 17 algorithms,
-11 shared agent strategies, and 14 source-evidence records at the time of this
-change. The endpoint derives those counts; it does not preserve them as stale
-constants.
-
-The representative market synthesis is explicit about inference. US platform
-suites support one identity/data/workflow layer; European industrial software
-supports vertical composition and durable records; Chinese mobile ecosystems
-support low-friction communication/commerce loops; installed-base businesses
-support reliability and service as the moat; creator platforms support a
-creation/community/distribution/monetization loop. None of that is presented as
-a claim about an undisclosed competitor stack.
-
-The product decision is a private Creator and Growth Commons over existing
-profiles, follows, assets, calls, notifications, content queues, and commerce.
-The schema plan now records the reuse-first contract and its safety gate.
-Public feeds/federation, biometric storage, Wi-Fi credential features, a global
-media network, regulated rails, and bulk repository installation remain
-explicitly deferred or rejected.
-
-The infrastructure advance beneath it is the preceding durable event/evaluation
-foundation: four service-only, RLS-protected tables, an atomic claim/settle
-path, and the owner queue as the first compact event producer. Source now says
-clearly that the migration is pending the controlled path and that no worker is
-enabled.
-
-The competitor-comparison skill now requires primary sources, representative
-archetypes, labeled inference, repository inspection, and a bounded
-build/integrate/research/defer sequence for portfolio-wide searches. Its skill
-validator and adapted-skill provenance gate pass.
-
-Focused tests pass 21/21. The full suite passes 4,707 tests with six explicit
-pending tests; typecheck, lint, build, dependency audit, stale-claim review, and
-adapted-skill verification are green. The dated research record carries a
-2026-10-17 review deadline.
-
-The release gates found two useful bookkeeping edges before review. The outbox
-duplicate lookup originally built its selected columns at run time, increasing
-the unauditable-query ratchet; it now asks for the exact three fields it reads
-instead. The new migration also changes the derived schema to 121 migrations,
-337 tables, 240 organization-scoped tables, and 31 of 311 RLS tables deliberately
-closed to every browser role. Those counts and the exact two-sided closed-table
-set now agree across the replay assertion and owner documentation.
-
-`pnpm run verify:gates` passes. This workstation has no PostgreSQL binaries, so
-the fresh-database replay read all 121 migration files but explicitly did not
-execute them; CI keeps `SONARA_MIGRATION_REPLAY_REQUIRED=1`, making that replay a
-hard failure rather than the local notice recorded here.
-
-The final `pnpm run verify:launch` chain passes end to end: build, 4,707 tests
-with six explicit media-test pendings, secret scan, lint, route smoke, database
-contracts, governance gates, and coverage. Live Stripe price comparison and
-external-repository network health remain the chain's declared credentialed/CI
-checks rather than claims made by this workstation.

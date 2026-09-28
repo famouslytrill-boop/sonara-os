@@ -2,6 +2,50 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-28 - The navigation a laptop could not see, and three rules deciding it
+
+`.sonara-desktop-nav` was dropped by **three** separate media rules -- 1300px,
+1120px and 920px -- so the widest silently governed and the other two were dead
+code. The tool labels had the same shape at 1400px, 1120px and 1080px. Nothing
+in `tests/` or `scripts/` asserted any of the six widths.
+
+All of them carried one stated reason: the nav "has eight items". It renders
+**five** links signed out and **three** signed in. The reason had expired; the
+rule it justified had not. The cost was the entire primary navigation of a
+767-route application collapsing into a hamburger on every laptop from 920px to
+1300px, while the header had room to spare at every width in that band.
+
+Measured in Chromium, `document.fonts.ready` awaited so links are sized in Geist
+rather than a fallback -- without that wait the widths are a different font's:
+
+    nav + labelled tools    clean at 1040px, first clips at 1020px
+    nav + icon-only tools   clean at  840px, first clips at  830px
+
+So one rule each at the measured boundary with margin: labels 1080px, nav 920px.
+Verified across fourteen viewports -- nav returns at 930px instead of 1301px,
+labels at 1081px instead of 1401px, nothing clipped, nothing wrapped, no
+sideways scroll at any width, phone handover intact.
+
+Two tests in `browser-tests/public-experience.spec.js` hold it, asserting the
+**fit** rather than the width, so a future rule may move it while one that hides
+the navigation on a laptop or lets it clip fails. Falsified both ways: replanting
+the 1300px rule failed "the desktop nav is hidden at 1280px, which is an ordinary
+laptop" and that test alone; deleting the 920px handover failed "the desktop nav
+is still showing on a phone". Restored from a copy and confirmed with `md5sum -c`.
+
+**What not to rediscover.** A first detector of mine flagged wrapped nav links at
+1400px, where everything demonstrably fits -- a link-height heuristic tripping on
+ordinary padding, not a finding. Discarded rather than reported. Also: this
+container's Playwright browser build is 1194 while the locked `@playwright/test`
+wants 1243, so the runner cannot find a browser until the path is bridged
+locally; nothing in the repository needs changing for it.
+
+Asset cache token v14 -> v15 across all 31 occurrences, because a changed
+stylesheet served under the old token reaches nobody.
+
+Verified: `verify:launch` exit 0, 5,115 passing, 62 chain commands, 19 doc
+claims, 26 contrast pairs, 3 theme states agreeing.
+
 ### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
 
 `no-dead-links` follows every internal `href`. Nothing read the other half of
