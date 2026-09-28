@@ -1,36 +1,36 @@
-/* SONARA One Experience System 2026 — Evergreen Operations / Bright Signal v5 */
+/* SONARA One Experience System 2026 — Indigo Signal / Vibrant Operations v6 */
 @view-transition{navigation:auto}
 ::view-transition-old(root){animation:nxExit .16s ease both}
 ::view-transition-new(root){animation:nxEnter .24s cubic-bezier(.2,.75,.2,1) both}
 
 :root{
   color-scheme:light;
-  --nx-bg:#f6faf8;
-  --nx-bg-soft:#edf4f1;
+  --nx-bg:#f6f7fd;
+  --nx-bg-soft:#edeff9;
   --nx-surface:#ffffff;
-  --nx-surface-2:#f3f6fb;
-  --nx-ink:#14201d;
-  --nx-text:#24312d;
-  --nx-muted:#53625e;
-  --nx-faint:#66746f;
-  --nx-line:#d9e4df;
-  --nx-line-strong:#c2d1ca;
-  --nx-violet:#1f7a62;
-  --nx-blue:#245daf;
-  --nx-pink:#b64c77;
-  --nx-orange:#b86a22;
-  --nx-cyan:#1b8294;
-  --nx-mint:#15815f;
-  --nx-success:#126b4b;
-  --nx-warning:#875900;
-  --nx-danger:#b13b45;
-  --nx-focus:#2d68c4;
+  --nx-surface-2:#f2f4fc;
+  --nx-ink:#15182b;
+  --nx-text:#252a42;
+  --nx-muted:#4e5573;
+  --nx-faint:#5e6584;
+  --nx-line:#dfe3f2;
+  --nx-line-strong:#c6cce4;
+  --nx-violet:#5b34e0;
+  --nx-blue:#1d5fd8;
+  --nx-pink:#bf2a6e;
+  --nx-orange:#9c560c;
+  --nx-cyan:#0d7188;
+  --nx-mint:#0e7a55;
+  --nx-success:#0a6b46;
+  --nx-warning:#84520a;
+  --nx-danger:#c02b36;
+  --nx-focus:#3a63d8;
   --nx-content:1240px;
   --nx-reading:720px;
-  --nx-radius:18px;
-  --nx-radius-sm:11px;
-  --nx-shadow:0 18px 48px rgba(29,42,72,.10);
-  --nx-shadow-high:0 32px 90px rgba(24,35,64,.16);
+  --nx-radius:20px;
+  --nx-radius-sm:13px;
+  --nx-shadow:0 18px 48px rgba(32,26,86,.11);
+  --nx-shadow-high:0 32px 90px rgba(26,20,72,.18);
   --nx-ease:cubic-bezier(.2,.75,.2,1);
   --nx-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --nx-mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
@@ -39,26 +39,26 @@
 
 html[data-theme="dark"]{
   color-scheme:dark;
-  --nx-bg:#0b1210;
-  --nx-bg-soft:#101b18;
-  --nx-surface:#14211d;
-  --nx-surface-2:#1b2b26;
-  --nx-ink:#f5fbf8;
-  --nx-text:#e8f0ec;
-  --nx-muted:#b1c4bb;
-  --nx-faint:#90a39a;
-  --nx-line:#2a3e35;
-  --nx-line-strong:#395248;
-  --nx-violet:#8ed8bf;
-  --nx-blue:#83abf2;
-  --nx-pink:#ff87b0;
-  --nx-orange:#f4a65f;
-  --nx-cyan:#65d1de;
-  --nx-mint:#50d1a0;
-  --nx-success:#54d6a1;
-  --nx-warning:#f3c55f;
-  --nx-danger:#ff7c83;
-  --nx-focus:#9ebaff;
+  --nx-bg:#0a0c16;
+  --nx-bg-soft:#10131f;
+  --nx-surface:#151929;
+  --nx-surface-2:#1d2235;
+  --nx-ink:#f7f8ff;
+  --nx-text:#e6e9f7;
+  --nx-muted:#b4bad6;
+  --nx-faint:#9aa1c0;
+  --nx-line:#282e46;
+  --nx-line-strong:#3a4262;
+  --nx-violet:#b9a5ff;
+  --nx-blue:#8fb6ff;
+  --nx-pink:#ff8dbe;
+  --nx-orange:#f7b267;
+  --nx-cyan:#5fd2e8;
+  --nx-mint:#4fdca4;
+  --nx-success:#52d9a3;
+  --nx-warning:#f5c453;
+  --nx-danger:#ff8a90;
+  --nx-focus:#8fb6ff;
   --nx-shadow:0 20px 54px rgba(0,0,0,.30);
   --nx-shadow-high:0 38px 110px rgba(0,0,0,.44);
 }
@@ -83,26 +83,26 @@ html[data-theme="dark"]{
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) {
   color-scheme:dark;
-  --nx-bg:#0b1210;
-  --nx-bg-soft:#101b18;
-  --nx-surface:#14211d;
-  --nx-surface-2:#1b2b26;
-  --nx-ink:#f5fbf8;
-  --nx-text:#e8f0ec;
-  --nx-muted:#b1c4bb;
-  --nx-faint:#90a39a;
-  --nx-line:#2a3e35;
-  --nx-line-strong:#395248;
-  --nx-violet:#8ed8bf;
-  --nx-blue:#83abf2;
-  --nx-pink:#ff87b0;
-  --nx-orange:#f4a65f;
-  --nx-cyan:#65d1de;
-  --nx-mint:#50d1a0;
-  --nx-success:#54d6a1;
-  --nx-warning:#f3c55f;
-  --nx-danger:#ff7c83;
-  --nx-focus:#9ebaff;
+  --nx-bg:#0a0c16;
+  --nx-bg-soft:#10131f;
+  --nx-surface:#151929;
+  --nx-surface-2:#1d2235;
+  --nx-ink:#f7f8ff;
+  --nx-text:#e6e9f7;
+  --nx-muted:#b4bad6;
+  --nx-faint:#9aa1c0;
+  --nx-line:#282e46;
+  --nx-line-strong:#3a4262;
+  --nx-violet:#b9a5ff;
+  --nx-blue:#8fb6ff;
+  --nx-pink:#ff8dbe;
+  --nx-orange:#f7b267;
+  --nx-cyan:#5fd2e8;
+  --nx-mint:#4fdca4;
+  --nx-success:#52d9a3;
+  --nx-warning:#f5c453;
+  --nx-danger:#ff8a90;
+  --nx-focus:#8fb6ff;
   --nx-shadow:0 20px 54px rgba(0,0,0,.30);
   --nx-shadow-high:0 38px 110px rgba(0,0,0,.44);
 }
