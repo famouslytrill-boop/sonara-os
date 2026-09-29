@@ -20,6 +20,7 @@ Read these first:
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH17.md` for decision/design/finance/memory intake
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH18.md` for the latest agent/RAG/infrastructure/system-design intake
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BATCH19.md` for agent skills, business applications, media, code education and public-data references
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-28_BATCH20.md` for media/local-model work, design skills, ecommerce, automation, API/streaming, Docker/deployment diagrams and workflow integration
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
@@ -27,6 +28,7 @@ Read these first:
 - `lib/sonara-screenshot-tool-radar-batch17.cjs`
 - `lib/sonara-screenshot-tool-radar-batch18.cjs`
 - `lib/sonara-screenshot-tool-radar-batch19.cjs`
+- `lib/sonara-screenshot-tool-radar-batch20.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 - `DESIGN.md` and `.claude/skills/reviewing-premium-sonara-ui/SKILL.md` when a screenshot contributes design requirements
@@ -204,6 +206,12 @@ The current source record is `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BAT
 - Oracle free-cloud and X creator-rewards screenshots are volatile service/program claims, not verified product or revenue facts.
 
 Batch 19 adds six bounded patterns: tested skill contracts, per-artifact supply-chain review, deterministic typed choices, isolated code visualization, user-controlled media retention and public-data provenance/uncertainty. See the research note for source links and the evidence matrix.
+
+## Current 2026-09-28 Batch 20 decisions
+
+The current source record is `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-28_BATCH20.md` and the catalog is `lib/sonara-screenshot-tool-radar-batch20.cjs`. Five repositories were source-checked, nine existing sources were deduplicated, and all candidates remain disabled. Model/data/media/trademark licensing is separate from repository code licensing. Cropped or ambiguous owners stay unresolved.
+
+Batch 20 adds route-to-result, complete UI-state, deterministic-rule, approval/idempotency, asset-provenance, upload/streaming, truthful-metrics and protected-deployment patterns. Formula processing remains paused until the owner explicitly authorizes it. Do not install, copy or execute any project based on the screenshots.
 
 ## What not to do
 

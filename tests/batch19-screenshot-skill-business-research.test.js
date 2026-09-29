@@ -98,10 +98,11 @@ describe("Batch 19 screenshot skill and business research", () => {
 
   it("includes the new and prior current research batches in platform convergence", () => {
     const convergence = getUnifiedBatchConvergence();
-    assert.equal(convergence.latestBatch, 19);
+    assert.equal(convergence.latestBatch, 20);
     assert.equal(convergence.counts.batches, convergence.batchSummaries.length);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 18));
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 19));
+    assert.ok(convergence.batchSummaries.some((item) => item.batch === 20));
     assert.ok(convergence.repositories.some((item) => item.repository === "ARPAHLS/skillware" && item.seenInBatches.includes(19)));
     assert.equal(convergence.counts.productionExecutionAdded, 0);
   });

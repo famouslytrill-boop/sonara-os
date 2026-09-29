@@ -83,6 +83,10 @@ const {
   SCREENSHOT_TOOL_RADAR_BATCH19,
   NON_REPOSITORY_REFERENCES_BATCH19
 } = require("../lib/sonara-screenshot-tool-radar-batch19.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH20,
+  NON_REPOSITORY_REFERENCES_BATCH20
+} = require("../lib/sonara-screenshot-tool-radar-batch20.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -162,6 +166,7 @@ const SCREENSHOT_BATCH16_KEYS = SCREENSHOT_TOOL_RADAR_BATCH16.map((item) => item
 const SCREENSHOT_BATCH17_KEYS = SCREENSHOT_TOOL_RADAR_BATCH17.map((item) => item.key);
 const SCREENSHOT_BATCH18_KEYS = SCREENSHOT_TOOL_RADAR_BATCH18.map((item) => item.key);
 const SCREENSHOT_BATCH19_KEYS = SCREENSHOT_TOOL_RADAR_BATCH19.map((item) => item.key);
+const SCREENSHOT_BATCH20_KEYS = SCREENSHOT_TOOL_RADAR_BATCH20.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
@@ -174,7 +179,8 @@ const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH16,
   ...NON_REPOSITORY_REFERENCES_BATCH17,
   ...NON_REPOSITORY_REFERENCES_BATCH18,
-  ...NON_REPOSITORY_REFERENCES_BATCH19
+  ...NON_REPOSITORY_REFERENCES_BATCH19,
+  ...NON_REPOSITORY_REFERENCES_BATCH20
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -681,14 +687,15 @@ describe("requested repository runtime surfaces", () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
     // Counts are intentionally exact here so a newly added governed batch cannot
-    // disappear from the route while its own module tests still pass. Batch 19
-    // adds 17 verified repositories and 15 non-repository references.
-    assert.equal(response.body.repositoryCount, 162);
-    assert.equal(response.body.verifiedCount, 158);
+    // disappear from the route while its own module tests still pass. Batch 20
+    // adds 5 verified repositories, 15 non-repository references and reconciles
+    // 8 screenshots to existing records.
+    assert.equal(response.body.repositoryCount, 167);
+    assert.equal(response.body.verifiedCount, 163);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 152);
+    assert.equal(response.body.screenshotResearchCount, 157);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 93);
+    assert.equal(response.body.nonRepositoryReferenceCount, 108);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -707,7 +714,8 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH16_KEYS,
         ...SCREENSHOT_BATCH17_KEYS,
         ...SCREENSHOT_BATCH18_KEYS,
-        ...SCREENSHOT_BATCH19_KEYS
+        ...SCREENSHOT_BATCH19_KEYS,
+        ...SCREENSHOT_BATCH20_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
@@ -718,8 +726,8 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /152 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /93 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /157 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /108 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /Tool gateway boundary: Screenshot architecture/);
     assert.match(response.text, /Typed fast-decision lane: Screenshot architecture/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);

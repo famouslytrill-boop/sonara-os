@@ -95,6 +95,8 @@ The 2026-09-27 Batch 19 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_20
 
 Batch 19 contributes six bounded architecture patterns: tested skill contracts, per-artifact supply-chain review, typed deterministic decisions for known-choice tasks, isolated user-code visualization, user-controlled media capture/retention, and public-data provenance/uncertainty. It does not install Skillware, Ponytail, OpenWork, Cap, a model, or any other screenshot project.
 
+The 2026-09-28 Batch 20 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-28_BATCH20.md` and represented in `lib/sonara-screenshot-tool-radar-batch20.cjs`. It verifies AHa-3D, frontend UI design prompts, Strata, InvokeAI and a logo design skill; reconciles repeated Paperless-ngx, Remotion, OpenVid, Archify and earlier screenshot records; and leaves WolfCut, a cropped browser-use video-editing reel, and other skill/framework leads unresolved where identity or licensing cannot be established. It converts the diagrams into product-workflow, commerce, approval, media, API, deployment, metrics and framework-selection contracts. All candidates remain disabled and all formulas remain paused until the owner explicitly authorizes processing.
+
 ## Output format for future intakes
 
 For each tool, return: verified upstream, license posture, what it actually does, product fit, runtime placement, security/advisory state where relevant, safety boundaries, blocked uses, implementation status, next experiment, and whether any code was actually adopted. Distinguish `researched`, `adapter built`, and `enabled in production`; those are not synonyms.
