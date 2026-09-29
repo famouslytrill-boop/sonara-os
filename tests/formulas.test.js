@@ -25,6 +25,13 @@ describe("formula library", () => {
     assert.equal(result.code, "missing_inputs");
     assert.ok(result.missing.includes("campaign_cost"));
   });
+
+  it("rejects invalid numeric inputs instead of treating them as zero", function() {
+    const result = evaluateFormula("food_cost_percent", { ingredient_cost: "not-a-number", menu_price: 10 });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "invalid_input");
+    assert.equal(result.inputKey, "input");
+  });
 });
 
 describe("formula routes", () => {
