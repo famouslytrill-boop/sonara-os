@@ -1397,7 +1397,10 @@ function buildInventory() {
   }));
 
   const formulas = formulaDefinitions.map((definition) => {
-    const inputs = Object.fromEntries(definition.requiredInputs.map((input) => [input, 1]));
+    const inputs = Object.fromEntries(definition.requiredInputs.map((input) => [
+      input,
+      input === "ingredients" ? [{ quantity: 1, unit_cost: 1 }] : 1
+    ]));
     const evaluation = formulaLibrary.evaluateFormula(definition.formulaKey, inputs);
     return {
       key: definition.formulaKey,
