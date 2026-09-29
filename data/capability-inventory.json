@@ -27234,7 +27234,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 92
+        "line": 104
       },
       "contractCompleteness": {
         "route": true,
@@ -28475,7 +28475,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 102
+        "line": 114
       },
       "contractCompleteness": {
         "route": true,
@@ -77671,7 +77671,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 59
+        "line": 67
       },
       "contractCompleteness": {
         "route": true,
@@ -77750,7 +77750,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 81
+        "line": 93
       },
       "contractCompleteness": {
         "route": true,
@@ -77829,7 +77829,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 70
+        "line": 82
       },
       "contractCompleteness": {
         "route": true,
@@ -132635,7 +132635,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 125
+        "line": 137
       },
       "contractCompleteness": {
         "route": true,
@@ -133827,7 +133827,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 142
+        "line": 154
       },
       "contractCompleteness": {
         "route": true,
@@ -133939,7 +133939,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 132
+        "line": 144
       },
       "contractCompleteness": {
         "route": true,
@@ -135499,7 +135499,7 @@
       },
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 116
+        "line": 128
       },
       "contractCompleteness": {
         "route": true,
@@ -263900,7 +263900,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 102
+        "line": 114
       },
       "destination": {
         "route": "/creator-studio/music-system",
@@ -267965,7 +267965,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 59
+        "line": 67
       },
       "destination": {
         "route": "/creator-studio/music-system/new",
@@ -267991,7 +267991,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 81
+        "line": 93
       },
       "destination": {
         "route": "/creator-studio/music-system/prompts",
@@ -268017,7 +268017,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 70
+        "line": 82
       },
       "destination": {
         "route": "/creator-studio/music-system/song",
@@ -272331,7 +272331,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 125
+        "line": 137
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -272367,7 +272367,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 142
+        "line": 154
       },
       "destination": {
         "route": "/creator-studio/music-system",
@@ -272396,7 +272396,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 132
+        "line": 144
       },
       "destination": {
         "route": "/creator-studio/music-system",
@@ -272425,7 +272425,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 116
+        "line": 128
       },
       "destination": {
         "route": "/dashboard",
@@ -275981,7 +275981,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/creator-music-system-readonly.cjs",
-        "line": 116
+        "line": 128
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

@@ -2,6 +2,81 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-29 - Eleven API paths a library declared and the application never served
+
+`lib/creator-music-system-config.cjs` declared sixteen paths. Five were
+registered. The other eleven -- `/api/creator/artist-systems`,
+`/api/creator/voice-profiles`, `/api/creator/influence-maps`,
+`/api/creator/narrative-arcs`, `/api/creator/song-blueprints`,
+`/api/creator/song-sections`, `/api/creator/production-notes`,
+`/api/creator/prompt-packs`, `/api/creator/release-packages`,
+`/api/creator/quality-checks`, `/api/creator/export-packages` -- were registered
+nowhere, by no route and no library. `public/creator-music-system.js` called all
+eleven, `/creator-studio/music-system/new` told the customer to use that helper
+"with the Creator Studio API routes to save real records", and the music system
+home page showed eleven cards reading "Ready for saved records."
+
+Nothing saved a record. The eleven tables are real: migration 020 creates each
+with row-level security and they are in the database contract. No code reads or
+writes one.
+
+**What was removed.** The eleven declarations, the helper file, the
+`<script src="/creator-music-system.js">` tag in `basicLayout`, the sentence on
+the create page, and the eleven cards -- replaced by one card that names the
+eleven record areas and says the schema exists and saving is not built. That is
+the withdrawal of a claim, not a decision never to build it. The build pattern,
+for whoever does: `RESOURCES` in `lib/sonara-module-crud.cjs` plus
+`buildDomainModuleRecord` in `lib/sonara-module-records.cjs`, which is how the
+three resources that do persist are wired. Note that adding a `RESOURCES` entry
+also registers a redirect to `/<product-slug>/<resource>`, so that page has to
+exist or the fix reintroduces a dead path.
+
+**The gate, and the third instance.** This is the same shape as the fourteen
+Creator Studio row controls and the three unreachable media rules: a declaration
+is what made the capability look present.
+`scripts/report-declared-api-paths-nothing-serves.mjs` is registered as
+`verify:declared-api-paths` and fails on an `/api` path any file in `lib/`
+declares that the running application does not serve, unless it is recorded with
+a reason. Two-sided, like `report-orphan-tables.mjs`: an exemption naming a path
+that is now served, or that no library declares any more, fails as well.
+
+**It asks the application rather than reading the source, and that is the whole
+design.** The first version compared string literals in `server.js` and
+`routes/` against string literals in `lib/`, and reported seventy-four unserved
+paths. About seventy were wrong. The Business Builder record pages register in a
+loop -- `app.post(page.api, ...)` -- so the path never sits next to a verb as a
+literal, and a scan of literals measures the routes somebody typed out while
+reporting them as the routes the application answers. The served set is now
+walked off the Express router stack of the real app.
+
+Four more of the seventy-four were real routes under a different parameter name:
+the page table declares `/api/business/quotes/:id/invoice` and the server
+registers `/api/business/quotes/:quoteId/invoice`. Express matches by position,
+so `:anything` compares as `:`. That is the only loosening, and it was worth
+four false findings.
+
+Eight paths are recorded as deliberately not served, each reason confirmed by
+opening the file: `/api/` is a `startsWith` prefix test in two modules;
+`/api/business/time-entries` is the time-clock page's resource key, looked up by
+`pageForApi()` and `RESOURCE_MAP`, with the real work at `/start` and `/stop` and
+`form.action` set so no rendered form posts to it; and six are upstream endpoints
+this application calls outward -- Open WebUI, Ollama, two Ollama/OpenAI probe
+paths, a Hugging Face model URL, and RAGFlow.
+
+**Falsified four ways before being trusted.** Reintroducing one declaration
+failed naming `/api/creator/artist-systems` and the file that declared it. An
+exemption for `/api/creator/music-projects`, which is served, failed as a stale
+reason. An exemption for a path no library mentions failed as covering nothing.
+Emptying the `lib/` scan printed `BLIND: only 0 declared /api paths found (floor
+50)` and refused to report a pass rather than passing on an empty list. Both
+files were restored from copies and checked byte-identical with `md5sum -c`.
+
+Chain length 63 to 64. `docs/owner/WHAT-IS-LEFT.md` and
+`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` carry the derived count;
+`fix:doc-counts` repaired the second. `docs/manual-wire-creator-music-system.md`
+described the deleted helper as "connects forms ... once the write APIs are
+wired" and told the reader to run `npm`; both are corrected.
+
 ### 2026-09-29 - The service worker nothing registers, and five orphaned client bundles
 
 Four crawls now read the rendered surface. All four read HTML, so a button wired
