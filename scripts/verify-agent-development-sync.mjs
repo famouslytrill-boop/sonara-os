@@ -90,10 +90,18 @@ assert.match(
   /"brace-expansion@>=4\.0\.0 <5\.0\.9": "5\.0\.9"/,
   "Claude dependency hardening for brace-expansion must remain pinned"
 );
+// Moved on 29 September 2026. The pin was `<6.28.0: 6.28.0`, added for
+// GHSA-v3r7-h72x-cjcm. GHSA-3wwx-pv8p-q78v then put 6.28.0 itself in range --
+// a denial of service through an unhandled error in WebSocket
+// permessage-deflate decompression, patched in 6.28.1 -- so the override was
+// pinning the tree *to* a vulnerable version rather than away from it, and five
+// CI jobs that run `pnpm audit` went red together. Exactly the staleness this
+// line's own design anticipates: the string is matched exactly so that a pin
+// falling behind an advisory fails here rather than passing quietly.
 assert.match(
   workspace,
-  /"undici@<6\.28\.0": "6\.28\.0"/,
-  "undici must stay pinned above GHSA-v3r7-h72x-cjcm"
+  /"undici@<6\.28\.1": "6\.28\.1"/,
+  "undici must stay pinned above GHSA-v3r7-h72x-cjcm and GHSA-3wwx-pv8p-q78v"
 );
 // Moved on 2 September 2026, and this line is why it moved deliberately. The
 // pin was `>=3.0.0 <3.1.5: 3.1.5`, added for GHSA-7p8r-x3mc-p8w7. Three more
@@ -102,10 +110,16 @@ assert.match(
 // patched in 3.1.6 -- so the override was pinning the tree *to* the vulnerable
 // version rather than away from it. The range form `<3.1.6` does not pin to a
 // version that can go stale the same way.
+// Moved again on 29 September 2026, for the third time and the same reason. Two
+// more advisories put 3.1.6 in range -- GHSA-qw65-cvwx-89v3 (authority
+// injection via an unvalidated port) and GHSA-58mr-gqgx-xq4g (host confusion
+// via an unclosed bracket, which lists no patched version for 3.1.6 at all) --
+// both cleared by 3.1.7.
 assert.match(
   workspace,
-  /"fast-uri@<3\.1\.6": "3\.1\.6"/,
-  "fast-uri must stay pinned above GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp"
+  /"fast-uri@<3\.1\.7": "3\.1\.7"/,
+  "fast-uri must stay pinned above GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf, GHSA-jqff-g426-hqxp, " +
+    "GHSA-qw65-cvwx-89v3 and GHSA-58mr-gqgx-xq4g"
 );
 
 // `.ai/shared/CURRENT_STATE.md` is the baseline two different assistants read
