@@ -23,11 +23,11 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
 | Deterministic formulas with evaluators | 47 / 47 |
-| Local developer skills / agent strategies | 11 / 13 |
+| Local developer skills / agent strategies | 12 / 14 |
 | Agent patterns / business AI skill groups / schedules / handlers | 5 / 10 / 5 / 6 |
-| Reviewed repository records across catalogs | 497 |
+| Reviewed repository records across catalogs | 502 |
 | Other tool/AI catalog entries / enabled repo records | 25 / 0 |
-| Research/reference-only repository records | 259 |
+| Research/reference-only repository records | 264 |
 | Infrastructure services / pipeline layers / expansion tracks | 16 / 16 / 20 |
 
 ## How to use the inventory
