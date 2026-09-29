@@ -1482,6 +1482,7 @@ The following source registries are maintained separately. Inspect each record's
 - `lib/sonara-screenshot-tool-radar-batch18.cjs`
 - `lib/sonara-screenshot-tool-radar-batch19.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
+- `lib/sonara-screenshot-tool-radar-batch20.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
 - `lib/sonara-screenshot-tool-radar-batch4.cjs`
 - `lib/sonara-screenshot-tool-radar-batch5.cjs`
@@ -1596,6 +1597,7 @@ Schema-only/read-only subsystem groups: 9. See `lib/sonara-subsystem-registry.cj
 | .claude/skills/adding-a-record-page | Development skill |
 | .claude/skills/checks-that-cannot-lie | Development skill |
 | .claude/skills/comparing-sonara-to-a-competitor | Development skill |
+| .claude/skills/designing-governed-product-workflows | Development skill |
 | .claude/skills/diagnosing-sonara-customer-flows | Development skill |
 | .claude/skills/governed-batch-convergence | Development skill |
 | .claude/skills/researching-screenshot-tools | Development skill |
