@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3772 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 135 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 392 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 393 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,69 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 394 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 395 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-29 - Fourteen dead Creator Studio controls, and the green gate that was reading 28 of 35 pages
+
+Every Creator Studio record page rendered controls that did nothing. Seven Edit
+links answered 404; six Archive buttons and one status control posted to paths
+with no handler for their method. At full contrast, indistinguishable from
+working features.
+
+**One cause, and it is worth stating exactly.** The card renderer asks
+`recordEdit.canEdit`, `recordArchive.canArchive` and `recordStatus.hasStatus` --
+predicates about a page's *shape*. The routes that answer them were registered
+inside `ALL_OWNER_PAGES.forEach`. So Business Builder got both halves and
+Creator Studio got the rendering half only. The three handlers are now
+registrars called from both loops, each with its own guard, because two copies
+would be two places to forget the next workspace.
+
+**Why every check was green: the crawls read the empty state.** A control
+rendered once per row renders zero times against an empty table.
+`no-dead-links` crawls logged out; `every-form-posts-somewhere` crawls signed in
+but unseeded, and its own header said so -- "Covering row actions needs a seeded
+crawl, which is a larger change than this and is not pretended at here". That
+honest scope limit was concealing fourteen live defects.
+`tests/every-row-control-reaches-a-handler.test.js` seeds every table with one
+row, runs both passes, and checks only what appears exclusively in the seeded
+one. Links are fetched rather than matched, because `express.static` serves
+assets that are not registered routes and matching reported nine false deaths.
+
+**The sharper finding is that a gate for this already existed and was green.**
+`an-archived-record-is-off-the-list-not-out-of-the-books` has a check whose own
+comment names the exact failure -- "either a page offers a button the database
+cannot honour or a column sits unused" -- and it derived its set from
+`ALL_OWNER_PAGES` alone. It measured 28 of the 35 record pages and reported on
+"which tables can be archived". That is the recurring defect in its second form:
+a check measuring a different population from the one it claims. It now reads
+every record page, and every migration that adds the column rather than one
+named file.
+
+Widening it immediately found the next two layers, neither of which the crawl
+could see. No migration created `archived_at` on any Creator Studio table, so
+registering the route alone would have replaced a 404 with a PostgREST error
+about a missing column -- the same dead button one layer further in. And the six
+page declarations did not *select* the column, so the list could not tell an
+archived row from a current one. Migration 136 adds it to the six;
+`creator_artist_profiles` is excluded because it declares
+`status in ('active','paused','archived')` and no page is given two ways to
+retire a record. Both facts are derived from `canArchive`, not listed by hand.
+
+Falsified both ways, each restored with `md5sum -c`: unregistering the Creator
+Studio edit routes fails "7 row-level link(s) do not answer"; dropping one table
+from the migration fails "the migration and the derived set disagree about which
+tables can be archived".
+
+Derived artifacts: paths 746 -> 767, routes 898 -> 912, migrations 135 -> 136,
+test files 392 -> 393.
+
+Verified: `verify:launch` exit 0.
+
+
 
 ### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
 
@@ -2294,68 +2352,3 @@ Falsified three ways, each restored with `md5sum -c`: reverting the allowlist
 (6 test failures, and the gate naming every action with its category), reverting
 the outbox stamp (2 failures), and passing an object to `classifyAction`
 (3 failures, naming all seven over-gated actions).
-
-
-
-### 2026-09-18 - The corruption had a mechanism, and it is a 384 KiB write cap
-
-Followed up the sprint-log recovery by asking what actually wrote those bytes,
-because "a bad merge" is not a cause and the answer decides whether it recurs.
-
-`docs/HANDOFF_PROMPT.md` was corrupt from the **same** offset as the sprint log,
-393216, at a size within one byte of it. That rules out the generator having
-simply copied a bad sprint log forward -- the handoff's own preamble would have
-shifted the offset, so both files were capped independently.
-
-At the clean parent, exactly three tracked files exceeded 384 KiB:
-
-| bytes | file | |
-| --- | --- | --- |
-| 504,810 | `data/open-source-tools.ts` | not rewritten by that commit -- intact |
-| 1,239,342 | `docs/HANDOFF_PROMPT.md` | rewritten -- destroyed at 393216 |
-| 1,232,848 | `docs/SPRINT_LOG.md` | rewritten -- destroyed at 393216 |
-
-Both files the commit rewrote and that exceeded the cap were destroyed at exactly
-that byte; the one over the cap it did not touch is fine. Each corrupt file was
-~393216 bytes of content followed by ~393229 bytes of padding -- content, then
-about the same span again of stale buffer.
-
-**So the writing tool caps a write at 393216 bytes and pads the remainder.** That
-tooling is outside this repository and cannot be fixed from here. What can be
-fixed is letting the result be committed, and the next file in its path was
-`data/open-source-tools.ts` -- 504 KB, over the cap, and the register every
-licence ruling reads.
-
-That register turned out to be protected already, by structure rather than by
-coverage: corrupting it the same way makes both
-`verify-open-source-registry.mjs` and `verify-reciprocal-licence-containment.mjs`
-exit 1, because neither can parse past the cut. **That was checked rather than
-assumed, and the first check of it was wrong** -- `$?` was read after a pipe, so
-it reported the reciprocal gate exiting 0 when the pipe's own status was 0 and
-the script's was 1. Re-run without the pipe, both refuse correctly. Nearly a
-fabricated finding, from the one mistake this repository has already written down.
-
-`scripts/verify-tracked-text-encoding.mjs` is the new gate: every tracked text
-file outside `archive/` must decode strictly as UTF-8. 1,593 files today, 3 of
-them above the cap. When the first invalid byte is at exactly 393216 it names the
-mechanism in the failure, because deriving that from a hex offset took a morning.
-
-`scripts/utf8-first-invalid-byte.mjs` exists because two ways of finding that
-offset were tried and both were wrong: `indexOf("\uFFFD")` returns a *character*
-index, shifted by every multi-byte character before it; and decoding prefixes
-with a three-byte "rescue" for split characters overshoots, because random
-padding can form a valid continuation -- it reported **393218** for a file capped
-at 393216, which was enough to miss the equality test and silently suppress the
-diagnostic. It now walks the encoding, table-driven from RFC 3629, and reports
-393216 exactly.
-
-Falsified: the exact signature on a 504 KB file (offset 393216, diagnostic
-printed), and the blindness floor against a tree holding two files. Both restored
-with `md5sum -c`.
-
-Recorded as **shape 11** in `.claude/skills/checks-that-cannot-lie`, because it
-is not shape 1. Shape 1 passes over an empty population; this passed over a
-population that was real, non-empty and silently cut in half, which is worse
-because every symptom of shape 1 is absent. The corrupt commit's own diff stat
-read **+1,453 / −30,251** and was merged -- the number was on the pull request
-the whole time.

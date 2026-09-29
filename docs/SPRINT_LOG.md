@@ -2,6 +2,62 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-29 - Fourteen dead Creator Studio controls, and the green gate that was reading 28 of 35 pages
+
+Every Creator Studio record page rendered controls that did nothing. Seven Edit
+links answered 404; six Archive buttons and one status control posted to paths
+with no handler for their method. At full contrast, indistinguishable from
+working features.
+
+**One cause, and it is worth stating exactly.** The card renderer asks
+`recordEdit.canEdit`, `recordArchive.canArchive` and `recordStatus.hasStatus` --
+predicates about a page's *shape*. The routes that answer them were registered
+inside `ALL_OWNER_PAGES.forEach`. So Business Builder got both halves and
+Creator Studio got the rendering half only. The three handlers are now
+registrars called from both loops, each with its own guard, because two copies
+would be two places to forget the next workspace.
+
+**Why every check was green: the crawls read the empty state.** A control
+rendered once per row renders zero times against an empty table.
+`no-dead-links` crawls logged out; `every-form-posts-somewhere` crawls signed in
+but unseeded, and its own header said so -- "Covering row actions needs a seeded
+crawl, which is a larger change than this and is not pretended at here". That
+honest scope limit was concealing fourteen live defects.
+`tests/every-row-control-reaches-a-handler.test.js` seeds every table with one
+row, runs both passes, and checks only what appears exclusively in the seeded
+one. Links are fetched rather than matched, because `express.static` serves
+assets that are not registered routes and matching reported nine false deaths.
+
+**The sharper finding is that a gate for this already existed and was green.**
+`an-archived-record-is-off-the-list-not-out-of-the-books` has a check whose own
+comment names the exact failure -- "either a page offers a button the database
+cannot honour or a column sits unused" -- and it derived its set from
+`ALL_OWNER_PAGES` alone. It measured 28 of the 35 record pages and reported on
+"which tables can be archived". That is the recurring defect in its second form:
+a check measuring a different population from the one it claims. It now reads
+every record page, and every migration that adds the column rather than one
+named file.
+
+Widening it immediately found the next two layers, neither of which the crawl
+could see. No migration created `archived_at` on any Creator Studio table, so
+registering the route alone would have replaced a 404 with a PostgREST error
+about a missing column -- the same dead button one layer further in. And the six
+page declarations did not *select* the column, so the list could not tell an
+archived row from a current one. Migration 136 adds it to the six;
+`creator_artist_profiles` is excluded because it declares
+`status in ('active','paused','archived')` and no page is given two ways to
+retire a record. Both facts are derived from `canArchive`, not listed by hand.
+
+Falsified both ways, each restored with `md5sum -c`: unregistering the Creator
+Studio edit routes fails "7 row-level link(s) do not answer"; dropping one table
+from the migration fails "the migration and the derived set disagree about which
+tables can be archived".
+
+Derived artifacts: paths 746 -> 767, routes 898 -> 912, migrations 135 -> 136,
+test files 392 -> 393.
+
+Verified: `verify:launch` exit 0.
+
 ### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
 
 The header fix earlier today found one property decided in three media queries
