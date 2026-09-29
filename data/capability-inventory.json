@@ -89,22 +89,22 @@
     "formulaCount": 47,
     "formulasWithEvaluator": 47,
     "supplementalFinancialFormulaCount": 11,
-    "localSkillCount": 11,
+    "localSkillCount": 12,
     "agentSchedulableActionCount": 5,
     "agentHandlerCount": 6,
-    "agentStrategyCount": 13,
+    "agentStrategyCount": 14,
     "agentPatternCount": 5,
     "businessAISkillCount": 10,
     "openSourceRegisterCount": 269,
     "requestedRepositoryCount": 10,
-    "screenshotRadarRepositoryRecordCount": 143,
-    "screenshotRadarBatchCount": 14,
+    "screenshotRadarRepositoryRecordCount": 148,
+    "screenshotRadarBatchCount": 15,
     "githubRadarRepositoryCount": 15,
-    "repositoryRecordCountAcrossCatalogs": 497,
+    "repositoryRecordCountAcrossCatalogs": 502,
     "otherReferenceCatalogRecordCount": 25,
-    "catalogEntryCountAcrossAllRegistries": 522,
+    "catalogEntryCountAcrossAllRegistries": 527,
     "repositoryRecordsEnabledInProduction": 0,
-    "researchOrReferenceRepositoryRecordCount": 259,
+    "researchOrReferenceRepositoryRecordCount": 264,
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
@@ -7723,7 +7723,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 310
+        "line": 317
       },
       "contractCompleteness": {
         "route": true,
@@ -8446,7 +8446,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 259
+        "line": 266
       },
       "contractCompleteness": {
         "route": true,
@@ -11833,7 +11833,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 254
+        "line": 261
       },
       "contractCompleteness": {
         "route": true,
@@ -29347,7 +29347,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 114
+        "line": 121
       },
       "contractCompleteness": {
         "route": true,
@@ -29544,7 +29544,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 118
+        "line": 125
       },
       "contractCompleteness": {
         "route": true,
@@ -96010,7 +96010,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 206
+        "line": 213
       },
       "contractCompleteness": {
         "route": true,
@@ -96161,7 +96161,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 140
+        "line": 147
       },
       "contractCompleteness": {
         "route": true,
@@ -239655,6 +239655,14 @@
       "note": "Developer workflow guidance; not a customer-executable product capability."
     },
     {
+      "name": "designing-governed-product-workflows",
+      "description": "Map screenshot, diagram, and product ideas into complete SONARA user workflows with verified routes, deterministic data contracts, explicit states, tenant boundaries, approvals, accessibility checks, and acceptance tests.",
+      "path": ".claude/skills/designing-governed-product-workflows/SKILL.md",
+      "audience": "repository_development_and_review",
+      "applicationRoute": null,
+      "note": "Developer workflow guidance; not a customer-executable product capability."
+    },
+    {
       "name": "diagnosing-sonara-customer-flows",
       "description": "Trace a failing SONARA customer journey through authorization, persistence, and provider response. Use for failed signup, organization setup, checkout, support submissions, or product-record saves.",
       "path": ".claude/skills/diagnosing-sonara-customer-flows/SKILL.md",
@@ -239878,7 +239886,7 @@
     "skillStrategyCatalog": {
       "ok": true,
       "mode": "portable_cross_agent_skill_contract",
-      "strategyCount": 13,
+      "strategyCount": 14,
       "strategies": [
         {
           "humanReviewRequired": true,
@@ -239904,7 +239912,8 @@
             16,
             17,
             18,
-            19
+            19,
+            20
           ],
           "triggers": [
             "integrate batch research",
@@ -239922,6 +239931,36 @@
           "boundaries": [
             "Research never widens runtime authority",
             "Later evidence may correct older metadata but cannot bypass tenant, formal registry, or approval policy"
+          ]
+        },
+        {
+          "humanReviewRequired": true,
+          "canExecuteFromRecord": false,
+          "key": "governed_product_workflow_design",
+          "label": "Governed product workflow design",
+          "batches": [
+            20
+          ],
+          "triggers": [
+            "design a product workflow",
+            "connect UI actions to routes",
+            "map an end-to-end customer task",
+            "integrate screenshot workflow research"
+          ],
+          "steps": [
+            "Start from a real user goal and name the responsible SONARA product and tenant boundary.",
+            "Map each visible action to an existing route, authenticated service, data owner, durable state transition and observable result.",
+            "Define loading, empty, error, retry, success, permission-denied, approval-pending and recovery states before polishing the happy path.",
+            "Prefer deterministic calculations and validations for known rules; label estimates, external-model results and unavailable inputs honestly.",
+            "Give each external side effect an idempotency key, bounded retry, audit event and required approval before execution.",
+            "Specify source provenance, retention, accessibility, device behavior and acceptance tests for the complete user journey.",
+            "Keep formula execution paused until the owner explicitly authorizes it; record the instruction and test scope before processing."
+          ],
+          "boundaries": [
+            "A diagram or screenshot is not product truth, a database schema, a license, or execution authorization.",
+            "No fake reviews, sales, savings, performance, shipping, availability or customer metrics.",
+            "No external communication, publishing, payments, destructive changes or production deployment without the applicable owner approval.",
+            "Skills guide planning; they do not grant tools, permissions, provider access, tenant scope or release authority."
           ]
         },
         {
@@ -252328,6 +252367,113 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:aha_3d_real2sim",
+        "name": "AHa-3D Real2Sim",
+        "repository": "KevinXu02/aha-3d",
+        "repoUrl": "https://github.com/KevinXu02/aha-3d",
+        "status": "reference_only",
+        "license": "Apache-2.0 for project-authored code, skills and asset libraries; embedded PyTorch3D utility is BSD; model checkpoints, SMPL-X/MHR assets, upstream projects and source footage have separate terms",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:frontend_ui_design_agents",
+        "name": "Frontend UI Design Agents Collection",
+        "repository": "mustafakendiguzel/claude-code-ui-agents",
+        "repoUrl": "https://github.com/mustafakendiguzel/claude-code-ui-agents",
+        "status": "reference_only",
+        "license": "MIT repository; this intake does not copy its prompt text, screenshots or examples",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Public Website",
+          "Business Builder",
+          "Creator Studio",
+          "Growth Studio",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:strata_local_inference",
+        "name": "Strata local inference engine",
+        "repository": "Niko1221/Strata",
+        "repoUrl": "https://github.com/Niko1221/Strata",
+        "status": "reference_only",
+        "license": "MIT for repository code; Qwen3.8-Flash-Next, quantized checkpoints, fine-tunes, llama.cpp/ggml components and other model artifacts have separate licenses and notices",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Research Lab",
+          "Internal Development",
+          "Creator Studio"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:invokeai_creative_engine",
+        "name": "InvokeAI creative engine",
+        "repository": "invoke-ai/InvokeAI",
+        "repoUrl": "https://github.com/invoke-ai/InvokeAI",
+        "status": "reference_only",
+        "license": "Apache-2.0 for repository code; included model-specific notices and separately downloaded model weights, adapters, assets and provider APIs have their own terms",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:logo_design_skill_reference",
+        "name": "Logo Design Skill for Claude and AI Agents",
+        "repository": "kaankiziltug/logo-design-skill",
+        "repoUrl": "https://github.com/kaankiziltug/logo-design-skill",
+        "status": "reference_only",
+        "license": "MIT for skill text, scripts, templates and catalog data; bundled real-world SVG logos are third-party trademarks and explicitly excluded from the MIT grant",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Public Website",
+          "Creator Studio",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:GrowthBook",
         "name": "GrowthBook",
         "repository": "growthbook/growthbook",
@@ -259346,6 +259492,113 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:aha_3d_real2sim",
+        "name": "AHa-3D Real2Sim",
+        "repository": "KevinXu02/aha-3d",
+        "repoUrl": "https://github.com/KevinXu02/aha-3d",
+        "status": "reference_only",
+        "license": "Apache-2.0 for project-authored code, skills and asset libraries; embedded PyTorch3D utility is BSD; model checkpoints, SMPL-X/MHR assets, upstream projects and source footage have separate terms",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:frontend_ui_design_agents",
+        "name": "Frontend UI Design Agents Collection",
+        "repository": "mustafakendiguzel/claude-code-ui-agents",
+        "repoUrl": "https://github.com/mustafakendiguzel/claude-code-ui-agents",
+        "status": "reference_only",
+        "license": "MIT repository; this intake does not copy its prompt text, screenshots or examples",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Public Website",
+          "Business Builder",
+          "Creator Studio",
+          "Growth Studio",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:strata_local_inference",
+        "name": "Strata local inference engine",
+        "repository": "Niko1221/Strata",
+        "repoUrl": "https://github.com/Niko1221/Strata",
+        "status": "reference_only",
+        "license": "MIT for repository code; Qwen3.8-Flash-Next, quantized checkpoints, fine-tunes, llama.cpp/ggml components and other model artifacts have separate licenses and notices",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Research Lab",
+          "Internal Development",
+          "Creator Studio"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:invokeai_creative_engine",
+        "name": "InvokeAI creative engine",
+        "repository": "invoke-ai/InvokeAI",
+        "repoUrl": "https://github.com/invoke-ai/InvokeAI",
+        "status": "reference_only",
+        "license": "Apache-2.0 for repository code; included model-specific notices and separately downloaded model weights, adapters, assets and provider APIs have their own terms",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch20.cjs:logo_design_skill_reference",
+        "name": "Logo Design Skill for Claude and AI Agents",
+        "repository": "kaankiziltug/logo-design-skill",
+        "repoUrl": "https://github.com/kaankiziltug/logo-design-skill",
+        "status": "reference_only",
+        "license": "MIT for skill text, scripts, templates and catalog data; bundled real-world SVG logos are third-party trademarks and explicitly excluded from the MIT grant",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Public Website",
+          "Creator Studio",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "batch": "screenshot_batch_20",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:Documenso",
         "name": "Documenso",
         "repository": "documenso/documenso",
@@ -260125,7 +260378,7 @@
       "needs_security_review": 4,
       "optional_adapter_after_review": 67,
       "quarantined_reference": 1,
-      "reference_only": 120,
+      "reference_only": 125,
       "reference_only_license_gated": 12,
       "reference_only_no_license": 3,
       "research_only": 109,
@@ -260251,6 +260504,12 @@
         "batch": 19,
         "source": "lib/sonara-screenshot-tool-radar-batch19.cjs",
         "entryCount": 17
+      },
+      {
+        "id": "screenshot_radar_batch_20",
+        "batch": 20,
+        "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "entryCount": 5
       },
       {
         "id": "github_radar",
@@ -263727,7 +263986,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 114
+        "line": 121
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -263756,7 +264015,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 118
+        "line": 125
       },
       "destination": {
         "route": "/research-lab/requested-repositories",

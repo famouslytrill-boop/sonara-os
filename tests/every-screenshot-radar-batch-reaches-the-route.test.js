@@ -43,11 +43,11 @@ const batchModules = fs
 
 describe("every screenshot radar batch reaches the route", () => {
   it("finds the batch modules at all, so this cannot pass by reading nothing", () => {
-    // Fifteen on 27 September 2026: the base module plus batches 2-7 and 12-19.
+    // Sixteen on 28 September 2026: the base module plus batches 2-7 and 12-20.
     // A floor rather than equality, because adding a batch is the normal case
     // and should not fail this; losing the glob should.
     assert.ok(
-      batchModules.length >= 15,
+      batchModules.length >= 16,
       `only ${batchModules.length} radar batch module(s) found under lib/; this check has gone blind`
     );
   });

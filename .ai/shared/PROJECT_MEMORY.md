@@ -14,9 +14,9 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Production: `https://sonaraindustries.com` on Vercel.
 - Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
 
-## Batch convergence (research through Batch 19)
+## Batch convergence (research through Batch 20)
 
-- `lib/sonara-batch-convergence-engine.cjs` aggregates screenshot and operational research through Batch 19 plus the requested-repository registry and maintained formal open-source registry.
+- `lib/sonara-batch-convergence-engine.cjs` aggregates screenshot and operational research through Batch 20 plus the requested-repository registry and maintained formal open-source registry.
 - `data/open-source-tools.ts`, read through `lib/sonara-open-source-registry.cjs`, is the maintained adoption/licence decision surface. Its stricter decision wins over older screenshot/intake metadata when records conflict.
 - `lib/sonara-source-evidence-register.cjs` maps uploaded PDFs, diagrams, graphs, design documents, model registries, research reports, and Batch 10 visual evidence into bounded source-derived requirements. Source evidence is not executable authority.
 - `lib/sonara-model-engine-control-plane.cjs` classifies explicit model/engine runtime placement and all converged repositories into permissive candidates, copyleft review, blocked/unknown, or research-only groups.
@@ -30,6 +30,13 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Batch 19 records 17 source-checked repositories, 15 hosted/educational/unresolved references and 8 deduplicated existing sources. License exceptions, per-skill licenses, user data, model weights, and public-data terms are item-specific.
 - `lib/sonara-agent-skill-strategies.cjs` includes Batch 19 patterns for reusable skill contracts and typed business decisions. Skill metadata does not grant tools, permissions, provider access, tenant scope or release authority.
 - The six architecture patterns cover skill assurance/supply chain, known-choice deterministic decisions, isolated code visualization, user-controlled media retention and public-data provenance/uncertainty. No external project code or dependencies were installed.
+
+### 2026-09-28 screenshot research intake
+
+- Batch 20 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-28_BATCH20.md` and cataloged by `lib/sonara-screenshot-tool-radar-batch20.cjs`; it is wired through Research Lab, founder readiness and unified batch convergence.
+- Five source-checked repositories remain cataloged-disabled: AHa-3D, the frontend UI prompt collection, Strata, InvokeAI and Logo Design Skill. Model weights, body assets, generated media and trademarked logo files retain separate rights boundaries.
+- Eight previously governed repositories were reconciled instead of duplicated. Unresolved cropped repositories, the browser-use video-editing reel and the ambiguous WolfCut owner remain unresolved; approximate stars, screenshots and promotional claims do not establish suitability.
+- Nine architecture records and `.claude/skills/designing-governed-product-workflows/SKILL.md` map visible actions to routes, state/data owners, approval gates, deterministic rules, provenance, retries, accessibility and acceptance checks. Formula processing remains paused until explicit owner authorization. No dependencies, migrations, models or external workflows were activated.
 
 ### 2026-09-18 cross-host repository intake
 
