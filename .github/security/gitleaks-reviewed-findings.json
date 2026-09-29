@@ -340,6 +340,18 @@
       "rule": "generic-api-key",
       "lineSha256": "ed905a60d45d146fe82d732156acd89c4dd9145898d5fc7500efe854ec9b2944",
       "reason": "timestamped migration filename in the checksum manifest, not a credential"
+    },
+    {
+      "file": "tests/every-row-control-reaches-a-handler.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "638362a3a739e6350e4bd4a3da6e9e02dbfdcc96b7173249e9e2a8da881a48c6",
+      "reason": "stub Supabase JWT fixture"
+    },
+    {
+      "file": "tests/every-row-control-reaches-a-handler.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "44299950debd2ad803b638aa0772e67578a23b62357af39a8fbc116dd6dd9c50",
+      "reason": "stub Supabase JWT fixture"
     }
   ]
 }

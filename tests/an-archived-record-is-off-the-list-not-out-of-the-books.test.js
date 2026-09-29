@@ -21,15 +21,29 @@ const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-last9-routes.cjs");
-const { ALL_OWNER_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+const { ALL_OWNER_PAGES, CREATOR_RECORD_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
 const recordArchive = require("../lib/sonara-record-archive.cjs");
 const changeLog = require("../lib/sonara-record-change-log.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const RECORD_ID = "33333333-3333-4333-8333-333333333333";
 
-const ARCHIVABLE = ALL_OWNER_PAGES.filter((page) => recordArchive.canArchive(page));
-const NOT_ARCHIVABLE = ALL_OWNER_PAGES.filter((page) => !recordArchive.canArchive(page));
+// Every record page, not one family of them.
+//
+// This file derived its set from ALL_OWNER_PAGES alone, and the check below
+// says exactly what it exists to prevent: "either a page offers a button the
+// database cannot honour or a column sits unused". That is precisely what
+// happened, and this was green throughout, because CREATOR_RECORD_PAGES was
+// outside the population. Six Creator Studio pages offered an Archive control
+// against tables with no archived_at column, and one offered a status control
+// with no route -- fourteen dead controls in all, counting the Edit links.
+//
+// The lesson is the recurring one in CLAUDE.md, in its second form: a check
+// measuring a different population from the one it claims. The message named
+// "which tables can be archived" while reading 28 of the 35 record pages.
+const EVERY_RECORD_PAGE = [...ALL_OWNER_PAGES, ...CREATOR_RECORD_PAGES];
+const ARCHIVABLE = EVERY_RECORD_PAGE.filter((page) => recordArchive.canArchive(page));
+const NOT_ARCHIVABLE = EVERY_RECORD_PAGE.filter((page) => !recordArchive.canArchive(page));
 
 function buildApp({ rows = [], calls = [], total = null } = {}) {
   const app = express();
@@ -78,7 +92,15 @@ describe("an archived record is off the list, not out of the books", () => {
   it("splits the pages, and every page that has no button says why", () => {
     assert.ok(ARCHIVABLE.length >= 12, `only ${ARCHIVABLE.length} pages can be archived; this check has gone blind`);
     assert.ok(NOT_ARCHIVABLE.length >= 8, `only ${NOT_ARCHIVABLE.length} pages are excluded; this check has gone blind`);
-    assert.equal(ARCHIVABLE.length + NOT_ARCHIVABLE.length, ALL_OWNER_PAGES.length);
+    // Against the whole population, not one family of it -- comparing the split
+    // to ALL_OWNER_PAGES.length was the assertion that made widening the set
+    // look like a failure rather than a fix.
+    assert.equal(ARCHIVABLE.length + NOT_ARCHIVABLE.length, EVERY_RECORD_PAGE.length);
+    assert.ok(
+      CREATOR_RECORD_PAGES.length >= 5,
+      `only ${CREATOR_RECORD_PAGES.length} Creator Studio record pages are in the population; ` +
+        `this check has narrowed back to one workspace, which is how it missed fourteen dead controls`
+    );
     for (const page of NOT_ARCHIVABLE) {
       const reason = recordArchive.reasonWithoutArchive(page);
       assert.ok(reason, `${page.table} has no archive control and no recorded reason`);
@@ -93,12 +115,21 @@ describe("an archived record is off the list, not out of the books", () => {
     // written by hand. If those two ever disagree, either a page offers a
     // button the database cannot honour or a column sits unused -- and neither
     // shows up as an error anywhere else.
-    const file = fs
-      .readdirSync(path.join(__dirname, "..", "supabase", "migrations"))
-      .find((name) => name.includes("owner_records_can_be_archived"));
-    assert.ok(file, "no migration adds the archive column");
-    const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", file), "utf8");
-    const altered = [...sql.matchAll(/alter table public\.([a-z_]+)\s+add column if not exists archived_at/g)].map((m) => m[1]);
+    // Every migration that adds the column, not one named file. There are two
+    // now -- the owner sixteen and the Creator Studio six -- and a check
+    // hard-coded to one filename would report the other family's tables as
+    // missing, or worse, be "fixed" by narrowing the page set again.
+    const directory = path.join(__dirname, "..", "supabase", "migrations");
+    const files = fs.readdirSync(directory).filter((name) => name.endsWith(".sql"));
+    assert.ok(files.length > 50, `only ${files.length} migrations read; this check has gone blind`);
+    const altered = [];
+    for (const name of files) {
+      const sql = fs.readFileSync(path.join(directory, name), "utf8");
+      for (const match of sql.matchAll(/alter table public\.([a-z_]+)\s+add column if not exists archived_at/g)) {
+        altered.push(match[1]);
+      }
+    }
+    assert.ok(altered.length > 0, "no migration adds the archive column; this check has gone blind");
     assert.deepEqual(
       altered.sort(),
       ARCHIVABLE.map((page) => page.table).sort(),

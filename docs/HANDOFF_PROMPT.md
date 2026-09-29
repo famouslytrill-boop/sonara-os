@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3772 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 135 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 392 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 394 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,129 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 394 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 396 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-29 - The service worker nothing registers, and five orphaned client bundles
+
+Four crawls now read the rendered surface. All four read HTML, so a button wired
+to `fetch()` is invisible to every one of them: the path lives in a client
+bundle and nothing in the markup says where it goes.
+`tests/every-path-a-button-calls-exists.test.js` reads the bundles.
+
+**The finding is a capability that does not exist in production.**
+`public/sonara-experience.js` line 57 holds the only
+`navigator.serviceWorker.register("/sw.js")` in the repository, and no page
+serves that file. So the service worker is never installed, the offline precache
+never runs, and the thirty-one paths in `public/sw.js` reach nothing. Fetching
+`/`, `/pricing` and `/free-tools` confirms no served page mentions a service
+worker at all. Wiring it up changes caching for every visitor, so it is recorded
+here for the owner rather than switched on.
+
+Five path-carrying bundles are served by nothing: `sonara-experience.js`,
+`sonara-interface-engine.js`, `creator-music-system.js`,
+`sonara-builder-2027.js`, `sonara-cohesive-2027.js`, plus `sw.js` which is only
+reachable through that registration. Two consequences worth naming.
+`tests/brand-palette.test.js` asserts the `theme-color` values in
+`sonara-interface-engine.js` match the palette -- a check whose subject no
+browser receives. And `creator-music-system.js` wires eleven `/api/creator/*`
+endpoints, none registered, while `/creator-music-system/create` tells customers
+in prose to "use the browser helper /creator-music-system.js ... to save real
+records".
+
+**Two detector errors of mine, both caught by measuring instead of matching.**
+
+Reading `<script src=` out of the route sources reported
+`creator-music-system.js` as loaded: the tag is real, inside `basicLayout`, a
+fallback that `const layout = deps.layout || basicLayout` never reaches because
+the real layout is always supplied. All sixteen routes of that surface were
+fetched and none serves it. Loadedness is a fact about a response, so the check
+renders pages and reads the script tags out of the HTML -- the same correction as
+"fetch rather than match against the route table", which earlier reported nine
+static assets as dead links that all answer 200.
+
+The first version also floored the served-bundle check at twenty literals
+examined. Not one of the six served bundles contains a path literal, so the
+floor was a number I had written rather than measured, and it failed honestly.
+That assertion is now a forward guard that says so, and the load-bearing check
+is the two-sided orphan list.
+
+Two more literals, `"/signals"` and `"/status"`, resolve to nothing and are not
+paths: the source builds `"/api/calls/" + encodeURIComponent(callId) + "/status"`
+at runtime and both full routes are registered. Fragments adjacent to a `+` are
+out of scope and the count skipped that way is bounded, so the exclusion cannot
+grow to cover a real one.
+
+Falsified both directions, each restored with `md5sum -c`: a dead path added to a
+served bundle fails "resolve to no route and no file"; dropping a name from the
+orphan list fails "the set of path-carrying client bundles that no page serves
+has changed". The list fails on an addition and on a removal, so nobody can wire
+one up and leave its stale reason behind.
+
+Verified: `verify:launch` exit 0.
+
+
+
+### 2026-09-29 - Fourteen dead Creator Studio controls, and the green gate that was reading 28 of 35 pages
+
+Every Creator Studio record page rendered controls that did nothing. Seven Edit
+links answered 404; six Archive buttons and one status control posted to paths
+with no handler for their method. At full contrast, indistinguishable from
+working features.
+
+**One cause, and it is worth stating exactly.** The card renderer asks
+`recordEdit.canEdit`, `recordArchive.canArchive` and `recordStatus.hasStatus` --
+predicates about a page's *shape*. The routes that answer them were registered
+inside `ALL_OWNER_PAGES.forEach`. So Business Builder got both halves and
+Creator Studio got the rendering half only. The three handlers are now
+registrars called from both loops, each with its own guard, because two copies
+would be two places to forget the next workspace.
+
+**Why every check was green: the crawls read the empty state.** A control
+rendered once per row renders zero times against an empty table.
+`no-dead-links` crawls logged out; `every-form-posts-somewhere` crawls signed in
+but unseeded, and its own header said so -- "Covering row actions needs a seeded
+crawl, which is a larger change than this and is not pretended at here". That
+honest scope limit was concealing fourteen live defects.
+`tests/every-row-control-reaches-a-handler.test.js` seeds every table with one
+row, runs both passes, and checks only what appears exclusively in the seeded
+one. Links are fetched rather than matched, because `express.static` serves
+assets that are not registered routes and matching reported nine false deaths.
+
+**The sharper finding is that a gate for this already existed and was green.**
+`an-archived-record-is-off-the-list-not-out-of-the-books` has a check whose own
+comment names the exact failure -- "either a page offers a button the database
+cannot honour or a column sits unused" -- and it derived its set from
+`ALL_OWNER_PAGES` alone. It measured 28 of the 35 record pages and reported on
+"which tables can be archived". That is the recurring defect in its second form:
+a check measuring a different population from the one it claims. It now reads
+every record page, and every migration that adds the column rather than one
+named file.
+
+Widening it immediately found the next two layers, neither of which the crawl
+could see. No migration created `archived_at` on any Creator Studio table, so
+registering the route alone would have replaced a 404 with a PostgREST error
+about a missing column -- the same dead button one layer further in. And the six
+page declarations did not *select* the column, so the list could not tell an
+archived row from a current one. Migration 136 adds it to the six;
+`creator_artist_profiles` is excluded because it declares
+`status in ('active','paused','archived')` and no page is given two ways to
+retire a record. Both facts are derived from `canArchive`, not listed by hand.
+
+Falsified both ways, each restored with `md5sum -c`: unregistering the Creator
+Studio edit routes fails "7 row-level link(s) do not answer"; dropping one table
+from the migration fails "the migration and the derived set disagree about which
+tables can be archived".
+
+Derived artifacts: paths 746 -> 767, routes 898 -> 912, migrations 135 -> 136,
+test files 392 -> 393.
+
+Verified: `verify:launch` exit 0.
+
+
 
 ### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
 
@@ -2199,163 +2317,3 @@ repository would have noticed.
 **The doc-counts gate caught a hardcoded figure in that rewrite** -- "4,746
 passing" -- with the right objection: a passing count is stale the next time
 anybody adds a test. Removed rather than updated.
-
-
-
-### 2026-09-18 - Two classifiers for owner approval, with opposite defaults
-
-Audited `lib/sonara-event-outbox.cjs` because it arrived in the commit that
-corrupted the sprint log, from the same tooling, and because event consumers are
-the next thing to be built on it. The storage adapter is careful -- tenant id
-repeated on every query, a network failure returning a refusal rather than an
-empty list, a settled claim verified against the worker that held it. The defect
-was one line above it, in the contract it delegates to.
-
-`lib/sonara-event-driven-agent-contract.cjs` had its own classifier:
-
-    function authorityForAction(action) {
-      const normalized = String(action || "").trim().toLowerCase();
-      if (!normalized) return "low_risk";
-      return OWNER_REVIEW_ACTIONS.includes(normalized) ? "owner_review" : "low_risk";
-    }
-
-An allowlist of nine action names, returning `low_risk` for everything else.
-`lib/sonara-agent-authority.cjs` classifies by pattern and sends anything it does
-not recognise to the owner, for the reason CLAUDE.md states outright: "a
-classifier that fails open fails open exactly when somebody adds a capability,
-which is the moment nobody is reading that file."
-
-Two classifiers, opposite defaults. Thirteen action names that the authority
-module gates under a **named** category -- not the unrecognised fallback -- came
-back `low_risk` from the event contract:
-
-| category | actions the event contract called low_risk |
-| --- | --- |
-| `destructive_data_changes` | `delete_customer_records`, `purge_audit_log`, `wipe_bookings`, `truncate_invoices` |
-| `security_settings` | `rotate_api_key`, `grant_role_admin`, `revoke_role` |
-| `refunds` | `issue_refund_batch`, `chargeback_reverse` |
-| `customer_campaigns` | `send_bulk_sms`, `newsletter_blast` |
-| `payout_changes` | `change_payout_bank_account` |
-| `legal_or_policy_publishing` | `publish_terms_of_service` |
-
-`canDispatch` returns `{ ok: true, reason: "low_risk_authority" }` for a
-`low_risk` event -- no approval required -- so `delete_customer_records` was
-dispatchable unattended. Against AGENTS.md: "Unknown sensitive actions default to
-owner review."
-
-**Latent, not live**, and the distinction is worth stating rather than blurring:
-`canDispatch` is called by one test and no production code. The rows were being
-written with the wrong stamp, and wiring a consumer -- the next piece of work --
-would have made it live.
-
-`authorityForAction` now delegates to the authority module and fails closed on a
-name it cannot classify, including when the classifier throws. `OWNER_REVIEW_ACTIONS`
-stays as documentation and as a floor the new gate asserts, not as a decider.
-
-The outbox had the matching defect in its publisher:
-
-    authority: run?.classification?.requiresOwnerApproval ? "owner_review" : "low_risk"
-
-`createAgentEvent` does `input.authority || authorityForAction(action)`, so **any**
-truthy value shadows the derivation. The `?.` says the author thought an absent
-classification possible, and the absent case was stamped dispatchable. It passes
-`undefined` now, which hands the question to the derivation; the strict direction
-still works, so a breaker demotion still pins `owner_review`.
-
-## Two wrong measurements, both from the same trap
-
-`classifyAction` takes a **string**. It normalises with `String()`, so an object
-becomes the literal `"[object Object]"`, lands in `unrecognised`, and returns
-`requiresOwnerApproval: true`.
-
-It fails safe, which is exactly what makes it invisible to somebody measuring.
-The first version of this investigation passed `{ action_type: name }` and every
-probe came back `owner_review` -- which looked like proof of a hole that was not
-there, and was reported as such before being retracted. The first version of the
-**fix** passed an object too, and every action including all seven that may run
-unattended came back `owner_review`: a gate that looked like it worked and would
-have asked the owner for permission to write a draft.
-
-Both were caught by checking the permissive direction, which is why
-`scripts/verify-event-authority-agreement.mjs` and the test both assert it. Every
-production caller of `classifyAction` -- five of them -- was checked and passes a
-string correctly; the only wrong caller was the one written here.
-
-`scripts/verify-event-authority-agreement.mjs` is the 52nd chain command. It
-proves the event contract is never laxer than the authority module across 23
-probes covering all seven categories, never stricter about the seven unattended
-actions, that each probe lands in the category it is filed under (so a pattern
-that stops matching fails instead of leaving a probe gated only by the default),
-that the nine documented names are still gated, that an unrecognised name fails
-closed, and -- behaviourally, not by string comparison -- that `canDispatch`
-refuses a destructive action and accepts it with a matching approval.
-
-Falsified three ways, each restored with `md5sum -c`: reverting the allowlist
-(6 test failures, and the gate naming every action with its category), reverting
-the outbox stamp (2 failures), and passing an object to `classifyAction`
-(3 failures, naming all seven over-gated actions).
-
-
-
-### 2026-09-18 - The corruption had a mechanism, and it is a 384 KiB write cap
-
-Followed up the sprint-log recovery by asking what actually wrote those bytes,
-because "a bad merge" is not a cause and the answer decides whether it recurs.
-
-`docs/HANDOFF_PROMPT.md` was corrupt from the **same** offset as the sprint log,
-393216, at a size within one byte of it. That rules out the generator having
-simply copied a bad sprint log forward -- the handoff's own preamble would have
-shifted the offset, so both files were capped independently.
-
-At the clean parent, exactly three tracked files exceeded 384 KiB:
-
-| bytes | file | |
-| --- | --- | --- |
-| 504,810 | `data/open-source-tools.ts` | not rewritten by that commit -- intact |
-| 1,239,342 | `docs/HANDOFF_PROMPT.md` | rewritten -- destroyed at 393216 |
-| 1,232,848 | `docs/SPRINT_LOG.md` | rewritten -- destroyed at 393216 |
-
-Both files the commit rewrote and that exceeded the cap were destroyed at exactly
-that byte; the one over the cap it did not touch is fine. Each corrupt file was
-~393216 bytes of content followed by ~393229 bytes of padding -- content, then
-about the same span again of stale buffer.
-
-**So the writing tool caps a write at 393216 bytes and pads the remainder.** That
-tooling is outside this repository and cannot be fixed from here. What can be
-fixed is letting the result be committed, and the next file in its path was
-`data/open-source-tools.ts` -- 504 KB, over the cap, and the register every
-licence ruling reads.
-
-That register turned out to be protected already, by structure rather than by
-coverage: corrupting it the same way makes both
-`verify-open-source-registry.mjs` and `verify-reciprocal-licence-containment.mjs`
-exit 1, because neither can parse past the cut. **That was checked rather than
-assumed, and the first check of it was wrong** -- `$?` was read after a pipe, so
-it reported the reciprocal gate exiting 0 when the pipe's own status was 0 and
-the script's was 1. Re-run without the pipe, both refuse correctly. Nearly a
-fabricated finding, from the one mistake this repository has already written down.
-
-`scripts/verify-tracked-text-encoding.mjs` is the new gate: every tracked text
-file outside `archive/` must decode strictly as UTF-8. 1,593 files today, 3 of
-them above the cap. When the first invalid byte is at exactly 393216 it names the
-mechanism in the failure, because deriving that from a hex offset took a morning.
-
-`scripts/utf8-first-invalid-byte.mjs` exists because two ways of finding that
-offset were tried and both were wrong: `indexOf("\uFFFD")` returns a *character*
-index, shifted by every multi-byte character before it; and decoding prefixes
-with a three-byte "rescue" for split characters overshoots, because random
-padding can form a valid continuation -- it reported **393218** for a file capped
-at 393216, which was enough to miss the equality test and silently suppress the
-diagnostic. It now walks the encoding, table-driven from RFC 3629, and reports
-393216 exactly.
-
-Falsified: the exact signature on a 504 KB file (offset 393216, diagnostic
-printed), and the blindness floor against a tree holding two files. Both restored
-with `md5sum -c`.
-
-Recorded as **shape 11** in `.claude/skills/checks-that-cannot-lie`, because it
-is not shape 1. Shape 1 passes over an empty population; this passed over a
-population that was real, non-empty and silently cut in half, which is worse
-because every symptom of shape 1 is absent. The corrupt commit's own diff stat
-read **+1,453 / −30,251** and was merged -- the number was on the pull request
-the whole time.

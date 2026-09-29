@@ -2,6 +2,120 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-29 - The service worker nothing registers, and five orphaned client bundles
+
+Four crawls now read the rendered surface. All four read HTML, so a button wired
+to `fetch()` is invisible to every one of them: the path lives in a client
+bundle and nothing in the markup says where it goes.
+`tests/every-path-a-button-calls-exists.test.js` reads the bundles.
+
+**The finding is a capability that does not exist in production.**
+`public/sonara-experience.js` line 57 holds the only
+`navigator.serviceWorker.register("/sw.js")` in the repository, and no page
+serves that file. So the service worker is never installed, the offline precache
+never runs, and the thirty-one paths in `public/sw.js` reach nothing. Fetching
+`/`, `/pricing` and `/free-tools` confirms no served page mentions a service
+worker at all. Wiring it up changes caching for every visitor, so it is recorded
+here for the owner rather than switched on.
+
+Five path-carrying bundles are served by nothing: `sonara-experience.js`,
+`sonara-interface-engine.js`, `creator-music-system.js`,
+`sonara-builder-2027.js`, `sonara-cohesive-2027.js`, plus `sw.js` which is only
+reachable through that registration. Two consequences worth naming.
+`tests/brand-palette.test.js` asserts the `theme-color` values in
+`sonara-interface-engine.js` match the palette -- a check whose subject no
+browser receives. And `creator-music-system.js` wires eleven `/api/creator/*`
+endpoints, none registered, while `/creator-music-system/create` tells customers
+in prose to "use the browser helper /creator-music-system.js ... to save real
+records".
+
+**Two detector errors of mine, both caught by measuring instead of matching.**
+
+Reading `<script src=` out of the route sources reported
+`creator-music-system.js` as loaded: the tag is real, inside `basicLayout`, a
+fallback that `const layout = deps.layout || basicLayout` never reaches because
+the real layout is always supplied. All sixteen routes of that surface were
+fetched and none serves it. Loadedness is a fact about a response, so the check
+renders pages and reads the script tags out of the HTML -- the same correction as
+"fetch rather than match against the route table", which earlier reported nine
+static assets as dead links that all answer 200.
+
+The first version also floored the served-bundle check at twenty literals
+examined. Not one of the six served bundles contains a path literal, so the
+floor was a number I had written rather than measured, and it failed honestly.
+That assertion is now a forward guard that says so, and the load-bearing check
+is the two-sided orphan list.
+
+Two more literals, `"/signals"` and `"/status"`, resolve to nothing and are not
+paths: the source builds `"/api/calls/" + encodeURIComponent(callId) + "/status"`
+at runtime and both full routes are registered. Fragments adjacent to a `+` are
+out of scope and the count skipped that way is bounded, so the exclusion cannot
+grow to cover a real one.
+
+Falsified both directions, each restored with `md5sum -c`: a dead path added to a
+served bundle fails "resolve to no route and no file"; dropping a name from the
+orphan list fails "the set of path-carrying client bundles that no page serves
+has changed". The list fails on an addition and on a removal, so nobody can wire
+one up and leave its stale reason behind.
+
+Verified: `verify:launch` exit 0.
+
+### 2026-09-29 - Fourteen dead Creator Studio controls, and the green gate that was reading 28 of 35 pages
+
+Every Creator Studio record page rendered controls that did nothing. Seven Edit
+links answered 404; six Archive buttons and one status control posted to paths
+with no handler for their method. At full contrast, indistinguishable from
+working features.
+
+**One cause, and it is worth stating exactly.** The card renderer asks
+`recordEdit.canEdit`, `recordArchive.canArchive` and `recordStatus.hasStatus` --
+predicates about a page's *shape*. The routes that answer them were registered
+inside `ALL_OWNER_PAGES.forEach`. So Business Builder got both halves and
+Creator Studio got the rendering half only. The three handlers are now
+registrars called from both loops, each with its own guard, because two copies
+would be two places to forget the next workspace.
+
+**Why every check was green: the crawls read the empty state.** A control
+rendered once per row renders zero times against an empty table.
+`no-dead-links` crawls logged out; `every-form-posts-somewhere` crawls signed in
+but unseeded, and its own header said so -- "Covering row actions needs a seeded
+crawl, which is a larger change than this and is not pretended at here". That
+honest scope limit was concealing fourteen live defects.
+`tests/every-row-control-reaches-a-handler.test.js` seeds every table with one
+row, runs both passes, and checks only what appears exclusively in the seeded
+one. Links are fetched rather than matched, because `express.static` serves
+assets that are not registered routes and matching reported nine false deaths.
+
+**The sharper finding is that a gate for this already existed and was green.**
+`an-archived-record-is-off-the-list-not-out-of-the-books` has a check whose own
+comment names the exact failure -- "either a page offers a button the database
+cannot honour or a column sits unused" -- and it derived its set from
+`ALL_OWNER_PAGES` alone. It measured 28 of the 35 record pages and reported on
+"which tables can be archived". That is the recurring defect in its second form:
+a check measuring a different population from the one it claims. It now reads
+every record page, and every migration that adds the column rather than one
+named file.
+
+Widening it immediately found the next two layers, neither of which the crawl
+could see. No migration created `archived_at` on any Creator Studio table, so
+registering the route alone would have replaced a 404 with a PostgREST error
+about a missing column -- the same dead button one layer further in. And the six
+page declarations did not *select* the column, so the list could not tell an
+archived row from a current one. Migration 136 adds it to the six;
+`creator_artist_profiles` is excluded because it declares
+`status in ('active','paused','archived')` and no page is given two ways to
+retire a record. Both facts are derived from `canArchive`, not listed by hand.
+
+Falsified both ways, each restored with `md5sum -c`: unregistering the Creator
+Studio edit routes fails "7 row-level link(s) do not answer"; dropping one table
+from the migration fails "the migration and the derived set disagree about which
+tables can be archived".
+
+Derived artifacts: paths 746 -> 767, routes 898 -> 912, migrations 135 -> 136,
+test files 392 -> 393.
+
+Verified: `verify:launch` exit 0.
+
 ### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
 
 The header fix earlier today found one property decided in three media queries
