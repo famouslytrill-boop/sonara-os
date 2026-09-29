@@ -386,9 +386,20 @@
 
   function installRouteProgress() {
     const progress = document.querySelector(".sonara-route-progress");
+    let navigationTimeout;
+    function clearProgress() {
+      window.clearTimeout(navigationTimeout);
+      progress?.classList.remove("is-active");
+      root.classList.remove("sonara-leaving");
+      const loader = document.querySelector("#sonara-loader");
+      if (loader) {
+        loader.classList.add("is-ready");
+        loader.hidden = true;
+      }
+    }
     document.addEventListener("click", (event) => {
       const link = event.target.closest?.("a[href]");
-      if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === "_blank") return;
+      if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || (link.target && link.target !== "_self")) return;
       const url = new window.URL(link.href, window.location.href);
       if (url.origin !== window.location.origin || url.hash || link.hasAttribute("download")) return;
       progress?.classList.add("is-active");
@@ -401,16 +412,11 @@
         if (status) status.textContent = "Loading SONARA One";
       }
       root.classList.add("sonara-leaving");
+      // A download response or failed navigation may leave this document active.
+      window.clearTimeout(navigationTimeout);
+      navigationTimeout = window.setTimeout(clearProgress, 8000);
     });
-    window.addEventListener("pageshow", () => {
-      progress?.classList.remove("is-active");
-      root.classList.remove("sonara-leaving");
-      const loader = document.querySelector("#sonara-loader");
-      if (loader) {
-        loader.classList.add("is-ready");
-        loader.hidden = true;
-      }
-    });
+    window.addEventListener("pageshow", clearProgress);
   }
 
   function installCurrentNavigation() {
