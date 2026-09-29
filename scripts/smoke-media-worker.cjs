@@ -26,7 +26,7 @@ async function checkMediaWorker({ env = process.env, fetchImpl = fetch, localOnl
     url.pathname = url.pathname.replace(/\/$/, "") + "/v1/jobs/" + encodeURIComponent(env.SONARA_MEDIA_SMOKE_JOB_ID);
     const response = await fetchImpl(url, {
       headers: { Authorization: `Bearer ${env.CREATOR_MEDIA_WORKER_TOKEN}`, Accept: "application/json" },
-      redirect: "error", signal: AbortSignal.timeout(10000)
+      redirect: "error", signal: globalThis.AbortSignal.timeout(10000)
     });
     if (!response.ok) return { ...result, worker: "http_error", httpStatus: response.status };
     // Bound response memory; never print provider bodies, job IDs, URLs or tokens.
