@@ -5,8 +5,8 @@ Verified 29 September 2026. Baseline: `996384be` on `main`.
 ## Current evidence
 
 - GitHub had no open pull requests at the start of this audit. There were no PRs to bundle.
-- The repository was changed from public to private at the owner's request.
-- GitHub now refuses the branch-protection endpoint with HTTP 403 and requires GitHub Pro. Privacy does not remove previously downloaded copies.
+- The repository is PUBLIC, verified after the owner's latest request. Keep it public until the owner explicitly requests another visibility change.
+- The earlier private-repository branch-protection HTTP 403 was observed before visibility was restored. Protection settings still require verification; public visibility alone does not prove they are configured.
 - The original checkout has extensive uncommitted changes. They remain preserved; integration is in `sonara-platform-consolidation`.
 - Docker Engine 29.8.0 responds. The existing `famouslytrill-project` Supabase containers are running; its Vector log collector is restarting because its Docker log source reports NetworkUnreachable. This is an adjacent local stack, not evidence of a production database outage.
 - Node reports v24.21.0. The locked pnpm 12.7.0 native binary is blocked by Windows Application Control. Dependency installation and the required full release checks cannot currently run in this worktree.
@@ -40,13 +40,20 @@ pnpm run scan:client-secrets
 
 Expected: Node 24.x, pnpm 12.7.0, and each command exits zero. A failing command must be diagnosed before publication; do not treat a skipped provider or migration check as a pass.
 
-## 2. Restore private-repository protections
+## 2. Verify public-repository protections
 
-1. Open https://github.com/settings/billing and select a plan supporting private-repository branch protection. The purchase requires the account owner.
+1. Keep repository visibility public. Do not change it to private as part of maintenance.
 2. Open https://github.com/famouslytrill-boop/sonara-os/settings/branches and restore the required reviews and CI checks for `main`.
 3. Review https://github.com/famouslytrill-boop/sonara-os/settings/environments and confirm the production environment protections and secrets remain available on the selected plan.
-4. Check GitHub Actions usage limits and Vercel's GitHub installation access to this now-private repository.
-5. Preserve private visibility; do not make the source public to unblock a build.
+4. Check GitHub Actions usage limits and Vercel's GitHub installation access.
+5. Keep credentials server-only. Public source visibility does not authorize publishing secrets or customer data.
+
+## Navigation and migration verification
+
+- Live route smoke: 281 assertions passed against the deployed baseline, covering selected public routes, redirects, protected endpoints and assets. This is not an exhaustive crawl of every external link or authenticated journey.
+- Static production schema check: 136 migrations, 146 required tables, eight operational indexes and seven private buckets passed the repository contract.
+- Frozen migration check: 133 migrations unchanged; three generator-owned migrations. Fresh database replay and live database state are not proven by this check.
+- Local navigation fix: cancelled and alternate-window clicks no longer trigger the blocking loader; failed navigation recovers after eight seconds. Three focused regression tests cover click handling, timeout recovery and browser-history restoration. These edits are not deployed.
 
 ## 3. Check local database logging
 
