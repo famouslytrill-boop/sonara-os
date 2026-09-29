@@ -102,7 +102,10 @@ describe("a figure nobody can work out is not zero", () => {
     const definitions = listFormulaDefinitions();
     const failures = [];
     for (const definition of definitions) {
-      const inputs = Object.fromEntries(definition.requiredInputs.map((key) => [key, 2]));
+      const inputs = Object.fromEntries(definition.requiredInputs.map((key) => [
+        key,
+        key === "ingredients" ? [{ quantity: 2, unit_cost: 2 }] : 2,
+      ]));
       const result = evaluateFormula(definition.formulaKey, inputs);
       if (!result.ok) failures.push(`${definition.formulaKey}: ${result.code}`);
     }
