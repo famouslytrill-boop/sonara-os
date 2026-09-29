@@ -91,7 +91,7 @@
     "verify:targeted-mocha": "node scripts/verify-targeted-mocha.mjs",
     "verify:action-pins:network": "node scripts/verify-github-action-pins.mjs --network",
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
-    "workers:smoke": "echo Optional Creator Studio GPU workers and Growth Studio automation workers are disabled by default and use reviewed contracts when configured",
+    "workers:smoke": "node scripts/smoke-media-worker.cjs",
     "test:security": "pnpm run scan:client-secrets && pnpm run verify:tenant-adversarial && pnpm run verify:member-read-access && pnpm run verify:tenant-queries && pnpm run verify:request-tenant-ids",
     "test:docs": "node scripts/check-doc-links.mjs",
     "verify:member-read-access": "node scripts/verify-member-read-access.mjs",
