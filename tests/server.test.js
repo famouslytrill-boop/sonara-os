@@ -89,10 +89,10 @@ describe("public site", () => {
     assert.doesNotMatch(res.text, /sonara-existing-user-links/, "workspace dashboards must not be repeated beneath the company cards");
   });
 
-  it("business builder includes Launch Setup Checklist", async function() {
+  it("business builder exposes setup review from its entry", async function() {
     const res = await request(app).get("/business-builder").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Launch Setup Checklist/);
+    assert.match(res.text, /href="\/business-builder\/launch-readiness">Review setup<\/a>/);
     assert.doesNotMatch(res.text, /Setup checklist/);
   });
 
@@ -156,10 +156,10 @@ describe("public site", () => {
     }
   });
 
-  it("business builder landing does not duplicate Launch Setup Checklist CTAs", async function() {
+  it("business builder landing has one primary setup review CTA", async function() {
     const res = await request(app).get("/business-builder").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    const ctas = res.text.match(/<a class="action" href="\/business-builder\/launch-readiness">Launch checklist<\/a>/g) || [];
+    const ctas = res.text.match(/<a class="action" href="\/business-builder\/launch-readiness">Review setup<\/a>/g) || [];
     assert.equal(ctas.length, 1);
   });
 
