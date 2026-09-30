@@ -22,7 +22,15 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const SERVERLESS_YML = (name, region, typescript) => `# Everything this application is, in one file.
+// No `typescript` argument, and that is the section above restated in code.
+//
+// It took one and used it nowhere, which read like an oversight and is not: with no
+// build step there is nothing for this manifest to say differently. The handler
+// paths are extension-less -- `handlers/hello.handler` -- so the same file is
+// correct whether the project is .js or .ts, and `runtime: nodejs22.x` is the same
+// either way too. A parameter that cannot change the output is a question for
+// every reader that has no answer.
+const SERVERLESS_YML = (name, region) => `# Everything this application is, in one file.
 #
 # Run it locally:      sonara-serverless dev
 # See what would change: sonara-serverless plan
@@ -355,7 +363,7 @@ function packageJson(name, typescript) {
  */
 function scaffold({ directory, name, region = "eu-west-1", typescript = false }) {
   const files = {
-    "serverless.yml": SERVERLESS_YML(name, region, typescript),
+    "serverless.yml": SERVERLESS_YML(name, region),
     "package.json": packageJson(name, typescript),
     ".gitignore": GITIGNORE,
     "README.md": README(name, typescript),

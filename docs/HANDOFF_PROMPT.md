@@ -103,11 +103,94 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 398 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 399 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - The last 184 unlinted files, and the three questions that kept them out
+
+The previous entry covered 734 of the 918 files `pnpm run lint` names and left
+`tools/` -- 58 files across four sub-projects -- deliberately out, because linting
+it surfaced three things that needed answering rather than silencing. Answered, so
+`tools/` is covered and every directory and extension in the linted tree now
+resolves to the same nineteen rules. **918 of 918.**
+
+**One was a real defect.** `fail(code, message, namespace)` in
+`tools/aws-emulator/src/services/identity.js` took a namespace from all ten of its
+call sites and passed `queryErrorXml(code, message)` -- no namespace. And
+`queryErrorXml` hardcoded SQS's `xmlns`. So every IAM and STS **error** this
+emulator returned went out under `queue.amazonaws.com` while every matching
+**success** went out under `iam.amazonaws.com` or `sts.amazonaws.com`, because
+`xmlAnswer()` beside it does pass its third argument through. Two functions of the
+same shape, one honouring its namespace and one discarding it, which is what made
+ten call sites look like they were setting something.
+
+For an emulator whose stated purpose is that an SDK cannot tell the difference,
+that is the product. `queryErrorXml` now takes a `namespace` option defaulting to
+the value it hardcoded, so the two callers that pass none -- `services/index.js`
+and `services/sqs.js` -- are unchanged.
+
+**Nothing tested it.** Neither suite in `tools/aws-emulator/tests/` looked at an
+error envelope's `xmlns`, which is why this held. There is a test now, asserting
+all three namespaces including the SQS default, and it was falsified by putting the
+original `queryErrorXml(code, message)` back: 38 pass, 1 fail, "an STS error is not
+in the STS namespace". Restored and checked byte-identical.
+
+**One was not a defect, and saying so matters.** `SERVERLESS_YML(name, region,
+typescript)` in `tools/serverless-cli/src/scaffold.js` ignored `typescript`, and the
+previous entry recorded it as a probable defect on the strength of a comment
+fragment -- "somebody reading the generated project will look for the build step and
+not find one". Reading the whole comment reverses it: there is no build step **by
+design**, Node 22 and `nodejs22.x` both strip types on load, and the handler paths
+in the manifest are extension-less, so `serverless.yml` is byte-identical for a .js
+and a .ts project. The parameter cannot change the output. Removed rather than
+used, which is the opposite of what the earlier note implied.
+
+**One was neither.** `handleSts(request, { store })` destructured a store it never
+used, because STS here is stateless -- the note above it says it does not evaluate
+trust policies. `handleIam` beside it takes the same shape and does use it, and the
+dispatcher passes the context to both, so the destructure is gone and no call site
+changes.
+
+The remaining seven were this config's fault rather than the code's:
+`tools/songsmith/public` is browser code being read as Node, `tools/**/*.mjs` was
+being read as commonjs and threw a parse error on its first `import`, and `region`
+in `roles(store, region)` is ignored on purpose with a comment saying why, so it is
+`_region`.
+
+**Two more lists made two-sided, in the same idiom.** Both were measured during the
+previous change and held back:
+
+`TECHNICAL_ROUTE_PREFIXES` in `lib/sonara-plain-language.cjs` had three entries --
+`/route-registry`, `/system-design`, `/database` -- matching **zero** served routes,
+while every other entry covers between one and forty-seven. `isTechnicalRoute` is
+only ever called with a served route path, so they exempted nothing from the
+plain-language rules. Harmless until a page is added at one of those addresses,
+which would then arrive silently exempt. `/admin/database` and
+`/admin/system-design-intelligence` do exist and are already covered by `/admin`.
+
+`PLAIN_ROUTE_TITLES` in `lib/sonara-route-registry.cjs` had a title for
+`/creator-studio/tools/readiness`, which does not exist -- Business Builder and
+Growth Studio both serve one, Creator Studio has thirteen `tools/*` pages and no
+readiness page, and nothing links to that address. `plainRouteTitle` is keyed on the
+route, so it was a value that could never be returned.
+
+`tests/plain-language.test.js` now fails on a prefix matching no served route and on
+an emptied list; `tests/route-registry.test.js` fails on a title key naming no
+served route and on an emptied table. All four falsified: reintroducing each dead
+entry fails by name, and emptying each list fails with "emptied rather than
+corrected". Both files restored byte-identical.
+
+Removing the title is not a decision that Creator Studio should not have a readiness
+page. It is the removal of a claim that it already does.
+
+Verified: typecheck, lint over all 918 files, 5142 tests passing, 52 gates, build,
+`pnpm audit` clean, and the three sub-project suites this touches -- aws-emulator
+39, serverless-cli 221, songsmith 44.
+
+
 
 ### 2026-09-30 - A tenant-isolation gate blind to ten of fifteen route helpers, found by a linter that was switched off
 
@@ -2246,95 +2329,3 @@ population is non-empty before asserting anything about it.
 here. Pushing this branch runs the pull-request workflows; the controlled
 production deployment is not triggered and will not be without explicit
 authorization.
-
-
-
-### 2026-09-18 - 237 reviews, 9 adapters: asking the register the question nobody had asked
-
-Asked to take everything useful from the 237 registered repositories and apply
-it. The honest version of that is not "install 237 repositories" -- every skill
-here forbids it, and it would cost the guarantees a single production dependency
-buys. The useful version is a question nobody had put to the register:
-**what have we learned and not used?**
-
-`scripts/report-register-opportunities.mjs` derives it:
-
-| integrationStatus | | commercialUseStatus | |
-| --- | --- | --- | --- |
-| reference_only | 90 | allowed_after_review | 120 |
-| blocked | 50 | blocked_until_review | 61 |
-| research_only | 41 | needs_review | 44 |
-| optional_adapter_after_review | 29 | allowed | 6 |
-| needs_license_review | 14 | blocked (3 spellings) | 6 |
-| **adapter_built** | **9** | | |
-| needs_security_review | 4 | | |
-
-**9 of 237.** The other 228 produced no implementation, and mostly that is
-correct: 50 are blocked outright, 35 carry a critical licence risk, 31 are
-reciprocal and this is a hosted product, which is the case a reciprocal licence
-is written for. The register earning its keep looks like refusal far more often
-than adoption, and the numbers say so.
-
-The interesting slice is narrow: **23 records** already reviewed to
-`optional_adapter_after_review`, low licence risk, non-reciprocal, commercially
-permitted -- ideas somebody has already decided SONARA *may* build on and has
-not. Grouped by product: Creator Studio 11, Business Builder 10, Growth Studio
-8, Admin Command Center 4, Internal Development 3.
-
-**It is a report, not a gate, and deliberately outside `verify:launch`.** There
-is no correct number of unbuilt opportunities. A gate over one would either never
-fire or would pressure somebody into adopting a dependency to turn a check green,
-which is the opposite of what the register is for.
-
-## Two gaps checked rather than assumed
-
-The register's Growth Studio entry for `disposable-email-domains` says to flag a
-lead whose address is a throwaway. **`lib/sonara-disposable-email.cjs` already
-exists** -- that one is built, and looking first is the only reason it was not
-duplicated.
-
-The entry for Project Nayuki's QR generator says to "put /book/:slug on a poster,
-a van or a receipt so somebody can book".
-
-**The first version of this entry said that gap was real. It was not, and the
-claim was mine.** It read: *"Nothing in the repository generates a QR code -- no
-`qrcode`, `QRCode` or `generateQr` in `lib/`, `routes/`, `server.js` or
-`public/`."* Every one of those three search terms is absent from this
-repository. The function is called `encode`, exported from
-`lib/sonara-qr.cjs` -- 25 KB of QR Code Model 2, whose header credits Project
-Nayuki as the reference it was checked against, with the ISO/IEC 18004 capacity
-tables read from there on 25 August 2026 rather than recalled.
-`lib/sonara-qr-png.cjs` renders the grid to PNG or SVG.
-`routes/sonara-public-booking-routes.cjs:532` already calls it and inlines the
-SVG on `/book/:slug`; the lead-capture and two-factor routes call it too. And
-`tests/a-qr-code-can-be-read-back.test.js` is an independently written *decoder*
-that round-trips every case -- 33 assertions, passing -- because an encoder and
-a decoder written from the same misunderstanding could still agree.
-
-So everything the retracted paragraph said "building it means" -- implementing
-ISO/IEC 18004, proving it against vectors rather than eyeballing a bitmap -- had
-been done three weeks earlier, and was on `main` the whole time.
-
-Recorded rather than quietly deleted, because the mechanism matters and it is
-the one CLAUDE.md warns about: the entry **listed its own search terms**, which
-is what made the error findable, and then stated a conclusion those terms could
-not support. A negative result from three guessed identifiers is not the absence
-of a capability. Codex caught it on PR #297; had it not, the next person reading
-this log would have been pointed at duplicating a shipped, tested feature. It
-was also handed to the owner as an open decision they did not have, which is
-worse than the log entry.
-
-## Two instrument errors, both caught by printing the output
-
-The first parse of the register **returned 0 records and printed tidy tables of
-zero without erroring**: `indexOf("[")` found the `[]` inside the type annotation
-`OpenSourceToolRecord[]` and depth-matched an empty array. The reader is now
-anchored past the annotation, and `MINIMUM_RECORDS = 150` refuses to report on a
-register it has stopped reading -- falsified by emptying the literal, which fails
-with "parsed only 0 records ... Refusing to report".
-
-The second was in a falsification harness: `m.index` where `m.end()` was meant,
-so the register was never emptied and the case was silently measuring the intact
-file. It reported exit 0 and proved nothing. Caught only because the output was
-printed rather than the exit code trusted -- the same shape as the `$?`-after-a-pipe
-error earlier in the day.

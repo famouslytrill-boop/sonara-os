@@ -6,7 +6,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const request = require("supertest");
 const app = require("../server");
-const { ROUTE_REGISTRY, PUBLIC_SITEMAP_ROUTES, untrackedProductRoutes } = require("../lib/sonara-route-registry.cjs");
+const { ROUTE_REGISTRY, PUBLIC_SITEMAP_ROUTES, untrackedProductRoutes, PLAIN_ROUTE_TITLES } = require("../lib/sonara-route-registry.cjs");
 
 function runThemePrepaint(source, { storedAppearance, prefersDark }) {
   const dataset = {};
@@ -271,5 +271,39 @@ describe("SONARA route registry and account completion", () => {
     assert.match(source, /rest\/v1\/admin_audit_logs/);
     assert.match(source, /actor_id: user\?\.id/);
     assert.doesNotMatch(source, /rest\/v1\/admin_audit_events/);
+  });
+
+  // Every plain title names a page that exists.
+  //
+  // "/creator-studio/tools/readiness" had a title and no page. Business Builder
+  // and Growth Studio both serve one; Creator Studio has thirteen
+  // /creator-studio/tools/* pages and no readiness page among them. A title for a
+  // page nobody can reach renders nowhere, so nothing was visibly wrong -- which
+  // is exactly why it sat there, reading as though the page were real.
+  //
+  // `plainRouteTitle` is keyed on the route, so a key that matches no route is a
+  // value that can never be returned. Asserting the whole table rather than that
+  // one key means the next one fails the same way.
+  it("gives a plain title only to routes the application serves", () => {
+    const served = new Set();
+    (function walk(stack) {
+      for (const layer of stack) {
+        if (layer.route?.path) served.add(layer.route.path);
+        else if (layer.handle?.stack) walk(layer.handle.stack);
+      }
+    })(app._router ? app._router.stack : app.router.stack);
+
+    assert.ok(served.size >= 500, `only ${served.size} routes walked; this check has gone blind`);
+
+    const keys = Object.keys(PLAIN_ROUTE_TITLES);
+    assert.ok(keys.length >= 8, `only ${keys.length} plain titles; the table has been emptied rather than corrected`);
+
+    const unserved = keys.filter((route) => !served.has(route)).sort();
+    assert.deepEqual(
+      unserved,
+      [],
+      `${unserved.length} key(s) in PLAIN_ROUTE_TITLES name a route the application does not serve, so the title can ` +
+        `never be returned and the entry reads as though the page were there: ${unserved.join(", ")}`
+    );
   });
 });

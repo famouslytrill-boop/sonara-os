@@ -531,6 +531,44 @@ test("IAM stores a role and hands it back", async () => {
   });
 });
 
+test("an IAM or STS error carries its own namespace, not SQS's", async () => {
+  // The defect this holds: `fail()` in services/identity.js took a namespace from
+  // all ten of its call sites and dropped it, so `queryErrorXml` emitted the SQS
+  // xmlns it hardcoded. Every IAM and STS error went out under
+  // queue.amazonaws.com while the matching success went out under iam. or sts.,
+  // and nothing here looked at an error envelope's xmlns, which is why it held.
+  //
+  // `xmlAnswer()` is the same shape and does pass its namespace through, so the
+  // two functions read as equivalent at every call site.
+  await withServer(async ({ base }) => {
+    const stsRefused = await query(base, "sts", "Action=DecodeAuthorizationMessage&EncodedMessage=x");
+    assert.equal(stsRefused.status, 400);
+    assert.match(
+      stsRefused.text,
+      /<ErrorResponse xmlns="https:\/\/sts\.amazonaws\.com\/doc\/2011-06-15\/">/,
+      "an STS error is not in the STS namespace"
+    );
+
+    const iamRefused = await query(base, "iam", "Action=GetRole&RoleName=absent");
+    assert.equal(iamRefused.status, 400);
+    assert.match(
+      iamRefused.text,
+      /<ErrorResponse xmlns="https:\/\/iam\.amazonaws\.com\/doc\/2010-05-08\/">/,
+      "an IAM error is not in the IAM namespace"
+    );
+
+    // And the default is unchanged, so the two callers that pass no namespace --
+    // services/index.js and services/sqs.js -- still emit the one they relied on.
+    const sqsRefused = await query(base, "sqs", "Action=PurgeQueue&QueueUrl=x");
+    assert.equal(sqsRefused.status, 400);
+    assert.match(
+      sqsRefused.text,
+      /<ErrorResponse xmlns="http:\/\/queue\.amazonaws\.com\/doc\/2012-11-05\/">/,
+      "an SQS error stopped using the namespace queryErrorXml defaults to"
+    );
+  });
+});
+
 test("IAM refuses to simulate a policy rather than answering allowed", async () => {
   await withServer(async ({ base }) => {
     // Somebody calling this is asking "would AWS allow it". Answering

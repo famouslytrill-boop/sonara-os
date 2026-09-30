@@ -2,6 +2,87 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-30 - The last 184 unlinted files, and the three questions that kept them out
+
+The previous entry covered 734 of the 918 files `pnpm run lint` names and left
+`tools/` -- 58 files across four sub-projects -- deliberately out, because linting
+it surfaced three things that needed answering rather than silencing. Answered, so
+`tools/` is covered and every directory and extension in the linted tree now
+resolves to the same nineteen rules. **918 of 918.**
+
+**One was a real defect.** `fail(code, message, namespace)` in
+`tools/aws-emulator/src/services/identity.js` took a namespace from all ten of its
+call sites and passed `queryErrorXml(code, message)` -- no namespace. And
+`queryErrorXml` hardcoded SQS's `xmlns`. So every IAM and STS **error** this
+emulator returned went out under `queue.amazonaws.com` while every matching
+**success** went out under `iam.amazonaws.com` or `sts.amazonaws.com`, because
+`xmlAnswer()` beside it does pass its third argument through. Two functions of the
+same shape, one honouring its namespace and one discarding it, which is what made
+ten call sites look like they were setting something.
+
+For an emulator whose stated purpose is that an SDK cannot tell the difference,
+that is the product. `queryErrorXml` now takes a `namespace` option defaulting to
+the value it hardcoded, so the two callers that pass none -- `services/index.js`
+and `services/sqs.js` -- are unchanged.
+
+**Nothing tested it.** Neither suite in `tools/aws-emulator/tests/` looked at an
+error envelope's `xmlns`, which is why this held. There is a test now, asserting
+all three namespaces including the SQS default, and it was falsified by putting the
+original `queryErrorXml(code, message)` back: 38 pass, 1 fail, "an STS error is not
+in the STS namespace". Restored and checked byte-identical.
+
+**One was not a defect, and saying so matters.** `SERVERLESS_YML(name, region,
+typescript)` in `tools/serverless-cli/src/scaffold.js` ignored `typescript`, and the
+previous entry recorded it as a probable defect on the strength of a comment
+fragment -- "somebody reading the generated project will look for the build step and
+not find one". Reading the whole comment reverses it: there is no build step **by
+design**, Node 22 and `nodejs22.x` both strip types on load, and the handler paths
+in the manifest are extension-less, so `serverless.yml` is byte-identical for a .js
+and a .ts project. The parameter cannot change the output. Removed rather than
+used, which is the opposite of what the earlier note implied.
+
+**One was neither.** `handleSts(request, { store })` destructured a store it never
+used, because STS here is stateless -- the note above it says it does not evaluate
+trust policies. `handleIam` beside it takes the same shape and does use it, and the
+dispatcher passes the context to both, so the destructure is gone and no call site
+changes.
+
+The remaining seven were this config's fault rather than the code's:
+`tools/songsmith/public` is browser code being read as Node, `tools/**/*.mjs` was
+being read as commonjs and threw a parse error on its first `import`, and `region`
+in `roles(store, region)` is ignored on purpose with a comment saying why, so it is
+`_region`.
+
+**Two more lists made two-sided, in the same idiom.** Both were measured during the
+previous change and held back:
+
+`TECHNICAL_ROUTE_PREFIXES` in `lib/sonara-plain-language.cjs` had three entries --
+`/route-registry`, `/system-design`, `/database` -- matching **zero** served routes,
+while every other entry covers between one and forty-seven. `isTechnicalRoute` is
+only ever called with a served route path, so they exempted nothing from the
+plain-language rules. Harmless until a page is added at one of those addresses,
+which would then arrive silently exempt. `/admin/database` and
+`/admin/system-design-intelligence` do exist and are already covered by `/admin`.
+
+`PLAIN_ROUTE_TITLES` in `lib/sonara-route-registry.cjs` had a title for
+`/creator-studio/tools/readiness`, which does not exist -- Business Builder and
+Growth Studio both serve one, Creator Studio has thirteen `tools/*` pages and no
+readiness page, and nothing links to that address. `plainRouteTitle` is keyed on the
+route, so it was a value that could never be returned.
+
+`tests/plain-language.test.js` now fails on a prefix matching no served route and on
+an emptied list; `tests/route-registry.test.js` fails on a title key naming no
+served route and on an emptied table. All four falsified: reintroducing each dead
+entry fails by name, and emptying each list fails with "emptied rather than
+corrected". Both files restored byte-identical.
+
+Removing the title is not a decision that Creator Studio should not have a readiness
+page. It is the removal of a claim that it already does.
+
+Verified: typecheck, lint over all 918 files, 5142 tests passing, 52 gates, build,
+`pnpm audit` clean, and the three sub-project suites this touches -- aws-emulator
+39, serverless-cli 221, songsmith 44.
+
 ### 2026-09-30 - A tenant-isolation gate blind to ten of fifteen route helpers, found by a linter that was switched off
 
 Two findings, and the first found the second.

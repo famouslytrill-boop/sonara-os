@@ -261,26 +261,61 @@ export default [
     },
     rules: { ...correctnessRules }
   },
-  // tools/ is not covered yet, and that is a scope decision rather than an
-  // oversight.
+  // tools/ -- the four sub-projects, now covered.
   //
-  // Its 58 files are four separate sub-projects -- songsmith, aws-emulator,
-  // serverless-cli, codex-terminal -- each with its own package.json and its own
-  // CI job. Linting them surfaced ten problems that are not this change's to
-  // answer, and three of them look like real defects rather than noise:
+  // They were left out when the blocks above were written, because linting them
+  // surfaced ten problems and three needed answering before the config could be
+  // green without burying them. Answered:
   //
-  //   tools/aws-emulator/src/services/identity.js  fail(code, message, namespace)
-  //     ignores `namespace` and calls queryErrorXml(code, message); handleSts
-  //     destructures `store` and does not use it.
-  //   tools/serverless-cli/src/scaffold.js  SERVERLESS_YML(name, region, typescript)
-  //     ignores `typescript`, and the comment above it says a build step "will
-  //     look for the build step and not find one".
+  //   `fail(code, message, namespace)` in tools/aws-emulator/src/services/identity.js
+  //     took a namespace from all ten of its call sites and dropped it, so every
+  //     IAM and STS error went out under SQS's xmlns while the matching success
+  //     went out under the right one. A real defect. queryErrorXml now takes a
+  //     namespace, and tests/emulator.test.js asserts each envelope's xmlns.
+  //   `handleSts(request, { store })` destructured a store it never used -- STS
+  //     here is stateless. Destructure dropped; the dispatcher passes the context
+  //     to both handlers regardless.
+  //   `SERVERLESS_YML(name, region, typescript)` in
+  //     tools/serverless-cli/src/scaffold.js ignored `typescript`, and that one is
+  //     NOT a defect: with no build step and extension-less handler paths the
+  //     manifest is identical for .js and .ts, which the section at the top of
+  //     that file explains. Parameter removed rather than used.
   //
-  // Renaming those arguments to `_` to make this config green would bury three
-  // questions, so they are named here and in docs/SPRINT_LOG.md instead, and
-  // tools/ gets its own change. The remaining seven are a browser script under
-  // tools/songsmith/public needing browser globals, and unused arguments that are
-  // deliberate.
+  // The remainder were this config's fault rather than the code's:
+  // tools/songsmith/public is browser code being read as Node, and `region` in
+  // identity.js is ignored on purpose with a comment saying why, so it is
+  // `_region` now.
+  {
+    files: ["tools/**/*.js"],
+    ignores: ["tools/**/public/**/*.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "commonjs",
+      globals: { ...nodeGlobals, ...mochaGlobals }
+    },
+    rules: { ...correctnessRules }
+  },
+  // A .mjs under tools/ is a module, like every other .mjs here. Reading it as
+  // commonjs is a parse error on its first import, which is how this line earned
+  // its own block rather than sharing the one above.
+  {
+    files: ["tools/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: { ...nodeGlobals, ...mochaGlobals }
+    },
+    rules: { ...correctnessRules }
+  },
+  {
+    files: ["tools/**/public/**/*.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "script",
+      globals: browserGlobals
+    },
+    rules: { ...correctnessRules }
+  },
   {
     files: ["*.js", "*.cjs", "*.mjs"],
     languageOptions: {
