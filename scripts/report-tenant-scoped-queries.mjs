@@ -198,7 +198,7 @@ const BLIND_QUERY_WITHOUT_ORGANIZATION = [
 // first match would have failed the follower list, whose scope is the viewer's own
 // id list rather than the public page's status=eq.active.
 function exemptedBy(list, file, table, query) {
-  return list.some((entry) =>
+  return list.find((entry) =>
     entry.file === file &&
     (entry.table === undefined || entry.table === table) &&
     entry.requires.every((needle) => query.includes(needle)));
@@ -572,9 +572,10 @@ for (const file of files) {
       const blindExpanded = expandInterpolations(blindQuery, queries, match.index).expanded;
       if (/^["'`]/.test(blindQuery) && !/organization_id=/.test(blindExpanded) && hasReadableQuery(blindQuery) && filtersRows(args, signature)) {
         const relativeBlind = path.relative(root, file);
-        if (exemptedBy(BLIND_QUERY_WITHOUT_ORGANIZATION, relativeBlind, undefined, blindExpanded)) {
+        const exemption = exemptedBy(BLIND_QUERY_WITHOUT_ORGANIZATION, relativeBlind, undefined, blindExpanded);
+        if (exemption) {
           counts.readWithoutOrganization += 1;
-          exemptionsUsed.add(`${relativeBlind}::blind`);
+          exemptionsUsed.add(exemption);
         } else {
           counts.unresolvedTableNoFilter += 1;
           unresolvedNoFilter.push({ file: relativeBlind, expression: shape, query: blindQuery.slice(0, 120).replace(/\s+/g, " ") });
@@ -610,9 +611,10 @@ for (const file of files) {
       const unknownExpanded = expandInterpolations(unknownQuery, queries, match.index).expanded;
       if (/^["'`]/.test(unknownQuery) && !/organization_id=/.test(unknownExpanded) && hasReadableQuery(unknownQuery) && filtersRows(args, signature)) {
         const relativeBlind = path.relative(root, file);
-        if (exemptedBy(BLIND_QUERY_WITHOUT_ORGANIZATION, relativeBlind, undefined, unknownExpanded)) {
+        const exemption = exemptedBy(BLIND_QUERY_WITHOUT_ORGANIZATION, relativeBlind, undefined, unknownExpanded);
+        if (exemption) {
           counts.readWithoutOrganization += 1;
-          exemptionsUsed.add(`${relativeBlind}::blind`);
+          exemptionsUsed.add(exemption);
         } else {
           counts.unresolvedTableNoFilter += 1;
           unresolvedNoFilter.push({ file: relativeBlind, expression: unknownShape, query: unknownQuery.slice(0, 120).replace(/\s+/g, " ") });
@@ -666,9 +668,10 @@ for (const file of files) {
     else {
       const relative = path.relative(root, file);
       // The exemption holds only while the filter it rests on is still written.
-      if (exemptedBy(READ_WITHOUT_ORGANIZATION, relative, table, resolvedQuery)) {
+      const exemption = exemptedBy(READ_WITHOUT_ORGANIZATION, relative, table, resolvedQuery);
+      if (exemption) {
         counts.readWithoutOrganization += 1;
-        exemptionsUsed.add(`${relative}::${table}`);
+        exemptionsUsed.add(exemption);
         continue;
       }
       counts.tenantUnfiltered += 1;
@@ -679,12 +682,15 @@ for (const file of files) {
 
 const failures = [];
 
+// Track the matched entry itself: two reasons for the same file/table must
+// independently match. A surviving public lookup cannot hide a stale follower
+// lookup exemption.
 // Two-sided, like every other recorded list in this repository. An entry that
 // exempted no call in this run is describing something that is no longer there --
 // and a wrong reason inside an exemption is worse than no exemption, because it is
 // what the next person reads instead of checking.
 for (const entry of READ_WITHOUT_ORGANIZATION) {
-  if (!exemptionsUsed.has(`${entry.file}::${entry.table}`)) {
+  if (!exemptionsUsed.has(entry)) {
     failures.push(
       `READ_WITHOUT_ORGANIZATION records ${entry.table} in ${entry.file} as read without an organization on purpose, ` +
       `and no call in this run matched it while carrying ${entry.requires.join(" and ")}. Either the call moved, or it is ` +
@@ -693,7 +699,7 @@ for (const entry of READ_WITHOUT_ORGANIZATION) {
   }
 }
 for (const entry of BLIND_QUERY_WITHOUT_ORGANIZATION) {
-  if (!exemptionsUsed.has(`${entry.file}::blind`)) {
+  if (!exemptionsUsed.has(entry)) {
     failures.push(
       `BLIND_QUERY_WITHOUT_ORGANIZATION records ${entry.file} as reading a public row without an organization, and no call ` +
       `in this run matched it while carrying ${entry.requires.join(" and ")}. Its recorded reason: ` + entry.reason
