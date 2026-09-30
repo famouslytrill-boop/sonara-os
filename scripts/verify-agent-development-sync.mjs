@@ -82,13 +82,35 @@ assert.match(cleanup, /test ! -e \.env\.production\.catalog-verification/);
 const workspace = read("pnpm-workspace.yaml");
 // The pin moves when the advisory does. GHSA-rgw5-rvv9-x895 made 5.0.8
 // vulnerable in turn -- it bypassed the CVE-2026-14257 mitigation this pin was
-// added for -- so the floor is 5.0.9. Asserting the range rather than one exact
+// added for -- so the floor was 5.0.9. Asserting the range rather than one exact
 // string would have let the pin silently fall behind the advisory, which is the
 // failure this line exists to prevent.
+//
+// Moved on 30 September 2026, and this time the pin also had to grow. Three new
+// advisories put every installed version in range -- GHSA-6j4f-fj2g-mc7p
+// (uncontrolled recursion in parseCommaParts), GHSA-qhr7-859c-m2p7 (uncontrolled
+// recursion on nested brace groups) and GHSA-q2hr-2g5m-vwhr (quadratic-time
+// expansion of the `{a},b}` rewrite), all denial of service. OSV Scanner 2.6.0
+// reported nine findings: 1.1.18, 2.1.4 and 5.0.9 each against all three.
+//
+// The single `>=4.0.0` range covered only the 5.x install, so two whole majors
+// were never pinned at all and the one that was is now itself in range. Three
+// ranges, one per installed major, each at the highest of the three patched
+// versions the advisories name.
 assert.match(
   workspace,
-  /"brace-expansion@>=4\.0\.0 <5\.0\.9": "5\.0\.9"/,
-  "Claude dependency hardening for brace-expansion must remain pinned"
+  /"brace-expansion@<2\.0\.0": "1\.1\.21"/,
+  "brace-expansion 1.x must stay pinned above GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7 and GHSA-q2hr-2g5m-vwhr"
+);
+assert.match(
+  workspace,
+  /"brace-expansion@>=2\.0\.0 <3\.0\.0": "2\.1\.7"/,
+  "brace-expansion 2.x must stay pinned above GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7 and GHSA-q2hr-2g5m-vwhr"
+);
+assert.match(
+  workspace,
+  /"brace-expansion@>=4\.0\.0 <5\.0\.12": "5\.0\.12"/,
+  "brace-expansion 5.x must stay pinned above GHSA-rgw5-rvv9-x895 and the three 30 September denial-of-service advisories"
 );
 // Moved on 29 September 2026. The pin was `<6.28.0: 6.28.0`, added for
 // GHSA-v3r7-h72x-cjcm. GHSA-3wwx-pv8p-q78v then put 6.28.0 itself in range --
@@ -115,11 +137,17 @@ assert.match(
 // injection via an unvalidated port) and GHSA-58mr-gqgx-xq4g (host confusion
 // via an unclosed bracket, which lists no patched version for 3.1.6 at all) --
 // both cleared by 3.1.7.
+// Moved again on 30 September 2026, for the fourth time and the same reason.
+// GHSA-hrr3-gc8f-f4qj -- inconsistent host case normalization via percent-encoded
+// octets -- puts 3.1.7 in range, one day after 3.1.7 was pinned for the third
+// round. Patched in 3.1.8. The pattern this comment has recorded three times now
+// is that this package's advisories arrive faster than the pin: the exact-string
+// match is what makes that visible instead of quiet.
 assert.match(
   workspace,
-  /"fast-uri@<3\.1\.7": "3\.1\.7"/,
+  /"fast-uri@<3\.1\.8": "3\.1\.8"/,
   "fast-uri must stay pinned above GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf, GHSA-jqff-g426-hqxp, " +
-    "GHSA-qw65-cvwx-89v3 and GHSA-58mr-gqgx-xq4g"
+    "GHSA-qw65-cvwx-89v3, GHSA-58mr-gqgx-xq4g and GHSA-hrr3-gc8f-f4qj"
 );
 
 // `.ai/shared/CURRENT_STATE.md` is the baseline two different assistants read
