@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 401 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 402 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,89 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 400 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 401 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - A rule three documents said was enforced, by a scanner nothing ran
+
+`AGENTS.md` states it plainly: retired public names must not appear in active UI,
+navigation, metadata, manifests, tests or launch docs. The enforcement was
+`scripts/check-no-legacy-public-copy.mjs`, and three documents said so --
+`.claude/skills/writing-sonara-marketing-copy/SKILL.md` said it "fails the release
+if one comes back", the social-post skill said it "fails the build", an audit record
+described its patterns.
+
+It was false in two independent ways, both measured:
+
+1. **Nothing ran it.** No `package.json` script, no workflow, no test named it.
+   `scripts/verify-all.mjs` did -- and nothing runs that either, while **24 of the
+   34** pnpm scripts it lists no longer exist, so it dies on its second command.
+   `pnpm run verify:all` maps to `verify:launch`, which never included it, so the
+   obvious command silently ran something else.
+2. **It could not run.** Its first scan root was `app/`, a Next.js directory this
+   Express repository does not have, so it exited with `ENOENT` before reading one
+   file. Its root list also omitted `routes/` and `server.js`, so even repaired it
+   would never have scanned the runtime it was said to protect.
+
+That is the recurring defect in its worst form. Not a check reporting a false pass
+-- a sentence in a skill that somebody writing customer copy reads and believes,
+standing in for a check that cannot execute.
+
+**`scripts/verify-retired-public-names.mjs` replaces it**, wired into `verify:gates`
+as `verify:retired-names` (chain 64 -> 65 commands). It reads the names from a
+delimited ledger in `docs/archive/legacy-names.md` rather than holding a copy, which
+buys two things: a name added to the archive is enforced without anybody remembering
+there is a scanner, and the gate spells none of the names it blocks, so it needs no
+exemption from its own rule -- it sits inside the population it scans.
+
+The old hard-coded list had already drifted. It blocked a string the archive does not
+retire, one that appears in a `Dockerfile` header, a brand-asset filename, three
+claim-boundary sentences in `lib/` and the names of three archived billing plans.
+Enforcing it would have produced five findings that are not violations, which is how
+a check gets switched off.
+
+**Today the guarantee holds:** 6 ledger entries searched across 1,283 files (308
+runtime, 88 under `public/`, 2 Android manifests, 14 data files, 413 tests, 458
+documents). Five files contain a retired name and all five are dated audit records
+registered with a reason checked against the file -- two-sided, so an entry whose
+document stops containing one fails too.
+
+**`verify:doc-script-paths` now scans `.claude/` as well as `docs/`.** A skill is a
+stronger claim than a report: it is read as an instruction for work happening now.
+Adding the 12 skill documents immediately caught the deleted scanner still named in
+the marketing-copy skill, which the old scope would have missed entirely. 89 distinct
+script paths across 468 documents, 69 present, 20 registered as history.
+
+**Falsified before being trusted**, each break watched fail by name and each file
+restored by copy-aside and `md5sum -c`:
+
+- a retired name appended to `lib/sonara-runtime-source-files.cjs` -> named as an
+  unregistered runtime file
+- the same appended to an existing file under `public/` -> named, proving that group
+  is really read
+- the ledger's opening marker misspelled -> "has no RETIRED_PUBLIC_NAMES block ...
+  every file reads clean and the pass means nothing"
+- the ledger trimmed to two entries -> "the ledger parse has gone blind"
+- a `RECORDED_HISTORY` entry pointed at a document holding no retired name -> "the
+  reason now describes nothing"
+- `verify:retired-names` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+- a blocked name hard-coded into the gate -> "spells 1 of the names it blocks, so it
+  has to be exempted from its own rule"
+- the `public/` group pointed at a directory that is not there -> "scanned 0 public
+  file(s) ... that group has gone blind"
+
+**Still open, and deliberately not touched here:** 24 further files in `scripts/`
+that no `package.json` script, workflow or test invokes, including
+`scripts/verify-all.mjs` itself and three more that crash on directories this
+repository no longer has. `report-unreferenced-modules.mjs` covers `lib/` and
+`routes/` by design and says so; `scripts/` has no such check. That is the next
+piece of work, not a gap in this one.
+
+
 
 ### 2026-09-30 - Three security gates that read "the runtime" one directory deep
 
@@ -2201,121 +2279,3 @@ false statements written *while fixing false statements*. What caught them was
 never thinking harder -- it was `require('./server')`, `--max-warnings=0`,
 printing output instead of trusting an exit code, and opening the file named in
 my own comment.
-
-
-
-### 2026-09-18 - Six findings on my own diff, and the one that was a false claim
-
-An automated reviewer (Codex) left six findings on PR #297. All six were real,
-all six were in work added in that PR, and four were instances of shapes
-`.claude/skills/checks-that-cannot-lie` already names. Recorded in full because a
-review round that finds six genuine defects in one diff is worth more as a
-record than as a fix.
-
-## The one that mattered: a stated gap that did not exist
-
-The entry above this one claimed **"Nothing in the repository generates a QR
-code"**, and offered as evidence that `qrcode`, `QRCode` and `generateQr` appear
-nowhere. All three absences are true. The function is called `encode`, in
-`lib/sonara-qr.cjs` -- 25 KB of QR Code Model 2 with the ISO/IEC 18004 capacity
-tables, shipped 25 August 2026, already rendering an inline SVG on `/book/:slug`
-from `routes/sonara-public-booking-routes.cjs:532`, and round-tripped by an
-independently written decoder in `tests/a-qr-code-can-be-read-back.test.js`
-(33 assertions, passing).
-
-The generated handoff prompt contained the false claim at line 230 and the
-entry describing the encoder at line 14,082 of the same file.
-
-The mechanism is the point. The entry **published its own search terms**, which
-is the only reason the error was findable -- and then asserted a conclusion three
-guessed identifiers cannot support. A negative grep is evidence about the terms,
-not about the capability. It was also handed to the owner as a decision they did
-not have, which is worse than the log entry.
-
-## A check that could not fail, and a list of variables nothing read
-
-`verify:email-env` and `test:email` were registered as history with the reason
-"no email tooling exists here". Both scripts existed, since 25 August. The
-reason was false and it is the kind of false reason this codebase treats as
-worse than no exemption, because it is what the next reader believes instead of
-looking.
-
-Wiring the aliases was not enough, because the check they point at could not
-fail. `scripts/verify-email-env.mjs` guarded its only `process.exit(1)` behind
-`formsEnabled && strict`, and computed `formsEnabled` from the existence of
-`app/contact/page.tsx` and three sibling Next.js App Router paths. There is no
-`app/` directory in this repository. The branch was unreachable; the script
-printed `[MISSING]` for every unset variable and exited 0 saying "Email env
-check completed."
-
-Its list was wrong too. Of nine required variables, **seven were read by
-nothing**, and the two address variables the runtime does read are named
-`SUPPORT_TO_EMAIL` and `CONTACT_TO_EMAIL` -- so five names existed nowhere and
-two were misspellings. Rewritten to read the requirement from
-`lib/sonara-infrastructure-manifest.cjs`, which is the declaration
-`/api/readiness` already uses, and which resolves to three requirement groups
-including the "either of these two" pair. It refuses to run at all if that
-declaration is empty.
-
-Falsified in four directions, all without a pipe in the way of `$?`: unset and
-strict exits 1, all three set exits 0, either alternate name satisfies its
-group, and `placeholder` is rejected.
-
-## An exemption keyed by name, when it needed to be keyed by document
-
-`SUPABASE_SETUP.md` step 4 told an operator setting up a database to run
-`pnpm run db:types`, which does not exist. `verify:doc-pnpm-scripts` could not
-see it for two reasons: it walked only `docs/`, and `db:types` was exempted **by
-name** because `docs/DATABASE_SCHEMA.md` records, correctly, that no
-type-generation script exists here. One honest historical note silenced the
-check everywhere, including a live setup instruction.
-
-The register is now keyed by name **and document**, with a fourth check for a
-listed document that has stopped naming the script. That fourth check
-immediately caught a stale entry of my own: `validate:infrastructure` was
-recorded as named in `docs/SUPABASE_MIGRATION_FIX.md`, which does not name it.
-Falsified both ways -- a dead command added to `README.md` fails by document
-name, and a listed document that does not name its script fails too.
-
-## The notice gate measured a different population from the one it claimed
-
-`verify:proprietary-notice`'s own comment named `public/**` as shipped content,
-quoting `vercel.json`, and then the glob list omitted it. All **21** tracked
-public JavaScript files had no notice and the check passed -- shape 2. These are
-the files most likely to be copied, because a browser hands the reader the
-source. Notices added to all 21, population now 279. Checked before editing that
-nothing under `scripts/` writes into `public/`, and that no subresource-integrity
-hash pins them. The four stylesheets and one HTML file under `public/` are left
-out as a **named** decision rather than an unexamined one.
-
-## A headline that disagreed with the rows under it
-
-`report:register-opportunities` grouped with `record.productFit || [...]`. An
-empty array is truthy, so it selected the empty array, the loop ran zero times,
-and the record vanished from every section while still counting in the headline.
-Three of 23 -- Superpowers, Claude Skills Collection, Harness. The grouping now
-tests length, and a new assertion aborts the report when the headline and the
-rows disagree. Falsified by reintroducing the exact original expression: 23
-qualify, 20 appear, exit 1.
-
-## Flattening eleven licences into one legal claim
-
-The same report said all **31** reciprocal records "trigger on network use". That
-is true of the 20 AGPL/OSL records and false of the other 11 -- nine GPL, one
-LGPL, one MPL -- which trigger on distribution, with obligations that differ per
-licence. AGENTS.md is explicit about not handing anyone an incorrect boundary.
-The two are now counted separately and the eleven are listed by name.
-
-**And a retraction inside the fix.** The first version of that new comment
-blamed `.claude/skills/reviewing-an-outside-repository/SKILL.md` for the error.
-Opening the file shows it says the opposite: *"Do not equate GPL with AGPL."*
-The guidance was already right and the script ignored it. A reason reasoned
-rather than checked, written while fixing a defect of exactly that kind.
-
-## What this round is evidence of
-
-Two of the six were false statements written in the same PR whose stated purpose
-was catching false statements, and a seventh was written while fixing the sixth.
-The discipline that caught all of them was not care -- it was opening the file
-and re-running the measurement. Nothing here was found by thinking harder about
-it.

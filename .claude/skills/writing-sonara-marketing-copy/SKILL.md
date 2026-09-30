@@ -38,10 +38,18 @@ instinct:
 > Do not reintroduce retired public names in active UI, navigation, metadata,
 > manifests, tests, or launch docs.
 
-The retired names are in `docs/archive/legacy-names.md` and
-`scripts/check-no-legacy-public-copy.mjs` fails the release if one comes back.
-Historical context belongs in that archive file, not in a sentence somebody
-reads today.
+The retired names are in `docs/archive/legacy-names.md`, in a delimited ledger
+that `pnpm run verify:retired-names` reads as data, and that gate fails the
+release if one comes back. Historical context belongs in that archive file, not
+in a sentence somebody reads today.
+
+The sentence you are reading replaces one that named
+`scripts/check-no-legacy-public-copy.mjs`, which by 30 September 2026 was run by
+nothing and could not run at all — its first scan root was a Next.js `app/`
+directory this repository does not have, and it omitted `routes/` and `server.js`
+entirely. A named guarantee nobody executes is the worst version of this
+repository's recurring defect, because a person writing customer copy reads the
+sentence and stops checking.
 
 ## The claims that are checked against code
 

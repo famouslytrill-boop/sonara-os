@@ -2,6 +2,82 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-30 - A rule three documents said was enforced, by a scanner nothing ran
+
+`AGENTS.md` states it plainly: retired public names must not appear in active UI,
+navigation, metadata, manifests, tests or launch docs. The enforcement was
+`scripts/check-no-legacy-public-copy.mjs`, and three documents said so --
+`.claude/skills/writing-sonara-marketing-copy/SKILL.md` said it "fails the release
+if one comes back", the social-post skill said it "fails the build", an audit record
+described its patterns.
+
+It was false in two independent ways, both measured:
+
+1. **Nothing ran it.** No `package.json` script, no workflow, no test named it.
+   `scripts/verify-all.mjs` did -- and nothing runs that either, while **24 of the
+   34** pnpm scripts it lists no longer exist, so it dies on its second command.
+   `pnpm run verify:all` maps to `verify:launch`, which never included it, so the
+   obvious command silently ran something else.
+2. **It could not run.** Its first scan root was `app/`, a Next.js directory this
+   Express repository does not have, so it exited with `ENOENT` before reading one
+   file. Its root list also omitted `routes/` and `server.js`, so even repaired it
+   would never have scanned the runtime it was said to protect.
+
+That is the recurring defect in its worst form. Not a check reporting a false pass
+-- a sentence in a skill that somebody writing customer copy reads and believes,
+standing in for a check that cannot execute.
+
+**`scripts/verify-retired-public-names.mjs` replaces it**, wired into `verify:gates`
+as `verify:retired-names` (chain 64 -> 65 commands). It reads the names from a
+delimited ledger in `docs/archive/legacy-names.md` rather than holding a copy, which
+buys two things: a name added to the archive is enforced without anybody remembering
+there is a scanner, and the gate spells none of the names it blocks, so it needs no
+exemption from its own rule -- it sits inside the population it scans.
+
+The old hard-coded list had already drifted. It blocked a string the archive does not
+retire, one that appears in a `Dockerfile` header, a brand-asset filename, three
+claim-boundary sentences in `lib/` and the names of three archived billing plans.
+Enforcing it would have produced five findings that are not violations, which is how
+a check gets switched off.
+
+**Today the guarantee holds:** 6 ledger entries searched across 1,283 files (308
+runtime, 88 under `public/`, 2 Android manifests, 14 data files, 413 tests, 458
+documents). Five files contain a retired name and all five are dated audit records
+registered with a reason checked against the file -- two-sided, so an entry whose
+document stops containing one fails too.
+
+**`verify:doc-script-paths` now scans `.claude/` as well as `docs/`.** A skill is a
+stronger claim than a report: it is read as an instruction for work happening now.
+Adding the 12 skill documents immediately caught the deleted scanner still named in
+the marketing-copy skill, which the old scope would have missed entirely. 89 distinct
+script paths across 468 documents, 69 present, 20 registered as history.
+
+**Falsified before being trusted**, each break watched fail by name and each file
+restored by copy-aside and `md5sum -c`:
+
+- a retired name appended to `lib/sonara-runtime-source-files.cjs` -> named as an
+  unregistered runtime file
+- the same appended to an existing file under `public/` -> named, proving that group
+  is really read
+- the ledger's opening marker misspelled -> "has no RETIRED_PUBLIC_NAMES block ...
+  every file reads clean and the pass means nothing"
+- the ledger trimmed to two entries -> "the ledger parse has gone blind"
+- a `RECORDED_HISTORY` entry pointed at a document holding no retired name -> "the
+  reason now describes nothing"
+- `verify:retired-names` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+- a blocked name hard-coded into the gate -> "spells 1 of the names it blocks, so it
+  has to be exempted from its own rule"
+- the `public/` group pointed at a directory that is not there -> "scanned 0 public
+  file(s) ... that group has gone blind"
+
+**Still open, and deliberately not touched here:** 24 further files in `scripts/`
+that no `package.json` script, workflow or test invokes, including
+`scripts/verify-all.mjs` itself and three more that crash on directories this
+repository no longer has. `report-unreferenced-modules.mjs` covers `lib/` and
+`routes/` by design and says so; `scripts/` has no such check. That is the next
+piece of work, not a gap in this one.
+
 ### 2026-09-30 - Three security gates that read "the runtime" one directory deep
 
 `lib/catalog/` holds four product-catalogue modules. Three release gates could not

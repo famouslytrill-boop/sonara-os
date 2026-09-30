@@ -1,13 +1,24 @@
 # Legacy Names Archive
 
 These names are archived historical placeholders from earlier SONARA experiments and are no longer current public
-product architecture:
+product architecture. The ledger below is the single list, read as data by
+`scripts/verify-retired-public-names.mjs` rather than copied into it, so a name added here is enforced without anybody
+remembering to update a scanner.
 
-- TrackFoundry
-- LineReady
-- NoticeGrid
-- Signal OS
-- signal-os
+<!-- BEGIN RETIRED_PUBLIC_NAMES -->
+```text
+TrackFoundry
+LineReady
+NoticeGrid
+Signal OS
+signal-os
+Independent systems. Shared infrastructure. Stronger markets.
+```
+<!-- END RETIRED_PUBLIC_NAMES -->
+
+The last entry is a retired tagline rather than a product name. It is here for the same reason the names are: the only
+remaining copies of it are in dated audit records, and an archive that holds five of the six is an archive the next
+person has to double-check.
 
 Current public architecture:
 
