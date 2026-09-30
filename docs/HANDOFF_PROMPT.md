@@ -103,11 +103,129 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 397 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 398 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - A tenant-isolation gate blind to ten of fifteen route helpers, found by a linter that was switched off
+
+Two findings, and the first found the second.
+
+**`pnpm run lint` visited 918 files and applied no rule to 184 of them.** Every
+config block in `eslint.config.mjs` matched an extension those files do not have:
+`scripts/**/*.cjs` was covered and `scripts/**/*.mjs` was not, and the last block's
+`*.mjs` has no `**/` so it matches only the repository root. Measured with
+`eslint --print-config` on one file per directory and extension: api/\*.js 1,
+routes/\*.cjs 46, lib/\*.cjs 258, scripts/\*.cjs 15, tests/\*.js 393, public/\*.js 20
+and server.js resolved to two rules; lib/\*.js 1, **scripts/\*.mjs 108**,
+tests/\*.cjs 11, tests/\*.mjs 4, examples/\*.js 2, tools/\*.js 57 and tools/\*.mjs 1
+resolved to none. A file dropped into `scripts/` carrying both a duplicate object
+key and a call to an undefined function linted clean and exited 0.
+
+The 108 unlinted files in `scripts/` are the release-chain gates themselves. A
+green lint run over the checks that are supposed to catch things, which never read
+them.
+
+`no-dupe-keys` and sixteen rules beside it are in `eslint:recommended`, which this
+config does not extend, and `@eslint/js` is not a dependency, so extending the
+preset means adding one. The rules are named instead, hoisted into one
+`correctnessRules` object rather than the five identical copies that were there.
+Run against the whole linted tree first: seven errors, every one `no-dupe-keys`.
+
+**Six of those seven were in `lib/sonara-route-registry.cjs`** — 47 literal pairs,
+41 distinct keys, two appended blocks. `/business-builder/control-center` was
+written as "Business Builder" and silently overridden four lines later by "Business
+Control Center"; the override is what runs and matches its Growth sibling, so it is
+what was kept. The seventh was a push fixture where `endpoint` appeared twice with
+`...VALID` between them, and VALID carries its own endpoint: the leading one was
+dead, and deleting the trailing one as redundant would have changed the
+subscriber's address.
+
+**Then the widened population reported three unused values inside the release
+gates, and one of them was a real hole.**
+
+`scripts/report-tenant-scoped-queries.mjs` destructured `GLOBAL_TABLES` and never
+read it — a value fetched into a decision and never used, shape 3 in
+`.claude/skills/checks-that-cannot-lie`. Pulling on it found this:
+
+**The script read `args[1]` as the table for every `rest()` call, and that is one
+of four signatures in use.** Fifteen declarations across `routes/`: five
+`rest(config, table, query, options)`, three `rest(config, path, init)`, three
+`rest(config, path)`, two `rest(config, query, options)`, and one
+`rest(table, query, options)` with the table at index **0**. For ten of those files
+argument 1 is a path or a query string, never a name in `TENANT_SCOPED_TABLES`, so
+every call in them fell into "carries no organization" and its organization filter
+was never looked at. `filtersRows` read `args[3]` as the options object for the
+same reason.
+
+Falsified before being believed: deleting `organization_id=eq.${ctx.organizationId}`
+from the business list query in
+`routes/sonara-business-control-plane-routes.cjs` — `business_workspaces` is in
+`TENANT_SCOPED_TABLES` — left the script exiting **0 with byte-identical output**.
+Not one of the counts moved. The bucket that read as 59 harmless calls was mostly
+misclassification.
+
+**What the gate does now.** It reads each file's own `rest` declaration by
+parameter name and indexes by it; resolves a table held in a module constant, so
+`` `${EMPLOYEES_TABLE}?organization_id=...` `` yields a name instead of a shrug;
+splits a `path` argument at its first `?`; expands `${scope}` interpolated into a
+query from its nearest preceding declaration; and treats only a name recorded in
+`GLOBAL_TABLES` as carrying no organization — a name in neither list is unresolved,
+which routes it into the blind-query check that already fails on a literal query
+naming no organization.
+
+26 → **56** calls verified as filtered. 59 → 12 in the global bucket. The
+unresolved count rose 27 → 40, and that rise is the point: what changed is that
+unreadable calls are now counted as unreadable instead of waved past as harmless.
+`RECORDED_UNRESOLVED` carries the reason.
+
+**Four calls read a tenant-scoped table without an organization on purpose**, and
+each was verified by reading its route rather than assumed from its shape:
+`GET /creator/:handle` is registered with no guard and finds a public profile by
+handle with `status=eq.active` and only `PUBLIC_PROFILE_COLUMNS`;
+`GET /account/following` scopes by the viewer's own follow ids and the renderer
+drops rows whose `public_handle` is null, which is what unpublish sets; the
+slug-uniqueness check in `POST /api/lead-capture-page` must look across
+organizations to answer "taken by somebody else" and selects `organization_id`
+alone; the published-scroll page and `GET /shared/:token` are public by design.
+
+They are recorded with **the filter that stands in for the organization**, and the
+exemption applies only while that filter is still in the query. Remove
+`status=eq.active` from the public profile lookup and it stops exempting, because
+the thing that made it safe is gone. Two-sided as well: an entry matching no call
+in the run fails.
+
+**Falsified five ways.** A leak in the `rest(table, query)` file fails naming
+`business_workspaces`. A leak in a `rest(config, path)` file fails naming
+`recurring_invoices`. Removing `status=eq.active` fails, so the exemption is
+conditional on its own justification. An exemption matching nothing fails as a
+stale reason. Emptying `SOURCE_DIRS` prints "this check has gone blind" and
+"a pass in this state is the check measuring nothing". Every edited file was
+restored from a copy and checked byte-identical with `md5sum -c`.
+
+**Also**: `eslint.config.cjs` is deleted — flat-config precedence loads the
+`.mjs`, so it was never read, as an earlier entry here and NICE-3 in
+`docs/audits/2026-07-27-ENGINEERING_AUDIT.md` both say. Two configs for one
+question, one dead, is the shape of the duplicate keys above.
+`scripts/check-research-lab-public-copy.mjs` imported `readdirSync` and never
+called it, residue of the globbing its own comment rejects, and
+`scripts/verify-customer-ready-production-experience.mjs` parsed `package.json`
+and consulted it nowhere.
+
+**`tools/` is still not linted, and that is recorded rather than quietly skipped.**
+Its 58 files are four sub-projects with their own CI jobs, and covering them
+surfaced ten problems that belong to those projects. Three look like real defects:
+`fail(code, message, namespace)` in `tools/aws-emulator/src/services/identity.js`
+ignores `namespace`, `handleSts` destructures `store` and never uses it, and
+`SERVERLESS_YML(name, region, typescript)` in
+`tools/serverless-cli/src/scaffold.js` ignores `typescript` while the comment above
+it says a build step "will look for the build step and not find one". Renaming
+those arguments to `_` to make the config green would have buried three questions,
+so they are named in `eslint.config.mjs` and here, and `tools/` gets its own change.
+
+
 
 ### 2026-09-29 - Eleven API paths a library declared and the application never served
 
@@ -2220,80 +2338,3 @@ so the register was never emptied and the case was silently measuring the intact
 file. It reported exit 0 and proved nothing. Caught only because the output was
 printed rather than the exit code trusted -- the same shape as the `$?`-after-a-pipe
 error earlier in the day.
-
-
-
-### 2026-09-18 - LICENSE does not travel with a copied file; a header does
-
-Asked to tighten things so the source cannot be taken, with the repository
-staying public by the owner's decision.
-
-**The honest part first: a public repository cannot be made uncopyable.** Anyone
-may clone it, and nothing inside the tree changes that. Private is the only
-measure that stops copying, and it was declined for now. Writing a check that
-implied otherwise would be the defect this codebase is organised around, so
-`scripts/verify-proprietary-notice.mjs` says in its own success line that it
-makes a copied file *attributable* and not the source uncopyable.
-
-What was missing was real. **3 of 1,005 source files carried any copyright or
-proprietary notice**, and neither `server.js` nor `api/index.js` was among them
--- the two entry points of a product sold on paid plans. `LICENSE` sits at the
-repository root and does not travel: copy `lib/sonara-billing.cjs` elsewhere and
-nothing in that file says who owns it or on what terms. A header travels, and it
-removes "I did not know it was proprietary" as a position.
-
-258 shipped source files -- `server.js`, `api/`, `routes/`, `lib/` -- now open
-with the holder and a reservation of rights, placed after any shebang and before
-any `"use strict"` directive.
-
-**The holder is read out of `LICENSE`, not repeated in the check.** A hardcoded
-string would leave 258 files asserting an old name after a rename while the gate
-called that correct, so the expected holder is parsed from the
-`Copyright (c) <year> <holder>. All rights reserved` line and the notices are
-compared against it. The gate refuses to run at all when it cannot read that
-line, rather than guessing.
-
-## Two things checked before editing rather than after
-
-**`supabase/migrations/` is excluded, and that is not an oversight.** 119 of
-those files are SHA-256 content-checksummed in
-`supabase/applied-migration-checksums.json`, and `verify:applied-migrations`
-fails when one changes -- which is the whole point, because an applied migration
-is immutable. Adding a header there would have broken 119 checksums to gain a
-comment.
-
-**`lib/sonara-tenant-scoped-tables.cjs` is generated.** Hand-adding the notice
-made `verify:tenant-tables` report the file stale, correctly. The notice belongs
-in the generator's template, and now is; the regenerated file is byte-identical
-to the hand edit, and `--check` agrees.
-
-## The ratchet was raised rather than worked around
-
-`tests/server-split.test.js` holds `server.js` to a shrinking line ceiling, and
-two comment lines pushed it from 3901 to 3903. Its own message says to raise the
-ceiling and say why, so the ceiling is 3903 with the reason recorded beside the
-earlier entries. Shortening the notice to one line to squeeze under 3901 would
-have let the ratchet decide what a file may say about its own ownership, which is
-the wrong way round -- the same reasoning the 3874 -> 3876 entry already
-records.
-
-Falsified three ways, each restored with `md5sum -c`: a file with its notice
-stripped; a notice naming a different holder from `LICENSE`; and a `LICENSE` with
-no readable copyright line.
-
-## What actually protects the business, recorded because it reframes the risk
-
-The source alone is inert. What cannot be copied is the Supabase project, the
-Stripe account, the domain, the customer relationships and the environment
-secrets -- and a full history scan found **no credential has ever been
-committed**: zero plausible Stripe live keys (232 matches are prose, redaction
-patterns and 7 deliberate leak canaries), zero GitHub tokens, and one
-`service_role` JWT that is a fabricated fixture in
-`tests/redaction-boundary.test.js` with a 12-character signature and a single
-claim.
-
-**Still open and the owner's:** `LICENSE` claims the software is *confidential*
-and instructs anyone holding a copy without written permission to delete it and
-notify. Deliberate publication undermines both sentences, while the load-bearing
-"No licence is granted" survives untouched. Rewording is `legal_or_policy_publishing`
-under AGENTS.md and needs owner approval, so it was not touched.
