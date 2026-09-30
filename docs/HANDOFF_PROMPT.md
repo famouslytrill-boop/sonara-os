@@ -103,11 +103,88 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 396 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 397 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-29 - Eleven API paths a library declared and the application never served
+
+`lib/creator-music-system-config.cjs` declared sixteen paths. Five were
+registered. The other eleven -- `/api/creator/artist-systems`,
+`/api/creator/voice-profiles`, `/api/creator/influence-maps`,
+`/api/creator/narrative-arcs`, `/api/creator/song-blueprints`,
+`/api/creator/song-sections`, `/api/creator/production-notes`,
+`/api/creator/prompt-packs`, `/api/creator/release-packages`,
+`/api/creator/quality-checks`, `/api/creator/export-packages` -- were registered
+nowhere, by no route and no library. `public/creator-music-system.js` called all
+eleven, `/creator-studio/music-system/new` told the customer to use that helper
+"with the Creator Studio API routes to save real records", and the music system
+home page showed eleven cards reading "Ready for saved records."
+
+Nothing saved a record. The eleven tables are real: migration 020 creates each
+with row-level security and they are in the database contract. No code reads or
+writes one.
+
+**What was removed.** The eleven declarations, the helper file, the
+`<script src="/creator-music-system.js">` tag in `basicLayout`, the sentence on
+the create page, and the eleven cards -- replaced by one card that names the
+eleven record areas and says the schema exists and saving is not built. That is
+the withdrawal of a claim, not a decision never to build it. The build pattern,
+for whoever does: `RESOURCES` in `lib/sonara-module-crud.cjs` plus
+`buildDomainModuleRecord` in `lib/sonara-module-records.cjs`, which is how the
+three resources that do persist are wired. Note that adding a `RESOURCES` entry
+also registers a redirect to `/<product-slug>/<resource>`, so that page has to
+exist or the fix reintroduces a dead path.
+
+**The gate, and the third instance.** This is the same shape as the fourteen
+Creator Studio row controls and the three unreachable media rules: a declaration
+is what made the capability look present.
+`scripts/report-declared-api-paths-nothing-serves.mjs` is registered as
+`verify:declared-api-paths` and fails on an `/api` path any file in `lib/`
+declares that the running application does not serve, unless it is recorded with
+a reason. Two-sided, like `report-orphan-tables.mjs`: an exemption naming a path
+that is now served, or that no library declares any more, fails as well.
+
+**It asks the application rather than reading the source, and that is the whole
+design.** The first version compared string literals in `server.js` and
+`routes/` against string literals in `lib/`, and reported seventy-four unserved
+paths. About seventy were wrong. The Business Builder record pages register in a
+loop -- `app.post(page.api, ...)` -- so the path never sits next to a verb as a
+literal, and a scan of literals measures the routes somebody typed out while
+reporting them as the routes the application answers. The served set is now
+walked off the Express router stack of the real app.
+
+Four more of the seventy-four were real routes under a different parameter name:
+the page table declares `/api/business/quotes/:id/invoice` and the server
+registers `/api/business/quotes/:quoteId/invoice`. Express matches by position,
+so `:anything` compares as `:`. That is the only loosening, and it was worth
+four false findings.
+
+Eight paths are recorded as deliberately not served, each reason confirmed by
+opening the file: `/api/` is a `startsWith` prefix test in two modules;
+`/api/business/time-entries` is the time-clock page's resource key, looked up by
+`pageForApi()` and `RESOURCE_MAP`, with the real work at `/start` and `/stop` and
+`form.action` set so no rendered form posts to it; and six are upstream endpoints
+this application calls outward -- Open WebUI, Ollama, two Ollama/OpenAI probe
+paths, a Hugging Face model URL, and RAGFlow.
+
+**Falsified four ways before being trusted.** Reintroducing one declaration
+failed naming `/api/creator/artist-systems` and the file that declared it. An
+exemption for `/api/creator/music-projects`, which is served, failed as a stale
+reason. An exemption for a path no library mentions failed as covering nothing.
+Emptying the `lib/` scan printed `BLIND: only 0 declared /api paths found (floor
+50)` and refused to report a pass rather than passing on an empty list. Both
+files were restored from copies and checked byte-identical with `md5sum -c`.
+
+Chain length 63 to 64. `docs/owner/WHAT-IS-LEFT.md` and
+`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` carry the derived count;
+`fix:doc-counts` repaired the second. `docs/manual-wire-creator-music-system.md`
+described the deleted helper as "connects forms ... once the write APIs are
+wired" and told the reader to run `npm`; both are corrected.
+
+
 
 ### 2026-09-29 - The service worker nothing registers, and five orphaned client bundles
 
@@ -2220,100 +2297,3 @@ and instructs anyone holding a copy without written permission to delete it and
 notify. Deliberate publication undermines both sentences, while the load-bearing
 "No licence is granted" survives untouched. Rewording is `legal_or_policy_publishing`
 under AGENTS.md and needs owner approval, so it was not touched.
-
-
-
-### 2026-09-18 - The rollback runbook told you to run a command that does not exist
-
-Asked to confirm the workflows, tables, schemas and migrations were all current,
-that the latest Node 26 was installed, and that Node 27 was ready. Most of that
-turned out to be true already, verified rather than assumed:
-
-- **122 migrations** replayed in order against an empty PostgreSQL, 119 frozen
-  and unchanged, 146 required tables present, 8 operational indexes.
-- **Node 26.9.0** (released 2026-09-16, not LTS) downloaded, checksum-verified
-  against `nodejs.org/dist/v26.9.0/SHASUMS256.txt`, installed locally, and the
-  whole repository run under it: build, typecheck, lint, the full suite, and
-  `verify:launch` **exit 0**.
-- **Node 27 does not exist.** Its release is 2027-04-22 per `nodejs/Release`,
-  and Node 26 reaches LTS 2026-10-28 -- both read from the schedule, and both
-  matching what `node-runtime-compatibility.yml` already says. The prewired
-  manual lane is correctly timed and needed nothing.
-
-`engines.node` stays `24.x`, deliberately. `vercel.json` carries no runtime pin
-and there is no `.nvmrc`, so that field **is** the production runtime; a test
-already asserts it must stay 24.x. The `[WARN] Unsupported engine` line under
-Node 26 is correct and wanted, and widening the field to silence it would be a
-production change. That was nearly "fixed" before checking what set the runtime.
-
-## What was actually broken
-
-`docs/PRODUCTION_ROLLBACK_RUNBOOK.md`, Step 3, the application rollback:
-
-    git checkout <previous_production_sha>
-    pnpm install --frozen-lockfile
-    pnpm run apply:runtime
-
-followed by *"`apply:runtime` is required: `server.js` is transformed at build
-time, so a checkout alone is not the deployable artifact."*
-
-**Both halves were false.** No `apply:runtime` script exists. And `server.js` is
-not transformed: `build` is `node --check server.js && node -e "require('./server')"`,
-`vercel-build` is `pnpm run build`, there is no prebuild/postinstall/prepare
-hook, `server.js` is tracked in git, and nothing under `scripts/` writes it. So
-an operator following the runbook mid-incident got `Command "apply:runtime" not
-found` and then a sentence telling them their checkout was not deployable -- at
-the one moment nobody has time to work it out. The checkout **is** the artifact.
-
-This is the same failure `scripts/verify-doc-script-paths.mjs` was written for in
-August, when `MONITORING_AND_BACKUPS.md` named three backup scripts that lived
-only under `archive/`. That gate matches backticked `scripts/...` paths, and
-almost nothing here is invoked that way -- it is invoked as `pnpm run X`. So the
-defect reappeared in the notation the gate is blind to, and in a recovery
-document again.
-
-**23 dead `pnpm run` names across `docs/`,** eight of them in live instructions:
-`apply:runtime` in the rollback runbook and the server-split plan;
-`check:env-safety` and `check:risky-features` in the admin launch checklist --
-the first two lines of it; `db:types` in the schema doc; `validate:infrastructure`
-in the migration-fix doc; `verify:legacy-copy` in the deployment runbook; and
-`verify:email-env` plus `test:email` across four documents.
-
-That last one is worth naming on its own: **an entire email-setup capability is
-documented and does not exist.** No script name or body in `package.json`
-contains "email" at all, yet `EMAIL_ROUTING_AND_RESEND_SETUP.md` described
-`pnpm run test:email` as a dry run and `pnpm run test:email -- --send` as a real
-provider test, with a caution not to run the send from CI -- a caution protecting
-a capability that was never there. Every one of those documents now says plainly
-that outbound email cannot be verified from this repository, and points at
-`verify:env`, which classifies the variables but sends nothing.
-
-`scripts/verify-doc-pnpm-scripts.mjs` is the 53rd chain command, two-sided like
-its older sibling: a named command exists, or is registered as history with what
-the mention IS.
-
-## The matcher had to be narrowed, and the first one was shape 7
-
-`\bpnpm(?:\s+run)?\s+(\w[\w:-]*)` over whole documents returned 36 "missing
-scripts" including `and`, `only`, `for`, `from`, `correctly`, `stays` and
-`workspace` -- from prose like "SONARA uses pnpm only" and "pnpm workspace". A
-pattern matching prose as if it were code, which would have buried the eight real
-findings in noise. A reference now counts only inside inline backticks or a
-fenced block, and only as `pnpm run <name>` or `pnpm <namespaced:name>`; prose
-satisfies neither. 36 candidates became 23 with no false positives, and the
-regression is asserted -- a falsification case appends prose and requires the
-gate to stay **green**.
-
-Falsified four ways, each restored with `md5sum -c`: a live doc naming a missing
-command; an orphaned register entry; a registered name that `package.json`
-defines again; and the prose guard.
-
-`docs/NODE_AND_PNPM_SETUP.md` was rewritten -- it had claimed `>=22 <27` while
-`engines` said `24.x`, and named two of the dead commands. It now carries
-`Review by: 2027-04-22`, Node 27's real release date, so `report-stale-claims`
-surfaces the manual Node 27 lane when it becomes relevant; nothing else in the
-repository would have noticed.
-
-**The doc-counts gate caught a hardcoded figure in that rewrite** -- "4,746
-passing" -- with the right objection: a passing count is stale the next time
-anybody adds a test. Removed rather than updated.

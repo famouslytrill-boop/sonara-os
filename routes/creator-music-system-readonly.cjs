@@ -51,7 +51,15 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
 <label for="caption-text">Transcript</label> <textarea id="caption-text" name="text" required maxlength="500" rows="3"></textarea>
 <label for="caption-seconds">Duration in seconds</label> <input id="caption-seconds" name="durationSeconds" type="number" min="1" max="60" value="10" required>
 <button type="submit">Download captions</button></form></article>`,
-        ...CREATOR_MUSIC_SYSTEM_TABLES.map((table) => brandCard(CREATOR_MUSIC_PUBLIC_LABELS[table] || table, "Ready for saved records."))
+        // Eleven cards, one per table, each reading "Ready for saved records."
+        // Nothing saves one: no route and no library in this repository reads or
+        // writes any of the eleven, so every card was a promise the product did
+        // not keep. One card that names them and says what is true replaces
+        // eleven that said what was not.
+        brandCard(
+          "Record areas reserved",
+          `${CREATOR_MUSIC_SYSTEM_TABLES.map((table) => CREATOR_MUSIC_PUBLIC_LABELS[table] || table).join(", ")}. Each has a database table with its own access rules. Saving records into them is not built yet, and nothing on this page writes one.`
+        )
       ]
     }));
   });
@@ -61,7 +69,11 @@ module.exports = function registerCreatorMusicSystemReadOnlyRoutes(app, deps = {
       title: "Create Music System",
       eyebrow: "Creator Studio",
       heading: "Create Music System",
-      body: "Use the browser helper /creator-music-system.js with the Creator Studio API routes to save real records.",
+      // This said "Use the browser helper /creator-music-system.js with the
+      // Creator Studio API routes to save real records." No page served that
+      // helper, and the eleven endpoints it called were never registered, so the
+      // sentence described a save path that did not exist at either end.
+      body: "This is the plan for a music system, not a form yet. The fields below are what one holds. Saving a system is not built; the music and video generation areas, and the WAV and captions downloads on the music system page, do work today.",
       actions: [linkAction(CREATOR_MUSIC_ROUTES.home, "Music system")],
       sections: [brandCard("System fields", "System name, project name, identity summary, rules, privacy, and status.")]
     }));
@@ -162,4 +174,4 @@ function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
-function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section><script src="/creator-music-system.js"></script></main></body></html>`; }
+function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }

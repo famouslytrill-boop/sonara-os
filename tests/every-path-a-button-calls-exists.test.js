@@ -16,17 +16,19 @@
 // Only the client files a page actually loads. That is not a convenience: it is
 // the distinction that made the first run of this check meaningful.
 //
-// `public/creator-music-system.js` declares eleven endpoints --
+// `public/creator-music-system.js` was the first finding and is the reason the
+// population is defined this way. It declared eleven endpoints --
 // /api/creator/artist-systems, /api/creator/voice-profiles and nine more -- and
-// not one of them is a registered route. It would be eleven dead buttons except
-// that no page loads the file. What the application does instead is tell the
-// customer about it in prose: /creator-music-system/create says "Use the browser
-// helper /creator-music-system.js with the Creator Studio API routes to save
-// real records". So the defect is a page promising a way to save records that
-// the application cannot honour, which is a copy-and-capability decision for the
-// owner rather than something to quietly delete or quietly implement. It is
-// recorded in docs/SPRINT_LOG.md and asserted below as a known state, so that
-// implementing those endpoints, or withdrawing the promise, both show up here.
+// not one was a registered route. It would have been eleven dead buttons except
+// that no page loaded the file, while /creator-studio/music-system/new told the
+// customer in prose to use that helper "with the Creator Studio API routes to
+// save real records": a promise neither end could keep.
+//
+// It is gone -- the file, the eleven declarations in
+// lib/creator-music-system-config.cjs, and the sentence -- and
+// scripts/report-declared-api-paths-nothing-serves.mjs now fails on a declared
+// /api path the running application does not serve, so the shape cannot come
+// back through a config module instead of a bundle.
 //
 // ## Concatenation, which is how a naive version of this lies
 //
@@ -100,12 +102,14 @@ function pathLiterals(source) {
 // The first version of this grepped the route sources for `<script src=`, and it
 // was wrong in the way this repository keeps being wrong. It reported
 // creator-music-system.js as loaded, because
-// routes/creator-music-system-readonly.cjs contains
+// routes/creator-music-system-readonly.cjs contained
 // `<script src="/creator-music-system.js"></script>` inside `basicLayout` -- a
 // fallback used only when a caller passes no layout, and
 // `const layout = deps.layout || basicLayout` always receives the real one. The
-// tag is in the source and reaches no browser: all sixteen of that surface's
-// routes were fetched and none serves it.
+// tag was in the source and reached no browser: all of that surface's routes
+// were fetched and none served it. Both the tag and the file have since been
+// removed, but the lesson is why this function renders pages instead of grepping
+// them.
 //
 // So loadedness is a fact about a response, not about a file. Matching text
 // found a tag that does not exist at runtime, exactly as matching the route
@@ -199,7 +203,9 @@ describe("every path a button calls through JavaScript exists", () => {
 
   // The finding this file exists for, and it is two-sided on purpose.
   //
-  // Five client bundles carry path literals and no page serves any of them. The
+  // Client bundles that carry path literals and that no page serves. There were
+  // six; creator-music-system.js was deleted rather than wired up, so there are
+  // five, and the list below is what the crawl must find exactly. The
   // consequence is not cosmetic: public/sonara-experience.js line 57 holds the
   // ONLY `navigator.serviceWorker.register("/sw.js")` in the repository, so the
   // service worker is never installed, the offline precache never runs, and the
@@ -217,9 +223,6 @@ describe("every path a button calls through JavaScript exists", () => {
       // Sets theme-color, and tests/brand-palette.test.js asserts those values
       // match the palette -- a check whose subject no browser receives.
       "sonara-interface-engine.js",
-      // Eleven /api/creator/* endpoints, none registered. A page recommends this
-      // helper in prose for saving real records.
-      "creator-music-system.js",
       "sonara-builder-2027.js",
       "sonara-cohesive-2027.js",
       // Precache and offline page. Reached only through the registration above.
