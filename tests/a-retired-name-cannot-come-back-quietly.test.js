@@ -79,7 +79,15 @@ describe("a retired public name cannot come back quietly", () => {
     const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
     assert.ok(pkg.scripts[COMMAND], `package.json has no ${COMMAND} script, so nothing can run the gate`);
-    assert.match(pkg.scripts[COMMAND], new RegExp(GATE.replace(/[/.]/g, "\\$&")));
+    // A substring test, not a regular expression. The first draft built one by
+    // hand-escaping `/` and `.` in the path, which CodeQL flagged as an incomplete
+    // escape -- correctly: it left `\` alone. The assertion only ever meant "the
+    // command names this file", and escaping a path to ask that is a step that can
+    // only be got wrong.
+    assert.ok(
+      pkg.scripts[COMMAND].includes(GATE),
+      `${COMMAND} runs "${pkg.scripts[COMMAND]}", which does not name ${GATE}`
+    );
     assert.ok(fs.existsSync(path.join(root, GATE)), `${COMMAND} points at ${GATE}, which does not exist`);
 
     const chain = chainCommands(pkg.scripts);
