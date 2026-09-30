@@ -57,6 +57,7 @@ const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
+const { renderProductEntry } = require("./lib/sonara-product-entry.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
 const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
@@ -315,7 +316,7 @@ const { createOrAttachOrganization } = createWorkspaceBootstrap({
 // 2026-07-28, every asset came back max-age=0.
 //
 // The stylesheets and scripts are already versioned: renderers link them as
-// `/sonara-one.js?v=sonara-ui-20260929-v20-luminous-home`, and the token changes when
+// `/sonara-one.js?v=sonara-ui-20260930-v21-studio-entries`, and the token changes when
 // the assets are rebuilt. A versioned URL can therefore be cached forever,
 // because a new build asks for a different URL.
 //
@@ -2002,14 +2003,8 @@ function registerProduct(slug, config) {
         // registered directly below it is a workspace and stays calm.
         surface: "marketing",
         title: config.name,
-        eyebrow: config.tagline || "Product system",
-        heading: config.name,
         body: config.body,
-        sections: [
-          config.audience ? brandCard("Who it's for", config.audience) : brandCard("What this product does", config.body),
-          ...config.cards.map(([title, body]) => brandCard(title, body)),
-          checklistCard("Launch Setup Checklist", config.checklist)
-        ],
+        ...renderProductEntry(slug, config),
         actions: productLandingActions(slug)
       })
     );

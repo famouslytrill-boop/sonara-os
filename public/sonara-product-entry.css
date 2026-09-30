@@ -1,0 +1,168 @@
+/* Copyright (c) 2026 SONARA Industries. All rights reserved.
+ * Product entries: native navigation, no generated customer data or runtime.
+ * Canonical theme tokens keep saved light/dark and contrast behavior intact. */
+body.sonara-product-entry {
+  --entry-accent: var(--sonara-build);
+  --entry-button-text: #080B14;
+  background: var(--sonara-bg);
+  color: var(--sonara-text);
+}
+body.sonara-product-entry.sonara-creator-studio { --entry-accent: var(--sonara-create); }
+body.sonara-product-entry.sonara-growth-studio { --entry-accent: var(--sonara-grow); }
+body.sonara-product-entry::before { display: none; }
+body.sonara-product-entry .sonara-stage {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 0 clamp(1.25rem, 4.2vw, 4rem);
+  background: none;
+}
+body.sonara-product-entry .sonara-stage::before,
+body.sonara-product-entry .sonara-stage::after { display: none; }
+body.sonara-product-entry .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  padding: clamp(3rem, 7vw, 6rem) 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+  min-height: 530px;
+}
+body.sonara-product-entry .sonara-hero-copy { text-align: left; min-width: 0; }
+body.sonara-product-entry .eyebrow {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--entry-accent);
+  text-transform: none;
+  letter-spacing: -.02em;
+  margin: 0 0 1.5rem;
+}
+body.sonara-product-entry h1 {
+  font-size: clamp(2.8rem, 5.4vw, 5.2rem);
+  letter-spacing: -.045em;
+  line-height: 1.06;
+  max-width: 12ch;
+  margin: 0 0 1.5rem;
+  color: var(--sonara-text);
+}
+body.sonara-product-entry .lede {
+  font-size: clamp(1.05rem, 1.65vw, 1.45rem);
+  line-height: 1.6;
+  color: var(--sonara-text-2);
+  max-width: 48ch;
+  margin: 0;
+}
+body.sonara-product-entry .actions { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-top: 2.5rem; }
+body.sonara-product-entry .actions .action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: .75rem 1rem;
+  font-size: 1rem;
+  font-weight: 650;
+  border-radius: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--sonara-text);
+  text-decoration: underline;
+  text-underline-offset: .5rem;
+  box-shadow: none;
+}
+body.sonara-product-entry .actions .action:first-child {
+  background: var(--entry-accent);
+  color: var(--entry-button-text);
+  text-decoration: none;
+}
+body.sonara-product-entry .grid { display: block; padding: 0; margin: 0; }
+body.sonara-product-entry .product-entry-map ol { list-style: none; margin: 0; padding: 0; }
+body.sonara-product-entry .product-entry-map li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+  padding: 1.1rem 0;
+  position: relative;
+}
+body.sonara-product-entry .product-entry-number {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--entry-accent);
+  border-radius: 50%;
+  color: var(--entry-accent);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+body.sonara-product-entry .product-entry-map h2 { margin: 0; font-size: 1.6rem; letter-spacing: -.025em; }
+body.sonara-product-entry .product-entry-map p { margin: .4rem 0 0; line-height: 1.5; color: var(--sonara-text-2); font-size: .95rem; }
+body.sonara-product-entry .product-entry-map a,
+body.sonara-product-entry .product-entry-paths a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 44px;
+  color: var(--entry-accent);
+  border-bottom: 1px solid currentColor;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: .9rem;
+}
+body.sonara-product-entry .product-entry-map a { font-size: .75rem; text-transform: uppercase; }
+body.sonara-product-entry .product-entry-paths {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 4rem);
+  padding: 3rem 0;
+  border-block: 1px solid var(--sonara-border-strong);
+}
+body.sonara-product-entry .product-entry-paths article { display: flex; flex-direction: column; align-items: start; min-width: 0; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+body.sonara-product-entry .product-entry-index { color: var(--entry-accent); font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; }
+body.sonara-product-entry .product-entry-paths h2 { font-size: clamp(1.4rem, 2vw, 1.9rem); margin: 0; letter-spacing: -.03em; }
+body.sonara-product-entry .product-entry-paths p { line-height: 1.6; color: var(--sonara-text-2); font-size: 1.05rem; margin: 1rem 0 1.5rem; }
+body.sonara-product-entry .product-entry-paths a { margin-top: auto; }
+body.sonara-product-entry .product-entry-details { padding: 3rem 0; max-width: 75ch; }
+body.sonara-product-entry .product-entry-details h2 { font-size: 1.8rem; }
+body.sonara-product-entry .product-entry-details p { color: var(--sonara-text-2); line-height: 1.65; }
+body.sonara-product-entry .product-entry-details summary { min-height: 44px; cursor: pointer; font-size: 1.1rem; padding: .75rem 0; }
+body.sonara-product-entry .product-entry-details dt { font-weight: 650; margin-top: 1.5rem; }
+body.sonara-product-entry .product-entry-details dd { margin: .5rem 0; color: var(--sonara-text-2); line-height: 1.6; }
+body.sonara-product-entry .product-entry-details a { display: inline-flex; align-items: center; min-height: 44px; color: var(--sonara-text); }
+body.sonara-product-entry a:focus-visible,
+body.sonara-product-entry summary:focus-visible { outline: 3px solid var(--entry-accent); outline-offset: 5px; }
+/* A creative catalog versus an operational sequence: layout also identifies
+ * the product, so color is never the only distinction. */
+body.sonara-product-entry.sonara-creator-studio .product-entry-map ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+body.sonara-product-entry.sonara-creator-studio .product-entry-map li { display: flex; flex-direction: column; border-top: 1px solid var(--sonara-border-strong); }
+body.sonara-product-entry.sonara-creator-studio .product-entry-number { border: 0; border-radius: 0; place-items: start; height: auto; }
+body.sonara-product-entry.sonara-growth-studio .product-entry-map li { border-bottom: 1px solid var(--sonara-border-strong); }
+body.sonara-product-entry.sonara-growth-studio .product-entry-number { border-radius: 4px; }
+@media (max-width: 1000px) {
+  body.sonara-product-entry .hero { grid-template-columns: 1fr; gap: 2rem; }
+  body.sonara-product-entry h1 { max-width: 16ch; }
+}
+@media (max-width: 640px) {
+  body.sonara-product-entry .hero { padding: 2.5rem 0; min-height: 0; }
+  body.sonara-product-entry .product-entry-paths { grid-template-columns: 1fr; gap: 2.5rem; }
+  body.sonara-product-entry .product-entry-map li { grid-template-columns: 42px minmax(0, 1fr); }
+  body.sonara-product-entry .product-entry-map li > a { grid-column: 2; justify-self: start; }
+  body.sonara-product-entry .actions { gap: .5rem; }
+  body.sonara-product-entry.sonara-creator-studio .product-entry-map ol { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.sonara-product-entry .sonara-hero-copy { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+/* Brand highlights are designed for dark grounds. Light-mode navigation and
+ * titles use the canonical text token, while filled buttons keep dark text. */
+html[data-theme="light"] body.sonara-product-entry .eyebrow,
+html[data-theme="light"] body.sonara-product-entry .product-entry-map a,
+html[data-theme="light"] body.sonara-product-entry .product-entry-paths a { color: var(--sonara-text); }
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]) body.sonara-product-entry .eyebrow,
+  html:not([data-theme="dark"]) body.sonara-product-entry .product-entry-map a,
+  html:not([data-theme="dark"]) body.sonara-product-entry .product-entry-paths a { color: var(--sonara-text); }
+}
