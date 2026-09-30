@@ -29,9 +29,14 @@ describe("studio entry paths are real", () => {
     });
   }
   it("escapes descriptions and rejects an unknown product", () => {
-    const rendered = renderProductEntry("business-builder", { name: '<script>alert("x")</script>', audience: "<img onerror=x>", cards: [["<b>title</b>", "<script>x</script>"]] });
-    assert.doesNotMatch(rendered.sections.join(""), /<script>|<img onerror|<b>title/);
-    assert.match(rendered.sections.join(""), /&lt;script&gt;/);
+    const rendered = renderProductEntry("business-builder", { name: '<script>alert("x")</script>', body: "<SCRIPT>x</SCRIPT >", audience: "<img onerror=x>", cards: [["<b>title</b>", "<script>x</script>"]] });
+    const html = rendered.sections.join("");
+    for (const input of ['<script>alert("x")</script>', "<SCRIPT>x</SCRIPT >", "<img onerror=x>", "<b>title</b>", "<script>x</script>"]) {
+      assert.equal(html.includes(input), false, `input must be rendered as text: ${input}`);
+    }
+    for (const expected of ['&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;', "&lt;SCRIPT&gt;x&lt;/SCRIPT &gt;", "&lt;img onerror=x&gt;", "&lt;b&gt;title&lt;/b&gt;", "&lt;script&gt;x&lt;/script&gt;"]) {
+      assert.ok(html.includes(expected), `escaped text must remain visible: ${expected}`);
+    }
     assert.throws(() => renderProductEntry("unknown", {}), RangeError);
   });
 });
