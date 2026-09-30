@@ -29,12 +29,12 @@ Use Vercel project settings for real values. Do not commit secrets.
 - `PRIVACY_EMAIL`
 - `LEGAL_EMAIL`
 - `FOUNDER_EMAILS` or `ADMIN_EMAILS`
-- `SONARA_CRON_SECRET` if used
+- `SONARA_SCHEDULE_TICK_SECRET` if scheduled agent runs are wanted; it must match the repository secret of the same name, or no schedule runs
 - `OPENAI_API_KEY` if used
 
 ## Vercel Build Settings
 
-- Framework: Next.js
+- Framework: none. `vercel.json` sets `"framework": null` and this is an Express application served through `api/index.js`, a five-line re-export of `server.js`. This line said Next.js until 30 September 2026.
 - Install command: `pnpm install --frozen-lockfile`
 - Build command: `pnpm run build`
 - Output directory: default/blank

@@ -6,7 +6,9 @@ After changing environment variables, redeploy without the build cache.
 
 ## Required
 
-Set `SONARA_AI_PROVIDER` to `local_rules`, then add `SONARA_CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with real values in Vercel.
+Set `SONARA_AI_PROVIDER` to `local_rules`, then add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` with real values in Vercel.
+
+This line asked for `SONARA_CRON_SECRET` until 30 September 2026. Nothing read that variable: the scheduled tick is authorised by `SONARA_SCHEDULE_TICK_SECRET`, read at `routes/sonara-agent-activity-routes.cjs:884`.
 
 ## Optional OpenAI BYOK
 

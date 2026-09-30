@@ -555,21 +555,30 @@ reports these tables as used.
   secret. Doing it the other way round turns a quiet workflow into an hourly
   failing one for no gain.
 
-- **A finished page nobody can reach: `/free-launch-stack`.**
-  `routes/free-launch-stack-routes.cjs` is 34 lines of complete markup for a
-  free-tools directory. It has never been mounted in `server.js` on this
-  branch's history, no test named it, and nothing claimed it worked -- so
-  requesting the path returns 404 and nothing was wrong, which is exactly why
-  nobody noticed. `scripts/wire-free-launch-stack-local.cjs` exists to patch
-  `server.js` and add the mount; it was never run.
+- **CLOSED: `/free-launch-stack` is mounted and served.** This entry said the
+  page had "never been mounted in `server.js` on this branch's history" and that
+  "requesting the path returns 404", and presented three options as an open owner
+  decision. All of that had stopped being true.
 
-  **This is an owner decision, not a bug to fix on the way past.** Mounting it
-  publishes a public page, and `AGENTS.md` sets a bar for what those have to
-  be -- polished, dark-first, marketable. The three options are: mount it after
-  reviewing the copy, delete it and the wiring script, or leave it recorded.
-  `tests/a-route-module-nobody-mounts-serves-nobody.test.js` holds it in a
-  two-sided register meanwhile, and would fail the day a *second* route module
-  is written and never wired.
+  Measured 30 September 2026: `server.js` line 10 requires
+  `routes/free-launch-stack-routes.cjs` and line 478 calls
+  `registerFreeLaunchStackRoutes(app, …)`; the running application serves
+  `/free-launch-stack` and `/api/free-launch-stack`; line 1041 links the page in
+  navigation; and `tests/a-route-module-nobody-mounts-serves-nobody.test.js`
+  carries an explicit test, "serves the approved Free Launch Stack", asserting a
+  200 and the page's own markup. Its `NOT_MOUNTED` register is now an empty Map
+  with the comment "Every route module is deliberately mounted in the production
+  application."
+
+  So the code, the test and the register were all correct and current; **only this
+  document was not.** It is the file an owner opens to see what still needs them,
+  and it was holding a decision open that had been made and shipped. That is
+  shape 5 in `.claude/skills/checks-that-cannot-lie` in the place it does the most
+  damage: an expired reason inside the list of what is outstanding.
+
+  `scripts/wire-free-launch-stack-local.cjs`, the codemod that would have patched
+  `server.js` to add the mount, was deleted on 30 September 2026 as spent -- the
+  mount it was written to add is already there twice over.
 
 - **31 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever

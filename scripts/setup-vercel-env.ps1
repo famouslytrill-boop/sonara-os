@@ -11,7 +11,7 @@ Write-Host "Service role keys must never be committed." -ForegroundColor Yellow
 
 $variables = @(
   "SONARA_AI_PROVIDER",
-  "SONARA_CRON_SECRET",
+  "SONARA_SCHEDULE_TICK_SECRET",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
