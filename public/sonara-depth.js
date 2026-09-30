@@ -230,6 +230,12 @@
 
   /* Wiring --------------------------------------------------------------- */
   function teardown() {
+    // Removing listeners does not cancel work already queued by those listeners.
+    // Clear both handles so a later opt-in can schedule fresh frames.
+    if (frame) window.cancelAnimationFrame(frame);
+    if (heroFrame) window.cancelAnimationFrame(heroFrame);
+    frame = 0;
+    heroFrame = 0;
     root.removeAttribute("data-sonara-depth");
     if (observer) {
       observer.disconnect();
