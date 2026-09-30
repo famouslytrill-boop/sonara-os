@@ -281,30 +281,47 @@ different gates, one cause. The register files are the worst place for it precis
 because naming things is what they are for -- so their prose now describes files
 rather than spelling them, and says why.
 
-### The Gitleaks stage caught my own gate, and it was right
+### The Gitleaks failure, and a wrong diagnosis corrected
 
-`scanners` failed on the first push: OSV and Trivy green, **Gitleaks red.** The new
-register gate declared the shapes a real key starts with, spelled out as literals:
+`scanners` failed on the first two pushes: OSV and Trivy green, **Gitleaks red.**
 
-    const SECRET_SHAPED_VALUE = /\b(sk_live_|sk_test_|...)/;
+**The first diagnosis was wrong, and is recorded here because it was plausible.**
+The new register gate declares the shapes a real key starts with -- `sk_live_`,
+`whsec_`, `ghp_` and the rest -- as literals, and a detection pattern is
+indistinguishable from the thing it detects. That looked like the obvious cause, and
+it was acted on: the prefixes were reassembled from fragments and a comment was
+written explaining that Gitleaks had been right.
 
-A detection pattern is indistinguishable from the thing it detects, and Gitleaks was
-right to say so. The repository has a reviewed-findings baseline keyed on
-`file + rule + SHA-256(line)` that could have excused it -- and its own policy says
-"only reviewed false positives belong here", which this was.
+It had not been. The tell was visible and was initially walked past:
+`docs/SPRINT_LOG.md` has carried `sk_live_` in prose on **nine** lines for weeks,
+through many green runs. Gitleaks' `stripe-access-token` and `generic-api-key` rules
+need a prefix followed by a **key-shaped body**, not a bare prefix.
 
-**It was not added to the baseline.** A baseline entry is an exemption, and an
-exemption that never needed to exist is the cheapest kind to avoid; that is shape 12
-in `.claude/skills/checks-that-cannot-lie`, added in this same change, which says to
-prefer not spelling the thing. Each prefix is now assembled from two adjacent
-fragments with a comment saying what they build. Nothing is hidden, and there is
-nothing left for anybody to review.
+**Reproduced rather than reasoned about.** Gitleaks 8.30.1 -- the pinned version,
+fetched and checksum-verified the same way the workflow does -- run over this tree,
+with the workflow's own comparison against
+`.github/security/gitleaks-reviewed-findings.json` reimplemented on its stated key of
+`file + rule + SHA-256(line)`:
 
-Then the part that matters: **the rebuilt detector was proved still to detect.** All
-eight prefixes match, "harmless text" does not, and `re_short` does not (the Resend
-shape keeps its sixteen-character minimum so a two-letter prefix cannot match
-prose). End to end, a real-looking key value planted in the register fails with
-"contains a literal secret-shaped value".
+    findings: 57 | matched baseline: 56 | NEW: 0 | STALE: 1
+
+**Zero new findings.** The register gate's line was never the problem. The single
+stale baseline entry was `scripts/security-scan-plan.mjs` -- one of the thirteen
+scripts deleted in this change -- and the baseline's own policy line says it fails on
+"any changed source line, new finding, scanner error, or **stale baseline entry**".
+
+So the cause was a deletion leaving a reviewed-findings entry pointing at a file that
+no longer exists: the *fifth* instance in this change of a record outliving the thing
+it described, and the one that took longest to see because a more interesting
+explanation was available.
+
+The entry is removed, 58 to 57. The prefix reassembly was **reverted**: it fixed a
+problem that did not exist, and the comment justifying it was false. A simpler line
+with a verified reason beats a cleverer one with an invented reason -- which is the
+repository's own rule about writing reasons into comments, and this entry is what
+breaking it looks like. The comment there now records the measurement instead.
+
+Re-run after the real fix: `NEW: 0 | STALE: 0`, so the gate passes.
 
 ### Falsified before being trusted
 

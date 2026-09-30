@@ -58,6 +58,8 @@ const root = process.cwd();
 // not a reason; "deleted on 3 September, and the sentence naming it is the
 // sentence recording the deletion" is.
 const HISTORICAL_SCRIPTS = Object.freeze({
+  "scripts/security-scan-plan.mjs":
+    "Deleted on 30 September 2026: four lines that printed a plan and enforced nothing, run by nothing. Named in docs/SPRINT_LOG.md and the generated handoff inside the entry recording that its leftover entry in .github/security/gitleaks-reviewed-findings.json is what actually turned the scanners job red -- a reviewed-findings record outliving the file it described.",
   "scripts/verify-security.mjs":
     "Deleted on 30 September 2026. Nothing ran it, and it could not run: it required next.config.mjs, src/config/securityConfig.ts and a PowerShell scanner path, none of which exist here, and exited 1. (Those names are described rather than spelled: scripts/ is inside several reports' searched populations, and naming a file here makes it read as referenced.) SECURITY_NOTES.md had cited it as a check unaffected by an audit decision; that sentence now names `pnpm audit`, scan:client-secrets and verify:csp, and records why the old name was never true on this tree.",
   "scripts/worker-smoke-test.mjs":
