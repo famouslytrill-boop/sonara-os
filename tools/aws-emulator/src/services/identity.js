@@ -29,7 +29,7 @@ const { DEFAULT_ACCOUNT } = require("../store.js");
 const STS_NAMESPACE = "https://sts.amazonaws.com/doc/2011-06-15/";
 const IAM_NAMESPACE = "https://iam.amazonaws.com/doc/2010-05-08/";
 
-function roles(store, region) {
+function roles(store, _region) {
   // IAM is global in real AWS. Kept under one pseudo-region here so a role
   // created while pointed at eu-west-1 is visible from us-east-1, which is what
   // callers expect and what a per-region map would quietly get wrong.
@@ -46,8 +46,13 @@ function form(body) {
   return out;
 }
 
+// The namespace reaches the envelope. It did not: every caller passes one and this
+// function ignored it, so an IAM "NoSuchEntity" and an STS "InvalidAction" both
+// went out under SQS's xmlns while the matching success responses went out under
+// IAM's and STS's. `xmlAnswer` below is the same shape and does honour its third
+// argument, which is why the two read as equivalent.
 function fail(code, message, namespace) {
-  return { status: 400, headers: { "content-type": "application/xml" }, body: queryErrorXml(code, message) };
+  return { status: 400, headers: { "content-type": "application/xml" }, body: queryErrorXml(code, message, { namespace }) };
 }
 
 function xmlAnswer(action, inner, namespace) {
@@ -63,7 +68,12 @@ function callerArn(request) {
   return `arn:aws:iam::${DEFAULT_ACCOUNT}:user/${key}`;
 }
 
-function handleSts(request, { store }) {
+// No store. STS here is stateless -- GetCallerIdentity, AssumeRole and
+// GetSessionToken all synthesise their answer, and the note above says this does
+// not evaluate trust policies -- so the second argument is destructured for
+// nothing. handleIam below takes the same shape and does use it; the dispatcher
+// passes the context to both, so dropping the destructure changes no call.
+function handleSts(request) {
   const values = form(request.body ? request.body.toString("utf8") : "");
   const action = request.action;
 

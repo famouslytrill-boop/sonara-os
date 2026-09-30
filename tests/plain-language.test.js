@@ -414,4 +414,44 @@ describe("the vocabulary module", () => {
     // A route that merely starts with the same letters is not a prefix match.
     assert.equal(plainLanguage.isTechnicalRoute("/administration-fees"), false);
   });
+
+  // The other side of the exemption list.
+  //
+  // Three entries -- "/route-registry", "/system-design" and "/database" --
+  // matched no served route at all. `isTechnicalRoute` is only ever called with a
+  // served route path, here and in tests/customer-links-go-to-pages.test.js, so
+  // they exempted nothing. Harmless until somebody adds a page at one of those
+  // addresses, which would then arrive silently exempt from every rule above.
+  //
+  // An exemption list is only as honest as its second side: something
+  // unaccounted appearing must fail, and a recorded reason that no longer
+  // describes anything must fail too.
+  it("has no exemption prefix that exempts nothing", () => {
+    const served = [];
+    (function walk(stack) {
+      for (const layer of stack) {
+        if (layer.route?.path) served.push(layer.route.path);
+        else if (layer.handle?.stack) walk(layer.handle.stack);
+      }
+    })(app._router ? app._router.stack : app.router.stack);
+
+    assert.ok(served.length >= 500, `only ${served.length} routes walked; this check has gone blind`);
+
+    const dead = plainLanguage.TECHNICAL_ROUTE_PREFIXES
+      .filter((prefix) => !served.some((route) => route === prefix || route.startsWith(`${prefix}/`)))
+      .sort();
+
+    assert.deepEqual(
+      dead,
+      [],
+      `${dead.length} prefix(es) in TECHNICAL_ROUTE_PREFIXES match no served route, so they exempt nothing and would ` +
+        `silently exempt any page later added there: ${dead.join(", ")}`
+    );
+
+    // And the list is doing real work, so an empty one cannot pass as clean.
+    assert.ok(
+      plainLanguage.TECHNICAL_ROUTE_PREFIXES.length >= 10,
+      `only ${plainLanguage.TECHNICAL_ROUTE_PREFIXES.length} exemption prefixes; the list has been emptied rather than corrected`
+    );
+  });
 });
