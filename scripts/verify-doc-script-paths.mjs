@@ -58,6 +58,8 @@ const root = process.cwd();
 // not a reason; "deleted on 3 September, and the sentence naming it is the
 // sentence recording the deletion" is.
 const HISTORICAL_SCRIPTS = Object.freeze({
+  "scripts/check-env-safety.mjs":
+    "Deleted on 30 September 2026 with check-security-basics.mjs and check-repo-standards.mjs, and replaced by scripts/verify-repository-standards.mjs, run as `pnpm run verify:repo-standards`. It is named in docs/SPRINT_LOG.md and the generated handoff inside the entry recording that it read one file out of the 256 .cjs modules in lib/ and printed a pass, because its extension filter excluded the extension this runtime is written in.",
   "scripts/check-blocked-repo-claims.mjs":
     "Deleted on 30 September 2026 with three sibling radar checks and replaced by scripts/verify-github-radar-review-flags.mjs, run as `pnpm run verify:radar-review-flags`. It is named in .claude/skills/writing-sonara-marketing-copy/SKILL.md inside the paragraph recording that nothing ran it and that the skill described it as reading public copy when it read the data/github-radar-repos.ts register.",
   "scripts/check-no-legacy-public-copy.mjs":

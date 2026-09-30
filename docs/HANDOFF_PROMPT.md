@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 403 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 404 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,90 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 402 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 403 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - A check that read one file and reported a pass
+
+Three rules `AGENTS.md` states, enforced by nothing in the release chain.
+
+**The sharpest is a security rule the owner documentation already writes down.**
+`docs/owner/INSTALL-ALL-KEYS.md` says in bold that there is no public Supabase
+service-role variable and there must never be one. The rule is right: this project
+inherits the Vercel and Supabase convention where a `NEXT_PUBLIC_` prefix means the
+value may be shipped to a browser, so a service-role key behind that prefix hands out
+row-level-security bypass. `AGENTS.md` states it too -- keep service-role secrets
+server-only.
+
+`scripts/check-env-safety.mjs` was written for it, and it is the clearest instance of
+shape 1 this repository has produced:
+
+- its scan roots were `app`, `components`, `lib`, `src`; three of the four do not
+  exist here;
+- its file filter was `/\.(ts|tsx|js|jsx)$/`, so of `lib/` -- **256 `.cjs` modules** --
+  it could see **one file**;
+- its second rule only fired on `.tsx`, and this repository has none, so that half
+  could never fire at all;
+- and it printed "Environment safety check passed." and exited 0.
+
+One file read, a pass reported, and nothing ran it, which is the only reason that did
+not matter.
+
+**Two build rules were in the same state.** `"packageManager": "pnpm@"` was asserted
+by `check-security-basics.mjs`, and the absence of `package-lock.json` plus the
+presence of `pnpm-lock.yaml` and `.env.example` by `check-repo-standards.mjs`. Nothing
+ran either, and **no other file in the repository read `package-lock.json` or
+`"packageManager"` at all**. An npm lockfile could have been committed and the whole
+chain would have passed.
+
+`scripts/verify-repository-standards.mjs` replaces all three, wired in as
+`verify:repo-standards` (chain 66 -> 67). It scans recursively across six groups:
+1,420 files today (366 runtime, 34 browser, 143 config, 458 docs, 415 tests, 4 root),
+with a floor of 800. The forbidden shape matches exactly once -- inside the sentence
+that forbids it -- and that one file is a two-sided register entry keyed on the
+sentence itself, so rewording the prohibition fails the gate rather than quietly
+widening it.
+
+**One thing worth recording about writing the test.** The first draft of
+`tests/a-public-variable-cannot-carry-a-service-role-key.test.js` spelled the
+forbidden variable name in its own explanatory comment, and the new gate failed on
+the test file -- correctly, because it scans `tests/`. The fix was to stop spelling
+it, not to exempt the test. It is the same discipline `verify:retired-names` uses by
+reading its ledger instead of holding a copy: a scanner or its test that spells what
+it forbids is a file that has to be excused from its own rule, and an exemption is
+the thing that later gets widened.
+
+**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
+
+- the forbidden name planted in a runtime `.cjs` -> named by file
+- `package-lock.json` created -> "two lockfiles mean two dependency trees"
+- `packageManager` switched to npm -> named, quoting the value it found
+- the forbidding sentence reworded -> "that sentence is no longer there ... this one
+  would be covering a leaked service-role key"
+- `verify:repo-standards` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+- the runtime group narrowed to one extension -> "the gate read 0 runtime files while
+  lib/ alone holds 256 .cjs modules"
+
+**Still open, and named so it is not lost:** 21 files in `scripts/` that no
+`package.json` script, workflow or test invokes. Four cannot run at all --
+`verify-all.mjs` (24 of the 34 pnpm scripts it lists no longer exist),
+`verify-security.mjs` (requires `next.config.mjs` and `src/config/securityConfig.ts`,
+**and is cited in `SECURITY_NOTES.md` as though it runs**),
+`validate-infrastructure.mjs` ("No recognized app source folder found"),
+`run-frontend-lint.mjs` (lints a `frontend/` directory deleted long ago). Three print
+a sentence and enforce nothing: `audit-repo-consistency.mjs` (two lines),
+`security-scan-plan.mjs` (four), `seed-entity-defaults.mjs`. Three more hold real
+properties on live files that nothing checks -- `check-provider-registry.mjs` reads
+`data/provider-registry.ts`, which **no other file in the repository reads**, and
+asserts `serverOnlyEnv` is declared and that session replay is not on by default.
+`report-unreferenced-modules.mjs` covers `lib/` and `routes/` by design and says so;
+`scripts/` has no equivalent, and that gate is the next piece of work.
+
+
 
 ### 2026-09-30 - A radar record could waive its own review, and the check for it passed
 
