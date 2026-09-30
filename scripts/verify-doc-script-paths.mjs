@@ -58,6 +58,12 @@ const root = process.cwd();
 // not a reason; "deleted on 3 September, and the sentence naming it is the
 // sentence recording the deletion" is.
 const HISTORICAL_SCRIPTS = Object.freeze({
+  "scripts/check-env-safety.mjs":
+    "Deleted on 30 September 2026 with check-security-basics.mjs and check-repo-standards.mjs, and replaced by scripts/verify-repository-standards.mjs, run as `pnpm run verify:repo-standards`. It is named in docs/SPRINT_LOG.md and the generated handoff inside the entry recording that it read one file out of the 256 .cjs modules in lib/ and printed a pass, because its extension filter excluded the extension this runtime is written in.",
+  "scripts/check-blocked-repo-claims.mjs":
+    "Deleted on 30 September 2026 with three sibling radar checks and replaced by scripts/verify-github-radar-review-flags.mjs, run as `pnpm run verify:radar-review-flags`. It is named in .claude/skills/writing-sonara-marketing-copy/SKILL.md inside the paragraph recording that nothing ran it and that the skill described it as reading public copy when it read the data/github-radar-repos.ts register.",
+  "scripts/check-no-legacy-public-copy.mjs":
+    "Deleted on 30 September 2026 and replaced by scripts/verify-retired-public-names.mjs, run as `pnpm run verify:retired-names`. It is named in docs/audits/SONARA_REDESIGN_CURRENT_STATE.md, a dated audit recording what was run at the time, and in .claude/skills/writing-sonara-marketing-copy/SKILL.md inside the paragraph recording that it was run by nothing and could not run -- its first scan root was a Next.js app/ directory this repository does not have.",
   "scripts/verify.sh":
     "Named in docs/SPRINT_LOG.md and the generated handoff inside the sentence recording that it was deleted, because it built a frontend/ directory that no longer exists.",
   "scripts/verify-stripe-config.mjs":
@@ -105,6 +111,19 @@ const HISTORICAL_SCRIPTS = Object.freeze({
 const MINIMUM_DOCS = 200;
 const MINIMUM_REFERENCES = 50;
 
+// The skills are scanned too, and they get their own floor so the group cannot
+// collapse to nothing inside a total that stays plausible. Measured 30 September
+// 2026: 12 markdown files under .claude/, naming 15 distinct script paths, all of
+// which existed.
+//
+// They were added because a skill is a stronger claim than a document. Two of
+// them said `scripts/check-no-legacy-public-copy.mjs` failed the release when a
+// retired product name came back; nothing ran it, and it died with ENOENT on a
+// Next.js `app/` directory this repository does not have. A person writing
+// customer copy read that sentence and stopped checking, which is worse than a
+// stale path in a report nobody opens.
+const MINIMUM_SKILL_DOCS = 8;
+
 // Backtick-quoted, because that is how this repository writes a path a reader is
 // meant to type. Unquoted prose mentions are deliberately not matched: "the
 // apply scripts" is a description, and matching it would make this check argue
@@ -125,7 +144,9 @@ function markdownFiles(dir, out = []) {
   return out;
 }
 
-const docs = markdownFiles(path.join(root, "docs")).map((file) => path.relative(root, file));
+const docFiles = markdownFiles(path.join(root, "docs"));
+const skillFiles = markdownFiles(path.join(root, ".claude"));
+const docs = [...docFiles, ...skillFiles].map((file) => path.relative(root, file));
 
 const referencedBy = new Map();
 const notText = [];
@@ -175,16 +196,23 @@ if (notText.length) {
   );
 }
 
-if (docs.length < MINIMUM_DOCS) {
+if (docFiles.length < MINIMUM_DOCS) {
   problems.push(
-    `Only ${docs.length} markdown files found under docs/, below the ${MINIMUM_DOCS} present on 16 September 2026.\n`
+    `Only ${docFiles.length} markdown files found under docs/, below the ${MINIMUM_DOCS} present on 16 September 2026.\n`
     + "This check has gone blind -- it is reading almost nothing and would pass over any number of broken paths."
+  );
+}
+
+if (skillFiles.length < MINIMUM_SKILL_DOCS) {
+  problems.push(
+    `Only ${skillFiles.length} markdown files found under .claude/, below the ${MINIMUM_SKILL_DOCS} floor.\n`
+    + "The skills are where a stale command does the most damage, and this group has stopped being read."
   );
 }
 
 if (referencedBy.size < MINIMUM_REFERENCES) {
   problems.push(
-    `Only ${referencedBy.size} distinct script paths referenced across docs/, below the ${MINIMUM_REFERENCES} present on 16 September 2026.\n`
+    `Only ${referencedBy.size} distinct script paths referenced across docs/ and .claude/, below the ${MINIMUM_REFERENCES} present on 16 September 2026.\n`
     + "Either the matcher has stopped matching or the documents stopped naming their commands. Both make this check worthless."
   );
 }
@@ -238,6 +266,7 @@ if (problems.length) {
 const present = referencedBy.size - Object.keys(HISTORICAL_SCRIPTS).length;
 console.log(
   `Documented script paths verified: ${referencedBy.size} distinct paths named across ${docs.length} documents `
+  + `(${docFiles.length} under docs/, ${skillFiles.length} under .claude/) `
   + `-- ${present} exist, ${Object.keys(HISTORICAL_SCRIPTS).length} registered as history with a reason. `
   + "Every path a document tells you to run is a path that is there."
 );

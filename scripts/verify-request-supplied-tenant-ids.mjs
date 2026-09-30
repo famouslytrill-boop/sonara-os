@@ -49,6 +49,8 @@ import { createRequire } from "node:module";
 
 const root = process.cwd();
 const { withoutComments } = createRequire(import.meta.url)("../lib/sonara-comment-stripping.cjs");
+const { runtimeSourceFiles, blindnessReason } = createRequire(import.meta.url)("../lib/sonara-runtime-source-files.cjs");
+
 const SOURCE_DIRS = ["lib", "routes", "api"];
 const SOURCE_FILES = ["server.js"];
 
@@ -116,24 +118,30 @@ const ALLOWED = [
 // subtly wrong, and the wrong one is the one nobody re-reads.
 
 function sourceFiles() {
-  const files = [...SOURCE_FILES];
-  for (const dir of SOURCE_DIRS) {
-    const base = path.join(root, dir);
-    if (!fs.existsSync(base)) continue;
-    for (const name of fs.readdirSync(base)) {
-      if (!/\.(cjs|mjs|js)$/.test(name)) continue;
-      files.push(path.join(dir, name));
-    }
-  }
-  return files;
+  // One definition of the runtime population, recursively.
+  //
+  // This built the list itself with a flat readdirSync, so `lib/catalog/` -- four
+  // modules one directory down -- was outside it. Proven rather than reasoned: a
+  // file placed there reading `req.body.organizationId`, an unregistered
+  // request-supplied tenant id and the one thing this gate exists to catch, left
+  // it exiting 0 with byte-identical output. It never saw the file.
+  //
+  // api/ stays in the list: a request handler could live there, even though
+  // api/index.js is currently a five-line re-export of server.js.
+  return runtimeSourceFiles({ root, directories: SOURCE_DIRS, files: SOURCE_FILES });
 }
 
 const files = sourceFiles();
 const problems = [];
 
-// Shape 1: a check satisfied by reading nothing.
-if (files.length < 40) {
-  console.error(`Only ${files.length} runtime files found. This check has gone blind; it should see the whole runtime.`);
+// Shape 1: a check satisfied by reading nothing. The floor moved from 40 to the
+// one in lib/sonara-runtime-source-files.cjs, which is measured against the real
+// population rather than set low enough to never fire: 40 would have been
+// satisfied by a walk that found only `lib/`, which is the shape of failure this
+// guard is for.
+const blind = blindnessReason(files);
+if (blind) {
+  console.error(blind);
   process.exit(1);
 }
 if (ALLOWED.length === 0) {

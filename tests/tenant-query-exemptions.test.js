@@ -50,7 +50,11 @@ function audit(mutator) {
 
 function assertRejected(mutator, expected) {
   const result = audit(mutator);
-  assert.ifError(result.error);
+  // `audit` returns { status, stdout, stderr } and rethrows anything that is not
+  // its own stop sentinel, so an unexpected throw already fails loudly here. The
+  // `assert.ifError(result.error)` that stood on this line read an undefined
+  // property and could never fail -- an assertion that looks like an error channel
+  // being checked and is not.
   assert.notEqual(result.status, 0, "a broken substitute tenant scope must fail the gate");
   assert.match(result.stdout + result.stderr, expected);
 }
@@ -60,7 +64,6 @@ describe("tenant query exemptions retain each independent justification", functi
 
   it("accepts the unchanged runtime population", () => {
     const result = audit((source) => source);
-    assert.ifError(result.error);
     assert.equal(result.status, 0, result.stdout + result.stderr);
   });
 

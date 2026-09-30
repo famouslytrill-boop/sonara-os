@@ -82,9 +82,9 @@ it"* before *"operational intelligence"*.
 
 Avoid the words `AGENTS.md` tells us to avoid: internal engine names, and "AI"
 used as a selling point rather than a description. Never a retired product name
-— `docs/archive/legacy-names.md` lists them, and
-`scripts/check-no-legacy-public-copy.mjs` fails the build if one reaches the
-repository.
+— `docs/archive/legacy-names.md` lists them in a delimited ledger, and
+`pnpm run verify:retired-names` reads that ledger and fails the release if one
+reaches the runtime, `public/`, a manifest, a test or a document.
 
 ### 4. Close
 

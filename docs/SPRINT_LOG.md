@@ -2,6 +2,293 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-30 - A check that read one file and reported a pass
+
+Three rules `AGENTS.md` states, enforced by nothing in the release chain.
+
+**The sharpest is a security rule the owner documentation already writes down.**
+`docs/owner/INSTALL-ALL-KEYS.md` says in bold that there is no public Supabase
+service-role variable and there must never be one. The rule is right: this project
+inherits the Vercel and Supabase convention where a `NEXT_PUBLIC_` prefix means the
+value may be shipped to a browser, so a service-role key behind that prefix hands out
+row-level-security bypass. `AGENTS.md` states it too -- keep service-role secrets
+server-only.
+
+`scripts/check-env-safety.mjs` was written for it, and it is the clearest instance of
+shape 1 this repository has produced:
+
+- its scan roots were `app`, `components`, `lib`, `src`; three of the four do not
+  exist here;
+- its file filter was `/\.(ts|tsx|js|jsx)$/`, so of `lib/` -- **256 `.cjs` modules** --
+  it could see **one file**;
+- its second rule only fired on `.tsx`, and this repository has none, so that half
+  could never fire at all;
+- and it printed "Environment safety check passed." and exited 0.
+
+One file read, a pass reported, and nothing ran it, which is the only reason that did
+not matter.
+
+**Two build rules were in the same state.** `"packageManager": "pnpm@"` was asserted
+by `check-security-basics.mjs`, and the absence of `package-lock.json` plus the
+presence of `pnpm-lock.yaml` and `.env.example` by `check-repo-standards.mjs`. Nothing
+ran either, and **no other file in the repository read `package-lock.json` or
+`"packageManager"` at all**. An npm lockfile could have been committed and the whole
+chain would have passed.
+
+`scripts/verify-repository-standards.mjs` replaces all three, wired in as
+`verify:repo-standards` (chain 66 -> 67). It scans recursively across six groups:
+1,420 files today (366 runtime, 34 browser, 143 config, 458 docs, 415 tests, 4 root),
+with a floor of 800. The forbidden shape matches exactly once -- inside the sentence
+that forbids it -- and that one file is a two-sided register entry keyed on the
+sentence itself, so rewording the prohibition fails the gate rather than quietly
+widening it.
+
+**One thing worth recording about writing the test.** The first draft of
+`tests/a-public-variable-cannot-carry-a-service-role-key.test.js` spelled the
+forbidden variable name in its own explanatory comment, and the new gate failed on
+the test file -- correctly, because it scans `tests/`. The fix was to stop spelling
+it, not to exempt the test. It is the same discipline `verify:retired-names` uses by
+reading its ledger instead of holding a copy: a scanner or its test that spells what
+it forbids is a file that has to be excused from its own rule, and an exemption is
+the thing that later gets widened.
+
+**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
+
+- the forbidden name planted in a runtime `.cjs` -> named by file
+- `package-lock.json` created -> "two lockfiles mean two dependency trees"
+- `packageManager` switched to npm -> named, quoting the value it found
+- the forbidding sentence reworded -> "that sentence is no longer there ... this one
+  would be covering a leaked service-role key"
+- `verify:repo-standards` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+- the runtime group narrowed to one extension -> "the gate read 0 runtime files while
+  lib/ alone holds 256 .cjs modules"
+
+**Still open, and named so it is not lost:** 21 files in `scripts/` that no
+`package.json` script, workflow or test invokes. Four cannot run at all --
+`verify-all.mjs` (24 of the 34 pnpm scripts it lists no longer exist),
+`verify-security.mjs` (requires `next.config.mjs` and `src/config/securityConfig.ts`,
+**and is cited in `SECURITY_NOTES.md` as though it runs**),
+`validate-infrastructure.mjs` ("No recognized app source folder found"),
+`run-frontend-lint.mjs` (lints a `frontend/` directory deleted long ago). Three print
+a sentence and enforce nothing: `audit-repo-consistency.mjs` (two lines),
+`security-scan-plan.mjs` (four), `seed-entity-defaults.mjs`. Three more hold real
+properties on live files that nothing checks -- `check-provider-registry.mjs` reads
+`data/provider-registry.ts`, which **no other file in the repository reads**, and
+asserts `serverOnlyEnv` is declared and that session replay is not on by default.
+`report-unreferenced-modules.mjs` covers `lib/` and `routes/` by design and says so;
+`scripts/` has no equivalent, and that gate is the next piece of work.
+
+### 2026-09-30 - A radar record could waive its own review, and the check for it passed
+
+`data/github-radar-repos.ts` holds 15 external repositories under review. Each record
+carries four review flags -- owner, legal, security, privacy -- plus `autoInstall`.
+`AGENTS.md` is why they exist: radar and screenshot-sourced records stay non-executing
+until a separate implementation review promotes them, and outside package managers and
+agent frameworks do not replace SONARA's contracts without an explicit architecture
+decision.
+
+Four scripts read that file. **Nothing ran any of them** -- no `package.json` script,
+no workflow, no test. The only caller was `scripts/verify-all.mjs`, which nothing runs
+either. Two more, `check-auto-install-disabled.mjs` and `check-github-radar-secrets.mjs`,
+read `lib/github-radar/*.ts`, a directory this repository does not have, and exited with
+`ENOENT`.
+
+And the one that guarded `autoInstall` asked whether the **file** contained the string,
+once:
+
+    for (const required of ["autoInstall: false", "ownerReviewRequired", ...])
+      if (!text.includes(required)) findings.push(...);
+
+Fourteen of the fifteen records could have carried `autoInstall: true` and it would have
+passed, because the fifteenth still said false. `ownerReviewRequired` was matched as a
+bare substring -- the field **name** -- so every record could have set it to `false` and
+the check would have found the name and been satisfied. Shape 6: too weak for the bug it
+was written for.
+
+**The hole that was genuinely open.** `verify:ts-contracts` does type-check this file, and
+the type declares `autoInstall: false` as a *literal*, so TypeScript already refuses
+`true`. That one field was protected. The four review flags are declared `boolean`, so
+`ownerReviewRequired: false` compiles, passes every gate in the release chain, and was
+checked by nothing. All fifteen records set all four to true today **by convention**.
+
+**Proven, not argued.** With `ownerReviewRequired: false` planted in the first record,
+`node scripts/check-github-radar.mjs` printed "GitHub Radar check passed." and exited 0,
+and `pnpm run verify:ts-contracts` was clean as well.
+
+`scripts/verify-github-radar-review-flags.mjs` replaces all four, wired into
+`verify:gates` as `verify:radar-review-flags` (chain 65 -> 66). It asserts per record:
+four flags literally `true`, `autoInstall` literally `false`, a blocked record carrying a
+`blockedReason` and a matching integration status and no recommendation to adopt it, a
+score inside 0-100, and a licence needing legal review not recorded as `allowed` without
+one. It also asserts the **type** still declares `autoInstall` as a literal, because
+widening it to `boolean` would delete the only check that field had while breaking
+nothing visible.
+
+One deliberate difference from the script it replaces: the licence test reads the declared
+`license` field rather than matching the whole record. The old version matched
+`recommendedAction` prose, and "Review as GPL-licensed reference" is a sentence about a
+licence, not a licence.
+
+**Six scripts deleted:** the four radar checks and the two that could not run.
+`verify:doc-script-paths` -- now scanning `.claude/` -- caught the marketing-copy skill
+still naming one of them, and the correction found a second error in that sentence: the
+skill said it read `data/open-source-tools.ts` and failed on public copy, when it read
+`data/github-radar-repos.ts` and checked the register's own `recommendedAction`. The
+competitor-comparison skill carried the same wrong sentence. Both now name the gates that
+run, and say what the old line got wrong.
+
+**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
+
+- `ownerReviewRequired: false` -> named by record and field; the old check passed
+- the `autoInstall` literal widened to `boolean` -> "removes the guarantee without
+  breaking anything visible"
+- a blocked record left at `review_queue` -> "read as queued by whatever looks at the
+  status"
+- `verify:radar-review-flags` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+
+### 2026-09-30 - A rule three documents said was enforced, by a scanner nothing ran
+
+`AGENTS.md` states it plainly: retired public names must not appear in active UI,
+navigation, metadata, manifests, tests or launch docs. The enforcement was
+`scripts/check-no-legacy-public-copy.mjs`, and three documents said so --
+`.claude/skills/writing-sonara-marketing-copy/SKILL.md` said it "fails the release
+if one comes back", the social-post skill said it "fails the build", an audit record
+described its patterns.
+
+It was false in two independent ways, both measured:
+
+1. **Nothing ran it.** No `package.json` script, no workflow, no test named it.
+   `scripts/verify-all.mjs` did -- and nothing runs that either, while **24 of the
+   34** pnpm scripts it lists no longer exist, so it dies on its second command.
+   `pnpm run verify:all` maps to `verify:launch`, which never included it, so the
+   obvious command silently ran something else.
+2. **It could not run.** Its first scan root was `app/`, a Next.js directory this
+   Express repository does not have, so it exited with `ENOENT` before reading one
+   file. Its root list also omitted `routes/` and `server.js`, so even repaired it
+   would never have scanned the runtime it was said to protect.
+
+That is the recurring defect in its worst form. Not a check reporting a false pass
+-- a sentence in a skill that somebody writing customer copy reads and believes,
+standing in for a check that cannot execute.
+
+**`scripts/verify-retired-public-names.mjs` replaces it**, wired into `verify:gates`
+as `verify:retired-names` (chain 64 -> 65 commands). It reads the names from a
+delimited ledger in `docs/archive/legacy-names.md` rather than holding a copy, which
+buys two things: a name added to the archive is enforced without anybody remembering
+there is a scanner, and the gate spells none of the names it blocks, so it needs no
+exemption from its own rule -- it sits inside the population it scans.
+
+The old hard-coded list had already drifted. It blocked a string the archive does not
+retire, one that appears in a `Dockerfile` header, a brand-asset filename, three
+claim-boundary sentences in `lib/` and the names of three archived billing plans.
+Enforcing it would have produced five findings that are not violations, which is how
+a check gets switched off.
+
+**Today the guarantee holds:** 6 ledger entries searched across 1,283 files (308
+runtime, 88 under `public/`, 2 Android manifests, 14 data files, 413 tests, 458
+documents). Five files contain a retired name and all five are dated audit records
+registered with a reason checked against the file -- two-sided, so an entry whose
+document stops containing one fails too.
+
+**`verify:doc-script-paths` now scans `.claude/` as well as `docs/`.** A skill is a
+stronger claim than a report: it is read as an instruction for work happening now.
+Adding the 12 skill documents immediately caught the deleted scanner still named in
+the marketing-copy skill, which the old scope would have missed entirely. 89 distinct
+script paths across 468 documents, 69 present, 20 registered as history.
+
+**Falsified before being trusted**, each break watched fail by name and each file
+restored by copy-aside and `md5sum -c`:
+
+- a retired name appended to `lib/sonara-runtime-source-files.cjs` -> named as an
+  unregistered runtime file
+- the same appended to an existing file under `public/` -> named, proving that group
+  is really read
+- the ledger's opening marker misspelled -> "has no RETIRED_PUBLIC_NAMES block ...
+  every file reads clean and the pass means nothing"
+- the ledger trimmed to two entries -> "the ledger parse has gone blind"
+- a `RECORDED_HISTORY` entry pointed at a document holding no retired name -> "the
+  reason now describes nothing"
+- `verify:retired-names` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+- a blocked name hard-coded into the gate -> "spells 1 of the names it blocks, so it
+  has to be exempted from its own rule"
+- the `public/` group pointed at a directory that is not there -> "scanned 0 public
+  file(s) ... that group has gone blind"
+
+**Still open, and deliberately not touched here:** 24 further files in `scripts/`
+that no `package.json` script, workflow or test invokes, including
+`scripts/verify-all.mjs` itself and three more that crash on directories this
+repository no longer has. `report-unreferenced-modules.mjs` covers `lib/` and
+`routes/` by design and says so; `scripts/` has no such check. That is the next
+piece of work, not a gap in this one.
+
+### 2026-09-30 - Three security gates that read "the runtime" one directory deep
+
+`lib/catalog/` holds four product-catalogue modules. Three release gates could not
+see it, because each built its own file list with a flat `readdirSync` over `lib/`
+and `routes/` and never descended:
+
+| Gate | Reported | Actually |
+| --- | --- | --- |
+| `verify:request-tenant-ids` | 304 runtime files | 309 |
+| `verify:filter-encoding` | 303 runtime files | 308 |
+| `verify:supabase-contract` | (.cjs only) | 307 |
+
+Meanwhile `verify:tenant-queries` and `typecheck`, which do walk recursively, said
+307. **Three numbers for one population, each printed as fact.**
+
+**Proven, not reasoned.** A file placed in `lib/catalog/` reading
+`req.body.organizationId` -- an unregistered request-supplied tenant id, the single
+thing `verify:request-tenant-ids` exists to catch -- left that gate exiting **0 with
+byte-identical output**: still "11 reads across 4 files, out of 304 runtime files
+scanned". It never saw the file. After the fix the same probe fails by name:
+"lib/catalog/_probe-tenant.cjs reads a tenant id from the request 1 time(s) and is
+not registered."
+
+**The sharpest part is the comment already in the repository.** Directly above the
+flat walk in `verify-supabase-contract.mjs` stands the lesson from the last time
+this happened:
+
+> A scan that names two of the three runtime directories is a scan measuring a
+> different population from the one it claims.
+
+The walk one line beneath it read two directories to a depth of one. Breadth had
+been fixed; depth had not. And
+`verify-customer-ready-production-experience.mjs` records this as "the fourth time
+a check scoped to server.js went partially blind because code moved one directory
+over" -- which is why that gate walks recursively and these three did not.
+
+**One walk now.** `lib/sonara-runtime-source-files.cjs` is the single definition,
+recursive, taking the directories and extensions each caller genuinely needs --
+`verify:request-tenant-ids` reads `api/` because a handler could live there,
+`verify:filter-encoding` does not because `api/index.js` is a five-line re-export
+that interpolates nothing, `verify:supabase-contract` reads `.cjs` alone because
+that is what the runtime modules are. What must not differ is whether a
+subdirectory is seen.
+
+Its floor replaced two that were set low enough never to fire: 40 files in
+`verify:request-tenant-ids` and 100 in `verify:filter-encoding`, both satisfiable
+by a walk that found a single directory, which is precisely the failure they were
+written to guard against.
+
+`tests/every-runtime-gate-reads-the-whole-runtime.test.js` holds the two properties
+the module cannot hold for itself: that the walk descends -- asserted against every
+nested file on disk, not just a count -- and that no converted gate has gone back to
+building its own. Falsified three ways: stopping the descent fails with "a recursive
+walk that finds none of them has stopped descending"; raising the floor above the
+real population fails as blindness; and putting a flat `readdirSync` back into a
+converted gate fails naming that gate. Every edited file restored byte-identical.
+
+**Also**: `tests/tenant-query-exemptions.test.js`, which arrived in #392 and
+independently mutation-tests the tenant exemptions from #391, carried two
+`assert.ifError(result.error)` calls reading a property `audit()` never sets. The
+function rethrows anything that is not its own stop sentinel, so unexpected throws
+already fail loudly; those two lines could not fail and read as an error channel
+being checked. Removed. The four mutation tests around them are good work and are
+untouched.
+
 ### 2026-09-30 - The last 184 unlinted files, and the three questions that kept them out
 
 The previous entry covered 734 of the 918 files `pnpm run lint` names and left
