@@ -2,6 +2,75 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-30 - A radar record could waive its own review, and the check for it passed
+
+`data/github-radar-repos.ts` holds 15 external repositories under review. Each record
+carries four review flags -- owner, legal, security, privacy -- plus `autoInstall`.
+`AGENTS.md` is why they exist: radar and screenshot-sourced records stay non-executing
+until a separate implementation review promotes them, and outside package managers and
+agent frameworks do not replace SONARA's contracts without an explicit architecture
+decision.
+
+Four scripts read that file. **Nothing ran any of them** -- no `package.json` script,
+no workflow, no test. The only caller was `scripts/verify-all.mjs`, which nothing runs
+either. Two more, `check-auto-install-disabled.mjs` and `check-github-radar-secrets.mjs`,
+read `lib/github-radar/*.ts`, a directory this repository does not have, and exited with
+`ENOENT`.
+
+And the one that guarded `autoInstall` asked whether the **file** contained the string,
+once:
+
+    for (const required of ["autoInstall: false", "ownerReviewRequired", ...])
+      if (!text.includes(required)) findings.push(...);
+
+Fourteen of the fifteen records could have carried `autoInstall: true` and it would have
+passed, because the fifteenth still said false. `ownerReviewRequired` was matched as a
+bare substring -- the field **name** -- so every record could have set it to `false` and
+the check would have found the name and been satisfied. Shape 6: too weak for the bug it
+was written for.
+
+**The hole that was genuinely open.** `verify:ts-contracts` does type-check this file, and
+the type declares `autoInstall: false` as a *literal*, so TypeScript already refuses
+`true`. That one field was protected. The four review flags are declared `boolean`, so
+`ownerReviewRequired: false` compiles, passes every gate in the release chain, and was
+checked by nothing. All fifteen records set all four to true today **by convention**.
+
+**Proven, not argued.** With `ownerReviewRequired: false` planted in the first record,
+`node scripts/check-github-radar.mjs` printed "GitHub Radar check passed." and exited 0,
+and `pnpm run verify:ts-contracts` was clean as well.
+
+`scripts/verify-github-radar-review-flags.mjs` replaces all four, wired into
+`verify:gates` as `verify:radar-review-flags` (chain 65 -> 66). It asserts per record:
+four flags literally `true`, `autoInstall` literally `false`, a blocked record carrying a
+`blockedReason` and a matching integration status and no recommendation to adopt it, a
+score inside 0-100, and a licence needing legal review not recorded as `allowed` without
+one. It also asserts the **type** still declares `autoInstall` as a literal, because
+widening it to `boolean` would delete the only check that field had while breaking
+nothing visible.
+
+One deliberate difference from the script it replaces: the licence test reads the declared
+`license` field rather than matching the whole record. The old version matched
+`recommendedAction` prose, and "Review as GPL-licensed reference" is a sentence about a
+licence, not a licence.
+
+**Six scripts deleted:** the four radar checks and the two that could not run.
+`verify:doc-script-paths` -- now scanning `.claude/` -- caught the marketing-copy skill
+still naming one of them, and the correction found a second error in that sentence: the
+skill said it read `data/open-source-tools.ts` and failed on public copy, when it read
+`data/github-radar-repos.ts` and checked the register's own `recommendedAction`. The
+competitor-comparison skill carried the same wrong sentence. Both now name the gates that
+run, and say what the old line got wrong.
+
+**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
+
+- `ownerReviewRequired: false` -> named by record and field; the old check passed
+- the `autoInstall` literal widened to `boolean` -> "removes the guarantee without
+  breaking anything visible"
+- a blocked record left at `review_queue` -> "read as queued by whatever looks at the
+  status"
+- `verify:radar-review-flags` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+
 ### 2026-09-30 - A rule three documents said was enforced, by a scanner nothing ran
 
 `AGENTS.md` states it plainly: retired public names must not appear in active UI,

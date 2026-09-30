@@ -139,8 +139,11 @@ forever.
   production (`docs/SHIP_READINESS.md` item 1), so there is no conversion data
   for any plan, ours or theirs.
 - **That a reviewed repository ships with the product.**
-  `scripts/check-blocked-repo-claims.mjs` reads `data/open-source-tools.ts` and
-  fails on it.
+  `pnpm run verify:research-copy` reads the public copy and fails on it. The
+  register's own consistency — a record marked `blocked` that still recommends
+  adopting it — is `pnpm run verify:radar-review-flags`. Both run in the release
+  chain; the script this line used to name did not, and read a different file
+  from the one stated here.
 - **A competitor's feature you did not check.** Their marketing page is a claim
   too. If you cannot cite where you read it and when, leave it out.
 

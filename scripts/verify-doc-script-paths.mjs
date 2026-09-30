@@ -58,6 +58,8 @@ const root = process.cwd();
 // not a reason; "deleted on 3 September, and the sentence naming it is the
 // sentence recording the deletion" is.
 const HISTORICAL_SCRIPTS = Object.freeze({
+  "scripts/check-blocked-repo-claims.mjs":
+    "Deleted on 30 September 2026 with three sibling radar checks and replaced by scripts/verify-github-radar-review-flags.mjs, run as `pnpm run verify:radar-review-flags`. It is named in .claude/skills/writing-sonara-marketing-copy/SKILL.md inside the paragraph recording that nothing ran it and that the skill described it as reading public copy when it read the data/github-radar-repos.ts register.",
   "scripts/check-no-legacy-public-copy.mjs":
     "Deleted on 30 September 2026 and replaced by scripts/verify-retired-public-names.mjs, run as `pnpm run verify:retired-names`. It is named in docs/audits/SONARA_REDESIGN_CURRENT_STATE.md, a dated audit recording what was run at the time, and in .claude/skills/writing-sonara-marketing-copy/SKILL.md inside the paragraph recording that it was run by nothing and could not run -- its first scan root was a Next.js app/ directory this repository does not have.",
   "scripts/verify.sh":

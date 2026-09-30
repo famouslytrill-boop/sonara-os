@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 402 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 403 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,82 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 401 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 402 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - A radar record could waive its own review, and the check for it passed
+
+`data/github-radar-repos.ts` holds 15 external repositories under review. Each record
+carries four review flags -- owner, legal, security, privacy -- plus `autoInstall`.
+`AGENTS.md` is why they exist: radar and screenshot-sourced records stay non-executing
+until a separate implementation review promotes them, and outside package managers and
+agent frameworks do not replace SONARA's contracts without an explicit architecture
+decision.
+
+Four scripts read that file. **Nothing ran any of them** -- no `package.json` script,
+no workflow, no test. The only caller was `scripts/verify-all.mjs`, which nothing runs
+either. Two more, `check-auto-install-disabled.mjs` and `check-github-radar-secrets.mjs`,
+read `lib/github-radar/*.ts`, a directory this repository does not have, and exited with
+`ENOENT`.
+
+And the one that guarded `autoInstall` asked whether the **file** contained the string,
+once:
+
+    for (const required of ["autoInstall: false", "ownerReviewRequired", ...])
+      if (!text.includes(required)) findings.push(...);
+
+Fourteen of the fifteen records could have carried `autoInstall: true` and it would have
+passed, because the fifteenth still said false. `ownerReviewRequired` was matched as a
+bare substring -- the field **name** -- so every record could have set it to `false` and
+the check would have found the name and been satisfied. Shape 6: too weak for the bug it
+was written for.
+
+**The hole that was genuinely open.** `verify:ts-contracts` does type-check this file, and
+the type declares `autoInstall: false` as a *literal*, so TypeScript already refuses
+`true`. That one field was protected. The four review flags are declared `boolean`, so
+`ownerReviewRequired: false` compiles, passes every gate in the release chain, and was
+checked by nothing. All fifteen records set all four to true today **by convention**.
+
+**Proven, not argued.** With `ownerReviewRequired: false` planted in the first record,
+`node scripts/check-github-radar.mjs` printed "GitHub Radar check passed." and exited 0,
+and `pnpm run verify:ts-contracts` was clean as well.
+
+`scripts/verify-github-radar-review-flags.mjs` replaces all four, wired into
+`verify:gates` as `verify:radar-review-flags` (chain 65 -> 66). It asserts per record:
+four flags literally `true`, `autoInstall` literally `false`, a blocked record carrying a
+`blockedReason` and a matching integration status and no recommendation to adopt it, a
+score inside 0-100, and a licence needing legal review not recorded as `allowed` without
+one. It also asserts the **type** still declares `autoInstall` as a literal, because
+widening it to `boolean` would delete the only check that field had while breaking
+nothing visible.
+
+One deliberate difference from the script it replaces: the licence test reads the declared
+`license` field rather than matching the whole record. The old version matched
+`recommendedAction` prose, and "Review as GPL-licensed reference" is a sentence about a
+licence, not a licence.
+
+**Six scripts deleted:** the four radar checks and the two that could not run.
+`verify:doc-script-paths` -- now scanning `.claude/` -- caught the marketing-copy skill
+still naming one of them, and the correction found a second error in that sentence: the
+skill said it read `data/open-source-tools.ts` and failed on public copy, when it read
+`data/github-radar-repos.ts` and checked the register's own `recommendedAction`. The
+competitor-comparison skill carried the same wrong sentence. Both now name the gates that
+run, and say what the old line got wrong.
+
+**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
+
+- `ownerReviewRequired: false` -> named by record and field; the old check passed
+- the `autoInstall` literal widened to `boolean` -> "removes the guarantee without
+  breaking anything visible"
+- a blocked record left at `review_queue` -> "read as queued by whatever looks at the
+  status"
+- `verify:radar-review-flags` removed from the chain -> the test fails with "is not
+  reachable from verify:launch"
+
+
 
 ### 2026-09-30 - A rule three documents said was enforced, by a scanner nothing ran
 
@@ -2128,154 +2199,3 @@ Nothing here was found by being careful. It was found by another reader looking
 at the diff, and before that by `require('./server')`, `--max-warnings=0`, and
 reading printed output instead of an exit code. The output that showed `GPL-3`
 was on screen in the previous round and nobody read it.
-
-
-
-### 2026-09-18 - Eight more findings, and the one that would have reached customers
-
-Codex reviewed the fixes for the entry below and found **eight** further
-defects. All eight were real. Six were consequences of those fixes being
-incomplete, which is the useful part of the record: fixing a defect class in one
-place and not its sibling is itself a defect.
-
-## The one that would have reached customers
-
-Widening `verify:proprietary-notice` to cover `public/**/*.js` put
-
-    // Proprietary source. No licence is granted; see LICENSE.
-
-into `public/sonara-scroll.js`. That file is not only served to browsers.
-`routes/sonara-scroll-routes.cjs:57` reads it and `lib/sonara-scroll-export.cjs`
-writes it into **every Creator Studio site export** as `scroll.js`, beside a
-README that tells the customer *"A static site. Put these files on any web host
-and it works... Drop the whole folder in."*
-
-So the download a customer paid for would have arrived carrying a sentence
-denying them permission to use it. Not a notice -- a contradiction of the thing
-they bought. The notice was removed from that file and the file excluded from the
-gate, with the reason recorded where the next person widening that population
-will read it.
-
-Giving that runtime an explicit customer-facing licence **grant** is deliberately
-not done here: AGENTS.md reserves legal and policy publishing to the owner, and
-no check may write a grant on their behalf. The gap is named for them.
-
-Checked rather than assumed: exactly one of the 21 public scripts is
-customer-distributed. `lib/sonara-zip.cjs` requires `public/sonara-zip-core.js`,
-but that is the ZIP *builder* running server-side, not a file in the download.
-
-## A check advertised as the way to verify email, saying yes to what the product says no to
-
-`scripts/verify-email-env.mjs` accepted any non-empty value except four exact
-sentinel words. `lib/sonara-readiness.cjs` rejects a key under 12 characters or
-matching a much broader placeholder test, and requires an address to parse. So
-`RESEND_API_KEY=replace-me` and `RESEND_FROM_EMAIL=fake` made the new check exit
-0 and report email ready while the application treated delivery as
-unconfigured.
-
-**My own falsification had used `RESEND_API_KEY=x`.** A one-character key. The
-proof that the permissive direction worked was conducted with a value the
-application rejects, it passed, and it was reported as evidence.
-
-Fixed by extracting `isPlaceholderValue`, `extractEmailAddress`, `isEmailLike`
-and `isPlaceholderEmail` out of `server.js` into
-`lib/sonara-env-value-checks.cjs`, so `server.js`, `createReadiness` and the
-script all call one implementation. `server.js` 3903 -> 3885 lines, and the
-ratchet in `tests/server-split.test.js` follows it down, because a ceiling left
-above a real reduction is slack nobody decided to grant.
-
-Two things caught this extraction rather than review catching them:
-`node -e "require('./server')"` failed with *"Cannot access
-'isPlaceholderValue' before initialization"* -- function declarations hoist and a
-`const` destructure does not, and these are used at line 270 -- and
-`--max-warnings=0` then flagged `extractEmailAddress` as unused in `server.js`.
-
-## The sibling script nobody fixed
-
-`scripts/test-email-config.mjs` still read `SUPPORT_EMAIL || CONTACT_EMAIL`.
-Nothing in the runtime has ever read those names; the declared recipients are
-`SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`. A correctly configured production
-therefore aborted every `--send` test as unconfigured -- the delivery test
-failing on the one environment it exists to test. One script was fixed and its
-sibling left holding the same defect.
-
-## An exemption that swallowed a live instruction
-
-`docs/HANDOFF_PROMPT.md` was exempted whole as a changelog, on the stated
-grounds that it is not where a live instruction lives. Its own "## Before you
-push" section lists the release chain. The exemption now starts at the
-`## Sprint log` heading, and a named boundary that cannot be found in the
-document fails rather than silently exempting everything.
-
-Falsified both ways: the same dead command fails when placed in the preamble and
-passes when placed below the heading.
-
-## A floor far below its population is not a floor
-
-`MINIMUM_FILES` stayed at **150** while the population went from 258 to 279. If
-the two `public/` pathspecs were ever removed, the check would fall back to the
-258 server-side files, clear 150, and report everything compliant -- recreating
-the exact blind spot widening it was meant to close. Ratcheted to 278, with a
-separate floor of 20 for the browser-side half, because that half is the one a
-single edited glob would silently drop.
-
-## Flattening, again, one category narrower
-
-The reciprocal-licence fix below replaced "all 31 trigger on network use" with
-"20 network, 11 distribution". Directus is
-`MSCL-1.0-GPL (Monospace Sustainable Core License 1.0)`, and its own register
-note says *"It is a licence written this year whose abbreviation carries GPL, and
-it is not OSI open source. Nothing should be built on it from a summary."*
-Printing it under "triggers on distribution" because a regex missed is building
-on a summary.
-
-Now three buckets -- **17 network, 11 distribution, 3 stated as unclassifiable**
-(Directus, Codegraff's modified AGPL, and OBLITERATUS's AGPL-with-commercial-option)
--- and
-classification reads the leading licence identifier against known SPDX families
-rather than searching for a substring, so the GPL inside MSCL-1.0-GPL does not
-match. The first attempt put two plain `AGPL-3.0` records in `unknown` because
-their provenance sentence left a trailing full stop on the identifier; caught by
-reading the output rather than the exit code.
-
-The counts above read 18 / 11 / 2 when this entry was first written, and moved to
-17 / 11 / 3 in the entry above it: the identifier splitter was still cutting at
-every period, which both truncated the printed identifiers and let
-`AGPL-3.0 upstream with a stated commercial-licence option` classify as plain
-AGPL. Recorded rather than quietly edited, because the second number is the one
-to trust and the reason it moved is the finding.
-
-**The same error was in the generated handoff prompt**, the file handed to other
-assistants: *"a reciprocal licence (AGPL, GPL, OSL) triggers on network use"*.
-Corrected in `scripts/generate-handoff-prompt.mjs`, where it was produced.
-
-## Four documents made false by fixing a fifth
-
-Wiring `verify:email-env` and `test:email` made four setup documents wrong: each
-carried a note saying no email tooling exists and neither command is defined.
-All four now say what the commands do, that the recipient variables are
-`SUPPORT_TO_EMAIL` / `CONTACT_TO_EMAIL`, and that `--send` reaches a real
-provider.
-
-## One finding answered with a recorded decision instead of a change
-
-The notices changed the bytes of `public/sonara-one.js` while its URL keeps the
-token `?v=sonara-ui-20260914-v12-palette`, and `server.js:316` serves anything
-with a `?v=` as `immutable` for a year. The mechanism is real. The token is
-**not** bumped, and the reasoning is written into
-`scripts/verify-proprietary-notice.mjs` rather than left as an omission: a notice
-exists so a copied file is attributable, somebody copying takes it from the
-repository or a fresh load rather than from a year-old cache entry, every new
-visitor gets current bytes, and bumping the shared token would invalidate every
-cached asset for every visitor -- plus the service worker version, which
-`verify:customer-ready-production-experience` asserts must match -- to deliver a
-two-line comment. The customer export is unaffected: it reads from disk at
-require time.
-
-## What two rounds of this establish
-
-Fourteen findings across two reviews, every one real, and three of them were
-false statements written *while fixing false statements*. What caught them was
-never thinking harder -- it was `require('./server')`, `--max-warnings=0`,
-printing output instead of trusting an exit code, and opening the file named in
-my own comment.

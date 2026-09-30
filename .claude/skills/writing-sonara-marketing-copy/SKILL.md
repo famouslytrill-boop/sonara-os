@@ -78,9 +78,16 @@ sentence that contains the old one. Marking a line historical is a claim that it
 ### Saying we ship something we only reviewed
 
 `data/open-source-tools.ts` holds 227 reviewed repositories, most of which this
-product does not ship. `scripts/check-research-lab-public-copy.mjs` and
-`scripts/check-blocked-repo-claims.mjs` fail the release when public copy says a
+product does not ship. `scripts/check-research-lab-public-copy.mjs`, run as
+`pnpm run verify:research-copy`, fails the release when public copy says a
 reviewed repository is "integrated", "bundled" or "powered by".
+
+This paragraph used to name `scripts/check-blocked-repo-claims.mjs` alongside it,
+and that was wrong twice over: nothing ran it, and it read the separate
+`data/github-radar-repos.ts` register rather than any public copy — it checked
+whether a record marked `blocked` also recommended adopting it. That property now
+lives in `pnpm run verify:radar-review-flags`, which does run. Only the
+research-lab check reads what a customer sees.
 
 The predecessor of that check watched `app/research-lab/**` and passed every
 time it ran. **None of those pages was ever served** — that Next.js application
