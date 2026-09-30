@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 400 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 401 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,78 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 399 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 400 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - Three security gates that read "the runtime" one directory deep
+
+`lib/catalog/` holds four product-catalogue modules. Three release gates could not
+see it, because each built its own file list with a flat `readdirSync` over `lib/`
+and `routes/` and never descended:
+
+| Gate | Reported | Actually |
+| --- | --- | --- |
+| `verify:request-tenant-ids` | 304 runtime files | 309 |
+| `verify:filter-encoding` | 303 runtime files | 308 |
+| `verify:supabase-contract` | (.cjs only) | 307 |
+
+Meanwhile `verify:tenant-queries` and `typecheck`, which do walk recursively, said
+307. **Three numbers for one population, each printed as fact.**
+
+**Proven, not reasoned.** A file placed in `lib/catalog/` reading
+`req.body.organizationId` -- an unregistered request-supplied tenant id, the single
+thing `verify:request-tenant-ids` exists to catch -- left that gate exiting **0 with
+byte-identical output**: still "11 reads across 4 files, out of 304 runtime files
+scanned". It never saw the file. After the fix the same probe fails by name:
+"lib/catalog/_probe-tenant.cjs reads a tenant id from the request 1 time(s) and is
+not registered."
+
+**The sharpest part is the comment already in the repository.** Directly above the
+flat walk in `verify-supabase-contract.mjs` stands the lesson from the last time
+this happened:
+
+> A scan that names two of the three runtime directories is a scan measuring a
+> different population from the one it claims.
+
+The walk one line beneath it read two directories to a depth of one. Breadth had
+been fixed; depth had not. And
+`verify-customer-ready-production-experience.mjs` records this as "the fourth time
+a check scoped to server.js went partially blind because code moved one directory
+over" -- which is why that gate walks recursively and these three did not.
+
+**One walk now.** `lib/sonara-runtime-source-files.cjs` is the single definition,
+recursive, taking the directories and extensions each caller genuinely needs --
+`verify:request-tenant-ids` reads `api/` because a handler could live there,
+`verify:filter-encoding` does not because `api/index.js` is a five-line re-export
+that interpolates nothing, `verify:supabase-contract` reads `.cjs` alone because
+that is what the runtime modules are. What must not differ is whether a
+subdirectory is seen.
+
+Its floor replaced two that were set low enough never to fire: 40 files in
+`verify:request-tenant-ids` and 100 in `verify:filter-encoding`, both satisfiable
+by a walk that found a single directory, which is precisely the failure they were
+written to guard against.
+
+`tests/every-runtime-gate-reads-the-whole-runtime.test.js` holds the two properties
+the module cannot hold for itself: that the walk descends -- asserted against every
+nested file on disk, not just a count -- and that no converted gate has gone back to
+building its own. Falsified three ways: stopping the descent fails with "a recursive
+walk that finds none of them has stopped descending"; raising the floor above the
+real population fails as blindness; and putting a flat `readdirSync` back into a
+converted gate fails naming that gate. Every edited file restored byte-identical.
+
+**Also**: `tests/tenant-query-exemptions.test.js`, which arrived in #392 and
+independently mutation-tests the tenant exemptions from #391, carried two
+`assert.ifError(result.error)` calls reading a property `audit()` never sets. The
+function rethrows anything that is not its own stop sentinel, so unexpected throws
+already fail loudly; those two lines could not fail and read as an error channel
+being checked. Removed. The four mutation tests around them are good work and are
+untouched.
+
+
 
 ### 2026-09-30 - The last 184 unlinted files, and the three questions that kept them out
 
@@ -2252,80 +2319,3 @@ was catching false statements, and a seventh was written while fixing the sixth.
 The discipline that caught all of them was not care -- it was opening the file
 and re-running the measurement. Nothing here was found by thinking harder about
 it.
-
-
-
-### 2026-09-18 - The action pins were immutable and unreadable, and the Node-20 question had no answer in source
-
-Asked to confirm the workflows carry no Node-20 actions, and to pin third-party
-actions to immutable SHAs. The second was already done: all 64 `uses:` references
-across 15 workflow files were pinned to 40-character commits, and
-`verify:action-pins` refused anything else. The first could not be answered from
-this repository at all.
-
-`scripts/verify-github-action-pins.mjs` held seven action names mapped to seven
-SHAs, and nothing else. A SHA is immutable and opaque, and those are different
-properties: nothing said which release `3d3c42e5` was or which runtime it
-declared. The version lived only in a trailing `# v7.0.1` comment, which this
-script explicitly skips, so the comment could have said v7 while the SHA was v4.
-
-Resolved against upstream rather than guessed. `git ls-remote --tags` mapped each
-SHA to a tag, and `runs.using` was read out of each manifest **at the pinned
-commit**:
-
-| action | release | runtime |
-| --- | --- | --- |
-| actions/checkout | 7.0.1 | node24 |
-| actions/setup-node | 7.0.0 | node24 |
-| actions/upload-artifact | 7.0.1 | node24 |
-| actions/setup-python | 7.0.0 | node24 |
-| pnpm/action-setup | 6.0.10 | node24 |
-| github/codeql-action | 4.38.0 | node24 |
-| supabase/setup-cli | 3.0.0 | composite |
-
-So the answer is that no action runs on Node 20, and `supabase/setup-cli` is
-composite -- it runs steps rather than a JS entrypoint, so there is no Node
-runtime there to deprecate. But **nothing enforced that**, which made it luck
-rather than a gate: the next pin bump to a Node-20 release would have passed
-green. The register now carries the release, the runtime, and the date the
-manifest was read, and the check refuses a retired runtime by name.
-
-Application Node stays at `22.x`. The CI-runtime repair is deliberately kept
-separate from any application-runtime migration.
-
-**The gate also passed over an empty directory.** Falsified before the rewrite by
-running it against a tree whose `.github/workflows` held nothing, and then against
-one holding a single `actions/checkout@v1` in a file named `.yaml.txt`:
-
-    GitHub Actions supply-chain policy verified: 0 external action reference(s)
-    use approved immutable commits across 0 workflow file(s).
-    exit=0
-
-Shape 1 -- the zero was printed in the success line and read by nothing. Floors of
-10 workflow files and 40 references now sit against a measurement of 15 and 64.
-
-The upstream re-verification is `verify:action-pins:network`, run from
-`external-repository-health.yml` and deliberately **not** in `verify:gates`. The
-offline half can only catch a pin disagreeing with what somebody wrote down; it
-cannot catch the writing-down being wrong, which is the failure that made the
-Node-20 question unanswerable. Keeping it out of the release chain follows
-`verify:open-source:network`: a networked check inside `verify:launch` either
-makes the chain flaky or acquires a `catch` that lets it pass when the fetch
-fails. It refuses on an unreadable manifest, and refuses on having read zero.
-
-Broken six ways, each caught by name, each restored with `md5sum -c` confirming
-byte-identity: an empty workflow directory; a register entry moved to `node20`; a
-comment rewritten to `# v4.1.7` against a v7.0.1 pin; a pin bumped to an
-unreviewed SHA; a floating `v7` tag; and a reviewed entry no workflow references.
-Then the test itself was falsified against three weakenings of the script --
-floors deleted, retired-runtime refusal deleted, and a version downgraded to the
-major alias `"7"` -- and failed on all three.
-
-`tests/a-pinned-action-says-which-runtime-it-is.test.js` executes the real script
-against temporary trees rather than re-implementing the policy, and asserts the
-population is non-empty before asserting anything about it.
-
-**Not done, and it is the owner's:** the CI matrix cannot be declared green from
-here. Pushing this branch runs the pull-request workflows; the controlled
-production deployment is not triggered and will not be without explicit
-authorization.

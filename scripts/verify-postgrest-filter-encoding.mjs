@@ -44,8 +44,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const { runtimeSourceFiles, blindnessReason } = createRequire(import.meta.url)("../lib/sonara-runtime-source-files.cjs");
 
 // PostgREST's filter operators. `not.` prefixes any of them and is matched by
 // the same rule because the value still sits after the final dot.
@@ -79,15 +81,14 @@ const ACCOUNTED = Object.freeze({
 const failures = [];
 function fail(message) { failures.push(message); }
 
+// One definition of the runtime population, recursively.
+//
+// This walked lib/ and routes/ with a flat readdirSync, so lib/catalog/ -- four
+// modules one directory down -- was outside the population while the summary line
+// reported its total as the runtime. api/ stays out: api/index.js is a five-line
+// re-export of server.js and interpolates nothing.
 function sourceFiles() {
-  const files = [];
-  for (const dir of ["lib", "routes"]) {
-    for (const name of fs.readdirSync(path.join(ROOT, dir))) {
-      if (name.endsWith(".cjs") || name.endsWith(".js")) files.push(`${dir}/${name}`);
-    }
-  }
-  files.push("server.js");
-  return files;
+  return runtimeSourceFiles({ root: ROOT, directories: ["lib", "routes"], extensions: [".cjs", ".js"] });
 }
 
 const files = sourceFiles();
@@ -159,7 +160,13 @@ for (const [rel, entry] of Object.entries(ACCOUNTED)) {
 // This check has gone blind if it is suddenly finding almost nothing. 365
 // interpolations across 187 files on the day it was written; both floors are far
 // below that and far above zero.
-if (files.length < 100) fail(`only ${files.length} source files scanned; this check has gone blind`);
+//
+// The file floor now comes from lib/sonara-runtime-source-files.cjs, so it is the
+// same number every gate using that walk holds itself to. The old 100 would have
+// been satisfied by a walk that found only routes/, which is the kind of partial
+// population this whole module exists to stop.
+const blind = blindnessReason(files);
+if (blind) fail(blind);
 if (interpolations < 200) fail(`only ${interpolations} PostgREST filter interpolations found; this check has gone blind`);
 
 if (failures.length) {

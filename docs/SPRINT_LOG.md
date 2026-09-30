@@ -2,6 +2,71 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-30 - Three security gates that read "the runtime" one directory deep
+
+`lib/catalog/` holds four product-catalogue modules. Three release gates could not
+see it, because each built its own file list with a flat `readdirSync` over `lib/`
+and `routes/` and never descended:
+
+| Gate | Reported | Actually |
+| --- | --- | --- |
+| `verify:request-tenant-ids` | 304 runtime files | 309 |
+| `verify:filter-encoding` | 303 runtime files | 308 |
+| `verify:supabase-contract` | (.cjs only) | 307 |
+
+Meanwhile `verify:tenant-queries` and `typecheck`, which do walk recursively, said
+307. **Three numbers for one population, each printed as fact.**
+
+**Proven, not reasoned.** A file placed in `lib/catalog/` reading
+`req.body.organizationId` -- an unregistered request-supplied tenant id, the single
+thing `verify:request-tenant-ids` exists to catch -- left that gate exiting **0 with
+byte-identical output**: still "11 reads across 4 files, out of 304 runtime files
+scanned". It never saw the file. After the fix the same probe fails by name:
+"lib/catalog/_probe-tenant.cjs reads a tenant id from the request 1 time(s) and is
+not registered."
+
+**The sharpest part is the comment already in the repository.** Directly above the
+flat walk in `verify-supabase-contract.mjs` stands the lesson from the last time
+this happened:
+
+> A scan that names two of the three runtime directories is a scan measuring a
+> different population from the one it claims.
+
+The walk one line beneath it read two directories to a depth of one. Breadth had
+been fixed; depth had not. And
+`verify-customer-ready-production-experience.mjs` records this as "the fourth time
+a check scoped to server.js went partially blind because code moved one directory
+over" -- which is why that gate walks recursively and these three did not.
+
+**One walk now.** `lib/sonara-runtime-source-files.cjs` is the single definition,
+recursive, taking the directories and extensions each caller genuinely needs --
+`verify:request-tenant-ids` reads `api/` because a handler could live there,
+`verify:filter-encoding` does not because `api/index.js` is a five-line re-export
+that interpolates nothing, `verify:supabase-contract` reads `.cjs` alone because
+that is what the runtime modules are. What must not differ is whether a
+subdirectory is seen.
+
+Its floor replaced two that were set low enough never to fire: 40 files in
+`verify:request-tenant-ids` and 100 in `verify:filter-encoding`, both satisfiable
+by a walk that found a single directory, which is precisely the failure they were
+written to guard against.
+
+`tests/every-runtime-gate-reads-the-whole-runtime.test.js` holds the two properties
+the module cannot hold for itself: that the walk descends -- asserted against every
+nested file on disk, not just a count -- and that no converted gate has gone back to
+building its own. Falsified three ways: stopping the descent fails with "a recursive
+walk that finds none of them has stopped descending"; raising the floor above the
+real population fails as blindness; and putting a flat `readdirSync` back into a
+converted gate fails naming that gate. Every edited file restored byte-identical.
+
+**Also**: `tests/tenant-query-exemptions.test.js`, which arrived in #392 and
+independently mutation-tests the tenant exemptions from #391, carried two
+`assert.ifError(result.error)` calls reading a property `audit()` never sets. The
+function rethrows anything that is not its own stop sentinel, so unexpected throws
+already fail loudly; those two lines could not fail and read as an error channel
+being checked. Removed. The four mutation tests around them are good work and are
+untouched.
+
 ### 2026-09-30 - The last 184 unlinted files, and the three questions that kept them out
 
 The previous entry covered 734 of the 918 files `pnpm run lint` names and left

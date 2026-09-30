@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
+const { runtimeSourceFiles, blindnessReason } = require("../lib/sonara-runtime-source-files.cjs");
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
@@ -645,14 +646,22 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text|refresh_token\s+text/i
 // no uncontracted references while not reading the file that made them. A scan
 // that names two of the three runtime directories is a scan measuring a
 // different population from the one it claims.
-const runtimeFiles = [
-  path.join(root, "server.js"),
-  ...["routes", "lib"].flatMap((directory) =>
-    fs.readdirSync(path.join(root, directory))
-      .filter((name) => name.endsWith(".cjs"))
-      .sort()
-      .map((name) => path.join(root, directory, name)))
-];
+//
+// The sentence above was learned once and then held only half. The walk it
+// introduced read routes/ and lib/ with a flat readdirSync, so lib/catalog/ --
+// four modules one directory down -- was outside the population, and a scan that
+// reads two directories to a depth of one is still measuring a different
+// population from the one it claims. Breadth was fixed; depth was not.
+//
+// lib/sonara-runtime-source-files.cjs is the one walk now, so the lesson cannot be
+// half-held again. .cjs only, because that is what the runtime modules are.
+const runtimeFiles = runtimeSourceFiles({ root, directories: ["routes", "lib"], extensions: [".cjs"] })
+  .map((relative) => path.join(root, relative));
+const runtimeBlindness = blindnessReason(runtimeFiles);
+if (runtimeBlindness) {
+  console.error(`ERROR: ${runtimeBlindness}`);
+  process.exit(1);
+}
 const runtimeSource = runtimeFiles.map(read).join("\n");
 const runtimeTableReferences = new Set();
 for (const pattern of [
