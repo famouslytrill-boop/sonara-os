@@ -281,6 +281,31 @@ different gates, one cause. The register files are the worst place for it precis
 because naming things is what they are for -- so their prose now describes files
 rather than spelling them, and says why.
 
+### The Gitleaks stage caught my own gate, and it was right
+
+`scanners` failed on the first push: OSV and Trivy green, **Gitleaks red.** The new
+register gate declared the shapes a real key starts with, spelled out as literals:
+
+    const SECRET_SHAPED_VALUE = /\b(sk_live_|sk_test_|...)/;
+
+A detection pattern is indistinguishable from the thing it detects, and Gitleaks was
+right to say so. The repository has a reviewed-findings baseline keyed on
+`file + rule + SHA-256(line)` that could have excused it -- and its own policy says
+"only reviewed false positives belong here", which this was.
+
+**It was not added to the baseline.** A baseline entry is an exemption, and an
+exemption that never needed to exist is the cheapest kind to avoid; that is shape 12
+in `.claude/skills/checks-that-cannot-lie`, added in this same change, which says to
+prefer not spelling the thing. Each prefix is now assembled from two adjacent
+fragments with a comment saying what they build. Nothing is hidden, and there is
+nothing left for anybody to review.
+
+Then the part that matters: **the rebuilt detector was proved still to detect.** All
+eight prefixes match, "harmless text" does not, and `re_short` does not (the Resend
+shape keeps its sixteen-character minimum so a two-letter prefix cannot match
+prose). End to end, a real-looking key value planted in the register fails with
+"contains a literal secret-shaped value".
+
 ### Falsified before being trusted
 
 Each break watched fail by name, each file restored by copy-aside and `md5sum -c`:
