@@ -2,6 +2,122 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-30 - A tenant-isolation gate blind to ten of fifteen route helpers, found by a linter that was switched off
+
+Two findings, and the first found the second.
+
+**`pnpm run lint` visited 918 files and applied no rule to 184 of them.** Every
+config block in `eslint.config.mjs` matched an extension those files do not have:
+`scripts/**/*.cjs` was covered and `scripts/**/*.mjs` was not, and the last block's
+`*.mjs` has no `**/` so it matches only the repository root. Measured with
+`eslint --print-config` on one file per directory and extension: api/\*.js 1,
+routes/\*.cjs 46, lib/\*.cjs 258, scripts/\*.cjs 15, tests/\*.js 393, public/\*.js 20
+and server.js resolved to two rules; lib/\*.js 1, **scripts/\*.mjs 108**,
+tests/\*.cjs 11, tests/\*.mjs 4, examples/\*.js 2, tools/\*.js 57 and tools/\*.mjs 1
+resolved to none. A file dropped into `scripts/` carrying both a duplicate object
+key and a call to an undefined function linted clean and exited 0.
+
+The 108 unlinted files in `scripts/` are the release-chain gates themselves. A
+green lint run over the checks that are supposed to catch things, which never read
+them.
+
+`no-dupe-keys` and sixteen rules beside it are in `eslint:recommended`, which this
+config does not extend, and `@eslint/js` is not a dependency, so extending the
+preset means adding one. The rules are named instead, hoisted into one
+`correctnessRules` object rather than the five identical copies that were there.
+Run against the whole linted tree first: seven errors, every one `no-dupe-keys`.
+
+**Six of those seven were in `lib/sonara-route-registry.cjs`** — 47 literal pairs,
+41 distinct keys, two appended blocks. `/business-builder/control-center` was
+written as "Business Builder" and silently overridden four lines later by "Business
+Control Center"; the override is what runs and matches its Growth sibling, so it is
+what was kept. The seventh was a push fixture where `endpoint` appeared twice with
+`...VALID` between them, and VALID carries its own endpoint: the leading one was
+dead, and deleting the trailing one as redundant would have changed the
+subscriber's address.
+
+**Then the widened population reported three unused values inside the release
+gates, and one of them was a real hole.**
+
+`scripts/report-tenant-scoped-queries.mjs` destructured `GLOBAL_TABLES` and never
+read it — a value fetched into a decision and never used, shape 3 in
+`.claude/skills/checks-that-cannot-lie`. Pulling on it found this:
+
+**The script read `args[1]` as the table for every `rest()` call, and that is one
+of four signatures in use.** Fifteen declarations across `routes/`: five
+`rest(config, table, query, options)`, three `rest(config, path, init)`, three
+`rest(config, path)`, two `rest(config, query, options)`, and one
+`rest(table, query, options)` with the table at index **0**. For ten of those files
+argument 1 is a path or a query string, never a name in `TENANT_SCOPED_TABLES`, so
+every call in them fell into "carries no organization" and its organization filter
+was never looked at. `filtersRows` read `args[3]` as the options object for the
+same reason.
+
+Falsified before being believed: deleting `organization_id=eq.${ctx.organizationId}`
+from the business list query in
+`routes/sonara-business-control-plane-routes.cjs` — `business_workspaces` is in
+`TENANT_SCOPED_TABLES` — left the script exiting **0 with byte-identical output**.
+Not one of the counts moved. The bucket that read as 59 harmless calls was mostly
+misclassification.
+
+**What the gate does now.** It reads each file's own `rest` declaration by
+parameter name and indexes by it; resolves a table held in a module constant, so
+`` `${EMPLOYEES_TABLE}?organization_id=...` `` yields a name instead of a shrug;
+splits a `path` argument at its first `?`; expands `${scope}` interpolated into a
+query from its nearest preceding declaration; and treats only a name recorded in
+`GLOBAL_TABLES` as carrying no organization — a name in neither list is unresolved,
+which routes it into the blind-query check that already fails on a literal query
+naming no organization.
+
+26 → **56** calls verified as filtered. 59 → 12 in the global bucket. The
+unresolved count rose 27 → 40, and that rise is the point: what changed is that
+unreadable calls are now counted as unreadable instead of waved past as harmless.
+`RECORDED_UNRESOLVED` carries the reason.
+
+**Four calls read a tenant-scoped table without an organization on purpose**, and
+each was verified by reading its route rather than assumed from its shape:
+`GET /creator/:handle` is registered with no guard and finds a public profile by
+handle with `status=eq.active` and only `PUBLIC_PROFILE_COLUMNS`;
+`GET /account/following` scopes by the viewer's own follow ids and the renderer
+drops rows whose `public_handle` is null, which is what unpublish sets; the
+slug-uniqueness check in `POST /api/lead-capture-page` must look across
+organizations to answer "taken by somebody else" and selects `organization_id`
+alone; the published-scroll page and `GET /shared/:token` are public by design.
+
+They are recorded with **the filter that stands in for the organization**, and the
+exemption applies only while that filter is still in the query. Remove
+`status=eq.active` from the public profile lookup and it stops exempting, because
+the thing that made it safe is gone. Two-sided as well: an entry matching no call
+in the run fails.
+
+**Falsified five ways.** A leak in the `rest(table, query)` file fails naming
+`business_workspaces`. A leak in a `rest(config, path)` file fails naming
+`recurring_invoices`. Removing `status=eq.active` fails, so the exemption is
+conditional on its own justification. An exemption matching nothing fails as a
+stale reason. Emptying `SOURCE_DIRS` prints "this check has gone blind" and
+"a pass in this state is the check measuring nothing". Every edited file was
+restored from a copy and checked byte-identical with `md5sum -c`.
+
+**Also**: `eslint.config.cjs` is deleted — flat-config precedence loads the
+`.mjs`, so it was never read, as an earlier entry here and NICE-3 in
+`docs/audits/2026-07-27-ENGINEERING_AUDIT.md` both say. Two configs for one
+question, one dead, is the shape of the duplicate keys above.
+`scripts/check-research-lab-public-copy.mjs` imported `readdirSync` and never
+called it, residue of the globbing its own comment rejects, and
+`scripts/verify-customer-ready-production-experience.mjs` parsed `package.json`
+and consulted it nowhere.
+
+**`tools/` is still not linted, and that is recorded rather than quietly skipped.**
+Its 58 files are four sub-projects with their own CI jobs, and covering them
+surfaced ten problems that belong to those projects. Three look like real defects:
+`fail(code, message, namespace)` in `tools/aws-emulator/src/services/identity.js`
+ignores `namespace`, `handleSts` destructures `store` and never uses it, and
+`SERVERLESS_YML(name, region, typescript)` in
+`tools/serverless-cli/src/scaffold.js` ignores `typescript` while the comment above
+it says a build step "will look for the build step and not find one". Renaming
+those arguments to `_` to make the config green would have buried three questions,
+so they are named in `eslint.config.mjs` and here, and `tools/` gets its own change.
+
 ### 2026-09-29 - Eleven API paths a library declared and the application never served
 
 `lib/creator-music-system-config.cjs` declared sixteen paths. Five were

@@ -148,7 +148,12 @@ describe("keeping the browsers that agreed", () => {
 
   describe("notifying", () => {
     const subscribers = [
-      { id: "a", endpoint: "https://push.example.net/a", ...VALID, endpoint: "https://push.example.net/a" },
+      // `endpoint` was written twice with `...VALID` between them, and VALID
+      // carries its own endpoint, so the leading one was dead and deleting the
+      // trailing one as redundant would have silently changed this subscriber's
+      // address to VALID's. Written once, after the spread, which is the value
+      // that has been running.
+      { id: "a", ...VALID, endpoint: "https://push.example.net/a" },
       { id: "b", endpoint: "https://push.example.net/b", p256dh: VALID.p256dh, auth: VALID.auth }
     ];
 

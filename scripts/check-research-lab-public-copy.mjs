@@ -20,7 +20,11 @@
 // licensor would quote back. AGENTS.md requires the register's limits to hold
 // in public copy, not just in the register.
 
-import { readFileSync, readdirSync } from "node:fs";
+// readFileSync only. `readdirSync` was imported and never called: the SURFACES
+// list below is named rather than globbed, and its comment says why -- "some file
+// somewhere" is a weaker statement than "these files". The import was the
+// residue of the approach that comment rejects.
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 

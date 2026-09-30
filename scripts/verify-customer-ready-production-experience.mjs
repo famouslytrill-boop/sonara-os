@@ -5,8 +5,6 @@ import path from "node:path";
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
-const packageJson = JSON.parse(read("package.json"));
-
 const migration = read("supabase/migrations/20260726093000_customer_workspace_bootstrap.sql");
 assert.match(migration, /sonara_bootstrap_customer_workspace/);
 assert.match(migration, /security definer/i);
