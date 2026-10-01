@@ -39,11 +39,13 @@ const {
   SELF_REPAIR_LEVELS,
   REFERENCE_REPOSITORIES,
   SHARED_BACKEND_SURFACES,
+  PRODUCT_WORKFLOW_CONTRACTS,
   backendReliabilityScore,
   retryDelayMs,
   sloBudgetState,
   repairAuthorityDecision,
   ragQualityScore,
+  evaluateProductWorkflowTransition,
   getBackendOperationsIntelligence
 } = require("../lib/sonara-backend-operations-intelligence-2026.cjs");
 const {
@@ -297,7 +299,7 @@ describe("September 19 platform pattern convergence", () => {
 
   it("keeps backend operations research non-executing, current, and repository-safe", () => {
     const backend = getBackendOperationsIntelligence();
-    assert.equal(BACKEND_RESEARCH_DATE, "2026-09-20");
+    assert.equal(BACKEND_RESEARCH_DATE, "2026-09-30");
     assert.equal(backend.researchOnly, true);
     assert.equal(backend.productionExecutionCount, 0);
     assert.equal(backend.installedRepositoryCount, 0);
@@ -306,6 +308,8 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(SELF_REPAIR_LEVELS.length, 6);
     assert.ok(REFERENCE_REPOSITORIES.length >= 8);
     assert.ok(SHARED_BACKEND_SURFACES.length >= 10);
+    assert.equal(Object.keys(PRODUCT_WORKFLOW_CONTRACTS).length, 3);
+    assert.equal(backend.productWorkflowContractCount, 3);
     assert.equal(REFERENCE_REPOSITORIES.filter((item) => item.installedByResearch).length, 0);
     assert.equal(REFERENCE_REPOSITORIES.filter((item) => item.enabledInProduction).length, 0);
     for (const signal of BACKEND_SIGNALS_2026) {
@@ -313,6 +317,41 @@ describe("September 19 platform pattern convergence", () => {
       assert.equal(signal.productionCapability, false);
       assert.ok(signal.sourceUrl.startsWith("https://"));
     }
+  });
+
+  it("requires product-specific evidence and approval before sensitive workflow transitions", () => {
+    assert.deepEqual(evaluateProductWorkflowTransition({
+      product: "Business Builder", from: "captured", to: "scoped"
+    }), {
+      allowed: false, reason: "required_evidence_missing", product: "Business Builder",
+      from: "captured", to: "scoped", missingEvidence: ["scope_record"]
+    });
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Creator Studio", from: "packaged", to: "published",
+      evidence: { provider_receipt: { id: "receipt-1" } }
+    }).reason, "owner_approval_required");
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Creator Studio", from: "packaged", to: "published",
+      evidence: {
+        provider_receipt: { id: "receipt-1" },
+        owner_approval: { approvalId: "approval-1", approvedBy: "owner-1", approved: true }
+      }
+    }).allowed, true);
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Growth Studio", from: "previewed", to: "dispatched",
+      evidence: { provider_receipt: { id: "receipt-2" } }
+    }).reason, "transition_not_allowed");
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Growth Studio", from: "approved", to: "dispatched",
+      evidence: { provider_receipt: { id: "receipt-2" } }
+    }).reason, "owner_approval_required");
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Growth Studio", from: "approved", to: "dispatched",
+      evidence: {
+        provider_receipt: { id: "receipt-2" },
+        owner_approval: { approvalId: "approval-2", approvedBy: "owner-1", approved: true }
+      }
+    }).allowed, true);
   });
 
   it("scores backend reliability, retry delay, SLO budget and RAG quality deterministically", () => {
