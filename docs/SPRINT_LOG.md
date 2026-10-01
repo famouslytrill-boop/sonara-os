@@ -2,6 +2,76 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
+
+Setting out to measure the Creator Studio gap for the project-graph work rather
+than assume it, `creator_export_packages` turned out to have no writer: the export
+step in briefs -> assets -> versions -> approvals -> exports -> publishing is a
+table nothing fills. Then the odd part. `pnpm run verify:orphan-tables` was green,
+and its own message is "tables created and never queried", so either the gate knew
+and had accounted for it, or the gate could not see it.
+
+It could not see it. `scripts/report-orphan-tables.mjs` keeps a list of files whose
+mention of a table must not count as usage -- the generated contracts, the
+capability inventory, the generators. `lib/sonara-ecosystem-manifest.cjs` was not
+on it, and it is a declarative map from a domain name to a list of table names.
+Neither was `lib/creator-music-system-config.cjs`, which holds a required-tables
+array and a table-name-to-label map. Naming a table in either made it read as
+queried.
+
+Adding both surfaced **twenty** more tables. The report had been saying "20 unused
+tables, all accounted for"; the true figure is 40. Shape 2 from
+`.claude/skills/checks-that-cannot-lie`: measuring a different population from the
+one claimed. It claims to find tables nothing queries and actually finds tables
+nothing mentions.
+
+**This is the second time this exact defect has been found in this one file.** Its
+own comments record the first: the scan counted a `.ts` file as usage and reported
+"0 tables created and never queried" while ten were. Same shape, different hiding
+place.
+
+Verified before trusting the number: five of the twenty were checked by hand
+(`sonara_platform_pages`, `music_tracks`, `employee_posts`,
+`reference_intelligence_sources`, `creator_voice_profiles`) and each is referenced
+only by the four ignored inventories, `data/capability-inventory.json`, and the
+ecosystem manifest -- no runtime reference of any kind.
+
+All twenty are recorded with `decision: "keep"`, and none of those notes
+recommends building anything. Dropping a table is the destructive change AGENTS.md
+puts behind owner approval, and whether each gets wired or retired is a product
+decision nobody has made, so each note says what was measured instead of asserting
+an intent. Four clusters came out of it, which are worth knowing as clusters: the
+migration-016 artist-system subtree is unreachable because nothing creates a
+`creator_artist_system`; the migration-012 music tables are unreachable because
+nothing creates a `music_track`; five `sonara_platform_*` tables are a
+site-builder model with no reader while `scroll_sites` is the one that ships; and
+`employee_posts` overlaps `employee_announcements`, which is the one the
+application reads.
+
+Both directions were broken to prove the gate works. Removing one disposition
+fails naming it. Reverting the ignore-list change while keeping the twenty entries
+fails with all twenty as "listed as never queried and now are queried" -- which
+also proves the ignore-list change is the load-bearing part rather than
+decoration. Restores were copy-aside plus `md5sum -c`.
+
+### What this says about the Creator Project Graph
+
+The chain the owner asked for is further from existing than the table count
+suggests. 28 `creator_*` tables exist, and of the chain: there is no brief table
+(`creator_production_notes` is closest and is unread), no version lineage on
+`creator_assets` at all, no approval workflow (Growth Studio and the Prompt
+Library each have one, Creator Studio has none), and exports are an unwritten
+table. AI-generated-content disclosure exists at generation time --
+`lib/sonara-generation-provenance.cjs` renders `generated`, `rights_attested` and
+`consent_attested` from `creator_generation_assets` -- and stops there, because
+the rows it would travel into are never written.
+
+Also noted, not changed: `creator_assets.organization_id` is nullable. RLS is on
+with a service-role-only policy and every read filters by organization, so a null
+row is an orphan rather than a leak -- but it is a tenant column that can be
+absent, which newer tables assert against.
+
+
 ### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
 
 `entity_agent_tool_registry` has had `enabled boolean not null default false` and

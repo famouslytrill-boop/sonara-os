@@ -58,8 +58,8 @@
     "openApiApiOperationCount": 307,
     "databaseTableCount": 335,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 315,
-    "neverQueriedTableCount": 20,
+    "queriedTableCount": 295,
+    "neverQueriedTableCount": 40,
     "migrationCount": 140,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
@@ -179515,9 +179515,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. The root of the artist-system tree that creator_song_blueprints, creator_prompt_packs and creator_export_packages hang off. Nothing creates one, so the whole subtree is unreachable from the running application."
+      }
     },
     {
       "id": "table:creator_assets",
@@ -179757,9 +179761,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. package_type, package_name, export_data jsonb, file_manifest jsonb. The export step in the Creator Studio chain, and nothing writes it -- so an export leaves no record, and the AI-generation provenance recorded at generation time has nowhere to travel to."
+      }
     },
     {
       "id": "table:creator_follows",
@@ -180513,9 +180521,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Influence references for an artist system. Reachable only through creator_artist_systems, which nothing creates."
+      }
     },
     {
       "id": "table:creator_narrative_arcs",
@@ -180653,9 +180665,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Narrative structure for an artist system. Same unreachable subtree."
+      }
     },
     {
       "id": "table:creator_production_notes",
@@ -180761,9 +180777,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. The closest thing in this schema to a creative brief, and nothing reads or writes it."
+      }
     },
     {
       "id": "table:creator_profiles",
@@ -182111,9 +182131,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Sections of a song blueprint. Same unreachable subtree."
+      }
     },
     {
       "id": "table:creator_sonic_profiles",
@@ -183005,9 +183029,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Distinct from creator_voice_consents, which IS queried: consent is enforced, while the profile is stored by nothing that runs."
+      }
     },
     {
       "id": "table:customer_invoice_lines",
@@ -184100,9 +184128,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. DAW export settings. No route reads or writes it."
+      }
     },
     {
       "id": "table:daw_sessions",
@@ -185154,9 +185186,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "employee-operations",
+        "decision": "keep",
+        "note": "An internal noticeboard. employee_announcements is the one the running application reads; this has no reader and the two overlap in purpose, so wiring it would need a decision about which is the real one."
+      }
     },
     {
       "id": "table:employee_profiles",
@@ -199444,9 +199480,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. A per-organization provider list, which AGENTS.md routes through Provider Gateway instead; nothing queries this table."
+      }
     },
     {
       "id": "table:music_projects",
@@ -199783,9 +199823,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. Stems belonging to a music_track, and nothing creates a track."
+      }
     },
     {
       "id": "table:music_tracks",
@@ -199897,9 +199941,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. Nothing creates one, so music_stems and the analysis tables below it are unreachable too."
+      }
     },
     {
       "id": "table:notification_preferences",
@@ -204956,9 +205004,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "reference-intelligence",
+        "decision": "keep",
+        "note": "Migration 20260722201600. Actions derived from a reference intelligence insight, and nothing produces an insight."
+      }
     },
     {
       "id": "table:reference_intelligence_insights",
@@ -205093,9 +205145,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "reference-intelligence",
+        "decision": "keep",
+        "note": "Migration 20260722201600. Nothing writes it, so the actions table above is unreachable."
+      }
     },
     {
       "id": "table:reference_intelligence_sources",
@@ -205254,9 +205310,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "reference-intelligence",
+        "decision": "keep",
+        "note": "Migration 20260722201600. The intake end of a pipeline whose other two tables are also unread."
+      }
     },
     {
       "id": "table:release_plans",
@@ -208920,9 +208980,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. The app/module/page/template/publication set is a site-builder model with no reader; sonara_platforms itself is queried, these five are not."
+      }
     },
     {
       "id": "table:sonara_platform_modules",
@@ -209067,9 +209131,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model."
+      }
     },
     {
       "id": "table:sonara_platform_pages",
@@ -209246,9 +209314,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model. Cinematic scroll sites ship through scroll_sites instead, which is queried."
+      }
     },
     {
       "id": "table:sonara_platform_publications",
@@ -209355,9 +209427,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model."
+      }
     },
     {
       "id": "table:sonara_platform_templates",
@@ -209484,9 +209560,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model."
+      }
     },
     {
       "id": "table:sonara_platforms",

@@ -43,6 +43,29 @@ const INVENTORIES = [
   "lib/sonara-tenant-scoped-tables.cjs",
   "lib/sonara-member-read-policies.cjs",
   "lib/sonara-orphan-tables.cjs",
+  // Added 1 October 2026, and they were suppressing half of this report.
+  //
+  // Both are declarative: `sonara-ecosystem-manifest.cjs` maps a domain name to a
+  // list of table names, and `creator-music-system-config.cjs` holds a
+  // required-tables array plus a table-name-to-label map. Neither issues a query.
+  // But neither was on this list, so naming a table in one made it read as used,
+  // and `node scripts/report-orphan-tables.mjs --check` reported "20 unused
+  // tables, all accounted for" while the true figure was 40.
+  //
+  // Measured by adding them here: twenty tables surfaced, each referenced ONLY by
+  // the four inventories above, `data/capability-inventory.json`, and
+  // `sonara-ecosystem-manifest.cjs`. Spot-checked five by hand
+  // (sonara_platform_pages, music_tracks, employee_posts,
+  // reference_intelligence_sources, creator_voice_profiles): no runtime reference
+  // of any kind.
+  //
+  // This is the second time this exact defect has been found here. The comment
+  // below records the first: the scan counted a .ts file as usage and reported
+  // "0 tables created and never queried" while ten were. Same shape, different
+  // hiding place -- a measure that claims to find tables nothing queries while
+  // actually finding tables nothing mentions.
+  "lib/sonara-ecosystem-manifest.cjs",
+  "lib/creator-music-system-config.cjs",
   // The capability map lists every active table and its migrations for
   // reference. Like the other generated contracts, that inventory is not a
   // runtime query and must not make an unused table appear in use.

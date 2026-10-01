@@ -103,11 +103,83 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 416 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 417 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
+
+Setting out to measure the Creator Studio gap for the project-graph work rather
+than assume it, `creator_export_packages` turned out to have no writer: the export
+step in briefs -> assets -> versions -> approvals -> exports -> publishing is a
+table nothing fills. Then the odd part. `pnpm run verify:orphan-tables` was green,
+and its own message is "tables created and never queried", so either the gate knew
+and had accounted for it, or the gate could not see it.
+
+It could not see it. `scripts/report-orphan-tables.mjs` keeps a list of files whose
+mention of a table must not count as usage -- the generated contracts, the
+capability inventory, the generators. `lib/sonara-ecosystem-manifest.cjs` was not
+on it, and it is a declarative map from a domain name to a list of table names.
+Neither was `lib/creator-music-system-config.cjs`, which holds a required-tables
+array and a table-name-to-label map. Naming a table in either made it read as
+queried.
+
+Adding both surfaced **twenty** more tables. The report had been saying "20 unused
+tables, all accounted for"; the true figure is 40. Shape 2 from
+`.claude/skills/checks-that-cannot-lie`: measuring a different population from the
+one claimed. It claims to find tables nothing queries and actually finds tables
+nothing mentions.
+
+**This is the second time this exact defect has been found in this one file.** Its
+own comments record the first: the scan counted a `.ts` file as usage and reported
+"0 tables created and never queried" while ten were. Same shape, different hiding
+place.
+
+Verified before trusting the number: five of the twenty were checked by hand
+(`sonara_platform_pages`, `music_tracks`, `employee_posts`,
+`reference_intelligence_sources`, `creator_voice_profiles`) and each is referenced
+only by the four ignored inventories, `data/capability-inventory.json`, and the
+ecosystem manifest -- no runtime reference of any kind.
+
+All twenty are recorded with `decision: "keep"`, and none of those notes
+recommends building anything. Dropping a table is the destructive change AGENTS.md
+puts behind owner approval, and whether each gets wired or retired is a product
+decision nobody has made, so each note says what was measured instead of asserting
+an intent. Four clusters came out of it, which are worth knowing as clusters: the
+migration-016 artist-system subtree is unreachable because nothing creates a
+`creator_artist_system`; the migration-012 music tables are unreachable because
+nothing creates a `music_track`; five `sonara_platform_*` tables are a
+site-builder model with no reader while `scroll_sites` is the one that ships; and
+`employee_posts` overlaps `employee_announcements`, which is the one the
+application reads.
+
+Both directions were broken to prove the gate works. Removing one disposition
+fails naming it. Reverting the ignore-list change while keeping the twenty entries
+fails with all twenty as "listed as never queried and now are queried" -- which
+also proves the ignore-list change is the load-bearing part rather than
+decoration. Restores were copy-aside plus `md5sum -c`.
+
+### What this says about the Creator Project Graph
+
+The chain the owner asked for is further from existing than the table count
+suggests. 28 `creator_*` tables exist, and of the chain: there is no brief table
+(`creator_production_notes` is closest and is unread), no version lineage on
+`creator_assets` at all, no approval workflow (Growth Studio and the Prompt
+Library each have one, Creator Studio has none), and exports are an unwritten
+table. AI-generated-content disclosure exists at generation time --
+`lib/sonara-generation-provenance.cjs` renders `generated`, `rights_attested` and
+`consent_attested` from `creator_generation_assets` -- and stops there, because
+the rows it would travel into are never written.
+
+Also noted, not changed: `creator_assets.organization_id` is nullable. RLS is on
+with a service-role-only policy and every read filters by organization, so a null
+row is an orphan rather than a leak -- but it is a tenant column that can be
+absent, which newer tables assert against.
+
+
+
 
 ### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
 
@@ -2126,80 +2198,3 @@ ignores `namespace`, `handleSts` destructures `store` and never uses it, and
 it says a build step "will look for the build step and not find one". Renaming
 those arguments to `_` to make the config green would have buried three questions,
 so they are named in `eslint.config.mjs` and here, and `tools/` gets its own change.
-
-
-
-### 2026-09-29 - Eleven API paths a library declared and the application never served
-
-`lib/creator-music-system-config.cjs` declared sixteen paths. Five were
-registered. The other eleven -- `/api/creator/artist-systems`,
-`/api/creator/voice-profiles`, `/api/creator/influence-maps`,
-`/api/creator/narrative-arcs`, `/api/creator/song-blueprints`,
-`/api/creator/song-sections`, `/api/creator/production-notes`,
-`/api/creator/prompt-packs`, `/api/creator/release-packages`,
-`/api/creator/quality-checks`, `/api/creator/export-packages` -- were registered
-nowhere, by no route and no library. `public/creator-music-system.js` called all
-eleven, `/creator-studio/music-system/new` told the customer to use that helper
-"with the Creator Studio API routes to save real records", and the music system
-home page showed eleven cards reading "Ready for saved records."
-
-Nothing saved a record. The eleven tables are real: migration 020 creates each
-with row-level security and they are in the database contract. No code reads or
-writes one.
-
-**What was removed.** The eleven declarations, the helper file, the
-`<script src="/creator-music-system.js">` tag in `basicLayout`, the sentence on
-the create page, and the eleven cards -- replaced by one card that names the
-eleven record areas and says the schema exists and saving is not built. That is
-the withdrawal of a claim, not a decision never to build it. The build pattern,
-for whoever does: `RESOURCES` in `lib/sonara-module-crud.cjs` plus
-`buildDomainModuleRecord` in `lib/sonara-module-records.cjs`, which is how the
-three resources that do persist are wired. Note that adding a `RESOURCES` entry
-also registers a redirect to `/<product-slug>/<resource>`, so that page has to
-exist or the fix reintroduces a dead path.
-
-**The gate, and the third instance.** This is the same shape as the fourteen
-Creator Studio row controls and the three unreachable media rules: a declaration
-is what made the capability look present.
-`scripts/report-declared-api-paths-nothing-serves.mjs` is registered as
-`verify:declared-api-paths` and fails on an `/api` path any file in `lib/`
-declares that the running application does not serve, unless it is recorded with
-a reason. Two-sided, like `report-orphan-tables.mjs`: an exemption naming a path
-that is now served, or that no library declares any more, fails as well.
-
-**It asks the application rather than reading the source, and that is the whole
-design.** The first version compared string literals in `server.js` and
-`routes/` against string literals in `lib/`, and reported seventy-four unserved
-paths. About seventy were wrong. The Business Builder record pages register in a
-loop -- `app.post(page.api, ...)` -- so the path never sits next to a verb as a
-literal, and a scan of literals measures the routes somebody typed out while
-reporting them as the routes the application answers. The served set is now
-walked off the Express router stack of the real app.
-
-Four more of the seventy-four were real routes under a different parameter name:
-the page table declares `/api/business/quotes/:id/invoice` and the server
-registers `/api/business/quotes/:quoteId/invoice`. Express matches by position,
-so `:anything` compares as `:`. That is the only loosening, and it was worth
-four false findings.
-
-Eight paths are recorded as deliberately not served, each reason confirmed by
-opening the file: `/api/` is a `startsWith` prefix test in two modules;
-`/api/business/time-entries` is the time-clock page's resource key, looked up by
-`pageForApi()` and `RESOURCE_MAP`, with the real work at `/start` and `/stop` and
-`form.action` set so no rendered form posts to it; and six are upstream endpoints
-this application calls outward -- Open WebUI, Ollama, two Ollama/OpenAI probe
-paths, a Hugging Face model URL, and RAGFlow.
-
-**Falsified four ways before being trusted.** Reintroducing one declaration
-failed naming `/api/creator/artist-systems` and the file that declared it. An
-exemption for `/api/creator/music-projects`, which is served, failed as a stale
-reason. An exemption for a path no library mentions failed as covering nothing.
-Emptying the `lib/` scan printed `BLIND: only 0 declared /api paths found (floor
-50)` and refused to report a pass rather than passing on an empty list. Both
-files were restored from copies and checked byte-identical with `md5sum -c`.
-
-Chain length 63 to 64. `docs/owner/WHAT-IS-LEFT.md` and
-`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` carry the derived count;
-`fix:doc-counts` repaired the second. `docs/manual-wire-creator-music-system.md`
-described the deleted helper as "connects forms ... once the write APIs are
-wired" and told the reader to run `npm`; both are corrected.
