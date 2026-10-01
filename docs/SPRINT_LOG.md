@@ -2,6 +2,99 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - Six tools stay free, thirty-four need a plan
+
+Asked to reduce the free tools and put the rest behind the paywall.
+
+Forty tools are registered at runtime -- fifteen Business Builder, thirteen
+Creator Studio, twelve Growth Studio, counted from `app.locals.sonaraFreeTools`
+rather than from the route registry, where a commented-out path had already made
+a regex say forty-one.
+
+### Which six, and why it is not a list somebody picked
+
+Exactly six tool paths are named on the public home page, under the heading
+"Free, and no account needed" and the sentence "no account, no card": break-even
+and runway, stock reorder, rate card, split sheet, campaign budget split, and
+referral reward. Those six stay free. The free set is therefore a consequence of
+what SONARA already says in public, and
+`tests/a-locked-tool-is-never-advertised-as-free.test.js` reads `server.js`,
+extracts every tool path the home page links, and fails if that set and
+`lib/sonara-tool-access.cjs` differ **in either direction**. Change one without
+the other and it says so.
+
+### The failure this had to avoid, which is on the record
+
+`routes/sonara-service-lifecycle-routes.cjs` carried a comment explaining why
+the tools were free: until 19 August 2026 they were all behind a login while
+`/business-builder/tools` listed ten of them by name and description, so the
+funnel advertised and then refused. Gating the computation drove a bounce, not a
+signup.
+
+The pricing decision is the owner's. That funnel failure is not, so it is held
+in code instead:
+
+* a locked tool answers **200 with a page** naming it, saying what it works out
+  and what opens it -- never a redirect, never a 404;
+* the three directories label every entry, locked ones shown rather than hidden,
+  because hiding them makes the product look smaller than it is;
+* the paywall runs **before** the field check on POST, so a locked tool is not
+  reported as a badly filled form and does not disclose which inputs it wants.
+
+### Copy that would have become false
+
+Four claims had to move, and finding them was most of the work:
+
+* the free plan's own description said "the free tools in all three studios";
+* `/free-tools` named individual tools -- the pricing calculator, the setup
+  score, the content brief -- that are now behind a plan;
+* each product's start page listed every tool under the heading "Free tools";
+* the home page's "All ... tools" links sat under "Free, and no account needed".
+
+A test asserts the first two directly: the free plan must not promise the tools
+in all three studios, and `/free-tools` must name no locked tool's title.
+
+One of my own new sentences was caught by an existing check rather than by me:
+`no-page-lies-when-the-database-is-down` flagged the phrase "nothing here" on
+`/free-tools` as an empty-state claim about a customer's records. Reworded rather
+than exempted -- an exemption would have been the wrong fix for prose.
+
+### A test mock that had been granting one product of three
+
+`tests/every-tool-result-page-survives-an-outage.test.js` posts to every tool
+with a stubbed Supabase. Its billing stub echoed back the **first** entitlement
+key the request asked for, and for Creator Studio and Growth Studio that is
+`workspace_monthly` -- a choose-one-workspace plan, which opens nothing unless
+its metadata names the workspace. So the stub granted Business Builder and
+silently granted neither of the other two.
+
+That cost nothing while every tool was free. The moment thirty-four moved behind
+a plan, twenty-five tools looked broken and the stub was what was incomplete. It
+now prefers an `all_three_` key. The same correction, with the same reason, went
+into `saas-platform-upgrade`, where it also had to stay **out** of the shared
+customer mock: one case there is specifically about a customer with no
+membership, and answering the membership read for everybody made that case green
+against the state it exists to rule out.
+
+### Verified
+
+5,217 tests, `verify:gates`, lint, typecheck, build, `smoke:routes`, `verify:db`,
+`test:docs`, `scan:client-secrets`. Seven breaks, each watched fail by name:
+
+| Broken                                        | Test that went red                                         |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| Freed every tool                               | frees some tools but not all of them, +2                   |
+| Locked a tool the home page advertises         | matches exactly the tools the public home page links       |
+| Answered a locked tool with 404                | answers a locked tool with a page that names it            |
+| Hid locked tools from the directory            | all three directory cases, +1                              |
+| Validated fields before the paywall            | refuses a locked tool before it checks the fields, +1      |
+| Made a locked tool 404 (smoke)                 | a tool behind the paywall answered 404                     |
+| Locked the free tool too (smoke)               | a free tool answered as if it were locked                  |
+
+The first of those is worth a note: freeing everything leaves the
+"answers a locked tool" case green, because an empty locked set iterates zero
+times. It is caught by the population guard beside it, which is why that guard
+is there.
 ### 2026-10-01 - A comment should not change what a report measures
 
 Found while adding a JSDoc block to `server.js` for an unrelated feature: the

@@ -1859,7 +1859,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1451
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -1967,7 +1967,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 808
+        "line": 812
       },
       "contractCompleteness": {
         "route": true,
@@ -2075,7 +2075,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 965
+        "line": 969
       },
       "contractCompleteness": {
         "route": true,
@@ -2181,7 +2181,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -2287,7 +2287,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -2401,7 +2401,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1155
+        "line": 1159
       },
       "contractCompleteness": {
         "route": true,
@@ -3465,7 +3465,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1172
+        "line": 1176
       },
       "contractCompleteness": {
         "route": true,
@@ -3682,7 +3682,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1289
+        "line": 1293
       },
       "contractCompleteness": {
         "route": true,
@@ -4689,7 +4689,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1440
+        "line": 1444
       },
       "contractCompleteness": {
         "route": true,
@@ -5012,7 +5012,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1439
+        "line": 1443
       },
       "contractCompleteness": {
         "route": true,
@@ -5574,7 +5574,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1438
+        "line": 1442
       },
       "contractCompleteness": {
         "route": true,
@@ -15766,7 +15766,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1252
+        "line": 1256
       },
       "contractCompleteness": {
         "route": true,
@@ -16246,7 +16246,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1482
+        "line": 1486
       },
       "contractCompleteness": {
         "route": true,
@@ -16808,7 +16808,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1481
+        "line": 1485
       },
       "contractCompleteness": {
         "route": true,
@@ -22493,7 +22493,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1506
+        "line": 1510
       },
       "contractCompleteness": {
         "route": true,
@@ -23055,7 +23055,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1505
+        "line": 1509
       },
       "contractCompleteness": {
         "route": true,
@@ -26212,7 +26212,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1528
+        "line": 1532
       },
       "contractCompleteness": {
         "route": true,
@@ -30813,7 +30813,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1536
+        "line": 1540
       },
       "contractCompleteness": {
         "route": true,
@@ -31780,7 +31780,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 917
+        "line": 921
       },
       "contractCompleteness": {
         "route": true,
@@ -31897,7 +31897,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1238
+        "line": 1242
       },
       "contractCompleteness": {
         "route": true,
@@ -32013,7 +32013,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1125
+        "line": 1129
       },
       "contractCompleteness": {
         "route": true,
@@ -32121,7 +32121,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1099
+        "line": 1103
       },
       "contractCompleteness": {
         "route": true,
@@ -32229,7 +32229,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1085
+        "line": 1089
       },
       "contractCompleteness": {
         "route": true,
@@ -32341,7 +32341,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1319
+        "line": 1323
       },
       "contractCompleteness": {
         "route": true,
@@ -32731,7 +32731,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1674
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -32839,7 +32839,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -33226,7 +33226,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1321
+        "line": 1325
       },
       "contractCompleteness": {
         "route": true,
@@ -33830,7 +33830,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 200
+        "line": 202
       },
       "contractCompleteness": {
         "route": true,
@@ -33938,7 +33938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -34224,7 +34224,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -34332,7 +34332,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1688
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -34428,7 +34428,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1687
+        "line": 1802
       },
       "contractCompleteness": {
         "route": true,
@@ -34701,7 +34701,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1360
+        "line": 1364
       },
       "contractCompleteness": {
         "route": true,
@@ -34809,7 +34809,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -34915,7 +34915,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1722
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -35009,7 +35009,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1790
+        "line": 1905
       },
       "contractCompleteness": {
         "route": true,
@@ -35117,7 +35117,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1390
+        "line": 1394
       },
       "contractCompleteness": {
         "route": true,
@@ -35225,7 +35225,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -35333,7 +35333,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -35427,7 +35427,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1790
+        "line": 1905
       },
       "contractCompleteness": {
         "route": true,
@@ -35535,7 +35535,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1343
+        "line": 1347
       },
       "contractCompleteness": {
         "route": true,
@@ -35733,7 +35733,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -35841,7 +35841,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -35949,7 +35949,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -59905,7 +59905,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -60355,7 +60355,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -60463,7 +60463,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -60571,7 +60571,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -60667,7 +60667,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1718
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -60856,7 +60856,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1586
+        "line": 1677
       },
       "contractCompleteness": {
         "route": true,
@@ -60952,7 +60952,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1702
+        "line": 1817
       },
       "contractCompleteness": {
         "route": true,
@@ -61303,7 +61303,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1611
+        "line": 1709
       },
       "contractCompleteness": {
         "route": true,
@@ -61358,12 +61358,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61401,7 +61406,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -61456,12 +61461,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61499,7 +61509,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -61554,12 +61564,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61597,7 +61612,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -61652,12 +61667,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61695,7 +61715,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -61750,12 +61770,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61793,7 +61818,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -61848,12 +61873,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61891,7 +61921,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -61946,12 +61976,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -61989,7 +62024,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62044,12 +62079,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62087,7 +62127,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62142,12 +62182,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62185,7 +62230,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62240,12 +62285,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62283,7 +62333,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62338,12 +62388,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62381,7 +62436,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62436,12 +62491,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62479,7 +62539,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62534,12 +62594,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62577,7 +62642,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62632,12 +62697,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62675,7 +62745,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -62730,12 +62800,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -62773,7 +62848,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -63053,7 +63128,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1790
+        "line": 1905
       },
       "contractCompleteness": {
         "route": true,
@@ -63364,7 +63439,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 872
+        "line": 876
       },
       "contractCompleteness": {
         "route": true,
@@ -63470,7 +63545,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -63578,7 +63653,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1674
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -64765,7 +64840,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -65163,7 +65238,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -65455,7 +65530,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -65563,7 +65638,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -65659,7 +65734,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1761
+        "line": 1876
       },
       "contractCompleteness": {
         "route": true,
@@ -65767,7 +65842,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1688
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -65863,7 +65938,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1687
+        "line": 1802
       },
       "contractCompleteness": {
         "route": true,
@@ -67671,7 +67746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -67779,7 +67854,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -67977,7 +68052,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -68085,7 +68160,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -69134,7 +69209,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -69242,7 +69317,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70119,7 +70194,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -70227,7 +70302,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70335,7 +70410,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70431,7 +70506,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1718
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -71242,7 +71317,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -71898,7 +71973,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1586
+        "line": 1677
       },
       "contractCompleteness": {
         "route": true,
@@ -72083,7 +72158,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1702
+        "line": 1817
       },
       "contractCompleteness": {
         "route": true,
@@ -72266,7 +72341,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1611
+        "line": 1709
       },
       "contractCompleteness": {
         "route": true,
@@ -72321,12 +72396,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72364,7 +72444,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -72419,12 +72499,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72462,7 +72547,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -72517,12 +72602,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72560,7 +72650,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -72615,12 +72705,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72658,7 +72753,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -72713,12 +72808,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72756,7 +72856,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -72811,12 +72911,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72854,7 +72959,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -72909,12 +73014,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -72952,7 +73062,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -73007,12 +73117,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -73050,7 +73165,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -73105,12 +73220,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -73148,7 +73268,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -73203,12 +73323,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -73246,7 +73371,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -73301,12 +73426,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -73344,7 +73474,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -73399,12 +73529,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -73442,7 +73577,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -73497,12 +73632,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -73540,7 +73680,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -74839,7 +74979,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1197
+        "line": 1201
       },
       "contractCompleteness": {
         "route": true,
@@ -74937,7 +75077,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1453
+        "line": 1544
       },
       "contractCompleteness": {
         "route": true,
@@ -75036,7 +75176,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1020
+        "line": 1024
       },
       "contractCompleteness": {
         "route": true,
@@ -75142,7 +75282,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -75313,7 +75453,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1546
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -75761,7 +75901,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1674
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -75869,7 +76009,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -76454,7 +76594,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -76550,7 +76690,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 200
+        "line": 202
       },
       "contractCompleteness": {
         "route": true,
@@ -76658,7 +76798,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -76842,7 +76982,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1761
+        "line": 1876
       },
       "contractCompleteness": {
         "route": true,
@@ -77478,7 +77618,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1688
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -77574,7 +77714,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1687
+        "line": 1802
       },
       "contractCompleteness": {
         "route": true,
@@ -77858,7 +77998,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -77966,7 +78106,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78164,7 +78304,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -78398,7 +78538,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78596,7 +78736,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -78704,7 +78844,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -79920,7 +80060,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -80028,7 +80168,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -80124,7 +80264,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1718
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -80320,7 +80460,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -80416,7 +80556,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1586
+        "line": 1677
       },
       "contractCompleteness": {
         "route": true,
@@ -80512,7 +80652,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1702
+        "line": 1817
       },
       "contractCompleteness": {
         "route": true,
@@ -80695,7 +80835,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1611
+        "line": 1709
       },
       "contractCompleteness": {
         "route": true,
@@ -80750,12 +80890,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -80793,7 +80938,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -80848,12 +80993,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -80891,7 +81041,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -80946,12 +81096,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -80989,7 +81144,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81044,12 +81199,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81087,7 +81247,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81142,12 +81302,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81185,7 +81350,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81240,12 +81405,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81283,7 +81453,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81338,12 +81508,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81381,7 +81556,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81436,12 +81611,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81479,7 +81659,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81534,12 +81714,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81577,7 +81762,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81632,12 +81817,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81675,7 +81865,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81730,12 +81920,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81773,7 +81968,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -81828,12 +82023,17 @@
       },
       "response": {
         "kinds": [
+          "json",
           "send"
         ],
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -81871,7 +82071,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "contractCompleteness": {
         "route": true,
@@ -82327,7 +82527,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1002
+        "line": 1006
       },
       "contractCompleteness": {
         "route": true,
@@ -82671,7 +82871,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1088
+        "line": 1179
       },
       "contractCompleteness": {
         "route": true,
@@ -82768,7 +82968,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -82865,7 +83065,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -82962,7 +83162,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83059,7 +83259,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83156,7 +83356,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83253,7 +83453,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83350,7 +83550,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83447,7 +83647,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83544,7 +83744,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83641,7 +83841,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83738,7 +83938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83835,7 +84035,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83932,7 +84132,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84029,7 +84229,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84139,7 +84339,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1071
+        "line": 1075
       },
       "contractCompleteness": {
         "route": true,
@@ -84321,7 +84521,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1134
+        "line": 1138
       },
       "contractCompleteness": {
         "route": true,
@@ -84420,7 +84620,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1553
       },
       "contractCompleteness": {
         "route": true,
@@ -84787,7 +84987,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1566
       },
       "contractCompleteness": {
         "route": true,
@@ -84884,7 +85084,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1546
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -85309,7 +85509,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 927
+        "line": 931
       },
       "contractCompleteness": {
         "route": true,
@@ -85415,7 +85615,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -86185,7 +86385,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1070
+        "line": 1161
       },
       "contractCompleteness": {
         "route": true,
@@ -86291,7 +86491,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -86389,7 +86589,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1210
+        "line": 1301
       },
       "contractCompleteness": {
         "route": true,
@@ -86484,7 +86684,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1289
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -86581,7 +86781,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1546
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -88135,7 +88335,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 984
+        "line": 988
       },
       "contractCompleteness": {
         "route": true,
@@ -88231,7 +88431,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 200
+        "line": 202
       },
       "contractCompleteness": {
         "route": true,
@@ -88336,7 +88536,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1300
+        "line": 1304
       },
       "contractCompleteness": {
         "route": true,
@@ -88827,7 +89027,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1075
+        "line": 1079
       },
       "contractCompleteness": {
         "route": true,
@@ -89796,7 +89996,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 985
+        "line": 1076
       },
       "contractCompleteness": {
         "route": true,
@@ -89893,7 +90093,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -90029,7 +90229,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1539
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -90220,7 +90420,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -90317,7 +90517,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1546
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -91738,7 +91938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1446
+        "line": 1450
       },
       "contractCompleteness": {
         "route": true,
@@ -94377,7 +94577,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1185
+        "line": 1189
       },
       "contractCompleteness": {
         "route": true,
@@ -96119,7 +96319,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1257
+        "line": 1261
       },
       "contractCompleteness": {
         "route": true,
@@ -96474,7 +96674,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1263
       },
       "contractCompleteness": {
         "route": true,
@@ -98961,7 +99161,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1441
+        "line": 1445
       },
       "contractCompleteness": {
         "route": true,
@@ -99239,7 +99439,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1379
+        "line": 1383
       },
       "contractCompleteness": {
         "route": true,
@@ -99793,7 +99993,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1427
+        "line": 1431
       },
       "contractCompleteness": {
         "route": true,
@@ -100330,7 +100530,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1414
+        "line": 1418
       },
       "contractCompleteness": {
         "route": true,
@@ -119085,7 +119285,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1256
+        "line": 1260
       },
       "contractCompleteness": {
         "route": true,
@@ -120307,7 +120507,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1457
+        "line": 1461
       },
       "contractCompleteness": {
         "route": true,
@@ -121409,7 +121609,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1470
+        "line": 1474
       },
       "contractCompleteness": {
         "route": true,
@@ -127119,7 +127319,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1484
+        "line": 1488
       },
       "contractCompleteness": {
         "route": true,
@@ -128512,7 +128712,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1493
+        "line": 1497
       },
       "contractCompleteness": {
         "route": true,
@@ -139823,7 +140023,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1386
+        "line": 1477
       },
       "contractCompleteness": {
         "route": true,
@@ -140936,7 +141136,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1113
+        "line": 1117
       },
       "contractCompleteness": {
         "route": true,
@@ -141038,7 +141238,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1149
+        "line": 1153
       },
       "contractCompleteness": {
         "route": true,
@@ -141234,7 +141434,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1079
+        "line": 1083
       },
       "contractCompleteness": {
         "route": true,
@@ -141725,7 +141925,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1403
+        "line": 1407
       },
       "contractCompleteness": {
         "route": true,
@@ -159272,9 +159472,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159312,7 +159517,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159360,9 +159565,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159400,7 +159610,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159448,9 +159658,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159488,7 +159703,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159536,9 +159751,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159576,7 +159796,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159624,9 +159844,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159664,7 +159889,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159712,9 +159937,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159752,7 +159982,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159800,9 +160030,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159840,7 +160075,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159888,9 +160123,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -159928,7 +160168,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -159976,9 +160216,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160016,7 +160261,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -160064,9 +160309,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160104,7 +160354,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -160152,9 +160402,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160192,7 +160447,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -160240,9 +160495,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160280,7 +160540,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -160328,9 +160588,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160368,7 +160633,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -160416,9 +160681,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160456,7 +160726,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -160504,9 +160774,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -160544,7 +160819,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -161034,7 +161309,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 886
+        "line": 890
       },
       "contractCompleteness": {
         "route": true,
@@ -164643,9 +164918,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -164683,7 +164963,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -164731,9 +165011,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -164771,7 +165056,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -164819,9 +165104,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -164859,7 +165149,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -164907,9 +165197,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -164947,7 +165242,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -164995,9 +165290,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165035,7 +165335,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165083,9 +165383,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165123,7 +165428,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165171,9 +165476,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165211,7 +165521,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165259,9 +165569,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165299,7 +165614,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165347,9 +165662,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165387,7 +165707,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165435,9 +165755,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165475,7 +165800,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165523,9 +165848,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165563,7 +165893,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165611,9 +165941,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165651,7 +165986,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -165699,9 +166034,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -165739,7 +166079,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166329,9 +166669,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166369,7 +166714,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166417,9 +166762,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166457,7 +166807,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166505,9 +166855,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166545,7 +166900,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166593,9 +166948,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166633,7 +166993,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166681,9 +167041,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166721,7 +167086,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166769,9 +167134,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166809,7 +167179,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166857,9 +167227,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166897,7 +167272,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -166945,9 +167320,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -166985,7 +167365,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -167033,9 +167413,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -167073,7 +167458,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -167121,9 +167506,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -167161,7 +167551,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -167209,9 +167599,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -167249,7 +167644,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -167297,9 +167692,14 @@
           "send"
         ],
         "statusCodes": [
+          200,
           400
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "tool"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
@@ -167337,7 +167737,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -167602,7 +168002,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1143
+        "line": 1147
       },
       "contractCompleteness": {
         "route": true,
@@ -168745,7 +169145,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1124
+        "line": 1215
       },
       "contractCompleteness": {
         "route": true,
@@ -168848,7 +169248,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1561
+        "line": 1652
       },
       "contractCompleteness": {
         "route": true,
@@ -252722,7 +253122,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1155
+        "line": 1159
       },
       "destination": {
         "route": "/account",
@@ -253017,7 +253417,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1172
+        "line": 1176
       },
       "destination": {
         "route": "/account/setup",
@@ -253112,7 +253512,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1289
+        "line": 1293
       },
       "destination": {
         "route": "/dashboard",
@@ -253234,7 +253634,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1252
+        "line": 1256
       },
       "destination": {
         "route": "/dashboard",
@@ -253878,7 +254278,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 917
+        "line": 921
       },
       "destination": {
         "route": "/dashboard",
@@ -253931,7 +254331,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -254033,7 +254433,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 200
+        "line": 202
       },
       "destination": {
         "route": "/business-builder/catalog",
@@ -254074,7 +254474,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -254127,7 +254527,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -254180,7 +254580,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1688
+        "line": 1692
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -254233,7 +254633,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1687
+        "line": 1802
       },
       "destination": {
         "route": "/business-builder/deliverables",
@@ -254274,7 +254674,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/help",
@@ -254327,7 +254727,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1722
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/intake",
@@ -254380,7 +254780,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1790
+        "line": 1905
       },
       "destination": {
         "route": "/business-builder/inventory",
@@ -254421,7 +254821,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1390
+        "line": 1394
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -254474,7 +254874,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -254527,7 +254927,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1790
+        "line": 1905
       },
       "destination": {
         "route": "/business-builder/locations",
@@ -254568,7 +254968,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1343
+        "line": 1347
       },
       "destination": {
         "route": "/business-builder/login",
@@ -254656,7 +255056,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -254709,7 +255109,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -254762,7 +255162,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -255294,7 +255694,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -255379,7 +255779,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -255432,7 +255832,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/records",
@@ -255485,7 +255885,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -255538,7 +255938,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1718
+        "line": 1833
       },
       "destination": {
         "route": "/business-builder/requests",
@@ -255617,7 +256017,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1586
+        "line": 1677
       },
       "destination": {
         "route": "/business-builder/start",
@@ -255658,7 +256058,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1702
+        "line": 1817
       },
       "destination": {
         "route": "/business-builder/support",
@@ -255729,7 +256129,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1611
+        "line": 1709
       },
       "destination": {
         "route": "/business-builder/tools",
@@ -255770,7 +256170,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/break-even",
@@ -255803,6 +256203,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -255813,7 +256214,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/customer-record",
@@ -255846,6 +256247,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -255856,7 +256258,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/demand-forecast",
@@ -255889,6 +256291,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -255899,7 +256302,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/duplicate-customers",
@@ -255932,6 +256335,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -255942,7 +256346,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/offer",
@@ -255975,6 +256379,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -255985,7 +256390,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/package",
@@ -256018,6 +256423,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256028,7 +256434,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/payment-plan",
@@ -256061,6 +256467,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256071,7 +256478,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/price-rise",
@@ -256104,6 +256511,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256114,7 +256522,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/quiet-months",
@@ -256147,6 +256555,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256157,7 +256566,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/readiness",
@@ -256190,6 +256599,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256200,7 +256610,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/reorder-point",
@@ -256233,6 +256643,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256243,7 +256654,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/rota",
@@ -256276,6 +256687,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256286,7 +256698,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/software-spend",
@@ -256319,6 +256731,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256329,7 +256742,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/business-builder/tools/stop-order",
@@ -256362,6 +256775,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -256448,7 +256862,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1790
+        "line": 1905
       },
       "destination": {
         "route": "/business-builder/vendors",
@@ -256524,7 +256938,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -256615,7 +257029,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -256668,7 +257082,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -256721,7 +257135,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1761
+        "line": 1876
       },
       "destination": {
         "route": "/creator-studio/content",
@@ -256762,7 +257176,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1688
+        "line": 1692
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -256815,7 +257229,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1687
+        "line": 1802
       },
       "destination": {
         "route": "/creator-studio/deliverables",
@@ -257026,7 +257440,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -257114,7 +257528,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -257167,7 +257581,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -257324,7 +257738,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -257377,7 +257791,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -257462,7 +257876,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -257515,7 +257929,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -257568,7 +257982,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -257621,7 +258035,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1718
+        "line": 1833
       },
       "destination": {
         "route": "/creator-studio/requests",
@@ -257729,7 +258143,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -257782,7 +258196,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1586
+        "line": 1677
       },
       "destination": {
         "route": "/creator-studio/start",
@@ -257857,7 +258271,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1702
+        "line": 1817
       },
       "destination": {
         "route": "/creator-studio/support",
@@ -257928,7 +258342,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1611
+        "line": 1709
       },
       "destination": {
         "route": "/creator-studio/tools",
@@ -257969,7 +258383,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/brief",
@@ -258002,6 +258416,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258012,7 +258427,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/content-plan",
@@ -258045,6 +258460,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258055,7 +258471,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/deal-memo",
@@ -258088,6 +258504,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258098,7 +258515,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/late-payment",
@@ -258131,6 +258548,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258141,7 +258559,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/media-placements",
@@ -258174,6 +258592,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258184,7 +258603,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/music-blueprint",
@@ -258217,6 +258636,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258227,7 +258647,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/profile",
@@ -258260,6 +258680,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258270,7 +258691,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/rate-card",
@@ -258303,6 +258724,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258313,7 +258735,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/release-checklist",
@@ -258346,6 +258768,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258356,7 +258779,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/repurpose",
@@ -258389,6 +258812,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258399,7 +258823,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/rights-expiry",
@@ -258432,6 +258856,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258442,7 +258867,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/split-sheet",
@@ -258475,6 +258900,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258485,7 +258911,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/creator-studio/tools/storyboard",
@@ -258518,6 +258944,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -258592,7 +259019,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1453
+        "line": 1544
       },
       "destination": {
         "route": "/deliverables",
@@ -258671,7 +259098,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -258825,7 +259252,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 200
+        "line": 202
       },
       "destination": {
         "route": "/growth-studio/catalog",
@@ -258866,7 +259293,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -258952,7 +259379,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1761
+        "line": 1876
       },
       "destination": {
         "route": "/growth-studio/content",
@@ -259059,7 +259486,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1688
+        "line": 1692
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -259112,7 +259539,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1687
+        "line": 1802
       },
       "destination": {
         "route": "/growth-studio/deliverables",
@@ -259219,7 +259646,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -259272,7 +259699,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -259395,7 +259822,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -259448,7 +259875,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -259599,7 +260026,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -259652,7 +260079,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -259705,7 +260132,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1718
+        "line": 1833
       },
       "destination": {
         "route": "/growth-studio/requests",
@@ -259779,7 +260206,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1735
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -259832,7 +260259,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1586
+        "line": 1677
       },
       "destination": {
         "route": "/growth-studio/start",
@@ -259873,7 +260300,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1702
+        "line": 1817
       },
       "destination": {
         "route": "/growth-studio/support",
@@ -259944,7 +260371,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1611
+        "line": 1709
       },
       "destination": {
         "route": "/growth-studio/tools",
@@ -259985,7 +260412,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/budget-split",
@@ -260018,6 +260445,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260028,7 +260456,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/campaign",
@@ -260061,6 +260489,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260071,7 +260500,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/follow-up-schedule",
@@ -260104,6 +260533,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260114,7 +260544,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/goal-tracker",
@@ -260147,6 +260577,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260157,7 +260588,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/kpi",
@@ -260190,6 +260621,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260200,7 +260632,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/lead-followup",
@@ -260233,6 +260665,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260243,7 +260676,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/offer-angles",
@@ -260276,6 +260709,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260286,7 +260720,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/readiness",
@@ -260319,6 +260753,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260329,7 +260764,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/referral",
@@ -260362,6 +260797,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260372,7 +260808,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/referral-source",
@@ -260405,6 +260841,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260415,7 +260852,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/response-time",
@@ -260448,6 +260885,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260458,7 +260896,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 879
+        "line": 955
       },
       "destination": {
         "route": "/growth-studio/tools/review-recency",
@@ -260491,6 +260929,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
+        "json",
         "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
@@ -260605,7 +261044,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1071
+        "line": 1075
       },
       "destination": {
         "route": "/login",
@@ -260727,7 +261166,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1210
+        "line": 1301
       },
       "destination": {
         "route": "/requests",
@@ -260806,7 +261245,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1075
+        "line": 1079
       },
       "destination": {
         "route": "/signup",
@@ -261726,7 +262165,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1113
+        "line": 1117
       },
       "destination": {
         "route": "/auth/login",
@@ -261783,7 +262222,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1149
+        "line": 1153
       },
       "destination": {
         "route": "/logout",
@@ -261877,7 +262316,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1079
+        "line": 1083
       },
       "destination": {
         "route": "/auth/signup",
@@ -262153,7 +262592,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/break-even",
@@ -262195,7 +262634,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/customer-record",
@@ -262237,7 +262676,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/demand-forecast",
@@ -262279,7 +262718,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/duplicate-customers",
@@ -262321,7 +262760,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/offer",
@@ -262363,7 +262802,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/package",
@@ -262405,7 +262844,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/payment-plan",
@@ -262447,7 +262886,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/price-rise",
@@ -262489,7 +262928,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/pricing",
@@ -262531,7 +262970,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/quiet-months",
@@ -262573,7 +263012,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/reorder-point",
@@ -262615,7 +263054,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/rota",
@@ -262657,7 +263096,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/software-spend",
@@ -262699,7 +263138,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/business-builder/tools/stop-order",
@@ -262741,7 +263180,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/brief",
@@ -262783,7 +263222,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/content-plan",
@@ -262825,7 +263264,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/deal-memo",
@@ -262867,7 +263306,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/late-payment",
@@ -262909,7 +263348,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/media-placements",
@@ -262951,7 +263390,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/music-blueprint",
@@ -262993,7 +263432,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/profile",
@@ -263035,7 +263474,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/rate-card",
@@ -263077,7 +263516,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/release-checklist",
@@ -263119,7 +263558,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/repurpose",
@@ -263161,7 +263600,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/rights-expiry",
@@ -263203,7 +263642,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/split-sheet",
@@ -263245,7 +263684,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/creator-studio/tools/storyboard",
@@ -263287,7 +263726,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/budget-split",
@@ -263329,7 +263768,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/campaign",
@@ -263371,7 +263810,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/follow-up-schedule",
@@ -263413,7 +263852,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/goal-tracker",
@@ -263455,7 +263894,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/kpi",
@@ -263497,7 +263936,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/lead-followup",
@@ -263539,7 +263978,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/offer-angles",
@@ -263581,7 +264020,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/referral",
@@ -263623,7 +264062,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/referral-source",
@@ -263665,7 +264104,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/response-time",
@@ -263707,7 +264146,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 950
+        "line": 1033
       },
       "destination": {
         "route": "/growth-studio/tools/review-recency",
@@ -263812,7 +264251,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1143
+        "line": 1147
       },
       "destination": {
         "route": "/logout",
@@ -264174,7 +264613,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1561
+        "line": 1652
       },
       "destination": {
         "route": "/support",
@@ -264224,7 +264663,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1289
+        "line": 1293
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264294,7 +264733,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1252
+        "line": 1256
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264304,7 +264743,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1482
+        "line": 1486
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264314,7 +264753,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1506
+        "line": 1510
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264354,7 +264793,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1528
+        "line": 1532
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264564,7 +265003,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 917
+        "line": 921
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265034,7 +265473,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1386
+        "line": 1477
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
