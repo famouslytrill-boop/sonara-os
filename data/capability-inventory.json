@@ -97,14 +97,14 @@
     "businessAISkillCount": 10,
     "openSourceRegisterCount": 269,
     "requestedRepositoryCount": 10,
-    "screenshotRadarRepositoryRecordCount": 148,
-    "screenshotRadarBatchCount": 15,
+    "screenshotRadarRepositoryRecordCount": 153,
+    "screenshotRadarBatchCount": 16,
     "githubRadarRepositoryCount": 15,
-    "repositoryRecordCountAcrossCatalogs": 502,
+    "repositoryRecordCountAcrossCatalogs": 507,
     "otherReferenceCatalogRecordCount": 25,
-    "catalogEntryCountAcrossAllRegistries": 527,
+    "catalogEntryCountAcrossAllRegistries": 532,
     "repositoryRecordsEnabledInProduction": 0,
-    "researchOrReferenceRepositoryRecordCount": 264,
+    "researchOrReferenceRepositoryRecordCount": 269,
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
@@ -7723,7 +7723,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 317
+        "line": 325
       },
       "contractCompleteness": {
         "route": true,
@@ -8446,7 +8446,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 266
+        "line": 274
       },
       "contractCompleteness": {
         "route": true,
@@ -11833,7 +11833,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 261
+        "line": 269
       },
       "contractCompleteness": {
         "route": true,
@@ -29347,7 +29347,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 121
+        "line": 129
       },
       "contractCompleteness": {
         "route": true,
@@ -29544,7 +29544,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 125
+        "line": 133
       },
       "contractCompleteness": {
         "route": true,
@@ -96010,7 +96010,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 213
+        "line": 221
       },
       "contractCompleteness": {
         "route": true,
@@ -96161,7 +96161,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 147
+        "line": 155
       },
       "contractCompleteness": {
         "route": true,
@@ -252478,6 +252478,108 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:paymenter_hosting_billing",
+        "name": "Paymenter hosting billing platform",
+        "repository": "Paymenter/Paymenter",
+        "repoUrl": "https://github.com/Paymenter/Paymenter",
+        "status": "reference_only",
+        "license": "MIT for repository code; verify dependency, extension, and any separately supplied assets or services before reuse",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Business Builder",
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:jspaint_pixel_editor",
+        "name": "JS Paint browser drawing application",
+        "repository": "1j01/jspaint",
+        "repoUrl": "https://github.com/1j01/jspaint",
+        "status": "reference_only",
+        "license": "MIT for repository code (LICENSE.txt); third-party assets and Microsoft Paint names/trade dress are not granted by that license",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:ossu_computer_science_curriculum",
+        "name": "Open Source Society University computer-science curriculum",
+        "repository": "ossu/computer-science",
+        "repoUrl": "https://github.com/ossu/computer-science",
+        "status": "reference_only",
+        "license": "MIT for the repository's own curriculum organization and code; linked courseware, textbooks, videos, and services retain their own terms",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:awesome_ai_games_directory",
+        "name": "Awesome AI Games repository directory",
+        "repository": "AgentsLoop/awesome-opus-5.5-games",
+        "repoUrl": "https://github.com/AgentsLoop/awesome-opus-5.5-games",
+        "status": "reference_only_no_license",
+        "license": "NONE DECLARED in the repository root at review; listed game repositories and their assets have separate owners and licenses",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:slowmist_blockchain_security_handbook",
+        "name": "SlowMist blockchain self-guard handbook",
+        "repository": "slowmist/Blockchain-dark-forest-selfguard-handbook",
+        "repoUrl": "https://github.com/slowmist/Blockchain-dark-forest-selfguard-handbook",
+        "status": "reference_only_no_license",
+        "license": "NONE DECLARED in the repository root at review; handbook text, translations, diagrams, and PDFs are not cleared for reuse",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:GrowthBook",
         "name": "GrowthBook",
         "repository": "growthbook/growthbook",
@@ -259603,6 +259705,108 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:paymenter_hosting_billing",
+        "name": "Paymenter hosting billing platform",
+        "repository": "Paymenter/Paymenter",
+        "repoUrl": "https://github.com/Paymenter/Paymenter",
+        "status": "reference_only",
+        "license": "MIT for repository code; verify dependency, extension, and any separately supplied assets or services before reuse",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Business Builder",
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:jspaint_pixel_editor",
+        "name": "JS Paint browser drawing application",
+        "repository": "1j01/jspaint",
+        "repoUrl": "https://github.com/1j01/jspaint",
+        "status": "reference_only",
+        "license": "MIT for repository code (LICENSE.txt); third-party assets and Microsoft Paint names/trade dress are not granted by that license",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:ossu_computer_science_curriculum",
+        "name": "Open Source Society University computer-science curriculum",
+        "repository": "ossu/computer-science",
+        "repoUrl": "https://github.com/ossu/computer-science",
+        "status": "reference_only",
+        "license": "MIT for the repository's own curriculum organization and code; linked courseware, textbooks, videos, and services retain their own terms",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:awesome_ai_games_directory",
+        "name": "Awesome AI Games repository directory",
+        "repository": "AgentsLoop/awesome-opus-5.5-games",
+        "repoUrl": "https://github.com/AgentsLoop/awesome-opus-5.5-games",
+        "status": "reference_only_no_license",
+        "license": "NONE DECLARED in the repository root at review; listed game repositories and their assets have separate owners and licenses",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch21.cjs:slowmist_blockchain_security_handbook",
+        "name": "SlowMist blockchain self-guard handbook",
+        "repository": "slowmist/Blockchain-dark-forest-selfguard-handbook",
+        "repoUrl": "https://github.com/slowmist/Blockchain-dark-forest-selfguard-handbook",
+        "status": "reference_only_no_license",
+        "license": "NONE DECLARED in the repository root at review; handbook text, translations, diagrams, and PDFs are not cleared for reuse",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "batch": "screenshot_batch_21",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:Documenso",
         "name": "Documenso",
         "repository": "documenso/documenso",
@@ -260382,9 +260586,9 @@
       "needs_security_review": 4,
       "optional_adapter_after_review": 67,
       "quarantined_reference": 1,
-      "reference_only": 125,
+      "reference_only": 128,
       "reference_only_license_gated": 12,
-      "reference_only_no_license": 3,
+      "reference_only_no_license": 5,
       "research_only": 109,
       "research_only_license_gated": 3,
       "research_only_pre1": 1,
@@ -260513,6 +260717,12 @@
         "id": "screenshot_radar_batch_20",
         "batch": 20,
         "source": "lib/sonara-screenshot-tool-radar-batch20.cjs",
+        "entryCount": 5
+      },
+      {
+        "id": "screenshot_radar_batch_21",
+        "batch": 21,
+        "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
         "entryCount": 5
       },
       {
@@ -263990,7 +264200,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 121
+        "line": 129
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -264019,7 +264229,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 125
+        "line": 133
       },
       "destination": {
         "route": "/research-lab/requested-repositories",

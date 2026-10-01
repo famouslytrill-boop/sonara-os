@@ -25,9 +25,9 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | Deterministic formulas with evaluators | 47 / 47 |
 | Local developer skills / agent strategies | 12 / 14 |
 | Agent patterns / business AI skill groups / schedules / handlers | 5 / 10 / 5 / 6 |
-| Reviewed repository records across catalogs | 502 |
+| Reviewed repository records across catalogs | 507 |
 | Other tool/AI catalog entries / enabled repo records | 25 / 0 |
-| Research/reference-only repository records | 264 |
+| Research/reference-only repository records | 269 |
 | Infrastructure services / pipeline layers / expansion tracks | 16 / 16 / 20 |
 
 ## How to use the inventory
