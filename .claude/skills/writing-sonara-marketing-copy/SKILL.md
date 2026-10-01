@@ -96,12 +96,31 @@ surface, which is worse than no guard, because a green check reads as a covered
 risk. If you add copy on a new surface, the check does not automatically follow
 it there.
 
-## The other three checks that read copy
+## The other two checks that read copy
 
-- `scripts/check-public-claims.mjs` — general overclaiming.
 - `scripts/check-growth-studio-copy.mjs` — Growth Studio's own description.
 - `scripts/report-stale-claims.mjs` — every document making a dated claim must
   carry a review date, and nothing may be past it.
+
+**General overclaiming is not machine-checked, and that is a deliberate
+finding rather than an omission.** This list named
+`scripts/check-public-claims.mjs` for it until 30 September 2026. Nothing ran
+that script and it could not run — its scan root was a Next.js `app/` directory
+this repository does not have, so it died with `ENOENT` before reading a file.
+
+It was deleted rather than repaired, because the measurement says the approach
+does not work here. Its fourteen blocked phrases — "guaranteed revenue",
+"legal advice", "medical diagnosis" and the rest — match **23 times** across the
+359 files of the real copy population, and every one of those is a *disclaimer*:
+"SONARA does not publish … guaranteed revenue", "it is not legal advice", "No
+free tool replaces … qualified legal advice". The old script tried to allow for
+that by looking for a disclaimer fragment anywhere in the same file, which is
+why one disclaimer excused every blocked phrase in it.
+
+So there is no gate standing behind this paragraph, and you should not write as
+though there were. Overclaiming in customer copy is caught by a person reading
+it — which is the same situation as before, minus a sentence that said
+otherwise.
 
 That last one is why market and pricing documents open with `Review by:`. A
 figure without a date is a figure that is wrong later and looks right forever.

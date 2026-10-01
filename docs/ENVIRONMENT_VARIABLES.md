@@ -33,7 +33,7 @@ Configure these only in server-side hosting environment variables:
 - `STRIPE_WEBHOOK_SECRET`
 - `OPENAI_API_KEY`
 - `HF_TOKEN`
-- `SONARA_CRON_SECRET`
+- `SONARA_SCHEDULE_TICK_SECRET`
 - `FOUNDER_EMAILS`, `ADMIN_EMAILS`, `ADMIN_EMAIL`
 - `OPENCLAW_GATEWAY_TOKEN`
 - `N8N_API_KEY`
