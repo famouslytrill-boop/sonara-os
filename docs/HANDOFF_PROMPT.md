@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 139 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 413 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 414 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,112 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 22 most recent entries of 413 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 414 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - The autonomy breaker had never evaluated anything
+
+Asked to build the agent control plane: tool permissions, approvals, limits,
+evaluations, redacted telemetry, evidence history. Three of those six were already
+built and building them again would have duplicated working code -- approvals is
+`lib/sonara-agent-authority.cjs` plus the queue and `/owner/agent-activity`,
+evidence history is `agent_action_logs` and `createActionHistoryReader`, and
+redacted telemetry is `lib/sonara-redaction.cjs` applied in the action log and the
+queue. The gaps were limits, tool permissions and evaluations.
+
+Checking the first one found something worse than a gap.
+
+### The gate was wired to nothing, and silently
+
+`evaluateAutonomyBreaker` demotes an agent whose recent unattended runs keep
+failing. `createActionHistoryReader` reads those runs out of `agent_action_logs`.
+**Nothing called the reader.** `routes/sonara-agent-activity-routes.cjs` built its
+runner with `record` and `publishEvent` and no `readHistory`; the assistant routes
+passed neither. So on every unattended run the breaker received `null`, returned
+`unavailable`, left the classification untouched, and the action ran.
+
+It said nothing while doing it. The degraded report was guarded on
+`typeof readHistory === "function"` -- the one condition that is false precisely
+when the check is unwired. Proven by building the runner exactly as the route does
+and running a real self-serve action: `breaker: "unavailable"`, `limit:
+"unavailable"`, `requiresOwnerApproval: false`, `status: "completed"`, **events
+emitted: none**.
+
+Every test for the breaker had been passing throughout, because every one of them
+injected `readHistory` straight into `createRunner`. The gate was proven to work
+when given history and nothing asserted the application gives it any. A gate nobody
+connected is indistinguishable from a gate that keeps passing.
+
+`tests/the-autonomy-breaker-is-actually-connected.test.js` is the difference: it
+drives the real Express route with a database stub that answers the history read,
+and nothing in it injects a reader. Removing the one wiring line turns **seven** of
+its tests red, including the three that assert the read happens at all. The
+unwired case now reports `no_history_reader` instead of nothing, told apart from
+`history_unreadable` so a deployment gap and a broken read are different lines.
+
+### created_at was fetched on every run and read by nothing
+
+The reader selected `result, created_at`, ordered by `created_at`, and then dropped
+it in the map that built the rows. Shape 3 from the skill, in a safety path: a
+value fetched into a decision and never used. `report-unused-selected-columns.mjs`
+rated it **advisory**, because `order=created_at.desc` -- and a comment -- count as
+the column being "named elsewhere in the file".
+
+What the drop cost: the breaker could only count by row order, so three failures
+from six months ago still demoted an organization today, while fifty runs in a
+minute with two failures tripped nothing. The row window is deliberate and stays
+("3 of the last 10 failed" is a sentence an owner can check); what it could not do
+alone is tell "recently unreliable" from "was unreliable once, long ago, and has
+barely run since". `BREAKER_RECENCY_DAYS = 30` is that bound, written down as a
+**relaxation**, with the owner's sentence naming the window. Rows with no timestamp
+still count, so the gate cannot go quiet by losing its dates.
+
+### The limit the control plane was missing
+
+`lib/sonara-agent-limits.cjs` answers the question the breaker cannot. An agent
+whose every run succeeds can loop ten thousand times and the breaker stays green,
+because nothing failed. Sixty unattended runs an hour per agent, twenty of any one
+action, counted off the history read that was already happening -- **no new table
+and no second query**, because `agent_action_logs` is already the evidence history,
+already organization-scoped and already indexed on `(organization_id, created_at
+desc)`.
+
+Over the cap, the action is demoted to owner approval, which lands it in
+`agent_pending_actions` and on `/owner/agent-activity` with its own category,
+`held_at_volume_limit`. Nothing is dropped: a runaway that vanished silently is the
+failure this prevents, not one to introduce. A demoted run records `approval_state:
+'pending'`, which the history read filters out, so the cap does not sustain itself
+once the runaway stops.
+
+Undated rows are **not** counted toward the cap, which is the opposite of the
+breaker's rule on the same input and deliberate: counting them would put two
+hundred rows inside one hour, demote every unattended action, and be an outage
+wearing a cap's clothing. The state goes to `unavailable` and says so instead.
+
+### Two weak checks of my own, both caught by breaking them
+
+The release-gate assertion built its row list **from** the cap constant, so raising
+the cap to 100,000 left it green -- it proved the code enforces whatever it
+declares, not that what it declares is a cap. The ranges are asserted separately
+now. And the eligibility rule for the degraded report was wrong on first write: it
+suppressed the line for a reader that was supplied and then failed, which two
+existing tests caught immediately. A supplied reader that breaks is always
+reported; only the unwired case is limited to tenant-scoped runs, so the
+deliberately process-scoped drafting runner stays quiet.
+
+### What is still a gap
+
+**Tool permissions** -- `entity_agent_tool_registry` is schema with no enforcement;
+nothing consults a per-tenant tool grant before a run. **Evaluations** --
+`agent_evaluation_runs` is a table name a constant points at. **The assistant
+routes** run organization-scoped unattended actions with no recorder and no reader,
+so they have no history to read and are now loud about it rather than silent; wiring
+them needs a decision about what `agent_key` those runs carry, which decides the
+breaker's population, and that is its own change rather than a rider on this one.
+
 
 ### 2026-10-01 - Work that comes round again, and a table queried for weeks with nothing checking it
 
@@ -2095,89 +2196,3 @@ rather than collapsing each comment to a space: a rule planted past a four-line
 block comment is reported at 2391 and really is on 2391.
 
 Verified: `verify:launch` exit 0, 63 chain commands.
-
-
-
-### 2026-09-28 - The navigation a laptop could not see, and three rules deciding it
-
-`.sonara-desktop-nav` was dropped by **three** separate media rules -- 1300px,
-1120px and 920px -- so the widest silently governed and the other two were dead
-code. The tool labels had the same shape at 1400px, 1120px and 1080px. Nothing
-in `tests/` or `scripts/` asserted any of the six widths.
-
-All of them carried one stated reason: the nav "has eight items". It renders
-**five** links signed out and **three** signed in. The reason had expired; the
-rule it justified had not. The cost was the entire primary navigation of a
-767-route application collapsing into a hamburger on every laptop from 920px to
-1300px, while the header had room to spare at every width in that band.
-
-Measured in Chromium, `document.fonts.ready` awaited so links are sized in Geist
-rather than a fallback -- without that wait the widths are a different font's:
-
-    nav + labelled tools    clean at 1040px, first clips at 1020px
-    nav + icon-only tools   clean at  840px, first clips at  830px
-
-So one rule each at the measured boundary with margin: labels 1080px, nav 920px.
-Verified across fourteen viewports -- nav returns at 930px instead of 1301px,
-labels at 1081px instead of 1401px, nothing clipped, nothing wrapped, no
-sideways scroll at any width, phone handover intact.
-
-Two tests in `browser-tests/public-experience.spec.js` hold it, asserting the
-**fit** rather than the width, so a future rule may move it while one that hides
-the navigation on a laptop or lets it clip fails. Falsified both ways: replanting
-the 1300px rule failed "the desktop nav is hidden at 1280px, which is an ordinary
-laptop" and that test alone; deleting the 920px handover failed "the desktop nav
-is still showing on a phone". Restored from a copy and confirmed with `md5sum -c`.
-
-**What not to rediscover.** A first detector of mine flagged wrapped nav links at
-1400px, where everything demonstrably fits -- a link-height heuristic tripping on
-ordinary padding, not a finding. Discarded rather than reported. Also: this
-container's Playwright browser build is 1194 while the locked `@playwright/test`
-wants 1243, so the runner cannot find a browser until the path is bridged
-locally; nothing in the repository needs changing for it.
-
-Asset cache token v14 -> v15 across all 31 occurrences, because a changed
-stylesheet served under the old token reaches nobody.
-
-Verified: `verify:launch` exit 0, 5,115 passing, 62 chain commands, 19 doc
-claims, 26 contrast pairs, 3 theme states agreeing.
-
-
-
-### 2026-09-27 - Every form submits somewhere, and the near-miss that scoped it
-
-`no-dead-links` follows every internal `href`. Nothing read the other half of
-the interactive surface: `<form action="...">`. A form naming a path with no
-handler for its method renders a button at full contrast that does nothing when
-clicked, and from outside is indistinguishable from a working feature.
-
-It survived every existing check for the same reason three times.
-`verify:route-surface` and `verify:route-registry` read **routes**, not pages,
-so a form pointing at a path that was never registered is not a route and
-neither direction can see it. `no-dead-links` matches `href="..."`; its own
-regex says so. `signed-in-workspace-crawl` asserts pages render, and a page
-renders perfectly well with a dead form in it.
-
-Measured 27 September 2026: 291 pages answered 200, 302 POST routes registered,
-141 distinct form targets -- 119 POST, 22 GET, **none dead**. So this was
-written over a clean application. It exists because 119 submit targets had
-nothing standing behind them, and "none are broken today" is a measurement with
-a date rather than a property.
-
-**The first falsification failed, and that is the useful part.** Planting a dead
-action on a row-action form in `growth-studio-control-routes.cjs` left the check
-green -- which looks exactly like a broken gate. It was not: the crawl stubs
-every table empty, so a form rendered once per row renders zero times and the
-planted form was never on a page. A second attempt against `/account/preferences`
-failed correctly, naming the dead path and the page submitting to it. Breaking
-the method regex fires the two-sided guard and reclassifies the 22 GET forms.
-Both subjects copied aside and restored with `md5sum -c`, never `git checkout --`.
-
-The scope proved is therefore every form present in the **empty state**, not
-row-level actions, which need a seeded crawl. That limit is in the test header
-as something established by breaking it rather than reasoned about.
-
-Verified: `verify:launch` exit 0, tests 5,111 -> 5,114.
-`tests/the-handoff-counts-what-mocha-runs.test.js` caught the addition first
-("the handoff says 391 test files; mocha's own spec matches 392"), which is that
-test doing its job; regenerating the handoff carried the count.

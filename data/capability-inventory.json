@@ -85089,7 +85089,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 448
+        "line": 464
       },
       "contractCompleteness": {
         "route": true,
@@ -85192,7 +85192,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 751
+        "line": 767
       },
       "contractCompleteness": {
         "route": true,
@@ -94622,7 +94622,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 705
+        "line": 721
       },
       "contractCompleteness": {
         "route": true,
@@ -94812,7 +94812,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 972
+        "line": 988
       },
       "contractCompleteness": {
         "route": true,
@@ -95099,7 +95099,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 648
+        "line": 664
       },
       "contractCompleteness": {
         "route": true,
@@ -95270,7 +95270,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 814
+        "line": 830
       },
       "contractCompleteness": {
         "route": true,
@@ -95430,7 +95430,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 849
+        "line": 865
       },
       "contractCompleteness": {
         "route": true,
@@ -95707,7 +95707,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 883
+        "line": 899
       },
       "contractCompleteness": {
         "route": true,
@@ -231422,7 +231422,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 448
+          "line": 464
         },
         "contractCompleteness": {
           "route": true,
@@ -231525,7 +231525,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 751
+          "line": 767
         },
         "contractCompleteness": {
           "route": true,
@@ -231803,7 +231803,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 705
+          "line": 721
         },
         "contractCompleteness": {
           "route": true,
@@ -231993,7 +231993,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 972
+          "line": 988
         },
         "contractCompleteness": {
           "route": true,
@@ -232280,7 +232280,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 648
+          "line": 664
         },
         "contractCompleteness": {
           "route": true,
@@ -232451,7 +232451,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 814
+          "line": 830
         },
         "contractCompleteness": {
           "route": true,
@@ -232611,7 +232611,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 849
+          "line": 865
         },
         "contractCompleteness": {
           "route": true,
@@ -232888,7 +232888,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 883
+          "line": 899
         },
         "contractCompleteness": {
           "route": true,
@@ -264939,7 +264939,7 @@
       "workspace": "business_builder_agent_ops",
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 883
+        "line": 899
       },
       "currentDestination": "/owner/agent-activity",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

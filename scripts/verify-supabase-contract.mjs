@@ -847,6 +847,60 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
   fail("a sensitive agent action executed without an approval record");
 }
 
+// The volume cap sits in front of the same decision, so it is held to the same
+// property as the breaker: it may escalate and it may never relax. A cap that
+// could turn a gated action into an ungated one would be a hole in the seven
+// categories rather than a limit on them, and it would be a hole that only shows
+// up under load -- which is when nobody is reading this file.
+const agentLimits = require(path.join(root, "lib", "sonara-agent-limits.cjs"));
+const gatedUnderLoad = agentLimits.evaluateVolumeLimit(
+  agentAuthority.classifyAction("issue_refund"),
+  { ok: true, rows: Array.from({ length: 500 }, () => ({ at: new Date().toISOString(), actionType: "issue_refund" })) },
+  { now: new Date(), actionType: "issue_refund" }
+);
+if (!gatedUnderLoad.requiresOwnerApproval) {
+  fail("the agent volume limit relaxed a gated action; it may only ever escalate");
+}
+if (gatedUnderLoad.category !== "refunds") {
+  fail(`the agent volume limit reclassified a refund as ${gatedUnderLoad.category}`);
+}
+// The numbers themselves, before anything built from them.
+//
+// The assertion below builds its row list FROM MAX_UNATTENDED_RUNS_PER_WINDOW, so
+// raising the constant raises the list too and the assertion passes at any value
+// -- it proves the code enforces whatever it declares, not that what it declares
+// is a cap. Found by raising the constant to 100,000 and watching the check stay
+// green, which is the shape this file is full of guards against.
+//
+// So the range is asserted separately. The floor is what makes it a cap at all;
+// the ceiling is what stops it being raised until it cannot be reached. Sized
+// against the product: the self-serve allowlist is read-and-report actions on
+// daily-to-monthly cadences, so legitimate use is single digits an hour.
+if (!(agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW >= 10 && agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW <= 500)) {
+  fail(`the unattended agent cap is ${agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW} runs per window, outside the 10-500 range that makes it a cap a runaway can reach`);
+}
+if (!(agentLimits.MAX_UNATTENDED_RUNS_PER_ACTION_PER_WINDOW >= 5
+  && agentLimits.MAX_UNATTENDED_RUNS_PER_ACTION_PER_WINDOW <= agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW)) {
+  fail(`the per-action cap is ${agentLimits.MAX_UNATTENDED_RUNS_PER_ACTION_PER_WINDOW}, which is not a tighter bound inside the overall cap`);
+}
+if (!(agentLimits.LIMIT_WINDOW_MINUTES >= 5 && agentLimits.LIMIT_WINDOW_MINUTES <= 1440)) {
+  fail(`the cap window is ${agentLimits.LIMIT_WINDOW_MINUTES} minutes, which is either too short to measure or too long to notice`);
+}
+if (!(agentAuthority.BREAKER_RECENCY_DAYS >= 7 && agentAuthority.BREAKER_RECENCY_DAYS <= 180)) {
+  fail(`failures stop counting after ${agentAuthority.BREAKER_RECENCY_DAYS} days, which either forgets a bad week or remembers one for ever`);
+}
+
+// And the other direction: a self-serve action past the cap must be held, or the
+// cap is a number nobody enforces.
+const selfServeUnderLoad = agentLimits.evaluateVolumeLimit(
+  agentAuthority.classifyAction(agentAuthority.SELF_SERVE_ACTIONS[0].action),
+  { ok: true, rows: Array.from({ length: agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW }, () => ({ at: new Date().toISOString() })) },
+  { now: new Date() }
+);
+if (!selfServeUnderLoad.requiresOwnerApproval || selfServeUnderLoad.limit !== "tripped") {
+  fail(`an unattended agent action at ${agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW} runs in the window was not held for the owner`);
+}
+
 if (!process.exitCode) {
   console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
@@ -861,6 +915,7 @@ if (!process.exitCode) {
   // person" is the rule that has to survive the day it changes.
   console.log(`Agent foundation verified as approval-gated with no runtime: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; records of runs, approvals and memory are read-only, schedules can start work but cannot approve it, and no gated action executes without an approval record.`);
   console.log(`Agent approval rule verified: ${agentAuthority.SENSITIVE_CATEGORY_NAMES.length} categories require owner approval, ${agentAuthority.SELF_SERVE_ACTIONS.length} actions may run unattended, and anything unrecognised goes to the owner.`);
+  console.log(`Agent limits verified: an unattended agent is held after ${agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW} runs in ${agentLimits.LIMIT_WINDOW_MINUTES} minutes or ${agentLimits.MAX_UNATTENDED_RUNS_PER_ACTION_PER_WINDOW} of one action, failures stop counting against it after ${agentAuthority.BREAKER_RECENCY_DAYS} days, and neither the cap nor the breaker can relax a gated action.`);
 }
 
 function verifyExtension(tables, sql, label) {

@@ -1596,6 +1596,7 @@ Schema-only/read-only subsystem groups: 9. See `lib/sonara-subsystem-registry.cj
 | .github/workflows/three-ws-presentation-prototype.yml | Infrastructure / delivery |
 | lib/sonara-agent-action-log.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-agent-authority.cjs | Governed runtime or registry; inspect before activation |
+| lib/sonara-agent-limits.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-agent-queue.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-agent-runner.cjs | Governed runtime or registry; inspect before activation |
 | lib/sonara-agent-schedule.cjs | Governed runtime or registry; inspect before activation |
