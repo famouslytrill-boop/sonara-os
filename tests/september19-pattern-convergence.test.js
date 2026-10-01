@@ -72,6 +72,8 @@ const {
   FRONTEND_VISUAL_VERSION,
   FRONTEND_MARKET_SIGNALS_2026,
   FRONTEND_MARKET_SIGNALS_PASS2_2026,
+  FRONTEND_COMPANY_PATTERN_GROUPS_2026,
+  FRONTEND_BRAND_KITS_2026,
   FRONTEND_REPOSITORY_REFERENCES,
   FRONTEND_REPOSITORY_REFERENCES_PASS2,
   FRONTEND_VISUAL_PRIMITIVES_PASS2,
@@ -83,6 +85,7 @@ const {
   spatialPresentationPolicy,
   getFrontendVisualIntelligence
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
+const { SONARA_BRAND_REGISTRY, getBrandProduct } = require("../lib/sonara-brand-registry.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -610,7 +613,7 @@ describe("September 19 platform pattern convergence", () => {
 
   it("keeps frontend pass-2 primitives and version explicit", () => {
     const frontend = getFrontendVisualIntelligence();
-    assert.equal(FRONTEND_VISUAL_VERSION, "1.1.0");
+    assert.equal(FRONTEND_VISUAL_VERSION, "1.2.0");
     assert.equal(frontend.version, FRONTEND_VISUAL_VERSION);
     assert.equal(frontend.visualPrimitiveCount, FRONTEND_VISUAL_PRIMITIVES_PASS2.length);
     assert.ok(FRONTEND_VISUAL_PRIMITIVES_PASS2.length >= 15);
@@ -648,7 +651,7 @@ describe("September 19 platform pattern convergence", () => {
 
   it("keeps frontend and visual research current, non-executing, and source-grounded", () => {
     const intelligence = getFrontendVisualIntelligence();
-    assert.equal(FRONTEND_VISUAL_SNAPSHOT_DATE, "2026-09-20");
+    assert.equal(FRONTEND_VISUAL_SNAPSHOT_DATE, "2026-09-30");
     assert.equal(intelligence.productionExecutionCount, 0);
     assert.equal(intelligence.researchOnly, true);
     assert.ok(FRONTEND_MARKET_SIGNALS_2026.length >= 15);
@@ -658,6 +661,36 @@ describe("September 19 platform pattern convergence", () => {
       assert.ok(signal.sourceUrl.startsWith("https://"));
       assert.ok(signal.asOf <= FRONTEND_VISUAL_SNAPSHOT_DATE);
     }
+    for (const signal of FRONTEND_MARKET_SIGNALS_PASS2_2026) {
+      assert.equal(signal.runtimeAuthority, "none");
+      assert.ok(signal.sourceUrl.startsWith("https://"));
+      assert.ok(signal.asOf <= FRONTEND_VISUAL_SNAPSHOT_DATE);
+    }
+  });
+
+  it("maps the requested public-company research into original SONARA brand kits", () => {
+    const intelligence = getFrontendVisualIntelligence();
+    const companies = new Set(FRONTEND_COMPANY_PATTERN_GROUPS_2026.flatMap((group) => group.companies));
+    for (const company of ["Marvel", "Rockstar Games", "DC", "Honda", "Epic Games / Fortnite", "TikTok", "Suno", "Activision / Call of Duty", "Meta", "Amazon", "Google", "Apple", "Ford", "Chevrolet", "Nintendo", "Walmart", "Netflix", "Vizio", "TCL", "PlayStation", "Reddit", "Uber", "Lyft", "quick-service restaurants", "Spotify", "Tesla", "SpaceX", "Airbnb", "Shopify", "Stripe", "Duolingo", "YouTube", "Xbox"]) {
+      assert.equal(companies.has(company), true, `missing research reference ${company}`);
+    }
+    assert.equal(intelligence.companyPatternGroupCount, FRONTEND_COMPANY_PATTERN_GROUPS_2026.length);
+    assert.equal(intelligence.brandKitCount, 5);
+    assert.deepEqual(intelligence.brandKits.products.map((item) => item.key), ["business_builder", "creator_studio", "growth_studio"]);
+    for (const item of intelligence.brandKits.products) {
+      const canonical = getBrandProduct(item.key);
+      assert.ok(canonical, `brand kit ${item.key} must map to a canonical product`);
+      assert.equal(item.name, canonical.name);
+      assert.equal(item.route, canonical.route);
+      assert.equal(item.dashboardRoute, canonical.dashboardRoute);
+      assert.equal(item.primaryRoute, canonical.primaryRoute);
+      assert.ok(item.logo.startsWith("/brand/"));
+    }
+    assert.equal(intelligence.brandKits.platform.name, SONARA_BRAND_REGISTRY.parent.platform);
+    assert.equal(intelligence.brandKits.platform.route, SONARA_BRAND_REGISTRY.publicRoutes.products);
+    assert.ok(intelligence.brandKits.sharedContracts.includes("Tenant-scoped server authorization and data access"));
+    assert.equal(intelligence.productionExecutionCount, 0);
+    assert.equal(FRONTEND_BRAND_KITS_2026.sourceUse.includes("Do not copy logos"), true);
   });
 
   it("maps the frontend research into task-specific surface archetypes", () => {
