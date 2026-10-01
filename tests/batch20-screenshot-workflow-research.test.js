@@ -102,7 +102,7 @@ describe("Batch 20 screenshot research and workflow integration", () => {
 
     const latest = await request(app).get("/research-lab/latest-screenshot-intake");
     assert.equal(latest.status, 200);
-    assert.match(latest.text, /through Batch 20/i);
+    assert.match(latest.text, /through Batch 21/i);
     assert.match(latest.text, /Formula processing remains paused/i);
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
     for (const extension of ARCHITECTURE_EXTENSIONS_BATCH20) assert.match(latest.text, new RegExp(extension.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
@@ -119,7 +119,7 @@ describe("Batch 20 screenshot research and workflow integration", () => {
     assert.ok(strategies.body.strategies.some((item) => item.key === "governed_product_workflow_design"));
 
     const convergence = getUnifiedBatchConvergence();
-    assert.equal(convergence.latestBatch, 20);
+    assert.equal(convergence.latestBatch, 21);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 20 && item.repositoryRecords === 5));
     assert.ok(convergence.repositories.some((item) => item.repository === "invoke-ai/InvokeAI" && item.seenInBatches.includes(20)));
     assert.equal(convergence.counts.productionExecutionAdded, 0);
