@@ -84,12 +84,6 @@
       "reason": "browser storage key name, not a credential"
     },
     {
-      "file": "scripts/security-scan-plan.mjs",
-      "rule": "generic-api-key",
-      "lineSha256": "3aee3240710b558cf61fba9e17e21695a124de31bdd408c4e51e84bd37794c63",
-      "reason": "security-scan prose, not a credential"
-    },
-    {
       "file": "supabase/applied-migration-checksums.json",
       "rule": "generic-api-key",
       "lineSha256": "c257cb6d4ea897082b97e6b32ccfa12692726e97c54ba0bcbefe1ce9ae6d561f",

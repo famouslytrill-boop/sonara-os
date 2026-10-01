@@ -21,7 +21,12 @@ green light over the problem.
 Every check added this way should be recorded in `docs/SPRINT_LOG.md` with what
 was broken to prove it works.
 
-## The ten shapes, each with the case that produced it
+## The shapes, each with the case that produced it
+
+Twelve. This heading said "the ten shapes" while eleven were listed below it --
+a small instance of the thing the file is about: a count contradicted by the text
+directly underneath it. It is now written without a number, because the number is
+the part that goes stale.
 
 ### 1. Passing by measuring nothing
 
@@ -299,6 +304,54 @@ windowed to a date range rather than a whole table, and both recorded in
 `docs/SPRINT_LOG.md` with the reasoning, including which of the two is worth
 watching and what its failure would look like. A site examined and not fixed is
 a finding; a site examined and not written down gets examined again.
+
+### 12. A register that names what it excuses, inside another check's population
+
+**Shape 7's guard does not catch this one, which is why it is listed separately.**
+Shape 7 is a pattern matching prose, and its fix is to strip comments. This is a
+pattern matching *code*: a two-sided register is an `Object.freeze({...})` of
+string literals, and string literals survive comment stripping by design.
+
+Four instances on 30 September 2026, in one change, across three gates:
+
+| what was written | what read it as a use |
+| --- | --- |
+| a comment explaining that nothing runs a script | `verify:unreferenced-scripts` called that script reachable |
+| `OPERATOR_TOOLS`, listing five scripts run by hand | the same gate called all five reachable, then failed its own register as stale |
+| a register note quoting an `includes()` call on a table name | `verify:orphan-tables` called the table queried again |
+| a register note naming a PowerShell scanner among a deleted script's requirements | `verify:unreferenced-scripts` called that operator tool reachable |
+
+The first is ordinary shape 7. **The other three are not:** they were code, and two
+were written into the very entry documenting the instance before.
+
+The cause is structural rather than careless. `scripts/` is inside the searched
+population of `verify:orphan-tables`, `verify:unreferenced-scripts`,
+`verify:unreferenced-modules` and others, so a register that lives in `scripts/`
+and names a table, a variable or a file is, to those gates, a use of it.
+
+**Guard, in three parts:**
+
+1. **Exclude your own source from your own population.**
+   `report-unreferenced-modules.mjs` has done this since it was written:
+   `.filter((file) => file !== fileURLToPath(import.meta.url))`. Copy that line; it
+   is the one-gate half of the problem.
+2. **For the cross-gate half, describe rather than spell.** A note saying "an
+   `includes()` check on an ops migration file" costs nothing and cannot be read as
+   a query. Spelling the identifier inside quotes is what turns a note into a use.
+   Where a name must appear, say in the note that it is deliberately not spelled and
+   why, so the next reader does not helpfully put it back.
+3. **Prefer reading the ledger to holding a copy.** `verify:retired-names` blocks
+   six names and spells none of them, because it reads them from
+   `docs/archive/legacy-names.md`. A gate holding no copy of what it forbids has
+   nothing to exempt itself from, which is the only version of this that cannot
+   regress.
+
+The general rule, which also covers the environment-variable and orphan-table
+findings of that change: **anything that names a thing in order to talk about it
+will be read as using it.** A classified variable whose only reader named it in a
+list of secrets to hunt for. A table kept off the orphan list by a string check
+that a migration mentions it. A script kept alive by a sentence saying nothing runs
+it. A mention is not a use.
 
 ### 11. Reading a file without asking whether it is still a file
 

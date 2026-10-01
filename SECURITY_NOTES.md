@@ -223,7 +223,19 @@ slightly broader one everybody can read in a single line. If a second page ever
 needs it, the line does not change.
 
 **No audit threshold moved and no check was weakened**; `pnpm audit
---audit-level moderate` and `scripts/verify-security.mjs` are unaffected.
+--audit-level moderate`, `pnpm run scan:client-secrets` and
+`pnpm run verify:csp` are unaffected.
+
+This sentence named `scripts/verify-security.mjs` until 30 September 2026, when
+that file was deleted. It is worth recording why, because the sentence was not
+merely out of date — it was never true on this tree. Nothing ran the script: no
+package.json entry, no workflow, no test. And it could not run, because it
+required `next.config.mjs`, `src/config/securityConfig.ts` and
+`scripts/scan-secrets-local.ps1`, none of which exist here; invoked directly it
+exited 1. A security document asserting that a check is unaffected, about a check
+that cannot execute, is the defect `.claude/skills/checks-that-cannot-lie`
+records — with the aggravation that this one sat in the file a reader opens to
+find out what still holds.
 `tests/a-check-in-records-only-what-was-asked-for.test.js` asserts the header
 still denies camera and microphone, still scopes geolocation to `self` rather
 than `*`, and that no page starts a position watch.

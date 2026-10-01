@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes, 20 customer routes, 30 admin routes.
-- 404 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 406 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,244 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 403 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 404 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-30 - Sixteen scripts nothing could run, and the guarantees hiding in three of them
+
+`report-unreferenced-modules.mjs` asks "does anything require this?" of `lib/` and
+`routes/`, and says so plainly. `scripts/` -- the one directory whose files exist
+only to be executed -- had no equivalent. **24 of its 122 files were reachable from
+nothing at all.**
+
+`scripts/report-unreferenced-scripts.mjs` closes that, wired in as
+`verify:unreferenced-scripts` (chain 67 -> 69 with the register gate below). Roots are `package.json`'s
+scripts, the workflows and the shipped code; reachability is transitive.
+
+**Comments are stripped first, and that is a measured requirement rather than a
+precaution.** The first run of this analysis reported `verify-all.mjs` as
+**reachable** -- because a comment in `verify-retired-public-names.mjs` explains
+that nothing runs it. A sentence saying "nothing runs this" counted as something
+running it. The measurement would have exonerated the exact file it exists to find.
+
+**Then the gate accused its own register.** Once it was wired into the chain, its
+`OPERATOR_TOOLS` entries made all five of those files read as reachable, and the
+two-sided register failed as stale on every one. A register entry is a mention, not
+a call -- the same error as the comment, one layer up. The gate now excludes its own
+source, and says so.
+
+### The ruling, each classification measured by running the file
+
+**Nine could not run at all.** `verify-all.mjs` presented itself as the complete
+verification runner and listed 34 pnpm scripts of which **24 no longer existed**, so
+it died on its second command -- while `pnpm run verify:all` maps to `verify:launch`.
+`post-deploy-check.sh` called four absent commands. The other seven each asserted an
+`app/`, `src/` or `frontend/` tree this repository does not have.
+
+**Three printed a sentence and enforced nothing** -- `audit-repo-consistency.mjs` was
+two lines of `console.log` describing a "scaffold".
+
+**One was a spent codemod.** `wire-free-launch-stack-local.cjs` patched `server.js`
+to mount the Free Launch Stack, and `server.js` already registers it.
+
+**Five are operator tools** and are registered with what they do and when you would
+run them: the two git-worktree helpers, `bootstrap-local.mjs`,
+`dependency-audit.mjs`, `check-software.mjs`.
+
+### The guarantee that was genuinely unchecked
+
+`data/provider-registry.ts` was read by **no other file in the repository**. Its only
+reader was `check-provider-registry.mjs`, which nothing ran, whose only caller was
+`verify-all.mjs`, which nothing ran either. And it asked:
+
+    if (!text.includes("serverOnlyEnv")) findings.push("provider records must declare serverOnlyEnv");
+
+One occurrence anywhere satisfied it -- and the **type declaration** contains the
+word, so it passed on the type alone. **Proven:** with a record's `serverOnlyEnv`
+field deleted outright, that check still found the word and reported a pass.
+
+`scripts/verify-provider-and-technology-registers.mjs` replaces it and
+`check-technology-registry.mjs`, as `verify:provider-registers`. The property that
+matters, and that nothing was asking: the register names **seven** variables
+server-only -- the Supabase service-role key and database password, both Stripe
+secrets, the OpenRouter key, the GitHub token, the Resend key -- and none of them
+appears in any of the **104 files under `public/`**, the directory a browser
+downloads. Per record it also requires both env lists present, no secret-shaped name in
+`publicEnv`, no name in both lists, and a blocked provider not configured by default;
+for technologies, a licence that is not plainly allowed must carry human review, a
+blocked licence must not be scaffolded, and `blockedUses` must be non-empty.
+
+### Three documents that asserted something untrue
+
+- **`docs/SHIP_READINESS.md` held a decision open that had been made and shipped.**
+  It said the page "has never been mounted in `server.js`" and "returns 404", and
+  offered the owner three options. `server.js:10` requires the module, `:478`
+  registers it, the app serves `/free-launch-stack` and `/api/free-launch-stack`,
+  `:1041` links it in navigation, and
+  `tests/a-route-module-nobody-mounts-serves-nobody.test.js` asserts a 200. The code,
+  the test and its register were all current; only this document was not -- in the
+  file an owner opens to see what still needs them.
+- **`SECURITY_NOTES.md` cited `scripts/verify-security.mjs` as a check unaffected by
+  an audit decision.** Nothing ran it and it could not run: it required
+  `next.config.mjs`, `src/config/securityConfig.ts` and a PowerShell script, none of
+  which exist, and exited 1.
+- **The marketing-copy skill named `check-public-claims.mjs` for general
+  overclaiming.** Deleted and **deliberately not replaced.** Its fourteen blocked
+  phrases match **23 times** across the 359 files of the real copy population, and
+  every match is a disclaimer: "SONARA does not publish ... guaranteed revenue",
+  "it is not legal advice", "No free tool replaces ... qualified legal advice". The
+  old script allowed for that by looking for a disclaimer fragment anywhere in the
+  same file, so one disclaimer excused every phrase in it. A negation-aware phrase
+  gate would be a check nobody trusts; the skill now says plainly that overclaiming
+  is caught by a person reading the copy, which is the same situation as before minus
+  a sentence claiming otherwise.
+
+### A dead environment variable the deletions uncovered
+
+Removing the sixteen scripts turned `verify:env` red, which is the gate working:
+**`SONARA_CRON_SECRET` was classified and read by nothing.** Its only reader had
+been `check-risks.mjs`, where it appeared as a *pattern in a list of secrets to
+hunt for* -- `docs/owner/INSTALL-ALL-KEYS.md` already recorded it that way. So
+`verify:env`'s "read by a source file" test was itself satisfied by a mention, in a
+script nothing ran.
+
+The scheduled tick is authorised by `SONARA_SCHEDULE_TICK_SECRET`, read at
+`routes/sonara-agent-activity-routes.cjs:884` and wired to
+`.github/workflows/agent-schedule-tick.yml`. `SONARA_CRON_SECRET` is the superseded
+name, and it was still in `.env.example`, in the classification, in the **owner's
+own Vercel setup script**, and in three documents telling the owner to set it. All
+five are corrected; the setup script now prompts for the variable that is actually
+read.
+
+`docs/VERCEL_PRODUCTION_ENV.md` also said **"Framework: Next.js"**. `vercel.json`
+sets `"framework": null` and this is an Express application served through
+`api/index.js`. Corrected in the same pass.
+
+**A correction to my own first measurement, recorded because the wrong version is
+persuasive:** a `process.env.NAME` grep reported that eleven of the setup script's
+eighteen variables had no reader, including `STRIPE_SECRET_KEY`. That was the grep
+being too narrow -- they are read as `getEnv("STRIPE_SECRET_KEY")`, a helper with a
+string literal. `verify:env` has a string-literal pass and reported exactly **one**
+problem, and it was right. Only `SONARA_CRON_SECRET` was dead.
+
+`.ps1` was then added to the gate's population: leaving a language out would make it
+measure less than the `scripts/` it reports on, which is the same shape-2 defect.
+Both PowerShell files are owner-run tools and are registered as such -- 108 files,
+101 reachable, 7 operator tools.
+
+### And an orphan table the deletions uncovered
+
+`verify:orphan-tables` also turned red: **`platform_jobs` is created by three
+migrations and queried by nothing.** What had been keeping it off the orphan list
+was a line in `scripts/worker-smoke-test.mjs`:
+
+    if (!migration.includes("platform_jobs")) {
+
+A string check that a *migration file mentions the table name*, inside a script
+nothing ran and which exited 1 when run. The report counted it as a query.
+
+The comments in `scripts/report-orphan-tables.mjs` record three earlier instances
+of exactly this -- "tables were counted as queried on the strength of it, so this
+report said '0 tables created and never queried' while ten were exactly that", and
+"as newly queried, when all three had only been named". **This is the fourth.** The
+pattern across all four findings in this change is one sentence: *a mention is not a
+use* -- of a script, of an environment variable, of a table.
+
+The table is now registered in `lib/sonara-orphan-tables.cjs` under
+`server-infrastructure` with `decision: "keep"`, on the same terms as
+`platform_job_events`, which records events for it. 20 unused tables, all accounted
+for. Nothing was made to query it: inventing a reader to quiet a gate is the
+opposite of the point.
+
+**And then it happened twice more, to me, in the same change.** The first draft of
+that register entry quoted the offending line verbatim -- the table name inside an
+`includes()` call -- and the report immediately reported the table as queried again.
+The second instance was subtler: the `HISTORICAL_SCRIPTS` entry I added to
+`verify-doc-script-paths.mjs` quoted the same line, and `scripts/` is inside the
+orphan report's searched population, so that one did it too. Both registers now
+describe the line without spelling the name, and say why.
+
+Three occurrences of one mistake inside the paragraph documenting it is the most
+useful thing in this entry. The rule is not "remember to strip comments" -- both
+registers were code, not comments. It is that **anything which names a thing in
+order to talk about it will be read as using it**, unless the measurement excludes
+it or the prose declines to spell it. `lib/sonara-orphan-tables.cjs` is excluded by
+name in that report's `INVENTORIES` list, which is why the register key itself is
+safe; `scripts/verify-doc-script-paths.mjs` is not, and nothing said so until it
+fired.
+
+**A fourth, for completeness, because it proves the rule generalises past tables.**
+The `HISTORICAL_SCRIPTS` entry for the deleted security script described what it
+required, and named a PowerShell scanner among them. `scripts/` is inside the new
+unreferenced-scripts population, so that operator tool immediately read as
+*reachable* and its own register entry failed as stale. Four instances, three
+different gates, one cause. The register files are the worst place for it precisely
+because naming things is what they are for -- so their prose now describes files
+rather than spelling them, and says why.
+
+### The Gitleaks failure, and a wrong diagnosis corrected
+
+`scanners` failed on the first two pushes: OSV and Trivy green, **Gitleaks red.**
+
+**The first diagnosis was wrong, and is recorded here because it was plausible.**
+The new register gate declares the shapes a real key starts with -- `sk_live_`,
+`whsec_`, `ghp_` and the rest -- as literals, and a detection pattern is
+indistinguishable from the thing it detects. That looked like the obvious cause, and
+it was acted on: the prefixes were reassembled from fragments and a comment was
+written explaining that Gitleaks had been right.
+
+It had not been. The tell was visible and was initially walked past:
+`docs/SPRINT_LOG.md` has carried `sk_live_` in prose on **nine** lines for weeks,
+through many green runs. Gitleaks' `stripe-access-token` and `generic-api-key` rules
+need a prefix followed by a **key-shaped body**, not a bare prefix.
+
+**Reproduced rather than reasoned about.** Gitleaks 8.30.1 -- the pinned version,
+fetched and checksum-verified the same way the workflow does -- run over this tree,
+with the workflow's own comparison against
+`.github/security/gitleaks-reviewed-findings.json` reimplemented on its stated key of
+`file + rule + SHA-256(line)`:
+
+    findings: 57 | matched baseline: 56 | NEW: 0 | STALE: 1
+
+**Zero new findings.** The register gate's line was never the problem. The single
+stale baseline entry was `scripts/security-scan-plan.mjs` -- one of the thirteen
+scripts deleted in this change -- and the baseline's own policy line says it fails on
+"any changed source line, new finding, scanner error, or **stale baseline entry**".
+
+So the cause was a deletion leaving a reviewed-findings entry pointing at a file that
+no longer exists: the *fifth* instance in this change of a record outliving the thing
+it described, and the one that took longest to see because a more interesting
+explanation was available.
+
+The entry is removed, 58 to 57. The prefix reassembly was **reverted**: it fixed a
+problem that did not exist, and the comment justifying it was false. A simpler line
+with a verified reason beats a cleverer one with an invented reason -- which is the
+repository's own rule about writing reasons into comments, and this entry is what
+breaking it looks like. The comment there now records the measurement instead.
+
+Re-run after the real fix: `NEW: 0 | STALE: 0`, so the gate passes.
+
+### Falsified before being trusted
+
+Each break watched fail by name, each file restored by copy-aside and `md5sum -c`:
+
+- comment stripping removed -> **the first version of the test PASSED.** It matched
+  `/withoutComments|withoutHashComments/` anywhere in the file, and the surviving
+  import line satisfied it. The assertion now names the call site, and the same break
+  fails with "does not call withoutComments(source)". An assertion that survives the
+  break it was written for is this repository's defect, committed in a test hunting it.
+- the `SELF` exclusion dropped -> the register accuses all five of its own entries
+- each new gate removed from the chain -> "is not reachable from verify:launch"
+- a server-only name planted in an existing file under `public/` -> named by file
+- a record's `serverOnlyEnv` deleted -> named by record, while the old check passed
+- a secret-shaped name put in `publicEnv` -> two findings, including the both-lists
+  contradiction
+- a technology record's `blockedUses` emptied -> "the record only says a name"
+
+
 
 ### 2026-09-30 - A check that read one file and reported a pass
 
@@ -1869,412 +2102,3 @@ also the one most exposed to it.
 `CLAUDE.md`'s description of the handoff was updated to say it is bounded and
 where the full history lives, because it described the old shape and would
 otherwise be the next false claim about this file.
-
-
-
-
-### 2026-09-19 - The external-repository-health trigger split, and a test that guarded a filename
-
-The follow-up owed since PR #294, held out of #297 and #299 because AGENTS.md
-says to keep CI fixes separate from product features.
-
-## What was wrong
-
-`verify:action-pins:network` reads each pinned action's manifest at the pinned
-commit and confirms `runs.using` still matches the register. The event that
-should run it is "a workflow changed", so its `paths` filter needs
-`.github/workflows/**`.
-
-It was added to `external-repository-health.yml`, which meant widening THAT
-workflow's filter -- and the job it shares starts with the registry sweep, which
-makes roughly 239 authenticated GitHub API requests across every record in
-`data/open-source-tools.ts`. So every edit to any workflow file bought a full
-registry sweep with no reason to run, and on 18 September a burst of those runs
-exhausted the hourly rate limit for an unrelated branch. The checker refused to
-report success on a run that established nothing, which was correct; the runs
-should not have been triggered.
-
-Now `.github/workflows/action-pin-runtime-health.yml` carries the
-`.github/workflows/**` filter and the registry workflow has its narrower list
-back. The new workflow references no `secrets.` at all -- it fetches eight files
-from raw.githubusercontent.com, which is not the metadata API the sweep
-authenticates against, and a token-less workflow cannot leak one.
-
-## The test that failed, and why that was the right failure
-
-`tests/a-pinned-action-says-which-runtime-it-is.test.js` went red:
-
-    nothing runs the networked confirmation, so the register can be wrong
-    indefinitely
-
-It read `external-repository-health.yml` **by name**. The step had not gone
-anywhere -- it had moved -- so the test failed for the filename rather than for
-the guarantee. Exactly the right alarm on the wrong axis.
-
-The property is "something runs the networked confirmation", so it now searches
-every workflow, and asserts **exactly one** runs it (duplicating an
-eight-manifest fetch is a rate limit waiting to happen) and that whichever one
-does references no `secrets.`. Three assertions where there was one, none of
-them tied to a filename. Falsified all three: removing `--network` fails with
-the original message, adding the step to a second workflow names both files, and
-handing the runner a `GITHUB_TOKEN` fails on the token-less claim.
-
-## A security-evidence file named for 13 assertions, containing 4,779
-
-Added to this branch after the owner passed on a Codex session's finding, which
-was right and is worth stating as a measurement rather than a description.
-
-`.mocharc.json` declares `spec: ["tests/**/*.js", "tests/**/*.mjs"]`. Mocha
-treats a positional path as an **addition** to that list, not a replacement. So
-
-    pnpm exec mocha tests/cross-tenant-isolation.test.js --reporter json \
-      > artifacts/security/tenant-adversarial.json
-
-in `engineering-intelligence-security.yml` ran **4,779 tests** and wrote all of
-them into a file named for the **13** in `tests/cross-tenant-isolation.test.js`.
-Measured both ways: 4,779 with the repository config, 13 with a config carrying
-no spec.
-
-That file is release security evidence. Two consequences, both the shape this
-repository is organised around:
-
-- **Any unrelated failure anywhere in the suite appeared in it and read as a
-  tenant-isolation failure.** That is the mechanism by which three failing
-  assertions elsewhere propagated into the security gate and looked like an
-  isolation bug. The static tenant-query audit was reporting `0 tenant-scoped
-  and NOT filtered` the whole time.
-- **The file's name claimed a population it did not measure** -- shape 2, in the
-  artifact a release decision reads.
-
-The same applied to `artifacts/security/rls-contract.log`, to the
-event-consumer readiness step, and to `verify:tenant-adversarial` in
-`package.json`, which `test:security` runs. Four sites.
-
-`.mocharc.targeted.json` carries the same `require` and `timeout` and declares
-**no `spec`**, so a positional path is the whole population. All four
-invocations now pass it: 13 and 17 tests where there were 4,779, and the
-tenant-isolation step went from 31s to 3s.
-
-**A claim retracted from this entry's own first version.** It said this
-explained the `tests/every-test-file-can-fail-the-suite.test.js` timeout earlier
-tonight, because that test "spawns mocha subprocesses per file; each was loading
-the entire suite". Opening the file shows both halves wrong: it spawns mocha
-**once**, as `mocha --dry-run` with **no positional path**, and loading the
-whole suite is the deliberate point -- its job is to enumerate every test file,
-and its own comment says `--dry-run` "loads every file and reports the cases
-without running their bodies, which is the only answer that cannot disagree with
-the runner". The spec leak cannot have affected it, because it wants the full
-spec. It remains **unexplained and untouched**, and three hypotheses were eliminated
-on 19 September 2026 so the next person does not re-derive them:
-
-| hypothesis | measurement |
-| --- | --- |
-| the `--dry-run` spawn is inherently slow | **1.9s** standalone, against a 15s limit |
-| coverage instrumentation inherited by the child | **2.0s** with `NODE_V8_COVERAGE` set; the child writes 2 coverage files and is not slowed by it |
-| CPU contention with the parent suite | **1.9s** while two additional full-suite runs saturated all 4 cores |
-
-So it does roughly two seconds of work under a fifteen-second limit, and has
-failed once, in one `verify:launch` run, on a machine also doing other things.
-The timeout is **not** raised: that would be a speculative fix to a test nobody
-can show failing, which is how a limit stops meaning anything. It is left alone
-with the measurements written down, because "I could not reproduce it" is a
-finding and "it is probably slow" is a guess.
-
-Written into a commit message and this log before being checked, while fixing a
-defect about evidence claiming more than it measured.
-
-## Self-review after Codex ran out of credits, and what it found
-
-Codex hit its usage limits and posted so on PR #305, which removes the reader
-that produced 19 real findings across #297 and #299. So the gap was filled by
-reading this diff adversarially. It found three things, in the work above.
-
-**The gate's population was "wherever I happened to look".** It scanned
-`package.json` and the workflows, because that is where the four known
-invocations were. A mocha spawned from `scripts/` or `tests/` is the same
-defect. Widened to both.
-
-**And the widening was decorative until it was falsified.** A spawned call is an
-array of quoted strings -- `["mocha", "tests/x.test.js", "--reporter", "dot"]` --
-and the tokeniser split on whitespace and tested `/^tests\//`, so every token
-still carried a quote or a comma and nothing matched. It scanned those files and
-could not see anything in them. A planted unpinned spawn exited 0. Caught only
-by planting one instead of trusting the change.
-
-**Then the check flagged its own header comment**, for the example invocation
-quoted there -- shape 7, a pattern reading prose as code, written while fixing a
-defect about evidence claiming more than it measures. Stripping comments fixed
-it, and stripping them by hand was wrong too: the first attempt used two passes,
-block comments then line comments, and
-`tests/a-line-comment-cannot-open-a-block-comment.test.js` failed it by name --
-*"strips comments without using the shared stripper; that is how the same bug
-shipped three times"*. It was right. `lib/sonara-comment-stripping.cjs` exists
-for that bug, does it in one alternation, and now carries the `#` form for YAML
-so this is the fourth caller rather than a fifth copy.
-
-Five falsifications on the final version: an unpinned spawn in `scripts/` fails,
-the same text in a comment stays green, a line comment containing `/*` followed
-by a real spawn still fails, a pinned spawn passes, and a workflow losing its
-`--config` fails.
-
-`verify:targeted-mocha` is the 56th chain command. It scans `package.json` and
-every workflow for a mocha invocation naming a path under `tests/` and requires
-`--config .mocharc.targeted.json`; it also refuses if that config gains a
-`spec`, or loses a `require` or `timeout` that `.mocharc.json` sets, because
-either would quietly restore the old behaviour. `pnpm test` has no positional
-path and is deliberately untouched.
-
-Falsified three ways: reintroducing the original `package.json` command fails
-naming it, adding a `spec` to the targeted config fails, and deleting its
-`require` fails with the value `.mocharc.json` sets.
-
-
-## Sweeping what chat raised across 18-19 September
-
-Asked to close out everything raised in conversation over the two days. Four
-items were live; two were already closed and saying so is the point, because an
-open list that contains closed items is the same defect as a document claiming
-more than it measures.
-
-### Closed by verification, not by work
-
-**PR #296's missing auth rate limiter.** Reviewing that branch on 18 September
-found `/auth/google` and `/auth/callback` reaching Supabase with no limiter
-while `/auth/signup` and `/auth/login` both had one. On `main` today both carry
-one: `server.js:1140` mounts `googleOAuthStartRateLimiter` and `server.js:1272`
-mounts `googleOAuthCallbackRateLimiter`. Addressed by whoever owns that branch.
-Off the list.
-
-**The Google readiness signal reporting on three variables nothing reads.**
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_REDIRECT_URI` appear in
-no readiness surface on `main` -- measured across `lib/`, `routes/`, `api/` and
-`server.js`, zero files read any of them. The only code reference is
-`scripts/client-secret-scan.cjs`, which lists `GOOGLE_CLIENT_SECRET` as a name
-to scan *for* in client bundles, which is correct. Nothing to remove.
-
-### A post-deploy document telling operators a shipped feature was deferred
-
-`docs/POST_DEPLOY_VERIFY.md` said, under **Environment and security**:
-
-> Google sign-in remains deferred until `GOOGLE_REDIRECT_URI` is configured and
-> verified.
-
-Google sign-in ships. `server.js:1140` serves `GET /auth/google` behind a rate
-limiter and begins a PKCE flow against Supabase; `server.js:1272` completes it
-at `/auth/callback`. The provider's client id and secret live in the Supabase
-dashboard, and nothing in this application reads `GOOGLE_REDIRECT_URI`.
-
-So the document an operator opens **immediately after a deploy** told them a
-working feature was deferred, pending a variable no code reads.
-`docs/owner/INSTALL-ALL-KEYS.md` had recorded the truth about those three
-variables the whole time, so two documents disagreed and the one giving
-post-deploy instructions was the wrong one. Corrected, with the retraction kept
-in place and the verification rewritten to say what to actually do: sign in.
-
-### A near-miss worth writing down: killing a test run corrupts tracked files
-
-While measuring something unrelated I ran two full suites in the background and
-then `pkill`ed them. That left the working tree holding:
-
-- `.ai/shared/CURRENT_STATE.md` with its `<!-- superseded-by: -->` pointer
-  **deleted**, which fails `verify:agent-development-sync`;
-- `supabase/migrations/20260728120000_member_read_policies.sql` **corrupted** --
-  33 `create policy ... using (public.is_org_member(organization_id))` statements
-  truncated to an unterminated `execute '`;
-- `supabase/migrations/20260728130000_sync_published_catalog_names.sql` also
-  modified.
-
-The cause is not mysterious and is not a bug in those tests' logic.
-`tests/a-shared-baseline-that-is-behind-must-say-so.test.js:67` writes the real
-tracked file, runs the gate against it, and restores it in a `finally`. A
-`finally` survives an exception; it does not survive SIGTERM. Killing the
-process mid-window leaves the mutation on disk, and for the migration the kill
-landed mid-write, so the file was left truncated rather than merely changed.
-
-**The dangerous part is what comes next.** Every commit in this session is made
-with `git add -A`. Had that run while the tree was in that state, it would have
-committed 33 broken SQL statements into an applied, content-checksummed
-migration -- and the corruption looks nothing like a deliberate edit, so the
-diff would have been the only warning. It was caught because `git status`
-listed two `supabase/migrations/` files that nothing in this work touches.
-
-Restored from `HEAD` with `git show HEAD:<path> > <path>` rather than
-`git checkout --`, and verified: `verify:applied-migrations` reports
-**119 frozen and unchanged**, `verify:agent-development-sync` exits 0, and each
-of the five commits already pushed was checked individually for unterminated
-`execute '` lines -- all zero, so nothing corrupt was ever committed or pushed.
-
-Two practices follow, and they are the actual output of this:
-
-1. **Do not `pkill` a running suite.** Let it finish, or run it in a scratch
-   worktree where a mutation cannot reach the tree being committed.
-2. **Read `git status` before `git add -A`, for files the work does not
-   explain.** A file appearing that the change has no reason to touch is the
-   signal; the contents may look plausible.
-
-Not fixed here, and flagged rather than half-fixed: those tests mutate tracked
-files in place, so any interrupted run leaves the repository dirty. Adding
-`SIGTERM`/`SIGINT` handlers alongside the `finally` would cover `pkill`'s
-default signal but not `SIGKILL`, and the durable fix is for such a test to
-operate on a copy rather than the real path. That is somebody's deliberate
-change to make, not a passenger on a CI-trigger PR.
-
-### The derived counts are now writable, because remembering them is the hazard
-
-Every figure `verify:doc-counts` checks is derived from the repository and typed
-into a document by hand. That is not only a staleness hazard, it is a **merge**
-hazard, and it cost a CI cycle on PR #305 hours ago: main took the
-release-chain count 55 -> 56 for an Android gate while this branch took the
-same count 55 -> 56 for `verify:targeted-mocha`. Identical text on both sides,
-so git raised no conflict, and the merged tree held both gates and was 57. CI
-was the only thing that could catch it, because the number was remembered
-rather than derived.
-
-`verify:doc-counts --write` (`pnpm run fix:doc-counts`) now rewrites every
-derived figure to its measured value. The check is untouched and remains the
-gate; this removes the arithmetic from the person resolving it. With PR #304 in
-flight and carrying gates of its own, the same collision was due to recur.
-
-Deliberately narrow, in three ways:
-
-- **Word-spelled counts are never rewritten.** "the eighteen-command chain" is
-  invisible to every pattern here, as this script already recorded, so such a
-  number cannot be checked and must not be silently edited either.
-- **A `passing` count is never rewritten.** The rule for those is that a
-  document may not state one at all, so there is no correct value to write.
-- **The rewrite patterns are built from the check's own patterns**, by
-  substituting an emphasis-tolerant prefix, rather than kept as a second copy
-  of thirteen regular expressions that could drift from the ones that gate.
-
-Falsified by reproducing tonight's collision exactly: setting the document to 56
-against a chain of 57 fails `--check`, `pnpm run fix:doc-counts` repairs both
-sentences, `**57**` keeps its emphasis, `--check` passes, and the file is
-byte-identical to the original by `md5sum -c`. Then three refusals confirmed: a
-word-spelled count survives untouched, a `9999 tests passing` claim is reported
-and left alone, and a non-chain derived claim (`999 reviewed repositories`)
-rewrites to 237.
-
-
-## Two things established while doing it, both by being wrong first
-
-**A monitor that exits on "no checks pending" reports success on a population
-that has not been assembled.** Mine fired `ALL TERMINAL: 10 checks, 0 not
-passing` against a matrix of 53 -- accurate and useless -- and I relayed it as
-green before catching it. It now requires >=40 checks before calling a matrix
-terminal and emits `STALLED` otherwise. That guard then did its job twice: once
-on a partial matrix, and once when #299 merged and its workflows stopped, which
-is why only 10 checks ever existed on the final head.
-
-**A failure read from the wrong line.** Running `verify:gates` standalone
-printed three "Tenant-scoped query audit failed" blocks and I reported a broken
-tenant-isolation gate on `main`. Wrong on both counts: those blocks are a test
-fixture's stderr, and the real message was `verify:coverage-floor` saying it had
-no successful coverage to read, because `verify:gates` was run outside the chain
-order that populates it. The audit passes on `main` and in this branch --
-`0 tenant-scoped and NOT filtered` -- confirmed by running it in a clean
-worktree of `origin/main`. A security gate is the last thing to be wrong about,
-and the check that corrected me was running the thing itself rather than reading
-its neighbour's output.
-
-## The equality assertion, on someone else's branch
-
-`EXPECTED_FILES` was introduced on #299 to replace a floor that had been wrong
-twice. Within the hour it caught drift on two independent branches: mine, when
-`lib/sonara-licence-trigger.cjs` became tracked, and a separate Batch 13 intake
-branch, whose commit `1f11d48f` is titled "Repair proprietary notice ratchet for
-Batch 13 intake". Somebody had to update that constant deliberately rather than
-having a floor absorb it. That is the design working, measured rather than hoped.
-
-
-
-### 2026-09-19 - Five findings on the fixes for the eight, and a floor that was wrong twice
-
-A third review round. Five findings, all real, all on the previous commit. The
-pattern across three rounds is now clear enough to state: **the defects are not
-in the code being fixed, they are in the fixes.**
-
-## A number typed into the fix for numbers being wrong
-
-The previous entry fixed the reciprocal-licence report and corrected the
-sentence in `scripts/generate-handoff-prompt.mjs`. That corrected sentence read
-*"Twenty of the thirty-one reciprocal records are the first kind"* -- a literal,
-written into the document other assistants read to learn how licences work here,
-in the same commit whose subject was licence misclassification, and it disagreed
-with the classifier it was supposedly corrected against (which said eighteen).
-
-The fix is not 20 -> 18. Classification now lives in
-`lib/sonara-licence-trigger.cjs` and the handoff **derives** its sentence from
-it, because two places stating one fact is how one of them goes wrong. The
-generator fails rather than publishing a zero if the register ever yields no
-reciprocal records.
-
-## The report truncated the identifiers it exists to show
-
-`split(/[,.]/)` splits on every period, so the rows printed `GPL-3.0` as
-`GPL-3`, `LGPL-3.0` as `LGPL-3`, `MPL-2.0` as `MPL-2` and `MSCL-1.0-GPL` as
-`MSCL-1`. An operator could not tell which licence or which version a row meant,
-in the one report whose whole subject is that distinction. **This was visible in
-output printed into the previous round's own transcript and went unread.**
-
-Splitting now happens on prose delimiters only -- comma, semicolon, open
-bracket, or a full stop *followed by whitespace*. Fixing it moved the counts to
-**17 / 11 / 3**, because `AGPL-3.0 upstream with a stated commercial-licence
-option` had been classifying as plain AGPL once the period cut it short. Three
-unclassifiable is the more honest answer: a dual-licensed record is exactly the
-case where a bucket label should not be asserted.
-
-## A floor that was wrong, raised, and wrong again
-
-`MINIMUM_FILES` was 150 against a population of 258, then still 150 at 279
-(round two), then raised to 278 -- by which point adding
-`lib/sonara-env-value-checks.cjs` in the same commit had already made it 279. So
-deleting any one covered file would still have passed, which is the identical
-defect the raise was meant to close.
-
-Any fixed floor below its measurement leaves exactly that much slack, and the
-slack reappears the moment somebody adds a file. So it is no longer a floor:
-`EXPECTED_FILES` asserts **equality**, failing when the count drops *and* when
-it grows. Growth is not a code failure -- it is a prompt to re-read the constant
-deliberately, which is the only thing that keeps it a measurement.
-
-Falsified both ways, which no floor could do: deleting one covered file gives
-278 and fails; adding one gives 280 and fails.
-
-## A fallback that was kindness and a false pass
-
-`scripts/test-email-config.mjs` was fixed to read `SUPPORT_TO_EMAIL ||
-CONTACT_TO_EMAIL`, and then *also* accepted the legacy `SUPPORT_EMAIL` /
-`CONTACT_EMAIL` last, reasoning that an operator mid-rotation should not be
-stranded. But `server.js:2777` sends support mail to
-`getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])` and nothing else. So the
-`--send` test would have succeeded on a configuration where the application
-cannot route support mail -- in the same commit whose documentation said nothing
-in the runtime reads those names.
-
-The fallback is gone. The legacy values are still read, only to name them in the
-failure message: *"SUPPORT_EMAIL or CONTACT_EMAIL is set and neither is read by
-anything... Rename the variable rather than adding a second one."* That helps the
-operator without reporting success.
-
-## Corrected guidance appended above a contradiction
-
-`docs/SUPPORT_CONTACT_SETUP.md` and `docs/email/EMAIL_ROUTING_AND_RESEND_SETUP.md`
-were updated to say both commands work and `--send` posts to Resend -- directly
-above a surviving paragraph reading *"So outbound email cannot be verified from
-this repository today... until there is a script here that proves it."* Two
-mutually exclusive instructions, three lines apart, because the update was
-appended without deleting what it replaced. Removed, and replaced with the
-distinction that actually matters: provider acceptance is not delivery.
-
-## Nineteen findings, three rounds
-
-Every one real. What is worth recording is not the count but where they lived:
-round one found defects in the codebase, rounds two and three found defects in
-the repairs -- a false number inside a fix for false numbers, a floor raised to a
-value already stale, a fallback that recreated the false positive it replaced,
-and a correction appended above the text it contradicted.
-
-Nothing here was found by being careful. It was found by another reader looking
-at the diff, and before that by `require('./server')`, `--max-warnings=0`, and
-reading printed output instead of an exit code. The output that showed `GPL-3`
-was on screen in the previous round and nobody read it.

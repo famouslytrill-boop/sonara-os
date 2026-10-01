@@ -58,6 +58,20 @@ const root = process.cwd();
 // not a reason; "deleted on 3 September, and the sentence naming it is the
 // sentence recording the deletion" is.
 const HISTORICAL_SCRIPTS = Object.freeze({
+  "scripts/security-scan-plan.mjs":
+    "Deleted on 30 September 2026: four lines that printed a plan and enforced nothing, run by nothing. Named in docs/SPRINT_LOG.md and the generated handoff inside the entry recording that its leftover entry in .github/security/gitleaks-reviewed-findings.json is what actually turned the scanners job red -- a reviewed-findings record outliving the file it described.",
+  "scripts/verify-security.mjs":
+    "Deleted on 30 September 2026. Nothing ran it, and it could not run: it required next.config.mjs, src/config/securityConfig.ts and a PowerShell scanner path, none of which exist here, and exited 1. (Those names are described rather than spelled: scripts/ is inside several reports' searched populations, and naming a file here makes it read as referenced.) SECURITY_NOTES.md had cited it as a check unaffected by an audit decision; that sentence now names `pnpm audit`, scan:client-secrets and verify:csp, and records why the old name was never true on this tree.",
+  "scripts/worker-smoke-test.mjs":
+    "Deleted on 30 September 2026. Nothing ran it and it required app/api/cron and app/api/sound-discovery route files this repository does not have. It is named in docs/SPRINT_LOG.md and the generated handoff inside the entry recording that its includes() check on an ops migration file was what kept the durable platform job table off the orphan-table list -- a string check that a migration mentions a name, counted as a query. The table name is deliberately not spelled here: scripts/ is inside the orphan report\'s searched population, and writing it made that report call the table queried again.",
+  "scripts/verify-all.mjs":
+    "Deleted on 30 September 2026. It presented itself as the complete verification runner and listed 34 pnpm scripts of which 24 no longer existed, so it died on its second command -- and nothing ran it, while `pnpm run verify:all` maps to verify:launch. Named in docs/SPRINT_LOG.md, the generated handoff and docs/audits/LIVE_FIX_FINAL_REPORT.md, each recording what it was rather than telling anybody to run it.",
+  "scripts/check-risks.mjs":
+    "Deleted on 30 September 2026. Nothing ran it, and all 18 of its path classifications -- src/app/api, app/api, components/, lib/supabaseAdmin.ts, sonara-industries/apps/web and the rest -- name a Next.js monorepo layout this repository does not have, so it could produce no true finding, only the test-fixture false positives it exited 1 on. Named in two dated audit reports and in docs/owner/INSTALL-ALL-KEYS.md, where it appears as a name in a list of secrets to hunt for rather than as a command.",
+  "scripts/check-public-claims.mjs":
+    "Deleted on 30 September 2026 and deliberately not replaced; .claude/skills/writing-sonara-marketing-copy/SKILL.md names it inside the paragraph recording that nothing ran it, that it died with ENOENT on a Next.js app/ directory, and that its 14 blocked phrases match 23 times across the real copy population with every match being a disclaimer.",
+  "scripts/wire-free-launch-stack-local.cjs":
+    "Deleted on 30 September 2026 as a spent codemod: it patched server.js to mount routes/free-launch-stack-routes.cjs, and server.js already requires and registers it. Named in docs/SHIP_READINESS.md and docs/SPRINT_LOG.md inside the entries recording that the mount happened and the script was therefore removed.",
   "scripts/check-env-safety.mjs":
     "Deleted on 30 September 2026 with check-security-basics.mjs and check-repo-standards.mjs, and replaced by scripts/verify-repository-standards.mjs, run as `pnpm run verify:repo-standards`. It is named in docs/SPRINT_LOG.md and the generated handoff inside the entry recording that it read one file out of the 256 .cjs modules in lib/ and printed a pass, because its extension filter excluded the extension this runtime is written in.",
   "scripts/check-blocked-repo-claims.mjs":
