@@ -545,6 +545,105 @@ describe("a management passcode is a second thing to know", () => {
     });
   });
 
+  // CodeQL raises js/missing-rate-limiting on the two handlers that verify a
+  // passcode, and it will keep raising it: its model recognises rate limiting
+  // from a handful of npm packages, and this repository uses its own
+  // `createRateLimiter` backed by a Supabase counter. Adding express-rate-limit
+  // to quiet a scanner would be a production dependency decision, and it is not
+  // one a test file gets to make.
+  //
+  // What a test can do is stop "it is rate-limited" being a claim. This wires
+  // the *real* limiter from lib/sonara-rate-limit.cjs into the real routes and
+  // counts.
+  describe("the limiter CodeQL cannot see, measured", () => {
+    const { createRateLimiter } = require("../lib/sonara-rate-limit.cjs");
+    const originalFetch = global.fetch;
+    after(() => { global.fetch = originalFetch; });
+
+    function buildApp({ onPasscodeCheck = () => {} } = {}) {
+      const app = express();
+      app.use(express.json());
+      const authenticate = (req, res, next) => { req.sonaraUser = { id: USER_ID }; return next(); };
+      const buckets = new Map();
+      registerSecurityRoutes(app, {
+        requireBusinessManager: authenticate,
+        getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+        getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+        getEnv: () => "k".repeat(64),
+        getCookie: () => "",
+        isProductionEnvironment: () => false,
+        createRateLimiter
+      });
+      global.fetch = async (url, options = {}) => {
+        const target = String(url);
+        // The durable counter, as the RPC implements it.
+        if (target.includes("/rpc/sonara_consume_rate_limit")) {
+          const body = JSON.parse(options.body);
+          const used = (buckets.get(body.p_bucket_key) || 0) + 1;
+          buckets.set(body.p_bucket_key, used);
+          const allowed = used <= body.p_max_attempts;
+          return {
+            ok: true,
+            status: 200,
+            json: async () => [{ allowed, remaining: Math.max(0, body.p_max_attempts - used), retry_after_seconds: allowed ? 0 : body.p_window_seconds }]
+          };
+        }
+        if ((options.method || "GET") !== "GET") return { ok: true, status: 200, json: async () => [] };
+        onPasscodeCheck();
+        return { ok: true, status: 200, json: async () => [] };
+      };
+      return { app, buckets };
+    }
+
+    it("refuses the eleventh attempt in the window, and does not reach the passcode check", async () => {
+      let credentialReads = 0;
+      const { app } = buildApp({ onPasscodeCheck: () => { credentialReads += 1; } });
+      const statuses = [];
+      for (let attempt = 1; attempt <= 11; attempt += 1) {
+        const response = await request(app)
+          .post(`${SECURITY}/unlock`).set("accept", "application/json").send({ passcode: "a wrong one, repeatedly" });
+        statuses.push(response.status);
+      }
+      assert.equal(statuses.filter((status) => status === 429).length, 1, `statuses were ${statuses.join(",")}`);
+      assert.equal(statuses[10], 429, "the eleventh attempt was allowed through");
+      assert.equal(statuses.slice(0, 10).includes(429), false, "an attempt inside the budget was refused");
+      assert.equal(credentialReads, 10, `the refused attempt still read the credential (${credentialReads} reads for 11 attempts)`);
+    });
+
+    it("sends Retry-After so a caller is told how long to wait", async () => {
+      const { app } = buildApp();
+      let last;
+      for (let attempt = 1; attempt <= 11; attempt += 1) {
+        last = await request(app).post(`${SECURITY}/unlock`).set("accept", "application/json").send({ passcode: "wrong again" });
+      }
+      assert.equal(last.status, 429);
+      assert.equal(last.body.code, "rate_limited");
+      assert.equal(Number(last.headers["retry-after"]), 300, "the window is five minutes");
+    });
+
+    // The budget is per caller as well as per IP, which is the half the
+    // per-credential lockout does not cover.
+    it("counts the signed-in person, not only the address", async () => {
+      const { app, buckets } = buildApp();
+      await request(app).post(`${SECURITY}/unlock`).set("accept", "application/json").send({ passcode: "wrong" });
+      const keys = [...buckets.keys()];
+      assert.equal(keys.length, 2, `expected an ip bucket and a subject bucket, got ${JSON.stringify(keys)}`);
+      assert.ok(keys.some((key) => key.startsWith("business.management_unlock:ip:")), "no per-address bucket");
+      assert.ok(keys.some((key) => key.startsWith("business.management_unlock:subject:")), "no per-person bucket");
+    });
+
+    it("throttles setting a passcode and locking, not just unlocking", async () => {
+      for (const route of ["/passcode", "/lock"]) {
+        const { app } = buildApp();
+        let last;
+        for (let attempt = 1; attempt <= 11; attempt += 1) {
+          last = await request(app).post(`${SECURITY}${route}`).set("accept", "application/json").send({ passcode: GOOD, confirmPasscode: GOOD });
+        }
+        assert.equal(last.status, 429, `${route} was not throttled`);
+      }
+    });
+  });
+
   // The gate composed with a real module it is actually put in front of, rather
   // than with the stand-in above. server.js wires the pay-period pages through
   // `chainMiddleware(requireBusinessManager, requireManagementUnlock)`, and the

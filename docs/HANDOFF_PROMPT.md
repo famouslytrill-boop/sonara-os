@@ -197,6 +197,22 @@ five-wrong-answers lockout was never a substitute: it counts per credential, so
 it bounds guesses against one business rather than requests from one caller
 across all of them.
 
+Those two alerts stay open, and `SECURITY_NOTES.md` says why. CodeQL recognises
+rate limiting from a short list of npm packages and has no model for this
+repository's own `createRateLimiter`; adding `express-rate-limit` to quiet a
+scanner would be a tenth production dependency for a capability the codebase
+already has. They are not dismissed either -- dismissing them would remove the
+only visible record that the pattern exists, so a future handler with genuinely
+no limiter would look like the same accepted noise.
+
+What replaced the assurance is a measurement: four tests wire the **real**
+limiter into the real routes with the RPC counter mocked, and prove the eleventh
+attempt in the five-minute window is refused, that it never reaches the
+credential read, that `Retry-After: 300` is sent, that both an address bucket and
+a person bucket are consumed, and that `/passcode` and `/lock` are throttled as
+well. Falsified by taking the limiter off `/unlock` (four red), dropping the
+`subject` scope (one red), and raising `maxAttempts` to 10,000 (three red).
+
 Also corrected: `EXPECTED_FILES` in `scripts/verify-proprietary-notice.mjs` said
 328 against 330. It passed locally and failed in CI because the script enumerates
 tracked files, and the two new ones were still untracked when the chain was run.
