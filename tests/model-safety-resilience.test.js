@@ -3,18 +3,13 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const request = require("supertest");
-const app = require("../server");
 const {
   OBLITERATUS_SAFETY_REFERENCE,
   MODEL_SAFETY_CONTROL_AREAS
 } = require("../data/obliteratus-safety-reference.cjs");
 const {
-  getModelSafetyReferenceSummary,
   reviewModelSafetyProposal
 } = require("../lib/sonara-model-safety-resilience.cjs");
-const { getManifest } = require("../lib/sonara-ecosystem-manifest.cjs");
-const { ADMIN_ROUTES } = require("../lib/sonara-route-registry.cjs");
 
 describe("OBLITERATUS quarantined model-safety reference", () => {
   it("pins provenance and prohibits runtime execution or model modification", () => {
@@ -35,9 +30,11 @@ describe("OBLITERATUS quarantined model-safety reference", () => {
   });
 
   it("keeps the local engine free from upstream execution, network, shell, and ML dependencies", () => {
-    const engineSource = fs.readFileSync(path.join(__dirname, "../lib/sonara-model-safety-resilience.cjs"), "utf8");
-    const routeSource = fs.readFileSync(path.join(__dirname, "../routes/sonara-model-safety-resilience-routes.cjs"), "utf8");
-    const combined = `${engineSource}\n${routeSource}`;
+    // The route module that used to be read alongside the engine was removed
+    // with the operator console on 1 October 2026; it served /admin pages only
+    // and had no non-admin route left. The engine is where the dependency rule
+    // has to hold, because it is what survives.
+    const combined = fs.readFileSync(path.join(__dirname, "../lib/sonara-model-safety-resilience.cjs"), "utf8");
     assert.doesNotMatch(combined, /require\(["'](?:node:)?child_process["']\)|child_process\.|spawn\(|execFile\(|\bfetch\(|require\(["']axios["']\)|require\(["']requests["']\)|require\(["'](?:torch|transformers|huggingface_hub|gradio)["']\)|model\.save\(|push_to_hub\(/i);
     assert.doesNotMatch(combined, /require\(["'](?:obliteratus|torch|transformers|huggingface)/i);
   });
@@ -92,44 +89,4 @@ describe("OBLITERATUS quarantined model-safety reference", () => {
     assert.match(first.nextAction, /separate, isolated, human-reviewed research plan/i);
   });
 
-  it("registers the safety reference across ecosystem, routes, OpenAPI, and open-source governance", () => {
-    const summary = getModelSafetyReferenceSummary();
-    assert.equal(summary.runtimeDependency, false);
-    assert.equal(summary.upstreamExecutionAllowed, false);
-
-    const manifest = getManifest();
-    assert.equal(manifest.externalInspirationAndAdapters.modelSafetyResilience.source, "elder-plinius/OBLITERATUS");
-    assert.equal(manifest.externalInspirationAndAdapters.modelSafetyResilience.status, "quarantined_reference_only");
-    assert.ok(manifest.adminControlPlane.routes.includes("/admin/model-safety-resilience"));
-    assert.ok(ADMIN_ROUTES.includes("/admin/model-safety-resilience"));
-
-    const openApi = fs.readFileSync(path.join(__dirname, "../openapi/sonara.yaml"), "utf8");
-    assert.match(openApi, /\/api\/admin\/model-safety-resilience:/);
-    assert.match(openApi, /\/api\/admin\/model-safety-resilience\/review:/);
-
-    const registry = fs.readFileSync(path.join(__dirname, "../data/open-source-tools.ts"), "utf8");
-    assert.match(registry, /slug: "obliteratus-quarantined-safety-reference"/);
-    assert.match(registry, /integrationStatus: "blocked"/);
-    assert.match(registry, /do not install or execute upstream code/i);
-
-    const repoRegistry = fs.readFileSync(path.join(__dirname, "../docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md"), "utf8");
-    assert.match(repoRegistry, /elder-plinius\/OBLITERATUS/);
-    assert.match(repoRegistry, /blocked_runtime_reference_only/);
-  });
-
-  it("protects model-safety catalog and review routes behind founder/admin authentication", async () => {
-    const catalog = await request(app)
-      .get("/api/admin/model-safety-resilience")
-      .set("Accept", "application/json");
-    assert.notEqual(catalog.status, 200);
-    assert.ok([401, 503].includes(catalog.status));
-    assert.ok(["admin_auth_required", "setup_required"].includes(catalog.body.code));
-
-    const review = await request(app)
-      .post("/api/admin/model-safety-resilience/review")
-      .set("Accept", "application/json")
-      .send({ name: "test" });
-    assert.notEqual(review.status, 200);
-    assert.ok([401, 503].includes(review.status));
-  });
 });

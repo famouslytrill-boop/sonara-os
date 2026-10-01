@@ -173,6 +173,35 @@ if (reciprocalFlags.length !== repositoryCount) {
 // the register patterns below records: "eight" is invisible to every pattern
 // here. The replacement is a digit for that reason, and this pattern is what
 // makes the digit worth writing.
+// How many record checks the assistant pages run.
+//
+// docs/owner/WHAT-IS-LEFT.md carried this as the ONE figure in its list that was
+// "hand-counted on 12 August 2026 and not derived", explaining that "record check"
+// names no single thing a script can count. That explanation was wrong, and the
+// figure had drifted from 22 to 27 underneath it: lib/sonara-record-checks.cjs
+// exports `CHECKS`, a declared array, and it is the single source both
+// tests/record-checks.test.js and the runtime read. One thing, countable exactly.
+//
+// Worth recording why the wrong explanation survived: it did not claim the number
+// was right, it claimed the number was *unmeasurable*, and a figure excused from
+// measurement is not a figure anybody re-measures. That is the same shape as an
+// exemption whose reason has expired, one level up -- the reason here was never
+// true rather than having stopped being true.
+// Read defensively, and this is not belt-and-braces. The first version was
+// `require(...).CHECKS.length` with a floor beneath it, and renaming the export
+// made the gate throw a TypeError on that line -- so the floor never ran and the
+// message below, which says what to do about exactly that case, could not print.
+// Loud rather than silent, so no false pass, but a guard whose stated reason does
+// not describe what happens is the thing this repository does not ship.
+const declaredChecks = createRequire(path.join(root, "package.json"))("./lib/sonara-record-checks.cjs").CHECKS;
+if (!Array.isArray(declaredChecks) || declaredChecks.length < 10) {
+  console.error(
+    `ERROR: lib/sonara-record-checks.cjs exports ${Array.isArray(declaredChecks) ? `${declaredChecks.length} record check(s)` : "no CHECKS array"}; ` +
+      "this figure would be guarding a number it can no longer measure. Point it at the declaration that replaced it."
+  );
+  process.exit(1);
+}
+const recordCheckCount = declaredChecks.length;
 const replaySource = fs.readFileSync(path.join(root, "scripts", "verify-migration-replay.mjs"), "utf8");
 const closedSetMatch = /closed_set_([a-z0-9_,]+)/.exec(replaySource);
 const closedCountMatch = /closed_count_(\d+)/.exec(replaySource);
@@ -351,6 +380,7 @@ for (const file of walk("docs")) {
     // pattern here, so a derived count spelled as a word cannot be checked at
     // all -- which is worth knowing before writing one.
     [/\b(\d[\d,]{0,4})\s+reciprocal\s+repositories\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
+    [/\b(\d[\d,]{0,4})\s+record\s+checks\b/gi, recordCheckCount, "record checks declared in lib/sonara-record-checks.cjs"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
     [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
     [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"],

@@ -48,22 +48,16 @@ function registerRouteRegistryRoutes(app, deps) {
     escapeHtml,
     requireCustomer,
     requireWorkspaceAccess,
-    requireAdmin,
     wantsJson,
     getSupabaseAuthConfig,
     getSupabaseServerConfig,
     supabaseHeaders,
     getPublicAppUrl,
     getCustomerPrimaryOrganization,
-    getReadiness,
     getLiveReadiness,
     displayStatus,
     accountNoticeCard,
     logoutAction,
-    adminActions,
-    adminRowsPage,
-    recordAdminAuditEvent,
-    getDeploymentInfo,
     safeListTable
   } = deps;
 
@@ -458,41 +452,7 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/creator-studio/music-projects", "Music projects"), linkAction("/creator-studio/dashboard", "Dashboard"), linkAction("/support", "Ask us for this")]
   }));
 
-  app.get("/admin/organizations", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.organizations.view", { path: req.path });
-    return res.status(200).type("html").send(await adminRowsPage({ title: "Organizations", heading: "Organizations", body: "Read-only organization readiness. Membership and role changes use protected server operations.", table: "organizations", query: "?select=id,name,created_at&order=created_at.desc&limit=25", emptyText: "No organization rows returned.", rowTitle: (row) => row.name || "Organization", rowBody: (row) => `Created: ${row.created_at || "not returned"}.`, actions: adminActions() }));
-  });
-
-  app.get("/admin/audit", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.audit.view", { path: req.path });
-    return res.status(200).type("html").send(await adminRowsPage({ title: "Audit", heading: "Administrator audit", body: "Recent administrator actions. Secret values must never be stored in audit metadata.", table: "admin_audit_logs", query: "?select=id,action,target_type,target_id,created_at&order=created_at.desc&limit=50", emptyText: "No administrator audit rows returned.", rowTitle: (row) => row.action || "Admin action", rowBody: (row) => `${row.target_type || "route"}: ${row.target_id || "not returned"}. ${row.created_at || ""}`, actions: adminActions() }));
-  });
-
-  app.get("/admin/email", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.email.view", { path: req.path });
-    const services = getReadiness().services || {};
-    return sendPage(res, { title: "Email readiness", eyebrow: "Founder operations", heading: "Email", body: "Safe provider readiness without API keys, sender credentials, or customer message content.", sections: [brandCard("Resend connection", displayStatus(services.emailDelivery || "missing")), brandCard("Sender verification", "Verify the sending domain and From address in Resend before treating email as ready."), brandCard("Failure behavior", "When email is unavailable, customer records keep a setup-required delivery state instead of reporting success.")], actions: adminActions() });
-  });
-
-  app.get("/admin/migrations", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.migrations.view", { path: req.path, delegate: "database_management" });
-    if (typeof app.locals.sonaraDatabaseManagementPage !== "function") {
-      return res.status(503).type("html").send(responsePage("Database Management needs setup", "The database management runtime handler is unavailable.", [linkAction("/admin", "Admin")]));
-    }
-    return app.locals.sonaraDatabaseManagementPage(req, res, "migrations");
-  });
-
-  app.get("/admin/pipelines", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.pipelines.view", { path: req.path });
-    return sendPage(res, { title: "Pipelines", eyebrow: "Founder operations", heading: "Build pipelines", body: "Repository pipeline configuration is present, but live provider status must be verified in GitHub, GitLab, and Vercel.", sections: [brandCard("GitHub", "Primary source and deployment pipeline. Review the latest workflow run before release."), brandCard("GitLab", "Secondary mirror only. Mirror after GitHub verification passes."), brandCard("Docker", "Container publishing is separate from the Vercel web runtime and must not reroute customer traffic by accident.")], actions: adminActions() });
-  });
-
-  app.get("/admin/deployments", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.deployments.view", { path: req.path });
-    const deployment = getDeploymentInfo();
-    return sendPage(res, { title: "Deployments", eyebrow: "Founder operations", heading: "Deployment status", body: "Safe public deployment identifiers only.", sections: [brandCard("Commit", deployment.commitSha || "Not returned by the hosting environment."), brandCard("Branch", deployment.branch || "Not returned by the hosting environment."), brandCard("Environment", deployment.environment || "Not returned by the hosting environment."), brandCard("Verification", "Confirm the production commit and run post-deploy route checks before announcing a release.")], actions: adminActions() });
-  });
-}
+            }
 
 // A consent record has no status column -- it has an attestation, an expiry and
 // a revocation, and the state is whichever of those applies first. Deriving it

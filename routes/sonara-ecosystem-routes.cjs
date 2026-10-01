@@ -14,14 +14,11 @@ const { getIndustryAlgorithmExpansion } = require("../lib/sonara-industry-algori
 const { getThirdSearchConvergence } = require("../lib/sonara-third-search-convergence.cjs");
 const { getInventionSystemsIntelligence } = require("../lib/sonara-invention-systems-2026.cjs");
 
-const LIVE_PROBE_TIMEOUT_MS = 800;
 
 module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const requireAdmin = typeof deps.requireAdmin === "function" ? deps.requireAdmin : pass;
-  const safeListTable = typeof deps.safeListTable === "function" ? deps.safeListTable : undefined;
 
   app.get("/ecosystem", (req, res) => {
     const manifest = getManifest();
@@ -72,67 +69,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
     }));
   });
 
-  app.get("/admin/ecosystem", requireAdmin, async (req, res) => {
-    const manifest = getManifest();
-    const readiness = await getEcosystemReadiness(safeListTable, { probe: true });
-    const convergence = getUnifiedBatchConvergence();
-    const engines = getModelEngineControlPlane();
-    const skills = getAgentSkillStrategyCatalog();
-    const memory = getLearningMemoryControlPlane();
-    const evidence = getSourceEvidenceRegister();
-    const expansion = getMarketExpansionRegistry();
-    const schemaPlan = getMarketExpansionSchemaPlan();
-    const industryExpansion = getIndustryAlgorithmExpansion();
-    const thirdSearch = getThirdSearchConvergence();
-    const inventions = getInventionSystemsIntelligence();
-    const missingCount = readiness.tables.filter((item) => !item.ok).length;
-    return res.status(200).type("html").send(layout({
-      title: "Ecosystem control plane",
-      eyebrow: "Founder operations",
-      heading: "Ecosystem control plane",
-      body: "Admin source-of-truth view for SONARA companies, modules, integrations, models/engines, repository research, source evidence, market expansion, deterministic strategy, infrastructure, database domains, and launch blockers.",
-      sections: [
-        brandCard("System model", `${manifest.currentCompanies.length} companies, ${manifest.requiredDatabaseDomains.length} database domains, ${getAllManifestTables().length} required table references.`),
-        brandCard("Database readiness", `${readiness.tables.length - missingCount}/${readiness.tables.length} table references returned OK. ${missingCount} still need setup, migration, or read permission review.`),
-        brandCard("Batch repository convergence", `${convergence.counts.uniqueRepositoryResearch} unique repository records after collapsing ${convergence.counts.duplicateRepositoryRecordsCollapsed} duplicate/source overlaps. Formal open-source registry integrity: ${convergence.counts.formalOpenSourceRegistryIntegrity.ok ? "verified" : "review required"}.`),
-        brandCard("Commercial open-source decisions", `${engines.openSource.permissiveCandidateCount} permissive/allowed candidates, ${engines.openSource.copyleftReviewCount} copyleft review items, ${engines.openSource.blockedOrUnknownCount} blocked/unverified/unknown items, ${engines.openSource.researchOnlyCount} research/review-only items.`),
-        brandCard("Models and engines", `${engines.engineCount} explicitly placed engines/model families/runtime companions; full repository inventory remains separately governed.`),
-        brandCard("Market expansion control plane", `${expansion.counts.capabilities} capabilities classified across core platform, add-ons, industry packs, standalone SKUs, distribution, and partner integrations. Current status split: ${formatCounts(expansion.counts.byStatus)}.`),
-        brandCard("Broad industry portfolio", `${industryExpansion.counts.industries} industry opportunities. Priority split: ${formatCounts(industryExpansion.counts.priorities)}. The internal value score is a reproducible strategy heuristic and does not promise revenue or market success.`),
-        brandCard("Formula and algorithm engine", `${industryExpansion.counts.formulas} formula definitions plus ${industryExpansion.counts.algorithms} deterministic/statistical/optimization strategies cover finance, inventory, manufacturing, quality, routing, field service, property, construction, growth, fundraising, reliability, security, media, music theory, and learning.`),
-        brandCard("Invention systems control plane", `${inventions.counts.inventionSystems} research-stage systems, ${inventions.counts.domainCoverage} mapped domain families, ${inventions.counts.marketSignals} dated market signals, and ${inventions.counts.formulas} invention formulas are registered. Promotion to production still requires exact-SHA release evidence, rollback evidence, production health, and owner authorization.`),
-        brandCard("Open-source expansion candidates", `${industryExpansion.counts.openSourceCandidates} candidates are classified by use and license boundary. Copyleft, AGPL, provider, medical, trading, and externally hosted components remain review-gated.`),
-        brandCard("Schema planning", `${schemaPlan.count} reuse-first schema contracts distinguish existing-table reuse, projections, and candidate new tables before any migration is allowed. Decision split: ${formatCounts(schemaPlan.decisions)}.`),
-        brandCard("Third-search architecture decision", `${thirdSearch.deliveryFoundation.tables.length} durable event/evaluation tables are implemented in source and pending the controlled migration path. The first producer is ${thirdSearch.deliveryFoundation.firstProducer.replace(/_/g, " ")}; no worker, public social feed, federation, biometric database, Wi-Fi credential feature, or global media network is enabled by this research.`),
-        brandCard("Industry packs", expansion.industryPacks.map((item) => `${item.name}: ${item.status.replace(/_/g, " ")}`).join(" / ")),
-        brandCard("Standalone SKU candidates", expansion.standaloneSkus.map((item) => `${item.name}: ${item.status.replace(/_/g, " ")}`).join(" / ")),
-        brandCard("Expansion guardrail", "A market-expansion record does not install, activate, message, publish, bill, trade, diagnose, pay out, mutate infrastructure, or grant provider authority. Existing implementation and planned work remain explicitly separated."),
-        brandCard("Cross-agent strategy", `${skills.strategyCount} shared Claude + ChatGPT/Codex strategies. Repository strategy does not install a ChatGPT app or widen connected-app permissions.`),
-        brandCard("Learning and memory", `${memory.memoryClassCount} memory classes; organization learning runtime is ${String(memory.currentState.organizationLearningRuntime.status).replace(/_/g, " ")}; semantic retrieval is ${String(memory.currentState.semanticRetrieval.status).replace(/_/g, " ")}.`),
-        brandCard("Source evidence", `${evidence.sourceCount} source-grounded records from uploaded PDFs, designs, research, machine-readable model data, and visual evidence.`),
-        brandCard("Adapter policy", manifest.externalInspirationAndAdapters.adapterRules.join(" / ")),
-        brandCard("AI integration control plane", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} classified optional tools with admin-only, read-only service probes.`),
-        brandCard("UI layer", manifest.uiExperience.layers.join(" / ")),
-        brandCard("Next priorities", industryExpansion.highestValueSequence.slice(0, 8).join(" / ")),
-        ...manifest.currentCompanies.map((company) => brandCard(company.name, company.modules.slice(0, 14).join(" / ")))
-      ],
-      actions: [
-        linkAction("/admin", "Admin"),
-        linkAction("/admin/formulas", "Formulas"),
-        linkAction("/market-intelligence/invention-systems", "Invention systems"),
-        linkAction("/api/ecosystem/manifest", "Manifest JSON"),
-        linkAction("/api/ecosystem/readiness", "Readiness JSON"),
-        linkAction("/api/ecosystem/model-engines", "Models & engines"),
-        linkAction("/api/ecosystem/batch-convergence", "Batch convergence"),
-        linkAction("/api/ecosystem/agent-skill-strategies", "Agent strategies"),
-        linkAction("/api/ecosystem/learning-memory", "Learning & memory"),
-        linkAction("/api/ecosystem/source-evidence", "Source evidence"),
-        linkAction("/admin/ai-integrations", "AI integrations")
-      ]
-    }));
-  });
-
-  app.get("/api/ecosystem/manifest", (req, res) => {
+    app.get("/api/ecosystem/manifest", (req, res) => {
     res.status(200).json({
       ok: true,
       manifest: {
@@ -177,71 +114,10 @@ function getStaticEcosystemReadiness() {
   };
 }
 
-async function getEcosystemReadiness(safeListTable, options = {}) {
-  if (!safeListTable || options.probe !== true) return getStaticEcosystemReadiness();
-
-  const manifest = getManifest();
-  const industryExpansion = getIndustryAlgorithmExpansion();
-  const thirdSearch = getThirdSearchConvergence();
-  const tableNames = unique(getAllManifestTables()).filter((table) => !table.includes("."));
-  const tables = await Promise.all(tableNames.map(async (table) => {
-    const result = await boundedProbe(() => safeListTable(table, "?select=id&limit=1"), LIVE_PROBE_TIMEOUT_MS);
-    return {
-      table,
-      ok: Boolean(result.ok),
-      status: result.ok ? "ready" : "setup_required",
-      reason: result.code === "timeout" ? "timeout" : undefined
-    };
-  }));
-
-  return {
-    ok: true,
-    mode: "live_bounded",
-    probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS,
-    companies: manifest.currentCompanies.map((company) => ({
-      key: company.key,
-      name: company.name,
-      appCount: company.apps.length,
-      moduleCount: company.modules.length
-    })),
-    serviceCount: manifest.infrastructure.requiredServices.length,
-    aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
-    expansionCapabilityCount: getMarketExpansionRegistry().counts.capabilities,
-    expansionSchemaContractCount: getMarketExpansionSchemaPlan().count,
-    industryExpansionCount: industryExpansion.counts.industries,
-    formulaExpansionCount: industryExpansion.counts.formulas,
-    algorithmExpansionCount: industryExpansion.counts.algorithms,
-    thirdSearchPriorityCount: thirdSearch.implementationSequence.length,
-    durableEventFoundationTableCount: thirdSearch.deliveryFoundation.tables.length,
-    tables
-  };
-}
-
-async function boundedProbe(run, timeoutMs) {
-  let timer;
-  try {
-    return await Promise.race([
-      Promise.resolve().then(run).catch(() => ({ ok: false, code: "unavailable" })),
-      new Promise((resolve) => {
-        timer = setTimeout(() => resolve({ ok: false, code: "timeout" }), timeoutMs);
-      })
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
-function formatCounts(counts) {
-  return Object.entries(counts || {})
-    .map(([key, value]) => `${key.replace(/_/g, " ")} ${value}`)
-    .join(" / ");
-}
-
 function unique(values) {
   return Array.from(new Set(values));
 }
 
-function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }

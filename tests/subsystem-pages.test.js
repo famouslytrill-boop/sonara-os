@@ -171,23 +171,26 @@ describe("the subsystems that exist as schema only", () => {
     assert.deepEqual(wrong, [], wrong.join("\n  "));
   });
 
-  it("writes nothing without an admin session", async () => {
+  it("writes nothing without a signed-in session", async () => {
     // The forms are behind the same gate as the pages. Without it, a single
-    // POST would write to any of thirty-eight tables across every organization.
+    // POST would write to any of thirty-eight tables across every organization
+    // -- which is exactly what happened: the module read its gate as
+    // `deps.requireAdmin || ((req, res, next) => next())` and server.js passed
+    // none, so this endpoint was open until 1 October 2026.
     const res = await request(app)
       .post("/api/research-lab/subsystems/sonara_engine_registry")
       .set("Accept", "text/html")
       .type("form")
       .send({ engine_key: "x", name: "x", public_label: "x", description: "x", engine_type: "billing" })
       .redirects(0);
-    // requireAdmin redirects to the login page, which is also a 303 -- so the
+    // The gate redirects to the login page, which is also a 303 -- so the
     // status alone cannot tell a refusal from an acceptance. Where it sends you
     // is what distinguishes them: the handler redirects back to the subsystem
-    // page on success, and the gate redirects to /admin/login.
+    // page on success, and the gate redirects to /login.
     const target = res.headers.location || "";
-    assert.notEqual(res.status, 200, "the write endpoint answered without an admin session");
-    assert.doesNotMatch(target, /\/research-lab\/subsystems/, `the write endpoint accepted a submission without an admin session and returned to ${target}`);
-    assert.ok(/\/admin\/login/.test(target) || res.status === 503, `expected the admin gate to refuse, got ${res.status} to ${target || "(no redirect)"}`);
+    assert.notEqual(res.status, 200, "the write endpoint answered without a session");
+    assert.doesNotMatch(target, /\/research-lab\/subsystems/, `the write endpoint accepted a submission without a session and returned to ${target}`);
+    assert.ok(/\/login/.test(target) || res.status === 503, `expected the gate to refuse, got ${res.status} to ${target || "(no redirect)"}`);
   });
 
   it("says on the page that the agent foundation does not run", () => {

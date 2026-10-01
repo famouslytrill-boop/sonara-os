@@ -12,11 +12,9 @@ const registerSonaraRequestedRepositoryRoutes = require("./routes/sonara-request
 const registerSonaraHuggingFaceRoutes = require("./routes/sonara-huggingface-routes.cjs");
 const registerSonaraOpenSourceRoutes = require("./routes/sonara-open-source-routes.cjs");
 const registerSonaraSubsystemRoutes = require("./routes/sonara-subsystem-routes.cjs");
+const registerOwnerAdministrationRoutes = require("./routes/sonara-owner-administration-routes.cjs");
+const registerPayPeriodRoutes = require("./routes/sonara-pay-period-routes.cjs");
 const registerSonaraBusinessControlPlaneRoutes = require("./routes/sonara-business-control-plane-routes.cjs");
-const registerSonaraDatabaseManagementRoutes = require("./routes/sonara-database-management-routes.cjs");
-const registerSonaraReferenceIntelligenceRoutes = require("./routes/sonara-reference-intelligence-routes.cjs");
-const registerSonaraSystemDesignIntelligenceRoutes = require("./routes/sonara-system-design-intelligence-routes.cjs");
-const registerSonaraModelSafetyResilienceRoutes = require("./routes/sonara-model-safety-resilience-routes.cjs");
 const registerSonaraPromptLibraryRoutes = require("./routes/sonara-prompt-library-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
@@ -27,7 +25,6 @@ const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-r
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
-const registerAdminAgentRoutes = require("./routes/sonara-admin-agent-routes.cjs");
 const registerPublicBookingRoutes = require("./routes/sonara-public-booking-routes.cjs");
 const registerImportRoutes = require("./routes/sonara-import-routes.cjs");
 const registerRecurringInvoiceRoutes = require("./routes/sonara-recurring-invoice-routes.cjs");
@@ -45,14 +42,12 @@ const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerCreatorProfileRoutes = require("./routes/sonara-creator-profile-routes.cjs");
-const { ROUTE_REGISTRY, plainRouteTitle } = require("./lib/sonara-route-registry.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
 // DATABASE_FUNCTIONS and DATABASE_SCHEMAS were kept here through the split
 // because apply-growth-studio-verifier.cjs wrote code into this file that called
 // them. That generator is retired along with the other fifty-five, so nothing
 // writes here any more and the two bindings went with it.
-const { DATABASE_TABLES, STORAGE_BUCKETS } = require("./lib/sonara-database-contract.cjs");
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
@@ -61,11 +56,10 @@ const { renderProductEntry } = require("./lib/sonara-product-entry.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
 const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
-const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
+const { createCustomerAuth } = require("./lib/sonara-customer-auth.cjs");
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createActivityEventWriter } = require("./lib/sonara-activity-writer.cjs");
 const { getWorkspaceDashboardSummary: summarizeWorkspaceDashboard } = require("./lib/sonara-workspace-dashboard-summary.cjs");
-const { getPlatformCompletenessSummary } = require("./lib/sonara-platform-completeness.cjs");
 const {
   splitList,
   listFieldsWithNothingIn,
@@ -103,7 +97,6 @@ const {
 const {
   accessCard,
   actionCard,
-  adminReadinessText,
   authForm,
   brandCard,
   checklistCard,
@@ -143,8 +136,6 @@ tenantGuard.install();
 const app = createRuntimeApp();
 // Before any route: an async handler that throws must answer, not hang. See lib/sonara-async-route-safety.cjs.
 installAsyncRouteSafety(app);
-const ADMIN_SESSION_COOKIE = "sonara_admin_session";
-const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 
 // The page frame moved to lib/sonara-page-frame.cjs -- step 7b, unblocked by
 // retiring the generators that anchored on markup inside `layout`.
@@ -161,10 +152,6 @@ const moduleCrud = createModuleCrud({
 });
 
 const {
-  adminActions,
-  adminLoginForm,
-  adminLogoutAction,
-  adminRoleForm,
   adminRowsPage,
   layout,
   responsePage
@@ -172,8 +159,10 @@ const {
 
 // Customer sessions moved to lib/sonara-customer-auth.cjs, and took the
 // customer cookie names and lifetimes with them -- that module is what decides
-// them. CUSTOMER_SESSION_COOKIE comes back out because verifyAdminRequest still
-// reads the customer cookie when telling a founder from a customer.
+// them. CUSTOMER_SESSION_COOKIE used to come back out because
+// verifyAdminRequest read the customer cookie when telling a founder from a
+// customer; with the operator plane removed there is no such distinction to
+// draw, and the name is re-exported only for the customer paths that own it.
 //
 // This binding sits here, well above where the functions used to be, because
 // createAuthRateLimiter builds six rate limiters as consts a little further down
@@ -184,14 +173,12 @@ const {
   clearCustomerSessionCookie,
   createAuthRateLimiter,
   createEmployeeAuthUser,
-  getCookie,
   getSupabaseAuthConfig,
   getGoogleOAuthProviderStatus, googleOAuthStartRateLimiter, googleOAuthCallbackRateLimiter,
   beginGoogleOAuth,
   completeGoogleOAuth,
   handleEmailAuth,
   hashInviteToken,
-  rejectCustomerBearerFromAdminLogin,
   resolveCustomerSession,
   sendEmailAuthResult,
   verifySupabaseAccessToken,
@@ -204,7 +191,6 @@ const {
   getSupabaseServerClient,
   getSupabaseServerConfig,
   isProductionEnvironment,
-  isSupabaseAdminUser,
   siteOrigin,
   renderRateLimitPage,
   reportDegradedRateLimit,
@@ -216,8 +202,6 @@ const {
 function isProductionEnvironment() {
   return process.env.NODE_ENV === "production";
 }
-const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
-const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
 // The plan table moved to lib/sonara-stripe-plans.cjs. It is data with no
 // behaviour, and server.js is under a shrinking line ratchet; see that file for
 // the prices, what each plan is, which ones the pricing page offers, and why
@@ -242,7 +226,6 @@ const {
   billingPanel,
   createStripeCheckoutSession,
   getBillingPanelSummary,
-  getBillingSummary,
   getOrCreateStripeCustomer,
   getPaidEntitlementKeys,
   isValidPlan,
@@ -282,9 +265,6 @@ const {
 // here. Bound at the top for the same reason as the block above: a const is not
 // hoisted and the route registrations below need these at module load.
 const {
-  buildDatabaseReadinessResult,
-  databaseGroupForTable,
-  getAdminEnvReadiness,
   getCheckoutPlanStatuses,
   getReadiness,
   getStripePlanPriceStatus,
@@ -443,14 +423,6 @@ const signupRateLimiter = createAuthRateLimiter("auth.signup", {
   subjectFrom: emailFromBody
 });
 
-// Founder operations get a tighter budget than customer login.
-const adminLoginRateLimiter = createAuthRateLimiter("auth.admin_login", {
-  windowSeconds: 15 * 60,
-  maxAttempts: 5,
-  scopes: ["ip", "subject"],
-  subjectFrom: emailFromBody
-});
-
 const passwordResetRateLimiter = createAuthRateLimiter("auth.password_reset", {
   windowSeconds: 60 * 60,
   maxAttempts: 5,
@@ -486,7 +458,6 @@ registerSonaraInfrastructureRoutes(app, {
   brandCard,
   linkAction,
   escapeHtml,
-  requireAdmin
 });
 
 registerSonaraEcosystemRoutes(app, {
@@ -494,7 +465,6 @@ registerSonaraEcosystemRoutes(app, {
   brandCard,
   linkAction,
   escapeHtml,
-  requireAdmin,
   safeListTable
 });
 
@@ -502,7 +472,6 @@ registerSonaraAIIntegrationRoutes(app, {
   layout,
   brandCard,
   linkAction,
-  requireAdmin,
   recordAdminAuditEvent
 });
 
@@ -510,7 +479,6 @@ registerSonaraRequestedRepositoryRoutes(app, {
   layout,
   brandCard,
   linkAction,
-  requireAdmin,
   recordAdminAuditEvent
 });
 
@@ -518,7 +486,6 @@ registerSonaraHuggingFaceRoutes(app, {
   layout,
   brandCard,
   linkAction,
-  requireAdmin,
   recordAdminAuditEvent
 });
 
@@ -535,12 +502,33 @@ registerSonaraOpenSourceRoutes(app, {
 // The five subsystems that exist as schema and had no code. Read-only and
 // admin-gated: these tables cross every organization, so there is no tenant
 // filter that would make them safe for a customer to open.
+registerPayPeriodRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireBusinessManager,
+  getSupabaseServerConfig,
+  getCustomerPrimaryOrganization
+});
+
+registerOwnerAdministrationRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireBusinessManager,
+  getSupabaseServerConfig,
+  getCustomerPrimaryOrganization
+});
+
 registerSonaraSubsystemRoutes(app, {
   layout,
   brandCard,
   linkAction,
   escapeHtml,
-  requireAdmin,
+  // Was absent, and the module defaulted to letting everyone through.
+  requireCustomer,
   getSupabaseServerConfig,
   supabaseHeaders,
   getCustomerPrimaryOrganization
@@ -559,47 +547,11 @@ registerSonaraBusinessControlPlaneRoutes(app, {
   supabaseHeaders
 });
 
-registerSonaraDatabaseManagementRoutes(app, {
-  layout,
-  brandCard,
-  linkAction,
-  escapeHtml,
-  requireAdmin,
-  recordAdminAuditEvent,
-  getSupabaseServerConfig,
-  supabaseHeaders
-});
-
-registerSonaraReferenceIntelligenceRoutes(app, {
-  layout,
-  brandCard,
-  linkAction,
-  requireAdmin,
-  recordAdminAuditEvent
-});
-
-registerSonaraSystemDesignIntelligenceRoutes(app, {
-  layout,
-  brandCard,
-  linkAction,
-  requireAdmin,
-  recordAdminAuditEvent
-});
-
-registerSonaraModelSafetyResilienceRoutes(app, {
-  layout,
-  brandCard,
-  linkAction,
-  requireAdmin,
-  recordAdminAuditEvent
-});
-
 registerSonaraPromptLibraryRoutes(app, {
   layout,
   brandCard,
   linkAction,
   requireWorkspaceAccess,
-  requireAdmin,
   safeListTable,
   getSupabaseServerConfig,
   getCustomerPrimaryOrganization,
@@ -614,7 +566,6 @@ registerSonaraFormulaRoutes(app, {
   linkAction,
   responsePage,
   escapeHtml,
-  requireAdmin,
   requireWorkspaceAccess,
   safeListTable,
   getSupabaseServerConfig,
@@ -772,7 +723,6 @@ registerServiceLifecycleRoutes(app, {
   escapeHtml,
   requireCustomer,
   requireWorkspaceAccess,
-  requireAdmin,
   wantsJson,
   requireFields,
   sendValidationFailure,
@@ -786,7 +736,6 @@ registerServiceLifecycleRoutes(app, {
   getLiveReadiness,
   readinessCards,
   displayStatus,
-  adminActions,
   adminRowsPage,
   normalizeSupportRequest,
   saveSupportRequest,
@@ -812,7 +761,6 @@ registerRouteRegistryRoutes(app, {
   escapeHtml,
   requireCustomer,
   requireWorkspaceAccess,
-  requireAdmin,
   wantsJson,
   getSupabaseAuthConfig,
   getSupabaseServerConfig,
@@ -824,7 +772,6 @@ registerRouteRegistryRoutes(app, {
   displayStatus,
   accountNoticeCard,
   logoutAction,
-  adminActions,
   adminRowsPage,
   recordAdminAuditEvent,
   getDeploymentInfo,
@@ -1235,9 +1182,24 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
       sections: [
         renderWorkspaceNotice(organization.code),
         ...(req.sonaraAccess?.ownerOverride
-          ? [actionCard("Owner/Admin access", "You can open the registered workspaces and review setup. Customer billing rules remain unchanged.", [linkAction("/account/setup", "Review workspace setup"), linkAction("/readiness", "Review service readiness")])]
+          ? [actionCard("Owner access", "You hold the owner role in this business. You can open every workspace here and review setup; customer billing rules are unchanged.", [linkAction("/account/setup", "Review workspace setup"), linkAction("/readiness", "Review service readiness")])]
           : []),
-        renderWorkspaceChoices()
+        renderWorkspaceChoices(),
+        // The three owner surfaces that had no inbound link. The operator console
+        // used to carry two of them in its own navigation bar, and when it was
+        // removed on 1 October 2026 tests/every-page-is-reachable.test.js reported
+        // all three as registered pages nothing links to -- which is the "no dead
+        // paths" rule working. They belong on the dashboard rather than in a
+        // console: the person who needs them is the business owner.
+        actionCard(
+          "Running your business",
+          "Switch the parts of your business on or off, see what your agents did and approve what they stopped at, and review the invention systems catalogue.",
+          [
+            linkAction("/owner/administration", "Business controls"),
+            linkAction("/owner/agent-activity", "What your agents did"),
+            linkAction("/market-intelligence/invention-systems", "Invention systems")
+          ]
+        )
       ],
       actions: [linkAction("/workspace-modules", "Browse all modules")],
       authenticated: true
@@ -1556,21 +1518,6 @@ for (const [source, destination] of Object.entries(publicCompatibilityRoutes)) {
   app.get(source, (req, res) => res.redirect(303, destination));
 }
 
-app.get("/api/admin/overview", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "api.admin.overview.view", { path: req.path });
-  return res.status(200).json({ ok: true, metrics: await getAdminOverviewJson() });
-});
-
-app.get("/api/admin/env-status", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "api.admin.env_status.view", { path: req.path });
-  const readiness = await getLiveReadiness();
-  return res.status(200).json({
-    ok: true,
-    services: readiness.services,
-    checks: getAdminEnvReadiness().map((item) => ({ key: item.key, label: item.label, ok: item.ok, status: item.status }))
-  });
-});
-
 app.get("/manifest.webmanifest", (req, res) => res.redirect(308, "/site.webmanifest"));
 
 // What the service worker serves when a navigation cannot reach the network.
@@ -1604,306 +1551,6 @@ app.get("/offline", (req, res) => {
     })
   );
 });
-
-app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
-  const readiness = getAdminEnvReadiness();
-  const adminReady = getReadiness().services.adminProtection === "configured";
-  return res.status(adminReady ? 200 : 503).type("html").send(
-    layout({
-      title: "Admin login",
-      eyebrow: "Founder operations",
-      heading: "Admin login",
-      body: adminReady
-        ? "Sign in with the founder/admin email account. Access is checked server-side against the admin allowlist or user roles."
-        : "Supabase email login and founder access rules are required before founder operations can open.",
-      sections: [
-        adminLoginForm(),
-        ...readiness.map((item) => brandCard(item.label, adminReadinessText(item)))
-      ],
-      actions: [linkAction("/", "Home"), linkAction("/readiness", "What is working"), linkAction("/security", "Security")]
-    })
-  );
-});
-
-app.post("/admin/login", adminLoginRateLimiter, rejectCustomerBearerFromAdminLogin, async (req, res) => {
-  if (getReadiness().services.adminProtection !== "configured") {
-    await recordAdminAuditEvent(req, "admin.login.setup_required", { path: req.path });
-    return res.status(503).type("html").send(responsePage("Admin setup required", "Supabase auth is not configured.", [linkAction("/admin/login", "Return to admin login")]));
-  }
-
-  const auth = await handleEmailAuth("login", req.body);
-  if (auth.status < 200 || auth.status >= 300 || !auth.session?.accessToken) {
-    await recordAdminAuditEvent(req, "admin.login.failed", { path: req.path });
-    return res.status(401).type("html").send(responsePage("Admin access denied", "Email or password is incorrect.", [linkAction("/admin/login", "Return to admin login")]));
-  }
-
-  const verification = await verifySupabaseAccessToken(auth.session.accessToken);
-  const admin = verification.ok ? await isSupabaseAdminUser(verification.user) : { ok: false };
-  if (!admin.ok) {
-    await recordAdminAuditEvent(req, "admin.login.not_admin", { path: req.path, email_domain: String(req.body.email || "").split("@")[1] || "unknown" });
-    return res.status(403).type("html").send(responsePage("Admin access denied", "This account is not an admin.", [linkAction("/admin/login", "Return to admin login")]));
-  }
-
-  await recordAdminAuditEvent(req, "admin.login.succeeded", { path: req.path, method: "supabase_email" });
-  res.cookie(ADMIN_SESSION_COOKIE, auth.session.accessToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: Math.min(auth.session.maxAgeSeconds || ADMIN_SESSION_MAX_AGE_SECONDS, ADMIN_SESSION_MAX_AGE_SECONDS) * 1000
-  });
-  return res.redirect(303, "/admin");
-});
-
-app.post("/admin/logout", (req, res) => {
-  res.clearCookie(ADMIN_SESSION_COOKIE, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/"
-  });
-  return res.redirect(303, "/admin/login");
-});
-
-app.get("/admin", requireAdmin, async (req, res) => {
-  const readiness = await getLiveReadiness();
-  const metrics = await getAdminMetrics();
-  await recordAdminAuditEvent(req, "admin.dashboard.view", { path: req.path });
-  return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness, metrics));
-});
-
-registerAdminAgentRoutes(app, {
-  requireAdmin,
-  getSupabaseServerConfig,
-  safeCountTable,
-  safeCountFiltered,
-  brandCard,
-  linkAction,
-  layout,
-  adminActions,
-  recordAdminAuditEvent
-});
-
-app.get("/admin/support", requireAdmin, async (req, res) => {
-  const result = await listSupportRequests();
-  await recordAdminAuditEvent(req, "admin.support.view", { path: req.path });
-  return res.status(200).type("html").send(
-    layout({
-      title: "Support queue",
-      eyebrow: "Founder operations",
-      heading: "Support queue",
-      body: result.ok ? "Recent database-backed support requests are available for review." : "Support queue setup required: Supabase service role is not configured.",
-      sections: result.requests.length
-        ? result.requests.map((request) => brandCard(request.reference_id || "Support request", `${request.category || "contact"} - ${request.email_delivery_status || "pending"} - ${request.created_at || "no timestamp"}`))
-        : [brandCard("Queue status", result.ok ? "No recent requests returned." : "Database-backed queue requires Supabase setup.")],
-      actions: [linkAction("/admin", "Admin"), linkAction("/contact", "Contact"), adminLogoutAction()]
-    })
-  );
-});
-
-app.get("/admin/billing", requireAdmin, async (req, res) => {
-  const readiness = getReadiness();
-  const billingSummary = await getBillingSummary();
-  await recordAdminAuditEvent(req, "admin.billing.view", { path: req.path });
-  return res.status(200).type("html").send(
-    layout({
-      title: "Billing readiness",
-      eyebrow: "Founder operations",
-      heading: "Billing readiness",
-      body: readiness.services.checkout === "enabled" ? "Stripe checkout and webhook variables are present." : "Stripe checkout remains setup required until server variables and price IDs exist.",
-      sections: [
-        brandCard("Checkout", readiness.services.checkout),
-        brandCard("Stripe", readiness.services.stripe),
-        brandCard("Webhook audit", readiness.services.supabase === "configured" ? "database-backed audit available" : "Setup required"),
-        brandCard("Webhook events", billingSummary.webhookEvents),
-        brandCard("Subscriptions", billingSummary.subscriptions)
-      ],
-      actions: [linkAction("/admin", "Admin"), linkAction("/pricing", "Pricing"), adminLogoutAction()]
-    })
-  );
-});
-
-app.get("/admin/business-builder/employees", requireAdmin, async (req, res) => {
-  const summary = await getBusinessEmployeeSummary();
-  await recordAdminAuditEvent(req, "admin.business_builder_employees.view", { path: req.path });
-  return res.status(200).type("html").send(
-    layout({
-      title: "Business Builder Employees",
-      eyebrow: "Founder operations",
-      heading: "Business Builder employees",
-      body: "Founder view for Business Builder employee invitation and membership readiness. Secret values and raw invite tokens are never displayed.",
-      sections: [
-        brandCard("Workspaces", summary.workspaces),
-        brandCard("Memberships", summary.memberships),
-        brandCard("Pending invites", summary.invites),
-        brandCard("Password control", "Employees set their own password through email login. Owners do not create employee passwords.")
-      ],
-      actions: [linkAction("/admin", "Admin"), linkAction("/admin/billing", "Billing"), linkAction("/business-builder/employees", "Workspace employee portal"), adminLogoutAction()]
-    })
-  );
-});
-
-app.get("/admin/env-readiness", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.env_readiness.view", { path: req.path });
-  return res.status(200).type("html").send(
-    layout({
-      title: "Environment readiness",
-      eyebrow: "Founder operations",
-      heading: "Environment readiness",
-      body: "Non-secret service readiness flags. Secret values are never displayed.",
-      sections: getAdminEnvReadiness().map((item) => brandCard(item.label, adminReadinessText(item))),
-      actions: [linkAction("/admin", "Admin"), linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), adminLogoutAction()]
-    })
-  );
-});
-
-app.get("/admin/users", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.users.view", { path: req.path });
-  return res.status(200).type("html").send(await adminRowsPage({
-    title: "Users",
-    heading: "Users and customers",
-    body: "Safe profile summary for founder operations. Customer records require the account database and service-role server access.",
-    table: "profiles",
-    query: "?select=id,email,display_name,created_at&order=created_at.desc&limit=20",
-    emptyText: "No profile rows returned.",
-    rowTitle: (row) => row.email || row.display_name || row.id,
-    rowBody: (row) => `Display name: ${row.display_name || "not set"} / Created: ${row.created_at || "not returned"}`,
-    actions: adminActions()
-  }));
-});
-
-app.get("/admin/roles", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.roles.view", { path: req.path });
-  return res.status(200).type("html").send(await adminRowsPage({
-    title: "Roles",
-    heading: "User roles",
-    body: "Server-side role assignments for owner, admin, customer, and employee access. Assign roles only after verifying the user account.",
-    table: "user_roles",
-    query: "?select=id,user_id,role,created_at&order=created_at.desc&limit=20",
-    emptyText: "No user role rows returned.",
-    rowTitle: (row) => row.role || "role",
-    rowBody: (row) => `User: ${row.user_id || "not returned"} / Created: ${row.created_at || "not returned"}`,
-    extraSections: [adminRoleForm()],
-    actions: adminActions()
-  }));
-});
-
-app.post("/admin/roles", requireAdmin, async (req, res) => {
-  const result = await updateUserRole(req);
-  await recordAdminAuditEvent(req, "admin.roles.update", { path: req.path, result: result.body.code, role: result.body.role });
-  if (wantsJson(req)) return res.status(result.status).json(result.body);
-  return res.status(result.status).type("html").send(responsePage(result.body.ok ? "Role updated" : "Role not updated", result.body.message || result.body.code, [linkAction("/admin/roles", "Roles"), linkAction("/admin", "Admin")]));
-});
-
-app.get("/admin/subscriptions", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.subscriptions.view", { path: req.path });
-  return res.status(200).type("html").send(await adminRowsPage({
-    title: "Subscriptions",
-    heading: "Subscriptions",
-    body: "Payment plan records written by Stripe webhook processing. Checkout sessions alone do not unlock paid access.",
-    table: "billing_subscriptions",
-    query: "?select=organization_id,plan_slug,status,current_period_end,cancel_at_period_end,updated_at&order=updated_at.desc&limit=20",
-    emptyText: "No subscription rows returned.",
-    rowTitle: (row) => `${row.plan_slug || "plan"} - ${row.status || "unknown"}`,
-    rowBody: (row) => `Organization: ${row.organization_id || "not returned"} / Current period end: ${row.current_period_end || "not returned"} / Cancel at period end: ${Boolean(row.cancel_at_period_end)}`,
-    actions: adminActions()
-  }));
-});
-
-app.get("/admin/webhooks", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.webhooks.view", { path: req.path });
-  return res.status(200).type("html").send(await adminRowsPage({
-    title: "Payment updates",
-    heading: "Payment updates",
-    body: "Recent Stripe webhook audit rows. Failed payment events are recorded for review and do not unlock paid access.",
-    table: "billing_webhook_events",
-    query: "?select=provider_event_id,event_type,processing_status,created_at&order=created_at.desc&limit=20",
-    emptyText: "No payment update rows returned.",
-    rowTitle: (row) => row.event_type || "payment update",
-    rowBody: (row) => `Status: ${row.processing_status || "not returned"} / Event: ${row.provider_event_id || "not returned"} / Created: ${row.created_at || "not returned"}`,
-    actions: adminActions()
-  }));
-});
-
-app.get("/admin/catalog", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.catalog.view", { path: req.path });
-  return res.status(200).type("html").send(
-    layout({
-      title: "Catalog",
-      eyebrow: "Founder operations",
-      heading: "Catalog and price readiness",
-      body: "Product and price readiness for the SONARA house of brands. Raw provider keys are never displayed.",
-      sections: [
-        ...Object.entries(STRIPE_PLANS).map(([plan, config]) => brandCard(config.name, plan === "free" ? "Free plan: no checkout required." : displayStatus(getStripePlanPriceStatus(plan).checkout))),
-        ...(await getProductModuleCatalogCards())
-      ],
-      actions: adminActions()
-    })
-  );
-});
-
-app.get("/admin/system", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.system.view", { path: req.path });
-  const readiness = await getLiveReadiness();
-  const platformSummary = getPlatformCompletenessSummary();
-  return res.status(200).type("html").send(
-    layout({
-      title: "System",
-      eyebrow: "Founder operations",
-      heading: "System status",
-      body: "Non-secret system readiness, route map, capability ownership, and deterministic output requirements for launch operations.",
-      sections: [
-        brandCard(
-          "Platform completeness contract",
-          `${platformSummary.capabilities.length} canonical capabilities across ${platformSummary.domainFamilies.length} domain families. Contract validation: ${platformSummary.contractStatus}. Covered outputs: ${platformSummary.outputs.join(", ")}. ${platformSummary.note}`
-        ),
-        deploymentCard(),
-        ...readinessCards(readiness),
-        ...getRouteMapCards()
-      ],
-      actions: adminActions()
-    })
-  );
-});
-
-app.get("/api/admin/database-readiness", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "api.admin.database_readiness.view", { path: req.path });
-  return res.status(200).json(await getDatabaseTableReadiness());
-});
-
-app.get("/api/admin/storage-readiness", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "api.admin.storage_readiness.view", { path: req.path });
-  return res.status(200).json(await getStorageBucketReadiness());
-});
-
-app.get("/admin/database", requireAdmin, async (req, res) => {
-  await recordAdminAuditEvent(req, "admin.database.view", { path: req.path, delegate: "database_management" });
-  if (typeof app.locals.sonaraDatabaseManagementPage !== "function") {
-    return res.status(503).type("html").send(responsePage("Database Management needs setup", "The database management runtime handler is unavailable.", [linkAction("/admin", "Admin")]));
-  }
-  return app.locals.sonaraDatabaseManagementPage(req, res);
-});
-
-app.get("/admin/storage", requireAdmin, async (req, res) => {
-  const readiness = await getStorageBucketReadiness();
-  await recordAdminAuditEvent(req, "admin.storage.view", { path: req.path });
-  return res.status(200).type("html").send(
-    layout({
-      title: "Storage readiness",
-      eyebrow: "Founder operations",
-      heading: "Storage readiness",
-      body: readiness.ok
-        ? "Storage buckets are checked through server-side Supabase access. Private buckets remain private by default."
-        : "Setup required: connect Supabase service-role server access and create the required storage buckets before file workflows are trusted.",
-      sections: storageReadinessCards(readiness),
-      actions: [linkAction("/api/admin/storage-readiness", "Storage JSON"), linkAction("/admin", "Admin"), adminLogoutAction()]
-    })
-  );
-});
-
-app.get("/admin/business-builder", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "business-builder")));
-app.get("/admin/creator-studio", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "creator-studio")));
-app.get("/admin/growth-studio", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "growth-studio")));
 
 for (const page of legalPages()) {
   app.get(page.href, (req, res) => legalPage(res, page.title, page.points, page.href));
@@ -2094,17 +1741,6 @@ function workspaceToolPage({ slug, config, page, paid, records = "", access }) {
   });
 }
 
-function adminPageIndex() {
-  const pages = ROUTE_REGISTRY.filter(
-    (entry) => entry.method === "GET" && entry.visibility === "admin" && !entry.route.includes(":") && entry.route !== "/admin"
-  );
-  if (pages.length === 0) return brandCard("Every admin page", "No admin pages are registered.");
-  const items = pages.map((entry) => `<li>${linkAction(entry.route, plainRouteTitle(entry))}</li>`).join("");
-  return `<article class="card"><h2>Every admin page</h2><p>${escapeHtml(
-    `All ${pages.length}, including the ones no card above mentions.`
-  )}</p><ul>${items}</ul></article>`;
-}
-
 function workspaceServiceCard(page, paid) {
   if (paid) return brandCard("Access", "This feature opens when your plan includes it. Your saved work remains available if you change plans.");
   if (page.form) return brandCard("Next step", "Complete the form to create your result. SONARA saves it to your workspace when you are signed in.");
@@ -2180,80 +1816,6 @@ function accountNoticeCard(req) {
   return "";
 }
 
-
-function adminPage(title, body, readiness, metrics = {}) {
-  const operations = [
-    deploymentCard(),
-    actionCard("Readiness", "Live setup state for account database, checkout, email delivery, Google sign-in, and founder access.", [linkAction("/admin/env-readiness", "Environment"), linkAction("/api/readiness", "Readiness JSON")]),
-    actionCard("Users and roles", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed."), [linkAction("/admin/users", "Users"), linkAction("/admin/roles", "Roles")]),
-    actionCard("Support queue", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests are emailed rather than filed, and are not listed here."), [linkAction("/admin/support", "Support"), linkAction("/contact", "Contact form")]),
-    actionCard("Billing and webhooks", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."), [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates"), linkAction("/pricing", "Pricing")]),
-    actionCard("Product catalog", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas.", [linkAction("/admin/catalog", "Catalog"), linkAction("/business-builder", "Business"), linkAction("/creator-studio", "Creator"), linkAction("/growth-studio", "Growth")]),
-    actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
-    actionCard("Service operations", metrics.serviceRequests || "Customer service requests, operator-published deliverables, and workspace records for the Software-in-a-Service lifecycle.", [linkAction("/admin/requests", "Service requests"), linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/workspaces", "Workspaces"), linkAction("/admin/integrations", "Integrations"), linkAction("/admin/ai-gateway", "AI gateway")])
-  ];
-  // Every admin page, generated. Ten of them -- database management,
-  // migrations, organizations, email, pipelines, deployments, audit, system
-  // design intelligence, model safety and the prompt library -- were
-  // registered, rendering, and linked from nowhere. The cards above list the
-  // ones somebody thought of, which is the same hand-kept list that had fallen
-  // behind on every other dashboard.
-  const adminIndex = adminPageIndex();
-  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness), adminIndex], actions: adminActions() });
-}
-
-function deploymentCard() {
-  const deployment = getDeploymentInfo();
-  return brandCard("Deployment", `Commit: ${deployment.commitSha}. Branch: ${deployment.branch}. Environment: ${deployment.environment}.`);
-}
-
-
-async function adminProductOperationsPage(req, slug) {
-  await recordAdminAuditEvent(req, `admin.${slug.replace(/-/g, "_")}.view`, { path: req.path });
-  const config = getProductConfigBySlug(slug);
-  const routes = getProductPageDefinitions(slug);
-  const summary = slug === "business-builder" ? await getBusinessEmployeeSummary() : undefined;
-  const sections = [
-    brandCard("Owner/Admin access", "Founder operations can open this workspace for setup, testing, and support without changing customer paid-access rules."),
-    brandCard("Free routes", routes.free.map((page) => page.path).join(" / ")),
-    brandCard("Paid routes", routes.paid.map((page) => page.path).join(" / ")),
-    brandCard("Service setup", productReadinessJson(config.productKey).readiness.checkout === "enabled" ? "Payment connection has at least one enabled checkout plan." : "Some tools unlock after setup or payment.")
-  ];
-  if (summary) sections.push(brandCard("Employee invites", summary.invites), brandCard("Employee memberships", summary.memberships));
-  return layout({
-    title: `${config.name} operations`,
-    eyebrow: "Founder operations",
-    heading: `${config.name} operations`,
-    body: "Operational view for founder setup and support. Raw secrets are never displayed.",
-    sections,
-    actions: [linkAction(`/${slug}/dashboard`, "Open workspace"), ...adminActions()]
-  });
-}
-
-function getProductConfigBySlug(slug) {
-  const map = {
-    "business-builder": { name: "Business Builder", productKey: "business_builder" },
-    "creator-studio": { name: "Creator Studio", productKey: "creator_studio" },
-    "growth-studio": { name: "Growth Studio", productKey: "growth_studio" }
-  };
-  return map[slug] || { name: slug, productKey: slug.replace(/-/g, "_") };
-}
-
-async function getProductModuleCatalogCards() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return [brandCard("Product modules", "Setup required: account database is not configured.")];
-  const count = await safeCountTable(config, "sonara_module_registry");
-  return [brandCard("Product modules", formatMetric("Product modules", count))];
-}
-
-function getRouteMapCards() {
-  return [
-    brandCard("Public routes", "/, /start, /service-catalog, /readiness, /support, /legal, /pricing, /contact, /login, /signup, /help, /docs, /security"),
-    brandCard("Workspace routes", "/business-builder, /creator-studio, /growth-studio, each with dashboard, start, tools, free tools, paid tools, deliverables, and support"),
-    brandCard("Service lifecycle routes", "/requests, /deliverables, /service-catalog, POST /service-requests, POST /support/request"),
-    brandCard("Admin routes", "/admin/users, /admin/roles, /admin/subscriptions, /admin/webhooks, /admin/support, /admin/requests, /admin/deliverables, /admin/workspaces, /admin/catalog, /admin/system, /admin/database, /admin/storage, /admin/ai-gateway")
-  ];
-}
 
 const READINESS_DISPLAY_ITEMS = [
   ["accountDatabase", "Account database"],
@@ -3161,12 +2723,14 @@ function requirePaidOrOwnerAccess(productKey) {
   };
 }
 
+// Organization-scoped only. This used to begin by asking verifyAdminRequest
+// whether the caller held a SONARA-Industries staff session and, if so, return
+// ownerOverride into whichever organization was being addressed -- a
+// cross-tenant door opened by a cookie. The operator plane it served is gone,
+// so the door is gone with it. `owner` and `admin` below are roles a person
+// holds INSIDE their own organization, which is a different thing wearing the
+// same word.
 async function resolveWorkspaceAccess(req, res, productKey) {
-  const admin = await verifyAdminRequest(req);
-  if (admin.ok) {
-    return { ok: true, mode: "owner_admin", ownerOverride: true, productKey, admin, user: admin.user, roles: admin.roles || ["owner"] };
-  }
-
   const customer = await resolveCustomerSession(req, res);
   if (!customer.ok) return customer;
 
@@ -3182,31 +2746,10 @@ async function resolveWorkspaceAccess(req, res, productKey) {
 }
 
 
-async function requireAdmin(req, res, next) {
-  const admin = await verifyAdminRequest(req);
-  if (admin.ok) {
-    req.sonaraAdmin = admin;
-    return next();
-  }
-
-  if (admin.setupRequired) {
-    if (acceptsHtml(req)) return res.redirect(303, "/admin/login");
-    return res.status(503).json({ ok: false, code: "setup_required", service: "admin_access" });
-  }
-
-  if (acceptsHtml(req)) return res.redirect(303, "/admin/login");
-  return res.status(401).json({ ok: false, code: "admin_auth_required" });
-}
-
 async function requireBusinessManager(req, res, next) {
-  const admin = await verifyAdminRequest(req);
-  if (admin.ok) {
-    req.sonaraAdmin = admin;
-    req.sonaraAccess = { ok: true, mode: "owner_admin", ownerOverride: true, admin, user: admin.user, roles: admin.roles || ["owner"] };
-    req.sonaraBusinessMembership = {};
-    return next();
-  }
-
+  // Same removal as resolveWorkspaceAccess: no staff session short-circuits a
+  // business membership check any more. Managing a workspace now requires
+  // membership of the organization that owns it, with no exception.
   if (!isSupabaseConfigured()) {
     if (acceptsHtml(req)) return res.redirect(303, "/business-builder/login");
     return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
@@ -3230,34 +2773,11 @@ async function requireBusinessManager(req, res, next) {
 }
 
 
-async function verifyAdminRequest(req) {
-  const candidates = [
-    [getCookie(req, ADMIN_SESSION_COOKIE), "admin_cookie"],
-    [getCookie(req, CUSTOMER_SESSION_COOKIE), "customer_cookie"],
-    [getBearerToken(req), "supabase_role"]
-  ];
-  const seen = new Set();
-  for (const [token, method] of candidates) {
-    if (!token || seen.has(token)) continue;
-    seen.add(token);
-    const verification = await verifySupabaseAccessToken(token);
-    if (!verification.ok) continue;
-    const admin = await isSupabaseAdminUser(verification.user);
-    if (admin.ok) return { ok: true, method, user: verification.user, roles: admin.roles };
-  }
-  return { ok: false, setupRequired: getReadiness().services.adminProtection !== "configured" };
-}
-
 function getBearerToken(req) {
   const authHeader = String(req.get("authorization") || "");
   return authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || "";
 }
 
-
-async function isSupabaseAdminUser(user) {
-  const roles = await getUserRoles(user);
-  return { ok: roles.roles.includes("owner") || roles.roles.includes("admin"), roles: roles.roles };
-}
 
 async function getUserRoles(user) {
   const roles = new Set();
@@ -3449,79 +2969,6 @@ async function updateSupportEmailStatus(supportRequestId, email) {
   return { ok: true };
 }
 
-async function listSupportRequests() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { ok: false, requests: [] };
-  const response = await fetch(`${config.url}/rest/v1/support_requests?select=reference_id,category,email_delivery_status,created_at&order=created_at.desc&limit=20`, { headers: supabaseHeaders(config) }).catch(() => undefined);
-  if (!response?.ok) return { ok: false, requests: [] };
-  return { ok: true, requests: await response.json().catch(() => []) };
-}
-
-async function getAdminMetrics() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return {};
-  const [users, subscriptions, webhookEvents, supportRequests, catalog, serviceRequests, agentLogs, agentPending, agentSchedules] = await Promise.all([
-    safeCountTable(config, "profiles"),
-    safeCountTable(config, "billing_subscriptions"),
-    safeCountTable(config, "billing_webhook_events"),
-    safeCountTable(config, "support_requests"),
-    safeCountTable(config, "sonara_module_registry"),
-    safeCountTable(config, "service_requests"),
-    safeCountTable(config, "agent_action_logs"),
-    safeCountFiltered(config, "agent_pending_actions", "?state=eq.waiting&select=id&limit=1"),
-    safeCountTable(config, "agent_schedules")
-  ]);
-  return {
-    users: formatMetric("Profiles", users),
-    subscriptions: formatMetric("Subscription records", subscriptions),
-    webhookEvents: formatMetric("Webhook events", webhookEvents),
-    supportRequests: formatMetric("Support requests", supportRequests),
-    catalog: formatMetric("Product modules", catalog),
-    serviceRequests: formatMetric("Service requests", serviceRequests),
-    agentActivity: [agentLogs, agentPending, agentSchedules].every((result) => result?.ok)
-      ? `Agent runs: ${agentLogs.count}. Waiting approvals: ${agentPending.count}. Schedules: ${agentSchedules.count}.`
-      : "Agent control-plane tables are setup-required until the agent migrations are applied."
-  };
-}
-
-
-async function getAdminOverviewJson() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) {
-    return {
-      users: { configured: false, count: null },
-      organizations: { configured: false, count: null },
-      activeSubscriptions: { configured: false, count: null },
-      purchases: { configured: false, count: null },
-      intakeRequests: { configured: false, count: null },
-      supportRequests: { configured: false, count: null },
-      recentActivity: []
-    };
-  }
-  const [users, organizations, activeSubscriptions, purchases, intakeRequests, supportRequests, activity] = await Promise.all([
-    safeCountTable(config, "profiles"),
-    safeCountTable(config, "organizations"),
-    safeCountFiltered(config, "billing_subscriptions", "?status=in.(active,trialing)&select=id&limit=1"),
-    safeCountTable(config, "purchases"),
-    safeCountTable(config, "intake_requests"),
-    safeCountTable(config, "support_requests"),
-    safeListTable("activity_events", "?select=event_type,created_at&order=created_at.desc&limit=10")
-  ]);
-  return {
-    users: countJson(users),
-    organizations: countJson(organizations),
-    activeSubscriptions: countJson(activeSubscriptions),
-    purchases: countJson(purchases),
-    intakeRequests: countJson(intakeRequests),
-    supportRequests: countJson(supportRequests),
-    recentActivity: activity.ok ? activity.rows : []
-  };
-}
-
-function countJson(result) {
-  return { configured: Boolean(result?.ok), count: result?.ok ? result.count : null };
-}
-
 async function getBusinessEmployeeSummary(workspaceId) {
   const config = getSupabaseServerConfig();
   if (!config.ok) {
@@ -3602,119 +3049,6 @@ async function safeCountTable(config, table) {
 function formatMetric(label, result) {
   if (!result?.ok) return `${label}: unavailable until Supabase tables are migrated.`;
   return `${label}: ${result.count}`;
-}
-
-async function getDatabaseTableReadiness() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) {
-    return buildDatabaseReadinessResult({ message: "Supabase server access is not configured." });
-  }
-
-  const snapshot = await getDatabaseContractSnapshot(config);
-  if (snapshot.ok) {
-    return buildDatabaseReadinessResult({ snapshot: snapshot.value, source: "database_contract_rpc" });
-  }
-
-  const checks = await Promise.all(REQUIRED_OPERATION_TABLES.map(async (table) => {
-    const result = await safeCountTable(config, table);
-    return {
-      table,
-      group: databaseGroupForTable(table),
-      ok: result.ok,
-      available: result.ok,
-      rlsEnabled: null,
-      count: result.ok ? result.count : null,
-      status: result.ok ? "ready" : "setup_required"
-    };
-  }));
-  return buildDatabaseReadinessResult({
-    source: "legacy_rest_fallback",
-    message: "The database contract readiness RPC is not available. Apply the pending Supabase migrations after review.",
-    tables: checks,
-    forceSetupRequired: true
-  });
-}
-
-async function getDatabaseContractSnapshot(config) {
-  const response = await fetch(`${config.url}/rest/v1/rpc/sonara_database_contract_snapshot`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { "content-type": "application/json" }),
-    body: "{}"
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false };
-  const payload = await response.json().catch(() => undefined);
-  const value = Array.isArray(payload) ? payload[0] : payload;
-  return value && typeof value === "object" ? { ok: true, value } : { ok: false };
-}
-
-
-async function getStorageBucketReadiness() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) {
-    return {
-      ok: false,
-      code: "setup_required",
-      message: "Supabase server access is not configured.",
-      buckets: REQUIRED_STORAGE_BUCKETS.map((bucket) => ({ bucket, ok: false, status: "setup_required" }))
-    };
-  }
-  const response = await fetch(`${config.url}/storage/v1/bucket`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (!response?.ok) {
-    return {
-      ok: false,
-      code: "setup_required",
-      message: "Storage buckets could not be listed with server-side Supabase access.",
-      buckets: REQUIRED_STORAGE_BUCKETS.map((bucket) => ({ bucket, ok: false, status: "setup_required" }))
-    };
-  }
-  const rows = await response.json().catch(() => []);
-  const names = new Set((Array.isArray(rows) ? rows : []).map((bucket) => bucket.name || bucket.id).filter(Boolean));
-  const checks = REQUIRED_STORAGE_BUCKETS.map((bucket) => ({ bucket, ok: names.has(bucket), status: names.has(bucket) ? "ready" : "setup_required" }));
-  return {
-    ok: checks.every((item) => item.ok),
-    code: checks.every((item) => item.ok) ? "ready" : "setup_required",
-    buckets: checks,
-    missing: checks.filter((item) => !item.ok).map((item) => item.bucket)
-  };
-}
-
-function storageReadinessCards(readiness) {
-  const summary = readiness.ok
-    ? "All required buckets were returned by server-side storage readiness checks."
-    : `Setup required: ${readiness.missing?.length ? readiness.missing.join(", ") : "Supabase storage access"} needs attention.`;
-  return [
-    actionCard("Storage summary", summary, [linkAction("/api/admin/storage-readiness", "Storage JSON"), linkAction("/admin/database", "Database")]),
-    ...readiness.buckets.map((item) => brandCard(item.bucket, item.ok ? "Ready. Keep private buckets private by default." : "Setup required: create this bucket in Supabase Storage and keep private unless explicitly published."))
-  ];
-}
-
-async function updateUserRole(req) {
-  const userId = String(req.body.userId || req.body.user_id || "").trim();
-  const role = String(req.body.role || "").trim();
-  const action = String(req.body.action || "grant").trim();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter a valid user ID." } };
-  }
-  if (!["owner", "admin", "customer", "employee"].includes(role)) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Choose a valid role." } };
-  }
-  if (!["grant", "revoke"].includes(action)) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Choose grant or revoke." } };
-  }
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { status: 503, body: { ok: false, code: "setup_required", service: "supabase" } };
-  const url = action === "grant"
-    ? `${config.url}/rest/v1/user_roles?on_conflict=user_id,role`
-    : `${config.url}/rest/v1/user_roles?user_id=eq.${encodeURIComponent(userId)}&role=eq.${encodeURIComponent(role)}`;
-  const response = await fetch(url, {
-    method: action === "grant" ? "POST" : "DELETE",
-    headers: supabaseHeaders(config, action === "grant" ? { prefer: "resolution=ignore-duplicates" } : {}),
-    body: action === "grant" ? JSON.stringify({ user_id: userId, role }) : undefined
-  }).catch(() => undefined);
-  if (!response?.ok) return { status: 502, body: { ok: false, code: "role_update_failed", role, message: "Role update could not be recorded." } };
-  return { status: 200, body: { ok: true, code: "role_updated", role, action, message: `Role ${action} recorded.` } };
 }
 
 async function recordAdminAuditEvent(req, action, metadata = {}) {

@@ -12,11 +12,22 @@
 //    be written. A path parameter reaching PostgREST unchecked would be a way
 //    to write to any table in the database."
 //
-// It is admin-gated, so this is not an anonymous hole. It is still the widest
-// single parameter in the application: `customers`, `customer_invoices`,
-// `agent_pending_actions` and every other table are one path segment away, and
-// the request goes out with the service role key, which bypasses row level
-// security. The allowlist is the only thing between the two.
+// **It was not gated at all.** This file said "It is admin-gated, so this is not
+// an anonymous hole" and that was false when it was written. The module read its
+// gate as `deps.requireAdmin || ((req, res, next) => next())` and server.js
+// never passed one, so an unauthenticated POST reached field validation.
+// Measured 1 October 2026 by restoring the fallback and probing: a signed-out
+// POST answered 303 with `problem=missing_required`, which is the body check,
+// not a refusal. The stub below was the same shape -- it called next()
+// regardless of whether a user was set -- so these tests could not have caught
+// it either.
+//
+// It is the widest single parameter in the application: `customers`,
+// `customer_invoices`, `agent_pending_actions` and every other table are one
+// path segment away, and the request goes out with the service role key, which
+// bypasses row level security. The allowlist is the only thing between the two.
+// It now fails closed, server.js passes requireCustomer, and the first test
+// below is the regression.
 //
 // The registry has grown since that comment was written -- 68 tables, 50
 // writable -- so the numbers here are read from it rather than quoted.
@@ -72,9 +83,14 @@ function harness({ configured = true, admin = ADMIN, organization = { ok: true, 
     brandCard: (title, body) => `<article>${title}${body}</article>`,
     linkAction: (href, label) => `<a href="${href}">${label}</a>`,
     escapeHtml: (value) => String(value),
-    requireAdmin: (req, _res, next) => {
-      if (admin) req.sonaraAdmin = { user: admin };
-      next();
+    // Refuses when nobody is signed in, which the previous stub did not: it
+    // called next() either way, so every assertion below ran as an
+    // authenticated caller no matter what and the open gate was invisible here.
+    requireCustomer: (req, res, next) => {
+      if (!admin) return res.status(401).json({ ok: false, code: "customer_auth_required" });
+      req.sonaraUser = admin;
+      req.sonaraAccess = { ok: true, user: admin };
+      return next();
     },
     getSupabaseServerConfig: () => (configured ? { ok: true, url: "https://db.example" } : { ok: false }),
     supabaseHeaders: () => ({ apikey: "service-role" }),

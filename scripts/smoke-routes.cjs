@@ -51,15 +51,32 @@ async function run() {
     assert.equal(response.headers.location, "/login", `${route} should redirect to login`);
   }
 
-  const admin = await request(app).get("/admin/audit").set("Accept", "application/json");
-  assert.ok([401, 503].includes(admin.status), "/admin/audit should reject anonymous users");
-  assert.equal(admin.body.ok, false);
+  // The operator console was removed on 1 October 2026. This probed
+  // /admin/audit and asserted it refused an anonymous caller with 401 or 503;
+  // the stronger assertion now available is that nothing serves it. Kept rather
+  // than dropped, because a reinstated operator route with no authorization test
+  // is exactly what this smoke run exists to notice.
+  const removedConsole = await request(app).get("/admin/audit").set("Accept", "application/json");
+  assert.equal(
+    removedConsole.status,
+    404,
+    `/admin/audit answered ${removedConsole.status}; the operator console is removed and nothing should serve it`
+  );
+
+  // And the business-owner controls that replaced it refuse a stranger. Without
+  // this, the line above would pass just as well on a build that had removed the
+  // owner's controls along with the console.
+  const ownerControls = await request(app).get("/owner/administration").set("Accept", "text/html");
+  assert.ok(
+    [302, 303, 401, 403, 503].includes(ownerControls.status),
+    `/owner/administration answered ${ownerControls.status} to an anonymous caller; it must refuse rather than render`
+  );
 
   const missing = await request(app).get("/__sonara_missing_route__").set("Accept", "text/html");
   assert.equal(missing.status, 404);
   assert.doesNotMatch(missing.text, mojibake);
 
-  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, admin, and 404 behavior.`);
+  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls refusing a stranger, and 404 behaviour.`);
 }
 
 run().catch((error) => {

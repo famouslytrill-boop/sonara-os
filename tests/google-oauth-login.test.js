@@ -285,8 +285,14 @@ describe("Google sign-in is a real Supabase PKCE flow", () => {
     const registry = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-route-registry-routes.cjs"), "utf8");
     assert.match(server, /async function getLiveReadiness\(\)/);
     assert.match(server, /services\.googleOAuth = googleStatus/);
+    // The lifecycle module still reads live readiness, through readinessCards.
+    // The second form -- `(await getLiveReadiness()).services` -- was only in its
+    // /admin/integrations and /admin/ai-gateway handlers, removed on 1 October
+    // 2026 with the operator console. The property this test is about is that
+    // these surfaces read live state rather than a cached snapshot, and the line
+    // below is what asserts it for this module; the route registry still uses the
+    // .services form and is still checked for it.
     assert.match(lifecycle, /readinessCards\(await getLiveReadiness\(\)\)/);
-    assert.match(lifecycle, /\(await getLiveReadiness\(\)\)\.services/);
     assert.match(registry, /\(await getLiveReadiness\(\)\)\.services/);
   });
 

@@ -57,10 +57,15 @@ describe("seventh screenshot tool research batch", () => {
 
   it("wires Batches 5 through 7 into the aggregate catalog and counts", () => {
     const route = fs.readFileSync(path.join(__dirname, "../routes/sonara-requested-repositories-routes.cjs"), "utf8");
+    // `screenshotBatch5.repositories` and `.repositoryCount` were local names
+    // inside the /admin/requested-repositories readiness handler, removed with
+    // the operator console on 1 October 2026. The batches are still wired, and
+    // now only through the public catalogue, which is the surface that matters:
+    // `const batch5 = getScreenshotToolReadinessBatch5()` and the spread into
+    // getCombinedPublicCatalog(). Asserted on the names that exist.
     for (const batch of [5, 6, 7]) {
       assert.match(route, new RegExp(`getScreenshotToolReadinessBatch${batch}`));
-      assert.match(route, new RegExp(`screenshotBatch${batch}\\.repositories`));
-      assert.match(route, new RegExp(`screenshotBatch${batch}\\.repositoryCount`));
+      assert.match(route, new RegExp(`const batch${batch} = getScreenshotToolReadinessBatch${batch}\\(\\)`));
     }
     assert.match(route, /getNonRepositoryReferencesBatch7/);
   });
@@ -122,9 +127,23 @@ describe("Batch 8 capability truth and Batch 9 design convergence", () => {
   it("wires capability/design convergence into founder readiness without inflating repository counts", () => {
     const route = fs.readFileSync(path.join(__dirname, "../routes/sonara-requested-repositories-routes.cjs"), "utf8");
     assert.match(route, /getCapabilityDesignReadiness/);
-    assert.match(route, /capabilityBatch8: convergence\.capabilities/);
-    assert.match(route, /designBatch9: convergence\.designs/);
-    assert.match(route, /convergenceProductionExecutionAdded: convergence\.productionExecutionAdded/);
+    // `capabilityBatch8:` was a key in the removed admin readiness payload. The
+    // records reach the public page directly as convergence.capabilities.
+    assert.match(route, /convergence\.capabilities/);
+    // Same as capabilityBatch8 above: a key in the removed admin payload. The
+    // Batch 9 design records reach the public page as convergence.designs.
+    assert.match(route, /convergence\.designs/);
+    // `convergenceProductionExecutionAdded:` was a field in the removed admin
+    // readiness payload, so the route no longer mentions it. The claim behind it
+    // -- that converging these batches added no production execution -- is not a
+    // string in a route file at all, so it is asserted where it is computed. The
+    // route-source match could only ever have shown the field was wired; this
+    // shows the value is zero, which is the thing worth knowing.
+    const { getCapabilityDesignReadiness } = require("../lib/sonara-capability-design-batches.cjs");
+    const convergence = getCapabilityDesignReadiness();
+    assert.equal(convergence.productionExecutionAdded, 0, "converging these batches added production execution");
+    assert.ok(convergence.batch8Count > 0, "no Batch 8 capability records; this assertion would pass on an empty set");
+    assert.ok(convergence.batch9Count > 0, "no Batch 9 design records; this assertion would pass on an empty set");
     assert.doesNotMatch(route, /screenshotResearchCount[^\n]+were verified/i);
   });
 });

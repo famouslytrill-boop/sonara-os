@@ -101,6 +101,18 @@ const REVIEW = /^review by:\s*(\d{4}-\d{2}-\d{2})\s*$/im;
 // marker was widened. Move it deliberately if that is wrong; what must not
 // happen is the entry quietly outliving its reason, which is why the date is
 // here and enforced rather than written in prose.
+//
+// One entry has closed. docs/owner/WHAT-IS-LEFT.md asked for its hand-counted
+// figure to be counted and either derived or re-dated; it was counted, found to
+// have drifted, and derived, so the hand-count date is gone from the document.
+// What that review turned up is worth more than the number: the sentence did not
+// claim the stale figure was right, it claimed the quantity could not be
+// measured. A figure excused from measurement is not a figure anybody
+// re-measures -- the fifth shape one level up, where the reason was never true
+// rather than having stopped being true. The same review found the document's
+// production-status section written in the present tense about a commit that is
+// no longer `main`'s head, which is the entry's own failure mode in a part of
+// the file nobody had pointed at.
 const AWAITING_FIRST_REVIEW = Object.freeze({
   "docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md": {
     deadline: "2026-10-15",
@@ -117,10 +129,6 @@ const AWAITING_FIRST_REVIEW = Object.freeze({
   "docs/SHIP_READINESS.md": {
     deadline: "2026-10-15",
     needs: "says two launch blockers were \"both measured on 5 September 2026\". One of them -- the Stripe runtime key -- is confirmed still blocking by live evidence. The other was not re-checked when this entry was written, and that is the whole reason for the entry: parts of this document were corrected on 15 September and its dated claim was not one of them."
-  },
-  "docs/owner/WHAT-IS-LEFT.md": {
-    deadline: "2026-10-15",
-    needs: "one figure is \"hand-counted on 12 August 2026\" and says so. Most of this document's numbers are now derived and gated by scripts/verify-doc-counts.mjs; that one is not, which is why it carries a date at all. Count it and either derive it or re-date it."
   }
 });
 

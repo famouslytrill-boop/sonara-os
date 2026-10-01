@@ -4,25 +4,20 @@
 
 const {
   getPublicRequestedRepositoryCatalog,
-  getRequestedRepositoryReadiness
 } = require("../lib/sonara-requested-repository-registry.cjs");
 const {
   getPublicScreenshotToolCatalog,
-  getScreenshotToolReadiness
 } = require("../lib/sonara-screenshot-tool-radar.cjs");
 const {
   getPublicScreenshotToolCatalogBatch2,
-  getScreenshotToolReadinessBatch2,
   getUnverifiedScreenshotLeadsBatch2
 } = require("../lib/sonara-screenshot-tool-radar-batch2.cjs");
 const {
   getPublicScreenshotToolCatalogBatch3,
-  getScreenshotToolReadinessBatch3,
   getNonRepositoryReferencesBatch3
 } = require("../lib/sonara-screenshot-tool-radar-batch3.cjs");
 const {
   getPublicScreenshotToolCatalogBatch4,
-  getScreenshotToolReadinessBatch4
 } = require("../lib/sonara-screenshot-tool-radar-batch4.cjs");
 const {
   getScreenshotToolReadinessBatch5
@@ -127,10 +122,6 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const requireAdmin = typeof deps.requireAdmin === "function" ? deps.requireAdmin : pass;
-  const recordAdminAuditEvent = typeof deps.recordAdminAuditEvent === "function"
-    ? deps.recordAdminAuditEvent
-    : async () => undefined;
 
   app.get("/api/ecosystem/platform-patterns", (req, res) => {
     res.status(200).json(getSeptember19PatternConvergence());
@@ -272,109 +263,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     }));
   });
 
-  app.get("/api/admin/requested-repositories/readiness", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.requested_repositories.probe", { path: req.path });
-    res.status(200).json(getCombinedReadiness());
-  });
-
-  app.get("/admin/requested-repositories", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.requested_repositories.view", { path: req.path });
-    const readiness = getCombinedReadiness();
-    const sections = [
-      brandCard("Governed intake", `${readiness.repositoryCount} requested repositories cataloged; ${readiness.verifiedCount} verified and ${readiness.blockedCount} blocked.`),
-      brandCard("Screenshot research", `${readiness.screenshotResearchCount} screenshot-sourced tools are cataloged as disabled research records with product-fit and safety boundaries.`),
-      brandCard("Batch 8 capability truth", `${readiness.capabilityBatch8.length} internal capability records distinguish actual runtime capability from setup-gated or research-only agent integration.`),
-      brandCard("Batch 9 design/correctness", `${readiness.designBatch9.length} design and correctness records define current visual authority and unresolved repair/review work.`),
-      brandCard("Latest screenshot intake", "Aggregate repository readiness includes Batch 22 research on Data Formulator, OpenH3-IR, Strata, logo design and AgentGlass plus visual workflow references. All screenshot-sourced candidates remain disabled."),
-      brandCard("Hosted/service references", `${readiness.nonRepositoryReferenceCount} hosted/service references are kept outside the executable repository catalog.`),
-      brandCard("Unresolved visual leads", `${readiness.unresolvedVisualLeadCount} screenshot concepts are held outside the executable repository catalog until exact upstream identity and license can be verified.`),
-      brandCard("Execution state", `${readiness.productionExecutionCount} repositories enabled in production. All current repository-research records remain non-executing and human-reviewed.`),
-      brandCard("Adoption rule", "Desktop tools, CLIs, coding agents, document binaries, skill libraries, media renderers, browser agents, GPU libraries, AI workspaces, infrastructure optimizers, model routers, social suites, and security tools require isolated workers, progressive client enhancement, or development environments—not the Vercel request process by default."),
-      ...readiness.capabilityBatch8.map((item) => brandCard(
-        `${item.label}: ${display(item.capabilityStatus)}`,
-        `Evidence: ${item.evidence.join(", ")}. Boundaries: ${item.boundaries.join(" ")}`
-      )),
-      ...readiness.designBatch9.map((item) => brandCard(
-        `${item.label}: ${display(item.status)}`,
-        `${item.rule} Evidence: ${item.evidence.join(", ")}.`
-      )),
-      ...readiness.nonRepositoryReferences.map((item) => brandCard(
-        `${item.label}: reference only`,
-        `${item.reason} Next: ${item.nextStep}`
-      )),
-      ...readiness.unresolvedVisualLeads.map((item) => brandCard(
-        `${item.label}: source pending`,
-        `${item.reason} Next: ${item.nextStep}`
-      )),
-      ...readiness.repositories.map((item) => brandCard(
-        `${item.label}: ${display(item.configurationStatus)}`,
-        adminSummary(item)
-      ))
-    ];
-
-    res.status(200).type("html").send(layout({
-      title: "Requested repository readiness",
-      eyebrow: "Founder operations",
-      heading: "External repository integration control plane",
-      body: "Static readiness and governance state plus internal capability/design convergence. This page never executes external code or reveals credentials.",
-      sections,
-      actions: [
-        linkAction("/admin/latest-screenshot-intake", "Latest screenshot readiness"),
-        linkAction("/api/admin/requested-repositories/readiness", "Readiness JSON"),
-        linkAction("/api/ecosystem/requested-repositories", "Public catalog JSON"),
-        linkAction("/admin/ai-integrations", "AI integrations"),
-        linkAction("/admin/ecosystem", "Ecosystem")
-      ]
-    }));
-  });
-
-  app.get("/admin/latest-screenshot-intake", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.latest_screenshot_intake.view", { path: req.path });
-    const latest = getLatestScreenshotIntake();
-    const convergence = getCapabilityDesignReadiness();
-    const sections = [
-      brandCard("Latest governed intake", `${latest.repositories.length} repositories and ${latest.nonRepositoryReferences.length} hosted/institutional references are represented through Batch 22.`),
-      brandCard("Batch 8 capability truth", `${convergence.batch8Count} non-executing truth records map current SONARA/product/agent workflow capability.`),
-      brandCard("Batch 9 design/correctness", `${convergence.batch9Count} non-executing design and correctness records define the current visual authority and unresolved work.`),
-      brandCard("Production execution", "0 enabled by the research/convergence records. Every latest-intake repository remains cataloged-disabled and requires human review before implementation."),
-      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} bounded architecture decisions are attached to the latest intake.`),
-      brandCard("Runtime boundaries", "Desktop capture/audio/networking stays on reviewed local companions; browser and MCP tools remain scope/policy gated; media rendering stays in isolated workers; financial intelligence remains deterministic and advisory; external memory, design, skill, network, and model projects stay research-gated until their own evidence proves a bounded need."),
-      ...convergence.capabilities.map((item) => brandCard(
-        `${item.label}: ${display(item.capabilityStatus)}`,
-        `Evidence: ${item.evidence.join(", ")}. ${item.boundaries.join(" ")}`
-      )),
-      ...convergence.designs.map((item) => brandCard(
-        `${item.label}: ${display(item.status)}`,
-        `${item.rule} Evidence: ${item.evidence.join(", ")}.`
-      )),
-      ...latest.architectureExtensions.map((item) => brandCard(
-        `${item.title}: Screenshot architecture`,
-        `${item.principle} SONARA implementation: ${item.implementation}`
-      )),
-      ...latest.repositories.map((item) => brandCard(
-        `${item.label}: ${display(item.configurationStatus)}`,
-        adminSummary(item)
-      )),
-      ...latest.nonRepositoryReferences.map((item) => brandCard(
-        `${item.label}: reference only`,
-        `${item.reason || item.correction || item.observedTheme}. Next: ${item.nextStep}`
-      ))
-    ];
-
-    res.status(200).type("html").send(layout({
-      title: "Latest screenshot readiness",
-      eyebrow: "Founder operations",
-      heading: "External-tool and capability review through Batch 22",
-      body: "Founder-facing readiness for the newest repository research plus Batch 8 capability truth and Batch 9 design/correctness convergence. This surface is informational and never executes third-party code.",
-      sections,
-      actions: [
-        linkAction("/research-lab/latest-screenshot-intake", "Public research view"),
-        linkAction("/admin/requested-repositories", "All repository readiness"),
-        linkAction("/admin/ecosystem", "Ecosystem")
-      ]
-    }));
-  });
-};
+      };
 
 function getLatestScreenshotIntake() {
   const batch5 = getScreenshotToolReadinessBatch5();
@@ -523,89 +412,6 @@ function getAllConfirmedExistingRecords() {
   ];
 }
 
-function getCombinedReadiness() {
-  const requested = getRequestedRepositoryReadiness();
-  const screenshot = getScreenshotToolReadiness();
-  const screenshotBatch2 = getScreenshotToolReadinessBatch2();
-  const screenshotBatch3 = getScreenshotToolReadinessBatch3();
-  const screenshotBatch4 = getScreenshotToolReadinessBatch4();
-  const screenshotBatch5 = getScreenshotToolReadinessBatch5();
-  const screenshotBatch6 = getScreenshotToolReadinessBatch6();
-  const screenshotBatch7 = getScreenshotToolReadinessBatch7();
-  const screenshotBatch12 = getScreenshotToolReadinessBatch12();
-  const screenshotBatch13 = getScreenshotToolReadinessBatch13();
-  const screenshotBatch14 = getScreenshotToolReadinessBatch14();
-  const screenshotBatch15 = getScreenshotToolReadinessBatch15();
-  const screenshotBatch16 = getScreenshotToolReadinessBatch16();
-  const screenshotBatch17 = getScreenshotToolReadinessBatch17();
-  const screenshotBatch18 = getScreenshotToolReadinessBatch18();
-  const screenshotBatch19 = getScreenshotToolReadinessBatch19();
-  const screenshotBatch20 = getScreenshotToolReadinessBatch20();
-  const screenshotBatch21 = getScreenshotToolReadinessBatch21();
-  const screenshotBatch22 = getScreenshotToolReadinessBatch22();
-  const convergence = getCapabilityDesignReadiness();
-  const unresolvedVisualLeads = getUnverifiedScreenshotLeadsBatch2();
-  const nonRepositoryReferences = getAllNonRepositoryReferences();
-  const confirmedExistingRecords = getAllConfirmedExistingRecords();
-  const repositories = [
-    ...requested.repositories,
-    ...screenshot.repositories,
-    ...screenshotBatch2.repositories,
-    ...screenshotBatch3.repositories,
-    ...screenshotBatch4.repositories,
-    ...screenshotBatch5.repositories,
-    ...screenshotBatch6.repositories,
-    ...screenshotBatch7.repositories,
-    ...screenshotBatch12.repositories,
-    ...screenshotBatch13.repositories,
-    ...screenshotBatch14.repositories,
-    ...screenshotBatch15.repositories,
-    ...screenshotBatch16.repositories,
-    ...screenshotBatch17.repositories,
-    ...screenshotBatch18.repositories,
-    ...screenshotBatch19.repositories,
-    ...screenshotBatch20.repositories,
-    ...screenshotBatch21.repositories,
-    ...screenshotBatch22.repositories
-  ];
-  return {
-    ok: true,
-    mode: "static_governed_catalog_with_capability_design_convergence",
-    repositoryCount: repositories.length,
-    verifiedCount: repositories.filter((item) => item.repositoryVerified).length,
-    blockedCount: repositories.filter((item) => item.integrationStatus === "blocked").length,
-    screenshotResearchCount: screenshot.repositoryCount
-      + screenshotBatch2.repositoryCount
-      + screenshotBatch3.repositoryCount
-      + screenshotBatch4.repositoryCount
-      + screenshotBatch5.repositoryCount
-      + screenshotBatch6.repositoryCount
-      + screenshotBatch7.repositoryCount
-      + screenshotBatch12.repositoryCount
-      + screenshotBatch13.repositoryCount
-      + screenshotBatch14.repositoryCount
-      + screenshotBatch15.repositoryCount
-      + screenshotBatch16.repositoryCount
-      + screenshotBatch17.repositoryCount
-      + screenshotBatch18.repositoryCount
-      + screenshotBatch19.repositoryCount
-      + screenshotBatch20.repositoryCount
-      + screenshotBatch21.repositoryCount
-      + screenshotBatch22.repositoryCount,
-    unresolvedVisualLeadCount: unresolvedVisualLeads.length,
-    nonRepositoryReferenceCount: nonRepositoryReferences.length,
-    confirmedExistingRecordCount: confirmedExistingRecords.length,
-    productionExecutionCount: repositories.filter((item) => item.enabledInProduction).length,
-    capabilityBatch8: convergence.capabilities,
-    designBatch9: convergence.designs,
-    convergenceProductionExecutionAdded: convergence.productionExecutionAdded,
-    repositories,
-    unresolvedVisualLeads,
-    nonRepositoryReferences,
-    confirmedExistingRecords
-  };
-}
-
 function publicSummary(item) {
   const source = item.repositoryVerified
     ? `Source: ${item.repository}.`
@@ -615,16 +421,10 @@ function publicSummary(item) {
   return `${source}${correction} Class: ${display(item.runtimeClass)}. Placement: ${item.placement}. License: ${item.license}.${capabilities} Next: ${item.nextStep}`;
 }
 
-function adminSummary(item) {
-  const source = item.repository || item.requestedRepository;
-  return `Source: ${source}. Runtime: ${display(item.runtimeStatus)}. Policy: ${display(item.integrationStatus)}. Production enabled: no. Risk: ${display(item.licenseRisk)}. Human review required. Next: ${item.nextStep}`;
-}
-
 function display(value) {
   return String(value || "unknown").replace(/_/g, " ");
 }
 
-function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }

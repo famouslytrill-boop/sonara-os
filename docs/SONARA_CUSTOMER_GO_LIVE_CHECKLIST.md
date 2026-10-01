@@ -8,7 +8,7 @@ SONARA is customer-ready only when:
 
 1. Public pages load without broken links or placeholder language.
 2. Customer signup/login works through Supabase Auth.
-3. Founder/admin login works and is protected server-side.
+3. Customer login works and is protected server-side. There is no separate founder login: the operator console was removed on 1 October 2026.
 4. Each customer is attached to an organization/workspace.
 5. Business Builder, Creator Studio, and Growth Studio open correctly based on access rules.
 6. Stripe checkout creates real sessions for configured plans.
@@ -78,23 +78,26 @@ Acceptance criteria:
 - Logout clears both customer session cookies.
 - Customer session does not expose secrets.
 
-### Founder/admin requirements
+### Business owner requirements
 
-- Founder email is in `ADMIN_EMAILS`, `ADMIN_EMAIL`, or `FOUNDER_EMAILS`.
-- Founder user exists in Supabase Auth.
-- Founder profile row exists.
-- Founder organization exists.
-- Founder organization membership exists.
-- Founder has owner/admin/founder roles.
-- Admin login works from `/admin/login`.
-- Admin routes require admin authorization.
-- Admin logout works.
+The operator console and its separate login were removed on 1 October 2026, so
+there is no founder sign-in to check. An owner is somebody holding the owner
+role inside their own organization, which is the only kind of owner there is.
+
+- Owner user exists in Supabase Auth.
+- Owner profile row exists.
+- Owner organization exists.
+- Owner organization membership exists.
+- Owner holds the `owner` role in that organization.
+- `/owner/administration` refuses a signed-out visitor and renders for the owner.
+- `/owner/agent-activity` refuses a signed-out visitor.
+- Every former `/admin` path answers 404.
 
 Acceptance criteria:
 
 - Customer can create account and log in.
-- Founder can log in to `/admin`.
-- Non-admin cannot open admin routes.
+- An owner can open `/owner/administration` and pause one of their own record types.
+- A signed-out visitor cannot open it, and no `/admin` path answers at all.
 
 ## Phase 3: Organization and workspace readiness
 

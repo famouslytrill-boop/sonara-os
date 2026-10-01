@@ -210,10 +210,12 @@ describe("premium application rebuild", () => {
       }
     });
 
-    it("admin integrations view requires founder access", async function() {
+    // Was an authorization assertion on /admin/integrations, removed with the
+    // operator console on 1 October 2026. Now asserts the stronger property.
+    it("serves no admin integrations view at all, guarded or otherwise", async function() {
       const res = await request(app).get("/admin/integrations").set("Accept", "application/json");
-      assert.ok([401, 503].includes(res.status));
-      assert.equal(res.body.ok, false);
+      assert.notEqual(res.status, 200, "the operator view answered an unauthenticated caller");
+      assert.equal(res.status, 404, `answered ${res.status}; a reinstated operator view needs its own authorization test`);
     });
   });
 

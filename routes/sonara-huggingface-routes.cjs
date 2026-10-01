@@ -3,18 +3,13 @@
 "use strict";
 
 const {
-  getPublicHuggingFaceCatalog,
-  getHuggingFaceReadiness
+  getPublicHuggingFaceCatalog
 } = require("../lib/sonara-huggingface-catalog.cjs");
 
 module.exports = function registerSonaraHuggingFaceRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const requireAdmin = typeof deps.requireAdmin === "function" ? deps.requireAdmin : pass;
-  const recordAdminAuditEvent = typeof deps.recordAdminAuditEvent === "function"
-    ? deps.recordAdminAuditEvent
-    : async () => undefined;
 
   app.get("/api/ecosystem/huggingface", (req, res) => {
     const resources = getPublicHuggingFaceCatalog();
@@ -56,40 +51,7 @@ module.exports = function registerSonaraHuggingFaceRoutes(app, deps = {}) {
     }));
   });
 
-  app.get("/api/admin/huggingface/readiness", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.huggingface.probe", { path: req.path });
-    const readiness = await getHuggingFaceReadiness({ probe: true });
-    res.status(200).json(readiness);
-  });
-
-  app.get("/admin/huggingface", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.huggingface.view", { path: req.path });
-    const readiness = await getHuggingFaceReadiness({ probe: true });
-    const sections = [
-      brandCard("Catalog", `${readiness.resourceCount} resources classified. No model execution or dataset ingestion is enabled by this catalog.`),
-      brandCard("Hub readiness", `Configuration: ${display(readiness.hub.configurationStatus)}. Runtime: ${display(readiness.hub.runtimeStatus)}. Token configured: ${readiness.hub.tokenConfigured ? "yes" : "no"}.`),
-      brandCard("Production rule", "Only bounded read-only metadata probes are allowed here. Inference, training, dataset ingestion, custom code, and model downloads belong in separately approved workers."),
-      ...readiness.resources.map((item) => brandCard(
-        `${item.label}: ${display(item.adoptionStatus)}`,
-        adminSummary(item)
-      ))
-    ];
-
-    res.status(200).type("html").send(layout({
-      title: "Hugging Face readiness",
-      eyebrow: "Founder operations",
-      heading: "Hugging Face integration control plane",
-      body: "Static governance state plus one bounded metadata health probe. No credentials, model outputs, dataset rows, or customer data are displayed.",
-      sections,
-      actions: [
-        linkAction("/api/admin/huggingface/readiness", "Readiness JSON"),
-        linkAction("/api/ecosystem/huggingface", "Public catalog JSON"),
-        linkAction("/admin/ai-integrations", "AI integrations"),
-        linkAction("/admin/ecosystem", "Ecosystem")
-      ]
-    }));
-  });
-};
+    };
 
 function summarize(resources) {
   return resources.reduce((summary, item) => {
@@ -105,15 +67,10 @@ function publicSummary(item) {
   return `Type: ${display(item.resourceType)}. Task: ${display(item.task)}. License: ${item.license}. Commercial use: ${display(item.commercialUse)}. Runtime: ${display(item.runtimeClass)}.${productFit}${capabilities} Next: ${item.nextStep}`;
 }
 
-function adminSummary(item) {
-  return `Source: ${item.sourceUrl}. License: ${item.license}. Commercial use: ${display(item.commercialUse)}. Execution enabled: no. Human review required. Next: ${item.nextStep}`;
-}
-
 function display(value) {
   return String(value || "unknown").replace(/_/g, " ");
 }
 
-function pass(req, res, next) { next(); }
 function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }

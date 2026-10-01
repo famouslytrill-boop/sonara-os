@@ -2,6 +2,322 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
+
+Asked to find and build what the business operating system is missing. The method
+was the one that has worked here before: look for schema with no product, because
+a table nobody can reach is a feature somebody started and stopped.
+
+**Every one of the 347 tables the migrations create is named somewhere in the
+runtime**, so that search is exhausted at the table level. Narrowing to *queried*
+rather than *named* found the gap: four tables in the employee family had no route
+file referencing them at all -- `employee_shifts`, `employee_pay_periods`,
+`employee_pay_statements` and `employee_job_posts`. The last is in
+`lib/sonara-database-retirement-contract.cjs` and deliberately retired.
+
+### Why the payroll half was never built
+
+The six employee tables key on **two different parents**:
+
+    -> business_employee_profiles    employee_time_entries, employee_schedules,
+                                     employee_tasks
+    -> employee_profiles             employee_wage_rates, employee_shifts,
+                                     employee_pay_statements
+
+So a clocked hour and the rate it should be paid at reference different tables,
+and no join crosses them. `business_employee_profiles` is read by ten files.
+`employee_profiles` is named in four and **queried by none** -- all four are
+registries. Somebody began the payroll half against the parent with no product
+behind it and stopped, which is exactly why those three are the three with no
+reader.
+
+`supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql`
+adds a nullable `business_employee_id` to the two real payroll tables and indexes
+it beside the organization. It drops nothing: retiring the old column and the
+empty parent is a destructive data change and AGENTS.md puts those behind the
+owner. 137 migrations replay in order against an empty PostgreSQL.
+
+### One of the four was the same table twice
+
+`employee_shifts` is `employee_schedules` again -- identical `organization_id`,
+`employee_id`, `location_id`, `role_label`, `starts_at`, `ends_at` and `notes`,
+differing only in its status vocabulary (`worked`/`changed` against
+`confirmed`/`completed`) and in pointing at the parent with no product.
+`employee_schedules` has both a writer at `/business-builder/owner/schedules` and
+a reader in `routes/sonara-rota-routes.cjs`.
+
+A shift page was written and then **deleted before it shipped**, because building
+it would have created the second shift surface. The migration deliberately leaves
+that table without the working key its two siblings got, and says so where
+somebody will read it.
+
+Worth recording: the duplicate could not be put in `lib/sonara-orphan-tables.cjs`
+either. That gate counts a table as queried when any non-comment line in the
+scanned tree names it, and five registry files name this one -- so the register
+refused the entry as describing a table that is already queried. The register's
+model of "queried" includes being listed, which is the "a mention is not a use"
+problem one level up, in the check rather than the code. Left alone and recorded
+here instead.
+
+### What was built
+
+`lib/sonara-pay-period-engine.cjs` and
+`routes/sonara-pay-period-routes.cjs`: four routes that turn clocked hours into a
+draft statement each.
+
+The engine is arithmetic only -- no model call, no provider, nothing metered, the
+same constraint `lib/sonara-record-checks.cjs` works under. It does not file
+taxes, compute withholding or decide overtime law; deductions and additions are
+lists the owner supplies. **Nothing in it marks anything paid**, because this
+product does not move money, and a screen reading "paid" that had paid nobody
+would be the worst signal in the application.
+
+The cases that would each have produced a plausible wrong number, every one of
+them tested:
+
+* A missing clock-out is **unknown hours, not zero** -- `Number(null)` is `0` and
+  finite, which is the fourth shape and the one that would underpay somebody.
+* A **salary or commission is not multiplied by hours**. That arithmetic
+  completes and means nothing, and it would look exactly like a correct answer.
+* The rate in force is the one on **the day the shift started**, so a raise dated
+  mid-period pays the old rate for the shifts before it.
+* The cent is rounded **once over the period**, not per entry: three 20-minute
+  entries at $20/hour are 2000 cents rounded once and 2001 rounded each.
+* An entry already at `status: "paid"` is never counted again.
+* A period already marked paid **cannot be run** -- the one mistake in here that
+  would move money twice.
+* An unreadable deduction is reported, not counted as zero, because a typo that
+  becomes "no deduction" overpays and reads as a clean run.
+* A negative net is shown rather than clamped: an over-deduction has to be
+  visible.
+* An employee with hours and no rate is **reported, not paid from a row on the
+  historical column** that nobody said corresponds.
+
+Falsified three ways, each restored by copy-aside and `md5sum -c`: treating a
+missing clock-out as zero failed 4 tests by name, widening the hourly pay types
+failed the salary case, and rounding per entry failed the drift case.
+
+### Gates that had something to say about the new code
+
+`report-unused-selected-columns` flagged six columns the route selects and never
+reads -- they are consumed by the engine one module over, now recorded in
+`ACCOUNTED` with which function uses each. `report-tenant-scoped-queries`
+required the table **and** the filter written at every call site, so the two
+handlers repeat the statement rather than share it. `no-page-lies` read "Nothing
+here pays anybody" as an empty-state claim about the customer's records; reworded
+rather than exempted. `plain-language` recorded one more skipped route.
+
+Verified: typecheck, lint, **5202 tests**, `verify:gates`, `build`, migration
+replay, and the derived artefacts regenerated.
+
+### 2026-10-01 - The operator console is gone, and it was holding a door open
+
+The owner asked for the administration part of the application to be removed and
+for business owners to get basic controls over their own sub-applications and
+operations instead. Both are done.
+
+**Removed: 58 registered routes** -- 43 pages under `/admin` and 15 JSON
+endpoints under `/api/admin` -- the admin login, the admin session cookie, the
+rate limiter in front of it, `requireAdmin`, `verifyAdminRequest`,
+`isSupabaseAdminUser`, the page frame's admin navigation and login form, and five
+route modules left with no routes at all. Every former path answers 404, and
+`tests/the-operator-console-is-gone-and-so-is-its-bypass.test.js` keeps it so.
+
+**Added: `/owner/administration`.** Organization-scoped controls where an owner
+sees which parts of their business are running and pauses or restarts one.
+`business_sub_app_modules` existed since migration 20260530120000 and **had no
+reader at all** -- registered in two libraries and never queried -- which is the
+"table with no way in" the record-page skill opens with. This is the way in.
+
+### The part that was not a deletion
+
+`verifyAdminRequest` did not only guard those pages. `resolveWorkspaceAccess`
+called it **first**, ahead of resolving any customer session, and on success
+returned `ownerOverride: true` for whichever organization was being addressed.
+`requireBusinessManager` did the same and additionally set
+`req.sonaraBusinessMembership = {}` -- a membership record nobody is a member of.
+A staff cookie was therefore an owner of every business on the platform, and the
+cookies it accepted included the ordinary customer one.
+
+That is defensible for an operator console. With the console gone the door had
+nothing behind it, so both branches are gone and membership is required with no
+exception.
+
+### Three findings the removal surfaced, none of which it caused
+
+**An unauthenticated write endpoint to 38 tables.**
+`routes/sonara-subsystem-routes.cjs` read its gate as a dependency with a
+fallback that called `next()`, and `server.js` never passed one. Measured by
+restoring the fallback and probing: a signed-out `GET /research-lab/subsystems`
+answered **200**, and a signed-out POST to the write endpoint answered 303 with
+`problem=missing_required` -- the body check, not a refusal. Its own comment
+said the table allow-list was all that stood between a path parameter and "a way
+to write to any table in the database"; that was true, and the allow-list was
+the only check there was. `lib/sonara-route-surface.cjs` recorded that these
+pages "redirect a signed-out visitor to /admin/login", **measured 16 September**.
+They did not. The module now fails closed on a missing gate, `server.js` passes
+`requireCustomer`, and re-probing gives 303 to `/login` for both.
+
+**Then those pages leaked across tenants.** Fixing the gate made them reachable
+by a signed-in customer for the first time, and `cross-tenant-isolation` reported
+**sixteen unscoped reads** -- `agent_action_logs`, `media_capture_records`,
+`phone_number_records`, `user_device_permissions`, `route_tracking_points`,
+`voice_command_logs` and more, one business's rows on another's screen. `tableCard`
+now filters to the caller's organization, refuses to read a table that carries no
+`organization_id` at all, and refuses when the caller's organization is unknown
+rather than treating absent as "show everything". Falsified against the full
+suite: with the filter removed, **120 findings**; with it, zero. The test does not
+catch it in isolation, which is worth knowing about that test.
+
+**A module that resolved the wrong user.** The same module took its user id from
+`req.sonaraAdmin?.user?.id`, which only the removed staff middleware ever set, so
+under `requireCustomer` every table with a required `organization_id` answered
+`no_organization_for_this_account`. Its own test -- "takes the organization from
+the signed-in user, not from the body" -- is what found it.
+
+### Checks that were measuring the wrong thing
+
+* `verify:customer-ready` asserted `/customer_cookie/` against the runtime. That
+  matched a **string label** in `verifyAdminRequest`'s list of auth methods, not
+  any property, and went red when the function went. Re-anchored on the call that
+  reads the cookie.
+* `tests/plain-language.test.js` reported `/admin` in `TECHNICAL_ROUTE_PREFIXES`
+  as a prefix matching no served route -- the two-sided half working, arriving the
+  other way round from the three prefixes it caught before: the pages went rather
+  than never existing.
+* `verify:request-supplied-tenant-ids` reported its own entry for
+  `sonara-service-lifecycle-routes.cjs` as describing nothing.
+* `report-unreferenced-modules` reported four libraries as reached only by their
+  tests. All four had the console as their single consumer; each is registered
+  with what would wire it back, and `sonara-platform-completeness.cjs` is the one
+  with an obvious home on the new page.
+* `every-page-is-reachable` reported three registered pages nothing links to --
+  including both owner pages and the new one. They are on the dashboard now.
+* `report-unused-selected-columns` caught the new module selecting `slug` and
+  never using it. Shape 3, in code written the same hour as this entry.
+
+### The twelfth shape, three times in one change
+
+A note that names what it excuses, inside another check's population:
+
+1. `docs/owner/WHAT-IS-LEFT.md` prose quoting the stale record-check figure.
+2. A comment in the new module spelling the rejected `rest()` call shape -- the
+   tenant auditor counts a bare `rest(` anywhere in a runtime file, skips the
+   helper's own declaration, and does not skip a comment, so the sentence
+   describing the blind spot became the 41st entry in it.
+3. The new regression test matching `requireAdmin` inside a register `reason`
+   string in `lib/sonara-route-surface.cjs`. That test now strips comments **and**
+   string contents before matching, and asserts the stripper left real code
+   behind.
+
+### Two self-inflicted errors, recorded because both looked fine
+
+The function-removal tool found the body brace by taking the first `{` after the
+name. For `function adminPage(title, body, readiness, metrics = {})` that is the
+empty object in a default value: it cut to the end of `{}` and left `) {`
+dangling. `node --check` caught it; the fix walks the parameter list to its
+closing paren first.
+
+Worse, the unused-binding cleanup edited every eslint finding in one pass with a
+line-based regex. `const x = typeof deps.x === "function"` spans three lines, so
+it cut the first and left the ternary behind. A second regex written to clean
+**that** up then deleted the same three-line shape from two modules that were
+never part of this change; both were restored from git, and the rewritten tool
+does one name at a time and reverts any edit that stops the file parsing.
+
+### What the owner should know went with it
+
+`/admin/ai-integrations/business-draft` -- the page where ChatGPT or Claude
+produced a labelled draft for review -- was an `/admin` page and is gone. The
+provider router and both adapters survive and are still tested, now driven
+directly rather than through a route, which is stronger: the route test asserted
+that a page said "Nothing has been sent", and the replacement asserts the router
+refuses before any network call and will not attribute deterministic output to a
+model. Rebuilding that page on the owner plane is a product decision, not part of
+this change. `/admin/env-readiness`, `/admin/database` and `/admin/storage` were
+also the only in-app views of deployment readiness; the CLI release scripts
+remain.
+
+Verified: typecheck, lint, **5174 tests**, `verify:gates`, `build`, and the
+derived artefacts regenerated. 77 documents mention `/admin`; the three in
+`docs/admin/` are moved to `docs/archive/` with a retirement header, the route map
+and the go-live checklist are rewritten, and the rest are dated research records
+that describe what was true when they were written.
+
+### 2026-10-01 - A figure excused from measurement, and a status page written in the present tense
+
+`report-stale-claims.mjs` had five documents registered as awaiting a first review
+by 15 October. This closes one of them, `docs/owner/WHAT-IS-LEFT.md`, whose entry
+asked for its one hand-counted figure to be counted and either derived or re-dated.
+
+**The figure had drifted, but that is not the finding.** It read `22 record checks`
+and the true count was 27. The sentence beside it did not claim 22 was right -- it
+claimed the quantity was *unmeasurable*, that "record check" named no single thing a
+script could count, and that the number therefore belonged to a human's judgement.
+That was false. `lib/sonara-record-checks.cjs` exports `CHECKS`, a frozen array, and
+it is the one source both the runtime and `tests/record-checks.test.js` read.
+
+A figure excused from measurement is not a figure anybody re-measures. That is the
+fifth shape one level up: the exemption's reason was never true, rather than having
+stopped being true. A stale number gets re-counted by the next person who doubts it;
+a number declared uncountable does not.
+
+It is now derived by `scripts/verify-doc-counts.mjs` like the other seven in that
+block, and the module's own header -- which carried the same stale breakdown in
+words, "Twenty-two checks: eleven ... five ... six", invisible to every pattern that
+might have caught it -- is rewritten in digits so the same check guards it.
+
+### The second finding, in a part of the file nobody had pointed at
+
+The document opened with `## Current production status`, present tense: PR #373 "is
+merged", a Vercel deployment "is READY", and the live domain "serves that exact
+commit". `main` has merged four releases since. The claim was true when written and
+was sitting at the top of the document somebody opens to find out where things
+stand, with no date in any of its sentences.
+
+It now says which release it is the evidence for, that the commit named is no longer
+`main`'s head, and that **whether production serves one of the later ones is not
+asserted here** -- because asserting it needs somebody to go and look, and nobody
+has. The self-falsifying "there are no open pull requests as of this update" is
+gone; it cannot stay true for an hour.
+
+**The review date on that file is load-bearing only because a sentence carries a
+measurement verb next to a date.** `report-stale-claims.mjs` reads `Review by:` only
+on documents its marker counts as dated, and after the hand-count date was removed
+this document no longer matched -- so a review date on it would have been a promise
+nothing enforced. The file now states its evidence date in the form the marker sees,
+and says in the document why that sentence is not decoration.
+
+### Falsification
+
+Four probes, each restored by copy-aside and `md5sum -c`:
+
+* **Review date deleted** -> `says when it was checked and never says when to check
+  it again`, naming the file.
+* **Dated marker softened to "looked at in late September"** -> the tracked
+  population fell 34 -> 33 and the count with a review date fell 30 -> 29, which is
+  the dependency above, measured rather than reasoned.
+* **Document restated as 22** -> `says "22 record checks"; the true figure is 27`.
+* **`CHECKS` export truncated to three** -> the floor guard fires by name.
+
+Two earlier problems are worth recording because both produced a clean run that
+proved nothing. The first two probes against `lib/sonara-record-checks.cjs` reported
+`substring not found`, so no edit landed and the green result measured an unmodified
+tree -- a probe that does not apply is not a probe. And the floor guard itself read
+`require(...).CHECKS.length` directly, which threw a `TypeError` when the export was
+renamed, so the message explaining what to do never printed. A guard whose stated
+reason does not describe what happens is the thing this log keeps being about.
+
+### The register entry is removed, not re-dated
+
+`report-stale-claims.mjs` is two-sided and said so itself: with the review done it
+failed with `is registered as awaiting review and now has a review date. Remove the
+entry -- the review happened.` Four entries remain, all due 15 October:
+`docs/SHIP_READINESS.md`, `docs/WORKSPACE_WORKFLOW_AUDIT.md`,
+`docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md`, and
+`docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`. The last of those needs figures
+from outside this repository and cannot be closed from inside it.
+
 ### 2026-09-30 - Sixteen scripts nothing could run, and the guarantees hiding in three of them
 
 `report-unreferenced-modules.mjs` asks "does anything require this?" of `lib/` and

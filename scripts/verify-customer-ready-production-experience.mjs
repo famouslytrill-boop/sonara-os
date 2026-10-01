@@ -37,7 +37,15 @@ const server = runtimeSource();
 assert.match(server, /registerCustomerReadyExperience\(app\);/);
 assert.match(server, /automatic_workspace_bootstrap/);
 assert.match(server, /data-sonara-preference="brightness"/);
-assert.match(server, /customer_cookie/);
+// The guarantee: a customer session is recovered from the customer cookie.
+//
+// This read `/customer_cookie/` until 1 October 2026, which matched a STRING
+// LABEL in verifyAdminRequest's list of auth methods -- "admin_cookie",
+// "customer_cookie", "supabase_role". That function existed to tell a founder
+// from a customer and was removed with the operator console, and the assertion
+// went red on text that was never the property. It is now anchored on the call
+// that actually reads the cookie, in the module that owns customer sessions.
+assert.match(server, /getCookie\(req, CUSTOMER_SESSION_COOKIE\)/);
 assert.doesNotMatch(server, /data-legacy-mark="[^"]+"\s+data-legacy-mark=/);
 
 const customerMiddleware = read("routes/customer-ready-experience.cjs");

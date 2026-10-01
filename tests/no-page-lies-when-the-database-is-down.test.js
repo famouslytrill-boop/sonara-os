@@ -38,7 +38,7 @@ const SUPABASE_ENV = Object.freeze({
 const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key, process.env[key]]));
 
 const app = require("../server");
-const { CUSTOMER_SESSION_COOKIE, ADMIN_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
+const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
 const { ROUTE_REGISTRY } = require("../lib/sonara-route-registry.cjs");
 
 const USER = { id: "33333333-3333-4333-8333-333333333333", email: "outage@example.com" };
@@ -176,17 +176,26 @@ const leaks = [];
     // Two passes over the same routes: once as a customer, once as the owner.
     //
     // The customer pass alone silently skipped 49 of 260 routes -- 46 of them
-    // redirects to a login this session cannot pass, and almost all of those
-    // the admin area. So the file that says "every page, rendered with every
-    // data read failing" had never rendered /admin, /admin/database,
-    // /admin/users or /admin/system, which are the pages an *owner* opens
-    // during an outage. That is where a false "you have no records" does the
-    // most damage, because the owner is the person deciding whether anything
-    // has actually been lost.
+    // redirects to a login this session cannot pass. So the file that says
+    // "every page, rendered with every data read failing" had never rendered the
+    // pages an *owner* opens during an outage. That is where a false "you have no
+    // records" does the most damage, because the owner is the person deciding
+    // whether anything has actually been lost.
+    //
+    // Both passes now carry the CUSTOMER session cookie and differ only in the
+    // roles the stubbed user_roles read returns. The owner pass used to send
+    // `ADMIN_SESSION_COOKIE || "sonara_admin_session"` -- a SONARA-Industries
+    // staff cookie, which `verifyAdminRequest` accepted ahead of any membership
+    // check and which therefore reached every business's pages. That bypass was
+    // removed with the operator console on 1 October 2026, and this pass stopped
+    // reaching the owner-gated downloads at all: two of them answered 303 to a
+    // login instead of the 503 the rule wants. An owner is now somebody holding
+    // the owner role inside their own organization, which is the only kind of
+    // owner that exists, so that is who this crawls as.
     //
     // `skipped` is kept and asserted rather than dropped on the floor, so the
     // population cannot shrink again without somebody being told.
-    for (const [label, cookie, admin] of [["customer", CUSTOMER_SESSION_COOKIE, false], ["owner", ADMIN_SESSION_COOKIE || "sonara_admin_session", true]]) {
+    for (const [label, cookie, admin] of [["customer", CUSTOMER_SESSION_COOKIE, false], ["owner", CUSTOMER_SESSION_COOKIE, true]]) {
       global.fetch = stubFetch(admin);
       await crawlAs(routes, label, cookie);
     }

@@ -71,6 +71,16 @@ try {
 
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
+  "routes/sonara-pay-period-routes.cjs": {
+    columns: ["break_minutes", "clock_out_at", "effective_from", "effective_to", "pay_type", "rate_cents"],
+    reason: [
+      "Time-entry and wage-rate rows are handed whole to payRun in lib/sonara-pay-period-engine.cjs.",
+      "clock_out_at and break_minutes: entryMinutes computes paid minutes from them, and treats a missing clock-out as unknown hours rather than zero -- the route must never read that figure itself, because a page that computed its own total would be a second answer to the same question.",
+      "effective_from, effective_to and pay_type: rateOn picks the rate in force on the day a shift started, skips rates that have ended, and refuses to multiply a salary or a commission by hours.",
+      "rate_cents: the multiplication itself, accumulated across entries and rounded to the cent once.",
+      "Both files opened to confirm every one of the six. The route moves the values; it does not read them."
+    ].join(" ")
+  },
   "routes/sonara-last9-routes.cjs": {
     columns: ["capabilities", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
     reason: [

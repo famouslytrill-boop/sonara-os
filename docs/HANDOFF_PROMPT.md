@@ -23,11 +23,11 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3767 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3101 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 39 public routes, 20 customer routes, 30 admin routes.
+- Supabase over PostgREST for data. 137 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
 - 408 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
@@ -103,11 +103,333 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 404 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 407 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
+
+Asked to find and build what the business operating system is missing. The method
+was the one that has worked here before: look for schema with no product, because
+a table nobody can reach is a feature somebody started and stopped.
+
+**Every one of the 347 tables the migrations create is named somewhere in the
+runtime**, so that search is exhausted at the table level. Narrowing to *queried*
+rather than *named* found the gap: four tables in the employee family had no route
+file referencing them at all -- `employee_shifts`, `employee_pay_periods`,
+`employee_pay_statements` and `employee_job_posts`. The last is in
+`lib/sonara-database-retirement-contract.cjs` and deliberately retired.
+
+### Why the payroll half was never built
+
+The six employee tables key on **two different parents**:
+
+    -> business_employee_profiles    employee_time_entries, employee_schedules,
+                                     employee_tasks
+    -> employee_profiles             employee_wage_rates, employee_shifts,
+                                     employee_pay_statements
+
+So a clocked hour and the rate it should be paid at reference different tables,
+and no join crosses them. `business_employee_profiles` is read by ten files.
+`employee_profiles` is named in four and **queried by none** -- all four are
+registries. Somebody began the payroll half against the parent with no product
+behind it and stopped, which is exactly why those three are the three with no
+reader.
+
+`supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql`
+adds a nullable `business_employee_id` to the two real payroll tables and indexes
+it beside the organization. It drops nothing: retiring the old column and the
+empty parent is a destructive data change and AGENTS.md puts those behind the
+owner. 137 migrations replay in order against an empty PostgreSQL.
+
+### One of the four was the same table twice
+
+`employee_shifts` is `employee_schedules` again -- identical `organization_id`,
+`employee_id`, `location_id`, `role_label`, `starts_at`, `ends_at` and `notes`,
+differing only in its status vocabulary (`worked`/`changed` against
+`confirmed`/`completed`) and in pointing at the parent with no product.
+`employee_schedules` has both a writer at `/business-builder/owner/schedules` and
+a reader in `routes/sonara-rota-routes.cjs`.
+
+A shift page was written and then **deleted before it shipped**, because building
+it would have created the second shift surface. The migration deliberately leaves
+that table without the working key its two siblings got, and says so where
+somebody will read it.
+
+Worth recording: the duplicate could not be put in `lib/sonara-orphan-tables.cjs`
+either. That gate counts a table as queried when any non-comment line in the
+scanned tree names it, and five registry files name this one -- so the register
+refused the entry as describing a table that is already queried. The register's
+model of "queried" includes being listed, which is the "a mention is not a use"
+problem one level up, in the check rather than the code. Left alone and recorded
+here instead.
+
+### What was built
+
+`lib/sonara-pay-period-engine.cjs` and
+`routes/sonara-pay-period-routes.cjs`: four routes that turn clocked hours into a
+draft statement each.
+
+The engine is arithmetic only -- no model call, no provider, nothing metered, the
+same constraint `lib/sonara-record-checks.cjs` works under. It does not file
+taxes, compute withholding or decide overtime law; deductions and additions are
+lists the owner supplies. **Nothing in it marks anything paid**, because this
+product does not move money, and a screen reading "paid" that had paid nobody
+would be the worst signal in the application.
+
+The cases that would each have produced a plausible wrong number, every one of
+them tested:
+
+* A missing clock-out is **unknown hours, not zero** -- `Number(null)` is `0` and
+  finite, which is the fourth shape and the one that would underpay somebody.
+* A **salary or commission is not multiplied by hours**. That arithmetic
+  completes and means nothing, and it would look exactly like a correct answer.
+* The rate in force is the one on **the day the shift started**, so a raise dated
+  mid-period pays the old rate for the shifts before it.
+* The cent is rounded **once over the period**, not per entry: three 20-minute
+  entries at $20/hour are 2000 cents rounded once and 2001 rounded each.
+* An entry already at `status: "paid"` is never counted again.
+* A period already marked paid **cannot be run** -- the one mistake in here that
+  would move money twice.
+* An unreadable deduction is reported, not counted as zero, because a typo that
+  becomes "no deduction" overpays and reads as a clean run.
+* A negative net is shown rather than clamped: an over-deduction has to be
+  visible.
+* An employee with hours and no rate is **reported, not paid from a row on the
+  historical column** that nobody said corresponds.
+
+Falsified three ways, each restored by copy-aside and `md5sum -c`: treating a
+missing clock-out as zero failed 4 tests by name, widening the hourly pay types
+failed the salary case, and rounding per entry failed the drift case.
+
+### Gates that had something to say about the new code
+
+`report-unused-selected-columns` flagged six columns the route selects and never
+reads -- they are consumed by the engine one module over, now recorded in
+`ACCOUNTED` with which function uses each. `report-tenant-scoped-queries`
+required the table **and** the filter written at every call site, so the two
+handlers repeat the statement rather than share it. `no-page-lies` read "Nothing
+here pays anybody" as an empty-state claim about the customer's records; reworded
+rather than exempted. `plain-language` recorded one more skipped route.
+
+Verified: typecheck, lint, **5202 tests**, `verify:gates`, `build`, migration
+replay, and the derived artefacts regenerated.
+
+
+
+### 2026-10-01 - The operator console is gone, and it was holding a door open
+
+The owner asked for the administration part of the application to be removed and
+for business owners to get basic controls over their own sub-applications and
+operations instead. Both are done.
+
+**Removed: 58 registered routes** -- 43 pages under `/admin` and 15 JSON
+endpoints under `/api/admin` -- the admin login, the admin session cookie, the
+rate limiter in front of it, `requireAdmin`, `verifyAdminRequest`,
+`isSupabaseAdminUser`, the page frame's admin navigation and login form, and five
+route modules left with no routes at all. Every former path answers 404, and
+`tests/the-operator-console-is-gone-and-so-is-its-bypass.test.js` keeps it so.
+
+**Added: `/owner/administration`.** Organization-scoped controls where an owner
+sees which parts of their business are running and pauses or restarts one.
+`business_sub_app_modules` existed since migration 20260530120000 and **had no
+reader at all** -- registered in two libraries and never queried -- which is the
+"table with no way in" the record-page skill opens with. This is the way in.
+
+### The part that was not a deletion
+
+`verifyAdminRequest` did not only guard those pages. `resolveWorkspaceAccess`
+called it **first**, ahead of resolving any customer session, and on success
+returned `ownerOverride: true` for whichever organization was being addressed.
+`requireBusinessManager` did the same and additionally set
+`req.sonaraBusinessMembership = {}` -- a membership record nobody is a member of.
+A staff cookie was therefore an owner of every business on the platform, and the
+cookies it accepted included the ordinary customer one.
+
+That is defensible for an operator console. With the console gone the door had
+nothing behind it, so both branches are gone and membership is required with no
+exception.
+
+### Three findings the removal surfaced, none of which it caused
+
+**An unauthenticated write endpoint to 38 tables.**
+`routes/sonara-subsystem-routes.cjs` read its gate as a dependency with a
+fallback that called `next()`, and `server.js` never passed one. Measured by
+restoring the fallback and probing: a signed-out `GET /research-lab/subsystems`
+answered **200**, and a signed-out POST to the write endpoint answered 303 with
+`problem=missing_required` -- the body check, not a refusal. Its own comment
+said the table allow-list was all that stood between a path parameter and "a way
+to write to any table in the database"; that was true, and the allow-list was
+the only check there was. `lib/sonara-route-surface.cjs` recorded that these
+pages "redirect a signed-out visitor to /admin/login", **measured 16 September**.
+They did not. The module now fails closed on a missing gate, `server.js` passes
+`requireCustomer`, and re-probing gives 303 to `/login` for both.
+
+**Then those pages leaked across tenants.** Fixing the gate made them reachable
+by a signed-in customer for the first time, and `cross-tenant-isolation` reported
+**sixteen unscoped reads** -- `agent_action_logs`, `media_capture_records`,
+`phone_number_records`, `user_device_permissions`, `route_tracking_points`,
+`voice_command_logs` and more, one business's rows on another's screen. `tableCard`
+now filters to the caller's organization, refuses to read a table that carries no
+`organization_id` at all, and refuses when the caller's organization is unknown
+rather than treating absent as "show everything". Falsified against the full
+suite: with the filter removed, **120 findings**; with it, zero. The test does not
+catch it in isolation, which is worth knowing about that test.
+
+**A module that resolved the wrong user.** The same module took its user id from
+`req.sonaraAdmin?.user?.id`, which only the removed staff middleware ever set, so
+under `requireCustomer` every table with a required `organization_id` answered
+`no_organization_for_this_account`. Its own test -- "takes the organization from
+the signed-in user, not from the body" -- is what found it.
+
+### Checks that were measuring the wrong thing
+
+* `verify:customer-ready` asserted `/customer_cookie/` against the runtime. That
+  matched a **string label** in `verifyAdminRequest`'s list of auth methods, not
+  any property, and went red when the function went. Re-anchored on the call that
+  reads the cookie.
+* `tests/plain-language.test.js` reported `/admin` in `TECHNICAL_ROUTE_PREFIXES`
+  as a prefix matching no served route -- the two-sided half working, arriving the
+  other way round from the three prefixes it caught before: the pages went rather
+  than never existing.
+* `verify:request-supplied-tenant-ids` reported its own entry for
+  `sonara-service-lifecycle-routes.cjs` as describing nothing.
+* `report-unreferenced-modules` reported four libraries as reached only by their
+  tests. All four had the console as their single consumer; each is registered
+  with what would wire it back, and `sonara-platform-completeness.cjs` is the one
+  with an obvious home on the new page.
+* `every-page-is-reachable` reported three registered pages nothing links to --
+  including both owner pages and the new one. They are on the dashboard now.
+* `report-unused-selected-columns` caught the new module selecting `slug` and
+  never using it. Shape 3, in code written the same hour as this entry.
+
+### The twelfth shape, three times in one change
+
+A note that names what it excuses, inside another check's population:
+
+1. `docs/owner/WHAT-IS-LEFT.md` prose quoting the stale record-check figure.
+2. A comment in the new module spelling the rejected `rest()` call shape -- the
+   tenant auditor counts a bare `rest(` anywhere in a runtime file, skips the
+   helper's own declaration, and does not skip a comment, so the sentence
+   describing the blind spot became the 41st entry in it.
+3. The new regression test matching `requireAdmin` inside a register `reason`
+   string in `lib/sonara-route-surface.cjs`. That test now strips comments **and**
+   string contents before matching, and asserts the stripper left real code
+   behind.
+
+### Two self-inflicted errors, recorded because both looked fine
+
+The function-removal tool found the body brace by taking the first `{` after the
+name. For `function adminPage(title, body, readiness, metrics = {})` that is the
+empty object in a default value: it cut to the end of `{}` and left `) {`
+dangling. `node --check` caught it; the fix walks the parameter list to its
+closing paren first.
+
+Worse, the unused-binding cleanup edited every eslint finding in one pass with a
+line-based regex. `const x = typeof deps.x === "function"` spans three lines, so
+it cut the first and left the ternary behind. A second regex written to clean
+**that** up then deleted the same three-line shape from two modules that were
+never part of this change; both were restored from git, and the rewritten tool
+does one name at a time and reverts any edit that stops the file parsing.
+
+### What the owner should know went with it
+
+`/admin/ai-integrations/business-draft` -- the page where ChatGPT or Claude
+produced a labelled draft for review -- was an `/admin` page and is gone. The
+provider router and both adapters survive and are still tested, now driven
+directly rather than through a route, which is stronger: the route test asserted
+that a page said "Nothing has been sent", and the replacement asserts the router
+refuses before any network call and will not attribute deterministic output to a
+model. Rebuilding that page on the owner plane is a product decision, not part of
+this change. `/admin/env-readiness`, `/admin/database` and `/admin/storage` were
+also the only in-app views of deployment readiness; the CLI release scripts
+remain.
+
+Verified: typecheck, lint, **5174 tests**, `verify:gates`, `build`, and the
+derived artefacts regenerated. 77 documents mention `/admin`; the three in
+`docs/admin/` are moved to `docs/archive/` with a retirement header, the route map
+and the go-live checklist are rewritten, and the rest are dated research records
+that describe what was true when they were written.
+
+
+
+### 2026-10-01 - A figure excused from measurement, and a status page written in the present tense
+
+`report-stale-claims.mjs` had five documents registered as awaiting a first review
+by 15 October. This closes one of them, `docs/owner/WHAT-IS-LEFT.md`, whose entry
+asked for its one hand-counted figure to be counted and either derived or re-dated.
+
+**The figure had drifted, but that is not the finding.** It read `22 record checks`
+and the true count was 27. The sentence beside it did not claim 22 was right -- it
+claimed the quantity was *unmeasurable*, that "record check" named no single thing a
+script could count, and that the number therefore belonged to a human's judgement.
+That was false. `lib/sonara-record-checks.cjs` exports `CHECKS`, a frozen array, and
+it is the one source both the runtime and `tests/record-checks.test.js` read.
+
+A figure excused from measurement is not a figure anybody re-measures. That is the
+fifth shape one level up: the exemption's reason was never true, rather than having
+stopped being true. A stale number gets re-counted by the next person who doubts it;
+a number declared uncountable does not.
+
+It is now derived by `scripts/verify-doc-counts.mjs` like the other seven in that
+block, and the module's own header -- which carried the same stale breakdown in
+words, "Twenty-two checks: eleven ... five ... six", invisible to every pattern that
+might have caught it -- is rewritten in digits so the same check guards it.
+
+### The second finding, in a part of the file nobody had pointed at
+
+The document opened with `## Current production status`, present tense: PR #373 "is
+merged", a Vercel deployment "is READY", and the live domain "serves that exact
+commit". `main` has merged four releases since. The claim was true when written and
+was sitting at the top of the document somebody opens to find out where things
+stand, with no date in any of its sentences.
+
+It now says which release it is the evidence for, that the commit named is no longer
+`main`'s head, and that **whether production serves one of the later ones is not
+asserted here** -- because asserting it needs somebody to go and look, and nobody
+has. The self-falsifying "there are no open pull requests as of this update" is
+gone; it cannot stay true for an hour.
+
+**The review date on that file is load-bearing only because a sentence carries a
+measurement verb next to a date.** `report-stale-claims.mjs` reads `Review by:` only
+on documents its marker counts as dated, and after the hand-count date was removed
+this document no longer matched -- so a review date on it would have been a promise
+nothing enforced. The file now states its evidence date in the form the marker sees,
+and says in the document why that sentence is not decoration.
+
+### Falsification
+
+Four probes, each restored by copy-aside and `md5sum -c`:
+
+* **Review date deleted** -> `says when it was checked and never says when to check
+  it again`, naming the file.
+* **Dated marker softened to "looked at in late September"** -> the tracked
+  population fell 34 -> 33 and the count with a review date fell 30 -> 29, which is
+  the dependency above, measured rather than reasoned.
+* **Document restated as 22** -> `says "22 record checks"; the true figure is 27`.
+* **`CHECKS` export truncated to three** -> the floor guard fires by name.
+
+Two earlier problems are worth recording because both produced a clean run that
+proved nothing. The first two probes against `lib/sonara-record-checks.cjs` reported
+`substring not found`, so no edit landed and the green result measured an unmodified
+tree -- a probe that does not apply is not a probe. And the floor guard itself read
+`require(...).CHECKS.length` directly, which threw a `TypeError` when the export was
+renamed, so the message explaining what to do never printed. A guard whose stated
+reason does not describe what happens is the thing this log keeps being about.
+
+### The register entry is removed, not re-dated
+
+`report-stale-claims.mjs` is two-sided and said so itself: with the review done it
+failed with `is registered as awaiting review and now has a review date. Remove the
+entry -- the review happened.` Four entries remain, all due 15 October:
+`docs/SHIP_READINESS.md`, `docs/WORKSPACE_WORKFLOW_AUDIT.md`,
+`docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md`, and
+`docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`. The last of those needs figures
+from outside this repository and cannot be closed from inside it.
+
+
 
 ### 2026-09-30 - Sixteen scripts nothing could run, and the guarantees hiding in three of them
 
@@ -1831,274 +2153,3 @@ entry back rather than leaving a state that overstates.
   build step.
 - "Research candidate" on `/free-launch-stack` means researched. An installed,
   unwired adapter is `adapter_built`.
-
-
-
-### 2026-09-21 - Four verified repositories nothing could read, and a gate whose own list hid its subjects
-
-Restarted this branch from the new `main` after PR #305 merged. `main` had moved
-266 commits and 32 pull requests in the meantime, so the first job was to find
-out whether the base was green. It was not, and looking into why found three
-more things.
-
-## The release chain was red on `main`, on arithmetic
-
-`pnpm run verify:launch` fails at `verify:proprietary-notice`: 296 shipped
-source files examined, `EXPECTED_FILES` says 293. Three `lib/` modules landed
-after the commit that set 293, all three carrying the notice correctly. The gate
-was right; the constant was three behind.
-
-That constant changed **ten times between 18 and 20 September**, each change
-adding a sentence to a prose ledger above it, and
-`git log -L '/^const EXPECTED_FILES/,+1:scripts/verify-proprietary-notice.mjs'`
-shows the mechanism directly: `45a0a916` and `31dc7a1e` **both set it to 288**,
-two branches independently raising 287 by one. Two identical-looking edits merge
-with no conflict, and the value that lands is one short of the tree. It is the same shape as the
-`verify:launch` chain count on 19 September, which merged cleanly at 56 while
-the truth was 57.
-
-So the count is now regenerated rather than re-typed: `--write`, exposed as
-`pnpm run fix:proprietary-notice`, mirroring `fix:doc-counts`. The thirteen-line
-ledger is gone; `git log -L` is a better record than a comment somebody has to
-remember to extend.
-
-`--write` syncs the two counts and nothing else. Falsified in four directions
-before being trusted: a wrong count fails naming `EXPECTED_FILES`; `--write`
-rewrites 999 to 296 and exits 0; a reformatted declaration (`const
-EXPECTED_FILES =\n  295;`) makes it **stop** rather than report a rewrite it did
-not perform; and with a notice-less file planted it rewrote 296 to 297 **and
-still exited 1** naming the file. A fixer that could launder a missing notice
-would be worse than no fixer.
-
-## `lib/sonara-screenshot-tool-radar-batch13.cjs` was wired into nothing
-
-Every other radar batch is required by
-`routes/sonara-requested-repositories-routes.cjs`. Batch 13, recorded 16
-September with four verified repositories and two non-repository references, was
-not. The require list reads `batch12` then `batch14`.
-
-So `openosint`, `pinchtab`, `openshorts` and `every_programmer_should_know`
-reached no catalog, no readiness figure and no page, and the founder control
-plane published `screenshotResearchCount: 104` and
-`productionExecutionCount` as covering all screenshot intake while four records
-sat outside the population being counted. Wired into all five aggregation
-functions: 114 to 118 repositories, 110 to 114 verified, 104 to 108 screenshot
-records, 50 to 52 non-repository references.
-
-**Two checks watched this happen and both reported success**, which is why the
-fix is not just the require.
-
-`scripts/report-unreferenced-modules.mjs` printed "every module under lib/ and
-routes/ is reachable" for five days, because
-`tests/batch13-event-security-media.test.js` names the module and that report
-counts a test as a referencer.
-
-`tests/requested-repository-suite.test.js` asserted the exact key list, the
-exact repository count and the exact page copy, and passed — because the list
-was written from the route rather than from the batch modules. It agreed with
-the omission instead of catching it. That is worth stating plainly: an
-enumeration copied from the implementation cannot disagree with the
-implementation.
-
-`tests/every-screenshot-radar-batch-reaches-the-route.test.js` asserts the
-property instead. It discovers the batch modules from disk, refuses to run on
-fewer than twelve, and requires every key each one holds to appear in the public
-catalog **and** to be included in `screenshotResearchCount`. Falsified both
-ways: dropping batch 13 from `getCombinedPublicCatalog` while keeping the
-require fails naming all four keys, and dropping it from
-`getScreenshotResearchCount` while keeping it in the catalog fails with
-`screenshotResearchCount is 104 but the batch modules hold 108` — the exact
-pre-fix number, so the check reproduces the original defect.
-
-## The measurement that said a tier would catch nothing had expired
-
-`scripts/report-unreferenced-modules.mjs` carried a note: measured 8 September
-2026, two modules were referenced by tests and nothing else, both legitimate, so
-no runtime-versus-test tier was added because it "would carry two permanent
-exemptions and catch nothing". It ended "This note is here so the next person
-can see the measurement rather than repeat it."
-
-Re-measured 21 September: **fourteen**, one of them batch 13. Shape 5 — an
-exemption whose reason stopped describing anything, sitting exactly where the
-next reader looks instead of checking. The note was true when written; the
-conclusion drawn from it was not still true, and the two read identically.
-
-The tier exists now as a two-sided accounted list, thirteen entries after
-batch 13 dropped out, each saying what its module is waiting for. An
-unaccounted test-only module fails; an entry whose module has since been wired
-fails too, so a reason cannot outlive its subject. Both directions falsified
-with real exit codes, read without a pipe in between.
-
-## The tier's first finding was the tier
-
-Its first run reported all thirteen entries as stale. Naming a module in
-`TEST_ONLY` is naming it in a file under `scripts/`, and `scripts/` is in the
-set the report searches, so the bookkeeping made its own subjects look
-reachable. `withoutComments` covers the header, which names modules in prose;
-it does not cover a `Map` whose keys are code.
-
-`ALLOWED` has had this hazard since the file was written and has always been
-empty, so it never bit — and would have bitten silently the first time somebody
-used it, an exempted module reading as referenced and dropping out of the
-population the exemption was written for. The report now excludes its own path
-from the set it searches.
-
-## A second red gate on `main`, hidden behind the first
-
-With the notice count fixed the chain got further and failed again, at
-`verify:coverage-floor`: `lib/sonara-observability.cjs` at **13.8% covered
-(19 of 138 lines)**, under the 35% floor and unregistered. It had been red since
-the module landed; nobody saw it because `verify:proprietary-notice` runs first
-and exits the chain. Worth remembering when a chain goes red: the first failure
-is not necessarily the only one.
-
-The module's single test asserted one thing -- telemetry is disabled unless
-enabled -- and **could not have asserted a second**. `startTelemetry` memoises
-on module state, so the first call in a process decides for the whole process. A
-second `it` calling it with different environment would have received the first
-call's answer, asserted against that, and passed. Registering the module in
-`BELOW_FLOOR` would have recorded that as "hard to test" when what was true is
-"the test surface makes a second case silently meaningless".
-
-So each case now takes a fresh module out of the require cache, and the helper
-**asserts the instance is fresh** (`status === "not_started"`) before using it.
-If the cache key ever stops matching, the tests stop rather than going back to
-measuring one memoised decision. Twelve cases, no production code changed:
-non-`"true"` values read as off, an enabled-with-no-endpoint refusal with its
-recorded reason, plaintext refused under `NODE_ENV=production` and allowed
-outside it, a non-URL endpoint refused, a traces-only configuration refused
-rather than half-started, and the middleware's correlation id, status classes,
-static-asset skip, organization scoping and `unmatched` route label.
-
-Two things the writing of it turned up:
-
-- The first version captured stderr synchronously around a `supertest` call and
-  reported **zero events**. The `finish` handler runs after the response
-  promise resolves, so the capture was restored before the event it existed to
-  read. Had the assertion been "no unexpected events" rather than a count, that
-  would have passed.
-- The one case that starts the real SDK registers global trace and metric
-  providers **for the whole process**, so every later test in the suite would
-  take a live meter instead of the no-op one and the suite's behaviour would
-  depend on file order. It shuts the SDK down, calls `metrics.disable()` and
-  `trace.disable()`, and then asserts the global meter is a `NoopMeter` again --
-  a cleanup nobody checks is how order-dependence gets in.
-
-Floor after: 296 runtime files, 58,906 countable lines, 93.3% overall, one file
-under the floor and it is the one registered with a reason.
-
-## Nine production dependencies for two modules nothing calls
-
-`package.json` went from one production dependency to nine on 20 September:
-eight `@opentelemetry/*` packages and `@openfeature/server-sdk`. Their only
-consumers are `lib/sonara-observability.cjs` and `lib/sonara-feature-flags.cjs`,
-and **neither is required by anything but its own test**. `startTelemetry`,
-`installHttpObservability` and `createFeatureFlagService` have no caller in
-`server.js`, `api/`, `routes/`, `lib/` or `scripts/`.
-
-Nothing unsafe: telemetry needs `SONARA_OTEL_ENABLED=true` and refuses a
-non-HTTPS endpoint under `NODE_ENV=production`, and the flag service fails
-closed on an unknown key. The cost is a bundle carrying an SDK for unreachable
-code and a readiness story that reads as observability being in place. Recorded
-in `docs/SHIP_READINESS.md` for the owner rather than decided here: wiring it
-adds a middleware to every dynamic request and an `X-Request-ID` header to every
-response, and removing it reverses an architecture choice another session made
-deliberately.
-
-**One hazard measured rather than reasoned, for whoever wires it.**
-`installHttpObservability` takes its meter and builds its counter and histogram
-at install time. An OpenTelemetry instrument built before
-`setGlobalMeterProvider` is bound to the no-op provider and stays a no-op after
-a later start — so installing it before `startTelemetry` gives a dashboard that
-looks configured and counts nothing. Confirmed against `@opentelemetry/api`
-1.9.1 and `@opentelemetry/sdk-metrics` 2.11.0 with an in-memory exporter: a
-counter created before the provider was registered, then incremented, was
-absent from `reader.collect()`; one created after reported its value. The
-module's header already warns about the mirror-image ordering problem for HTTP
-instrumentation — this is a second, separate ordering constraint pointing the
-same way.
-
-## What the next person should not have to rediscover
-
-- The proprietary-notice count is now `pnpm run fix:proprietary-notice`. Do not
-  do the arithmetic by hand; that is how it fell three behind.
-- A test-only reference is not reachability. Tier 2 of
-  `report-unreferenced-modules` is the list that means it.
-- `report-unreferenced-modules.mjs` excludes its own file. If that filter is
-  removed, every entry in `ALLOWED` and `TEST_ONLY` silently stops being
-  measured.
-- Batches 8 and 9 are not missing modules: they are
-  `getCapabilityDesignReadiness()`, surfaced as `capabilityBatch8` and
-  `designBatch9`. Batches 10 and 11 never existed as separate modules.
-
-
-
-### 2026-09-19 - The handoff package could not be pasted into the assistant its first line names
-
-Asked to update the handoff package for ChatGPT. Measuring it first turned the
-task into a different one.
-
-## What it measured
-
-`docs/HANDOFF_PROMPT.md` opens with:
-
-> Paste this whole file as the first message to ChatGPT, Codex, or any other
-> assistant picking up work on this repository.
-
-On 19 September 2026 that file was **1.25 MB, 23,536 lines, roughly 328,000
-tokens**, of which **99.4% was `docs/SPRINT_LOG.md` embedded verbatim** -- 1.24
-MB of the 1.25. The derived half, which is the part nobody can reconstruct
-without the repository, was **6,933 bytes**: lines 1 to 102.
-
-No ChatGPT tier accepts a 328k-token first message. The document could not do
-the one thing it opens by instructing you to do, and it had been growing into
-that state for months with nothing measuring it. That is this repository's
-named defect -- a confident claim that is not true -- sitting at the top of the
-file whose entire job is to be the first thing somebody reads.
-
-## What changed
-
-The history is bounded; the derived half is not. Counts, the quoted safety
-rules, the seven approval categories read out of the authority module, and the
-real `verify:launch` chain are always included in full, because they are small
-and cannot be obtained any other way.
-
-**1.25 MB -> 123 KB. 23,536 lines -> 2,268. ~328k tokens -> ~31k.** It now
-carries the 22 most recent entries of 384 and says so, with the rest pointed at
-rather than dropped: the wording is that they "are not omitted, they are in
-`docs/SPRINT_LOG.md`", read in the repository rather than pasted.
-
-Sliced on **dated** headings only. There are 393 `###` headings and 384 dated
-ones; the difference is sub-headings inside recent entries, several of them
-written earlier in this same session. Slicing on all of them would cut entries
-in half and then call the halves entries.
-
-## Why a budget rather than a fixed entry count
-
-`HANDOFF_BUDGET_BYTES = 128 * 1024` is about 32,000 tokens -- a first message
-that fits any current tier with the conversation still ahead of it. A fixed
-entry count would drift the moment entries got longer, which is exactly how the
-old one grew.
-
-And the budget is **asserted on the finished document**, in `--check` as well as
-on write, so `verify:handoff` in the release chain fails rather than a person
-noticing. The derived half can grow too -- more gates, more tables -- and a
-document that has quietly gone back over the limit has quietly stopped being
-pastable.
-
-Falsified two ways: lowering the budget to 8 KB makes the generator refuse with
-*"the newest sprint entry alone exceeds the remaining handoff budget"* rather
-than shipping a handoff with no history, and appending a line to the committed
-file makes `--check` fail with *"is out of date"*.
-
-## A second thing this fixed, unplanned
-
-`verify:text-encoding` reports the files above the 393,216-byte write cap --
-the cap whose mechanism destroyed 274 sprint-log entries on 18 September. That
-count went from **3 to 2**: the handoff prompt is no longer in the danger zone
-at all. The document most likely to be regenerated by a tool with that cap was
-also the one most exposed to it.
-
-`CLAUDE.md`'s description of the handoff was updated to say it is bounded and
-where the full history lives, because it described the old shape and would
-otherwise be the next false claim about this file.

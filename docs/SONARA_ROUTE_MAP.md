@@ -39,11 +39,24 @@ Workspace and paid records remain server-gated. `/business-builder/pricing` is a
 
 `/growth-studio/dashboard`, `/start`, `/tutorial`, `/catalog`, `/tools`, `/campaigns`, `/leads`, `/followups`, `/content`, `/checklist`, `/analytics`, `/automations`, `/requests`, `/deliverables`, `/billing`, `/support`.
 
-## Administrator
+## Business owner controls
 
-`/admin`, `/admin/env-readiness`, `/admin/system`, `/admin/database`, `/admin/storage`, `/admin/migrations`, `/admin/users`, `/admin/roles`, `/admin/organizations`, `/admin/workspaces`, `/admin/catalog`, `/admin/requests`, `/admin/deliverables`, `/admin/support`, `/admin/billing`, `/admin/webhooks`, `/admin/email`, `/admin/integrations`, `/admin/pipelines`, `/admin/deployments`, `/admin/audit`, `/admin/formulas`, `/admin/ecosystem`, `/admin/ai-gateway`.
+`/owner/administration`, `/owner/agent-activity`, `/owner/agent-schedule`.
 
-All administrator pages use `requireAdmin`. Database, storage, migration, provider, and deployment pages are read-only operational views; no raw SQL or secret display is exposed.
+`/owner/administration` lets a business owner see which parts of their own
+business are running and pause or restart one. It is organization-scoped: every
+read and every write is filtered to the caller's organization, status is an
+allow-list of three values, and nothing is deleted.
+
+The operator console that used to be listed here -- 24 pages under `/admin`,
+plus 15 JSON endpoints under `/api/admin` -- was removed on 1 October 2026 at
+the owner's instruction. Every one of those paths now answers 404. Removing it
+also removed `verifyAdminRequest`, which `resolveWorkspaceAccess` and
+`requireBusinessManager` each consulted before resolving a customer session: a
+SONARA-Industries staff cookie was an owner of every organization on the
+platform. There is no such session any more and no such branch in either
+middleware.
+
 
 ## Redirect and error behavior
 

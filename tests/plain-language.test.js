@@ -296,7 +296,12 @@ describe("signed-in workspaces speak plainly", () => {
   // protocol endpoint. A direct crawl carries no OAuth code/verifier and is
   // correctly refused with 400 rather than rendering application copy.
   // 105 -> 106 on 23 September 2026: the compiled work-order surface adds a controlled route that does not render customer copy in this crawl.
-  const SIGNED_IN_SKIPPED = 106;
+  // 106 -> 107 on 1 October 2026: /owner/administration is the business-owner
+  // controls page that replaced the removed operator console. It refuses a
+  // signed-out visitor, so the crawl skips it rather than reading its copy.
+  // 107 -> 108 on 1 October 2026: /business-builder/owner/pay-periods refuses a
+  // signed-out visitor, so the crawl skips it rather than reading its copy.
+  const SIGNED_IN_SKIPPED = 108;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
@@ -408,11 +413,19 @@ describe("the vocabulary module", () => {
 
   it("still lets operators see the real names", () => {
     assert.equal(plainLanguage.isTechnicalRoute("/infrastructure"), true);
-    assert.equal(plainLanguage.isTechnicalRoute("/admin/database"), true);
+    assert.equal(plainLanguage.isTechnicalRoute("/research-lab/subsystems"), true);
     assert.equal(plainLanguage.isTechnicalRoute("/legal/data-processing"), true);
     assert.equal(plainLanguage.isTechnicalRoute("/pricing"), false);
+    // The business-owner controls page is customer copy, not an operator screen.
+    // It replaced the removed operator console and must stay inside the
+    // plain-language rules -- naming it here is what stops somebody exempting
+    // it on the grounds that it is "administration".
+    assert.equal(plainLanguage.isTechnicalRoute("/owner/administration"), false);
     // A route that merely starts with the same letters is not a prefix match.
-    assert.equal(plainLanguage.isTechnicalRoute("/administration-fees"), false);
+    // This read "/administration-fees" against the "/admin" prefix, which was
+    // removed on 1 October 2026; "/legalese" against "/legal" is the same test
+    // with a prefix that still exists.
+    assert.equal(plainLanguage.isTechnicalRoute("/legalese"), false);
   });
 
   // The other side of the exemption list.

@@ -23,7 +23,7 @@
 const assert = require("node:assert/strict");
 const request = require("supertest");
 const app = require("../server");
-const { PUBLIC_ROUTES, CUSTOMER_ROUTES, ADMIN_ROUTES } = require("../lib/sonara-route-registry.cjs");
+const { PUBLIC_ROUTES, CUSTOMER_ROUTES } = require("../lib/sonara-route-registry.cjs");
 
 // Public pages that exist to attract and orient someone who has not signed up.
 const CINEMATIC = new Set([
@@ -140,10 +140,15 @@ describe("work screens stay calm", () => {
   // `rendered > 0` guard at the bottom fired: nothing rendered, so the check
   // was proving nothing. It had been close to proving nothing for a long time.
   //
-  // Signed in now, which is who a work screen is for. Admin routes still
+  // Signed in now, which is who a work screen is for. Some of these still
   // redirect, and that is fine -- the guard asks that *something* rendered, not
   // that everything did.
-  const protectedRoutes = [...CUSTOMER_ROUTES, ...ADMIN_ROUTES].filter((route) => !route.includes(":"));
+  //
+  // ADMIN_ROUTES used to be concatenated here. The operator console was removed
+  // on 1 October 2026 and the registry no longer exports that list; the customer
+  // routes are the work screens this rule is about, and /owner/administration is
+  // among them.
+  const protectedRoutes = CUSTOMER_ROUTES.filter((route) => !route.includes(":"));
 
   let realFetch;
   const CUSTOMER = { id: "81818181-8181-4181-8181-818181818181", email: "worker@example.com" };

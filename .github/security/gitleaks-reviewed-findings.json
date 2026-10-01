@@ -324,12 +324,6 @@
       "reason": "explicit Stripe placeholder fixture"
     },
     {
-      "file": "tests/server.test.js",
-      "rule": "stripe-access-token",
-      "lineSha256": "79407d3ae47283d1620f6aca8ca648d976d680b904f0c8574dd5d8e0ff1f3f33",
-      "reason": "explicit Stripe placeholder fixture"
-    },
-    {
       "file": "supabase/applied-migration-checksums.json",
       "rule": "generic-api-key",
       "lineSha256": "ed905a60d45d146fe82d732156acd89c4dd9145898d5fc7500efe854ec9b2944",

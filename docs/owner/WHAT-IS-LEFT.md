@@ -1,32 +1,49 @@
 # How many steps are left
 
-Updated: 2026-09-27
+Updated: 2026-10-01
 
-## Current production status
+Review by: 2026-11-14
 
-PR [#373](https://github.com/famouslytrill-boop/sonara-os/pull/373) is merged to
+## The last release checked against production
+
+This section is the evidence from one release, verified on 27 September 2026 and
+not re-checked since. It is **not** a statement about what production serves
+today, and it read as one until 1 October 2026 — present tense, no date in the
+sentences, at the top of the document somebody opens to find out where things
+stand. The commit named below is no longer the head of `main`; releases have
+merged since, and nobody re-ran the live smoke test against them. Whether
+production is serving one of those is deliberately not asserted here, because
+asserting it would need somebody to go and look.
+
+The date above is what makes the `Review by:` line at the top of this file do
+anything. `scripts/report-stale-claims.mjs` reads a review date only on documents
+that say when they checked something, so a review date on a document with no such
+sentence is a promise nothing enforces — which is the defect this repository keeps
+finding. Said plainly rather than left implicit, because the sentence carrying the
+date now looks like prose and is load-bearing.
+
+PR [#373](https://github.com/famouslytrill-boop/sonara-os/pull/373) was merged to
 `main` at `9a105da6abc0e46aff170bebf690de80dc957886`. Controlled Production
 Deployment run #248 completed successfully. Vercel deployment
-`dpl_7YKcMPxTLwTt7FCNsPijrtsrWMVR` is **READY** for production, and
-https://sonaraindustries.com serves that exact commit.
+`dpl_7YKcMPxTLwTt7FCNsPijrtsrWMVR` was **READY** for production, and
+https://sonaraindustries.com served that exact commit.
 
-The live smoke test passed 282 assertions: `/api/health` returned the exact
-commit, readiness reported configured providers, public pages loaded, and a
+That release's live smoke test passed 282 assertions: `/api/health` returned the
+exact commit, readiness reported configured providers, public pages loaded, and a
 customer-only route correctly required authentication. Production Google
 sign-in configuration and Stripe price configuration passed the release
 checks. Supabase reported that the remote database was up to date, so this
 release applied no migrations and changed no production schema or data.
 
-The release adds a generated route/schema/capability inventory, refreshes the
-verified pnpm toolchain, and hardens deterministic security tests and report
+That release added a generated route/schema/capability inventory, refreshed the
+verified pnpm toolchain, and hardened deterministic security tests and report
 escaping. It does **not** implement every product, industry, or service named
 in the original request. The inventory is source-level evidence; it does not
 prove every listed feature is live, every production table is populated, or
 every user journey works. See
 [the coverage inventory](../CAPABILITY_ROUTE_SCHEMA_COVERAGE.md) and
 [the 2026 market and platform research](../research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md)
-for the verified scope and follow-up gaps. There are no open pull requests in
-the repository as of this update.
+for the verified scope and follow-up gaps.
 
 ## Manual owner actions
 
@@ -121,16 +138,31 @@ rather than fixed.
 Each of the figures below except the last is now derived by
 `scripts/verify-doc-counts.mjs` and fails the release chain if it drifts again.
 
-- **313** registered GET routes
+- **286** registered GET routes
 - **345** tables created by the migrations, **247** of them organization-scoped
 - **28** owner record pages
 - **69** verification commands in the release chain
 - **269** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
-- **22** record checks — **hand-counted on 12 August 2026 and not derived.**
-  Unlike the others, "record check" names no single thing a script can count, so
-  it is left alone rather than guessed at: the check's own rule is that only
-  counts derivable *exactly* belong to it, and a judgement recorded at review
-  time is deliberately a human's. Treat this one as a figure to re-measure, not
-  as a guarded one.
+- **27** record checks
+
+This list no longer has a hand-counted figure in it. The last one was the record
+checks, carried as **22** and described as not derivable because "record check"
+named no single thing a script could count. That was wrong, and the figure had
+drifted to 27 underneath it: `lib/sonara-record-checks.cjs` exports `CHECKS`, a
+declared array, and it is the one source both the runtime and
+`tests/record-checks.test.js` read. It is now derived by
+`scripts/verify-doc-counts.mjs` like the rest, and that check was watched failing
+on the old number, naming the file and both figures, before being trusted.
+
+The stale figure appears above as a bare number and nowhere beside the words it
+counted. That is deliberate: this paragraph is inside the population the new
+check reads, so writing the old figure next to the noun phrase would make the
+sentence itself a claim the check fails on. It did, on the first draft.
+
+Worth keeping, because the failure is subtler than a stale number: the sentence
+did not claim 22 was right, it claimed the quantity was **unmeasurable**. A figure
+excused from measurement is not a figure anybody re-measures. That is an expired
+exemption one level up — the reason was never true, rather than having stopped
+being true.

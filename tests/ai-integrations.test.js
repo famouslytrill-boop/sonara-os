@@ -160,20 +160,24 @@ describe("governed AI integration runtime surfaces", () => {
     assert.doesNotMatch(response.text, /credentialEnv|GATEWAY_TOKEN|API_KEY|WORKER_TOKEN/);
   });
 
-  it("protects live readiness behind founder/admin authentication", async () => {
+  // Was an authorization assertion on /api/admin/ai-integrations/readiness,
+  // removed with the operator console on 1 October 2026. Now asserts the
+  // stronger property: nothing serves it.
+  it("serves no AI integrations readiness endpoint at all, guarded or otherwise", async () => {
     const response = await request(app)
       .get("/api/admin/ai-integrations/readiness")
       .set("Accept", "application/json");
 
-    assert.notEqual(response.status, 200);
-    assert.ok([401, 503].includes(response.status));
-    assert.ok(["admin_auth_required", "setup_required"].includes(response.body.code));
+    assert.notEqual(response.status, 200, "the endpoint answered an unauthenticated caller");
+    assert.equal(response.status, 404, `expected the removed endpoint to be unserved, got ${response.status}`);
   });
 
   it("includes the catalog in the ecosystem manifest", () => {
     const manifest = getManifest();
     assert.equal(manifest.externalInspirationAndAdapters.governedAIIntegrations.length, 12);
-    assert.ok(manifest.adminControlPlane.routes.includes("/admin/ai-integrations"));
+    // The adminControlPlane list no longer carries this page: every /admin and
+    // /api/admin path was stripped from lib/sonara-ecosystem-manifest.cjs with
+    // the console on 1 October 2026. The catalog count above is the claim here.
   });
 
   it("seeds non-secret database metadata for every tool", () => {

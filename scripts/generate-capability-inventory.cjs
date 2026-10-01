@@ -1450,7 +1450,7 @@ function buildInventory() {
     skillStrategyCatalog: agentSkillStrategies,
     runRoutes: routes.filter((route) => /\/api\/agents\/|\/owner\/agent-|\/admin\/agent-activity/.test(route.route)),
     tables: agentTables.map((table) => ({ table, migrationFiles: migrationByTable.get(table)?.createdBy || [] })),
-    sourceFiles: ["lib/sonara-agent-authority.cjs", "lib/sonara-agent-runner.cjs", "lib/sonara-agent-queue.cjs", "lib/sonara-agent-action-log.cjs", "lib/sonara-agent-schedule.cjs", "lib/sonara-agent-skill-strategies.cjs", "routes/sonara-agent-activity-routes.cjs", "routes/sonara-admin-agent-routes.cjs"],
+    sourceFiles: ["lib/sonara-agent-authority.cjs", "lib/sonara-agent-runner.cjs", "lib/sonara-agent-queue.cjs", "lib/sonara-agent-action-log.cjs", "lib/sonara-agent-schedule.cjs", "lib/sonara-agent-skill-strategies.cjs", "routes/sonara-agent-activity-routes.cjs"],
     executionBoundary: "Registered handlers only; action classification, tenant scope, durable record, and owner approval apply. This is bounded business automation, not an unrestricted general-purpose agent."
   };
 

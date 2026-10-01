@@ -249,9 +249,12 @@ describe("requested repository integration registry", () => {
     assert.equal((server.match(/registerSonaraRequestedRepositoryRoutes = require/g) || []).length, 1);
     assert.equal((server.match(/registerSonaraRequestedRepositoryRoutes\(app/g) || []).length, 1);
     assert.equal((openapi.match(/\/api\/ecosystem\/requested-repositories:/g) || []).length, 1);
-    assert.equal((openapi.match(/\/api\/admin\/requested-repositories\/readiness:/g) || []).length, 1);
+    // Removed from openapi/sonara.yaml with the operator console on 1 October
+    // 2026. Asserted absent rather than dropped, so a reinstated path is noticed.
+    assert.equal((openapi.match(/\/api\/admin\/requested-repositories\/readiness:/g) || []).length, 0);
     assert.match(openapi, /operationId: getRequestedRepositoryCatalog/);
-    assert.match(openapi, /operationId: getAdminRequestedRepositoryReadiness/);
+    // Its operation went with the path block above, on 1 October 2026.
+    assert.doesNotMatch(openapi, /operationId: getAdminRequestedRepositoryReadiness/);
   });
 });
 
@@ -752,13 +755,21 @@ describe("requested repository runtime surfaces", () => {
     assert.match(response.text, /No third-party repository is cloned, installed, executed, or enabled/);
   });
 
-  it("protects repository readiness behind founder/admin authentication", async () => {
+  // Kept and strengthened rather than deleted. This asserted that the readiness
+  // endpoint answered 401 or 503 to an unauthenticated caller. The endpoint was
+  // removed with the operator console on 1 October 2026, so the assertion it can
+  // still make is the stronger one: the path is not served at all. If anybody
+  // reinstates it, this fails until they come back and say what guards it.
+  it("serves no repository readiness endpoint at all, guarded or otherwise", async () => {
     const response = await request(app)
       .get("/api/admin/requested-repositories/readiness")
       .set("Accept", "application/json");
 
-    assert.notEqual(response.status, 200);
-    assert.ok([401, 503].includes(response.status));
-    assert.ok(["admin_auth_required", "setup_required"].includes(response.body.code));
+    assert.notEqual(response.status, 200, "the readiness endpoint answered an unauthenticated caller");
+    assert.equal(
+      response.status,
+      404,
+      `expected the removed endpoint to be unserved, got ${response.status}. A reinstated endpoint needs its own authorization test.`
+    );
   });
 });
