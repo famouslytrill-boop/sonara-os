@@ -21,6 +21,7 @@ Read these first:
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-22_BATCH18.md` for the latest agent/RAG/infrastructure/system-design intake
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-27_BATCH19.md` for agent skills, business applications, media, code education and public-data references
 - `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-28_BATCH20.md` for media/local-model work, design skills, ecommerce, automation, API/streaming, Docker/deployment diagrams and workflow integration
+- `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-30_BATCH21.md` for billing, browser editing, OSSU learning references, game-directory/source claims, unlicensed security guidance, mobile mockups, finance, email, memory and runbook patterns
 - `lib/sonara-screenshot-tool-radar.cjs`
 - `lib/sonara-screenshot-tool-radar-batch2.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
@@ -29,6 +30,7 @@ Read these first:
 - `lib/sonara-screenshot-tool-radar-batch18.cjs`
 - `lib/sonara-screenshot-tool-radar-batch19.cjs`
 - `lib/sonara-screenshot-tool-radar-batch20.cjs`
+- `lib/sonara-screenshot-tool-radar-batch21.cjs`
 - `.claude/skills/reviewing-an-outside-repository/SKILL.md`
 - `.claude/skills/source-grounded-research/SKILL.md` for evidence-sensitive research
 - `DESIGN.md` and `.claude/skills/reviewing-premium-sonara-ui/SKILL.md` when a screenshot contributes design requirements
