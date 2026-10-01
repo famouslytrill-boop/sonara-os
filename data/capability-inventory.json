@@ -97,14 +97,14 @@
     "businessAISkillCount": 10,
     "openSourceRegisterCount": 269,
     "requestedRepositoryCount": 10,
-    "screenshotRadarRepositoryRecordCount": 153,
-    "screenshotRadarBatchCount": 16,
+    "screenshotRadarRepositoryRecordCount": 158,
+    "screenshotRadarBatchCount": 17,
     "githubRadarRepositoryCount": 15,
-    "repositoryRecordCountAcrossCatalogs": 507,
+    "repositoryRecordCountAcrossCatalogs": 512,
     "otherReferenceCatalogRecordCount": 25,
-    "catalogEntryCountAcrossAllRegistries": 532,
+    "catalogEntryCountAcrossAllRegistries": 537,
     "repositoryRecordsEnabledInProduction": 0,
-    "researchOrReferenceRepositoryRecordCount": 269,
+    "researchOrReferenceRepositoryRecordCount": 274,
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
@@ -7708,7 +7708,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
@@ -7717,13 +7718,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 325
+        "line": 331
       },
       "contractCompleteness": {
         "route": true,
@@ -8431,7 +8432,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
@@ -8440,13 +8442,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 274
+        "line": 280
       },
       "contractCompleteness": {
         "route": true,
@@ -11818,7 +11820,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Read-only health, readiness, manifest, definition, or catalog response.",
@@ -11827,13 +11830,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 269
+        "line": 275
       },
       "contractCompleteness": {
         "route": true,
@@ -29332,7 +29335,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -29341,13 +29345,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 129
+        "line": 135
       },
       "contractCompleteness": {
         "route": true,
@@ -29529,7 +29533,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -29538,13 +29543,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 133
+        "line": 139
       },
       "contractCompleteness": {
         "route": true,
@@ -95995,7 +96000,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
@@ -96004,13 +96010,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 221
+        "line": 227
       },
       "contractCompleteness": {
         "route": true,
@@ -96146,7 +96152,8 @@
         "directTables": [],
         "candidateTables": [
           "integrations",
-          "leads"
+          "leads",
+          "reviews"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
@@ -96155,13 +96162,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-requested-repositories-routes.cjs",
-        "moduleTableCandidateCount": 2,
+        "moduleTableCandidateCount": 3,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 155
+        "line": 161
       },
       "contractCompleteness": {
         "route": true,
@@ -181108,7 +181115,7 @@
     {
       "id": "module:routes/sonara-requested-repositories-routes.cjs",
       "source": "routes/sonara-requested-repositories-routes.cjs",
-      "tableCount": 2,
+      "tableCount": 3,
       "tables": [
         {
           "table": "integrations",
@@ -181120,6 +181127,13 @@
           "table": "leads",
           "migrations": [
             "supabase/migrations/010_sonara_platform_current_schema.sql"
+          ]
+        },
+        {
+          "table": "reviews",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql",
+            "supabase/migrations/20260908000000_repair_missing_reviews_table.sql"
           ]
         }
       ]
@@ -252580,6 +252594,106 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:microsoft_data_formulator",
+        "name": "Microsoft Research Data Formulator",
+        "repository": "microsoft/data-formulator",
+        "repoUrl": "https://github.com/microsoft/data-formulator",
+        "status": "reference_only",
+        "license": "MIT for repository code; connected data, model/provider, and dependencies retain their own terms",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Growth Studio",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:ruashots_open_h3_ir",
+        "name": "OpenH3-IR structured prompt compiler",
+        "repository": "ruashots/open-h3-ir",
+        "repoUrl": "https://github.com/ruashots/open-h3-ir",
+        "status": "reference_only_model_terms_blocked",
+        "license": "Apache-2.0 for repository code; MiniMax H3 model terms are separate and restrict use in the United States and other excluded territories",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:niko1221_strata_local_inference",
+        "name": "Strata local inference launcher",
+        "repository": "Niko1221/Strata",
+        "repoUrl": "https://github.com/Niko1221/Strata",
+        "status": "reference_only",
+        "license": "MIT for Strata code; model weights, hardware requirements and optional provider features have separate terms",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:kaankiziltug_logo_design_skill",
+        "name": "Logo Design Skill for Claude and AI agents",
+        "repository": "kaankiziltug/logo-design-skill",
+        "repoUrl": "https://github.com/kaankiziltug/logo-design-skill",
+        "status": "reference_only",
+        "license": "Repository presents an MIT license; bundled reference logos, marks and examples retain their owners' rights",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:sirallap_agentglass_local_agent_console",
+        "name": "AgentGlass local coding-agent console",
+        "repository": "SirAllap/agentglass",
+        "repoUrl": "https://github.com/SirAllap/agentglass",
+        "status": "reference_only_privileged_local_tool",
+        "license": "MIT for code; bundled portrait artwork is separately identified upstream as CC BY 4.0 and requires attribution",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:GrowthBook",
         "name": "GrowthBook",
         "repository": "growthbook/growthbook",
@@ -259807,6 +259921,106 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:microsoft_data_formulator",
+        "name": "Microsoft Research Data Formulator",
+        "repository": "microsoft/data-formulator",
+        "repoUrl": "https://github.com/microsoft/data-formulator",
+        "status": "reference_only",
+        "license": "MIT for repository code; connected data, model/provider, and dependencies retain their own terms",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Growth Studio",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:ruashots_open_h3_ir",
+        "name": "OpenH3-IR structured prompt compiler",
+        "repository": "ruashots/open-h3-ir",
+        "repoUrl": "https://github.com/ruashots/open-h3-ir",
+        "status": "reference_only_model_terms_blocked",
+        "license": "Apache-2.0 for repository code; MiniMax H3 model terms are separate and restrict use in the United States and other excluded territories",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:niko1221_strata_local_inference",
+        "name": "Strata local inference launcher",
+        "repository": "Niko1221/Strata",
+        "repoUrl": "https://github.com/Niko1221/Strata",
+        "status": "reference_only",
+        "license": "MIT for Strata code; model weights, hardware requirements and optional provider features have separate terms",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:kaankiziltug_logo_design_skill",
+        "name": "Logo Design Skill for Claude and AI agents",
+        "repository": "kaankiziltug/logo-design-skill",
+        "repoUrl": "https://github.com/kaankiziltug/logo-design-skill",
+        "status": "reference_only",
+        "license": "Repository presents an MIT license; bundled reference logos, marks and examples retain their owners' rights",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch22.cjs:sirallap_agentglass_local_agent_console",
+        "name": "AgentGlass local coding-agent console",
+        "repository": "SirAllap/agentglass",
+        "repoUrl": "https://github.com/SirAllap/agentglass",
+        "status": "reference_only_privileged_local_tool",
+        "license": "MIT for code; bundled portrait artwork is separately identified upstream as CC BY 4.0 and requires attribution",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
+        "batch": "screenshot_batch_22",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:Documenso",
         "name": "Documenso",
         "repository": "documenso/documenso",
@@ -260586,9 +260800,11 @@
       "needs_security_review": 4,
       "optional_adapter_after_review": 67,
       "quarantined_reference": 1,
-      "reference_only": 128,
+      "reference_only": 131,
       "reference_only_license_gated": 12,
+      "reference_only_model_terms_blocked": 1,
       "reference_only_no_license": 5,
+      "reference_only_privileged_local_tool": 1,
       "research_only": 109,
       "research_only_license_gated": 3,
       "research_only_pre1": 1,
@@ -260723,6 +260939,12 @@
         "id": "screenshot_radar_batch_21",
         "batch": 21,
         "source": "lib/sonara-screenshot-tool-radar-batch21.cjs",
+        "entryCount": 5
+      },
+      {
+        "id": "screenshot_radar_batch_22",
+        "batch": 22,
+        "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
         "entryCount": 5
       },
       {
@@ -264200,7 +264422,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 129
+        "line": 135
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -264211,7 +264433,8 @@
       "reason": "source_module_candidates",
       "moduleCandidateTables": [
         "integrations",
-        "leads"
+        "leads",
+        "reviews"
       ],
       "requestFieldsObserved": {
         "body": [],
@@ -264229,7 +264452,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 133
+        "line": 139
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -264240,7 +264463,8 @@
       "reason": "source_module_candidates",
       "moduleCandidateTables": [
         "integrations",
-        "leads"
+        "leads",
+        "reviews"
       ],
       "requestFieldsObserved": {
         "body": [],
