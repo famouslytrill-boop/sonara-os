@@ -2,6 +2,69 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - Ordering by a column was counting as reading it
+
+`report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
+a column fetched into the response and compared to nothing, the way
+`consent_scope` was. It had a blind spot. PostgREST orders by a column whether or
+not the select list asks for it, and the select string and the order clause live
+in separate template chunks -- so stripping the select left `&order=created_at.desc`
+behind, the column name was still in the scope, and it read as used.
+
+Proven on a synthetic scope before touching anything: a function selecting
+`id,status,created_at` and using the timestamp for nothing but `order=`, reported
+zero unused columns. Had `consent_scope` also been ordered on, this check would
+have missed it entirely.
+
+### Four real ones, and three that look identical and are not
+
+Stripping order clauses surfaced seven. Each was opened rather than trusted, and
+they split two ways.
+
+**Genuinely fetched and never read** -- the column is now simply not selected, and
+the ordering is unaffected:
+
+- `routes/sonara-creator-profile-routes.cjs` -- only `artist_profile_id` is read.
+- `routes/sonara-lead-capture-routes.cjs` -- the lead rows render inline and
+  `created_at` is not among the fields printed.
+- `routes/sonara-prompt-library-routes.cjs` -- two recent-item reads map
+  `row.title` and `row.name` and nothing else.
+- `routes/sonara-route-registry-routes.cjs` -- three reads, all rendering inline;
+  `consent_scope` IS read there, which is worth noting, because that is the column
+  the original defect was about.
+
+**Read by a different file**, which tier 1 cannot see, so each ruling cites the
+line that reads the value:
+
+- `lib/sonara-module-records.cjs` -- `lib/sonara-module-crud.cjs` line 353:
+  `const when = record.created_at ? new Date(record.created_at) : null`.
+- `lib/sonara-workspace-dashboard-summary.cjs` -- `server.js` line 1907 prints it
+  in the Recent activity card. Removing it from either select would empty that
+  card.
+- `routes/sonara-last9-routes.cjs` -- `category`, forwarded whole as JSON by
+  `PUBLIC_GETS`, exactly like the `capabilities` and `connection_mode` the ruling
+  on that file already named. It had never surfaced, because the query also
+  carries `order=category.asc`. The masking demonstrating itself.
+
+That ratio is the thing to carry forward: **tier 1 means "not named in this file",
+not "unused".** Three of seven were live readers one file away, and acting on them
+without opening the consumer would have broken a visible card.
+
+### Broken both ways
+
+Re-selecting the timestamp in `sonara-lead-capture-routes.cjs` fails by name.
+Reverting the order-strip while keeping the three rulings fails with all three as
+"outlived their reason" -- which also proves the strip is the load-bearing part
+rather than decoration, since the rulings only exist because of it. Restores were
+copy-aside plus `md5sum -c`.
+
+One stale note corrected while here: an earlier session recorded that this script
+also counted a column named in a comment as used. It does not -- line 303 says "A
+column named in a comment is a column discussed, not used" and it strips comments
+through `lib/sonara-comment-stripping.cjs`. That half was already fixed; only the
+order clause remained.
+
+
 ### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
 
 Setting out to measure the Creator Studio gap for the project-graph work rather

@@ -339,7 +339,7 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/account/workspaces", requireCustomer, async (req, res) => {
     const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-    const rows = organization.ok ? await safeListTable("organizations", `?select=id,name,created_at&id=eq.${encodeURIComponent(organization.organizationId)}&limit=1`) : { ok: false, rows: [] };
+    const rows = organization.ok ? await safeListTable("organizations", `?select=id,name&id=eq.${encodeURIComponent(organization.organizationId)}&limit=1`) : { ok: false, rows: [] };
     const current = rows.rows?.[0];
     return sendPage(res, {
       title: "Workspaces",
@@ -364,7 +364,7 @@ function registerRouteRegistryRoutes(app, deps) {
   });
 
   app.get("/notifications", requireCustomer, async (req, res) => {
-    const result = await safeListTable("user_notifications", `?select=id,title,body,category,read_at,created_at&user_id=eq.${encodeURIComponent(req.sonaraUser.id)}&order=created_at.desc&limit=25`);
+    const result = await safeListTable("user_notifications", `?select=id,title,body,category,read_at&user_id=eq.${encodeURIComponent(req.sonaraUser.id)}&order=created_at.desc&limit=25`);
     const sections = result.ok && result.rows.length
       ? result.rows.map((row) => brandCard(row.title || "Notification", `${row.body || "No additional details."} Status: ${row.read_at ? "read" : "unread"}.`))
       : [brandCard("No notifications", result.ok ? "New account, request, billing, and deliverable updates will appear here." : setupMessage)];
@@ -403,7 +403,7 @@ function registerRouteRegistryRoutes(app, deps) {
     const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
     // Consent evidence, never the evidence document itself.
     const listed = organization.ok
-      ? await safeListTable("creator_voice_consents", `?select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
+      ? await safeListTable("creator_voice_consents", `?select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
       : { ok: false, rows: [] };
     const sections = listed.ok && listed.rows.length
       ? listed.rows.map((row) => brandCard(

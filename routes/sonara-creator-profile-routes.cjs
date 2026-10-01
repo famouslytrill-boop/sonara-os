@@ -204,7 +204,7 @@ function registerCreatorProfileRoutes(app, deps = {}) {
     // the published-column list could drift from.
     const follows = await rest(
       config,
-      `${FOLLOW_TABLE}?select=artist_profile_id,created_at&follower_user_id=eq.${enc(req.sonaraUser.id)}&order=created_at.desc&limit=200`,
+      `${FOLLOW_TABLE}?select=artist_profile_id&follower_user_id=eq.${enc(req.sonaraUser.id)}&order=created_at.desc&limit=200`,
       { headers: supabaseHeaders(config) }
     );
     if (!follows.ok) {

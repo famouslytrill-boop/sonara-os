@@ -103,11 +103,76 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 417 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 418 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - Ordering by a column was counting as reading it
+
+`report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
+a column fetched into the response and compared to nothing, the way
+`consent_scope` was. It had a blind spot. PostgREST orders by a column whether or
+not the select list asks for it, and the select string and the order clause live
+in separate template chunks -- so stripping the select left `&order=created_at.desc`
+behind, the column name was still in the scope, and it read as used.
+
+Proven on a synthetic scope before touching anything: a function selecting
+`id,status,created_at` and using the timestamp for nothing but `order=`, reported
+zero unused columns. Had `consent_scope` also been ordered on, this check would
+have missed it entirely.
+
+### Four real ones, and three that look identical and are not
+
+Stripping order clauses surfaced seven. Each was opened rather than trusted, and
+they split two ways.
+
+**Genuinely fetched and never read** -- the column is now simply not selected, and
+the ordering is unaffected:
+
+- `routes/sonara-creator-profile-routes.cjs` -- only `artist_profile_id` is read.
+- `routes/sonara-lead-capture-routes.cjs` -- the lead rows render inline and
+  `created_at` is not among the fields printed.
+- `routes/sonara-prompt-library-routes.cjs` -- two recent-item reads map
+  `row.title` and `row.name` and nothing else.
+- `routes/sonara-route-registry-routes.cjs` -- three reads, all rendering inline;
+  `consent_scope` IS read there, which is worth noting, because that is the column
+  the original defect was about.
+
+**Read by a different file**, which tier 1 cannot see, so each ruling cites the
+line that reads the value:
+
+- `lib/sonara-module-records.cjs` -- `lib/sonara-module-crud.cjs` line 353:
+  `const when = record.created_at ? new Date(record.created_at) : null`.
+- `lib/sonara-workspace-dashboard-summary.cjs` -- `server.js` line 1907 prints it
+  in the Recent activity card. Removing it from either select would empty that
+  card.
+- `routes/sonara-last9-routes.cjs` -- `category`, forwarded whole as JSON by
+  `PUBLIC_GETS`, exactly like the `capabilities` and `connection_mode` the ruling
+  on that file already named. It had never surfaced, because the query also
+  carries `order=category.asc`. The masking demonstrating itself.
+
+That ratio is the thing to carry forward: **tier 1 means "not named in this file",
+not "unused".** Three of seven were live readers one file away, and acting on them
+without opening the consumer would have broken a visible card.
+
+### Broken both ways
+
+Re-selecting the timestamp in `sonara-lead-capture-routes.cjs` fails by name.
+Reverting the order-strip while keeping the three rulings fails with all three as
+"outlived their reason" -- which also proves the strip is the load-bearing part
+rather than decoration, since the rulings only exist because of it. Restores were
+copy-aside plus `md5sum -c`.
+
+One stale note corrected while here: an earlier session recorded that this script
+also counted a column named in a comment as used. It does not -- line 303 says "A
+column named in a comment is a column discussed, not used" and it strips comments
+through `lib/sonara-comment-stripping.cjs`. That half was already fixed; only the
+order clause remained.
+
+
+
 
 ### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
 
@@ -2080,121 +2145,3 @@ page. It is the removal of a claim that it already does.
 Verified: typecheck, lint over all 918 files, 5142 tests passing, 52 gates, build,
 `pnpm audit` clean, and the three sub-project suites this touches -- aws-emulator
 39, serverless-cli 221, songsmith 44.
-
-
-
-### 2026-09-30 - A tenant-isolation gate blind to ten of fifteen route helpers, found by a linter that was switched off
-
-Two findings, and the first found the second.
-
-**`pnpm run lint` visited 918 files and applied no rule to 184 of them.** Every
-config block in `eslint.config.mjs` matched an extension those files do not have:
-`scripts/**/*.cjs` was covered and `scripts/**/*.mjs` was not, and the last block's
-`*.mjs` has no `**/` so it matches only the repository root. Measured with
-`eslint --print-config` on one file per directory and extension: api/\*.js 1,
-routes/\*.cjs 46, lib/\*.cjs 258, scripts/\*.cjs 15, tests/\*.js 393, public/\*.js 20
-and server.js resolved to two rules; lib/\*.js 1, **scripts/\*.mjs 108**,
-tests/\*.cjs 11, tests/\*.mjs 4, examples/\*.js 2, tools/\*.js 57 and tools/\*.mjs 1
-resolved to none. A file dropped into `scripts/` carrying both a duplicate object
-key and a call to an undefined function linted clean and exited 0.
-
-The 108 unlinted files in `scripts/` are the release-chain gates themselves. A
-green lint run over the checks that are supposed to catch things, which never read
-them.
-
-`no-dupe-keys` and sixteen rules beside it are in `eslint:recommended`, which this
-config does not extend, and `@eslint/js` is not a dependency, so extending the
-preset means adding one. The rules are named instead, hoisted into one
-`correctnessRules` object rather than the five identical copies that were there.
-Run against the whole linted tree first: seven errors, every one `no-dupe-keys`.
-
-**Six of those seven were in `lib/sonara-route-registry.cjs`** — 47 literal pairs,
-41 distinct keys, two appended blocks. `/business-builder/control-center` was
-written as "Business Builder" and silently overridden four lines later by "Business
-Control Center"; the override is what runs and matches its Growth sibling, so it is
-what was kept. The seventh was a push fixture where `endpoint` appeared twice with
-`...VALID` between them, and VALID carries its own endpoint: the leading one was
-dead, and deleting the trailing one as redundant would have changed the
-subscriber's address.
-
-**Then the widened population reported three unused values inside the release
-gates, and one of them was a real hole.**
-
-`scripts/report-tenant-scoped-queries.mjs` destructured `GLOBAL_TABLES` and never
-read it — a value fetched into a decision and never used, shape 3 in
-`.claude/skills/checks-that-cannot-lie`. Pulling on it found this:
-
-**The script read `args[1]` as the table for every `rest()` call, and that is one
-of four signatures in use.** Fifteen declarations across `routes/`: five
-`rest(config, table, query, options)`, three `rest(config, path, init)`, three
-`rest(config, path)`, two `rest(config, query, options)`, and one
-`rest(table, query, options)` with the table at index **0**. For ten of those files
-argument 1 is a path or a query string, never a name in `TENANT_SCOPED_TABLES`, so
-every call in them fell into "carries no organization" and its organization filter
-was never looked at. `filtersRows` read `args[3]` as the options object for the
-same reason.
-
-Falsified before being believed: deleting `organization_id=eq.${ctx.organizationId}`
-from the business list query in
-`routes/sonara-business-control-plane-routes.cjs` — `business_workspaces` is in
-`TENANT_SCOPED_TABLES` — left the script exiting **0 with byte-identical output**.
-Not one of the counts moved. The bucket that read as 59 harmless calls was mostly
-misclassification.
-
-**What the gate does now.** It reads each file's own `rest` declaration by
-parameter name and indexes by it; resolves a table held in a module constant, so
-`` `${EMPLOYEES_TABLE}?organization_id=...` `` yields a name instead of a shrug;
-splits a `path` argument at its first `?`; expands `${scope}` interpolated into a
-query from its nearest preceding declaration; and treats only a name recorded in
-`GLOBAL_TABLES` as carrying no organization — a name in neither list is unresolved,
-which routes it into the blind-query check that already fails on a literal query
-naming no organization.
-
-26 → **56** calls verified as filtered. 59 → 12 in the global bucket. The
-unresolved count rose 27 → 40, and that rise is the point: what changed is that
-unreadable calls are now counted as unreadable instead of waved past as harmless.
-`RECORDED_UNRESOLVED` carries the reason.
-
-**Four calls read a tenant-scoped table without an organization on purpose**, and
-each was verified by reading its route rather than assumed from its shape:
-`GET /creator/:handle` is registered with no guard and finds a public profile by
-handle with `status=eq.active` and only `PUBLIC_PROFILE_COLUMNS`;
-`GET /account/following` scopes by the viewer's own follow ids and the renderer
-drops rows whose `public_handle` is null, which is what unpublish sets; the
-slug-uniqueness check in `POST /api/lead-capture-page` must look across
-organizations to answer "taken by somebody else" and selects `organization_id`
-alone; the published-scroll page and `GET /shared/:token` are public by design.
-
-They are recorded with **the filter that stands in for the organization**, and the
-exemption applies only while that filter is still in the query. Remove
-`status=eq.active` from the public profile lookup and it stops exempting, because
-the thing that made it safe is gone. Two-sided as well: an entry matching no call
-in the run fails.
-
-**Falsified five ways.** A leak in the `rest(table, query)` file fails naming
-`business_workspaces`. A leak in a `rest(config, path)` file fails naming
-`recurring_invoices`. Removing `status=eq.active` fails, so the exemption is
-conditional on its own justification. An exemption matching nothing fails as a
-stale reason. Emptying `SOURCE_DIRS` prints "this check has gone blind" and
-"a pass in this state is the check measuring nothing". Every edited file was
-restored from a copy and checked byte-identical with `md5sum -c`.
-
-**Also**: `eslint.config.cjs` is deleted — flat-config precedence loads the
-`.mjs`, so it was never read, as an earlier entry here and NICE-3 in
-`docs/audits/2026-07-27-ENGINEERING_AUDIT.md` both say. Two configs for one
-question, one dead, is the shape of the duplicate keys above.
-`scripts/check-research-lab-public-copy.mjs` imported `readdirSync` and never
-called it, residue of the globbing its own comment rejects, and
-`scripts/verify-customer-ready-production-experience.mjs` parsed `package.json`
-and consulted it nowhere.
-
-**`tools/` is still not linted, and that is recorded rather than quietly skipped.**
-Its 58 files are four sub-projects with their own CI jobs, and covering them
-surfaced ten problems that belong to those projects. Three look like real defects:
-`fail(code, message, namespace)` in `tools/aws-emulator/src/services/identity.js`
-ignores `namespace`, `handleSts` destructures `store` and never uses it, and
-`SERVERLESS_YML(name, region, typescript)` in
-`tools/serverless-cli/src/scaffold.js` ignores `typescript` while the comment above
-it says a build step "will look for the build step and not find one". Renaming
-those arguments to `_` to make the config green would have buried three questions,
-so they are named in `eslint.config.mjs` and here, and `tools/` gets its own change.

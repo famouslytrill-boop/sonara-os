@@ -16,8 +16,14 @@
 // sharp enough to find that bug.**
 //
 //   Tier 1, gating: the column is named nowhere in the whole file. That is
-//   strong evidence and there are three of them, each opened and ruled on
-//   below. `--check` fails on a fourth nobody has ruled on.
+//   strong evidence, and every one of them is opened and ruled on below.
+//   `--check` fails on one nobody has ruled on, and on a ruling that has
+//   outlived its reason.
+//
+//   Tier 1 does NOT mean unused: two of the rulings below are columns read by a
+//   DIFFERENT file, which this measure cannot see and which only opening the
+//   consumer settles. That is why each ruling cites the file and line that reads
+//   the value.
 //
 //   Tier 2, advisory: the column is named in the file but not in the function
 //   that asked for it. **This is the tier that would have caught the consent
@@ -71,6 +77,22 @@ try {
 
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
+  "lib/sonara-module-records.cjs": {
+    columns: ["created_at"],
+    reason: [
+      "safeReadOrganizationScopedRecords hands module_outputs rows back whole, and renderSavedOutputCards in lib/sonara-module-crud.cjs line 353 reads the timestamp: `const when = record.created_at ? new Date(record.created_at) : null`.",
+      "Opened on 1 October 2026 to confirm it, and recorded with the line because tier 1 only means the column is not named in THIS file -- it says nothing about the file the rows travel to, and that is the one question this ruling answers.",
+      "Surfaced when `order=` stopped counting as a reading of the value; the query also carries order=created_at.desc, which had been standing in for the read."
+    ].join(" ")
+  },
+  "lib/sonara-workspace-dashboard-summary.cjs": {
+    columns: ["created_at"],
+    reason: [
+      "The activity_events rows are returned as summary.activity.rows and rendered in server.js line 1907, which reads the timestamp directly: `${displayStatus(event.event_type || \"activity\")} ${event.created_at || \"\"}`.",
+      "Both queries in this module select it -- the earliest event (order=created_at.asc, limit 1) and the six most recent (order=created_at.desc) -- and the Recent activity card prints it. Opened on 1 October 2026 to confirm; removing it from either select would empty that card.",
+      "Surfaced when `order=` stopped counting as a reading of the value."
+    ].join(" ")
+  },
   "routes/sonara-pay-period-routes.cjs": {
     columns: ["break_minutes", "clock_out_at", "effective_from", "effective_to", "pay_type", "rate_cents"],
     reason: [
@@ -82,9 +104,10 @@ const ACCOUNTED = Object.freeze({
     ].join(" ")
   },
   "routes/sonara-last9-routes.cjs": {
-    columns: ["capabilities", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
+    columns: ["capabilities", "category", "connection_mode", "customer_email", "customer_phone", "email", "phone", "tags"],
     reason: [
-      "capabilities and connection_mode: PUBLIC_GETS serves /api/integrations/providers as JSON. The rows are forwarded whole; the caller uses these fields and this file has no reason to.",
+      "capabilities, category and connection_mode: PUBLIC_GETS serves /api/integrations/providers as JSON. The rows are forwarded whole; the caller uses these fields and this file has no reason to.",
+      "category was added to this list on 1 October 2026, and it is the clearest demonstration of what this check used to miss. It was always in the same position as the other two -- forwarded, never read here -- but the query also carries `order=category.asc`, and until the order clause stopped counting as a reading of the value, `category` never surfaced and nobody had to account for it.",
       "customer_email and customer_phone: booking rows are handed whole to buildCalendarInvite and buildCalendarFeed in lib/sonara-calendar-invite.cjs, which writes the email as an RFC 5545 ATTENDEE line and the phone into the DESCRIPTION. The route moves the values and must not render them -- a booking page showing a customer's number is what shareShows on the bookings record page exists to prevent.",
       "email, phone and tags: customer rows are handed whole to buildContactCard and buildContactBook in lib/sonara-contact-card.cjs, which writes EMAIL, TEL and a Tags note into the vCard. Both modules opened to confirm every one of the five.",
       "These five became tier 1 findings on 15 September 2026 only because the selects stopped being `select=*`. They were always unread in this file; the star select meant nothing could say so."
@@ -145,6 +168,7 @@ const SELECT = /select=([a-z0-9_,]{3,})(?=[&`"'])/gi;
 // is normal here and is why tier 2 exists. So this does the one honest thing
 // available: it counts them, says so in the summary, and holds a ratchet. The
 // blindness may shrink and may not grow.
+const ORDER_CLAUSE = /order=[a-z0-9_,.]+/gi;
 const STAR_SELECT = /select=\*/gi;
 
 // The other kind this script cannot read: a select whose column list is built
@@ -403,6 +427,18 @@ for (const file of files) {
     // query naming a column does not count as another query using it.
     let body = withoutComments(scope.text);
     for (const other of body.matchAll(SELECT)) body = body.replaceAll(other[0], " ");
+    // An `order=` clause is not a reading of the value. PostgREST orders by a
+    // column whether or not the select list asks for it, so `select=id,created_at`
+    // with `order=created_at.desc` fetches a timestamp into the response that
+    // nothing has to look at -- which is exactly the defect above. Before this
+    // line, the order clause made the column read as used: measured 1 October
+    // 2026 on a synthetic scope, and `created_at` came back accounted for while
+    // the only mention of it outside the select was the ordering.
+    //
+    // Stripped here rather than excluded from SELECT, because the two live in
+    // separate template chunks and removing the select string leaves the order
+    // clause behind.
+    body = body.replace(ORDER_CLAUSE, " ");
 
     const unused = columns.filter((column) => column !== "id" && !new RegExp(`\\b${column}\\b`).test(body));
     if (!unused.length) continue;
@@ -411,6 +447,7 @@ for (const file of files) {
     // the file at all.
     let whole = withoutComments(source);
     for (const other of [...whole.matchAll(SELECT)]) whole = whole.replaceAll(other[0], " ");
+    whole = whole.replace(ORDER_CLAUSE, " ");
     for (const column of unused) {
       const anywhere = new RegExp(`\\b${column}\\b`).test(whole);
       findings.push({ tier: anywhere ? 2 : 1, file, scope: scope.name, column });
