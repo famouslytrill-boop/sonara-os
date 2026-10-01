@@ -72,11 +72,29 @@ async function run() {
     `/owner/administration answered ${ownerControls.status} to an anonymous caller; it must refuse rather than render`
   );
 
+  // A tool behind the paywall answers with a page, not a 404 and not a bare
+  // redirect. The failure this guards against has happened here before: until
+  // 19 August 2026 every tool was behind a login while a public page listed ten
+  // of them by name, so the funnel advertised and then refused. Thirty-four
+  // tools moved behind a plan on 1 October 2026 and the same trap is one
+  // `res.status(404)` away.
+  const lockedTool = await request(app).get("/business-builder/tools/pricing").set("Accept", "text/html");
+  assert.equal(lockedTool.status, 200, `a tool behind the paywall answered ${lockedTool.status} instead of explaining itself`);
+  assert.match(lockedTool.text, /On a paid plan/, "a locked tool did not say it is on a paid plan");
+  assert.match(lockedTool.text, /\/pricing/, "a locked tool did not link the plans");
+
+  // And one that is still free computes for a visitor with no account at all.
+  // Without this, the assertion above would pass just as well on a build that
+  // had locked everything.
+  const freeTool = await request(app).get("/business-builder/tools/break-even").set("Accept", "text/html");
+  assert.equal(freeTool.status, 200, `a free tool answered ${freeTool.status} to a visitor`);
+  assert.doesNotMatch(freeTool.text, /On a paid plan/, "a free tool answered as if it were locked");
+
   const missing = await request(app).get("/__sonara_missing_route__").set("Accept", "text/html");
   assert.equal(missing.status, 404);
   assert.doesNotMatch(missing.text, mojibake);
 
-  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls refusing a stranger, and 404 behaviour.`);
+  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls refusing a stranger, a paywalled tool explaining itself while a free one still computes, and 404 behaviour.`);
 }
 
 run().catch((error) => {
