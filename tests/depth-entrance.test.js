@@ -53,13 +53,21 @@ function makeElement(top, height) {
 
 // Builds a page of `count` cards laid out down a 900px viewport, runs
 // sonara-depth.js against it, and hands back the levers a test needs.
-function run({ count = 6, viewport = 900, intersectionObserver = true } = {}) {
+function run({ count = 6, viewport = 900, intersectionObserver = true, queuedFrames = false } = {}) {
   const cards = [];
   for (let index = 0; index < count; index += 1) cards.push(makeElement(400 + index * 320, 260));
 
+  const heroProperties = {};
+  const frames = new Map();
+  let nextFrame = 0;
+  let preferenceChanged;
+  const hero = { style: {
+    setProperty: (key, value) => { heroProperties[key] = value; },
+    removeProperty: (key) => { delete heroProperties[key]; }
+  } };
   const stage = {
     querySelectorAll: (selector) => (selector === "[data-sonara-enter]" ? cards.slice() : []),
-    querySelector: () => null
+    querySelector: () => queuedFrames ? hero : null
   };
 
   const rootAttributes = {};
@@ -83,10 +91,15 @@ function run({ count = 6, viewport = 900, intersectionObserver = true } = {}) {
     innerHeight: viewport,
     pageYOffset: 0,
     matchMedia: () => ({ matches: false, addEventListener() {}, addListener() {} }),
-    requestAnimationFrame: (callback) => { callback(); return 1; },
+    requestAnimationFrame: (callback) => {
+      if (!queuedFrames) { callback(); return 1; }
+      frames.set(++nextFrame, callback);
+      return nextFrame;
+    },
+    cancelAnimationFrame: (id) => { frames.delete(id); },
     addEventListener: (type, handler) => { listeners.window[type] = handler; },
     removeEventListener: (type) => { delete listeners.window[type]; },
-    MutationObserver: function () { return { observe() {} }; }
+    MutationObserver: function (callback) { preferenceChanged = callback; return { observe() {} }; }
   };
 
   if (intersectionObserver) {
@@ -110,6 +123,14 @@ function run({ count = 6, viewport = 900, intersectionObserver = true } = {}) {
 
   return {
     cards,
+    heroProperties,
+    queuedFrameCount: () => frames.size,
+    setMotion(value) { rootAttributes["data-sonara-motion"] = value; preferenceChanged(); },
+    flushFrames() {
+      const callbacks = [...frames.values()];
+      frames.clear();
+      callbacks.forEach((callback) => callback());
+    },
     rootAttributes,
     visible,
     hidden,
@@ -139,6 +160,22 @@ function run({ count = 6, viewport = 900, intersectionObserver = true } = {}) {
 }
 
 describe("the marketing scroll entrance", () => {
+  it("cancels queued parallax when motion is turned off and can resume later", () => {
+    const page = run({ queuedFrames: true });
+    page.scrollBy(100);
+    assert.equal(page.queuedFrameCount(), 1);
+    page.setMotion("off");
+    page.flushFrames();
+    assert.equal(page.heroProperties["--sonara-hero-depth"], undefined,
+      "a pending frame restored parallax after the customer disabled motion");
+    assert.deepEqual(page.hidden(), [], "turning motion off must expose all content");
+    page.setMotion("on");
+    page.scrollBy(100);
+    assert.equal(page.queuedFrameCount(), 1, "motion cannot resume with a stale frame handle");
+    page.flushFrames();
+    assert.equal(page.heroProperties["--sonara-hero-depth"], "20.0");
+  });
+
   it("hides nothing until the script has confirmed motion is allowed", () => {
     const page = run();
     assert.equal(page.rootAttributes["data-sonara-depth"], "ready", "the entrance rule was never armed");
