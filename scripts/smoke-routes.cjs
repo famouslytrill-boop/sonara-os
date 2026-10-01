@@ -89,12 +89,24 @@ async function run() {
   const freeTool = await request(app).get("/business-builder/tools/break-even").set("Accept", "text/html");
   assert.equal(freeTool.status, 200, `a free tool answered ${freeTool.status} to a visitor`);
   assert.doesNotMatch(freeTool.text, /On a paid plan/, "a free tool answered as if it were locked");
+  // The management-passcode page is where a business owner sets the credential
+  // the pay-period and controls pages sit behind. It must be served -- a 404
+  // here means an owner cannot set one, and the gate in front of those pages
+  // would then be a gate nobody can ever unlock -- and it must refuse a
+  // stranger, because the form on it changes that credential.
+  const security = await request(app).get("/business-builder/owner/security").set("Accept", "text/html");
+  assert.notEqual(security.status, 404, "/business-builder/owner/security is not served; the passcode could not be set");
+  assert.ok(
+    [302, 303, 401, 403, 503].includes(security.status),
+    `/business-builder/owner/security answered ${security.status} to an anonymous caller; it must refuse rather than render`
+  );
 
   const missing = await request(app).get("/__sonara_missing_route__").set("Accept", "text/html");
   assert.equal(missing.status, 404);
   assert.doesNotMatch(missing.text, mojibake);
 
   console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls refusing a stranger, a paywalled tool explaining itself while a free one still computes, and 404 behaviour.`);
+  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls and the management-passcode page refusing a stranger, and 404 behaviour.`);
 }
 
 run().catch((error) => {

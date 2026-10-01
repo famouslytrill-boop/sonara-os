@@ -301,7 +301,11 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out visitor, so the crawl skips it rather than reading its copy.
   // 107 -> 108 on 1 October 2026: /business-builder/owner/pay-periods refuses a
   // signed-out visitor, so the crawl skips it rather than reading its copy.
-  const SIGNED_IN_SKIPPED = 108;
+  // 108 -> 109 the same day: /business-builder/owner/security does the same. Its
+  // copy is covered instead by
+  // tests/a-management-passcode-is-a-second-thing-to-know.test.js, which signs in
+  // and asserts the wording the page shows when no passcode is set.
+  const SIGNED_IN_SKIPPED = 109;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

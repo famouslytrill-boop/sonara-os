@@ -18,6 +18,10 @@ const promptLibrarySecurityMigrationName = "20260726194500_prompt_library_produc
 // later carries its own runtime assertions and is named here, which is the same
 // pattern the reference-intelligence extension established.
 const usageLedgerMigrationName = "20260910020000_usage_credit_ledger.sql";
+// The business management passcode, added 1 October 2026. Same reason as the
+// ledger above: the frozen contract migration cannot be edited, so a table
+// introduced later is named here and carries its own assertions.
+const managementCredentialMigrationName = "20261001150000_a_business_owner_gets_a_second_thing_to_know.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
@@ -318,6 +322,7 @@ const PROMPT_LIBRARY_TABLES = Object.freeze([
 ]);
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const usageLedgerMigrationPath = path.join(migrationsDirectory, usageLedgerMigrationName);
+const managementCredentialMigrationPath = path.join(migrationsDirectory, managementCredentialMigrationName);
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const productLifecycleMigrationPath = path.join(migrationsDirectory, productLifecycleMigrationName);
 const marketIntelligenceMigrationPath = path.join(migrationsDirectory, marketIntelligenceMigrationName);
@@ -363,7 +368,7 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 const allSql = migrationFiles.map((name) => read(path.join(migrationsDirectory, name))).join("\n").toLowerCase();
-const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, promptLibrarySecurityMigrationPath, usageLedgerMigrationPath]
+const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, promptLibrarySecurityMigrationPath, usageLedgerMigrationPath, managementCredentialMigrationPath]
   .map(read)
   .join("\n")
   .toLowerCase();
@@ -396,7 +401,10 @@ if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonica
 // Historical baseline: expected 135 canonical tables before Prompt Library added 10 organization-scoped tables.
 // 146 since 10 September 2026: usage_credit_ledger, the append-only credit
 // ledger that lets the six priced metered capabilities actually be charged for.
-if (DATABASE_TABLES.length !== 146) fail(`expected 146 canonical tables, found ${DATABASE_TABLES.length}`);
+// 147 since 1 October 2026: business_management_credentials, the owner-held
+// passcode that gates employee, time-clock and payroll surfaces behind
+// something known rather than something the browser holds.
+if (DATABASE_TABLES.length !== 147) fail(`expected 147 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 11) fail(`expected 11 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);

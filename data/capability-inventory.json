@@ -11,17 +11,17 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 857,
+    "routeOperationCount": 861,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 532,
+      "GET": 533,
       "PATCH": 10,
-      "POST": 312
+      "POST": 315
     },
     "workspaceCount": 12,
-    "declaredPageCount": 286,
+    "declaredPageCount": 287,
     "workspaceRouteCounts": {
-      "business_builder": 324,
+      "business_builder": 328,
       "business_builder_agent_ops": 7,
       "creator_studio": 119,
       "cross_workspace_formulas": 5,
@@ -34,38 +34,40 @@
       "sonara_shared_api": 109
     },
     "actionDestinationCounts": {
-      "exact": 328,
-      "form_reference": 291,
+      "exact": 329,
+      "form_reference": 292,
       "machine_ingress": 2,
-      "parent_route": 54,
+      "parent_route": 57,
       "route_pair": 97,
-      "workspace_fallback": 85
+      "workspace_fallback": 84
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
-      "explicit_no_persistent_table_expected": 139,
+      "explicit_no_persistent_table_expected": 137,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 176,
-      "needs_explicit_data_contract": 279
+      "handler_source_table_reference": 181,
+      "needs_explicit_data_contract": 280
     },
-    "routesUsingWorkspaceHomeFallback": 85,
-    "formActionLinkCount": 50,
+    "routesUsingWorkspaceHomeFallback": 84,
+    "formActionLinkCount": 53,
+    "pagesTruncatedByFormWalkBudget": [],
+    "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
     "openApiApiOperationCount": 304,
-    "databaseTableCount": 332,
-    "databaseContractCoreTableCount": 146,
-    "queriedTableCount": 312,
+    "databaseTableCount": 333,
+    "databaseContractCoreTableCount": 147,
+    "queriedTableCount": 313,
     "neverQueriedTableCount": 20,
-    "migrationCount": 137,
+    "migrationCount": 138,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 23,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 279,
+    "routeDataContractsNeedingExplicitReview": 280,
     "routeDataReviewByMethod": {
-      "GET": 194,
+      "GET": 195,
       "POST": 85
     },
     "routeDestinationReviewByWorkspace": {
@@ -76,7 +78,7 @@
       "growth_studio": 5,
       "research_lab": 1,
       "shared_infrastructure": 1,
-      "sonara_shared_api": 60
+      "sonara_shared_api": 59
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -118,8 +120,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 324,
-      "registeredPageCount": 93,
+      "routeCount": 328,
+      "registeredPageCount": 94,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -204,6 +206,7 @@
         "/business-builder/owner/schedules",
         "/business-builder/owner/schedules/:recordId/edit",
         "/business-builder/owner/schedules/week",
+        "/business-builder/owner/security",
         "/business-builder/owner/services",
         "/business-builder/owner/services/:recordId/edit",
         "/business-builder/owner/staff",
@@ -357,6 +360,7 @@
             "/business-builder/owner/sales",
             "/business-builder/owner/schedules",
             "/business-builder/owner/schedules/week",
+            "/business-builder/owner/security",
             "/business-builder/owner/services",
             "/business-builder/owner/staff",
             "/business-builder/owner/stock-counts",
@@ -1855,7 +1859,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1427
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -1963,7 +1967,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 785
+        "line": 812
       },
       "contractCompleteness": {
         "route": true,
@@ -2071,7 +2075,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 942
+        "line": 969
       },
       "contractCompleteness": {
         "route": true,
@@ -2177,7 +2181,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -2283,7 +2287,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -2397,7 +2401,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1132
+        "line": 1159
       },
       "contractCompleteness": {
         "route": true,
@@ -3461,7 +3465,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1149
+        "line": 1176
       },
       "contractCompleteness": {
         "route": true,
@@ -3678,7 +3682,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1265
+        "line": 1293
       },
       "contractCompleteness": {
         "route": true,
@@ -4685,7 +4689,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1416
+        "line": 1444
       },
       "contractCompleteness": {
         "route": true,
@@ -5008,7 +5012,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1415
+        "line": 1443
       },
       "contractCompleteness": {
         "route": true,
@@ -5570,7 +5574,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1414
+        "line": 1442
       },
       "contractCompleteness": {
         "route": true,
@@ -15576,12 +15580,19 @@
         "pathParams": [
           "callId"
         ],
-        "body": [],
-        "query": [],
-        "params": [],
+        "body": [
+          "token"
+        ],
+        "query": [
+          "after",
+          "token"
+        ],
+        "params": [
+          "callId"
+        ],
         "bodyAccessed": false,
-        "queryAccessed": false,
-        "paramsAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -15591,7 +15602,7 @@
       },
       "response": {
         "kinds": [
-          "json-or-delegated"
+          "json"
         ],
         "statusCodes": [
           200,
@@ -15600,11 +15611,19 @@
           502,
           503
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "cursor",
+          "detail",
+          "ok",
+          "role",
+          "signals",
+          "status"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "needs_explicit_data_contract",
@@ -15632,10 +15651,10 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": true,
-        "requestFieldSource": "not_declared"
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": false
     },
@@ -15747,7 +15766,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1228
+        "line": 1256
       },
       "contractCompleteness": {
         "route": true,
@@ -16227,7 +16246,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1458
+        "line": 1486
       },
       "contractCompleteness": {
         "route": true,
@@ -16789,7 +16808,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1457
+        "line": 1485
       },
       "contractCompleteness": {
         "route": true,
@@ -22474,7 +22493,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1482
+        "line": 1510
       },
       "contractCompleteness": {
         "route": true,
@@ -23036,7 +23055,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1481
+        "line": 1509
       },
       "contractCompleteness": {
         "route": true,
@@ -26193,7 +26212,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1504
+        "line": 1532
       },
       "contractCompleteness": {
         "route": true,
@@ -30794,7 +30813,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1512
+        "line": 1540
       },
       "contractCompleteness": {
         "route": true,
@@ -31761,7 +31780,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 894
+        "line": 921
       },
       "contractCompleteness": {
         "route": true,
@@ -31803,7 +31822,11 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "code",
+          "error",
+          "state"
+        ],
         "params": [],
         "bodyAccessed": false,
         "queryAccessed": false,
@@ -31874,13 +31897,13 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1214
+        "line": 1242
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
@@ -31990,7 +32013,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1102
+        "line": 1129
       },
       "contractCompleteness": {
         "route": true,
@@ -32098,7 +32121,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1076
+        "line": 1103
       },
       "contractCompleteness": {
         "route": true,
@@ -32206,7 +32229,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1062
+        "line": 1089
       },
       "contractCompleteness": {
         "route": true,
@@ -32318,7 +32341,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1295
+        "line": 1323
       },
       "contractCompleteness": {
         "route": true,
@@ -32708,7 +32731,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1650
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -32816,7 +32839,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -33203,7 +33226,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1297
+        "line": 1325
       },
       "contractCompleteness": {
         "route": true,
@@ -33915,7 +33938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -34201,7 +34224,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -34309,7 +34332,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1664
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -34678,7 +34701,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1336
+        "line": 1364
       },
       "contractCompleteness": {
         "route": true,
@@ -34786,7 +34809,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -34892,7 +34915,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1698
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -35094,7 +35117,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1366
+        "line": 1394
       },
       "contractCompleteness": {
         "route": true,
@@ -35202,7 +35225,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -35310,7 +35333,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1682
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -35512,7 +35535,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1319
+        "line": 1347
       },
       "contractCompleteness": {
         "route": true,
@@ -35710,7 +35733,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -35818,7 +35841,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -35926,7 +35949,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -39505,10 +39528,12 @@
         ],
         "body": [],
         "query": [],
-        "params": [],
+        "params": [
+          "recordId"
+        ],
         "bodyAccessed": false,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -39517,14 +39542,17 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "send"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200,
+          404
+        ],
         "jsonFieldsObserved": [],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_no_persistent_table_expected",
@@ -39552,7 +39580,7 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -44325,9 +44353,7 @@
         "confidence": "exact",
         "reason": "page_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": {
         "title": "Pay Periods",
         "productOwner": "business_builder",
@@ -44414,9 +44440,7 @@
         "confidence": "exact",
         "reason": "page_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": {
         "title": ":periodId",
         "productOwner": "business_builder",
@@ -44538,14 +44562,17 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "send"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200,
+          503
+        ],
         "jsonFieldsObserved": [],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "needs_explicit_data_contract",
@@ -44574,7 +44601,7 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -52422,6 +52449,95 @@
       "action": false
     },
     {
+      "id": "GET /business-builder/owner/security",
+      "method": "GET",
+      "route": "/business-builder/owner/security",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": "Security",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [
+          "locked",
+          "next",
+          "saved"
+        ],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 218
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /business-builder/owner/services",
       "method": "GET",
       "route": "/business-builder/owner/services",
@@ -59789,7 +59905,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -60239,7 +60355,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -60347,7 +60463,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -60455,7 +60571,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -63046,10 +63162,12 @@
         ],
         "body": [],
         "query": [],
-        "params": [],
+        "params": [
+          "token"
+        ],
         "bodyAccessed": false,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -63058,14 +63176,16 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "send"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          200
+        ],
         "jsonFieldsObserved": [],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_no_persistent_table_expected",
@@ -63093,7 +63213,7 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -63319,7 +63439,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 849
+        "line": 876
       },
       "contractCompleteness": {
         "route": true,
@@ -63425,7 +63545,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -63533,7 +63653,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1650
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -64720,7 +64840,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -64756,10 +64876,12 @@
         ],
         "body": [],
         "query": [],
-        "params": [],
+        "params": [
+          "id"
+        ],
         "bodyAccessed": false,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -64778,22 +64900,43 @@
         "evidence": "route-convention"
       },
       "data": {
-        "mappingStatus": "explicit_no_persistent_table_expected",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_assets"
+        ],
         "candidateTables": [
           "creator_assets",
           "files"
         ],
-        "tableLineage": [],
-        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "tableLineage": [
+          {
+            "table": "creator_assets",
+            "tableId": "table:creator_assets",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
-        "schemaMigrations": [],
-        "persistenceMode": "navigation_or_static_output"
+        "schemaMigrations": [
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
@@ -64805,7 +64948,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "route-convention",
-        "persistence": "explicit_no_persistent_table_expected",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -64833,10 +64976,12 @@
         ],
         "body": [],
         "query": [],
-        "params": [],
+        "params": [
+          "id"
+        ],
         "bodyAccessed": false,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -64845,32 +64990,53 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "redirect"
         ],
         "statusCodes": [],
         "jsonFieldsObserved": [],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "explicit_no_persistent_table_expected",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_assets"
+        ],
         "candidateTables": [
           "creator_assets",
           "files"
         ],
-        "tableLineage": [],
-        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "tableLineage": [
+          {
+            "table": "creator_assets",
+            "tableId": "table:creator_assets",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
-        "schemaMigrations": [],
-        "persistenceMode": "navigation_or_static_output"
+        "schemaMigrations": [
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
@@ -64881,8 +65047,8 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
-        "persistence": "explicit_no_persistent_table_expected",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -65072,7 +65238,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -65364,7 +65530,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -65472,7 +65638,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -65676,7 +65842,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1664
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -67580,7 +67746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -67688,7 +67854,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1682
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -67886,7 +68052,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -67994,7 +68160,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -69043,7 +69209,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -69151,7 +69317,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70028,7 +70194,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -70136,7 +70302,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70244,7 +70410,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -71151,7 +71317,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -74813,7 +74979,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1174
+        "line": 1201
       },
       "contractCompleteness": {
         "route": true,
@@ -75010,7 +75176,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 997
+        "line": 1024
       },
       "contractCompleteness": {
         "route": true,
@@ -75116,7 +75282,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -75287,7 +75453,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1522
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -75735,7 +75901,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1650
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -75843,7 +76009,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -76428,7 +76594,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -76632,7 +76798,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -77452,7 +77618,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1664
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -77832,7 +77998,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -77940,7 +78106,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78138,7 +78304,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1682
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -78372,7 +78538,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78570,7 +78736,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -78678,7 +78844,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -79894,7 +80060,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -80002,7 +80168,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -80294,7 +80460,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -82361,7 +82527,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 979
+        "line": 1006
       },
       "contractCompleteness": {
         "route": true,
@@ -82802,7 +82968,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -82899,7 +83065,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -82996,7 +83162,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83093,7 +83259,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83190,7 +83356,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83287,7 +83453,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83384,7 +83550,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83481,7 +83647,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83578,7 +83744,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83675,7 +83841,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83772,7 +83938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83869,7 +84035,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83966,7 +84132,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84063,7 +84229,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84173,7 +84339,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1048
+        "line": 1075
       },
       "contractCompleteness": {
         "route": true,
@@ -84204,10 +84370,12 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -84217,14 +84385,16 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "redirect"
         ],
         "statusCodes": [],
         "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "explicit_no_persistent_table_expected",
@@ -84249,8 +84419,8 @@
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
-        "outputEvidence": "route-convention",
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -84351,7 +84521,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1111
+        "line": 1138
       },
       "contractCompleteness": {
         "route": true,
@@ -84450,7 +84620,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1525
+        "line": 1553
       },
       "contractCompleteness": {
         "route": true,
@@ -84817,7 +84987,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1538
+        "line": 1566
       },
       "contractCompleteness": {
         "route": true,
@@ -84914,7 +85084,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1522
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -84939,9 +85109,7 @@
         "confidence": "exact",
         "reason": "page_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": {
         "title": "Administration",
         "productOwner": "sonara_industries",
@@ -85341,7 +85509,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 904
+        "line": 931
       },
       "contractCompleteness": {
         "route": true,
@@ -85447,7 +85615,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -86323,7 +86491,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -86613,7 +86781,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1522
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -88167,7 +88335,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 961
+        "line": 988
       },
       "contractCompleteness": {
         "route": true,
@@ -88368,7 +88536,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1276
+        "line": 1304
       },
       "contractCompleteness": {
         "route": true,
@@ -88859,7 +89027,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1052
+        "line": 1079
       },
       "contractCompleteness": {
         "route": true,
@@ -89925,7 +90093,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -90252,7 +90420,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -90349,7 +90517,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1522
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -91770,7 +91938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1422
+        "line": 1450
       },
       "contractCompleteness": {
         "route": true,
@@ -94409,7 +94577,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1162
+        "line": 1189
       },
       "contractCompleteness": {
         "route": true,
@@ -96151,7 +96319,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1233
+        "line": 1261
       },
       "contractCompleteness": {
         "route": true,
@@ -96506,7 +96674,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1235
+        "line": 1263
       },
       "contractCompleteness": {
         "route": true,
@@ -98993,7 +99161,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1417
+        "line": 1445
       },
       "contractCompleteness": {
         "route": true,
@@ -99271,7 +99439,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1355
+        "line": 1383
       },
       "contractCompleteness": {
         "route": true,
@@ -99825,7 +99993,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1403
+        "line": 1431
       },
       "contractCompleteness": {
         "route": true,
@@ -100362,7 +100530,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1390
+        "line": 1418
       },
       "contractCompleteness": {
         "route": true,
@@ -118314,9 +118482,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/owner/customers/:recordId/call",
+        "confidence": "form_reference",
+        "reason": "page_handler_mentions_action_path"
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -118363,10 +118531,12 @@
       },
       "request": {
         "pathParams": [],
-        "body": [],
+        "body": [
+          "customer_id"
+        ],
         "query": [],
         "params": [],
-        "bodyAccessed": false,
+        "bodyAccessed": true,
         "queryAccessed": false,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
@@ -118378,28 +118548,87 @@
       },
       "response": {
         "kinds": [
-          "json-or-delegated"
+          "json"
         ],
         "statusCodes": [
           200,
           400,
           401,
           403,
+          502,
           503
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "callId",
+          "code",
+          "detail",
+          "expiresAt",
+          "iceServers",
+          "joinUrl",
+          "ok",
+          "relay",
+          "service"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "customers"
+        ],
         "candidateTables": [
           "customers"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "customers",
+            "tableId": "table:customers",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "customers_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "customers_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "customers_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "customers_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -118407,8 +118636,16 @@
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-call-routes.cjs",
         "moduleTableCandidateCount": 1,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-call-routes.cjs",
@@ -118418,11 +118655,11 @@
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
-        "outputEvidence": "route-convention",
-        "persistence": "needs_explicit_data_contract",
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "generic_openapi_body_contract"
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -118479,13 +118716,21 @@
         "pathParams": [
           "callId"
         ],
-        "body": [],
-        "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "body": [
+          "kind",
+          "payload",
+          "token"
+        ],
+        "query": [
+          "token"
+        ],
+        "params": [
+          "callId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
-        "wholeBodyForwarded": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": true,
         "computedBodyFieldAccess": false,
         "headers": [],
         "cookies": [],
@@ -118494,7 +118739,7 @@
       },
       "response": {
         "kinds": [
-          "json-or-delegated"
+          "json"
         ],
         "statusCodes": [
           200,
@@ -118504,11 +118749,15 @@
           502,
           503
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "detail",
+          "ok"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "needs_explicit_data_contract",
@@ -118536,10 +118785,10 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": true,
-        "requestFieldSource": "generic_openapi_body_contract"
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -118595,12 +118844,20 @@
         "pathParams": [
           "callId"
         ],
-        "body": [],
-        "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "body": [
+          "reason",
+          "status",
+          "token"
+        ],
+        "query": [
+          "token"
+        ],
+        "params": [
+          "callId"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -118610,7 +118867,7 @@
       },
       "response": {
         "kinds": [
-          "json-or-delegated"
+          "json"
         ],
         "statusCodes": [
           200,
@@ -118619,11 +118876,16 @@
           502,
           503
         ],
-        "jsonFieldsObserved": [],
+        "jsonFieldsObserved": [
+          "code",
+          "detail",
+          "ok",
+          "status"
+        ],
         "redirectTargetsObserved": [],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "needs_explicit_data_contract",
@@ -118651,10 +118913,10 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": true,
-        "requestFieldSource": "generic_openapi_body_contract"
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -119023,7 +119285,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1232
+        "line": 1260
       },
       "contractCompleteness": {
         "route": true,
@@ -120245,7 +120507,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1433
+        "line": 1461
       },
       "contractCompleteness": {
         "route": true,
@@ -121347,7 +121609,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1446
+        "line": 1474
       },
       "contractCompleteness": {
         "route": true,
@@ -127057,7 +127319,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1460
+        "line": 1488
       },
       "contractCompleteness": {
         "route": true,
@@ -128450,7 +128712,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1469
+        "line": 1497
       },
       "contractCompleteness": {
         "route": true,
@@ -140345,7 +140607,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 333
+        "line": 335
       },
       "contractCompleteness": {
         "route": true,
@@ -140677,7 +140939,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 332
+        "line": 334
       },
       "contractCompleteness": {
         "route": true,
@@ -140874,7 +141136,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1090
+        "line": 1117
       },
       "contractCompleteness": {
         "route": true,
@@ -140976,7 +141238,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1126
+        "line": 1153
       },
       "contractCompleteness": {
         "route": true,
@@ -141172,7 +141434,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1056
+        "line": 1083
       },
       "contractCompleteness": {
         "route": true,
@@ -141663,7 +141925,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1379
+        "line": 1407
       },
       "contractCompleteness": {
         "route": true,
@@ -147503,9 +147765,7 @@
         "confidence": "route_pair",
         "reason": "matching_get_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -147585,9 +147845,7 @@
         "confidence": "parent_route",
         "reason": "nearest_registered_parent_page"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -148232,12 +148490,19 @@
       },
       "response": {
         "kinds": [
-          "redirect"
+          "redirect",
+          "send"
         ],
-        "statusCodes": [],
+        "statusCodes": [
+          500
+        ],
         "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
-          "${PAGE}?notice=account_unreadable"
+          "${PAGE}?notice=${encodeURIComponent(created.code)}",
+          "${PAGE}?notice=${encodeURIComponent(link.code)}",
+          "${PAGE}?notice=account_unreadable",
+          "${PAGE}?notice=no_organization",
+          "${PAGE}?notice=not_configured"
         ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
@@ -148309,14 +148574,18 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "redirect"
         ],
         "statusCodes": [],
         "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "${PAGE}?notice=${done.ok ? ",
+          "${PAGE}?notice=no_organization",
+          "${PAGE}?notice=not_configured"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
         "mappingStatus": "needs_explicit_data_contract",
@@ -148345,7 +148614,7 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
-        "outputEvidence": "route-convention",
+        "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -153854,6 +154123,245 @@
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/security/lock",
+      "method": "POST",
+      "route": "/business-builder/owner/security/lock",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "ok"
+        ],
+        "redirectTargetsObserved": [
+          "${SECURITY_PATH}?locked=1"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 364
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/security/passcode",
+      "method": "POST",
+      "route": "/business-builder/owner/security/passcode",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [
+          "confirmPasscode",
+          "currentPasscode",
+          "passcode"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 244
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/security/unlock",
+      "method": "POST",
+      "route": "/business-builder/owner/security/unlock",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [
+          "next",
+          "passcode"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 313
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -160801,7 +161309,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 863
+        "line": 890
       },
       "contractCompleteness": {
         "route": true,
@@ -161891,37 +162399,65 @@
         "pathParams": [
           "id"
         ],
-        "body": [],
+        "body": [
+          "file"
+        ],
         "query": [],
-        "params": [],
-        "bodyAccessed": false,
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
         "cookies": [],
-        "multipart": false
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "file"
+        ]
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "redirect"
         ],
         "statusCodes": [],
         "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "/creator-studio/assets/${enc(found.row.id)}/file"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_assets"
+        ],
         "candidateTables": [
           "creator_assets",
           "files"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "creator_assets",
+            "tableId": "table:creator_assets",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -161929,8 +162465,10 @@
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
+        "schemaMigrations": [
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
@@ -161941,10 +162479,10 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
-        "persistence": "needs_explicit_data_contract",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
-        "requestFieldSource": "not_declared"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -161970,10 +162508,12 @@
         ],
         "body": [],
         "query": [],
-        "params": [],
+        "params": [
+          "id"
+        ],
         "bodyAccessed": false,
         "queryAccessed": false,
-        "paramsAccessed": false,
+        "paramsAccessed": true,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
@@ -161982,23 +162522,44 @@
       },
       "response": {
         "kinds": [
-          "html-or-delegated"
+          "redirect"
         ],
         "statusCodes": [],
         "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "/creator-studio/assets/${enc(found.row.id)}/file"
+        ],
         "dynamicJsonResponseObserved": false,
         "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
+        "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_assets"
+        ],
         "candidateTables": [
           "creator_assets",
           "files"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "creator_assets",
+            "tableId": "table:creator_assets",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -162006,8 +162567,10 @@
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
+        "schemaMigrations": [
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
@@ -162018,8 +162581,8 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
-        "persistence": "needs_explicit_data_contract",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -167289,17 +167852,22 @@
       "openApi": null,
       "request": {
         "pathParams": [],
-        "body": [],
+        "body": [
+          "code"
+        ],
         "query": [],
         "params": [],
-        "bodyAccessed": false,
+        "bodyAccessed": true,
         "queryAccessed": false,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
         "cookies": [],
-        "multipart": false
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "code"
+        ]
       },
       "response": {
         "kinds": [
@@ -167335,11 +167903,11 @@
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "route-convention",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
-        "requestFieldSource": "not_declared"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -167434,7 +168002,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1147
       },
       "contractCompleteness": {
         "route": true,
@@ -167459,9 +168027,7 @@
         "confidence": "parent_route",
         "reason": "nearest_registered_parent_page"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -167534,9 +168100,7 @@
         "confidence": "parent_route",
         "reason": "nearest_registered_parent_page"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -169204,9 +169768,38 @@
     },
     {
       "method": "POST",
+      "action": "/creator-studio/assets/:parameter/file",
+      "pages": [
+        "/creator-studio/assets/:id/file"
+      ],
+      "formFieldNamesObserved": [
+        "file"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/creator-studio/assets/:parameter/file/remove",
+      "pages": [
+        "/creator-studio/assets/:id/file"
+      ],
+      "formFieldNamesObserved": []
+    },
+    {
+      "method": "POST",
+      "action": "/login/verify",
+      "pages": [
+        "/login/verify"
+      ],
+      "formFieldNamesObserved": [
+        "code"
+      ]
+    },
+    {
+      "method": "POST",
       "action": "/logout",
       "pages": [
         "/business-builder/automations",
+        "/business-builder/billing",
         "/business-builder/checklist",
         "/business-builder/customers",
         "/business-builder/employees",
@@ -169889,6 +170482,19 @@
           "migrations": [
             "supabase/migrations/010_sonara_platform_current_schema.sql",
             "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-business-security-routes.cjs",
+      "source": "routes/sonara-business-security-routes.cjs",
+      "tableCount": 1,
+      "tables": [
+        {
+          "table": "business_management_credentials",
+          "migrations": [
+            "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
           ]
         }
       ]
@@ -175256,6 +175862,103 @@
           "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
           "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": true,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:business_management_credentials",
+      "schema": "public",
+      "name": "business_management_credentials",
+      "columnCount": 9,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "passcode_hash",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "failed_attempts",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "locked_until",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "last_verified_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "set_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
         ],
         "policyEvidence": []
       },
@@ -219700,6 +220403,20 @@
       "drops": [],
       "rlsEnabled": [],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql",
+      "creates": [
+        "business_management_credentials"
+      ],
+      "alters": [
+        "business_management_credentials"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "business_management_credentials"
+      ],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -251672,6 +252389,7 @@
         "product_lifecycle_events",
         "business_workspaces",
         "business_memberships",
+        "business_management_credentials",
         "business_employee_invites",
         "business_employee_profiles",
         "business_service_catalog",
@@ -252404,7 +253122,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1132
+        "line": 1159
       },
       "destination": {
         "route": "/account",
@@ -252699,7 +253417,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1149
+        "line": 1176
       },
       "destination": {
         "route": "/account/setup",
@@ -252794,7 +253512,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1265
+        "line": 1293
       },
       "destination": {
         "route": "/dashboard",
@@ -252894,14 +253612,19 @@
         "customers"
       ],
       "requestFieldsObserved": {
-        "body": [],
-        "query": [],
+        "body": [
+          "token"
+        ],
+        "query": [
+          "after",
+          "token"
+        ],
         "pathParams": [
           "callId"
         ]
       },
       "responseKindsObserved": [
-        "json-or-delegated"
+        "json"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
@@ -252911,7 +253634,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1228
+        "line": 1256
       },
       "destination": {
         "route": "/dashboard",
@@ -253555,7 +254278,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 894
+        "line": 921
       },
       "destination": {
         "route": "/dashboard",
@@ -253608,7 +254331,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -253751,7 +254474,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -253804,7 +254527,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -253857,7 +254580,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1664
+        "line": 1692
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -253951,7 +254674,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/help",
@@ -254004,7 +254727,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1698
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/intake",
@@ -254098,7 +254821,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1366
+        "line": 1394
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -254151,7 +254874,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -254245,7 +254968,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1319
+        "line": 1347
       },
       "destination": {
         "route": "/business-builder/login",
@@ -254333,7 +255056,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -254386,7 +255109,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -254439,7 +255162,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -254832,7 +255555,7 @@
         "pathParams": []
       },
       "responseKindsObserved": [
-        "html-or-delegated"
+        "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
@@ -254904,6 +255627,38 @@
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
     {
+      "id": "GET /business-builder/owner/security",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 218
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [
+          "locked",
+          "next",
+          "saved"
+        ],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
       "id": "GET /business-builder/owner/sub-apps",
       "workspace": "business_builder",
       "kind": "page_or_download",
@@ -254939,7 +255694,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -255024,7 +255779,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -255077,7 +255832,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/records",
@@ -255130,7 +255885,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -256183,7 +256938,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -256274,7 +257029,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -256327,7 +257082,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -256421,7 +257176,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1664
+        "line": 1692
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -256685,7 +257440,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -256773,7 +257528,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -256826,7 +257581,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -256983,7 +257738,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -257036,7 +257791,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -257121,7 +257876,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -257174,7 +257929,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -257227,7 +257982,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -257388,7 +258143,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -258343,7 +259098,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -258538,7 +259293,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -258731,7 +259486,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1664
+        "line": 1692
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -258891,7 +259646,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -258944,7 +259699,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -259067,7 +259822,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -259120,7 +259875,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -259271,7 +260026,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -259324,7 +260079,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -259451,7 +260206,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1711
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -260289,7 +261044,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1048
+        "line": 1075
       },
       "destination": {
         "route": "/login",
@@ -260490,7 +261245,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1052
+        "line": 1079
       },
       "destination": {
         "route": "/signup",
@@ -260755,34 +261510,6 @@
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
     {
-      "id": "POST /api/calls",
-      "workspace": "sonara_shared_api",
-      "kind": "api",
-      "source": {
-        "file": "routes/sonara-call-routes.cjs",
-        "line": 209
-      },
-      "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
-      },
-      "method": "POST",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "customers"
-      ],
-      "requestFieldsObserved": {
-        "body": [],
-        "query": [],
-        "pathParams": []
-      },
-      "responseKindsObserved": [
-        "json-or-delegated"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
       "id": "POST /api/calls/:callId/signals",
       "workspace": "sonara_shared_api",
       "kind": "api",
@@ -260801,14 +261528,20 @@
         "customers"
       ],
       "requestFieldsObserved": {
-        "body": [],
-        "query": [],
+        "body": [
+          "kind",
+          "payload",
+          "token"
+        ],
+        "query": [
+          "token"
+        ],
         "pathParams": [
           "callId"
         ]
       },
       "responseKindsObserved": [
-        "json-or-delegated"
+        "json"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -260831,14 +261564,20 @@
         "customers"
       ],
       "requestFieldsObserved": {
-        "body": [],
-        "query": [],
+        "body": [
+          "reason",
+          "status",
+          "token"
+        ],
+        "query": [
+          "token"
+        ],
         "pathParams": [
           "callId"
         ]
       },
       "responseKindsObserved": [
-        "json-or-delegated"
+        "json"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -261426,7 +262165,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1090
+        "line": 1117
       },
       "destination": {
         "route": "/auth/login",
@@ -261483,7 +262222,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1126
+        "line": 1153
       },
       "destination": {
         "route": "/logout",
@@ -261577,7 +262316,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1056
+        "line": 1083
       },
       "destination": {
         "route": "/auth/signup",
@@ -261721,7 +262460,8 @@
         "pathParams": []
       },
       "responseKindsObserved": [
-        "redirect"
+        "redirect",
+        "send"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -261746,6 +262486,98 @@
       ],
       "requestFieldsObserved": {
         "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "redirect"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/security/lock",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 364
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "json",
+        "redirect"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/security/passcode",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 244
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "confirmPasscode",
+          "currentPasscode",
+          "passcode"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/security/unlock",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 313
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "next",
+          "passcode"
+        ],
         "query": [],
         "pathParams": []
       },
@@ -262339,68 +263171,6 @@
       "responseKindsObserved": [
         "json",
         "send"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
-      "id": "POST /creator-studio/assets/:id/file",
-      "workspace": "creator_studio",
-      "kind": "form_or_action",
-      "source": {
-        "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 188
-      },
-      "destination": {
-        "route": "/creator-studio/assets/:id/file",
-        "confidence": "route_pair",
-        "reason": "matching_get_route"
-      },
-      "method": "POST",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "creator_assets",
-        "files"
-      ],
-      "requestFieldsObserved": {
-        "body": [],
-        "query": [],
-        "pathParams": [
-          "id"
-        ]
-      },
-      "responseKindsObserved": [
-        "html-or-delegated"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
-      "id": "POST /creator-studio/assets/:id/file/remove",
-      "workspace": "creator_studio",
-      "kind": "form_or_action",
-      "source": {
-        "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 269
-      },
-      "destination": {
-        "route": "/creator-studio/assets/:id/file",
-        "confidence": "parent_route",
-        "reason": "nearest_registered_parent_page"
-      },
-      "method": "POST",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "creator_assets",
-        "files"
-      ],
-      "requestFieldsObserved": {
-        "body": [],
-        "query": [],
-        "pathParams": [
-          "id"
-        ]
-      },
-      "responseKindsObserved": [
-        "html-or-delegated"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -263464,7 +264234,9 @@
       "reason": "write_needs_table_or_explicit_no_persistence_reason",
       "moduleCandidateTables": [],
       "requestFieldsObserved": {
-        "body": [],
+        "body": [
+          "code"
+        ],
         "query": [],
         "pathParams": []
       },
@@ -263479,7 +264251,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1147
       },
       "destination": {
         "route": "/logout",
@@ -263891,7 +264663,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1265
+        "line": 1293
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263961,7 +264733,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1228
+        "line": 1256
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263971,7 +264743,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1458
+        "line": 1486
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263981,7 +264753,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1482
+        "line": 1510
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264021,7 +264793,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1504
+        "line": 1532
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264231,7 +265003,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 894
+        "line": 921
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264344,16 +265116,6 @@
         "line": 1135
       },
       "currentDestination": "/business-builder/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/calls",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-call-routes.cjs",
-        "line": 209
-      },
-      "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {

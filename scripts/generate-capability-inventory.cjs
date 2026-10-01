@@ -882,11 +882,43 @@ function buildInventory() {
   const pageCandidateText = new Map(getPageRoutes.map((route) => [route.route, route.registrationSource || route.handlerSource]));
   const formActionPages = new Map();
   const formActionFields = new Map();
+  // How many resolved function bodies the form walk may follow for one page.
+  //
+  // It was 40, and 40 silently changed the answer. Measured on 1 October 2026,
+  // after lib/sonara-comment-stripping.cjs stopped swallowing string literals:
+  // at 40 this file recorded 50 UI form links, and three of them were different
+  // from the three it had recorded the day before -- the billing checkout, the
+  // billing portal and the employee invite dropped out, because the walk now
+  // sees more resolvable names and spent its forty on other branches first. At
+  // 120 all three come back and the total is 53. At 400 it is still 53, so it
+  // saturates well below this value, and the generator takes the same twenty
+  // seconds at 40 as at 400.
+  //
+  // And it was not three pages. With the reporting below in place and the budget
+  // put back to 40, the walk runs out on **41 of the 286 declared pages** --
+  // /account, /business-builder/billing, /business-builder/checklist and
+  // thirty-eight more. So the old number was not a performance decision, it was
+  // an undisclosed truncation across a seventh of the application: which forms
+  // got recorded depended on which names the scanner happened to resolve first,
+  // and nothing in the output said a page had been cut short.
+  //
+  // The bound stays, because an unbounded walk over a call graph is how this
+  // takes minutes on a bad day. What changes is that binding it is now visible:
+  // `pagesTruncatedByFormWalkBudget` in the summary counts the pages where it
+  // ran out, and tests/the-form-walk-says-when-it-gave-up.test.js fails if that
+  // count is not zero.
+  const FORM_WALK_FUNCTION_BUDGET = 400;
+  const FORM_WALK_DEPTH_LIMIT = 4;
+  const formWalkTruncatedPages = new Set();
   function formActionsForPage(page) {
     const found = new Map();
     const seen = new Set();
     function visit(file, source, depth, closureBindings = new Map()) {
-      if (depth > 4 || seen.size >= 40) return;
+      if (seen.size >= FORM_WALK_FUNCTION_BUDGET) {
+        formWalkTruncatedPages.add(page.route);
+        return;
+      }
+      if (depth > FORM_WALK_DEPTH_LIMIT) return;
       const code = withoutComments(String(source));
       for (const match of code.matchAll(/<form\b[^>]*>/gi)) {
         const action = match[0].match(/\baction\s*=\s*["'](\/[^"']+)["']/i)?.[1];
@@ -1535,6 +1567,10 @@ function buildInventory() {
       routeDataMappingCounts: countBy(routes, (route) => route.data.mappingStatus),
       routesUsingWorkspaceHomeFallback: destinations.workspace_fallback || 0,
       formActionLinkCount: uiFormActionLinks.length,
+      // Zero, or this file is reporting fewer forms than the application has and
+      // naming the pages where it stopped looking.
+      pagesTruncatedByFormWalkBudget: sorted(formWalkTruncatedPages),
+      formWalkFunctionBudget: FORM_WALK_FUNCTION_BUDGET,
       formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !normalizedRouteIds.has(`${link.method} ${normalizeRouteParams(link.action)}`)).length,
       routesWithoutDestination: routes.filter((route) => !route.contractCompleteness.destination).length,
       openApiApiOperationCount: routes.filter((route) => route.route.startsWith("/api/") && route.openApi).length,
