@@ -311,9 +311,10 @@ behaviour is unchanged until an owner surface exists. Deliberate: granting a too
 is a security setting change, which AGENTS.md puts behind owner approval.
 
 The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
-opens "One table" and the list has held two since August. Left as found rather
-than fixed inside a change about something else, and recorded here so it is a
-known inaccuracy rather than a believed one.
+opened "One table" and the list had held two since August. Left as found rather
+than fixed inside a change about something else, recorded here so it was a known
+inaccuracy rather than a believed one -- and then fixed in its own commit, which
+is the whole reason it was deferred.
 
 
 

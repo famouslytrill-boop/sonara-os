@@ -263,10 +263,17 @@ const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
   "creator_video_treatments",
   "creator_release_tasks"
 ]);
-// One table, and it is here rather than in agentsAndAutomation because that
-// group is canonical and canonical membership is pinned by a migration this
-// postdates. What it holds is the thing that was missing: a gated action's own
-// inputs, so an approval has something to re-run.
+// Two tables, here rather than in agentsAndAutomation because that group is
+// canonical and canonical membership is pinned by a migration these postdate.
+// What agent_pending_actions holds is the thing that was missing: a gated
+// action's own inputs, so an approval has something to re-run.
+// agent_schedules joined it in August and can start work but cannot approve it.
+//
+// It read "One table" until 1 October 2026, having held two since
+// 20260813180000_agent_schedules.sql. A small untruth, and the kind this
+// repository treats as worth fixing on its own rather than inside a change about
+// something else: a count in a comment is what the next reader believes instead
+// of counting.
 const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedules"]);
 // Which tools an organization permits its agents to use. A separate group from
 // the queue above because the queue's comment describes what the queue is for,
