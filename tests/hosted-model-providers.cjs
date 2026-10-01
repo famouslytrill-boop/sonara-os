@@ -1,12 +1,9 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const express = require("express");
-const request = require("supertest");
 const openai = require("../lib/sonara-openai-provider.cjs");
 const anthropic = require("../lib/sonara-anthropic-provider.cjs");
 const router = require("../lib/sonara-model-provider-router.cjs");
-const registerRoutes = require("../routes/sonara-ai-integrations-routes.cjs");
 
 function jsonResponse(body, status = 200) {
   return {
@@ -122,83 +119,59 @@ describe("hosted model providers", () => {
 });
 
 describe("founder business drafting surface", () => {
-  function buildApp(modelProviders) {
-    const app = express();
-    app.use(express.urlencoded({ extended: false }));
-    app.use(express.json());
-    registerRoutes(app, {
-      modelProviders,
-      requireAdmin: (req, res, next) => next(),
-      layout: ({ title, heading, body, sections = [], actions = [] }) => `<html><head><title>${title}</title></head><body><h1>${heading}</h1><p>${body}</p>${actions.join("")}${sections.join("")}</body></html>`,
-      brandCard: (title, body) => `<article><h2>${title}</h2><p>${body}</p></article>`,
-      linkAction: (href, label) => `<a href="${href}">${label}</a>`,
-      recordAdminAuditEvent: async () => undefined
-    });
-    return app;
-  }
+  // These three used to drive /admin/ai-integrations/business-draft -- a page
+  // where the platform owner picked ChatGPT or Claude and got a labelled draft
+  // back. It was an /admin page and went with the operator console on 1 October
+  // 2026, so the HTML surface is gone and is NOT rebuilt here; that is a product
+  // decision for the owner, recorded in docs/SPRINT_LOG.md.
+  //
+  // The contract underneath it survives in lib/sonara-model-provider-router.cjs
+  // and both provider adapters, and so does the coverage. Driving the router
+  // directly is in one way stronger: the route tests asserted that a page said
+  // "Nothing has been sent", while these assert that the router refuses before a
+  // network call and never claims deterministic output came from a model.
 
-  function configuredReadiness() {
-    return {
-      local_rules: { status: "ready", enabled: true, detail: "ready" },
-      openai: { status: "configured", enabled: true, model: "gpt-5.6-luna", detail: "configured" },
-      anthropic: { status: "configured", enabled: true, model: "claude-sonnet-5", detail: "configured" }
-    };
-  }
-
-  it("renders explicit Claude and ChatGPT choices without exposing customer records", async () => {
-    const app = buildApp({
-      getProviderReadiness: configuredReadiness,
-      generate: async () => ({ ok: true, provider: "openai", model: "gpt-5.6-luna", text: "draft" })
-    });
-    const response = await request(app).get("/admin/ai-integrations/business-draft");
-    assert.equal(response.status, 200);
-    assert.match(response.text, /OpenAI \/ ChatGPT/);
-    assert.match(response.text, /Anthropic Claude/);
-    assert.match(response.text, /does not pull customer records/i);
-  });
-
-  it("runs a selected hosted provider as draft_content and labels the result as unsent", async () => {
-    const calls = [];
-    const app = buildApp({
-      getProviderReadiness: configuredReadiness,
-      generate: async (request) => {
-        calls.push(request);
-        return { ok: true, provider: request.provider, model: "gpt-5.6-luna", text: "Reviewable draft" };
-      }
-    });
-
-    const response = await request(app)
-      .post("/admin/ai-integrations/business-draft")
-      .type("form")
-      .send({ provider: "openai", prompt: "Draft a two-sentence service proposal." });
-
-    assert.equal(response.status, 200);
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].provider, "openai");
-    assert.match(calls[0].messages[0].content, /Produce a draft only/);
-    assert.equal(calls[0].messages[1].content, "Draft a two-sentence service proposal.");
-    assert.match(response.text, /Nothing has been sent, published, approved, or saved/i);
-  });
-
-  it("refuses unconfigured providers before any network call", async () => {
+  it("refuses an unconfigured provider before any network call", async () => {
     let called = false;
-    const app = buildApp({
-      getProviderReadiness: () => ({
-        local_rules: { status: "ready", enabled: true, detail: "ready" },
-        openai: { status: "disabled", enabled: false, model: "gpt-5.6-luna", detail: "OPENAI_API_KEY is not configured." },
-        anthropic: { status: "disabled", enabled: false, model: "claude-sonnet-5", detail: "ANTHROPIC_API_KEY is not configured." }
-      }),
-      generate: async () => { called = true; return { ok: true, text: "should not happen" }; }
+    const result = await router.generate(
+      { provider: "openai", messages: [{ role: "user", content: "draft" }] },
+      {
+        env: {},
+        fetchImpl: async () => { called = true; return jsonResponse({}, 200); }
+      }
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(called, false, "an unconfigured provider reached the network");
+    assert.match(String(result.detail || result.error || ""), /OPENAI_API_KEY/);
+  });
+
+  it("refuses to attribute deterministic rules to a model", async () => {
+    // The router's own reason, asserted rather than paraphrased: selecting the
+    // local rules engine must not come back looking like generated text.
+    const result = await router.generate(
+      { provider: "local_rules", messages: [{ role: "user", content: "draft" }] },
+      { env: {}, fetchImpl: async () => jsonResponse({}, 200) }
+    );
+    assert.equal(result.ok, false);
+    assert.match(String(result.detail || result.error || ""), /deterministic/i);
+  });
+
+  it("offers both hosted providers, and neither until its own key exists", () => {
+    const none = router.getProviderReadiness({ env: {} });
+    assert.equal(none.openai.enabled, false);
+    assert.equal(none.anthropic.enabled, false);
+
+    const both = router.getProviderReadiness({
+      env: { OPENAI_API_KEY: "sk-test-secret", ANTHROPIC_API_KEY: "sk-ant-test-secret" }
     });
-
-    const response = await request(app)
-      .post("/admin/ai-integrations/business-draft")
-      .type("form")
-      .send({ provider: "openai", prompt: "draft" });
-
-    assert.equal(response.status, 503);
-    assert.equal(called, false);
-    assert.match(response.text, /OPENAI_API_KEY is not configured/);
+    assert.equal(both.openai.enabled, true);
+    assert.equal(both.anthropic.enabled, true);
+    // Neither readiness object may carry a key value, which is the AGENTS.md
+    // rule that service-role secrets stay server-only, asserted on the shape
+    // that gets rendered.
+    assert.equal(JSON.stringify(both).includes("sk-test-secret"), false);
+    assert.equal(JSON.stringify(both).includes("sk-ant-test-secret"), false);
   });
 });
 

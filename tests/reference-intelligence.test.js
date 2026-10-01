@@ -50,18 +50,24 @@ describe("reference intelligence catalog", () => {
     const manifest = getManifest();
     assert.equal(manifest.externalInspirationAndAdapters.referenceIntelligence.sourceCount, 27);
     assert.equal(manifest.externalInspirationAndAdapters.referenceIntelligence.verifiedSourceCount, 0);
-    assert.ok(manifest.adminControlPlane.routes.includes("/admin/reference-intelligence"));
+    // The adminControlPlane route list no longer carries this page: the operator
+    // console was removed on 1 October 2026 and lib/sonara-ecosystem-manifest.cjs
+    // was stripped of every /admin and /api/admin path it declared. The record
+    // itself is what matters here and is still asserted above and below.
     assert.ok(manifest.requiredDatabaseDomains.some((domain) => domain.domain === "Reference intelligence model"));
   });
 
-  it("protects reference intelligence operations behind founder/admin authentication", async () => {
+  // Was an authorization assertion on /api/admin/reference-intelligence. That
+  // endpoint went with the operator console on 1 October 2026, so this asserts
+  // the stronger property instead: nothing serves it. Reinstating it fails here
+  // until somebody says what guards it.
+  it("serves no reference intelligence endpoint at all, guarded or otherwise", async () => {
     const response = await request(app)
       .get("/api/admin/reference-intelligence")
       .set("Accept", "application/json");
 
-    assert.notEqual(response.status, 200);
-    assert.ok([401, 503].includes(response.status));
-    assert.ok(["admin_auth_required", "setup_required"].includes(response.body.code));
+    assert.notEqual(response.status, 200, "the endpoint answered an unauthenticated caller");
+    assert.equal(response.status, 404, `expected the removed endpoint to be unserved, got ${response.status}`);
   });
 
   it("seeds only review-required metadata with service-role-only access", () => {

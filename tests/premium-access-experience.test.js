@@ -18,8 +18,11 @@ describe("premium access experience", () => {
     assert.match(response.text, assetUrlPattern("sonara-one.js"));
   });
 
-  it("protects product workspaces and founder routes when no valid session exists", async () => {
-    for (const route of ["/dashboard", "/business-builder/dashboard", "/creator-studio/dashboard", "/growth-studio/dashboard", "/admin"]) {
+  it("protects product workspaces and owner routes when no valid session exists", async () => {
+    // "/admin" was in this list and is now unserved; /owner/administration is
+    // the business-owner controls page that replaced it, and it belongs here
+    // because it is a real route that must refuse a stranger.
+    for (const route of ["/dashboard", "/business-builder/dashboard", "/creator-studio/dashboard", "/growth-studio/dashboard", "/owner/administration"]) {
       const response = await request(app).get(route).set("Accept", "text/html");
       assert.notEqual(response.status, 200, `${route} unexpectedly rendered without authorization`);
       assert.ok([302, 303, 401, 403].includes(response.status), `${route} returned unexpected status ${response.status}`);

@@ -71,6 +71,29 @@ const ALLOWED = new Map([
 // module is waiting for, because "it is fine" is what every one of these looks
 // like until it is the one that was forgotten.
 const TEST_ONLY = new Map([
+  // The four below became test-only on 1 October 2026, when the operator console
+  // was removed at the owner's instruction. Each was read by an /admin page and
+  // by nothing else, so the console's removal is the whole reason they are here.
+  // None is research-only in the sense the entries further down are: these are
+  // working modules whose one consumer went away, and each says what would wire
+  // it back.
+  ["lib/optional-ai-gateway.cjs",
+    "Reads whether an optional AI gateway is configured, without ever rendering a key. Its only consumer was "
+    + "/admin/ai-gateway. It stays test-only until a customer-facing surface needs to say whether model drafting is "
+    + "available; AGENTS.md keeps Provider Gateway as the boundary either way, so this reports and authorises nothing."],
+  ["lib/sonara-model-safety-resilience.cjs",
+    "The quarantined model-safety reference: a non-executing record of what defensive evaluation of unmodified models "
+    + "would require. Its only consumer was /admin/model-safety-resilience. Deliberately not wired -- enabling it is a "
+    + "separate decision -- and tests/model-safety-resilience.test.js holds the dependency and distribution rules."],
+  ["lib/sonara-system-design-engine.cjs",
+    "The system-design mapping engine: 28 upstream topics mapped to SONARA-owned designs, with copying blocked because no "
+    + "upstream licence file was found. Its only consumer was /admin/system-design-intelligence. It is reference material "
+    + "for a person, so it waits for a surface that presents it as that rather than as something to run."],
+  ["lib/sonara-platform-completeness.cjs",
+    "The capability records -- what each surface is for, what it may read, and what it must show when there is nothing. "
+    + "Its only consumer was /admin/system. Of the four here this is the one with an obvious home: /owner/administration "
+    + "could render the record for each capability an owner holds. Not wired in the same change that removed the console, "
+    + "because a record that shapes what a customer sees deserves its own review."],
   ["lib/sonara-aggregator-sourcing-policy.cjs",
     "Research-only adapter sourcing economics and verified-depth formulas. It grants no provider or runtime authority; "
     + "keep it test-only until a reviewed connector control-plane surface explicitly consumes the policy."],

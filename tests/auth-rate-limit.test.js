@@ -161,7 +161,6 @@ describe("authentication routes carry rate limiters", () => {
     const protectedPaths = new Map([
       ["/auth/login", "post"],
       ["/auth/signup", "post"],
-      ["/admin/login", "post"],
       ["/auth/forgot-password", "post"],
       ["/auth/reset-password", "post"],
       ["/business-builder/invite/accept", "post"]

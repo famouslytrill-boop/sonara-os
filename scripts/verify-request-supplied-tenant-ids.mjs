@@ -92,15 +92,13 @@ const ALLOWED = [
       "SONARA_ALLOW_MANUAL_ORG_ID must be 'true' AND NODE_ENV must not be production AND " +
       "VERCEL_ENV must not be production. The comment above it records that gating on the " +
       "variable alone made one wrong dashboard value a cross-tenant write hole."
-  },
-  {
-    file: "routes/sonara-service-lifecycle-routes.cjs",
-    reads: 1,
-    reason:
-      "POST /admin/deliverables sits behind requireAdmin, so the caller is a platform admin who " +
-      "administers every organization. Naming one is the point of the form, and the value is " +
-      "UUID-checked before use."
   }
+  // An entry for routes/sonara-service-lifecycle-routes.cjs was here, recording
+  // that POST /admin/deliverables took an organization id from the request body
+  // because a platform admin administers every organization. That write was
+  // removed with the operator console on 1 October 2026, and this check reported
+  // the entry as describing nothing -- which is what the two-sided half is for.
+  // No surviving route reads a tenant id from a request.
 ];
 
 // Comments are stripped before matching, using lib/sonara-comment-stripping.cjs

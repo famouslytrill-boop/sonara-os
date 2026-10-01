@@ -3,20 +3,14 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const request = require("supertest");
-const app = require("../server");
 const {
   SYSTEM_DESIGN_REFERENCE_SOURCE,
   SYSTEM_DESIGN_PATTERNS
 } = require("../data/system-design-reference-catalog.cjs");
 const {
-  getSystemDesignSummary,
   reviewSystemDesign
 } = require("../lib/sonara-system-design-engine.cjs");
-const { getManifest } = require("../lib/sonara-ecosystem-manifest.cjs");
-const { ADMIN_ROUTES, findRoute } = require("../lib/sonara-route-registry.cjs");
 
-const OPENAPI_PATH = path.join(__dirname, "..", "openapi", "sonara.yaml");
 const ENGINE_PATH = path.join(__dirname, "..", "lib", "sonara-system-design-engine.cjs");
 const CATALOG_PATH = path.join(__dirname, "..", "data", "system-design-reference-catalog.cjs");
 
@@ -124,38 +118,4 @@ describe("System Design Intelligence", () => {
     assert.deepEqual(slugs(first), slugs(second));
   });
 
-  it("registers the engine across ecosystem, route, and OpenAPI contracts", () => {
-    const summary = getSystemDesignSummary();
-    assert.equal(summary.patternCount, 28);
-    assert.equal(summary.executionMode, "deterministic_local_reference_engine");
-
-    const manifest = getManifest();
-    assert.equal(manifest.externalInspirationAndAdapters.systemDesignIntelligence.patternCount, 28);
-    assert.equal(manifest.externalInspirationAndAdapters.systemDesignIntelligence.licenseStatus, "no_license_file_detected");
-    assert.ok(manifest.adminControlPlane.routes.includes("/admin/system-design-intelligence"));
-    assert.ok(manifest.externalInspirationAndAdapters.openSourceAndResearchQueue.some((item) => item.name === "liquidslr/system-design-notes"));
-
-    assert.ok(ADMIN_ROUTES.includes("/admin/system-design-intelligence"));
-    assert.equal(findRoute("/admin/system-design-intelligence").visibility, "admin");
-
-    const openapi = fs.readFileSync(OPENAPI_PATH, "utf8");
-    assert.match(openapi, /\/api\/admin\/system-design-intelligence:/);
-    assert.match(openapi, /\/api\/admin\/system-design-intelligence\/review:/);
-    assert.match(openapi, /operationId: reviewAdminSystemDesignArchitecture/);
-  });
-
-  it("protects catalog and architecture review behind founder/admin authentication", async () => {
-    const catalog = await request(app)
-      .get("/api/admin/system-design-intelligence")
-      .set("Accept", "application/json");
-    const review = await request(app)
-      .post("/api/admin/system-design-intelligence/review")
-      .set("Accept", "application/json")
-      .send({ moduleKey: "public-test" });
-
-    assert.notEqual(catalog.status, 200);
-    assert.notEqual(review.status, 200);
-    assert.ok([401, 503].includes(catalog.status));
-    assert.ok([401, 503].includes(review.status));
-  });
 });

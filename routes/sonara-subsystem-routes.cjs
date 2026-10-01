@@ -48,7 +48,22 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
   const escape = deps.escapeHtml || esc;
-  const requireAdmin = deps.requireAdmin || ((req, res, next) => next());
+  // Fails CLOSED. The gate here used to be read off `deps` with a fallback that
+  // called next(), and server.js never passed one -- so every route below,
+  // including the POST that writes to 38 tables, was served to anybody who
+  // asked. The comment under it describing the table allow-list as the thing
+  // standing between a path parameter and "a way to write to any table in the
+  // database" was true, and was the only check there was.
+  //
+  // A missing dependency now refuses instead of waving the request through,
+  // which is the AGENTS.md default: unknown sensitive actions go to review, not
+  // to everyone.
+  const requireSignedIn = typeof deps.requireCustomer === "function"
+    ? deps.requireCustomer
+    : (req, res) => {
+        if (acceptsHtml(req)) return res.redirect(303, "/login");
+        return res.status(503).json({ ok: false, code: "setup_required", service: "subsystem_access" });
+      };
   const getConfig = deps.getSupabaseServerConfig || (() => ({ ok: false }));
   const headers = deps.supabaseHeaders || (() => ({}));
   const primaryOrganization = deps.getCustomerPrimaryOrganization || (async () => ({ ok: false }));
@@ -56,7 +71,7 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
   // One endpoint, and the table has to be one of the 38 the registry says may
   // be written. A path parameter reaching PostgREST unchecked would be a way to
   // write to any table in the database.
-  app.post("/api/research-lab/subsystems/:table", requireAdmin, async (req, res) => {
+  app.post("/api/research-lab/subsystems/:table", requireSignedIn, async (req, res) => {
     const table = String(req.params.table || "").toLowerCase();
     const subsystem = SUBSYSTEMS.find((entry) => entry.tables.includes(table));
     const back = subsystem ? `/research-lab/subsystems/${subsystem.slug}` : "/research-lab/subsystems";
@@ -107,10 +122,16 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
     const columns = describedColumns(table);
     const needsUser = columns.some((column) => column.name === "user_id");
     const needsOrganization = columns.some((column) => column.name === "organization_id");
-    const adminUserId = req.sonaraAdmin?.user?.id || null;
-    if (needsUser && adminUserId) payload.user_id = adminUserId;
+    // Read from every place the signed-in user is published, in the order the
+    // rest of routes/ uses. This read `req.sonaraAdmin?.user?.id` alone, which
+    // only the removed staff middleware ever set; under requireCustomer it was
+    // null, so user_id went unset and any table with a required organization_id
+    // answered no_organization_for_this_account. The test for "takes the
+    // organization from the signed-in user, not from the body" is what found it.
+    const signedInUserId = req.sonaraUser?.id || req.sonaraAccess?.user?.id || req.sonaraAdmin?.user?.id || null;
+    if (needsUser && signedInUserId) payload.user_id = signedInUserId;
     if (needsOrganization) {
-      const organization = adminUserId ? await primaryOrganization({ id: adminUserId }) : { ok: false };
+      const organization = signedInUserId ? await primaryOrganization({ id: signedInUserId }) : { ok: false };
       if (organization.ok) payload.organization_id = organization.organizationId;
       else if (columns.some((column) => column.name === "organization_id" && column.required)) {
         return respond(409, { ok: false, code: "no_organization_for_this_account" });
@@ -136,7 +157,7 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
   const writableTables = SUBSYSTEMS.flatMap((subsystem) => subsystem.tables).filter(isWritable).length;
   const readOnlyTables = totalTables - writableTables;
 
-  app.get("/research-lab/subsystems", requireAdmin, (req, res) => {
+  app.get("/research-lab/subsystems", requireSignedIn, (req, res) => {
     const sections = [
       brandCard(
         "What these are",
@@ -166,7 +187,7 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
   });
 
   for (const subsystem of SUBSYSTEMS) {
-    app.get(`/research-lab/subsystems/${subsystem.slug}`, requireAdmin, async (req, res) => {
+    app.get(`/research-lab/subsystems/${subsystem.slug}`, requireSignedIn, async (req, res) => {
       const config = getConfig();
       const sections = [brandCard("Status", subsystem.status)];
       // Where a release gate covers only part of a subsystem, say so on the
@@ -187,8 +208,20 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
         // previously awaited one at a time. Built in parallel and flattened, so
         // each table still renders its table card followed by its create card
         // -- the interleaving is what made the serial version look necessary.
+        // The caller's own organization, resolved once. Before 1 October 2026
+        // these pages were reachable only through a gate that did not work, so
+        // nobody had ever looked at what they read: every table was read with no
+        // tenant filter at all. The moment the gate was fixed and a customer
+        // could sign in, tests/cross-tenant-isolation.test.js reported sixteen
+        // unscoped reads across agent_action_logs, media_capture_records,
+        // phone_number_records, user_device_permissions, route_tracking_points
+        // and voice_command_logs among others -- one business's records on
+        // another's screen. tableCard now refuses to read a table without one.
+        const signedInUserId = req.sonaraUser?.id || req.sonaraAccess?.user?.id || null;
+        const organization = signedInUserId ? await primaryOrganization({ id: signedInUserId }) : { ok: false };
+        const organizationId = organization?.ok ? organization.organizationId : null;
         const cards = await Promise.all(subsystem.tables.map(async (table) => {
-          const card = await tableCard(table, config, headers, escape);
+          const card = await tableCard(table, config, headers, escape, organizationId);
           return isWritable(table) ? [card, createCard(table, escape)] : [card];
         }));
         sections.push(...cards.flat());
@@ -210,19 +243,39 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
 
   // One table, with whatever is in it. A table nobody has written to shows a
   // sentence saying so, not an empty grid that reads like a loading failure.
-  async function tableCard(table, config, buildHeaders, escapeHtml) {
+  async function tableCard(table, config, buildHeaders, escapeHtml, organizationId) {
     const select = selectFor(table);
     if (!select) {
       return card(`${table}`, "This table is not in the migrations this build can read, so its structure is unknown.");
     }
-    const url = `${config.url}/rest/v1/${encodeURIComponent(table)}?select=${encodeURIComponent(select)}&limit=25`;
+
+    // Three cases, and only the first reads anything.
+    //
+    //   the table carries organization_id  -> read it, filtered to the caller's
+    //   no organization_id on the table    -> do not read it. These are
+    //                                         platform-wide inventories, and a
+    //                                         customer has no business seeing
+    //                                         another customer's rows in one.
+    //   no organization for this caller    -> do not read it either. An absent
+    //                                         organization is not "show
+    //                                         everything"; that is how an
+    //                                         unscoped read gets justified.
+    const scoped = describedColumns(table).some((column) => column.name === "organization_id");
+    if (!scoped) {
+      return `<article class="card"><h2>${escapeHtml(table)}</h2><p>This table is not kept per business, so its rows are not shown here. The structure below comes from the migrations.</p>${structureList(table, escapeHtml)}</article>`;
+    }
+    if (!organizationId) {
+      return `<article class="card"><h2>${escapeHtml(table)}</h2><p>We could not tell which business you are signed in to, so nothing is read. Sign in again and this will fill up.</p>${structureList(table, escapeHtml)}</article>`;
+    }
+
+    const url = `${config.url}/rest/v1/${encodeURIComponent(table)}?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=25`;
     const response = await fetch(url, { headers: buildHeaders(config) }).catch(() => undefined);
     if (!response || !response.ok) {
       return `<article class="card"><h2>${escapeHtml(table)}</h2><p>Could not be read just now. The table may not exist in this project yet.</p></article>`;
     }
     const rows = await response.json().catch(() => []);
     if (!Array.isArray(rows) || !rows.length) {
-      return `<article class="card"><h2>${escapeHtml(table)}</h2><p>No rows. Nothing has ever written to this table.</p>${structureList(table, escapeHtml)}</article>`;
+      return `<article class="card"><h2>${escapeHtml(table)}</h2><p>No rows for your business yet.</p>${structureList(table, escapeHtml)}</article>`;
     }
     return `<article class="card"><h2>${escapeHtml(table)}</h2><p>${rows.length} row${rows.length === 1 ? "" : "s"}${rows.length === 25 ? " (first 25)" : ""}.</p>${rowsTable(table, rows, escapeHtml)}</article>`;
   }

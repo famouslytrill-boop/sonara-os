@@ -107,8 +107,12 @@ describe("Batch 20 screenshot research and workflow integration", () => {
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
     for (const extension of ARCHITECTURE_EXTENSIONS_BATCH20) assert.match(latest.text, new RegExp(extension.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
 
+    // The operator readiness endpoint was removed on 1 October 2026, so 404 is
+    // the expected answer and the body block below no longer runs. Kept as an
+    // absence assertion rather than dropped: a reinstated endpoint shows up here.
     const readiness = await request(app).get("/api/admin/requested-repositories/readiness").set("Accept", "application/json");
-    assert.ok([200, 401, 503].includes(readiness.status));
+    assert.ok([200, 401, 404, 503].includes(readiness.status));
+    assert.notEqual(readiness.status, 200, "the removed operator readiness endpoint answered an unauthenticated caller");
     if (readiness.status === 200) {
       assert.ok(readiness.body.repositories.some((item) => item.key === "strata_local_inference"));
       assert.equal(readiness.body.productionExecutionCount, 0);

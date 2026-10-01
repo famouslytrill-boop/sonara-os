@@ -13,7 +13,6 @@ const {
   getFinancialIntelligenceFormulaCatalog
 } = require("../lib/sonara-financial-intelligence-formulas.cjs");
 
-const LIVE_PROBE_TIMEOUT_MS = 800;
 
 const FORMULA_GROUP_LABELS = {
   business_revenue: "Business and revenue",
@@ -30,9 +29,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const requireAdmin = typeof deps.requireAdmin === "function" ? deps.requireAdmin : pass;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
-  const safeListTable = typeof deps.safeListTable === "function" ? deps.safeListTable : undefined;
   const getSupabaseServerConfig = typeof deps.getSupabaseServerConfig === "function" ? deps.getSupabaseServerConfig : undefined;
   const getCustomerPrimaryOrganization = typeof deps.getCustomerPrimaryOrganization === "function" ? deps.getCustomerPrimaryOrganization : undefined;
   const supabaseHeaders = typeof deps.supabaseHeaders === "function" ? deps.supabaseHeaders : undefined;
@@ -58,30 +55,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
     }));
   });
 
-  app.get("/admin/formulas", requireAdmin, async (req, res) => {
-    const readiness = await getFormulaReadiness(safeListTable, { probe: true });
-    const definitions = listFormulaDefinitions();
-    const statusText = readiness.tables.map((item) => `${item.table}: ${item.ok ? "ready" : "setup required"}`).join(" / ");
-    return res.status(200).type("html").send(layout({
-      title: "Formula control plane",
-      eyebrow: "Founder operations",
-      heading: "Formula control plane",
-      body: "Admin visualizer for formula tables, runtime evaluator, templates, and saved formula results.",
-      sections: [
-        brandCard("Formula tables", statusText),
-        brandCard("Runtime evaluator", `${definitions.length} allowlisted formulas are registered. Formula strings are not executed with eval.`),
-        brandCard("Write API", "POST /api/formulas/results stores evaluated formula results after workspace access and Supabase setup are ready."),
-        ...definitions.slice(0, 12).map((definition) => brandCard(definition.publicLabel, `${definition.formulaKey} -> ${definition.expressionText}`))
-      ],
-      actions: [
-        linkAction("/admin", "Admin"),
-        linkAction("/api/formulas/readiness", "Readiness JSON"),
-        linkAction("/api/formulas/definitions", "Definitions JSON")
-      ]
-    }));
-  });
-
-  // Public readiness describes the required formula-table contract without
+    // Public readiness describes the required formula-table contract without
   // contacting production Supabase. Live bounded probes remain admin-only.
   app.get("/api/formulas/readiness", (req, res) => {
     return res.status(200).json(getStaticFormulaReadiness());
@@ -133,43 +107,6 @@ function getStaticFormulaReadiness() {
     tables: FORMULA_TABLES.map((table) => ({ table, ok: false, status: "setup_required", count: null })),
     formulaCount: listFormulaDefinitions().length
   };
-}
-
-async function getFormulaReadiness(safeListTable, options = {}) {
-  if (!safeListTable || options.probe !== true) return getStaticFormulaReadiness();
-
-  const tables = await Promise.all(FORMULA_TABLES.map(async (table) => {
-    const result = await boundedProbe(() => safeListTable(table, "?select=id&limit=1"), LIVE_PROBE_TIMEOUT_MS);
-    return {
-      table,
-      ok: Boolean(result.ok),
-      status: result.ok ? "ready" : "setup_required",
-      count: Array.isArray(result.rows) ? result.rows.length : null,
-      reason: result.code === "timeout" ? "timeout" : undefined
-    };
-  }));
-
-  return {
-    ok: true,
-    mode: "live_bounded",
-    probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS,
-    tables,
-    formulaCount: listFormulaDefinitions().length
-  };
-}
-
-async function boundedProbe(run, timeoutMs) {
-  let timer;
-  try {
-    return await Promise.race([
-      Promise.resolve().then(run).catch(() => ({ ok: false, code: "unavailable" })),
-      new Promise((resolve) => {
-        timer = setTimeout(() => resolve({ ok: false, code: "timeout" }), timeoutMs);
-      })
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }
 
 async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders, insertActivityEvent }) {

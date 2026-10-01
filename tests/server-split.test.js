@@ -102,7 +102,6 @@ const EXTRACTED = [
       "isSupabaseAuthConfigured",
       "getSupabaseAuthConfig",
       "sendEmailAuthResult",
-      "rejectCustomerBearerFromAdminLogin",
       "wantsAuthReadinessJson"
     ]
   },
@@ -123,12 +122,7 @@ const EXTRACTED = [
       "layout",
       "responsePage",
       "renderHead",
-      "pageBrandClass",
-      "adminActions",
-      "adminRowsPage",
-      "adminLoginForm",
-      "adminLogoutAction",
-      "adminRoleForm"
+      "pageBrandClass"
     ]
   },
   {
@@ -137,7 +131,6 @@ const EXTRACTED = [
       "escapeHtml",
       "displayStatus",
       "formatLabel",
-      "adminReadinessText",
       "brandCard",
       "actionCard",
       "checklistCard",
@@ -732,12 +725,6 @@ describe("the page frame stands on its own", () => {
     assert.match(html, /Nothing has been charged/);
   });
 
-  it("offers a logout on the founder bar and never a bare admin password field", () => {
-    const frame = createPageFrame(deps);
-    assert.ok(frame.adminActions().some((action) => /admin\/logout/.test(action)));
-    assert.match(frame.adminLoginForm(), /type="password"/);
-    assert.match(frame.adminLoginForm(), /autocomplete="current-password"/);
-  });
 });
 
 describe("the customer auth module stands on its own", () => {

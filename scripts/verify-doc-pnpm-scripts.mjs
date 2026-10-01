@@ -118,7 +118,10 @@ const HISTORICAL_SCRIPTS = Object.freeze({
   },
   "check:env-safety": {
     docs: [
-      "docs/admin/ADMIN_SYSTEM.md",
+      // docs/admin/ADMIN_SYSTEM.md was here twice and moved to
+      // docs/archive/retired-admin-system.md on 1 October 2026 with the operator
+      // console. The archive is outside this scan, so the entry described nothing
+      // and this check said so.
       "docs/audits/FINAL_LIVE_READINESS_REPORT.md",
       "docs/audits/LIVE_FIX_FINAL_REPORT.md",
       "docs/audits/LIVE_FIX_SPRINT_PLAN.md",
@@ -168,7 +171,8 @@ const HISTORICAL_SCRIPTS = Object.freeze({
   "check:risky-features": {
     docs: [
       "docs/NODE_AND_PNPM_SETUP.md",
-      "docs/admin/ADMIN_SYSTEM.md",
+      // Same move as above: docs/admin/ADMIN_SYSTEM.md is now
+      // docs/archive/retired-admin-system.md.
       "docs/audits/FINAL_LIVE_READINESS_REPORT.md",
       "docs/audits/LIVE_FIX_FINAL_REPORT.md",
       "docs/audits/LIVE_FIX_SPRINT_PLAN.md",

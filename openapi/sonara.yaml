@@ -157,174 +157,6 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/overview:
-    get:
-      operationId: getAdminOverview
-      tags: [Administration]
-      summary: Return the owner-only operational overview.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-  /api/admin/env-status:
-    get:
-      operationId: getAdminEnvironmentStatus
-      tags: [Administration]
-      summary: Return owner-only non-secret environment readiness.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-  /api/admin/database-readiness:
-    get:
-      operationId: getAdminDatabaseReadiness
-      tags: [Administration]
-      summary: Return owner-only database readiness checks.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-  /api/admin/storage-readiness:
-    get:
-      operationId: getAdminStorageReadiness
-      tags: [Administration]
-      summary: Return owner-only private storage bucket readiness.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-  /api/admin/model-safety-resilience:
-    get:
-      operationId: getAdminModelSafetyResilience
-      tags: [Administration]
-      summary: Return the quarantined OBLITERATUS reference, defensive model-safety controls, and execution prohibitions.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/model-safety-resilience/review:
-    post:
-      operationId: reviewAdminModelSafetyProposal
-      tags: [Administration]
-      summary: Classify a proposed model-safety activity without executing models, modifying weights, or changing infrastructure.
-      security: [{ bearerAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string, maxLength: 160 }
-                product: { type: string, maxLength: 120 }
-                summary: { type: string, maxLength: 2000 }
-                requestedAction: { type: string, maxLength: 1000 }
-                dataTypes:
-                  type: array
-                  maxItems: 30
-                  items: { type: string, maxLength: 240 }
-                outputs:
-                  type: array
-                  maxItems: 30
-                  items: { type: string, maxLength: 240 }
-                controls:
-                  type: array
-                  maxItems: 30
-                  items: { type: string, maxLength: 240 }
-                environment:
-                  type: string
-                  enum: [documentation, offline_research, isolated_worker, staging, production]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/system-design-intelligence:
-    get:
-      operationId: getAdminSystemDesignIntelligence
-      tags: [Administration]
-      summary: Return the governed reference-only architecture topic catalog and SONARA module mappings.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/system-design-intelligence/review:
-    post:
-      operationId: reviewAdminSystemDesignArchitecture
-      tags: [Administration]
-      summary: Produce a deterministic, review-required architecture mapping for one SONARA module.
-      security: [{ bearerAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [moduleKey]
-              properties:
-                moduleKey: { type: string, maxLength: 160 }
-                product: { type: string, maxLength: 120 }
-                summary: { type: string, maxLength: 2000 }
-                capabilities:
-                  type: array
-                  maxItems: 30
-                  items: { type: string, maxLength: 240 }
-                risks:
-                  type: array
-                  maxItems: 30
-                  items: { type: string, maxLength: 240 }
-                constraints:
-                  type: array
-                  maxItems: 30
-                  items: { type: string, maxLength: 240 }
-                scaleTier:
-                  type: string
-                  enum: [prototype, launch, growth, large_scale]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/database-management:
-    get:
-      operationId: getAdminDatabaseManagement
-      tags: [Administration]
-      summary: Return the founder-only live read-only PostgreSQL and Supabase metadata catalog.
-      security: [{ bearerAuth: [] }]
-      parameters:
-        - in: query
-          name: section
-          required: false
-          schema:
-            type: string
-            enum: [schema-visualizer, tables, functions, triggers, enumerated-types, extensions, indexes, publications, access-control, policies, roles, configuration, settings, platform, replication, backups, migrations]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/reference-intelligence:
-    get:
-      operationId: getAdminReferenceIntelligence
-      tags: [Administration]
-      summary: Return the founder-only governed external-reference catalog and review policy.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/business-builder/employees/invite:
     post:
       operationId: inviteBusinessBuilderEmployee
@@ -928,16 +760,6 @@ paths:
       summary: Return governed learning and memory policy and readiness metadata.
       responses:
         "200": { $ref: "#/components/responses/Success" }
-  /api/admin/ai-integrations/readiness:
-    get:
-      operationId: getAdminAIIntegrationReadiness
-      tags: [Administration]
-      summary: Run bounded read-only readiness probes for configured AI service adapters.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
   /api/ecosystem/platform-patterns:
     get:
       operationId: getPlatformPatternConvergence
@@ -952,16 +774,6 @@ paths:
       summary: Return the governed non-secret catalog for requested external repositories.
       responses:
         "200": { $ref: "#/components/responses/Success" }
-  /api/admin/requested-repositories/readiness:
-    get:
-      operationId: getAdminRequestedRepositoryReadiness
-      tags: [Administration]
-      summary: Return owner-only static readiness and governance state for requested repositories.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
   /api/ecosystem/huggingface:
     get:
       operationId: getHuggingFaceResourceCatalog
@@ -997,16 +809,6 @@ paths:
       summary: Return the reviewed open-source repository register with licence, integration and refusal status.
       responses:
         "200": { $ref: "#/components/responses/Success" }
-  /api/admin/huggingface/readiness:
-    get:
-      operationId: getAdminHuggingFaceReadiness
-      tags: [Administration]
-      summary: Return owner-only Hugging Face catalog readiness and run one bounded metadata probe.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
   /api/infrastructure/manifest:
     get:
       operationId: getInfrastructureManifest
@@ -3291,26 +3093,6 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/admin/prompt-library/readiness:
-    get:
-      operationId: getAdminPromptLibraryReadiness
-      tags: [Administration, Prompt Library]
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-  /api/admin/prompt-library/import-review:
-    post:
-      operationId: reviewPromptImportBatch
-      tags: [Administration, Prompt Library]
-      summary: Review provenance, license, size, and sampled safety before any import.
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
 components:
   securitySchemes:
     bearerAuth:

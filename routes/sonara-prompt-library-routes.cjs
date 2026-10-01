@@ -3,34 +3,27 @@
 "use strict";
 
 const {
-  BUILTIN_PROMPT_TEMPLATES,
   PRODUCT_LABELS,
   getPromptLibrarySummary,
   getPromptTemplate,
   listPromptTemplates,
   normalizeProductArea,
   renderPrompt,
-  reviewImportBatch,
   validateConnection,
   validatePromptRecord
 } = require("../lib/sonara-prompt-library.cjs");
-const { PROMPT_LIBRARY_TABLES } = require("../data/prompts-chat-reference.cjs");
 const { escapeHtml } = require("../lib/sonara-shell.cjs");
 
-const LIVE_PROBE_TIMEOUT_MS = 900;
 
 module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
-  const requireAdmin = typeof deps.requireAdmin === "function" ? deps.requireAdmin : pass;
-  const safeListTable = typeof deps.safeListTable === "function" ? deps.safeListTable : undefined;
   const getSupabaseServerConfig = typeof deps.getSupabaseServerConfig === "function" ? deps.getSupabaseServerConfig : undefined;
   const getCustomerPrimaryOrganization = typeof deps.getCustomerPrimaryOrganization === "function" ? deps.getCustomerPrimaryOrganization : undefined;
   const supabaseHeaders = typeof deps.supabaseHeaders === "function" ? deps.supabaseHeaders : undefined;
   const insertActivityEvent = typeof deps.insertActivityEvent === "function" ? deps.insertActivityEvent : async () => ({ ok: false });
-  const recordAdminAuditEvent = typeof deps.recordAdminAuditEvent === "function" ? deps.recordAdminAuditEvent : async () => undefined;
 
   app.get("/prompt-library", (req, res) => {
     const productArea = normalizeProductArea(req.query.product);
@@ -344,41 +337,7 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     return res.status(result.ok ? 201 : 503).json(result.ok ? { ok: true, connection: result.rows?.[0] } : result);
   });
 
-  app.get("/admin/prompt-library", requireAdmin, async (req, res) => {
-    const readiness = await getReadiness(safeListTable, true);
-    await recordAdminAuditEvent(req, "admin.prompt_library.dashboard", { tableCount: PROMPT_LIBRARY_TABLES.length, readyCount: readiness.tables.filter((item) => item.ok).length });
-    return res.status(200).type("html").send(layout({
-      title: "Prompt Library Control Plane",
-      eyebrow: "Founder operations",
-      heading: "Prompt Library Control Plane",
-      body: "Govern the shared prompt architecture, database readiness, source provenance, moderation, imports, versions, collections, workflows, and run records.",
-      sections: [
-        brandCard("Architecture", `${BUILTIN_PROMPT_TEMPLATES.length} original starter templates across all three studios. ${PROMPT_LIBRARY_TABLES.length} organization-scoped database tables.`),
-        brandCard("Source boundary", "prompts.chat is pinned as an MIT/CC0 research and optional import source. Its separate app, authentication, remote MCP endpoint, telemetry, and deployment stack are not installed."),
-        brandCard("Database readiness", readiness.tables.map((item) => `${item.table}: ${item.ok ? "ready" : "setup required"}`).join(" / ")),
-        brandCard("Import gate", "Imports require a pinned commit, CC0 or approved MIT evidence, moderation, deduplication, provenance, tenant-safe storage, owner approval, and rollback manifest.")
-      ],
-      actions: [
-        linkAction("/api/admin/prompt-library/readiness", "Readiness JSON"),
-        linkAction("/api/prompt-library/catalog", "Catalog JSON"),
-        linkAction("/admin/ecosystem", "Ecosystem"),
-        linkAction("/admin", "Founder operations")
-      ]
-    }));
-  });
-
-  app.get("/api/admin/prompt-library/readiness", requireAdmin, async (req, res) => {
-    const readiness = await getReadiness(safeListTable, true);
-    await recordAdminAuditEvent(req, "admin.prompt_library.readiness", { tableCount: readiness.tables.length, readyCount: readiness.tables.filter((item) => item.ok).length });
-    return res.status(200).json({ ok: true, ...getPromptLibrarySummary(), readiness });
-  });
-
-  app.post("/api/admin/prompt-library/import-review", requireAdmin, async (req, res) => {
-    const review = reviewImportBatch(req.body || {});
-    await recordAdminAuditEvent(req, "admin.prompt_library.import_review", { sourceRepository: req.body?.sourceRepository || req.body?.source_repository || null, decision: review.decision, recordCount: review.recordCount });
-    return res.status(review.ok ? 200 : 400).json(review);
-  });
-};
+      };
 
 function registerWorkspacePage(app, productArea, deps) {
   const { requireWorkspaceAccess, layout, brandCard, linkAction, escapeHtml, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders } = deps;
@@ -548,27 +507,6 @@ function selectWorkspace(requireWorkspaceAccess, resolver) {
     req.promptProductArea = productArea;
     return requireWorkspaceAccess(productArea)(req, res, next);
   };
-}
-
-async function getReadiness(safeListTable, live) {
-  if (!safeListTable || live !== true) return { mode: "static", tables: PROMPT_LIBRARY_TABLES.map((table) => ({ table, ok: false, status: "setup_required" })) };
-  const tables = await Promise.all(PROMPT_LIBRARY_TABLES.map(async (table) => {
-    const result = await bounded(() => safeListTable(table, "?select=id&limit=1"), LIVE_PROBE_TIMEOUT_MS);
-    return { table, ok: Boolean(result?.ok), status: result?.ok ? "ready" : "setup_required", reason: result?.code || undefined };
-  }));
-  return { mode: "live_bounded", probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS, tables };
-}
-
-async function bounded(run, timeoutMs) {
-  let timer;
-  try {
-    return await Promise.race([
-      Promise.resolve().then(run).catch(() => ({ ok: false, code: "unavailable" })),
-      new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, code: "timeout" }), timeoutMs); })
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }
 
 function detectSensitivePayload(value) {

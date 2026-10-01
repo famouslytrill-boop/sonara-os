@@ -146,7 +146,10 @@ describe("governed Hugging Face resource catalog", () => {
     assert.equal((server.match(/registerSonaraHuggingFaceRoutes = require/g) || []).length, 1);
     assert.equal((server.match(/registerSonaraHuggingFaceRoutes\(app/g) || []).length, 1);
     assert.equal((openapi.match(/\/api\/ecosystem\/huggingface:/g) || []).length, 1);
-    assert.equal((openapi.match(/\/api\/admin\/huggingface\/readiness:/g) || []).length, 1);
+    // The readiness path was removed from openapi/sonara.yaml with the operator
+    // console on 1 October 2026, along with fourteen other /api/admin blocks.
+    // Asserting it is absent keeps this check two-sided rather than dropping it.
+    assert.equal((openapi.match(/\/api\/admin\/huggingface\/readiness:/g) || []).length, 0);
   });
 });
 
@@ -173,13 +176,15 @@ describe("Hugging Face runtime surfaces", () => {
     assert.match(response.text, /never executed by this public catalog/i);
   });
 
-  it("protects live readiness behind founder or admin authentication", async () => {
+  // Was an authorization assertion on /api/admin/huggingface/readiness, removed
+  // with the operator console on 1 October 2026. Now asserts the stronger
+  // property: nothing serves it.
+  it("serves no Hugging Face readiness endpoint at all, guarded or otherwise", async () => {
     const response = await request(app)
       .get("/api/admin/huggingface/readiness")
       .set("Accept", "application/json");
 
-    assert.notEqual(response.status, 200);
-    assert.ok([401, 503].includes(response.status));
-    assert.ok(["admin_auth_required", "setup_required"].includes(response.body.code));
+    assert.notEqual(response.status, 200, "the endpoint answered an unauthenticated caller");
+    assert.equal(response.status, 404, `expected the removed endpoint to be unserved, got ${response.status}`);
   });
 });

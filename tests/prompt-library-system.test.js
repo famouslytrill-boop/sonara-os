@@ -22,7 +22,7 @@ const {
   validatePromptRecord
 } = require("../lib/sonara-prompt-library.cjs");
 const { DATABASE_FUNCTIONS, DATABASE_TABLE_GROUPS } = require("../lib/sonara-database-contract.cjs");
-const { ADMIN_ROUTES, PRODUCT_ROUTES, PUBLIC_ROUTES } = require("../lib/sonara-route-registry.cjs");
+const { PRODUCT_ROUTES, PUBLIC_ROUTES } = require("../lib/sonara-route-registry.cjs");
 
 const root = path.join(__dirname, "..");
 
@@ -153,9 +153,8 @@ describe("SONARA Prompt Library", () => {
     assert.match(migration, /declared_license/);
   });
 
-  it("registers public, product, admin, ecosystem, OpenAPI, and source-governance contracts", () => {
+  it("registers public, product, ecosystem, OpenAPI, and source-governance contracts", () => {
     assert.ok(PUBLIC_ROUTES.includes("/prompt-library"));
-    assert.ok(ADMIN_ROUTES.includes("/admin/prompt-library"));
     assert.ok(PRODUCT_ROUTES.business_builder.includes("/business-builder/prompts"));
     assert.ok(PRODUCT_ROUTES.creator_studio.includes("/creator-studio/prompts"));
     assert.ok(PRODUCT_ROUTES.growth_studio.includes("/growth-studio/prompts"));
@@ -169,7 +168,6 @@ describe("SONARA Prompt Library", () => {
     assert.match(openApi, /\/api\/prompt-library\/catalog:/);
     assert.match(openApi, /\/api\/prompt-library\/templates:/);
     assert.match(openApi, /\/api\/prompt-library\/runs:/);
-    assert.match(openApi, /\/api\/admin\/prompt-library\/import-review:/);
 
     const registry = fs.readFileSync(path.join(root, "data/open-source-tools.ts"), "utf8");
     assert.match(registry, /slug: "prompts-chat-library"/);
@@ -215,19 +213,16 @@ describe("SONARA Prompt Library", () => {
     assert.equal(response.body.summary.source.remoteMcpEnabled, false);
   });
 
-  it("protects saved records, product pages, and founder controls", async () => {
+  it("protects saved records and product pages", async () => {
     const savedTemplates = await request(app).get("/api/prompt-library/templates?product=business_builder");
     assert.ok([401, 503].includes(savedTemplates.status));
 
     const productPage = await request(app).get("/creator-studio/prompts");
     assert.ok([302, 303, 401, 402, 403, 503].includes(productPage.status));
 
-    const admin = await request(app).get("/api/admin/prompt-library/readiness").set("Accept", "application/json");
-    assert.ok([401, 503].includes(admin.status));
-    assert.notEqual(admin.status, 200);
-
-    const importReview = await request(app).post("/api/admin/prompt-library/import-review").send({});
-    assert.ok([401, 503].includes(importReview.status));
+    // The two /api/admin/prompt-library endpoints this used to probe were
+    // removed with the operator console on 1 October 2026. What remains here is
+    // the customer-facing boundary, which is the part a customer can reach.
   });
 
   it("reports an accurate library summary", () => {

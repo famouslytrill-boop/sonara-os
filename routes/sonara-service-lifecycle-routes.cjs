@@ -12,7 +12,6 @@ const { applyPreset, describe: describePreset } = require("../lib/sonara-tool-pr
 const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
 const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
 
-const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
 const { catalogItemToRow, catalogRowAccessReason } = require("../lib/sonara-catalog-boundary.cjs");
 const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
@@ -119,7 +118,6 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     escapeHtml,
     requireCustomer,
     requireWorkspaceAccess,
-    requireAdmin,
     wantsJson,
     requireFields,
     sendValidationFailure,
@@ -133,13 +131,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     getLiveReadiness,
     readinessCards,
     displayStatus,
-    adminActions,
-    adminRowsPage,
     normalizeSupportRequest,
     saveSupportRequest,
     logoutAction,
     accessCard,
-    recordAdminAuditEvent,
     getProductPageDefinitions,
     legalPages,
     buildBusinessOffer,
@@ -1799,183 +1794,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   // Admin/operator views
   // ---------------------------------------------------------------------------
 
-  app.get("/admin/requests", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.service_requests.view", { path: req.path });
-    return res.status(200).type("html").send(await adminRowsPage({
-      title: "Service requests",
-      heading: "Service requests",
-      body: "Customer service requests across all organizations. Update work through deliverables.",
-      table: "service_requests",
-      query: "?select=id,organization_id,product_key,service_name,status,created_at&order=created_at.desc&limit=25",
-      emptyText: "No service request rows returned.",
-      rowTitle: (row) => `${row.service_name || "Service request"} - ${row.status || "submitted"}`,
-      rowBody: (row) => `Organization: ${row.organization_id || "not returned"} / Product: ${row.product_key || "general"} / Created: ${row.created_at || "not returned"} / ID: ${row.id}`,
-      extraSections: [brandCard("Intake queue", "Business Builder intake requests are tracked separately under product operations.")],
-      actions: [linkAction("/admin/deliverables", "Deliverables"), ...adminActions()]
-    }));
-  });
-
-  function adminDeliverableForm() {
-    const statusOptions = DELIVERABLE_STATUSES.map((status) => `<option value="${escapeHtml(status)}">${escapeHtml(displayStatus(status))}</option>`).join("");
-    const productOptions = [
-      ...PRODUCTS.map((product) => `<option value="${escapeHtml(product.productKey)}">${escapeHtml(product.name)}</option>`),
-      `<option value="general">General</option>`
-    ].join("");
-    return `<article class="card">
-    <h2>Publish deliverable</h2>
-    <form method="post" action="/admin/deliverables">
-      <label>Organization ID<input name="organizationId" type="text" required></label>
-      <label>Service request ID (optional)<input name="serviceRequestId" type="text"></label>
-      <label>Title<input name="title" type="text" required></label>
-      <label>Product area<select name="productKey" required>${productOptions}</select></label>
-      <label>Status<select name="status" required>${statusOptions}</select></label>
-      <label>Notes<textarea name="notes" rows="4"></textarea></label>
-      <button type="submit">Publish deliverable</button>
-    </form>
-  </article>`;
-  }
-
-  app.get("/admin/deliverables", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.service_deliverables.view", { path: req.path });
-    return res.status(200).type("html").send(await adminRowsPage({
-      title: "Deliverables",
-      heading: "Deliverables",
-      body: "Operator-published deliverables across all organizations. Publishing requires the service_deliverables table.",
-      table: "service_deliverables",
-      query: "?select=id,organization_id,product_key,title,status,updated_at&order=updated_at.desc&limit=25",
-      emptyText: "No deliverable rows returned.",
-      rowTitle: (row) => `${row.title || "Deliverable"} - ${row.status || "preparing"}`,
-      rowBody: (row) => `Organization: ${row.organization_id || "not returned"} / Product: ${row.product_key || "general"} / Updated: ${row.updated_at || "not returned"} / ID: ${row.id}`,
-      extraSections: [adminDeliverableForm()],
-      actions: [linkAction("/admin/requests", "Service requests"), ...adminActions()]
-    }));
-  });
-
-  app.post("/admin/deliverables", requireAdmin, async (req, res) => {
-    const validation = requireFields(req.body, ["organizationId", "title", "productKey", "status"]);
-    if (!validation.ok) return sendValidationFailure(req, res, validation, "/admin/deliverables");
-    const organizationId = String(req.body.organizationId).trim();
-    const serviceRequestId = String(req.body.serviceRequestId || "").trim();
-    const status = String(req.body.status).trim();
-    if (!isUuid(organizationId)) {
-      const payload = { ok: false, code: "validation_failed", message: "Enter a valid organization ID." };
-      if (wantsJson(req)) return res.status(400).json(payload);
-      return res.status(400).type("html").send(responsePage("Check your inputs", payload.message, [linkAction("/admin/deliverables", "Return")]));
-    }
-    if (!DELIVERABLE_STATUSES.includes(status)) {
-      const payload = { ok: false, code: "validation_failed", message: "Choose a valid deliverable status." };
-      if (wantsJson(req)) return res.status(400).json(payload);
-      return res.status(400).type("html").send(responsePage("Check your inputs", payload.message, [linkAction("/admin/deliverables", "Return")]));
-    }
-    if (!VALID_REQUEST_PRODUCT_KEYS.includes(String(req.body.productKey).trim())) {
-      const payload = { ok: false, code: "validation_failed", message: "Choose a valid product area." };
-      if (wantsJson(req)) return res.status(400).json(payload);
-      return res.status(400).type("html").send(responsePage("Check your inputs", payload.message, [linkAction("/admin/deliverables", "Return")]));
-    }
-    const config = getSupabaseServerConfig();
-    if (!config.ok) {
-      const payload = { ok: false, code: "setup_required", service: "supabase", message: "Setup required: the account database is not configured." };
-      if (wantsJson(req)) return res.status(503).json(payload);
-      return res.status(503).type("html").send(responsePage("Setup required", payload.message, [linkAction("/admin/deliverables", "Return")]));
-    }
-    const record = {
-      organization_id: organizationId,
-      service_request_id: isUuid(serviceRequestId) ? serviceRequestId : null,
-      product_key: String(req.body.productKey).trim(),
-      title: String(req.body.title).trim().slice(0, 160),
-      notes: String(req.body.notes || "").trim().slice(0, 2000) || null,
-      status,
-      created_by_user_id: req.sonaraAdmin?.user?.id || null
-    };
-    const response = await fetch(`${config.url}/rest/v1/service_deliverables`, {
-      method: "POST",
-      headers: supabaseHeaders(config, { prefer: "return=representation" }),
-      body: JSON.stringify(record)
-    }).catch(() => undefined);
-    if (!response?.ok) {
-      const payload = { ok: false, code: "setup_required", service: "service_deliverables", message: "Setup required: the service_deliverables table is not available yet." };
-      if (wantsJson(req)) return res.status(503).json(payload);
-      return res.status(503).type("html").send(responsePage("Setup required", payload.message, [linkAction("/admin/deliverables", "Return")]));
-    }
-    const rows = await response.json().catch(() => []);
-    const deliverableId = rows[0]?.id;
-    if (record.service_request_id) {
-      await fetch(`${config.url}/rest/v1/service_request_events`, {
-        method: "POST",
-        headers: supabaseHeaders(config),
-        body: JSON.stringify({ service_request_id: record.service_request_id, organization_id: organizationId, event_type: "deliverable_published", notes: record.title })
-      }).catch(() => undefined);
-    }
-    await recordAdminAuditEvent(req, "admin.service_deliverable.published", { target_type: "service_deliverable", target_id: deliverableId || "unknown" });
-    const payload = { ok: true, saved: true, code: "saved", referenceId: deliverableId, message: `Deliverable published. Reference ID: ${deliverableId || "not returned"}.` };
-    if (wantsJson(req)) return res.status(200).json(payload);
-    return res.status(200).type("html").send(responsePage("Deliverable published", payload.message, [linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/requests", "Service requests")]));
-  });
-
-  app.get("/admin/workspaces", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.workspaces.view", { path: req.path });
-    return res.status(200).type("html").send(await adminRowsPage({
-      title: "Workspaces",
-      heading: "Customer workspaces",
-      body: "Organizations are the customer workspace unit. Memberships control who can access each workspace.",
-      table: "organizations",
-      query: "?select=id,name,created_at&order=created_at.desc&limit=25",
-      emptyText: "No organization rows returned.",
-      rowTitle: (row) => row.name || "Organization",
-      rowBody: (row) => `Created: ${row.created_at || "not returned"} / ID: ${row.id}`,
-      extraSections: [brandCard("Memberships", "Workspace access is stored in organization_memberships with role and status columns.")],
-      actions: [linkAction("/admin/users", "Users"), linkAction("/admin/roles", "Roles"), ...adminActions()]
-    }));
-  });
-
-  app.get("/admin/integrations", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.integrations.view", { path: req.path });
-    const services = (await getLiveReadiness()).services || {};
-    const gateway = getOptionalAiGatewayReadiness();
-    const serviceState = (key) => displayStatus(services[key] || "unknown");
-    return res.status(200).type("html").send(
-      layout({
-        title: "Integrations",
-        eyebrow: "Founder operations",
-        heading: "Integration status",
-        body: "Live state of every external integration. Secret values are never displayed.",
-        sections: [
-          actionCard("Payments (Stripe)", `Checkout: ${serviceState("checkout")}. Secret key: ${serviceState("stripe")}. Payment updates are recorded only from verified webhook events.`, [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates")]),
-          actionCard("Account database (Supabase)", `Database access: ${serviceState("supabase")}. Tables and storage buckets are checked live.`, [linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage")]),
-          actionCard("Email delivery (Resend)", `Email delivery: ${serviceState("emailDelivery")}. Notifications degrade to safe queued states when unconfigured.`, [linkAction("/admin/support", "Support queue")]),
-          actionCard("Google sign-in", `Status: ${serviceState("googleSignIn")}. Email and password login works independently.`, [linkAction("/admin/env-readiness", "Environment")]),
-          actionCard("Optional AI gateway", `Status: ${displayStatus(gateway.status)}. Operator/development use only; never customer-facing.`, [linkAction("/admin/ai-gateway", "AI gateway")]),
-          actionCard("Governed AI integrations", "Twelve tools are classified by runtime, license, risk, and product fit. Eight opt-in service adapters provide read-only readiness probes.", [linkAction("/admin/ai-integrations", "AI integrations")]),
-          actionCard("System map", "Formula library, ecosystem manifest, and infrastructure manifest are part of the operational surface.", [linkAction("/admin/formulas", "Formulas"), linkAction("/admin/ecosystem", "Ecosystem"), linkAction("/admin/infrastructure", "Infrastructure")])
-        ],
-        actions: adminActions()
-      })
-    );
-  });
-
-  app.get("/admin/ai-gateway", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.ai_gateway.view", { path: req.path });
-    const readiness = getOptionalAiGatewayReadiness();
-    return res.status(200).type("html").send(
-      layout({
-        title: "AI gateway",
-        eyebrow: "Founder operations",
-        heading: "Optional AI gateway",
-        body: "OmniRoute is an optional, operator-only local AI gateway for development workflows. The public site never depends on it and no key values are ever displayed.",
-        sections: [
-          brandCard("Status", displayStatus(readiness.status)),
-          brandCard("Base URL", readiness.enabled ? `Configured host: ${readiness.baseUrlHost}` : "Not configured. The platform runs fully without it."),
-          brandCard("API key", readiness.keyConfigured ? "Configured (value never displayed)." : "Not configured. Optional for local gateways."),
-          brandCard("Model", `Requested model: ${escapeHtml(readiness.model || "auto")}. Model routing happens inside the gateway only.`),
-          brandCard("Environment names", `Enabled flag: ${AI_GATEWAY_ENV_KEYS.enabled.join(" or ")}. Base URL: ${AI_GATEWAY_ENV_KEYS.baseUrl.join(" or ")}. API key: ${AI_GATEWAY_ENV_KEYS.apiKey.join(" or ")}. Model: ${AI_GATEWAY_ENV_KEYS.model.join(" or ")}.`),
-          brandCard("Safety rules", "Never route customer data through a local AI gateway. Never expose gateway keys to the browser. Keep the gateway off in production unless owner-approved."),
-          actionCard("Documentation", "Setup, environment names, and safety rules are documented in the repository.", [linkAction("/docs", "Docs"), linkAction("/admin/system", "System")])
-        ],
-        actions: adminActions()
-      })
-    );
-  });
-};
+          };
 
 // Exposed for tests. Both decide what a customer is told about a product that
 // is not open to them, and neither is reachable through the rendered page when

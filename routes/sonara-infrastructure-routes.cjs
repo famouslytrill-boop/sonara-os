@@ -5,7 +5,7 @@
 const { INFRASTRUCTURE_SERVICES, PIPELINE_LAYERS, MOBILE_EXPERIENCE_CHECKS, CAPABILITY_EXPANSION_TRACKS, envReadiness } = require("../lib/sonara-infrastructure-manifest.cjs");
 
 function registerSonaraInfrastructureRoutes(app, deps) {
-  const { layout, brandCard, linkAction, requireAdmin } = deps;
+  const { layout, brandCard, linkAction } = deps;
 
   app.get("/api/infrastructure/manifest", (req, res) => {
     res.status(200).json({
@@ -51,30 +51,11 @@ function registerSonaraInfrastructureRoutes(app, deps) {
       heading: "SONARA Infrastructure",
       body: "Operational map for Supabase, renewable sessions, Vercel, Stripe, Resend, GitHub, governed AI adapters, Docker, Rancher, workers, mobile readiness, and launch gates.",
       sections,
-      actions: [linkAction("/api/infrastructure/readiness", "Readiness JSON"), linkAction("/admin/system", "Admin system"), linkAction("/dashboard", "Dashboard")]
+      actions: [linkAction("/api/infrastructure/readiness", "Readiness JSON"), linkAction("/readiness", "Service readiness"), linkAction("/dashboard", "Dashboard")]
     }));
   });
 
-  app.get("/admin/infrastructure", requireAdmin, (req, res) => {
-    const services = envReadiness(process.env);
-    const sections = [
-      brandCard("Admin infrastructure view", "This page shows configuration state without exposing raw secret values."),
-      ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : service.configurationStatus || "setup required"}`, service.env.length ? service.env.map((item) => `${item.name}: ${item.configured ? "configured" : "missing"}`).join(" / ") : `${service.launchStatus} manual verification required.`)),
-      ...PIPELINE_LAYERS.map((layer) => brandCard(layer.label, layer.description)),
-      brandCard("Capability expansion control plane", `${CAPABILITY_EXPANSION_TRACKS.length} tracks are registered. Production enablement is independent from research status; every track carries its own proof gates.`),
-      ...CAPABILITY_EXPANSION_TRACKS.map((track) => brandCard(`${track.label} — phase ${track.phase} — ${track.status.replace(/_/g, " ")}`, `Target: ${track.target} Proof: ${track.proofGates.join(" / ")} Claim boundary: ${track.claimBoundary}`))
-    ];
-
-    res.status(200).type("html").send(layout({
-      title: "Infrastructure Admin",
-      eyebrow: "Founder operations",
-      heading: "Infrastructure Admin",
-      body: "Founder-only infrastructure readiness for MVP paid-customer launch gates.",
-      sections,
-      actions: [linkAction("/api/infrastructure/readiness", "Readiness JSON"), linkAction("/admin", "Admin"), linkAction("/admin/system", "System")]
-    }));
-  });
-}
+  }
 
 function capabilityExpansionSummary() {
   const counts = CAPABILITY_EXPANSION_TRACKS.reduce((summary, track) => {

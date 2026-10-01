@@ -640,22 +640,27 @@ describe("software-in-a-service platform upgrade", () => {
     });
   });
 
-  describe("admin and operator protection", () => {
+  // These asserted that four operator pages and one operator write refused an
+  // anonymous API client with 401 or 503. The operator console was removed on
+  // 1 October 2026, so the assertion they can still make is the stronger one:
+  // none of these paths is served. Kept rather than deleted -- if any of them is
+  // reinstated, this fails until somebody comes back and says what guards it.
+  describe("the operator surface stays unserved", () => {
     for (const route of ["/admin/requests", "/admin/deliverables", "/admin/workspaces", "/admin/ai-gateway"]) {
-      it(`GET ${route} requires founder access for API clients`, async function() {
+      it(`GET ${route} is not served at all`, async function() {
         const res = await request(app).get(route).set("Accept", "application/json");
-        assert.ok([401, 503].includes(res.status), `${route} must not render for anonymous API clients`);
-        assert.equal(res.body.ok, false);
+        assert.notEqual(res.status, 200, `${route} rendered for an anonymous API client`);
+        assert.equal(res.status, 404, `${route} answered ${res.status}; a reinstated operator route needs its own authorization test`);
       });
     }
 
-    it("POST /admin/deliverables requires founder access", async function() {
+    it("POST /admin/deliverables is not served at all", async function() {
       const res = await request(app)
         .post("/admin/deliverables")
         .set("Accept", "application/json")
         .send({ organizationId: ORGANIZATION_ID, title: "Launch package", productKey: "business_builder", status: "delivered" });
-      assert.ok([401, 503].includes(res.status));
-      assert.equal(res.body.ok, false);
+      assert.notEqual(res.status, 200, "the operator write accepted an anonymous submission");
+      assert.equal(res.status, 404, `answered ${res.status}; a reinstated operator write needs its own authorization test`);
     });
   });
 

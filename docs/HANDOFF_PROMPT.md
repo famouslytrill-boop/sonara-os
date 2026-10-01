@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3767 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3090 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 136 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 39 public routes, 20 customer routes, 30 admin routes.
-- 408 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
+- 407 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,147 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 405 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 406 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - The operator console is gone, and it was holding a door open
+
+The owner asked for the administration part of the application to be removed and
+for business owners to get basic controls over their own sub-applications and
+operations instead. Both are done.
+
+**Removed: 58 registered routes** -- 43 pages under `/admin` and 15 JSON
+endpoints under `/api/admin` -- the admin login, the admin session cookie, the
+rate limiter in front of it, `requireAdmin`, `verifyAdminRequest`,
+`isSupabaseAdminUser`, the page frame's admin navigation and login form, and five
+route modules left with no routes at all. Every former path answers 404, and
+`tests/the-operator-console-is-gone-and-so-is-its-bypass.test.js` keeps it so.
+
+**Added: `/owner/administration`.** Organization-scoped controls where an owner
+sees which parts of their business are running and pauses or restarts one.
+`business_sub_app_modules` existed since migration 20260530120000 and **had no
+reader at all** -- registered in two libraries and never queried -- which is the
+"table with no way in" the record-page skill opens with. This is the way in.
+
+### The part that was not a deletion
+
+`verifyAdminRequest` did not only guard those pages. `resolveWorkspaceAccess`
+called it **first**, ahead of resolving any customer session, and on success
+returned `ownerOverride: true` for whichever organization was being addressed.
+`requireBusinessManager` did the same and additionally set
+`req.sonaraBusinessMembership = {}` -- a membership record nobody is a member of.
+A staff cookie was therefore an owner of every business on the platform, and the
+cookies it accepted included the ordinary customer one.
+
+That is defensible for an operator console. With the console gone the door had
+nothing behind it, so both branches are gone and membership is required with no
+exception.
+
+### Three findings the removal surfaced, none of which it caused
+
+**An unauthenticated write endpoint to 38 tables.**
+`routes/sonara-subsystem-routes.cjs` read its gate as a dependency with a
+fallback that called `next()`, and `server.js` never passed one. Measured by
+restoring the fallback and probing: a signed-out `GET /research-lab/subsystems`
+answered **200**, and a signed-out POST to the write endpoint answered 303 with
+`problem=missing_required` -- the body check, not a refusal. Its own comment
+said the table allow-list was all that stood between a path parameter and "a way
+to write to any table in the database"; that was true, and the allow-list was
+the only check there was. `lib/sonara-route-surface.cjs` recorded that these
+pages "redirect a signed-out visitor to /admin/login", **measured 16 September**.
+They did not. The module now fails closed on a missing gate, `server.js` passes
+`requireCustomer`, and re-probing gives 303 to `/login` for both.
+
+**Then those pages leaked across tenants.** Fixing the gate made them reachable
+by a signed-in customer for the first time, and `cross-tenant-isolation` reported
+**sixteen unscoped reads** -- `agent_action_logs`, `media_capture_records`,
+`phone_number_records`, `user_device_permissions`, `route_tracking_points`,
+`voice_command_logs` and more, one business's rows on another's screen. `tableCard`
+now filters to the caller's organization, refuses to read a table that carries no
+`organization_id` at all, and refuses when the caller's organization is unknown
+rather than treating absent as "show everything". Falsified against the full
+suite: with the filter removed, **120 findings**; with it, zero. The test does not
+catch it in isolation, which is worth knowing about that test.
+
+**A module that resolved the wrong user.** The same module took its user id from
+`req.sonaraAdmin?.user?.id`, which only the removed staff middleware ever set, so
+under `requireCustomer` every table with a required `organization_id` answered
+`no_organization_for_this_account`. Its own test -- "takes the organization from
+the signed-in user, not from the body" -- is what found it.
+
+### Checks that were measuring the wrong thing
+
+* `verify:customer-ready` asserted `/customer_cookie/` against the runtime. That
+  matched a **string label** in `verifyAdminRequest`'s list of auth methods, not
+  any property, and went red when the function went. Re-anchored on the call that
+  reads the cookie.
+* `tests/plain-language.test.js` reported `/admin` in `TECHNICAL_ROUTE_PREFIXES`
+  as a prefix matching no served route -- the two-sided half working, arriving the
+  other way round from the three prefixes it caught before: the pages went rather
+  than never existing.
+* `verify:request-supplied-tenant-ids` reported its own entry for
+  `sonara-service-lifecycle-routes.cjs` as describing nothing.
+* `report-unreferenced-modules` reported four libraries as reached only by their
+  tests. All four had the console as their single consumer; each is registered
+  with what would wire it back, and `sonara-platform-completeness.cjs` is the one
+  with an obvious home on the new page.
+* `every-page-is-reachable` reported three registered pages nothing links to --
+  including both owner pages and the new one. They are on the dashboard now.
+* `report-unused-selected-columns` caught the new module selecting `slug` and
+  never using it. Shape 3, in code written the same hour as this entry.
+
+### The twelfth shape, three times in one change
+
+A note that names what it excuses, inside another check's population:
+
+1. `docs/owner/WHAT-IS-LEFT.md` prose quoting the stale record-check figure.
+2. A comment in the new module spelling the rejected `rest()` call shape -- the
+   tenant auditor counts a bare `rest(` anywhere in a runtime file, skips the
+   helper's own declaration, and does not skip a comment, so the sentence
+   describing the blind spot became the 41st entry in it.
+3. The new regression test matching `requireAdmin` inside a register `reason`
+   string in `lib/sonara-route-surface.cjs`. That test now strips comments **and**
+   string contents before matching, and asserts the stripper left real code
+   behind.
+
+### Two self-inflicted errors, recorded because both looked fine
+
+The function-removal tool found the body brace by taking the first `{` after the
+name. For `function adminPage(title, body, readiness, metrics = {})` that is the
+empty object in a default value: it cut to the end of `{}` and left `) {`
+dangling. `node --check` caught it; the fix walks the parameter list to its
+closing paren first.
+
+Worse, the unused-binding cleanup edited every eslint finding in one pass with a
+line-based regex. `const x = typeof deps.x === "function"` spans three lines, so
+it cut the first and left the ternary behind. A second regex written to clean
+**that** up then deleted the same three-line shape from two modules that were
+never part of this change; both were restored from git, and the rewritten tool
+does one name at a time and reverts any edit that stops the file parsing.
+
+### What the owner should know went with it
+
+`/admin/ai-integrations/business-draft` -- the page where ChatGPT or Claude
+produced a labelled draft for review -- was an `/admin` page and is gone. The
+provider router and both adapters survive and are still tested, now driven
+directly rather than through a route, which is stronger: the route test asserted
+that a page said "Nothing has been sent", and the replacement asserts the router
+refuses before any network call and will not attribute deterministic output to a
+model. Rebuilding that page on the owner plane is a product decision, not part of
+this change. `/admin/env-readiness`, `/admin/database` and `/admin/storage` were
+also the only in-app views of deployment readiness; the CLI release scripts
+remain.
+
+Verified: typecheck, lint, **5174 tests**, `verify:gates`, `build`, and the
+derived artefacts regenerated. 77 documents mention `/admin`; the three in
+`docs/admin/` are moved to `docs/archive/` with a retirement header, the route map
+and the go-live checklist are rewritten, and the rest are dated research records
+that describe what was true when they were written.
+
+
 
 ### 2026-10-01 - A figure excused from measurement, and a status page written in the present tense
 
@@ -2106,75 +2242,3 @@ same way.
 - Batches 8 and 9 are not missing modules: they are
   `getCapabilityDesignReadiness()`, surfaced as `capabilityBatch8` and
   `designBatch9`. Batches 10 and 11 never existed as separate modules.
-
-
-
-### 2026-09-19 - The handoff package could not be pasted into the assistant its first line names
-
-Asked to update the handoff package for ChatGPT. Measuring it first turned the
-task into a different one.
-
-## What it measured
-
-`docs/HANDOFF_PROMPT.md` opens with:
-
-> Paste this whole file as the first message to ChatGPT, Codex, or any other
-> assistant picking up work on this repository.
-
-On 19 September 2026 that file was **1.25 MB, 23,536 lines, roughly 328,000
-tokens**, of which **99.4% was `docs/SPRINT_LOG.md` embedded verbatim** -- 1.24
-MB of the 1.25. The derived half, which is the part nobody can reconstruct
-without the repository, was **6,933 bytes**: lines 1 to 102.
-
-No ChatGPT tier accepts a 328k-token first message. The document could not do
-the one thing it opens by instructing you to do, and it had been growing into
-that state for months with nothing measuring it. That is this repository's
-named defect -- a confident claim that is not true -- sitting at the top of the
-file whose entire job is to be the first thing somebody reads.
-
-## What changed
-
-The history is bounded; the derived half is not. Counts, the quoted safety
-rules, the seven approval categories read out of the authority module, and the
-real `verify:launch` chain are always included in full, because they are small
-and cannot be obtained any other way.
-
-**1.25 MB -> 123 KB. 23,536 lines -> 2,268. ~328k tokens -> ~31k.** It now
-carries the 22 most recent entries of 384 and says so, with the rest pointed at
-rather than dropped: the wording is that they "are not omitted, they are in
-`docs/SPRINT_LOG.md`", read in the repository rather than pasted.
-
-Sliced on **dated** headings only. There are 393 `###` headings and 384 dated
-ones; the difference is sub-headings inside recent entries, several of them
-written earlier in this same session. Slicing on all of them would cut entries
-in half and then call the halves entries.
-
-## Why a budget rather than a fixed entry count
-
-`HANDOFF_BUDGET_BYTES = 128 * 1024` is about 32,000 tokens -- a first message
-that fits any current tier with the conversation still ahead of it. A fixed
-entry count would drift the moment entries got longer, which is exactly how the
-old one grew.
-
-And the budget is **asserted on the finished document**, in `--check` as well as
-on write, so `verify:handoff` in the release chain fails rather than a person
-noticing. The derived half can grow too -- more gates, more tables -- and a
-document that has quietly gone back over the limit has quietly stopped being
-pastable.
-
-Falsified two ways: lowering the budget to 8 KB makes the generator refuse with
-*"the newest sprint entry alone exceeds the remaining handoff budget"* rather
-than shipping a handoff with no history, and appending a line to the committed
-file makes `--check` fail with *"is out of date"*.
-
-## A second thing this fixed, unplanned
-
-`verify:text-encoding` reports the files above the 393,216-byte write cap --
-the cap whose mechanism destroyed 274 sprint-log entries on 18 September. That
-count went from **3 to 2**: the handoff prompt is no longer in the danger zone
-at all. The document most likely to be regenerated by a tool with that cap was
-also the one most exposed to it.
-
-`CLAUDE.md`'s description of the handoff was updated to say it is bounded and
-where the full history lives, because it described the old shape and would
-otherwise be the next false claim about this file.

@@ -107,7 +107,11 @@ describe("Batch 21 screenshot research and integration", () => {
     const readiness = await request(app)
       .get("/api/admin/requested-repositories/readiness")
       .set("Accept", "application/json");
-    assert.ok([200, 401, 503].includes(readiness.status));
+    // The operator readiness endpoint was removed on 1 October 2026, so 404 is
+    // the expected answer and the body block below no longer runs. Kept as an
+    // absence assertion rather than dropped.
+    assert.ok([200, 401, 404, 503].includes(readiness.status));
+    assert.notEqual(readiness.status, 200, "the removed operator readiness endpoint answered an unauthenticated caller");
     if (readiness.status === 200) {
       assert.equal(readiness.body.productionExecutionCount, 0);
       assert.ok(readiness.body.repositories.some((item) => item.key === "paymenter_hosting_billing"));
