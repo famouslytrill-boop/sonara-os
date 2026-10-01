@@ -193,8 +193,15 @@ describe("an agent that keeps failing loses the unattended list", () => {
     });
 
     it("changes nothing for a caller that supplies no history", async () => {
-      // Every existing call site. Adding the breaker must not alter a single
-      // decision already being made.
+      // Was "every existing call site", and that sentence was the problem rather
+      // than a note about scope: no call site supplied history, so the breaker
+      // this file tests had never evaluated anything in the application. The
+      // owner queue supplies it as of 1 October 2026 --
+      // tests/the-autonomy-breaker-is-actually-connected.test.js drives that
+      // through Express and fails if the wiring goes away.
+      //
+      // This case remains, and is now about what it always described: a run with
+      // no organization has no agent history to read, and must still work.
       const runner = createRunner({ handlers });
       const result = await runner.run({ action });
 

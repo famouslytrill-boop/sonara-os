@@ -35,7 +35,7 @@
 // had no agent activity or has agents that never reached the recorder, and
 // those read identically from here. It says so rather than showing a tick.
 
-const { TABLE, createActionLogRecorder } = require("../lib/sonara-agent-action-log.cjs");
+const { TABLE, createActionHistoryReader, createActionLogRecorder } = require("../lib/sonara-agent-action-log.cjs");
 const { SENSITIVE_CATEGORY_NAMES } = require("../lib/sonara-agent-authority.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
 const { createEventOutboxRepository, createRunEventPublisher } = require("../lib/sonara-event-outbox.cjs");
@@ -369,6 +369,22 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
     // meet the same scope/evidence standard.
     const runnerOptions = {
       record: createActionLogRecorder({ organizationId, agentKey: "owner_queue", actorUserId, getSupabaseServerConfig }),
+      // The history the autonomy breaker and the volume cap both read, and the
+      // reason this line exists at all.
+      //
+      // Until 1 October 2026 nothing supplied it. `createActionHistoryReader` was
+      // written, exported, documented at length and called by nobody, so
+      // `evaluateAutonomyBreaker` received null on every run, returned
+      // "unavailable", left the classification untouched, and the action ran --
+      // and the line that would have said the check was blind was suppressed by a
+      // guard that only fired when a reader existed. A safety gate that has never
+      // evaluated anything looks exactly like one that keeps passing.
+      //
+      // Same agentKey as the recorder above, deliberately: the reader filters on
+      // agent_key, so a mismatch here would read a population this runner never
+      // writes to and report a clean record for ever. They are the same string for
+      // that reason, and a test asserts it.
+      readHistory: createActionHistoryReader({ organizationId, agentKey: "owner_queue", getSupabaseServerConfig })
     };
     // Keep the existing owner-queue page usable in isolated test/dev setups
     // that deliberately omit Supabase configuration. In a configured runtime,
