@@ -131,5 +131,6 @@
   "20260926033255_translation_authenticated_read_only.sql": "b079f2c7b28b168ae7ac5aca3968707323a5740d875621d4ff79550589a5109b",
   "20260926033557_translation_data_api_grants.sql": "19f3078405364d34225e5f61e3a9130a20272186ecf2c05b26d3e2cf7a6006be",
   "20260926040000_align_user_preference_locales.sql": "9b852fb96e25630849b603583e69216ee8a9b716ccfb18d8cd43c57e3ca9bccf",
-  "20260929020000_creator_records_can_be_archived.sql": "f7409120bcc7edaec7cf8270bb0a6951f05a83c19fd83654d48f8e93f6567da7"
+  "20260929020000_creator_records_can_be_archived.sql": "f7409120bcc7edaec7cf8270bb0a6951f05a83c19fd83654d48f8e93f6567da7",
+  "20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql": "2524d65ff925c7a99eab49442ac506624a0e1d205dbbde545a4eb38d0d6b0f8e"
 }

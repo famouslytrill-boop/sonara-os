@@ -299,7 +299,9 @@ describe("signed-in workspaces speak plainly", () => {
   // 106 -> 107 on 1 October 2026: /owner/administration is the business-owner
   // controls page that replaced the removed operator console. It refuses a
   // signed-out visitor, so the crawl skips it rather than reading its copy.
-  const SIGNED_IN_SKIPPED = 107;
+  // 107 -> 108 on 1 October 2026: /business-builder/owner/pay-periods refuses a
+  // signed-out visitor, so the crawl skips it rather than reading its copy.
+  const SIGNED_IN_SKIPPED = 108;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

@@ -2,6 +2,114 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
+
+Asked to find and build what the business operating system is missing. The method
+was the one that has worked here before: look for schema with no product, because
+a table nobody can reach is a feature somebody started and stopped.
+
+**Every one of the 347 tables the migrations create is named somewhere in the
+runtime**, so that search is exhausted at the table level. Narrowing to *queried*
+rather than *named* found the gap: four tables in the employee family had no route
+file referencing them at all -- `employee_shifts`, `employee_pay_periods`,
+`employee_pay_statements` and `employee_job_posts`. The last is in
+`lib/sonara-database-retirement-contract.cjs` and deliberately retired.
+
+### Why the payroll half was never built
+
+The six employee tables key on **two different parents**:
+
+    -> business_employee_profiles    employee_time_entries, employee_schedules,
+                                     employee_tasks
+    -> employee_profiles             employee_wage_rates, employee_shifts,
+                                     employee_pay_statements
+
+So a clocked hour and the rate it should be paid at reference different tables,
+and no join crosses them. `business_employee_profiles` is read by ten files.
+`employee_profiles` is named in four and **queried by none** -- all four are
+registries. Somebody began the payroll half against the parent with no product
+behind it and stopped, which is exactly why those three are the three with no
+reader.
+
+`supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql`
+adds a nullable `business_employee_id` to the two real payroll tables and indexes
+it beside the organization. It drops nothing: retiring the old column and the
+empty parent is a destructive data change and AGENTS.md puts those behind the
+owner. 137 migrations replay in order against an empty PostgreSQL.
+
+### One of the four was the same table twice
+
+`employee_shifts` is `employee_schedules` again -- identical `organization_id`,
+`employee_id`, `location_id`, `role_label`, `starts_at`, `ends_at` and `notes`,
+differing only in its status vocabulary (`worked`/`changed` against
+`confirmed`/`completed`) and in pointing at the parent with no product.
+`employee_schedules` has both a writer at `/business-builder/owner/schedules` and
+a reader in `routes/sonara-rota-routes.cjs`.
+
+A shift page was written and then **deleted before it shipped**, because building
+it would have created the second shift surface. The migration deliberately leaves
+that table without the working key its two siblings got, and says so where
+somebody will read it.
+
+Worth recording: the duplicate could not be put in `lib/sonara-orphan-tables.cjs`
+either. That gate counts a table as queried when any non-comment line in the
+scanned tree names it, and five registry files name this one -- so the register
+refused the entry as describing a table that is already queried. The register's
+model of "queried" includes being listed, which is the "a mention is not a use"
+problem one level up, in the check rather than the code. Left alone and recorded
+here instead.
+
+### What was built
+
+`lib/sonara-pay-period-engine.cjs` and
+`routes/sonara-pay-period-routes.cjs`: four routes that turn clocked hours into a
+draft statement each.
+
+The engine is arithmetic only -- no model call, no provider, nothing metered, the
+same constraint `lib/sonara-record-checks.cjs` works under. It does not file
+taxes, compute withholding or decide overtime law; deductions and additions are
+lists the owner supplies. **Nothing in it marks anything paid**, because this
+product does not move money, and a screen reading "paid" that had paid nobody
+would be the worst signal in the application.
+
+The cases that would each have produced a plausible wrong number, every one of
+them tested:
+
+* A missing clock-out is **unknown hours, not zero** -- `Number(null)` is `0` and
+  finite, which is the fourth shape and the one that would underpay somebody.
+* A **salary or commission is not multiplied by hours**. That arithmetic
+  completes and means nothing, and it would look exactly like a correct answer.
+* The rate in force is the one on **the day the shift started**, so a raise dated
+  mid-period pays the old rate for the shifts before it.
+* The cent is rounded **once over the period**, not per entry: three 20-minute
+  entries at $20/hour are 2000 cents rounded once and 2001 rounded each.
+* An entry already at `status: "paid"` is never counted again.
+* A period already marked paid **cannot be run** -- the one mistake in here that
+  would move money twice.
+* An unreadable deduction is reported, not counted as zero, because a typo that
+  becomes "no deduction" overpays and reads as a clean run.
+* A negative net is shown rather than clamped: an over-deduction has to be
+  visible.
+* An employee with hours and no rate is **reported, not paid from a row on the
+  historical column** that nobody said corresponds.
+
+Falsified three ways, each restored by copy-aside and `md5sum -c`: treating a
+missing clock-out as zero failed 4 tests by name, widening the hourly pay types
+failed the salary case, and rounding per entry failed the drift case.
+
+### Gates that had something to say about the new code
+
+`report-unused-selected-columns` flagged six columns the route selects and never
+reads -- they are consumed by the engine one module over, now recorded in
+`ACCOUNTED` with which function uses each. `report-tenant-scoped-queries`
+required the table **and** the filter written at every call site, so the two
+handlers repeat the statement rather than share it. `no-page-lies` read "Nothing
+here pays anybody" as an empty-state claim about the customer's records; reworded
+rather than exempted. `plain-language` recorded one more skipped route.
+
+Verified: typecheck, lint, **5202 tests**, `verify:gates`, `build`, migration
+replay, and the derived artefacts regenerated.
+
 ### 2026-10-01 - The operator console is gone, and it was holding a door open
 
 The owner asked for the administration part of the application to be removed and

@@ -8,17 +8,17 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 853 |
-| GET / POST / PATCH / DELETE | 530 / 310 / 10 / 3 |
-| Declared page routes / workspace groups | 284 / 12 |
+| Registered HTTP route operations | 857 |
+| GET / POST / PATCH / DELETE | 532 / 312 / 10 / 3 |
+| Declared page routes / workspace groups | 286 / 12 |
 | API operations matched to OpenAPI | 304 |
 | Destinations using workspace-home fallback | 85 |
 | Form action destinations traced to registered pages | 50 |
 | Traced forms with no matching method/path route | 0 |
-| Route data contracts needing explicit review | 275 |
+| Route data contracts needing explicit review | 279 |
 | Active migration tables | 332 |
 | Runtime-queried / never-queried tables | 312 / 20 |
-| Migration files | 136 |
+| Migration files | 137 |
 | SQL functions / triggers / calling routes / missing function definition | 32 / 49 / 23 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
@@ -41,9 +41,9 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 853 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- The HTTP layer registers 857 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 304 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
-- 275 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
+- 279 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
 - 85 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
@@ -55,14 +55,14 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_no_persistent_table_expected` | 139 |
 | `explicit_resource_registry` | 259 |
 | `handler_source_table_reference` | 176 |
-| `needs_explicit_data_contract` | 275 |
+| `needs_explicit_data_contract` | 279 |
 - 20 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations
 
 | Workspace | Route prefixes | Operations | Pages | Home |
 | --- | --- | ---: | ---: | --- |
-| Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 320 | 92 | `/business-builder/dashboard` |
+| Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 324 | 93 | `/business-builder/dashboard` |
 | Business Builder Agent Operations | `/owner/agent-activity`, `/owner/agent-schedule`, `/api/agents` | 7 | 1 | `/owner/agent-activity` |
 | Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 119 | 65 | `/creator-studio/dashboard` |
 | Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 116 | 56 | `/growth-studio/dashboard` |

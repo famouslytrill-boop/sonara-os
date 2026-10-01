@@ -11,17 +11,17 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 853,
+    "routeOperationCount": 857,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 530,
+      "GET": 532,
       "PATCH": 10,
-      "POST": 310
+      "POST": 312
     },
     "workspaceCount": 12,
-    "declaredPageCount": 284,
+    "declaredPageCount": 286,
     "workspaceRouteCounts": {
-      "business_builder": 320,
+      "business_builder": 324,
       "business_builder_agent_ops": 7,
       "creator_studio": 119,
       "cross_workspace_formulas": 5,
@@ -34,11 +34,11 @@
       "sonara_shared_api": 109
     },
     "actionDestinationCounts": {
-      "exact": 326,
+      "exact": 328,
       "form_reference": 291,
       "machine_ingress": 2,
-      "parent_route": 53,
-      "route_pair": 96,
+      "parent_route": 54,
+      "route_pair": 97,
       "workspace_fallback": 85
     },
     "routeDataMappingCounts": {
@@ -47,7 +47,7 @@
       "explicit_no_persistent_table_expected": 139,
       "explicit_resource_registry": 259,
       "handler_source_table_reference": 176,
-      "needs_explicit_data_contract": 275
+      "needs_explicit_data_contract": 279
     },
     "routesUsingWorkspaceHomeFallback": 85,
     "formActionLinkCount": 50,
@@ -58,15 +58,15 @@
     "databaseContractCoreTableCount": 146,
     "queriedTableCount": 312,
     "neverQueriedTableCount": 20,
-    "migrationCount": 136,
+    "migrationCount": 137,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 23,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 275,
+    "routeDataContractsNeedingExplicitReview": 279,
     "routeDataReviewByMethod": {
-      "GET": 192,
-      "POST": 83
+      "GET": 194,
+      "POST": 85
     },
     "routeDestinationReviewByWorkspace": {
       "business_builder": 14,
@@ -118,8 +118,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 320,
-      "registeredPageCount": 92,
+      "routeCount": 324,
+      "registeredPageCount": 93,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -176,6 +176,8 @@
         "/business-builder/owner/menu",
         "/business-builder/owner/menu/:recordId/edit",
         "/business-builder/owner/money-due",
+        "/business-builder/owner/pay-periods",
+        "/business-builder/owner/pay-periods/:periodId",
         "/business-builder/owner/payments",
         "/business-builder/owner/payments-made",
         "/business-builder/owner/payments-made/:recordId/edit",
@@ -342,6 +344,7 @@
             "/business-builder/owner/maintenance",
             "/business-builder/owner/menu",
             "/business-builder/owner/money-due",
+            "/business-builder/owner/pay-periods",
             "/business-builder/owner/payments",
             "/business-builder/owner/payments-made",
             "/business-builder/owner/products",
@@ -1852,7 +1855,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1412
+        "line": 1423
       },
       "contractCompleteness": {
         "route": true,
@@ -1960,7 +1963,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 770
+        "line": 781
       },
       "contractCompleteness": {
         "route": true,
@@ -2068,7 +2071,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 927
+        "line": 938
       },
       "contractCompleteness": {
         "route": true,
@@ -2174,7 +2177,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -2280,7 +2283,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -2394,7 +2397,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1117
+        "line": 1128
       },
       "contractCompleteness": {
         "route": true,
@@ -3458,7 +3461,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1134
+        "line": 1145
       },
       "contractCompleteness": {
         "route": true,
@@ -3675,7 +3678,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1250
+        "line": 1261
       },
       "contractCompleteness": {
         "route": true,
@@ -4682,7 +4685,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1401
+        "line": 1412
       },
       "contractCompleteness": {
         "route": true,
@@ -5005,7 +5008,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1400
+        "line": 1411
       },
       "contractCompleteness": {
         "route": true,
@@ -5567,7 +5570,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1399
+        "line": 1410
       },
       "contractCompleteness": {
         "route": true,
@@ -12929,7 +12932,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -13083,7 +13087,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -15742,7 +15747,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1213
+        "line": 1224
       },
       "contractCompleteness": {
         "route": true,
@@ -16222,7 +16227,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1443
+        "line": 1454
       },
       "contractCompleteness": {
         "route": true,
@@ -16784,7 +16789,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1442
+        "line": 1453
       },
       "contractCompleteness": {
         "route": true,
@@ -22469,7 +22474,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1467
+        "line": 1478
       },
       "contractCompleteness": {
         "route": true,
@@ -23031,7 +23036,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1466
+        "line": 1477
       },
       "contractCompleteness": {
         "route": true,
@@ -26188,7 +26193,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1489
+        "line": 1500
       },
       "contractCompleteness": {
         "route": true,
@@ -30789,7 +30794,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1497
+        "line": 1508
       },
       "contractCompleteness": {
         "route": true,
@@ -31756,7 +31761,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 879
+        "line": 890
       },
       "contractCompleteness": {
         "route": true,
@@ -31869,7 +31874,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1199
+        "line": 1210
       },
       "contractCompleteness": {
         "route": true,
@@ -31985,7 +31990,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1087
+        "line": 1098
       },
       "contractCompleteness": {
         "route": true,
@@ -32093,7 +32098,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1061
+        "line": 1072
       },
       "contractCompleteness": {
         "route": true,
@@ -32201,7 +32206,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1047
+        "line": 1058
       },
       "contractCompleteness": {
         "route": true,
@@ -32313,7 +32318,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1280
+        "line": 1291
       },
       "contractCompleteness": {
         "route": true,
@@ -32703,7 +32708,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1635
+        "line": 1646
       },
       "contractCompleteness": {
         "route": true,
@@ -32811,7 +32816,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -33198,7 +33203,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1282
+        "line": 1293
       },
       "contractCompleteness": {
         "route": true,
@@ -33910,7 +33915,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -34196,7 +34201,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -34304,7 +34309,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1649
+        "line": 1660
       },
       "contractCompleteness": {
         "route": true,
@@ -34673,7 +34678,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1321
+        "line": 1332
       },
       "contractCompleteness": {
         "route": true,
@@ -34781,7 +34786,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -34887,7 +34892,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1683
+        "line": 1694
       },
       "contractCompleteness": {
         "route": true,
@@ -35089,7 +35094,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1351
+        "line": 1362
       },
       "contractCompleteness": {
         "route": true,
@@ -35197,7 +35202,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -35305,7 +35310,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1667
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -35507,7 +35512,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1304
+        "line": 1315
       },
       "contractCompleteness": {
         "route": true,
@@ -35705,7 +35710,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -35813,7 +35818,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -35921,7 +35926,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -44302,6 +44307,189 @@
         "workspace": true,
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /business-builder/owner/pay-periods",
+      "method": "GET",
+      "route": "/business-builder/owner/pay-periods",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/pay-periods",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": "Pay Periods",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_employee_profiles",
+          "employee_pay_periods",
+          "employee_pay_statements",
+          "employee_time_entries",
+          "employee_wage_rates"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-pay-period-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 80
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /business-builder/owner/pay-periods/:periodId",
+      "method": "GET",
+      "route": "/business-builder/owner/pay-periods/:periodId",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/pay-periods/:periodId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": ":periodId",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "periodId"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "periodId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          404
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_employee_profiles",
+          "employee_pay_periods",
+          "employee_pay_statements",
+          "employee_time_entries",
+          "employee_wage_rates"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-pay-period-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 161
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
@@ -53044,7 +53232,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -53198,7 +53387,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -53415,7 +53605,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -53572,7 +53763,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -53799,7 +53991,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -53956,7 +54149,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -59595,7 +59789,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -60045,7 +60239,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -60153,7 +60347,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -60261,7 +60455,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -63050,7 +63244,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 834
+        "line": 845
       },
       "contractCompleteness": {
         "route": true,
@@ -63156,7 +63350,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -63264,7 +63458,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1635
+        "line": 1646
       },
       "contractCompleteness": {
         "route": true,
@@ -64451,7 +64645,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -64803,7 +64997,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -65095,7 +65289,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -65203,7 +65397,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -65407,7 +65601,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1649
+        "line": 1660
       },
       "contractCompleteness": {
         "route": true,
@@ -67311,7 +67505,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -67419,7 +67613,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1667
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -67617,7 +67811,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -67725,7 +67919,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -68774,7 +68968,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -68882,7 +69076,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -69759,7 +69953,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -69867,7 +70061,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -69975,7 +70169,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -70882,7 +71076,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -74479,7 +74673,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1159
+        "line": 1170
       },
       "contractCompleteness": {
         "route": true,
@@ -74676,7 +74870,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 982
+        "line": 993
       },
       "contractCompleteness": {
         "route": true,
@@ -74782,7 +74976,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -74953,7 +75147,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1507
+        "line": 1518
       },
       "contractCompleteness": {
         "route": true,
@@ -75401,7 +75595,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1635
+        "line": 1646
       },
       "contractCompleteness": {
         "route": true,
@@ -75509,7 +75703,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -76094,7 +76288,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -76298,7 +76492,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -77118,7 +77312,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1649
+        "line": 1660
       },
       "contractCompleteness": {
         "route": true,
@@ -77498,7 +77692,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -77606,7 +77800,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -77804,7 +77998,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1667
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -78038,7 +78232,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -78236,7 +78430,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -78344,7 +78538,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -79560,7 +79754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -79668,7 +79862,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "contractCompleteness": {
         "route": true,
@@ -79960,7 +80154,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "contractCompleteness": {
         "route": true,
@@ -81967,7 +82161,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 964
+        "line": 975
       },
       "contractCompleteness": {
         "route": true,
@@ -82408,7 +82602,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -82505,7 +82699,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -82602,7 +82796,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -82699,7 +82893,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -82796,7 +82990,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -82893,7 +83087,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -82990,7 +83184,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83087,7 +83281,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83184,7 +83378,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83281,7 +83475,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83378,7 +83572,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83475,7 +83669,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83572,7 +83766,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83669,7 +83863,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1556
       },
       "contractCompleteness": {
         "route": true,
@@ -83779,7 +83973,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1033
+        "line": 1044
       },
       "contractCompleteness": {
         "route": true,
@@ -83957,7 +84151,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1096
+        "line": 1107
       },
       "contractCompleteness": {
         "route": true,
@@ -84056,7 +84250,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1510
+        "line": 1521
       },
       "contractCompleteness": {
         "route": true,
@@ -84423,7 +84617,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1523
+        "line": 1534
       },
       "contractCompleteness": {
         "route": true,
@@ -84520,7 +84714,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1507
+        "line": 1518
       },
       "contractCompleteness": {
         "route": true,
@@ -84947,7 +85141,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 889
+        "line": 900
       },
       "contractCompleteness": {
         "route": true,
@@ -85053,7 +85247,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -85929,7 +86123,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -86219,7 +86413,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1507
+        "line": 1518
       },
       "contractCompleteness": {
         "route": true,
@@ -87773,7 +87967,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 946
+        "line": 957
       },
       "contractCompleteness": {
         "route": true,
@@ -87974,7 +88168,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1272
       },
       "contractCompleteness": {
         "route": true,
@@ -88465,7 +88659,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1037
+        "line": 1048
       },
       "contractCompleteness": {
         "route": true,
@@ -89531,7 +89725,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -89858,7 +90052,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -89955,7 +90149,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1507
+        "line": 1518
       },
       "contractCompleteness": {
         "route": true,
@@ -91376,7 +91570,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1407
+        "line": 1418
       },
       "contractCompleteness": {
         "route": true,
@@ -94015,7 +94209,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1147
+        "line": 1158
       },
       "contractCompleteness": {
         "route": true,
@@ -95757,7 +95951,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1218
+        "line": 1229
       },
       "contractCompleteness": {
         "route": true,
@@ -96112,7 +96306,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1220
+        "line": 1231
       },
       "contractCompleteness": {
         "route": true,
@@ -98599,7 +98793,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1402
+        "line": 1413
       },
       "contractCompleteness": {
         "route": true,
@@ -98877,7 +99071,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1340
+        "line": 1351
       },
       "contractCompleteness": {
         "route": true,
@@ -99431,7 +99625,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1388
+        "line": 1399
       },
       "contractCompleteness": {
         "route": true,
@@ -99968,7 +100162,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1375
+        "line": 1386
       },
       "contractCompleteness": {
         "route": true,
@@ -111434,7 +111628,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -111588,7 +111783,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -114601,6 +114797,7 @@
         ],
         "jsonFieldsObserved": [
           "amount_cents",
+          "business_employee_id",
           "created_at",
           "currency",
           "effective_from",
@@ -114761,7 +114958,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -114829,7 +115027,8 @@
             "effective_from",
             "effective_to",
             "status",
-            "created_at"
+            "created_at",
+            "business_employee_id"
           ],
           "actionLabel": null,
           "rowIdField": null,
@@ -114854,7 +115053,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -118623,7 +118823,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1217
+        "line": 1228
       },
       "contractCompleteness": {
         "route": true,
@@ -119845,7 +120045,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1418
+        "line": 1429
       },
       "contractCompleteness": {
         "route": true,
@@ -120947,7 +121147,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1431
+        "line": 1442
       },
       "contractCompleteness": {
         "route": true,
@@ -126657,7 +126857,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1445
+        "line": 1456
       },
       "contractCompleteness": {
         "route": true,
@@ -128050,7 +128250,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1465
       },
       "contractCompleteness": {
         "route": true,
@@ -139945,7 +140145,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 332
+        "line": 333
       },
       "contractCompleteness": {
         "route": true,
@@ -140277,7 +140477,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 331
+        "line": 332
       },
       "contractCompleteness": {
         "route": true,
@@ -140474,7 +140674,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1075
+        "line": 1086
       },
       "contractCompleteness": {
         "route": true,
@@ -140576,7 +140776,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1111
+        "line": 1122
       },
       "contractCompleteness": {
         "route": true,
@@ -140772,7 +140972,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1041
+        "line": 1052
       },
       "contractCompleteness": {
         "route": true,
@@ -141263,7 +141463,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1364
+        "line": 1375
       },
       "contractCompleteness": {
         "route": true,
@@ -147089,6 +147289,170 @@
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/pay-periods",
+      "method": "POST",
+      "route": "/business-builder/owner/pay-periods",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/pay-periods",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [
+          "payDate",
+          "periodEnd",
+          "periodStart"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_employee_profiles",
+          "employee_pay_periods",
+          "employee_pay_statements",
+          "employee_time_entries",
+          "employee_wage_rates"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-pay-period-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 120
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/pay-periods/:periodId/draft-statements",
+      "method": "POST",
+      "route": "/business-builder/owner/pay-periods/:periodId/draft-statements",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/pay-periods/:periodId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "periodId"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "periodId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_employee_profiles",
+          "employee_pay_periods",
+          "employee_pay_statements",
+          "employee_time_entries",
+          "employee_wage_rates"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-pay-period-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 222
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
       },
       "action": true
     },
@@ -154137,7 +154501,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -154294,7 +154659,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -154525,7 +154891,8 @@
               "changedBy": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
                 "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -154682,7 +155049,8 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -160158,7 +160526,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 848
+        "line": 859
       },
       "contractCompleteness": {
         "route": true,
@@ -166666,7 +167034,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1105
+        "line": 1116
       },
       "contractCompleteness": {
         "route": true,
@@ -169869,6 +170237,52 @@
           "table": "business_sub_apps",
           "migrations": [
             "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-pay-period-routes.cjs",
+      "source": "routes/sonara-pay-period-routes.cjs",
+      "tableCount": 5,
+      "tables": [
+        {
+          "table": "business_employee_profiles",
+          "migrations": [
+            "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+            "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        },
+        {
+          "table": "employee_pay_periods",
+          "migrations": [
+            "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+            "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+          ]
+        },
+        {
+          "table": "employee_pay_statements",
+          "migrations": [
+            "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+            "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+            "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+          ]
+        },
+        {
+          "table": "employee_time_entries",
+          "migrations": [
+            "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+            "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+            "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+            "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        },
+        {
+          "table": "employee_wage_rates",
+          "migrations": [
+            "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+            "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+            "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
           ]
         }
       ]
@@ -183180,7 +183594,7 @@
       "id": "table:employee_pay_statements",
       "schema": "public",
       "name": "employee_pay_statements",
-      "columnCount": 16,
+      "columnCount": 17,
       "columns": [
         {
           "name": "id",
@@ -183314,6 +183728,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "business_employee_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -183325,7 +183747,8 @@
         "changedBy": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
           "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-          "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+          "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -184292,7 +184715,7 @@
       "id": "table:employee_wage_rates",
       "schema": "public",
       "name": "employee_wage_rates",
-      "columnCount": 10,
+      "columnCount": 11,
       "columns": [
         {
           "name": "id",
@@ -184383,6 +184806,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "business_employee_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -184394,7 +184825,8 @@
         "changedBy": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
           "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
-          "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql"
+          "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+          "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
@@ -218857,6 +219289,17 @@
       "drops": [],
       "rlsEnabled": [],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql",
+      "creates": [],
+      "alters": [
+        "employee_pay_statements",
+        "employee_wage_rates"
+      ],
+      "drops": [],
+      "rlsEnabled": [],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -225650,7 +226093,8 @@
         "effective_from",
         "effective_to",
         "status",
-        "created_at"
+        "created_at",
+        "business_employee_id"
       ],
       "referencedTables": [
         "business_employee_profiles"
@@ -251560,7 +252004,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1117
+        "line": 1128
       },
       "destination": {
         "route": "/account",
@@ -251855,7 +252299,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1134
+        "line": 1145
       },
       "destination": {
         "route": "/account/setup",
@@ -251950,7 +252394,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1250
+        "line": 1261
       },
       "destination": {
         "route": "/dashboard",
@@ -252067,7 +252511,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1213
+        "line": 1224
       },
       "destination": {
         "route": "/dashboard",
@@ -252711,7 +253155,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 879
+        "line": 890
       },
       "destination": {
         "route": "/dashboard",
@@ -252764,7 +253208,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -252907,7 +253351,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -252960,7 +253404,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -253013,7 +253457,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1649
+        "line": 1660
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -253107,7 +253551,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/business-builder/help",
@@ -253160,7 +253604,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1683
+        "line": 1694
       },
       "destination": {
         "route": "/business-builder/intake",
@@ -253254,7 +253698,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1351
+        "line": 1362
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -253307,7 +253751,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -253401,7 +253845,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1304
+        "line": 1315
       },
       "destination": {
         "route": "/business-builder/login",
@@ -253489,7 +253933,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -253542,7 +253986,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -253595,7 +254039,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -253898,6 +254342,72 @@
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
     {
+      "id": "GET /business-builder/owner/pay-periods",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 80
+      },
+      "destination": {
+        "route": "/business-builder/owner/pay-periods",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_employee_profiles",
+        "employee_pay_periods",
+        "employee_pay_statements",
+        "employee_time_entries",
+        "employee_wage_rates"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /business-builder/owner/pay-periods/:periodId",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 161
+      },
+      "destination": {
+        "route": "/business-builder/owner/pay-periods/:periodId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_employee_profiles",
+        "employee_pay_periods",
+        "employee_pay_statements",
+        "employee_time_entries",
+        "employee_wage_rates"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "periodId"
+        ]
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
       "id": "GET /business-builder/owner/payments",
       "workspace": "business_builder",
       "kind": "page_or_download",
@@ -254029,7 +254539,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -254114,7 +254624,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -254167,7 +254677,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/business-builder/records",
@@ -254220,7 +254730,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -255259,7 +255769,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -255350,7 +255860,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -255403,7 +255913,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -255497,7 +256007,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1649
+        "line": 1660
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -255761,7 +256271,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -255849,7 +256359,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -255902,7 +256412,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -256059,7 +256569,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -256112,7 +256622,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -256197,7 +256707,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -256250,7 +256760,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -256303,7 +256813,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -256464,7 +256974,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -257406,7 +257916,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -257601,7 +258111,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -257794,7 +258304,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1649
+        "line": 1660
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -257954,7 +258464,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -258007,7 +258517,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -258130,7 +258640,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -258183,7 +258693,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -258334,7 +258844,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -258387,7 +258897,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1689
+        "line": 1700
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -258514,7 +259024,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1696
+        "line": 1707
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -259340,7 +259850,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1033
+        "line": 1044
       },
       "destination": {
         "route": "/login",
@@ -259541,7 +260051,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1037
+        "line": 1048
       },
       "destination": {
         "route": "/signup",
@@ -260477,7 +260987,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1075
+        "line": 1086
       },
       "destination": {
         "route": "/auth/login",
@@ -260534,7 +261044,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1111
+        "line": 1122
       },
       "destination": {
         "route": "/logout",
@@ -260628,7 +261138,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1041
+        "line": 1052
       },
       "destination": {
         "route": "/auth/signup",
@@ -260671,6 +261181,76 @@
         ],
         "query": [],
         "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/pay-periods",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 120
+      },
+      "destination": {
+        "route": "/business-builder/owner/pay-periods",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_employee_profiles",
+        "employee_pay_periods",
+        "employee_pay_statements",
+        "employee_time_entries",
+        "employee_wage_rates"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "payDate",
+          "periodEnd",
+          "periodStart"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/pay-periods/:periodId/draft-statements",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-pay-period-routes.cjs",
+        "line": 222
+      },
+      "destination": {
+        "route": "/business-builder/owner/pay-periods/:periodId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_employee_profiles",
+        "employee_pay_periods",
+        "employee_pay_statements",
+        "employee_time_entries",
+        "employee_wage_rates"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "periodId"
+        ]
       },
       "responseKindsObserved": [
         "html-or-delegated"
@@ -262460,7 +263040,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1105
+        "line": 1116
       },
       "destination": {
         "route": "/logout",
@@ -262872,7 +263452,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1250
+        "line": 1261
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -262942,7 +263522,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1213
+        "line": 1224
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -262952,7 +263532,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1443
+        "line": 1454
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -262962,7 +263542,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1467
+        "line": 1478
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263002,7 +263582,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1489
+        "line": 1500
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263212,7 +263792,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 879
+        "line": 890
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

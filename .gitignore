@@ -13,6 +13,11 @@ pids
 
 # Coverage and tool caches
 coverage/
+# scripts/verify-coverage-floor.mjs writes per-process V8 coverage into a
+# randomly suffixed .sonara-coverage-XXXXXX/ beside the repository root and does
+# not always clean it up. A single run left 700 JSON files staged on 1 October
+# 2026, which is how a coverage artefact nearly became a commit.
+.sonara-coverage-*/
 
 # coverage.py's binary database, written wherever it is run. Committed by
 # accident on 4 September 2026 while measuring tools/disposable-domains -- the

@@ -13,6 +13,7 @@ const registerSonaraHuggingFaceRoutes = require("./routes/sonara-huggingface-rou
 const registerSonaraOpenSourceRoutes = require("./routes/sonara-open-source-routes.cjs");
 const registerSonaraSubsystemRoutes = require("./routes/sonara-subsystem-routes.cjs");
 const registerOwnerAdministrationRoutes = require("./routes/sonara-owner-administration-routes.cjs");
+const registerPayPeriodRoutes = require("./routes/sonara-pay-period-routes.cjs");
 const registerSonaraBusinessControlPlaneRoutes = require("./routes/sonara-business-control-plane-routes.cjs");
 const registerSonaraPromptLibraryRoutes = require("./routes/sonara-prompt-library-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
@@ -501,6 +502,16 @@ registerSonaraOpenSourceRoutes(app, {
 // The five subsystems that exist as schema and had no code. Read-only and
 // admin-gated: these tables cross every organization, so there is no tenant
 // filter that would make them safe for a customer to open.
+registerPayPeriodRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireBusinessManager,
+  getSupabaseServerConfig,
+  getCustomerPrimaryOrganization
+});
+
 registerOwnerAdministrationRoutes(app, {
   layout,
   brandCard,
