@@ -1,5 +1,79 @@
 # Security Notes
 
+## CodeQL and the rate limiter it cannot see, 1 October 2026
+
+No check was weakened, no alert was dismissed, and no threshold moved. This
+records two CodeQL high-severity alerts that were real and are fixed, and two
+that are a limitation of the model rather than of the code -- with a measurement
+in place of the assurance, because "it is rate-limited" is worth nothing as a
+claim.
+
+PR #405 added `lib/sonara-business-passcode.cjs` and
+`routes/sonara-business-security-routes.cjs`, the business owner's management
+passcode. CodeQL raised four high-severity alerts on the first push.
+
+### The two that were fair, and are fixed
+
+`js/weak-password-hashing`, on both call sites. The construction peppered before
+stretching -- `scrypt(HMAC(pepper, passcode), salt)` -- so the passcode's first
+stop was HMAC-SHA-256, a deliberately fast hash, with scrypt further down. The
+security property is the same either way, and the alert was still right: "the
+slow part is further down this file" is a property of the file rather than of the
+line, and whoever next moved the `scryptSync` call would take the protection with
+it in silence.
+
+It is now `HMAC(pepper, scrypt(passcode, salt))` -- the passcode goes straight
+into scrypt and nowhere else, the pepper is applied over the digest. Same cost,
+same property, and it reads as what it is. Two tests hold the order, and the
+second holds the pepper too, so the first cannot be satisfied by deleting it.
+
+### The two that are a model limitation
+
+`js/missing-rate-limiting`, on the two handlers that verify a passcode: *"This
+route handler performs authorization, but is not rate-limited."*
+
+Both handlers **are** rate-limited. CodeQL's model recognises rate limiting from
+a short list of npm packages; this repository uses its own `createRateLimiter`
+from `lib/sonara-rate-limit.cjs`, backed by the `sonara_consume_rate_limit`
+PostgreSQL function and the `sonara_auth_rate_limits` table, which the scanner has
+no model for. Adding `express-rate-limit` to satisfy a scanner would mean a
+tenth production dependency for a capability the codebase already has, and
+AGENTS.md puts that behind an explicit architecture decision.
+
+**Measured rather than asserted.** `tests/a-management-passcode-is-a-second-thing-to-know.test.js`
+wires the real limiter into the real routes with the RPC counter mocked, and
+proves:
+
+- the eleventh attempt in the five-minute window is refused with 429 and
+  `rate_limited`, and the ten before it are not;
+- the refused attempt never reaches the credential read -- ten reads for eleven
+  attempts, so a guess costs nothing to reject;
+- `Retry-After: 300` is sent, so a caller is told how long to wait;
+- two buckets are consumed per request, one keyed on the address and one on the
+  signed-in person -- the half that the five-wrong-answers lockout does not
+  cover, because that counter is per credential and bounds guesses against one
+  business rather than requests from one caller across all of them;
+- `/passcode` and `/lock` are throttled too, not only `/unlock`.
+
+Each was falsified: taking the limiter off `/unlock` fails four of them, dropping
+the `subject` scope fails the per-person case, and raising `maxAttempts` to
+10,000 fails three.
+
+One real weakness was found while writing that, and it was in this repository's
+code rather than in CodeQL's reading. The limiter's fallback was
+`(req, res, next) => next()` when no `createRateLimiter` was supplied -- so a
+deployment that forgot to pass it would have served an unthrottled
+passcode-guessing endpoint while every line of the module still read as
+rate-limited. It refuses now, with `rate_limiter_unavailable`, and a test asserts
+that all three endpoints answer 503 rather than running.
+
+The two alerts stay open on the PR. They are not dismissed and not suppressed:
+dismissing them would remove the only visible record that this pattern exists,
+and a future handler that genuinely has no limiter would raise the same alert and
+look like the same accepted noise. The decision to make them actionable --
+whether to adopt a scanner-visible limiter across the application -- is the
+owner's, and it belongs to every route in the codebase, not to this one feature.
+
 ## Shell commands built from TMPDIR, 15 September 2026
 
 No check was weakened. This records a real fix with a verified exploit path,

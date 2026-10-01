@@ -2,6 +2,145 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - A business owner gets a second thing to know
+
+Asked for business owners to have their own passwords for the security and
+management of their business -- employees, sub-applications, time clocks,
+employee operations.
+
+### The gap, measured rather than assumed
+
+`requireBusinessManager` in `server.js` proves exactly two things: the request
+carries a valid customer session, and that user holds an active `owner` or
+`manager` row in `business_memberships`. Both are properties of the **browser**.
+`CUSTOMER_SESSION_MAX_AGE_SECONDS` is one hour and
+`CUSTOMER_REFRESH_MAX_AGE_SECONDS` is thirty days, both read out of
+`lib/sonara-customer-auth.cjs`. So for up to a month, whoever holds the browser
+holds every employee record, wage rate, pay statement, the time clock and the pay
+run, with nothing further to know.
+
+`lib/sonara-business-passcode.cjs` is the thing that is not in the browser.
+`supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql`
+adds `business_management_credentials`, one row per business, RLS on with no
+policy -- every read goes through the server, which is the only context holding
+the pepper.
+
+**Hashed, not encrypted, and the word matters.** Encryption is reversible by
+whoever holds the key. A passcode is HMAC'd under a pepper derived from
+`SONARA_TOTP_KEY` -- environment only, never the database -- and that result is
+run through scrypt at 2^15. Nobody can read a passcode back out, including
+SONARA; there is no recovery, only replacement. This is the opposite call from
+`lib/sonara-secret-box.cjs`, which *rejected* scrypt for recovery codes, and both
+are right: a recovery code is ninety-six random bits where slow hashing buys
+nothing, and a passcode is chosen by a person where it is the whole defence.
+
+The unlock is an HMAC token in a `SameSite=Strict` httpOnly cookie, signed over
+organization, user, expiry **and the credential's `updated_at`**. Changing the
+passcode moves that value, so every outstanding unlock stops verifying at once,
+on every device. That is what makes a change a way to remove access rather than a
+note for next time.
+
+### Two defects in my own code, both found by running it
+
+Neither was visible by reading, which is why the probe happened before the tests.
+
+* `if (isPasswordLeaked(value))` tested the **Promise** an async function
+  returns -- always truthy -- so **every** passcode was rejected as breached,
+  including good ones. The real function also returns `{ leaked, checked }`, not
+  a boolean, and reaches the network. It is now a separate async wrapper, and
+  `checked: false` reports `breachCheck: "unavailable"` rather than "clear",
+  because a lookup that did not happen is not evidence of anything.
+* A "counting" rule compared the digits against the literal `"0123456789"` while
+  also requiring twelve digits. No twelve-character string can satisfy both, so
+  the rule **could never fire**. Replaced with the actual question -- is every
+  adjacent character one step from the last -- which works at any length.
+
+### What the gate does when no passcode is set
+
+It lets the request through, and says so on the page: *"protected by your sign-in
+alone"*. Refusing would lock an owner out of their own payroll over a feature
+nobody has told them about. What it must never do is pass **quietly**, so the
+banner has its own test; make the gate silent and that test fails.
+
+Three further states are refusals, and none is collapsed into "no passcode set":
+the credential row could not be read, the verifying key is not configured, and
+the credential is locked out. Reading a failed database call as "this business has
+no passcode" would be a way through the gate by breaking something.
+
+### What CodeQL caught that the tests did not
+
+The first push raised four high-severity alerts, and two of them were fair.
+
+`js/weak-password-hashing`, twice: the construction peppered **before**
+stretching -- `scrypt(HMAC(pepper, passcode), salt)` -- so the passcode's first
+stop was HMAC-SHA-256, a deliberately fast hash. The security property was the
+same either way, and the reading was still right: "the slow part is further down
+this file" is a property of the file rather than of the line, and whoever next
+moved the `scryptSync` call would take the protection with it and nothing would
+say so. It is now `HMAC(pepper, scrypt(passcode, salt))` -- the passcode goes
+straight into scrypt, the pepper is applied over the digest, which is the
+construction OWASP describes for a pepper held outside the database.
+
+`js/missing-rate-limiting`, twice, on the two handlers that verify a passcode.
+The limiter was attached but its fallback was `(req, res, next) => next()`, so a
+deployment that forgot to pass `createRateLimiter` would have served an
+unthrottled passcode-guessing endpoint while every line of the module still read
+as rate-limited. The fallback now refuses, and `/lock` is throttled too. The
+five-wrong-answers lockout was never a substitute: it counts per credential, so
+it bounds guesses against one business rather than requests from one caller
+across all of them.
+
+Those two alerts stay open, and `SECURITY_NOTES.md` says why. CodeQL recognises
+rate limiting from a short list of npm packages and has no model for this
+repository's own `createRateLimiter`; adding `express-rate-limit` to quiet a
+scanner would be a tenth production dependency for a capability the codebase
+already has. They are not dismissed either -- dismissing them would remove the
+only visible record that the pattern exists, so a future handler with genuinely
+no limiter would look like the same accepted noise.
+
+What replaced the assurance is a measurement: four tests wire the **real**
+limiter into the real routes with the RPC counter mocked, and prove the eleventh
+attempt in the five-minute window is refused, that it never reaches the
+credential read, that `Retry-After: 300` is sent, that both an address bucket and
+a person bucket are consumed, and that `/passcode` and `/lock` are throttled as
+well. Falsified by taking the limiter off `/unlock` (four red), dropping the
+`subject` scope (one red), and raising `maxAttempts` to 10,000 (three red).
+
+Also corrected: `EXPECTED_FILES` in `scripts/verify-proprietary-notice.mjs` said
+328 against 330. It passed locally and failed in CI because the script enumerates
+tracked files, and the two new ones were still untracked when the chain was run.
+Run the chain after `git add`, not before.
+
+### Verified
+
+57 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
+falsified before being trusted. Twelve breaks, each caught by name:
+
+| Broken                                               | Test that went red                                        |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| Dropped the gate from one protected surface           | names only surfaces server.js actually puts the gate in front of |
+| Failed credential read returned "no passcode set"     | refuses when the credential cannot be read                 |
+| Unlock token stopped being bound to the passcode version | stops working the moment the passcode changes           |
+| Reintroduced the Promise bug                          | accepts an ordinary phrase, +5 others                      |
+| Verified the passcode before checking the lockout     | refuses to unlock while locked                             |
+| Removed the "nothing is protected" wording            | says plainly that nothing is protected when no passcode is set |
+| Removed the `service_role` grant                      | the migration's own assertion, against real PostgreSQL     |
+| Added an RLS policy to the credential table           | likewise                                                   |
+| Pointed the smoke probe at a typo                     | `/business-builder/owner/security` is not served            |
+| Went back to peppering before scrypt                  | puts the passcode into scrypt first and nothing faster      |
+| Dropped the pepper entirely                           | does not verify under a different pepper, +1                |
+| Restored the passthrough rate-limiter fallback        | refuses to serve the passcode endpoints with no rate limiter |
+
+Every touched file restored by copy-aside and `md5sum -c`, not
+`git checkout --`.
+
+One stale comment removed on the way past: the block above the pay-period and
+owner-administration registrations in `server.js` called them "read-only and
+admin-gated" over "tables that cross every organization". Both are
+organization-scoped, both write, and the admin plane was removed the same day. A
+wrong reason inside a gate is worse than none, because it is what the next person
+reads instead of checking.
+
 ### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
 
 Asked to find and build what the business operating system is missing. The method

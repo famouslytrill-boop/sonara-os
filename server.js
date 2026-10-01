@@ -22,6 +22,7 @@ const registerCreatorGenerationRoutes = require("./routes/creator-generation-rou
 const registerGrowthStudioControlRoutes = require("./routes/growth-studio-control-routes.cjs");
 const registerProductLifecycleRoutes = require("./routes/product-lifecycle-routes.cjs");
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
+const registerBusinessSecurityRoutes = require("./routes/sonara-business-security-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
@@ -173,6 +174,7 @@ const {
   clearCustomerSessionCookie,
   createAuthRateLimiter,
   createEmployeeAuthUser,
+  getCookie, // the management-unlock cookie is read with the same parser as the session cookie
   getSupabaseAuthConfig,
   getGoogleOAuthProviderStatus, googleOAuthStartRateLimiter, googleOAuthCallbackRateLimiter,
   beginGoogleOAuth,
@@ -499,15 +501,40 @@ registerSonaraOpenSourceRoutes(app, {
   requireCustomer
 });
 
-// The five subsystems that exist as schema and had no code. Read-only and
-// admin-gated: these tables cross every organization, so there is no tenant
-// filter that would make them safe for a customer to open.
-registerPayPeriodRoutes(app, {
+// The business owner's own passcode. Registered before the two surfaces it
+// covers, because they are gated with the middleware it returns.
+//
+// The comment that used to sit here described these two registrations as
+// "read-only and admin-gated" over "tables that cross every organization".
+// None of that is true of either any more and some of it never was: both are
+// organization-scoped, both write, and the admin plane was removed on
+// 1 October 2026. A wrong reason inside a gate is worse than no reason,
+// because it is what the next person reads instead of checking.
+const { requireManagementUnlock } = registerBusinessSecurityRoutes(app, {
   layout,
   brandCard,
   linkAction,
   escapeHtml,
   requireBusinessManager,
+  getSupabaseServerConfig,
+  getCustomerPrimaryOrganization,
+  getCookie,
+  getEnv,
+  isProductionEnvironment,
+  createRateLimiter
+});
+
+// Membership first, then the passcode. Both, in that order, and the second only
+// reached when the first called next() -- so a stranger never learns whether a
+// business has a passcode set.
+const requireUnlockedBusinessManager = chainMiddleware(requireBusinessManager, requireManagementUnlock);
+
+registerPayPeriodRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireBusinessManager: requireUnlockedBusinessManager,
   getSupabaseServerConfig,
   getCustomerPrimaryOrganization
 });
@@ -517,7 +544,7 @@ registerOwnerAdministrationRoutes(app, {
   brandCard,
   linkAction,
   escapeHtml,
-  requireBusinessManager,
+  requireBusinessManager: requireUnlockedBusinessManager,
   getSupabaseServerConfig,
   getCustomerPrimaryOrganization
 });
@@ -1193,9 +1220,10 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         // console: the person who needs them is the business owner.
         actionCard(
           "Running your business",
-          "Switch the parts of your business on or off, see what your agents did and approve what they stopped at, and review the invention systems catalogue.",
+          "Switch the parts of your business on or off, set a management passcode for the parts a borrowed browser should not reach, see what your agents did and approve what they stopped at, and review the invention systems catalogue.",
           [
             linkAction("/owner/administration", "Business controls"),
+            linkAction("/business-builder/owner/security", "Business security"),
             linkAction("/owner/agent-activity", "What your agents did"),
             linkAction("/market-intelligence/invention-systems", "Invention systems")
           ]
@@ -2829,6 +2857,43 @@ async function isBusinessManagerUser(user, workspaceId) {
 
 function getBusinessWorkspaceId(req) {
   return String(req.body?.workspaceId || req.body?.workspace_id || req.query?.workspaceId || req.query?.workspace_id || req.get("x-business-workspace-id") || "").trim();
+}
+
+// Run middlewares in order, stopping at the first one that answers.
+//
+// Express accepts an array of handlers in a route registration, but the route
+// modules here take their gate as a dependency and check
+// `typeof deps.requireBusinessManager === "function"` -- an array fails that
+// check and they fall back to their own fail-closed stub, which would have
+// silently dropped the passcode gate while looking wired up. So the pair is
+// composed into one function instead.
+//
+// A middleware that redirects or sends never calls `step`, so the chain ends
+// there and nothing after it runs.
+//
+// Line comments rather than a JSDoc block, deliberately, and this file is
+// almost entirely written that way. `withoutComments` in
+// lib/sonara-comment-stripping.cjs replaces a block comment with a single
+// space, so a multi-line one shortens the stripped text and every line after
+// it moves up -- and `sourceBlockForRoute` in
+// scripts/generate-capability-inventory.cjs takes a line number from a real
+// stack trace and indexes into that stripped text. Adding a three-line JSDoc
+// block here moved data/capability-inventory.json from 50 recorded UI form
+// links to 42, measured on 1 October 2026. That is a defect in the stripper
+// and it is being fixed separately; until it is, a block comment in this file
+// silently corrupts a derived artefact.
+function chainMiddleware(...middlewares) {
+  return function runChain(req, res, next) {
+    let index = 0;
+    const step = (error) => {
+      if (error) return next(error);
+      const middleware = middlewares[index];
+      index += 1;
+      if (typeof middleware !== "function") return next();
+      return middleware(req, res, step);
+    };
+    return step();
+  };
 }
 
 function acceptsHtml(req) {
