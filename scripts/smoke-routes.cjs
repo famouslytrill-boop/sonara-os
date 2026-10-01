@@ -72,11 +72,22 @@ async function run() {
     `/owner/administration answered ${ownerControls.status} to an anonymous caller; it must refuse rather than render`
   );
 
+  // The intake form and the endpoint behind it were removed on 1 October 2026.
+  // Both halves are probed: a page that 404s while the endpoint still accepts
+  // writes is the worse of the two things to leave behind.
+  const intakePage = await request(app).get("/business-builder/intake").set("Accept", "text/html");
+  assert.equal(intakePage.status, 404, `/business-builder/intake answered ${intakePage.status}; the intake page is removed`);
+  const intakePost = await request(app)
+    .post("/api/business-builder/intake")
+    .set("Accept", "application/json")
+    .send({ name: "A", email: "a@example.com", serviceInterest: "x", message: "y" });
+  assert.equal(intakePost.status, 404, `the intake endpoint answered ${intakePost.status}; it should accept nothing`);
+
   const missing = await request(app).get("/__sonara_missing_route__").set("Accept", "text/html");
   assert.equal(missing.status, 404);
   assert.doesNotMatch(missing.text, mojibake);
 
-  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls refusing a stranger, and 404 behaviour.`);
+  console.log(`Route smoke passed: ${publicRoutes.length} public, ${protectedRoutes.length} protected, sitemap, robots, the removed operator console answering 404, the owner controls refusing a stranger, the removed intake page and endpoint answering 404, and 404 behaviour.`);
 }
 
 run().catch((error) => {

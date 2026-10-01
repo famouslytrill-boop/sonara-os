@@ -2,6 +2,95 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - No intake form is left to submit
+
+"There should be no quotes, no intake forms. Of any kind." This is the intake
+half. The quote half is not in this change and is explained at the end.
+
+### What was there
+
+A form on a Business Builder workspace page posting to
+`/api/business-builder/intake`; a handler that recorded the submission; a helper
+that turned it into a customer record; a confirmation email; and a page at
+`/business-builder/intake` that had already been reduced to a hidden redirect to
+`/business-builder/launch-readiness`.
+
+All of it is gone -- the form builder, the endpoint, `saveBusinessBuilderIntake`,
+`sendIntakeConfirmationEmail`,
+`safeInsertBusinessBuilderCustomerFromIntake`, the page definition, the
+page-frame href rewrite that pointed the old link somewhere, the route-registry
+entry, the OpenAPI path, and the "Intake" step in both copies of the launch
+checklist.
+
+### What is not gone, and why
+
+`intake_requests` keeps its rows. They are the business's own records, and
+dropping them is a destructive data change that AGENTS.md puts behind owner
+approval. The workspace records card still counts them, relabelled
+"Intake requests on file (no longer collected)" -- a record that silently stops
+being listed is worse than one labelled for what it is.
+
+Two things that look like intake and are not:
+
+* **The contact form in `lib/sonara-shell.cjs` was headed "Request intake".** It
+  posts to `/contact`, it is how somebody reaches support, and the footer and the
+  home-page FAQ both link it. Removing it would remove the support channel. What
+  was wrong was the label, so the label is what changed: "Send us a message".
+* **`/research-lab/latest-screenshot-intake`** is the research catalogue's
+  screenshot intake, not a customer form. Untouched.
+
+### Three things the removal exposed
+
+**A false capability claim.** `lib/catalog/business-builder-products.cjs` listed
+"intake forms" among a paid product's capabilities. Advertising it after the form
+was gone is what `docs/SHIP_READINESS.md` records eleven catalog products being
+removed for -- describing work that does not exist.
+
+**A field label that had been matching one form out of three.**
+`tests/field-labels.test.js` requires every entry in `FIELD_LABELS` to match a
+label some form actually renders. `message` was mapped to "Message", and the
+intake form was the only surface that called it that; the two that remain say
+"Launch context" and "What do you need help with?". So the map had been correct
+only because of the form being deleted, and the check could not see it until the
+form went. Now "Launch context", which is the one that reads as an error
+sentence.
+
+**An OpenAPI path with nothing behind it.** `verify:openapi-contract` caught
+`POST /api/business-builder/intake` still documented after the route was gone,
+which is the right direction for that check to fail in.
+
+### Verified
+
+5,206 tests, `verify:gates`, lint, typecheck, build, `smoke:routes`, `verify:db`.
+Four breaks, each watched fail by name:
+
+| Broken                                  | Test that went red                                        |
+| --------------------------------------- | --------------------------------------------------------- |
+| Put the intake endpoint back             | accepts no intake submission, +1                          |
+| Put the form builder back                | leaves no intake form builder or write path, +1           |
+| Stopped listing the historical rows      | still counts the requests a business already collected    |
+| Put the endpoint back (smoke)            | the intake endpoint answered 200                          |
+
+`tests/business-builder-intake-customer-sync.test.js` was removed with the
+feature it covered. Its one load-bearing assertion -- that a submission can turn
+into a customer record -- is replaced by the absence assertion that
+`safeInsertBusinessBuilderCustomerFromIntake` is no longer in `server.js`, so the
+path cannot come back unnoticed.
+
+### Why quotes are not in this change
+
+Quotes are not a form. `quotes` is read by eleven runtime files, has two
+dedicated modules (`lib/sonara-quote-conversion.cjs` and the quote path in
+`lib/sonara-work-order-lifecycle.cjs`), backs two of the twenty-seven record
+checks, appears in search, in the shareable-result types and in four market
+registries, and `customer_invoices.quote_id` and the work-order lifecycle both
+depend on it. Removing it retires two libraries and two record checks and changes
+a derived count that was only just stabilised.
+
+That is a product decision about whether a business owner can quote their
+customers, not a form to delete, and it is recorded here as asked-for and not yet
+done rather than quietly scoped out.
+
 ### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
 
 Asked to find and build what the business operating system is missing. The method

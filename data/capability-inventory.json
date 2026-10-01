@@ -11,17 +11,17 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 857,
+    "routeOperationCount": 855,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 532,
+      "GET": 531,
       "PATCH": 10,
-      "POST": 312
+      "POST": 311
     },
     "workspaceCount": 12,
-    "declaredPageCount": 286,
+    "declaredPageCount": 285,
     "workspaceRouteCounts": {
-      "business_builder": 324,
+      "business_builder": 322,
       "business_builder_agent_ops": 7,
       "creator_studio": 119,
       "cross_workspace_formulas": 5,
@@ -34,11 +34,11 @@
       "sonara_shared_api": 109
     },
     "actionDestinationCounts": {
-      "exact": 328,
+      "exact": 327,
       "form_reference": 291,
       "machine_ingress": 2,
       "parent_route": 54,
-      "route_pair": 97,
+      "route_pair": 96,
       "workspace_fallback": 85
     },
     "routeDataMappingCounts": {
@@ -46,14 +46,14 @@
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 139,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 176,
-      "needs_explicit_data_contract": 279
+      "handler_source_table_reference": 175,
+      "needs_explicit_data_contract": 278
     },
     "routesUsingWorkspaceHomeFallback": 85,
     "formActionLinkCount": 50,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 304,
+    "openApiApiOperationCount": 303,
     "databaseTableCount": 332,
     "databaseContractCoreTableCount": 146,
     "queriedTableCount": 312,
@@ -61,11 +61,11 @@
     "migrationCount": 137,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
-    "routesCallingDatabaseFunctions": 23,
+    "routesCallingDatabaseFunctions": 22,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 279,
+    "routeDataContractsNeedingExplicitReview": 278,
     "routeDataReviewByMethod": {
-      "GET": 194,
+      "GET": 193,
       "POST": 85
     },
     "routeDestinationReviewByWorkspace": {
@@ -118,8 +118,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 324,
-      "registeredPageCount": 93,
+      "routeCount": 322,
+      "registeredPageCount": 92,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -134,7 +134,6 @@
         "/business-builder/deliverables",
         "/business-builder/employees",
         "/business-builder/help",
-        "/business-builder/intake",
         "/business-builder/inventory",
         "/business-builder/launch-plan",
         "/business-builder/locations",
@@ -277,7 +276,6 @@
           "routes": [
             "/business-builder/businesses",
             "/business-builder/control-center",
-            "/business-builder/intake",
             "/business-builder/launch-plan",
             "/business-builder/offers",
             "/business-builder/offers/free",
@@ -1553,9 +1551,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -1838,7 +1834,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -1855,7 +1851,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1423
+        "line": 1412
       },
       "contractCompleteness": {
         "route": true,
@@ -1930,9 +1926,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -1957,7 +1951,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -2038,9 +2032,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -2065,7 +2057,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -2144,9 +2136,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -2171,13 +2161,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -2250,9 +2240,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -2277,13 +2265,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -2364,9 +2352,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -2391,7 +2377,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -3428,9 +3414,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -3455,7 +3439,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -3645,9 +3629,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -3672,7 +3654,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -4407,9 +4389,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -4668,7 +4648,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -4685,7 +4665,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1412
+        "line": 1401
       },
       "contractCompleteness": {
         "route": true,
@@ -4975,9 +4955,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -5002,13 +4980,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1411
+        "line": 1400
       },
       "contractCompleteness": {
         "route": true,
@@ -5120,9 +5098,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -5544,7 +5520,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -5570,7 +5546,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1410
+        "line": 1399
       },
       "contractCompleteness": {
         "route": true,
@@ -15714,9 +15690,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -15741,7 +15715,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -16194,9 +16168,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -16221,13 +16193,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1443
       },
       "contractCompleteness": {
         "route": true,
@@ -16339,9 +16311,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -16763,7 +16733,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -16789,7 +16759,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1453
+        "line": 1442
       },
       "contractCompleteness": {
         "route": true,
@@ -22441,9 +22411,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -22468,13 +22436,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1467
       },
       "contractCompleteness": {
         "route": true,
@@ -22586,9 +22554,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -23010,7 +22976,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -23036,7 +23002,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1477
+        "line": 1466
       },
       "contractCompleteness": {
         "route": true,
@@ -26160,9 +26126,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -26187,13 +26151,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1500
+        "line": 1489
       },
       "contractCompleteness": {
         "route": true,
@@ -30761,9 +30725,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -30788,13 +30750,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1508
+        "line": 1497
       },
       "contractCompleteness": {
         "route": true,
@@ -31728,9 +31690,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -31755,7 +31715,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -31841,9 +31801,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -31868,7 +31826,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -31957,9 +31915,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -31984,7 +31940,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -32065,9 +32021,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -32092,7 +32046,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -32173,9 +32127,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -32200,7 +32152,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -32285,9 +32237,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -32312,7 +32262,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -32675,9 +32625,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -32702,13 +32650,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1646
+        "line": 1635
       },
       "contractCompleteness": {
         "route": true,
@@ -32783,9 +32731,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -32810,13 +32756,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -32899,9 +32845,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -33179,7 +33123,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -33882,9 +33826,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -33909,13 +33851,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -34168,9 +34110,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -34195,13 +34135,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -34276,9 +34216,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -34303,13 +34241,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1649
       },
       "contractCompleteness": {
         "route": true,
@@ -34502,9 +34440,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -34660,7 +34596,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
@@ -34753,9 +34689,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -34780,119 +34714,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
-      },
-      "contractCompleteness": {
-        "route": true,
-        "workspace": true,
-        "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
-        "outputEvidence": "handler-source",
-        "persistence": "needs_explicit_data_contract",
-        "openApi": false,
-        "requestFieldSource": "not_declared"
-      },
-      "action": false
-    },
-    {
-      "id": "GET /business-builder/intake",
-      "method": "GET",
-      "route": "/business-builder/intake",
-      "kind": "page_or_download",
-      "workspace": "business_builder",
-      "destination": {
-        "route": "/business-builder/intake",
-        "confidence": "exact",
-        "reason": "page_route"
-      },
-      "accessMiddleware": [],
-      "routeRegistry": {
-        "title": "Intake",
-        "productOwner": "business_builder",
-        "visibility": "product",
-        "requiredRole": "customer",
-        "requiredPlan": "free",
-        "requiredProvider": "supabase",
-        "readiness": "needs_login",
-        "navigationPlacement": "workspace"
-      },
-      "openApi": null,
-      "request": {
-        "pathParams": [],
-        "body": [],
-        "query": [],
-        "params": [],
-        "bodyAccessed": false,
-        "queryAccessed": false,
-        "paramsAccessed": false,
-        "wholeBodyForwarded": false,
-        "computedBodyFieldAccess": false,
-        "headers": [],
-        "cookies": [],
-        "multipart": false
-      },
-      "response": {
-        "kinds": [
-          "redirect"
-        ],
-        "statusCodes": [],
-        "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": false,
-        "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "handler-source"
-      },
-      "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
-        "candidateTables": [
-          "admin_audit_logs",
-          "bookings",
-          "business_employee_invites",
-          "business_memberships",
-          "business_service_catalog",
-          "business_workspaces",
-          "campaigns",
-          "customer_records",
-          "customers",
-          "intake_requests",
-          "integrations",
-          "launch_checklist_items",
-          "leads",
-          "organization_memberships",
-          "organizations",
-          "payments",
-          "plans",
-          "products",
-          "profiles",
-          "quotes",
-          "reviews",
-          "service_catalog_items",
-          "subscriptions",
-          "support_email_delivery_attempts",
-          "support_requests",
-          "user_roles"
-        ],
-        "tableLineage": [],
-        "noPersistenceReason": null,
-        "resourceContract": null,
-        "agentRouteContract": null,
-        "rpcEffects": [],
-        "triggeredEffects": [],
-        "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
-      },
-      "source": {
-        "file": "server.js",
-        "line": 1694
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -35061,9 +34889,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35088,7 +34914,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -35169,9 +34995,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35196,13 +35020,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -35277,9 +35101,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35304,13 +35126,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1678
+        "line": 1667
       },
       "contractCompleteness": {
         "route": true,
@@ -35479,9 +35301,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35506,7 +35326,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -35677,9 +35497,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35704,13 +35522,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -35785,9 +35603,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35812,13 +35628,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -35893,9 +35709,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -35920,13 +35734,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -59756,9 +59570,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -59783,13 +59595,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -60206,9 +60018,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -60233,13 +60043,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -60314,9 +60124,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -60341,13 +60149,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -60422,9 +60230,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -60449,13 +60255,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -63211,9 +63017,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -63238,7 +63042,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -63317,9 +63121,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -63344,13 +63146,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -63425,9 +63227,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -63452,13 +63252,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1646
+        "line": 1635
       },
       "contractCompleteness": {
         "route": true,
@@ -64561,9 +64361,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -64637,7 +64435,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
         ],
@@ -64645,7 +64443,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -64964,9 +64762,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -64991,13 +64787,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -65256,9 +65052,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -65283,13 +65077,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "static_or_read_only_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -65364,9 +65158,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -65391,13 +65183,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -65568,9 +65360,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -65595,13 +65385,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1649
       },
       "contractCompleteness": {
         "route": true,
@@ -67472,9 +67262,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -67499,13 +67287,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -67580,9 +67368,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -67607,13 +67393,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1678
+        "line": 1667
       },
       "contractCompleteness": {
         "route": true,
@@ -67778,9 +67564,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -67805,13 +67589,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -67886,9 +67670,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -67913,13 +67695,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -68935,9 +68717,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -68962,13 +68742,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -69043,9 +68823,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -69070,13 +68848,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -69920,9 +69698,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -69947,13 +69723,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -70028,9 +69804,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -70055,13 +69829,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -70136,9 +69910,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -70163,13 +69935,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -71043,9 +70815,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -71070,13 +70840,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -74432,9 +74202,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -74657,7 +74425,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -74837,9 +74605,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -74864,7 +74630,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -74943,9 +74709,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -74970,13 +74734,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -75114,9 +74878,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -75141,13 +74903,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1507
       },
       "contractCompleteness": {
         "route": true,
@@ -75562,9 +75324,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -75589,13 +75349,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1646
+        "line": 1635
       },
       "contractCompleteness": {
         "route": true,
@@ -75670,9 +75430,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -75697,13 +75455,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -76147,9 +75905,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -76271,7 +76027,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
           "supabase/migrations/20260728120000_member_read_policies.sql",
@@ -76288,7 +76044,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -76459,9 +76215,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -76486,13 +76240,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -77279,9 +77033,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -77306,13 +77058,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1649
       },
       "contractCompleteness": {
         "route": true,
@@ -77659,9 +77411,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -77686,13 +77436,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -77767,9 +77517,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -77794,13 +77542,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -77965,9 +77713,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -77992,13 +77738,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1678
+        "line": 1667
       },
       "contractCompleteness": {
         "route": true,
@@ -78084,9 +77830,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -78213,7 +77957,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
           "supabase/migrations/20260728120000_member_read_policies.sql",
@@ -78232,7 +77976,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -78397,9 +78141,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -78424,13 +78166,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -78505,9 +78247,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -78532,13 +78272,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -79721,9 +79461,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -79748,13 +79486,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -79829,9 +79567,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -79856,13 +79592,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "contractCompleteness": {
         "route": true,
@@ -80121,9 +79857,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -80148,13 +79882,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "contractCompleteness": {
         "route": true,
@@ -82128,9 +81862,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -82155,7 +81887,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -82569,9 +82301,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -82596,13 +82326,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -82666,9 +82396,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -82693,13 +82421,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -82763,9 +82491,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -82790,13 +82516,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -82860,9 +82586,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -82887,13 +82611,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -82957,9 +82681,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -82984,13 +82706,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83054,9 +82776,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83081,13 +82801,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83151,9 +82871,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83178,13 +82896,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83248,9 +82966,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83275,13 +82991,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83345,9 +83061,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83372,13 +83086,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83442,9 +83156,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83469,13 +83181,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83539,9 +83251,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83566,13 +83276,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83636,9 +83346,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83663,13 +83371,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83733,9 +83441,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83760,13 +83466,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83830,9 +83536,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83857,13 +83561,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -83940,9 +83644,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -83967,7 +83669,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -84118,9 +83820,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -84145,7 +83845,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -84217,9 +83917,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -84244,13 +83942,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1521
+        "line": 1510
       },
       "contractCompleteness": {
         "route": true,
@@ -84584,9 +84282,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -84611,13 +84307,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1534
+        "line": 1523
       },
       "contractCompleteness": {
         "route": true,
@@ -84681,9 +84377,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -84708,13 +84402,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1507
       },
       "contractCompleteness": {
         "route": true,
@@ -85108,9 +84802,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -85135,7 +84827,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -85214,9 +84906,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -85241,13 +84931,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -86090,9 +85780,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -86117,13 +85805,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -86380,9 +86068,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -86407,13 +86093,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1507
       },
       "contractCompleteness": {
         "route": true,
@@ -87934,9 +87620,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -87961,7 +87645,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -88135,9 +87819,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -88162,7 +87844,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -88626,9 +88308,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -88653,7 +88333,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -89692,9 +89372,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -89719,13 +89397,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -90019,9 +89697,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -90046,13 +89722,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -90116,9 +89792,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -90143,13 +89817,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1507
       },
       "contractCompleteness": {
         "route": true,
@@ -91268,9 +90942,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -91553,7 +91225,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -91570,7 +91242,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1418
+        "line": 1407
       },
       "contractCompleteness": {
         "route": true,
@@ -93964,9 +93636,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -94194,7 +93864,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -95706,9 +95376,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -95936,7 +95604,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -96061,9 +95729,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -96291,7 +95957,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -98491,9 +98157,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -98776,7 +98440,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -98793,7 +98457,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1413
+        "line": 1402
       },
       "contractCompleteness": {
         "route": true,
@@ -98932,9 +98596,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -99054,7 +98716,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/011_sonara_saas_launch_system.sql",
           "supabase/migrations/20260619035605_functional_saas_operational_tables.sql",
@@ -99082,560 +98744,6 @@
         "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "rendered_form_plus_handler_observation"
-      },
-      "action": true
-    },
-    {
-      "id": "POST /api/business-builder/intake",
-      "method": "POST",
-      "route": "/api/business-builder/intake",
-      "kind": "api",
-      "workspace": "business_builder",
-      "destination": {
-        "route": "/business-builder/intake",
-        "confidence": "route_pair",
-        "reason": "matching_get_route"
-      },
-      "accessMiddleware": [],
-      "routeRegistry": null,
-      "openApi": {
-        "operationId": "createBusinessBuilderIntake",
-        "summary": "Save a Business Builder intake request and activity record.",
-        "tags": [
-          "Business Builder"
-        ],
-        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
-        "requestBodyDeclared": true,
-        "responseStatusCodes": [
-          200,
-          400,
-          401,
-          503
-        ],
-        "responseRefs": [
-          {
-            "statusCode": 200,
-            "ref": "#/components/responses/Success"
-          },
-          {
-            "statusCode": 400,
-            "ref": "#/components/responses/BadRequest"
-          },
-          {
-            "statusCode": 401,
-            "ref": "#/components/responses/Unauthorized"
-          },
-          {
-            "statusCode": 503,
-            "ref": "#/components/responses/SetupRequired"
-          }
-        ],
-        "bearerAuth": true
-      },
-      "request": {
-        "pathParams": [],
-        "body": [
-          "budget",
-          "company_name",
-          "companyName",
-          "contactName",
-          "current_website",
-          "currentWebsite",
-          "email",
-          "goals",
-          "industry",
-          "message",
-          "name",
-          "neededServices",
-          "phone",
-          "serviceInterest",
-          "timeline"
-        ],
-        "query": [],
-        "params": [],
-        "bodyAccessed": true,
-        "queryAccessed": false,
-        "paramsAccessed": false,
-        "wholeBodyForwarded": false,
-        "computedBodyFieldAccess": false,
-        "headers": [],
-        "cookies": [],
-        "multipart": false,
-        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
-      },
-      "response": {
-        "kinds": [
-          "json-or-delegated"
-        ],
-        "statusCodes": [
-          200,
-          400,
-          401,
-          503
-        ],
-        "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
-        "dynamicJsonResponseObserved": false,
-        "fieldEvidence": "literal_response_objects_observed",
-        "evidence": "route-convention"
-      },
-      "data": {
-        "mappingStatus": "handler_source_table_reference",
-        "directTables": [
-          "activity_events",
-          "business_workspaces",
-          "customer_records",
-          "intake_requests",
-          "organization_memberships",
-          "organizations",
-          "profiles",
-          "user_roles"
-        ],
-        "candidateTables": [
-          "admin_audit_logs",
-          "bookings",
-          "business_employee_invites",
-          "business_memberships",
-          "business_service_catalog",
-          "business_workspaces",
-          "campaigns",
-          "customer_records",
-          "customers",
-          "intake_requests",
-          "integrations",
-          "launch_checklist_items",
-          "leads",
-          "organization_memberships",
-          "organizations",
-          "payments",
-          "plans",
-          "products",
-          "profiles",
-          "quotes",
-          "reviews",
-          "service_catalog_items",
-          "subscriptions",
-          "support_email_delivery_attempts",
-          "support_requests",
-          "user_roles"
-        ],
-        "tableLineage": [
-          {
-            "table": "activity_events",
-            "tableId": "table:activity_events",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "activity_select_member",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "business_workspaces",
-            "tableId": "table:business_workspaces",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
-                "supabase/migrations/20260723060000_business_builder_control_plane.sql",
-                "supabase/migrations/20260728120000_member_read_policies.sql",
-                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
-                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
-                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
-                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
-                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
-                "supabase/migrations/20260728120000_member_read_policies.sql",
-                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
-                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
-                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
-                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
-                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
-                },
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
-                },
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
-                },
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
-                },
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
-                },
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
-                },
-                {
-                  "name": "business_workspaces_select_member",
-                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "customer_records",
-            "tableId": "table:customer_records",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
-                "supabase/migrations/20260723060000_business_builder_control_plane.sql",
-                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
-                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
-                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
-                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
-                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
-                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
-                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
-                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
-                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "customer_records_select_member",
-                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
-                },
-                {
-                  "name": "customer_records_select_member",
-                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
-                },
-                {
-                  "name": "customer_records_select_member",
-                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
-                },
-                {
-                  "name": "customer_records_select_member",
-                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
-                },
-                {
-                  "name": "customer_records_select_member",
-                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
-                },
-                {
-                  "name": "customer_records_select_member",
-                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "intake_requests",
-            "tableId": "table:intake_requests",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "intake_requests_select_member",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "intake_requests_insert_member",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "intake_requests_update_owner_admin",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "organization_memberships",
-            "tableId": "table:organization_memberships",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "memberships_select_org_member",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "memberships_manage_owner_admin",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "organization_memberships_member_select",
-                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
-                },
-                {
-                  "name": "service_role_organization_memberships_all",
-                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "organizations",
-            "tableId": "table:organizations",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "organizations_select_member",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "organizations_insert_owner",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "organizations_update_owner_admin",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "organizations_member_select",
-                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
-                },
-                {
-                  "name": "organizations_owner_update",
-                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
-                },
-                {
-                  "name": "service_role_organizations_all",
-                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "profiles",
-            "tableId": "table:profiles",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/010_sonara_platform_current_schema.sql",
-                "supabase/migrations/011_sonara_saas_launch_system.sql",
-                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-              ],
-              "policyEvidence": [
-                {
-                  "name": "profiles_select_own",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                },
-                {
-                  "name": "profiles_update_own",
-                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
-                }
-              ]
-            }
-          },
-          {
-            "table": "user_roles",
-            "tableId": "table:user_roles",
-            "migrationLineage": {
-              "createdBy": [
-                "supabase/migrations/0009_owner_access_and_employee_role.sql",
-                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
-              ],
-              "changedBy": [
-                "supabase/migrations/0009_owner_access_and_employee_role.sql",
-                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
-              ],
-              "rlsEvidence": [
-                "supabase/migrations/0009_owner_access_and_employee_role.sql",
-                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
-              ],
-              "policyEvidence": []
-            }
-          }
-        ],
-        "noPersistenceReason": null,
-        "resourceContract": null,
-        "agentRouteContract": null,
-        "rpcEffects": [
-          {
-            "id": "database-function:sonara_bootstrap_customer_workspace",
-            "name": "sonara_bootstrap_customer_workspace",
-            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
-            "definitionMigrations": [
-              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
-            ],
-            "directReadTables": [
-              "organization_memberships",
-              "organizations"
-            ],
-            "directWriteTables": [
-              "organization_memberships",
-              "organizations",
-              "profiles"
-            ],
-            "readTables": [
-              "organization_memberships",
-              "organizations"
-            ],
-            "writeTables": [
-              "organization_memberships",
-              "organizations",
-              "profiles"
-            ],
-            "writeOperations": [
-              {
-                "operation": "INSERT",
-                "table": "profiles"
-              },
-              {
-                "operation": "UPDATE",
-                "table": "organization_memberships"
-              },
-              {
-                "operation": "INSERT",
-                "table": "organizations"
-              },
-              {
-                "operation": "INSERT",
-                "table": "organization_memberships"
-              }
-            ],
-            "calls": [],
-            "evidence": "comment_stripped_latest_sql_function_definition"
-          }
-        ],
-        "triggeredEffects": [],
-        "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
-        "schemaMigrations": [
-          "supabase/migrations/0009_owner_access_and_employee_role.sql",
-          "supabase/migrations/010_sonara_platform_current_schema.sql",
-          "supabase/migrations/011_sonara_saas_launch_system.sql",
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
-          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
-          "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
-          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
-          "supabase/migrations/20260619035605_functional_saas_operational_tables.sql",
-          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
-          "supabase/migrations/20260723060000_business_builder_control_plane.sql",
-          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
-          "supabase/migrations/20260728120000_member_read_policies.sql",
-          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
-          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
-          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
-          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
-          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
-          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
-        ],
-        "persistenceMode": "endpoint_handler_evidence"
-      },
-      "source": {
-        "file": "server.js",
-        "line": 1399
-      },
-      "contractCompleteness": {
-        "route": true,
-        "workspace": true,
-        "destination": true,
-        "inputEvidence": "handler_form_or_path_fields_found",
-        "outputEvidence": "route-convention",
-        "persistence": "handler_source_table_reference",
-        "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -99736,9 +98844,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -100134,7 +99240,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -118578,9 +117684,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -118808,7 +117912,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -119570,9 +118674,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -120016,7 +119118,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -120045,7 +119147,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1429
+        "line": 1418
       },
       "contractCompleteness": {
         "route": true,
@@ -120721,9 +119823,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -121119,7 +120219,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -121147,7 +120247,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1442
+        "line": 1431
       },
       "contractCompleteness": {
         "route": true,
@@ -126334,9 +125434,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -126828,7 +125926,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -126857,7 +125955,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1456
+        "line": 1445
       },
       "contractCompleteness": {
         "route": true,
@@ -127720,9 +126818,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -128219,7 +127315,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/0009_owner_access_and_employee_role.sql",
           "supabase/migrations/010_sonara_platform_current_schema.sql",
@@ -128250,7 +127346,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1465
+        "line": 1454
       },
       "contractCompleteness": {
         "route": true,
@@ -139926,9 +139022,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -140127,7 +139221,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/011_sonara_saas_launch_system.sql",
           "supabase/migrations/20260619035605_functional_saas_operational_tables.sql",
@@ -140258,9 +139352,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -140459,7 +139551,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/011_sonara_saas_launch_system.sql",
           "supabase/migrations/20260619035605_functional_saas_operational_tables.sql",
@@ -140641,9 +139733,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -140668,7 +139758,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -140743,9 +139833,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -140770,7 +139858,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -140939,9 +140027,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -140966,7 +140052,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -141350,9 +140436,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -141448,7 +140532,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
@@ -160439,9 +159523,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -160516,7 +159598,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [
           "supabase/migrations/011_sonara_saas_launch_system.sql",
           "supabase/migrations/20260528093000_support_contact_paths.sql",
@@ -167001,9 +166083,7 @@
           "business_service_catalog",
           "business_workspaces",
           "campaigns",
-          "customer_records",
           "customers",
-          "intake_requests",
           "integrations",
           "launch_checklist_items",
           "leads",
@@ -167028,7 +166108,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
-        "moduleTableCandidateCount": 26,
+        "moduleTableCandidateCount": 24,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -170733,7 +169813,7 @@
     {
       "id": "module:server.js",
       "source": "server.js",
-      "tableCount": 26,
+      "tableCount": 24,
       "tables": [
         {
           "table": "admin_audit_logs",
@@ -170780,24 +169860,10 @@
           ]
         },
         {
-          "table": "customer_records",
-          "migrations": [
-            "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
-            "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-          ]
-        },
-        {
           "table": "customers",
           "migrations": [
             "supabase/migrations/010_sonara_platform_current_schema.sql",
             "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
-          ]
-        },
-        {
-          "table": "intake_requests",
-          "migrations": [
-            "supabase/migrations/011_sonara_saas_launch_system.sql",
-            "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
           ]
         },
         {
@@ -252021,9 +251087,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -252316,9 +251380,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -252411,9 +251473,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -252528,9 +251588,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253172,9 +252230,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253208,7 +252264,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -253225,9 +252281,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253351,7 +252405,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -253368,9 +252422,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253404,7 +252456,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -253421,9 +252473,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253457,7 +252507,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1649
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -253474,9 +252524,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253551,7 +252599,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/business-builder/help",
@@ -253568,9 +252616,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253595,59 +252641,6 @@
       },
       "responseKindsObserved": [
         "send"
-      ],
-      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
-    },
-    {
-      "id": "GET /business-builder/intake",
-      "workspace": "business_builder",
-      "kind": "page_or_download",
-      "source": {
-        "file": "server.js",
-        "line": 1694
-      },
-      "destination": {
-        "route": "/business-builder/intake",
-        "confidence": "exact",
-        "reason": "page_route"
-      },
-      "method": "GET",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "admin_audit_logs",
-        "bookings",
-        "business_employee_invites",
-        "business_memberships",
-        "business_service_catalog",
-        "business_workspaces",
-        "campaigns",
-        "customer_records",
-        "customers",
-        "intake_requests",
-        "integrations",
-        "launch_checklist_items",
-        "leads",
-        "organization_memberships",
-        "organizations",
-        "payments",
-        "plans",
-        "products",
-        "profiles",
-        "quotes",
-        "reviews",
-        "service_catalog_items",
-        "subscriptions",
-        "support_email_delivery_attempts",
-        "support_requests",
-        "user_roles"
-      ],
-      "requestFieldsObserved": {
-        "body": [],
-        "query": [],
-        "pathParams": []
-      },
-      "responseKindsObserved": [
-        "redirect"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
@@ -253715,9 +252708,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253751,7 +252742,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -253768,9 +252759,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253862,9 +252851,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253933,7 +252920,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -253950,9 +252937,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -253986,7 +252971,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -254003,9 +252988,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -254039,7 +253022,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -254056,9 +253039,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -254539,7 +253520,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -254556,9 +253537,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -254624,7 +253603,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -254641,9 +253620,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -254677,7 +253654,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/business-builder/records",
@@ -254694,9 +253671,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -254730,7 +253705,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -254747,9 +253722,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -255769,7 +254742,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -255786,9 +254759,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -255860,7 +254831,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -255877,9 +254848,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -255913,7 +254882,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -255930,9 +254899,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256007,7 +254974,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1649
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -256024,9 +254991,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256271,7 +255236,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -256288,9 +255253,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256359,7 +255322,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -256376,9 +255339,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256412,7 +255373,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -256429,9 +255390,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256569,7 +255528,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -256586,9 +255545,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256622,7 +255579,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -256639,9 +255596,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256707,7 +255662,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -256724,9 +255679,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256760,7 +255713,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -256777,9 +255730,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256813,7 +255764,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -256830,9 +255781,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -256974,7 +255923,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -256991,9 +255940,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -257916,7 +256863,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -257933,9 +256880,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258111,7 +257056,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -258128,9 +257073,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258304,7 +257247,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1649
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -258321,9 +257264,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258464,7 +257405,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -258481,9 +257422,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258517,7 +257456,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -258534,9 +257473,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258640,7 +257577,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -258657,9 +257594,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258693,7 +257628,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -258710,9 +257645,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258844,7 +257777,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -258861,9 +257794,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -258897,7 +257828,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1689
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -258914,9 +257845,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -259024,7 +257953,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1696
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -259041,9 +257970,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -259867,9 +258794,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -260068,9 +258993,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -261004,9 +259927,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -261061,9 +259982,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -261155,9 +260074,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -263057,9 +261974,7 @@
         "business_service_catalog",
         "business_workspaces",
         "campaigns",
-        "customer_records",
         "customers",
-        "intake_requests",
         "integrations",
         "launch_checklist_items",
         "leads",
@@ -263532,7 +262447,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1443
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263542,7 +262457,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1467
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263582,7 +262497,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1500
+        "line": 1489
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
