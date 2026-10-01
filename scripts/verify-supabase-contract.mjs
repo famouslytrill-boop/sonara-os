@@ -52,6 +52,12 @@ const agentQueueMigrationNames = [
   "20260813120000_agent_pending_actions.sql",
   "20260813180000_agent_schedules.sql"
 ];
+// Tool permissions, added 1 October 2026. Its own list rather than folded into
+// the queue's: the queue holds a refused action's inputs so an approval has
+// something to re-run, and a permission table has nothing to do with that.
+const agentToolPermissionMigrationNames = [
+  "20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
@@ -262,6 +268,17 @@ const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
 // postdates. What it holds is the thing that was missing: a gated action's own
 // inputs, so an approval has something to re-run.
 const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedules"]);
+// Which tools an organization permits its agents to use. A separate group from
+// the queue above because the queue's comment describes what the queue is for,
+// and a permission table filed under it would make that comment describe
+// something it does not.
+//
+// Organization-scoped, and that is the whole reason it exists rather than
+// entity_agent_tool_registry being wired up: that table has `enabled` and
+// `requires_approval` columns and looks like the answer, but it keys on
+// entity_id and public.entities has no organization_id, so reading it to
+// authorise an organization's run would be a cross-tenant authorization read.
+const AGENT_TOOL_PERMISSION_TABLES = Object.freeze(["agent_tool_permissions"]);
 // Cinematic scroll sites. One table holding one row per site, whose `document`
 // column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
 // rather than folded into the Growth Studio list: the migration is its own
@@ -400,6 +417,7 @@ const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Cre
 const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, "Creator Studio artist system");
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
 const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
+const agentToolPermissionSql = readExtension(agentToolPermissionMigrationNames, "agent tool permissions");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
 const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
@@ -489,6 +507,31 @@ verifyExtension(AGENT_QUEUE_TABLES, agentQueueSql, "agent approval queue");
 // every check above and leave the queue unable to do the one thing it is for.
 for (const required of ["payload jsonb", "state text not null default 'waiting'", "auth.role() = 'service_role'", "time_zone text not null"]) {
   if (!agentQueueSql.includes(required.toLowerCase())) fail(`the agent approval queue migration is missing: ${required}`);
+}
+verifyExtension(AGENT_TOOL_PERMISSION_TABLES, agentToolPermissionSql, "agent tool permissions");
+// Both defaults are the safe direction, and both are asserted in the SQL as well
+// as in the migration's own do-block: a half-filled row must permit nothing. A
+// later migration flipping either would turn an unfinished row into a grant, and
+// `lib/sonara-agent-tool-permissions.cjs` reads the columns strictly on the same
+// assumption.
+//
+// The organization column is checked because it is the entire reason this table
+// exists rather than entity_agent_tool_registry being wired up -- that one keys on
+// entity_id, and public.entities has no organization_id, so reading it to
+// authorise an organization's run would cross tenants.
+for (const required of [
+  "allowed boolean not null default false",
+  "requires_approval boolean not null default true",
+  "organization_id uuid not null references public.organizations(id)",
+  "unique (organization_id, tool_name)"
+]) {
+  if (!agentToolPermissionSql.includes(required.toLowerCase())) fail(`the agent tool permissions migration is missing: ${required}`);
+}
+// No delete grant. Withdrawing a permission is an update, which keeps the record
+// of what was granted; a delete arriving later would erase it, and changing a
+// security setting is an owner-approval category in AGENTS.md.
+if (/grant[^;]*delete[^;]*agent_tool_permissions/.test(agentToolPermissionSql)) {
+  fail("the agent tool permissions migration grants DELETE; withdrawing a permission is an update so the record of what was granted survives");
 }
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
@@ -724,7 +767,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -901,8 +944,62 @@ if (!selfServeUnderLoad.requiresOwnerApproval || selfServeUnderLoad.limit !== "t
   fail(`an unattended agent action at ${agentLimits.MAX_UNATTENDED_RUNS_PER_WINDOW} runs in the window was not held for the owner`);
 }
 
+// --- tool permissions -------------------------------------------------------
+//
+// The same two directions the volume cap is checked in, because a permission
+// model that only ever refuses is as broken as one that only ever permits, and
+// only the second gets noticed.
+const toolPermissions = require(path.join(root, "lib", "sonara-agent-tool-permissions.cjs"));
+const permittedRow = (toolName) => ({ ok: true, rows: [{ toolName, allowed: true, requiresApproval: false }] });
+
+// A tenant-editable row must never unlock a gated action, or the seven
+// categories in lib/sonara-agent-authority.cjs become advisory. Checked against
+// every sensitive category rather than one sample, so a pattern that stops
+// matching is a failure here rather than a quieter probe.
+for (const category of agentAuthority.SENSITIVE_CATEGORY_NAMES) {
+  const probe = { issue_refund: "issue_refund", payout_changes: "change_payout_account" }[category] || category;
+  const gated = agentAuthority.classifyAction(probe);
+  if (!gated.requiresOwnerApproval) continue;
+  const decided = toolPermissions.evaluateToolPermission(gated, permittedRow(probe), { toolName: probe });
+  if (!decided.requiresOwnerApproval || decided.category !== gated.category) {
+    fail(`a tool permission row relaxed ${probe}, which is gated under ${gated.category}; the permission model may only ever add refusals`);
+  }
+}
+
+const selfServeAction = agentAuthority.SELF_SERVE_ACTIONS[0].action;
+const selfServeBase = agentAuthority.classifyAction(selfServeAction);
+
+// Unreadable escalates. This is deliberately the opposite of what a failed
+// history read does to the breaker, and getting it backwards would mean an
+// unreachable permission table grants every tool.
+const unreadable = toolPermissions.evaluateToolPermission(selfServeBase, { ok: false, reason: "read failed (503)" }, { toolName: selfServeAction });
+if (!unreadable.requiresOwnerApproval || unreadable.permission !== "unavailable") {
+  fail(`an unreadable tool permission set did not hold ${selfServeAction} for the owner; absent evidence of permission must not grant one`);
+}
+
+// A configured organization denies a tool it has not listed.
+const notListed = toolPermissions.evaluateToolPermission(selfServeBase, permittedRow("a_tool_this_organization_does_permit"), { toolName: selfServeAction });
+if (!notListed.requiresOwnerApproval || notListed.permission !== "denied") {
+  fail(`${selfServeAction} was not held although this organization's permissions do not list it`);
+}
+
+// And the other direction, which is what stops every assertion above being
+// satisfied by a model that refuses everything.
+const listed = toolPermissions.evaluateToolPermission(selfServeBase, permittedRow(selfServeAction), { toolName: selfServeAction });
+if (listed.requiresOwnerApproval || listed.permission !== "allowed") {
+  fail(`${selfServeAction} was held although this organization permits exactly that tool; a permission model that refuses everything is as broken as one that permits everything`);
+}
+
+// An unwired call site must report rather than deny, for the reason the breaker
+// records: refusing every action is a worse way to discover a deployment gap
+// than saying the check is not installed.
+const unwiredPermission = toolPermissions.evaluateToolPermission(selfServeBase, null, { toolName: selfServeAction, hasReader: false });
+if (unwiredPermission.requiresOwnerApproval || unwiredPermission.permission !== "unwired") {
+  fail("a runner with no permission reader did not report the model as unwired; it must say so rather than deny or stay silent");
+}
+
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

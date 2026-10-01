@@ -2,6 +2,75 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
+
+`entity_agent_tool_registry` has had `enabled boolean not null default false` and
+`requires_approval boolean not null default true` since migration 008 -- two
+columns that look exactly like tool permissions, with safe defaults. Nothing has
+ever read either. Measured 1 October 2026: every reference is a contract list, a
+subsystem registry or a planning document, plus
+`routes/sonara-subsystem-routes.cjs`, whose own comment says "Adding a row to
+entity_agent_tool_registry registers a tool; it does not run one".
+
+The obvious move was to wire it up, and it would have been a cross-tenant
+authorization read. That table keys on `entity_id`; `public.entities` has no
+`organization_id` (008 line 32), which migration 20260813120000 already records
+for `agent_pending_actions`; and `lib/sonara-agent-runner.cjs` runs an action for
+an `organizationId`. Consulting one tenant's row to authorise another's work is
+worse than no check, because it looks like one.
+
+So `agent_tool_permissions` is organization-scoped, the registry stays the
+operator research record it was, and the distinction is written into the
+migration, the contract gate's new table group and the route's wiring comment.
+
+### Four kinds of absence, which the usual two would have collapsed
+
+`lib/sonara-agent-tool-permissions.cjs` keeps them apart, because `null` is not
+`[]` is not `0`:
+
+- **unwired** -- no reader here. Reported, untouched. Denying would refuse every
+  action at every unwired caller, a worse way to find a deployment gap. It is the
+  state the breaker sat in silently until this morning.
+- **unavailable** -- a reader was supplied and the read failed. **Escalates**, the
+  opposite of what the breaker does with a failed history read: the breaker is a
+  reliability heuristic, so absent evidence of failure must not penalise an
+  agent, while this is authorization, so absent evidence of permission must not
+  grant one. "Ask the owner" is not an outage.
+- **unconfigured** -- read succeeded, no rows. The model is not in force; the
+  authority module still governs. No rows as deny-everything would make applying
+  the migration an outage for every existing deployment, and as allow-everything
+  would make the table decorative. Opt-in per tenant, strict once opted in.
+- **denied** -- rows exist and this tool is absent, or present and not allowed.
+
+A truncated page reports as unreadable rather than as a short list: a tool missing
+from a partial read would otherwise be refused with a false reason attached.
+
+### What was broken to prove it
+
+25 new tests across two files. `...-is-actually-connected.test.js` drives the real
+Express route and injects nothing. Removing `readPermissions` from
+`routes/sonara-agent-activity-routes.cjs` turns **5 of its 7** red, including all
+three asserting the read happens and that the outcome changes; the two that stay
+green assert an action is NOT denied, correct in both states. That visible
+signature is exactly what was missing when the breaker was wired to nothing.
+
+Letting a permission row relax a gated action turns the invariant test red by
+name. Making an unreadable set fail open turns `verify:supabase-contract` red by
+name -- that gate checks both directions, because a model that only ever refuses
+is as broken as one that only ever permits and only the second gets noticed.
+Restores were copy-aside plus `md5sum -c`.
+
+### Left for the owner, and one small untruth left alone
+
+Nothing writes these rows yet, so every organization is `unconfigured` and
+behaviour is unchanged until an owner surface exists. Deliberate: granting a tool
+is a security setting change, which AGENTS.md puts behind owner approval.
+
+The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
+opens "One table" and the list has held two since August. Left as found rather
+than fixed inside a change about something else, and recorded here so it is a
+known inaccuracy rather than a believed one.
+
 ### 2026-10-01 - "2026-07-28" was a string, not a requirement
 
 Asked to upgrade the Integration Gateway for current MCP authorization

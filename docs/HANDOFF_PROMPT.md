@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3039 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 139 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 140 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 415 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 417 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,82 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 415 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 416 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
+
+`entity_agent_tool_registry` has had `enabled boolean not null default false` and
+`requires_approval boolean not null default true` since migration 008 -- two
+columns that look exactly like tool permissions, with safe defaults. Nothing has
+ever read either. Measured 1 October 2026: every reference is a contract list, a
+subsystem registry or a planning document, plus
+`routes/sonara-subsystem-routes.cjs`, whose own comment says "Adding a row to
+entity_agent_tool_registry registers a tool; it does not run one".
+
+The obvious move was to wire it up, and it would have been a cross-tenant
+authorization read. That table keys on `entity_id`; `public.entities` has no
+`organization_id` (008 line 32), which migration 20260813120000 already records
+for `agent_pending_actions`; and `lib/sonara-agent-runner.cjs` runs an action for
+an `organizationId`. Consulting one tenant's row to authorise another's work is
+worse than no check, because it looks like one.
+
+So `agent_tool_permissions` is organization-scoped, the registry stays the
+operator research record it was, and the distinction is written into the
+migration, the contract gate's new table group and the route's wiring comment.
+
+### Four kinds of absence, which the usual two would have collapsed
+
+`lib/sonara-agent-tool-permissions.cjs` keeps them apart, because `null` is not
+`[]` is not `0`:
+
+- **unwired** -- no reader here. Reported, untouched. Denying would refuse every
+  action at every unwired caller, a worse way to find a deployment gap. It is the
+  state the breaker sat in silently until this morning.
+- **unavailable** -- a reader was supplied and the read failed. **Escalates**, the
+  opposite of what the breaker does with a failed history read: the breaker is a
+  reliability heuristic, so absent evidence of failure must not penalise an
+  agent, while this is authorization, so absent evidence of permission must not
+  grant one. "Ask the owner" is not an outage.
+- **unconfigured** -- read succeeded, no rows. The model is not in force; the
+  authority module still governs. No rows as deny-everything would make applying
+  the migration an outage for every existing deployment, and as allow-everything
+  would make the table decorative. Opt-in per tenant, strict once opted in.
+- **denied** -- rows exist and this tool is absent, or present and not allowed.
+
+A truncated page reports as unreadable rather than as a short list: a tool missing
+from a partial read would otherwise be refused with a false reason attached.
+
+### What was broken to prove it
+
+25 new tests across two files. `...-is-actually-connected.test.js` drives the real
+Express route and injects nothing. Removing `readPermissions` from
+`routes/sonara-agent-activity-routes.cjs` turns **5 of its 7** red, including all
+three asserting the read happens and that the outcome changes; the two that stay
+green assert an action is NOT denied, correct in both states. That visible
+signature is exactly what was missing when the breaker was wired to nothing.
+
+Letting a permission row relax a gated action turns the invariant test red by
+name. Making an unreadable set fail open turns `verify:supabase-contract` red by
+name -- that gate checks both directions, because a model that only ever refuses
+is as broken as one that only ever permits and only the second gets noticed.
+Restores were copy-aside plus `md5sum -c`.
+
+### Left for the owner, and one small untruth left alone
+
+Nothing writes these rows yet, so every organization is `unconfigured` and
+behaviour is unchanged until an owner surface exists. Deliberate: granting a tool
+is a security setting change, which AGENTS.md puts behind owner approval.
+
+The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
+opens "One table" and the list has held two since August. Left as found rather
+than fixed inside a change about something else, and recorded here so it is a
+known inaccuracy rather than a believed one.
+
+
 
 ### 2026-10-01 - "2026-07-28" was a string, not a requirement
 
@@ -2132,63 +2203,3 @@ Chain length 63 to 64. `docs/owner/WHAT-IS-LEFT.md` and
 `fix:doc-counts` repaired the second. `docs/manual-wire-creator-music-system.md`
 described the deleted helper as "connects forms ... once the write APIs are
 wired" and told the reader to run `npm`; both are corrected.
-
-
-
-### 2026-09-29 - The service worker nothing registers, and five orphaned client bundles
-
-Four crawls now read the rendered surface. All four read HTML, so a button wired
-to `fetch()` is invisible to every one of them: the path lives in a client
-bundle and nothing in the markup says where it goes.
-`tests/every-path-a-button-calls-exists.test.js` reads the bundles.
-
-**The finding is a capability that does not exist in production.**
-`public/sonara-experience.js` line 57 holds the only
-`navigator.serviceWorker.register("/sw.js")` in the repository, and no page
-serves that file. So the service worker is never installed, the offline precache
-never runs, and the thirty-one paths in `public/sw.js` reach nothing. Fetching
-`/`, `/pricing` and `/free-tools` confirms no served page mentions a service
-worker at all. Wiring it up changes caching for every visitor, so it is recorded
-here for the owner rather than switched on.
-
-Five path-carrying bundles are served by nothing: `sonara-experience.js`,
-`sonara-interface-engine.js`, `creator-music-system.js`,
-`sonara-builder-2027.js`, `sonara-cohesive-2027.js`, plus `sw.js` which is only
-reachable through that registration. Two consequences worth naming.
-`tests/brand-palette.test.js` asserts the `theme-color` values in
-`sonara-interface-engine.js` match the palette -- a check whose subject no
-browser receives. And `creator-music-system.js` wires eleven `/api/creator/*`
-endpoints, none registered, while `/creator-music-system/create` tells customers
-in prose to "use the browser helper /creator-music-system.js ... to save real
-records".
-
-**Two detector errors of mine, both caught by measuring instead of matching.**
-
-Reading `<script src=` out of the route sources reported
-`creator-music-system.js` as loaded: the tag is real, inside `basicLayout`, a
-fallback that `const layout = deps.layout || basicLayout` never reaches because
-the real layout is always supplied. All sixteen routes of that surface were
-fetched and none serves it. Loadedness is a fact about a response, so the check
-renders pages and reads the script tags out of the HTML -- the same correction as
-"fetch rather than match against the route table", which earlier reported nine
-static assets as dead links that all answer 200.
-
-The first version also floored the served-bundle check at twenty literals
-examined. Not one of the six served bundles contains a path literal, so the
-floor was a number I had written rather than measured, and it failed honestly.
-That assertion is now a forward guard that says so, and the load-bearing check
-is the two-sided orphan list.
-
-Two more literals, `"/signals"` and `"/status"`, resolve to nothing and are not
-paths: the source builds `"/api/calls/" + encodeURIComponent(callId) + "/status"`
-at runtime and both full routes are registered. Fragments adjacent to a `+` are
-out of scope and the count skipped that way is bounded, so the exclusion cannot
-grow to cover a real one.
-
-Falsified both directions, each restored with `md5sum -c`: a dead path added to a
-served bundle fails "resolve to no route and no file"; dropping a name from the
-orphan list fails "the set of path-carrying client bundles that no page serves
-has changed". The list fails on an addition and on a removal, so nobody can wire
-one up and leave its stale reason behind.
-
-Verified: `verify:launch` exit 0.
