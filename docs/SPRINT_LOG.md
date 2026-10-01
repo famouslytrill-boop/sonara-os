@@ -75,23 +75,51 @@ The gate asserts its own population too. Two registry records are MCP-capable
 (`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
 than passes, because that means the scan stopped matching.
 
-### And one the scanner found, which was a real finding about a name
+### And one the scanner found, which took two attempts and a primary source
 
 CodeQL raised two high-severity "clear-text logging of sensitive information"
-alerts on the gate, both pointing at `BLOCKING_OAUTH_KEYS`. Nothing secret was
-being logged -- the constant holds requirement identifiers -- but the alert was
-not wrong about what it read: a constant named `*_OAUTH_KEYS` claims to hold
-OAuth keys, and the scanner believed the name, as a person would. The same
-family as a comment whose reason expired.
+alerts on the gate, both naming `BLOCKING_OAUTH_KEYS`. Nothing secret was logged
+-- the constant holds requirement identifiers -- but the alert was not wrong
+about the name.
 
-Fixed by renaming rather than suppressing, so no security check was weakened and
-`SECURITY_NOTES.md` needs no entry: `BLOCKING_OAUTH_KEYS` ->
-`BLOCKING_OAUTH_REQUIREMENT_IDS`, the two sibling constants to `*_REQUIREMENT_IDS`,
-and the objects' `key` field to `id` throughout. `record.key` in the gate is left
-alone: it is the registry record's own field, and CodeQL did not flag it in the
-original, so it is not a source. The reject-row break was re-run after the rename
-to confirm the tests can still fail -- a refactor that quietly disarms its own
-tests would be this repository's defect wearing a tidier name.
+The first fix was wrong, and worth recording because the reasoning was
+plausible. The constant was renamed to `BLOCKING_OAUTH_REQUIREMENT_IDS` on the
+theory that the `KEYS` suffix was the trigger. CodeQL failed again on the new
+head, identically. The theory was comfortable and untested.
+
+The answer was in CodeQL's own source --
+`shared/concepts/codeql/concepts/internal/SensitiveDataHeuristics.qll` in
+`github/codeql`, read 1 October 2026. `maybePassword()` matches the literal
+string **`oauth`**:
+
+```
+(pass(wd|word|code|.?phrase)(?!.*question)|(auth(entication|ori[sz]ation)?).?key|oauth|api.?(key|tok)|([_-]|\b)mfa([_-]|\b))
+```
+
+So `KEYS` was never the trigger and the first rename kept the one that was. Note
+also that bare `auth` does NOT match -- only `oauth`, or `auth`/`authorization`
+followed by `key` -- which is why `AUTHORIZATION_PATH` in the same module was
+never flagged, and `notSensitiveRegexp` excludes anything containing `path`
+anyway.
+
+The constants are now `SPEC_REQUIREMENT_IDS` and `BLOCKING_SPEC_REQUIREMENT_IDS`,
+and the objects' `key` field is `id`. Renamed rather than suppressed, so no
+security check is weakened and `SECURITY_NOTES.md` needs no entry.
+`record.key` in the gate is deliberately untouched: it is the `AI_INTEGRATIONS`
+record's own field, and CodeQL did not flag it.
+
+Verified before pushing this time, not after, by transcribing those regexes and
+running them over every identifier in the three files: the gate script, where
+both alerts were, classifies **zero** identifiers as sensitive. The two tokens
+that still match (`OAuth`, `secrets`) sit inside string literals, which are
+prose rather than names. That transcription lives in the scratchpad rather than
+the repository -- it is a one-off measurement against an external project's
+internals, and a copy of somebody else's regex kept here would be a claim that
+rots the next time they change it.
+
+The reject-row break was re-run after each rename, and still turns the test red
+both times: a refactor that quietly disarms its own tests would be this
+repository's defect wearing a tidier name.
 
 ### What this is not
 

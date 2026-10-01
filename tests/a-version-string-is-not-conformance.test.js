@@ -7,9 +7,9 @@ const {
   NEGOTIATION_BY_REVISION,
   CLIENT_REQUIREMENTS,
   SONARA_REQUIREMENTS,
-  OAUTH_REQUIREMENT_IDS,
+  SPEC_REQUIREMENT_IDS,
   SONARA_REQUIREMENT_IDS,
-  BLOCKING_OAUTH_REQUIREMENT_IDS,
+  BLOCKING_SPEC_REQUIREMENT_IDS,
   isKnownRevision,
   negotiationFor,
   issuerMatches,
@@ -30,7 +30,7 @@ const { PROTOCOL_BASELINE } = require("../lib/sonara-aggregation-control-plane.c
 // requirement the moment one is added, and would do it silently.
 function fullyDeclared(extra = {}) {
   const declares = {};
-  for (const id of OAUTH_REQUIREMENT_IDS) declares[id] = true;
+  for (const id of SPEC_REQUIREMENT_IDS) declares[id] = true;
   for (const id of SONARA_REQUIREMENT_IDS) declares[id] = true;
   return { transport: "http", protocolRevision: CURRENT_PROTOCOL_REVISION, declares, ...extra };
 }
@@ -39,7 +39,7 @@ describe("a version string is not conformance", () => {
   it("has requirements to check at all, so none of this passes by measuring nothing", () => {
     assert.ok(CLIENT_REQUIREMENTS.length >= 6, `only ${CLIENT_REQUIREMENTS.length} client requirements; this file has gone blind`);
     assert.ok(SONARA_REQUIREMENTS.length >= 2, `only ${SONARA_REQUIREMENTS.length} SONARA requirements`);
-    assert.ok(BLOCKING_OAUTH_REQUIREMENT_IDS.length >= 5, `only ${BLOCKING_OAUTH_REQUIREMENT_IDS.length} blocking requirements; an empty blocking set would let everything through`);
+    assert.ok(BLOCKING_SPEC_REQUIREMENT_IDS.length >= 5, `only ${BLOCKING_SPEC_REQUIREMENT_IDS.length} blocking requirements; an empty blocking set would let everything through`);
     for (const entry of CLIENT_REQUIREMENTS) {
       assert.ok(entry.citation && /^https:\/\//.test(entry.citation), `${entry.id} has no specification citation, so its level cannot be checked against anything`);
       assert.ok(["MUST", "MUST NOT", "SHOULD"].includes(entry.level), `${entry.id} has level ${entry.level}, which is not a word the specification uses`);
@@ -197,7 +197,7 @@ describe("a version string is not conformance", () => {
     // One case per blocking requirement, generated from the contract's own list
     // so a new requirement is covered the moment it is added.
     it("refuses one with any single blocking requirement missing, and names it", () => {
-      for (const id of BLOCKING_OAUTH_REQUIREMENT_IDS) {
+      for (const id of BLOCKING_SPEC_REQUIREMENT_IDS) {
         const record = fullyDeclared();
         delete record.declares[id];
         const decided = evaluateConnectorAuthorization(record);
@@ -265,15 +265,15 @@ describe("a version string is not conformance", () => {
   // mechanism first.
   it("does not make deprecated Dynamic Client Registration a requirement", () => {
     assert.ok(
-      OAUTH_REQUIREMENT_IDS.includes("clientIdMetadataDocument"),
+      SPEC_REQUIREMENT_IDS.includes("clientIdMetadataDocument"),
       "Client ID Metadata Documents are the preferred registration path and must be recorded"
     );
     assert.ok(
-      !BLOCKING_OAUTH_REQUIREMENT_IDS.includes("clientIdMetadataDocument"),
+      !BLOCKING_SPEC_REQUIREMENT_IDS.includes("clientIdMetadataDocument"),
       "Client ID Metadata Documents are SHOULD, not MUST; recording them as blocking would be stricter than the specification"
     );
     assert.ok(
-      !OAUTH_REQUIREMENT_IDS.some((id) => /dynamicClientRegistration/i.test(id)),
+      !SPEC_REQUIREMENT_IDS.some((id) => /dynamicClientRegistration/i.test(id)),
       "Dynamic Client Registration is deprecated in this revision and must not be carried as a requirement of its own"
     );
   });

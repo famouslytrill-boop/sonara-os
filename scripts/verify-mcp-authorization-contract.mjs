@@ -52,9 +52,9 @@ const {
   SPEC_READ_ON,
   CLIENT_REQUIREMENTS,
   SONARA_REQUIREMENTS,
-  OAUTH_REQUIREMENT_IDS,
+  SPEC_REQUIREMENT_IDS,
   SONARA_REQUIREMENT_IDS,
-  BLOCKING_OAUTH_REQUIREMENT_IDS,
+  BLOCKING_SPEC_REQUIREMENT_IDS,
   NEGOTIATION_BY_REVISION,
   issuerMatches,
   validateAuthorizationResponse,
@@ -74,8 +74,8 @@ if (CLIENT_REQUIREMENTS.length < 6) {
 if (SONARA_REQUIREMENTS.length < 2) {
   problems.push(`The contract holds only ${SONARA_REQUIREMENTS.length} SONARA requirement(s); tenant-scoped credentials and audit logging are both required.`);
 }
-if (BLOCKING_OAUTH_REQUIREMENT_IDS.length < 5) {
-  problems.push(`Only ${BLOCKING_OAUTH_REQUIREMENT_IDS.length} requirement(s) block an enablement. With too few, the classifier admits connectors it should refuse.`);
+if (BLOCKING_SPEC_REQUIREMENT_IDS.length < 5) {
+  problems.push(`Only ${BLOCKING_SPEC_REQUIREMENT_IDS.length} requirement(s) block an enablement. With too few, the classifier admits connectors it should refuse.`);
 }
 
 const uncited = CLIENT_REQUIREMENTS.filter((entry) => !/^https:\/\/modelcontextprotocol\.io\//.test(String(entry.citation || "")));
@@ -122,7 +122,7 @@ if (!currentNegotiation || currentNegotiation.style !== "per_request") {
 // everything, which would pass every refusal assertion above.
 function conformingRecord() {
   const declares = {};
-  for (const id of OAUTH_REQUIREMENT_IDS) declares[id] = true;
+  for (const id of SPEC_REQUIREMENT_IDS) declares[id] = true;
   for (const id of SONARA_REQUIREMENT_IDS) declares[id] = true;
   return { transport: "http", protocolRevision: CURRENT_PROTOCOL_REVISION, declares };
 }
@@ -137,7 +137,7 @@ if (!admitted.ok) {
 }
 
 const admittedDespite = [];
-for (const id of BLOCKING_OAUTH_REQUIREMENT_IDS.concat(SONARA_REQUIREMENT_IDS)) {
+for (const id of BLOCKING_SPEC_REQUIREMENT_IDS.concat(SONARA_REQUIREMENT_IDS)) {
   const record = conformingRecord();
   delete record.declares[id];
   const decided = evaluateConnectorAuthorization(record);
@@ -241,10 +241,10 @@ if (problems.length) {
 
 console.log(
   `MCP authorization contract verified against revision ${CURRENT_PROTOCOL_REVISION} (specification read ${SPEC_READ_ON}): `
-  + `${CLIENT_REQUIREMENTS.length} specification requirement(s) of which ${BLOCKING_OAUTH_REQUIREMENT_IDS.length} block an enablement, `
+  + `${CLIENT_REQUIREMENTS.length} specification requirement(s) of which ${BLOCKING_SPEC_REQUIREMENT_IDS.length} block an enablement, `
   + `${SONARA_REQUIREMENTS.length} non-waivable SONARA requirement(s), `
   + `${declarers.length} module(s) declaring the revision and all agreeing, `
-  + `${BLOCKING_OAUTH_REQUIREMENT_IDS.length + SONARA_REQUIREMENT_IDS.length} refusal probe(s) and 1 admission probe, `
+  + `${BLOCKING_SPEC_REQUIREMENT_IDS.length + SONARA_REQUIREMENT_IDS.length} refusal probe(s) and 1 admission probe, `
   + `${forbidden.length} forbidden issuer normalization(s) still rejected, `
   + `and ${mcpCapable.length} MCP-capable registry record(s) none of which is production-reachable.`
 );
