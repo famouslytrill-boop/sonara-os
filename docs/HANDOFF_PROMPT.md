@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 137 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 408 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 409 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,80 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 407 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 22 most recent entries of 408 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - A second copy of a table is now found by a check
+
+"No duplicate tables" was asked for, and `employee_shifts` was found duplicating
+`employee_schedules` the same day -- by reading the migrations while looking for
+something else. Nothing would have found the next one, and 345 tables is well
+past what anybody holds in their head.
+
+`scripts/report-duplicate-tables.mjs` compares every pair of tables the
+migrations create and fails on a near-duplicate that
+`lib/sonara-duplicate-table-review.cjs` does not account for.
+
+### What it compares, and the two choices that make it usable
+
+**Column names, not types.** Two tables with the same names and different types
+are the same idea stored twice; comparing `text` against `varchar` would make the
+measure sensitive to something that hides what it is looking for.
+
+**The columns almost every table has are removed first** -- `id`,
+`organization_id`, `created_at`, `updated_at`, `metadata`, `user_id`,
+`created_by`, `notes`, `status`. Leaving them in makes every pair of small tables
+look alike, which is how a check ends up with a register nobody reads. A table
+with fewer than four distinctive columns left is not compared at all, and the
+report says how many that excludes -- 272 of 345 are compared, which is 79%.
+
+The threshold is 0.8 overlap, and the report prints **the highest-scoring pair
+below it** so the line is visible rather than asserted:
+`business_service_catalog + business_service_items` at 0.64. There is a real gap
+under the threshold, and a test fails if it closes above 0.75.
+
+### It found a second pair on its first run
+
+`creator_generation_events` and `growth_control_events` at 0.80, sharing
+`event_type`, `event_status`, `details` and `job_id`.
+
+Not a duplicate, and the reason is exactly what the check cannot see: `job_id`
+references `creator_generation_jobs(id)` in one and `growth_provider_jobs(id)` in
+the other, and the second also carries `campaign_id`. Merging them would give one
+table two mutually exclusive job references and a status vocabulary that is the
+union of two products'. Recorded as `parallel_by_design` with that written down,
+because the next person to see two identical-looking event logs will ask.
+
+### The register is two-sided, and an entry is not approval
+
+A reviewed pair that stops being near-duplicate fails too, so an exemption cannot
+outlive its reason. And `employee_shifts` is recorded as
+`duplicate_awaiting_owner_decision` rather than as settled: retiring a table is a
+destructive data change and AGENTS.md puts those behind the owner. A test fails if
+a waiting verdict stops naming whose decision it is.
+
+### Verified
+
+Seven breaks, each watched fail by name:
+
+| Broken                                              | What went red                                             |
+| --------------------------------------------------- | --------------------------------------------------------- |
+| Added a third shift-shaped table in a migration      | two unreviewed pairs, at 1.00 and 0.83                    |
+| Pointed a reviewed entry at a pair that is not one   | both halves: the real pair unreviewed, and the stale entry |
+| Raised the distinctive-column floor to 40            | only 0 of 345 tables compared; the check has gone blind    |
+| Made the CREATE TABLE terminator greedy              | parsing over-ran on user_roles                            |
+| Removed the check from verify:gates                  | is in the release chain rather than only on disk           |
+| Registered a pair the report does not flag           | the register and the report disagree, +2                   |
+| Softened the waiting verdict to read as resolved     | does not describe an unresolved duplicate as decided       |
+
+Adding it to `verify:gates` took the chain from 69 commands to 70, and
+`verify:doc-counts` failed on the three documents quoting the old figure -- which
+is the derived-count machinery working as intended.
+
+
 
 ### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
 
