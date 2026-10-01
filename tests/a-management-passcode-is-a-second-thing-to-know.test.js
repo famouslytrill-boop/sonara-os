@@ -60,6 +60,24 @@ describe("a management passcode is a second thing to know", () => {
       assert.equal(stored.startsWith("v1.scrypt."), true, "the format is versioned so a change is a readable failure");
     });
 
+    // CodeQL raised js/weak-password-hashing as high severity on the first
+    // version, which peppered before stretching: the passcode's first stop was
+    // HMAC-SHA-256, a deliberately fast hash, with scrypt further down. The
+    // security property was the same, and the reading was still fair -- "the
+    // slow part is elsewhere in this file" is not a property of the line, and
+    // moving the scrypt call would take the protection with it silently.
+    it("puts the passcode into scrypt first and nothing faster", () => {
+      const source = fs.readFileSync(path.join(__dirname, "..", "lib", "sonara-business-passcode.cjs"), "utf8");
+      assert.match(source, /crypto\.scryptSync\(String\(passcode \?\? ""\), salt/,
+        "the passcode no longer goes directly into scrypt");
+      assert.doesNotMatch(source, /createHmac\([^)]*\)\s*\.update\(\s*String\(passcode/,
+        "the passcode is being fed to an HMAC before it is stretched");
+      // And the pepper is still applied, over the digest. Without this the
+      // assertion above could be satisfied by dropping the pepper entirely.
+      assert.match(source, /createHmac\("sha256", passcodePepper\(key\)\)\.update\(stretched\)/,
+        "the pepper is no longer applied to the stretched digest");
+    });
+
     it("hashes the same passcode to different values, so two businesses sharing one are not visibly the same", () => {
       assert.notEqual(stored, passcode.hashPasscode(GOOD, KEY), "a salt per row");
     });
@@ -281,6 +299,10 @@ describe("a management passcode is a second thing to know", () => {
         getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
         getEnv: () => key,
         getCookie: () => cookie,
+        // Supplied explicitly: the module refuses rather than passing through when
+        // no limiter is available, so a test that wants to reach a handler has to
+        // say so.
+        createRateLimiter: () => (req, res, next) => next(),
         isProductionEnvironment: () => false
       });
       // One route behind the gate, standing in for the pay-period pages.
@@ -363,7 +385,8 @@ describe("a management passcode is a second thing to know", () => {
         getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
         getSupabaseServerConfig: () => ({ ok: false }),
         getEnv: () => "k".repeat(64),
-        getCookie: () => ""
+        getCookie: () => "",
+        createRateLimiter: () => (req, res, next) => next()
       });
       app.get("/guarded", authenticate, registered.requireManagementUnlock, (req, res) =>
         res.status(200).json({ ok: true, state: req.sonaraManagementUnlock?.state }));
@@ -382,12 +405,38 @@ describe("a management passcode is a second thing to know", () => {
         getCustomerPrimaryOrganization: async () => ({ ok: false }),
         getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
         getEnv: () => "k".repeat(64),
-        getCookie: () => ""
+        getCookie: () => "",
+        createRateLimiter: () => (req, res, next) => next()
       });
       app.get("/guarded", authenticate, registered.requireManagementUnlock, (req, res) => res.status(200).json({ ok: true }));
       const response = await request(app).get("/guarded").set("accept", "application/json");
       assert.equal(response.status, 503);
       assert.equal(response.body.code, "no_organization");
+    });
+
+    // The fallback was `(req, res, next) => next()`, so a deployment that forgot
+    // to pass createRateLimiter served an unthrottled passcode-guessing endpoint
+    // while every line of the module still read as rate-limited. The
+    // five-wrong-answers lockout is not a substitute: it counts per credential,
+    // so it bounds guesses against one business rather than requests from one
+    // caller across all of them.
+    it("refuses to serve the passcode endpoints with no rate limiter at all", async () => {
+      const app = express();
+      app.use(express.json());
+      const authenticate = (req, res, next) => { req.sonaraUser = { id: USER_ID }; return next(); };
+      registerSecurityRoutes(app, {
+        requireBusinessManager: authenticate,
+        getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+        getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+        getEnv: () => "k".repeat(64),
+        getCookie: () => ""
+        // createRateLimiter deliberately absent.
+      });
+      for (const route of ["/passcode", "/unlock", "/lock"]) {
+        const response = await request(app).post(`${SECURITY}${route}`).set("accept", "application/json").send({ passcode: GOOD });
+        assert.equal(response.status, 503, `${route} was served without a rate limiter`);
+        assert.equal(response.body.code, "rate_limiter_unavailable");
+      }
     });
 
     it("refuses when the credential cannot be read, rather than reading the failure as no passcode", async () => {
@@ -523,7 +572,11 @@ describe("a management passcode is a second thing to know", () => {
         getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
         getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
       };
-      const security = registerSecurityRoutes(app, { ...shared, getEnv: () => "k".repeat(64), getCookie: () => cookie, isProductionEnvironment: () => false });
+      const security = registerSecurityRoutes(app, { ...shared, getEnv: () => "k".repeat(64), getCookie: () => cookie,
+        // Supplied explicitly: the module refuses rather than passing through when
+        // no limiter is available, so a test that wants to reach a handler has to
+        // say so.
+        createRateLimiter: () => (req, res, next) => next(), isProductionEnvironment: () => false });
       // The same composition server.js uses, kept here so the two cannot drift
       // apart silently.
       const chained = (req, res, next) => shared.requireBusinessManager(req, res, (error) =>

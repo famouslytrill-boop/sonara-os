@@ -67,10 +67,38 @@ the credential row could not be read, the verifying key is not configured, and
 the credential is locked out. Reading a failed database call as "this business has
 no passcode" would be a way through the gate by breaking something.
 
+### What CodeQL caught that the tests did not
+
+The first push raised four high-severity alerts, and two of them were fair.
+
+`js/weak-password-hashing`, twice: the construction peppered **before**
+stretching -- `scrypt(HMAC(pepper, passcode), salt)` -- so the passcode's first
+stop was HMAC-SHA-256, a deliberately fast hash. The security property was the
+same either way, and the reading was still right: "the slow part is further down
+this file" is a property of the file rather than of the line, and whoever next
+moved the `scryptSync` call would take the protection with it and nothing would
+say so. It is now `HMAC(pepper, scrypt(passcode, salt))` -- the passcode goes
+straight into scrypt, the pepper is applied over the digest, which is the
+construction OWASP describes for a pepper held outside the database.
+
+`js/missing-rate-limiting`, twice, on the two handlers that verify a passcode.
+The limiter was attached but its fallback was `(req, res, next) => next()`, so a
+deployment that forgot to pass `createRateLimiter` would have served an
+unthrottled passcode-guessing endpoint while every line of the module still read
+as rate-limited. The fallback now refuses, and `/lock` is throttled too. The
+five-wrong-answers lockout was never a substitute: it counts per credential, so
+it bounds guesses against one business rather than requests from one caller
+across all of them.
+
+Also corrected: `EXPECTED_FILES` in `scripts/verify-proprietary-notice.mjs` said
+328 against 330. It passed locally and failed in CI because the script enumerates
+tracked files, and the two new ones were still untracked when the chain was run.
+Run the chain after `git add`, not before.
+
 ### Verified
 
-48 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
-falsified before being trusted. Six breaks, each caught by name:
+57 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
+falsified before being trusted. Twelve breaks, each caught by name:
 
 | Broken                                               | Test that went red                                        |
 | ---------------------------------------------------- | --------------------------------------------------------- |
@@ -80,8 +108,14 @@ falsified before being trusted. Six breaks, each caught by name:
 | Reintroduced the Promise bug                          | accepts an ordinary phrase, +5 others                      |
 | Verified the passcode before checking the lockout     | refuses to unlock while locked                             |
 | Removed the "nothing is protected" wording            | says plainly that nothing is protected when no passcode is set |
+| Removed the `service_role` grant                      | the migration's own assertion, against real PostgreSQL     |
+| Added an RLS policy to the credential table           | likewise                                                   |
+| Pointed the smoke probe at a typo                     | `/business-builder/owner/security` is not served            |
+| Went back to peppering before scrypt                  | puts the passcode into scrypt first and nothing faster      |
+| Dropped the pepper entirely                           | does not verify under a different pepper, +1                |
+| Restored the passthrough rate-limiter fallback        | refuses to serve the passcode endpoints with no rate limiter |
 
-All three touched files restored by copy-aside and `md5sum -c`, not
+Every touched file restored by copy-aside and `md5sum -c`, not
 `git checkout --`.
 
 One stale comment removed on the way past: the block above the pay-period and

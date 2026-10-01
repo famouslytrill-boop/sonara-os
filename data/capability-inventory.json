@@ -52494,7 +52494,7 @@
       },
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 205
+        "line": 218
       },
       "contractCompleteness": {
         "route": true,
@@ -153750,7 +153750,8 @@
         "reason": "nearest_registered_parent_page"
       },
       "accessMiddleware": [
-        "requireBusinessManager"
+        "requireBusinessManager",
+        "rateLimitMiddleware"
       ],
       "routeRegistry": null,
       "openApi": null,
@@ -153805,7 +153806,7 @@
       },
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 351
+        "line": 364
       },
       "contractCompleteness": {
         "route": true,
@@ -153884,7 +153885,7 @@
       },
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 231
+        "line": 244
       },
       "contractCompleteness": {
         "route": true,
@@ -153962,7 +153963,7 @@
       },
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 300
+        "line": 313
       },
       "contractCompleteness": {
         "route": true,
@@ -254949,7 +254950,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 205
+        "line": 218
       },
       "destination": {
         "route": "/business-builder/owner/security",
@@ -261793,7 +261794,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 351
+        "line": 364
       },
       "destination": {
         "route": "/business-builder/owner/security",
@@ -261822,7 +261823,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 231
+        "line": 244
       },
       "destination": {
         "route": "/business-builder/owner/security",
@@ -261854,7 +261855,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-business-security-routes.cjs",
-        "line": 300
+        "line": 313
       },
       "destination": {
         "route": "/business-builder/owner/security",

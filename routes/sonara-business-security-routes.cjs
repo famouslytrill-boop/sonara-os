@@ -73,6 +73,16 @@ module.exports = function registerBusinessSecurityRoutes(app, deps = {}) {
   const isProduction = typeof deps.isProductionEnvironment === "function"
     ? deps.isProductionEnvironment
     : () => String(process.env.NODE_ENV || "") === "production";
+  // Rate limiting is not optional on this module, and the fallback is a refusal
+  // rather than a passthrough.
+  //
+  // It was `: (req, res, next) => next()`, which is the fail-open shape
+  // CLAUDE.md is about: a deployment that forgot to pass `createRateLimiter`
+  // would serve an unthrottled passcode-guessing endpoint while every line of
+  // this file still read as rate-limited. The lockout after five wrong answers
+  // is a per-credential counter, not a per-caller one, so it is not a
+  // substitute: it bounds guesses against one business, and a limiter bounds
+  // requests from one caller across all of them.
   const limiter = typeof deps.createRateLimiter === "function"
     ? deps.createRateLimiter({
         name: "business.management_unlock",
@@ -82,7 +92,10 @@ module.exports = function registerBusinessSecurityRoutes(app, deps = {}) {
         subjectFrom: (req) => req.sonaraUser?.id || req.sonaraAccess?.user?.id,
         getSupabaseServerConfig: deps.getSupabaseServerConfig
       })
-    : (req, res, next) => next();
+    : (req, res) => {
+        if (wantsHtml(req)) return res.redirect(303, `${SECURITY_PATH}?problem=rate_limiter_unavailable`);
+        return res.status(503).json({ ok: false, code: "rate_limiter_unavailable", service: "business_security" });
+      };
 
   async function scope(req) {
     const config = getConfig();
@@ -348,7 +361,7 @@ module.exports = function registerBusinessSecurityRoutes(app, deps = {}) {
   // Locking again, deliberately
   // ---------------------------------------------------------------------------
 
-  app.post(`${SECURITY_PATH}/lock`, requireBusinessManager, async (req, res) => {
+  app.post(`${SECURITY_PATH}/lock`, requireBusinessManager, limiter, async (req, res) => {
     clearUnlockCookie(res);
     if (!wantsHtml(req)) return res.status(200).json({ ok: true });
     return res.redirect(303, `${SECURITY_PATH}?locked=1`);
@@ -496,6 +509,7 @@ function problemFrom(req) {
     unreadable_lock: "Unlocking is closed for now.",
     no_passcode_set: "There is no management passcode on this business yet. Set one below.",
     passcode_key_missing: "This deployment cannot store or check a passcode yet. Nothing has changed.",
+    rate_limiter_unavailable: "This deployment cannot throttle passcode attempts yet, so the passcode pages are closed. Nothing has changed.",
     credential_unreadable: "We could not reach your security settings just now. Nothing has changed.",
     unlock_expired: "Your unlock ran out. Enter your passcode to carry on.",
     unlock_invalid: "This device is not unlocked. Enter your passcode to carry on.",
