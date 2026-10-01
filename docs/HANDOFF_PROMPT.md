@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3036 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3039 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 138 migrations, 147 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 139 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 412 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 413 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,181 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 23 most recent entries of 412 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 22 most recent entries of 413 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - Work that comes round again, and a table queried for weeks with nothing checking it
+
+A business runs on recurring work: open, close, the weekly deep clean, the monthly
+stock count. None of it could be expressed. `employee_tasks` has existed since
+migration 013 and holds one-off work only, and on the morning of 1 October exactly
+one route wrote to it -- `routes/sonara-last9-routes.cjs`, one task at a time,
+by hand.
+
+`supabase/migrations/20261001160000_work_that_comes_round_again.sql` adds **one**
+table, `business_recurring_tasks`, the template. The occurrences it produces are
+rows in `employee_tasks`, which `/staff/tasks` already serves, so an employee sees
+recurring work on the page they already use. That mirrors `recurring_invoices` ->
+`customer_invoices` deliberately: a template table plus the product's own record
+table, rather than a parallel record table half the application does not know
+about. 138 migrations replay in order against an empty PostgreSQL 16.
+
+`lib/sonara-recurring-tasks.cjs` is the engine, pure, and imports `dateInMonth`,
+`parseDay` and `toIsoDay` from `lib/sonara-recurring-invoices.cjs` rather than
+restating them. The month-anchor trap -- "the 31st" clamping to the 28th in
+February and then walking three days earlier for ever if you step from the clamped
+result -- is solved once there and reused. What is *not* shared is the cadence set:
+this one has `daily`, and adding that to the invoice engine would widen the money
+path to serve a cleaning rota.
+
+### Copying the invoice rule to tasks was a bug, and a probe found it
+
+The invoice engine refuses to catch up: one run, one period, dated the day it was
+due. Written literally into tasks that is worse than catching up. A daily checklist
+three weeks behind then needs **twenty-one presses**, each producing a task for a
+day that has gone -- catch-up by repetition, which is the thing the invoice engine
+refuses in one place and would have reintroduced in another.
+
+So `latestDue` fast-forwards: one press, one task, for the most recent occurrence
+that has actually fallen due, with the number skipped **reported** rather than
+swallowed ("20 earlier occurrences were passed over rather than queued up"). It
+fast-forwards through real occurrences rather than jumping to today, so a weekly job
+stays on its weekday and a monthly one stays on its anchor. Past
+`FAST_FORWARD_LIMIT` (4,000 occurrences, about eleven years of daily work) it
+refuses with a reason instead of returning a date that is not actually the latest.
+
+**The first version of the test for this could not fail on the bug it named.**
+"creates one task, not one per day missed" asserted the count, and one press writes
+one task whether the engine fast-forwards or steps a single occurrence. Found by
+breaking the engine and watching the test stay green; it now asserts the day on the
+task as well.
+
+Broken to prove the rest: moving `last_issued_on` before the task write (1 test
+red), stepping one occurrence instead of fast-forwarding (7 red), dropping the
+`organization_id` filter from the switch-off PATCH (2 red), and rendering the empty
+state on a failed read (1 red). The migration's own assertions were proven against
+real PostgreSQL by removing the `select` grant ("service_role cannot read ...") and
+by adding a `delete` grant ("service_role can delete ... no delete path was meant
+to exist").
+
+### employee_tasks had been queried in production with nothing checking it
+
+Adding the feature surfaced this, and it is the recurring defect again.
+`scripts/verify-supabase-contract.mjs` scans the runtime for table references with
+five patterns: a table named at the point of use, or through a `*_TABLE` constant.
+`routes/sonara-last9-routes.cjs` reads `supabaseList(config, "employee_tasks", ...)`
+-- the table as a helper's **second argument**, which none of the five match. So
+`employee_tasks` was queried by live code and checked against no contract at all,
+and what surfaced it was an unrelated new module happening to declare the name as a
+constant.
+
+`employee_tasks` is now in `BUSINESS_OPERATIONS_TABLES`, whose migration set already
+names the migration that creates it. **Four more tables are in the same state right
+now** -- `business_vertical_templates`, `employee_announcements`, `location_events`
+and `motion_sensor_events` -- measured by adding the missing pattern and reading
+what failed. They are not fixed here because each belongs to a different extension
+set and needs its creating migration named, which is its own change rather than a
+rider on a product feature. The missing pattern is one regex; the contracting is the
+work.
+
+### A validation sentence crossing a redirect is a page an attacker can write
+
+Found by reading the diff rather than by a check. The first version put the joined
+validation sentences into the query string -- `?problem=invalid:Give+this+a+name`
+-- and the page printed them. `brandCard` escapes, so it was never script. It was
+worse-shaped than script: a crafted link would have put **plausible text in the
+application's own voice, inside a card, on the real page, at the real address**,
+read by the signed-in owner. "Your account is suspended, ring 0800 123 4567" would
+have looked exactly like a product message.
+
+So the wire carries short codes, `PROBLEMS` in `lib/sonara-recurring-tasks.cjs`
+holds the sentences, and `problemSentences` drops any code it did not write. One
+sentence that interpolated the submitted cadence was reworded so it interpolates
+nothing. Proven by replacing the lookup with an echo of the parameter: two tests
+red, including the one that sends `?why=Your+account+is+suspended...` and asserts
+the page does not contain it.
+
+### Three outcomes on the run button, not two
+
+Also found by reading the diff. A task written whose template could not be advanced
+was counted as a refusal, so the page could report **"0 tasks created" while a task
+sat on somebody's list** -- wrong in the direction that makes a business press the
+button again and get it twice. It is now counted and reported on its own
+(`problem=unrecorded`), with a card that says pressing again would create it a
+second time. Proven by folding it back into the refusal count: one test red.
+
+Two more small findings from the same read. A day of the month typed as `01` was
+stored verbatim and refused by the column's check constraint -- a save that failed
+in the database, so no validation code was ever produced and the page said "that did
+not save" with nothing to read; the validator now canonicalises through `Number()`
+and a test walks all 31 days in both spellings against the column's own pattern. And
+that constraint was written as a regex **and** a cast to integer joined by `and`;
+PostgreSQL does not promise which arm it evaluates first, so a non-numeric value
+could raise `invalid input syntax for type integer` from a different layer instead of
+a constraint violation. It is one regex now.
+
+### Two caps that would have been silent, and a notice that was already false
+
+The page read 200 templates and the run button read 200 templates, and neither said
+when there were more. Both now read one past the cap, which is the only thing that
+makes a cap detectable, and the run reports `unseen=1` rather than returning a
+confident count of what it created.
+
+The page's truncation notice was already wrong before anybody hit it: it said the
+rest "still run and are still counted when you press the button". The button reads
+the newest first under the same cap, so they do not. A notice that is wrong is worse
+than no notice -- it is what the next person reads instead of checking. It now says
+the ones not shown are also not issued, and that pressing again reads the same ones
+so switching some off is what brings the rest into view.
+
+The employee cap was the one with teeth. `employeeName` answers "somebody no longer
+on file" for an id it cannot find, and past 500 employees that sentence would have
+been printed **about people who are still employed**, on the strength of a read that
+was cut short -- a definite statement about a business's own staff. Truncation now
+changes what that fallback says rather than only adding a notice somebody might not
+connect to the names above it. Both proven by breaking them: one test red each.
+
+One of the assertions written for this was a tautology that could never fail, caught
+while re-reading. It is gone.
+
+### A comment where a table name goes removes the query from the tenant audit
+
+Caught by the release chain, and worth writing down because it is invisible on
+review. `scripts/report-tenant-scoped-queries.mjs` works out which table a `rest()`
+call touches by reading the argument after `rest(config,`. A comment placed in that
+position -- between the arguments, which reads perfectly well -- **is** what the
+reader finds, so the call joined its blind spot and the recorded count of
+unresolvable calls went from 40 to 41. The audit said so by name and refused.
+
+The query was still correctly scoped; what stopped was anything checking that. The
+comment is above the call now. A comment is not a table name, and putting it where a
+table name goes is how a query quietly stops being read.
+
+### What this deliberately does not do
+
+**It is not on a timer.** `POST /api/agents/schedule/tick` exists and its menu is
+restricted to the self-serve actions -- the ones that read and report. Creating work
+against somebody's day is a change, so the page shows what is due and the business
+presses the button, which is the same answer
+`routes/sonara-recurring-invoice-routes.cjs` gives about its own. The arithmetic does
+not care who calls it, so putting it on a timer later is a registration and not a
+rewrite.
+
+**There is no delete.** Switching a template off is an update, and the migration
+asserts that `service_role` has no `DELETE` privilege so the claim cannot quietly
+stop being true.
+
+**The due date is midday UTC, and the day is also written on the task in words.**
+`employee_tasks.due_at` is `timestamptz` and an occurrence is a calendar day.
+Midnight UTC is the wrong day across the whole western hemisphere; midday is right
+from UTC-12 through UTC+11 and a day late in UTC+12 and east, which is New Zealand,
+Fiji and Kiribati. No hour covers all of them -- the inhabited offsets span
+twenty-six hours and a day has twenty-four -- so `buildTask` writes "Scheduled for
+2026-10-05." into the description, which is right everywhere.
+
 
 ### 2026-10-01 - A second copy of a table is now found by a check
 
@@ -2011,199 +2181,3 @@ Verified: `verify:launch` exit 0, tests 5,111 -> 5,114.
 `tests/the-handoff-counts-what-mocha-runs.test.js` caught the addition first
 ("the handoff says 391 test files; mocha's own spec matches 392"), which is that
 test doing its job; regenerating the handoff carried the count.
-
-
-
-### 2026-09-27 - Delete archive/, and the twelve exemptions written for it
-
-`archive/` held 646 tracked files -- `frontend/`, `my-app/`, `packages/`,
-`src/`, `sonara-industries/` -- moved aside on 2026-07-27 as HIGH-3 of the
-engineering audit rather than removed. Its README said the problem being solved
-was that "searches returned dead code, and the tree implied a Next.js
-application that is not deployed". Moving it did not solve that; the files were
-still there to be searched. `git log --follow` reaches every one of them after
-a delete, so the guarantee the README actually made -- "nothing here is
-deleted" in the sense that history survives -- is unaffected.
-
-## The part that mattered was not the delete
-
-Twelve places told a gate to skip that tree. Removing the tree and leaving them
-would have left twelve reasons describing nothing, which is shape 5 in
-`.claude/skills/checks-that-cannot-lie`: a stale reason is worse than no reason,
-because it is what the next person reads instead of checking. All twelve went
-with it -- `SKIP_DIRECTORIES` in `typecheck.mjs`, the `rel.startsWith` branch in
-`verify-coverage-floor.mjs`, the tracked-file filters in
-`verify-dependency-claims.mjs` and `verify-proprietary-notice.mjs`, the filter
-plus three message strings in `verify-language-coverage-floors.mjs`,
-`SKIP_PREFIXES` in `verify-tracked-text-encoding.mjs`, `NOT_OURS` in
-`verify-source-licence.mjs`, the `parts` check in
-`verify-python-coverage-floor.py`, the `linguist-vendored` block in
-`.gitattributes`, and the ignore patterns in `.vercelignore` and
-`package.json`.
-
-Three things were kept deliberately, and the next person should not have to
-re-derive why:
-
-- **`docs/archive/` stays.** It holds `legacy-names.md`, which `AGENTS.md`
-  requires as the home for retired public names.
-- **The two doc-walkers keep their `entry.name !== "archive"` skip.** Both are
-  called on `docs/`, so that line skips `docs/archive/` and never touched the
-  root tree. Deleting it would have started reading retired records.
-- **`SPRINT_LOG.md` and `docs/audits/` keep their references.** They are
-  history. Rewriting history to match the present is how a repository forgets
-  why it did something.
-
-## How this was verified, rather than hoped
-
-Every gate already excluded the tree, which makes the change falsifiable:
-deleting it must leave every number identical. The baseline was taken on
-`0358225` before anything was touched, and the chain re-run after:
-
-| | before | after |
-|---|---|---|
-| tests passing | 5,111 | 5,111 |
-| chain commands | 62 | 62 |
-| proprietary-notice files | 326 | 326 |
-| UTF-8 tracked files | 1,797 | 1,797 |
-| languages | 6 (JS 928, SQL 138, Py 51, CSS 16, HTML 14, TS 11) | identical |
-| coverage floor | 326 files, 66,041 lines, 93.6% | identical |
-| python floor | 14 files, 1,564 lines, 54.2% | identical |
-| dependency claims | 48 across 40 files | identical |
-| countable doc claims | 19 | 19 |
-
-`pnpm run verify:launch` exits 0 on both. A number that had moved would have
-meant a gate was still reaching that tree through a path this change missed --
-none did.
-
-
-
-### 2026-09-22 - A Codex handoff for the method, not the state
-
-Asked for a handoff covering the skills, formulas, strategies and agents. The
-repository already had two handoffs and neither was this one, which is worth
-recording so a third does not get written by accident:
-
-- `docs/HANDOFF_PROMPT.md` is generated and says **what the repository is** —
-  live counts of tables and routes and tests, the safety rules quoted, the
-  recent sprint entries. Bounded to 128 KB so it can actually be pasted.
-- `docs/CODEX_TERMINAL_HANDOFF_2026-09-20.md` is dated and situational —
-  machine bootstrap, the model registry, priority lanes for that day.
-- `docs/AGENT_OPERATIONS.md` is 37 lines, and `docs/agents/` holds the
-  architecture and approval-policy documents.
-
-None of them said **how to work here**. That is now
-`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md`, 400 lines, with a `Review by`
-date because most of it quotes measurements.
-
-## What is in it that was not written down anywhere
-
-The defect shapes were in `.claude/skills/checks-that-cannot-lie/SKILL.md` as
-six. Two more have been earned since and are now stated:
-
-- **A pattern that matches prose as if it were code.** `select=*` counted 33
-  until comments were stripped; the true figure is 21, and five of the extras
-  were comments explaining why a file *avoids* `select=*`.
-- **A check whose own bookkeeping hides its subjects.**
-  `report-unreferenced-modules` reported all thirteen of its accounted entries
-  as stale on the run that introduced them, because naming a module in its
-  register names it in a file under `scripts/`, which it searches.
-
-The falsification procedure is written out with the traps in it rather than as
-an instruction to falsify: copy aside rather than `git checkout --`, read the
-exit code before a pipe and not after, falsify a two-sided register in both
-directions, do not pick a subject that already has the property you are trying
-to remove, prove absence by mtime because a restore rewrites a file even when
-the bytes match, and two green runs is not evidence.
-
-The formulas are collected for the first time: the seven paid-capability margin
-floors with price and floor per unit, the market-opportunity dimensions and the
-75/55/35/0 bands, the coverage floor and its blind-check minimums, the handoff
-budget, and the MPEG Layer I versus Layer II/III frame-length formulas.
-
-The agent contract is stated as the code reads it rather than as prose about it:
-seven categories with the reason each carries, seven unattended actions and why
-each is safe, `BREAKER_FAILURES = 3` within `BREAKER_WINDOW = 10`, and the
-actual return of `classifyAction` on an unregistered action -- category
-`unrecognised`, `requiresOwnerApproval: true`.
-
-## The handoff's own count claim exposed a blind spot in the count gate
-
-CI failed the new document on `says 58 commands; verify:launch chains 59`. Main
-had gained `verify:ts-contracts` (`tsc -p tsconfig.contracts.json --noEmit`) in
-PR #341 while this branch was open, which is the merge hazard this file keeps
-recording, caught working. `pnpm run fix:doc-counts` was the whole repair, and
-the re-derived figures held everywhere else: 296 shipped source files, 269
-register targets, 36 reciprocal, 7 margin capabilities. Two moved and were
-corrected by measurement -- 363 to 366 test files, 4,911 to 4,923 tests, and the
-coverage floor from 58,828 to 58,847 countable lines.
-
-**The interesting part is what `fix:doc-counts` did not fix.** The same document
-said "**58 chain commands**" in a second sentence, and that line went out
-unchallenged: the pattern allowed `N verification commands` but not `N chain
-commands`, so a chain-count claim in the most natural phrasing anybody would
-reach for was invisible. `--check` passed on 20 claims without looking at it,
-and only the *other* sentence in the same file turned CI red.
-
-So the qualifier is now `(?:verification |chain |release )?` in both the reading
-pattern and the rewriting one. The claim count went 20 to 21 immediately, which
-is the measurement that says the widening was not decorative. Falsified by
-planting "41 chain commands": `says 41 chain commands; verify:launch chains 59`,
-exit 1.
-
-A pattern that misses a real claim is the same defect as a check that measures
-nothing, one level down -- and this one was found because a document I wrote
-happened to phrase a claim the way a person would rather than the way the regex
-expected. The heading in that document said "The six defect shapes" over a list
-of eight, too; corrected to eight.
-
-## And the observability case, on the third attempt
-
-Writing the handoff's falsification section while the same test failed a third
-time was a useful coincidence.
-
-`tests/observability.test.js` asserts that a plaintext OTLP endpoint refused
-under `NODE_ENV=production` is **accepted** outside it -- without which "refused
-in production" is indistinguishable from a URL parser that rejects `http://`
-everywhere.
-
-- **Attempt 1** started the real SDK inline, bounded the shutdown flush, and
-  unregistered the globals afterwards. 127ms standalone, green in the release
-  chain twice, then timed out at 15s inside the whole suite.
-- **Attempt 2** moved the SDK start into a hard-killed child process. It timed
-  out too, and for a reason of my own making: the child's timeout was 20s
-  against mocha's 15s per-test limit, so mocha killed the test before the
-  child's own guard could fire. Raising one number would have papered over the
-  real problem.
-- **Attempt 3** proves the decision instead of the SDK. The endpoint check
-  happens before the SDK is constructed, so blocking `@opentelemetry/sdk-node`
-  from loading sends `startTelemetry` down its catch path and it returns
-  `start_failed` rather than `invalid_configuration`. **That difference is the
-  property**: the endpoint was accepted outside production and the start failed
-  afterwards, for the reason the test arranged. 7ms, no network, no global
-  provider, nothing to clean up, and the case asserts the `require` patch did
-  not outlive it.
-
-The lesson is not about OpenTelemetry. Two attempts went into making a heavy
-side effect safe, when the assertion never needed the side effect -- it needed
-the decision that precedes it. Worth asking earlier: what is the smallest thing
-that would be false if this rule were wrong?
-
-## One thing it deliberately separates
-
-`lib/sonara-agent-skill-strategies.cjs` exports 5 `AGENT_PATTERNS`, 11
-`SKILL_STRATEGIES` and 10 `BUSINESS_AI_SKILLS`. Those are **product surfaces**,
-not instructions to an assistant, and the document says so -- reading them as
-working procedure is exactly the kind of category error that would have an agent
-treat a catalogue entry as an authority.
-
-## Verified rather than asserted
-
-Every path the document names was checked to exist, and the numbers were read
-out of the repository at the time of writing rather than recalled: the margin
-floors from `verify:margins`, the scoring bands from the registry module, the
-authority constants by requiring the module, the skill line counts by `wc -l`,
-and 36 of 269 register records carrying a reciprocal licence from
-`verify:reciprocal-licences`. The doc gates then held it: `verify:doc-counts`
-went from 19 countable claims to 20 and the new one matches,
-`verify:doc-script-paths` resolves 84 paths across 426 documents, and
-`report-stale-claims` accepted it because it carries a review date.

@@ -30,6 +30,7 @@ const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migration
 // is named here. See scripts/verify-supabase-contract.mjs, which keeps the same
 // list.
 const managementCredentialMigrationPath = path.join(root, "supabase", "migrations", "20261001150000_a_business_owner_gets_a_second_thing_to_know.sql");
+const recurringTaskMigrationPath = path.join(root, "supabase", "migrations", "20261001160000_work_that_comes_round_again.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
@@ -37,7 +38,10 @@ describe("Supabase database contract", () => {
     // metered capabilities actually be charged for.
     // 147 since 1 October 2026: business_management_credentials, the business
     // owner's management passcode.
-    assert.equal(DATABASE_TABLES.length, 147);
+    // 147 since 1 October 2026: business_recurring_tasks, the template behind
+    // work that comes round again. Its occurrences are employee_tasks rows, so
+    // one table was added rather than two.
+    assert.equal(DATABASE_TABLES.length, 148);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -90,7 +94,7 @@ describe("Supabase database contract", () => {
   });
 
   it("keeps the readiness RPC service-only and verifies table RLS", () => {
-    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, usageLedgerMigrationPath, managementCredentialMigrationPath]
+    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, usageLedgerMigrationPath, managementCredentialMigrationPath, recurringTaskMigrationPath]
       .map((filePath) => fs.readFileSync(filePath, "utf8"))
       .join("\n")
       .toLowerCase();

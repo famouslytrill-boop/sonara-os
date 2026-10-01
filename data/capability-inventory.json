@@ -11,17 +11,17 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 859,
+    "routeOperationCount": 864,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 532,
+      "GET": 533,
       "PATCH": 10,
-      "POST": 314
+      "POST": 318
     },
     "workspaceCount": 12,
-    "declaredPageCount": 286,
+    "declaredPageCount": 287,
     "workspaceRouteCounts": {
-      "business_builder": 326,
+      "business_builder": 331,
       "business_builder_agent_ops": 7,
       "creator_studio": 119,
       "cross_workspace_formulas": 5,
@@ -34,8 +34,8 @@
       "sonara_shared_api": 109
     },
     "actionDestinationCounts": {
-      "exact": 328,
-      "form_reference": 292,
+      "exact": 329,
+      "form_reference": 296,
       "machine_ingress": 2,
       "parent_route": 57,
       "route_pair": 96,
@@ -46,28 +46,28 @@
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 137,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 180,
-      "needs_explicit_data_contract": 279
+      "handler_source_table_reference": 184,
+      "needs_explicit_data_contract": 280
     },
     "routesUsingWorkspaceHomeFallback": 84,
-    "formActionLinkCount": 53,
+    "formActionLinkCount": 57,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 303,
-    "databaseTableCount": 333,
-    "databaseContractCoreTableCount": 147,
-    "queriedTableCount": 313,
+    "openApiApiOperationCount": 307,
+    "databaseTableCount": 334,
+    "databaseContractCoreTableCount": 148,
+    "queriedTableCount": 314,
     "neverQueriedTableCount": 20,
-    "migrationCount": 138,
+    "migrationCount": 139,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 22,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 279,
+    "routeDataContractsNeedingExplicitReview": 280,
     "routeDataReviewByMethod": {
-      "GET": 194,
+      "GET": 195,
       "POST": 85
     },
     "routeDestinationReviewByWorkspace": {
@@ -120,8 +120,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 326,
-      "registeredPageCount": 93,
+      "routeCount": 331,
+      "registeredPageCount": 94,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -197,6 +197,7 @@
         "/business-builder/owner/recipes/:recordId",
         "/business-builder/owner/recipes/:recordId/edit",
         "/business-builder/owner/recurring",
+        "/business-builder/owner/recurring-work",
         "/business-builder/owner/research-sources",
         "/business-builder/owner/research-sources/:recordId/edit",
         "/business-builder/owner/sales",
@@ -354,6 +355,7 @@
             "/business-builder/owner/receivables",
             "/business-builder/owner/recipes",
             "/business-builder/owner/recurring",
+            "/business-builder/owner/recurring-work",
             "/business-builder/owner/research-sources",
             "/business-builder/owner/sales",
             "/business-builder/owner/schedules",
@@ -1855,7 +1857,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1444
+        "line": 1447
       },
       "contractCompleteness": {
         "route": true,
@@ -1961,7 +1963,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 812
+        "line": 815
       },
       "contractCompleteness": {
         "route": true,
@@ -2067,7 +2069,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 969
+        "line": 972
       },
       "contractCompleteness": {
         "route": true,
@@ -2171,7 +2173,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -2275,7 +2277,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -2387,7 +2389,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1159
+        "line": 1162
       },
       "contractCompleteness": {
         "route": true,
@@ -3449,7 +3451,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1176
+        "line": 1179
       },
       "contractCompleteness": {
         "route": true,
@@ -3664,7 +3666,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1293
+        "line": 1296
       },
       "contractCompleteness": {
         "route": true,
@@ -4669,7 +4671,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1433
+        "line": 1436
       },
       "contractCompleteness": {
         "route": true,
@@ -4990,7 +4992,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1432
+        "line": 1435
       },
       "contractCompleteness": {
         "route": true,
@@ -5550,7 +5552,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1431
+        "line": 1434
       },
       "contractCompleteness": {
         "route": true,
@@ -15740,7 +15742,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1256
+        "line": 1259
       },
       "contractCompleteness": {
         "route": true,
@@ -16218,7 +16220,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1475
+        "line": 1478
       },
       "contractCompleteness": {
         "route": true,
@@ -16778,7 +16780,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1474
+        "line": 1477
       },
       "contractCompleteness": {
         "route": true,
@@ -22461,7 +22463,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1499
+        "line": 1502
       },
       "contractCompleteness": {
         "route": true,
@@ -23021,7 +23023,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1498
+        "line": 1501
       },
       "contractCompleteness": {
         "route": true,
@@ -26176,7 +26178,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1521
+        "line": 1524
       },
       "contractCompleteness": {
         "route": true,
@@ -30775,7 +30777,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1529
+        "line": 1532
       },
       "contractCompleteness": {
         "route": true,
@@ -31740,7 +31742,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 921
+        "line": 924
       },
       "contractCompleteness": {
         "route": true,
@@ -31855,7 +31857,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1242
+        "line": 1245
       },
       "contractCompleteness": {
         "route": true,
@@ -31969,7 +31971,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1129
+        "line": 1132
       },
       "contractCompleteness": {
         "route": true,
@@ -32075,7 +32077,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1103
+        "line": 1106
       },
       "contractCompleteness": {
         "route": true,
@@ -32181,7 +32183,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1089
+        "line": 1092
       },
       "contractCompleteness": {
         "route": true,
@@ -32291,7 +32293,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1323
+        "line": 1326
       },
       "contractCompleteness": {
         "route": true,
@@ -32679,7 +32681,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1667
+        "line": 1670
       },
       "contractCompleteness": {
         "route": true,
@@ -32785,7 +32787,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -33170,7 +33172,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1325
+        "line": 1328
       },
       "contractCompleteness": {
         "route": true,
@@ -33880,7 +33882,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -34164,7 +34166,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -34270,7 +34272,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1681
+        "line": 1684
       },
       "contractCompleteness": {
         "route": true,
@@ -34637,7 +34639,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1364
+        "line": 1367
       },
       "contractCompleteness": {
         "route": true,
@@ -34743,7 +34745,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -34943,7 +34945,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1394
+        "line": 1397
       },
       "contractCompleteness": {
         "route": true,
@@ -35049,7 +35051,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -35155,7 +35157,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1699
+        "line": 1702
       },
       "contractCompleteness": {
         "route": true,
@@ -35355,7 +35357,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1347
+        "line": 1350
       },
       "contractCompleteness": {
         "route": true,
@@ -35551,7 +35553,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -35657,7 +35659,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -35763,7 +35765,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -50024,6 +50026,101 @@
       "action": false
     },
     {
+      "id": "GET /business-builder/owner/recurring-work",
+      "method": "GET",
+      "route": "/business-builder/owner/recurring-work",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/recurring-work",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": "Recurring Work",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [
+          "done",
+          "problem",
+          "refused",
+          "unrecorded",
+          "unseen",
+          "why"
+        ],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_employee_profiles",
+          "business_recurring_tasks",
+          "employee_tasks"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-recurring-task-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-recurring-task-routes.cjs",
+        "line": 177
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /business-builder/owner/research-sources",
       "method": "GET",
       "route": "/business-builder/owner/research-sources",
@@ -59717,7 +59814,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -60165,7 +60262,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -60271,7 +60368,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -60377,7 +60474,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -63243,7 +63340,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 876
+        "line": 879
       },
       "contractCompleteness": {
         "route": true,
@@ -63347,7 +63444,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -63453,7 +63550,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1667
+        "line": 1670
       },
       "contractCompleteness": {
         "route": true,
@@ -64638,7 +64735,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -65034,7 +65131,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -65324,7 +65421,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -65430,7 +65527,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -65632,7 +65729,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1681
+        "line": 1684
       },
       "contractCompleteness": {
         "route": true,
@@ -67534,7 +67631,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -67640,7 +67737,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1699
+        "line": 1702
       },
       "contractCompleteness": {
         "route": true,
@@ -67836,7 +67933,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -67942,7 +68039,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -68989,7 +69086,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -69095,7 +69192,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -69970,7 +70067,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -70076,7 +70173,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -70182,7 +70279,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -71087,7 +71184,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -74747,7 +74844,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1201
+        "line": 1204
       },
       "contractCompleteness": {
         "route": true,
@@ -74942,7 +75039,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1024
+        "line": 1027
       },
       "contractCompleteness": {
         "route": true,
@@ -75046,7 +75143,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -75215,7 +75312,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1539
+        "line": 1542
       },
       "contractCompleteness": {
         "route": true,
@@ -75661,7 +75758,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1667
+        "line": 1670
       },
       "contractCompleteness": {
         "route": true,
@@ -75767,7 +75864,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -76350,7 +76447,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -76552,7 +76649,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -77370,7 +77467,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1681
+        "line": 1684
       },
       "contractCompleteness": {
         "route": true,
@@ -77748,7 +77845,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -77854,7 +77951,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -78050,7 +78147,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1699
+        "line": 1702
       },
       "contractCompleteness": {
         "route": true,
@@ -78282,7 +78379,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -78478,7 +78575,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -78584,7 +78681,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -79798,7 +79895,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -79904,7 +80001,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -80194,7 +80291,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "contractCompleteness": {
         "route": true,
@@ -82259,7 +82356,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1006
+        "line": 1009
       },
       "contractCompleteness": {
         "route": true,
@@ -82698,7 +82795,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -82793,7 +82890,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -82888,7 +82985,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -82983,7 +83080,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83078,7 +83175,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83173,7 +83270,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83268,7 +83365,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83363,7 +83460,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83458,7 +83555,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83553,7 +83650,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83648,7 +83745,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83743,7 +83840,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83838,7 +83935,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -83933,7 +84030,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1577
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -84041,7 +84138,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1075
+        "line": 1078
       },
       "contractCompleteness": {
         "route": true,
@@ -84221,7 +84318,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1138
+        "line": 1141
       },
       "contractCompleteness": {
         "route": true,
@@ -84318,7 +84415,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -84683,7 +84780,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1555
+        "line": 1558
       },
       "contractCompleteness": {
         "route": true,
@@ -84778,7 +84875,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1539
+        "line": 1542
       },
       "contractCompleteness": {
         "route": true,
@@ -85201,7 +85298,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 931
+        "line": 934
       },
       "contractCompleteness": {
         "route": true,
@@ -85305,7 +85402,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -86179,7 +86276,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -86467,7 +86564,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1539
+        "line": 1542
       },
       "contractCompleteness": {
         "route": true,
@@ -88019,7 +88116,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 988
+        "line": 991
       },
       "contractCompleteness": {
         "route": true,
@@ -88218,7 +88315,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1304
+        "line": 1307
       },
       "contractCompleteness": {
         "route": true,
@@ -88707,7 +88804,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1079
+        "line": 1082
       },
       "contractCompleteness": {
         "route": true,
@@ -89771,7 +89868,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -90096,7 +90193,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1581
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -90191,7 +90288,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1539
+        "line": 1542
       },
       "contractCompleteness": {
         "route": true,
@@ -91610,7 +91707,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1439
+        "line": 1442
       },
       "contractCompleteness": {
         "route": true,
@@ -94247,7 +94344,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1189
+        "line": 1192
       },
       "contractCompleteness": {
         "route": true,
@@ -95987,7 +96084,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1264
       },
       "contractCompleteness": {
         "route": true,
@@ -96340,7 +96437,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1263
+        "line": 1266
       },
       "contractCompleteness": {
         "route": true,
@@ -98825,7 +98922,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1434
+        "line": 1437
       },
       "contractCompleteness": {
         "route": true,
@@ -99101,7 +99198,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1383
+        "line": 1386
       },
       "contractCompleteness": {
         "route": true,
@@ -99636,7 +99733,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1418
+        "line": 1421
       },
       "contractCompleteness": {
         "route": true,
@@ -108565,6 +108662,630 @@
         "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/recurring-work",
+      "method": "POST",
+      "route": "/api/business/recurring-work",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/recurring-work",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "createRecurringTask",
+        "summary": "Set up work that comes round again - opening, closing, a weekly clean, a monthly count.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "responseRefs": [
+          {
+            "statusCode": 401,
+            "ref": "#/components/responses/Unauthorized"
+          },
+          {
+            "statusCode": 403,
+            "ref": "#/components/responses/Forbidden"
+          },
+          {
+            "statusCode": 503,
+            "ref": "#/components/responses/SetupRequired"
+          }
+        ],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "anchor_day",
+          "assigned_employee_id",
+          "cadence",
+          "description",
+          "ends_on",
+          "priority",
+          "starts_on",
+          "title"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "anchor_day",
+          "cadence",
+          "description",
+          "ends_on",
+          "priority",
+          "starts_on",
+          "title"
+        ],
+        "openApiBody": "#/components/requestBodies/JsonBody"
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "jsonFieldsObserved": [
+          "code",
+          "ok"
+        ],
+        "redirectTargetsObserved": [
+          "${PAGE}?problem=invalid&why=${enc(read.problems.join(",
+          "${PAGE}?problem=invalid&why=unknown_employee",
+          "${PAGE}?problem=not_saved"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_recurring_tasks"
+        ],
+        "candidateTables": [
+          "business_employee_profiles",
+          "business_recurring_tasks",
+          "employee_tasks"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_recurring_tasks",
+            "tableId": "table:business_recurring_tasks",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-recurring-task-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-recurring-task-routes.cjs",
+        "line": 319
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/recurring-work/disable",
+      "method": "POST",
+      "route": "/api/business/recurring-work/disable",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/recurring-work",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "disableRecurringTask",
+        "summary": "Switch off one recurring job so it stops producing tasks.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "responseRefs": [
+          {
+            "statusCode": 401,
+            "ref": "#/components/responses/Unauthorized"
+          },
+          {
+            "statusCode": 403,
+            "ref": "#/components/responses/Forbidden"
+          },
+          {
+            "statusCode": 503,
+            "ref": "#/components/responses/SetupRequired"
+          }
+        ],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "id"
+        ],
+        "openApiBody": "#/components/requestBodies/JsonBody"
+      },
+      "response": {
+        "kinds": [
+          "json-or-delegated"
+        ],
+        "statusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_recurring_tasks"
+        ],
+        "candidateTables": [
+          "business_employee_profiles",
+          "business_recurring_tasks",
+          "employee_tasks"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_recurring_tasks",
+            "tableId": "table:business_recurring_tasks",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-recurring-task-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-recurring-task-routes.cjs",
+        "line": 365
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/recurring-work/enable",
+      "method": "POST",
+      "route": "/api/business/recurring-work/enable",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/recurring-work",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "enableRecurringTask",
+        "summary": "Switch one recurring job back on.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "responseRefs": [
+          {
+            "statusCode": 401,
+            "ref": "#/components/responses/Unauthorized"
+          },
+          {
+            "statusCode": 403,
+            "ref": "#/components/responses/Forbidden"
+          },
+          {
+            "statusCode": 503,
+            "ref": "#/components/responses/SetupRequired"
+          }
+        ],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "id"
+        ],
+        "openApiBody": "#/components/requestBodies/JsonBody"
+      },
+      "response": {
+        "kinds": [
+          "json-or-delegated"
+        ],
+        "statusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_recurring_tasks"
+        ],
+        "candidateTables": [
+          "business_employee_profiles",
+          "business_recurring_tasks",
+          "employee_tasks"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_recurring_tasks",
+            "tableId": "table:business_recurring_tasks",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-recurring-task-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-recurring-task-routes.cjs",
+        "line": 366
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/recurring-work/run",
+      "method": "POST",
+      "route": "/api/business/recurring-work/run",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/recurring-work",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "runRecurringTasks",
+        "summary": "Turn every recurring job that is due into a task on the staff task list.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "responseRefs": [
+          {
+            "statusCode": 401,
+            "ref": "#/components/responses/Unauthorized"
+          },
+          {
+            "statusCode": 403,
+            "ref": "#/components/responses/Forbidden"
+          },
+          {
+            "statusCode": 503,
+            "ref": "#/components/responses/SetupRequired"
+          }
+        ],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonBody"
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          303,
+          401,
+          403,
+          503
+        ],
+        "jsonFieldsObserved": [
+          "code",
+          "ok"
+        ],
+        "redirectTargetsObserved": [
+          "${PAGE}?${outcome.toString()}",
+          "${PAGE}?problem=not_saved"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_recurring_tasks",
+          "employee_tasks"
+        ],
+        "candidateTables": [
+          "business_employee_profiles",
+          "business_recurring_tasks",
+          "employee_tasks"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_recurring_tasks",
+            "tableId": "table:business_recurring_tasks",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "employee_tasks",
+            "tableId": "table:employee_tasks",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "employee_tasks_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "employee_tasks_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "employee_tasks_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "employee_tasks_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-recurring-task-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-recurring-task-routes.cjs",
+        "line": 368
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "generic_openapi_body_contract"
       },
       "action": true
     },
@@ -118389,7 +119110,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1260
+        "line": 1263
       },
       "contractCompleteness": {
         "route": true,
@@ -119609,7 +120330,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1450
+        "line": 1453
       },
       "contractCompleteness": {
         "route": true,
@@ -120709,7 +121430,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1463
+        "line": 1466
       },
       "contractCompleteness": {
         "route": true,
@@ -126417,7 +127138,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1477
+        "line": 1480
       },
       "contractCompleteness": {
         "route": true,
@@ -127808,7 +128529,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1486
+        "line": 1489
       },
       "contractCompleteness": {
         "route": true,
@@ -139701,7 +140422,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 335
+        "line": 336
       },
       "contractCompleteness": {
         "route": true,
@@ -140031,7 +140752,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 334
+        "line": 335
       },
       "contractCompleteness": {
         "route": true,
@@ -140226,7 +140947,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1117
+        "line": 1120
       },
       "contractCompleteness": {
         "route": true,
@@ -140326,7 +141047,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1153
+        "line": 1156
       },
       "contractCompleteness": {
         "route": true,
@@ -140520,7 +141241,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1083
+        "line": 1086
       },
       "contractCompleteness": {
         "route": true,
@@ -141009,7 +141730,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1407
+        "line": 1410
       },
       "contractCompleteness": {
         "route": true,
@@ -160391,7 +161112,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 890
+        "line": 893
       },
       "contractCompleteness": {
         "route": true,
@@ -167082,7 +167803,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1147
+        "line": 1150
       },
       "contractCompleteness": {
         "route": true,
@@ -168597,6 +169318,50 @@
         "tax_percent",
         "unit_price"
       ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/business/recurring-work",
+      "pages": [
+        "/business-builder/owner/recurring-work"
+      ],
+      "formFieldNamesObserved": [
+        "anchor_day",
+        "cadence",
+        "description",
+        "ends_on",
+        "priority",
+        "starts_on",
+        "title"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/business/recurring-work/disable",
+      "pages": [
+        "/business-builder/owner/recurring-work"
+      ],
+      "formFieldNamesObserved": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/business/recurring-work/enable",
+      "pages": [
+        "/business-builder/owner/recurring-work"
+      ],
+      "formFieldNamesObserved": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/business/recurring-work/run",
+      "pages": [
+        "/business-builder/owner/recurring-work"
+      ],
+      "formFieldNamesObserved": []
     },
     {
       "method": "POST",
@@ -170486,6 +171251,33 @@
           "table": "recurring_invoices",
           "migrations": [
             "supabase/migrations/20260820080000_recurring_invoices.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-recurring-task-routes.cjs",
+      "source": "routes/sonara-recurring-task-routes.cjs",
+      "tableCount": 3,
+      "tables": [
+        {
+          "table": "business_employee_profiles",
+          "migrations": [
+            "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+            "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        },
+        {
+          "table": "business_recurring_tasks",
+          "migrations": [
+            "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+          ]
+        },
+        {
+          "table": "employee_tasks",
+          "migrations": [
+            "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+            "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
           ]
         }
       ]
@@ -175635,6 +176427,163 @@
         "policyEvidence": []
       },
       "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:business_recurring_tasks",
+      "schema": "public",
+      "name": "business_recurring_tasks",
+      "columnCount": 15,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "cadence",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [
+            "daily",
+            "weekly",
+            "fortnightly",
+            "monthly",
+            "quarterly",
+            "yearly"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "starts_on",
+          "type": "date",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "ends_on",
+          "type": "date",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "anchor_day",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "assigned_employee_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "priority",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "low",
+            "normal",
+            "high",
+            "urgent"
+          ],
+          "fallback": "normal"
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "last_issued_on",
+          "type": "date",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261001160000_work_that_comes_round_again.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
       "queryCoverage": "queried_by_runtime_source_audit",
       "subsystem": null,
@@ -219483,6 +220432,20 @@
         "business_management_credentials"
       ],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261001160000_work_that_comes_round_again.sql",
+      "creates": [
+        "business_recurring_tasks"
+      ],
+      "alters": [
+        "business_recurring_tasks"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "business_recurring_tasks"
+      ],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -251469,6 +252432,7 @@
         "employee_pay_periods",
         "employee_pay_statements",
         "employee_posts",
+        "business_recurring_tasks",
         "business_locations",
         "business_assets",
         "inventory_items",
@@ -252188,7 +253152,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1159
+        "line": 1162
       },
       "destination": {
         "route": "/account",
@@ -252481,7 +253445,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1176
+        "line": 1179
       },
       "destination": {
         "route": "/account/setup",
@@ -252574,7 +253538,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1293
+        "line": 1296
       },
       "destination": {
         "route": "/dashboard",
@@ -252694,7 +253658,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1256
+        "line": 1259
       },
       "destination": {
         "route": "/dashboard",
@@ -253336,7 +254300,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 921
+        "line": 924
       },
       "destination": {
         "route": "/dashboard",
@@ -253387,7 +254351,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -253528,7 +254492,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -253579,7 +254543,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -253630,7 +254594,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1681
+        "line": 1684
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -253722,7 +254686,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/business-builder/help",
@@ -253814,7 +254778,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1394
+        "line": 1397
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -253865,7 +254829,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -253957,7 +254921,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1347
+        "line": 1350
       },
       "destination": {
         "route": "/business-builder/login",
@@ -254043,7 +255007,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -254094,7 +255058,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -254145,7 +255109,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -254576,6 +255540,43 @@
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
     {
+      "id": "GET /business-builder/owner/recurring-work",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-recurring-task-routes.cjs",
+        "line": 177
+      },
+      "destination": {
+        "route": "/business-builder/owner/recurring-work",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_employee_profiles",
+        "business_recurring_tasks",
+        "employee_tasks"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [
+          "done",
+          "problem",
+          "refused",
+          "unrecorded",
+          "unseen",
+          "why"
+        ],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
       "id": "GET /business-builder/owner/schedules/week",
       "workspace": "business_builder",
       "kind": "page_or_download",
@@ -254675,7 +255676,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -254758,7 +255759,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -254809,7 +255810,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/business-builder/records",
@@ -254860,7 +255861,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -255911,7 +256912,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -256000,7 +257001,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -256051,7 +257052,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -256143,7 +257144,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1681
+        "line": 1684
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -256405,7 +257406,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -256491,7 +257492,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -256542,7 +257543,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -256697,7 +257698,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -256748,7 +257749,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -256831,7 +257832,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -256882,7 +257883,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -256933,7 +257934,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -257092,7 +258093,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -258045,7 +259046,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -258238,7 +259239,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -258429,7 +259430,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1681
+        "line": 1684
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -258587,7 +259588,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -258638,7 +259639,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -258759,7 +259760,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -258810,7 +259811,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -258959,7 +259960,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -259010,7 +260011,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1721
+        "line": 1724
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -259135,7 +260136,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1728
+        "line": 1731
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -259971,7 +260972,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1075
+        "line": 1078
       },
       "destination": {
         "route": "/login",
@@ -260170,7 +261171,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1079
+        "line": 1082
       },
       "destination": {
         "route": "/signup",
@@ -261088,7 +262089,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1117
+        "line": 1120
       },
       "destination": {
         "route": "/auth/login",
@@ -261143,7 +262144,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1153
+        "line": 1156
       },
       "destination": {
         "route": "/logout",
@@ -261235,7 +262236,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1083
+        "line": 1086
       },
       "destination": {
         "route": "/auth/signup",
@@ -263168,7 +264169,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1147
+        "line": 1150
       },
       "destination": {
         "route": "/logout",
@@ -263578,7 +264579,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1293
+        "line": 1296
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263648,7 +264649,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1256
+        "line": 1259
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263658,7 +264659,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1475
+        "line": 1478
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263668,7 +264669,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1499
+        "line": 1502
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263708,7 +264709,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1521
+        "line": 1524
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263918,7 +264919,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 921
+        "line": 924
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
