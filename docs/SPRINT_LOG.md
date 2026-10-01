@@ -2,6 +2,95 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - A business owner gets a second thing to know
+
+Asked for business owners to have their own passwords for the security and
+management of their business -- employees, sub-applications, time clocks,
+employee operations.
+
+### The gap, measured rather than assumed
+
+`requireBusinessManager` in `server.js` proves exactly two things: the request
+carries a valid customer session, and that user holds an active `owner` or
+`manager` row in `business_memberships`. Both are properties of the **browser**.
+`CUSTOMER_SESSION_MAX_AGE_SECONDS` is one hour and
+`CUSTOMER_REFRESH_MAX_AGE_SECONDS` is thirty days, both read out of
+`lib/sonara-customer-auth.cjs`. So for up to a month, whoever holds the browser
+holds every employee record, wage rate, pay statement, the time clock and the pay
+run, with nothing further to know.
+
+`lib/sonara-business-passcode.cjs` is the thing that is not in the browser.
+`supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql`
+adds `business_management_credentials`, one row per business, RLS on with no
+policy -- every read goes through the server, which is the only context holding
+the pepper.
+
+**Hashed, not encrypted, and the word matters.** Encryption is reversible by
+whoever holds the key. A passcode is HMAC'd under a pepper derived from
+`SONARA_TOTP_KEY` -- environment only, never the database -- and that result is
+run through scrypt at 2^15. Nobody can read a passcode back out, including
+SONARA; there is no recovery, only replacement. This is the opposite call from
+`lib/sonara-secret-box.cjs`, which *rejected* scrypt for recovery codes, and both
+are right: a recovery code is ninety-six random bits where slow hashing buys
+nothing, and a passcode is chosen by a person where it is the whole defence.
+
+The unlock is an HMAC token in a `SameSite=Strict` httpOnly cookie, signed over
+organization, user, expiry **and the credential's `updated_at`**. Changing the
+passcode moves that value, so every outstanding unlock stops verifying at once,
+on every device. That is what makes a change a way to remove access rather than a
+note for next time.
+
+### Two defects in my own code, both found by running it
+
+Neither was visible by reading, which is why the probe happened before the tests.
+
+* `if (isPasswordLeaked(value))` tested the **Promise** an async function
+  returns -- always truthy -- so **every** passcode was rejected as breached,
+  including good ones. The real function also returns `{ leaked, checked }`, not
+  a boolean, and reaches the network. It is now a separate async wrapper, and
+  `checked: false` reports `breachCheck: "unavailable"` rather than "clear",
+  because a lookup that did not happen is not evidence of anything.
+* A "counting" rule compared the digits against the literal `"0123456789"` while
+  also requiring twelve digits. No twelve-character string can satisfy both, so
+  the rule **could never fire**. Replaced with the actual question -- is every
+  adjacent character one step from the last -- which works at any length.
+
+### What the gate does when no passcode is set
+
+It lets the request through, and says so on the page: *"protected by your sign-in
+alone"*. Refusing would lock an owner out of their own payroll over a feature
+nobody has told them about. What it must never do is pass **quietly**, so the
+banner has its own test; make the gate silent and that test fails.
+
+Three further states are refusals, and none is collapsed into "no passcode set":
+the credential row could not be read, the verifying key is not configured, and
+the credential is locked out. Reading a failed database call as "this business has
+no passcode" would be a way through the gate by breaking something.
+
+### Verified
+
+48 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
+falsified before being trusted. Six breaks, each caught by name:
+
+| Broken                                               | Test that went red                                        |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| Dropped the gate from one protected surface           | names only surfaces server.js actually puts the gate in front of |
+| Failed credential read returned "no passcode set"     | refuses when the credential cannot be read                 |
+| Unlock token stopped being bound to the passcode version | stops working the moment the passcode changes           |
+| Reintroduced the Promise bug                          | accepts an ordinary phrase, +5 others                      |
+| Verified the passcode before checking the lockout     | refuses to unlock while locked                             |
+| Removed the "nothing is protected" wording            | says plainly that nothing is protected when no passcode is set |
+
+All three touched files restored by copy-aside and `md5sum -c`, not
+`git checkout --`.
+
+One stale comment removed on the way past: the block above the pay-period and
+owner-administration registrations in `server.js` called them "read-only and
+admin-gated" over "tables that cross every organization". Both are
+organization-scoped, both write, and the admin plane was removed the same day. A
+wrong reason inside a gate is worse than none, because it is what the next person
+reads instead of checking.
+
 ### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
 
 Asked to find and build what the business operating system is missing. The method
