@@ -39,11 +39,13 @@ const {
   SELF_REPAIR_LEVELS,
   REFERENCE_REPOSITORIES,
   SHARED_BACKEND_SURFACES,
+  PRODUCT_WORKFLOW_CONTRACTS,
   backendReliabilityScore,
   retryDelayMs,
   sloBudgetState,
   repairAuthorityDecision,
   ragQualityScore,
+  evaluateProductWorkflowTransition,
   getBackendOperationsIntelligence
 } = require("../lib/sonara-backend-operations-intelligence-2026.cjs");
 const {
@@ -72,6 +74,8 @@ const {
   FRONTEND_VISUAL_VERSION,
   FRONTEND_MARKET_SIGNALS_2026,
   FRONTEND_MARKET_SIGNALS_PASS2_2026,
+  FRONTEND_COMPANY_PATTERN_GROUPS_2026,
+  FRONTEND_BRAND_KITS_2026,
   FRONTEND_REPOSITORY_REFERENCES,
   FRONTEND_REPOSITORY_REFERENCES_PASS2,
   FRONTEND_VISUAL_PRIMITIVES_PASS2,
@@ -83,6 +87,7 @@ const {
   spatialPresentationPolicy,
   getFrontendVisualIntelligence
 } = require("../lib/sonara-frontend-visual-intelligence-2026.cjs");
+const { SONARA_BRAND_REGISTRY, getBrandProduct } = require("../lib/sonara-brand-registry.cjs");
 
 describe("September 19 platform pattern convergence", () => {
   it("keeps screenshot and third-party references non-executable", () => {
@@ -294,7 +299,7 @@ describe("September 19 platform pattern convergence", () => {
 
   it("keeps backend operations research non-executing, current, and repository-safe", () => {
     const backend = getBackendOperationsIntelligence();
-    assert.equal(BACKEND_RESEARCH_DATE, "2026-09-20");
+    assert.equal(BACKEND_RESEARCH_DATE, "2026-09-30");
     assert.equal(backend.researchOnly, true);
     assert.equal(backend.productionExecutionCount, 0);
     assert.equal(backend.installedRepositoryCount, 0);
@@ -303,6 +308,8 @@ describe("September 19 platform pattern convergence", () => {
     assert.equal(SELF_REPAIR_LEVELS.length, 6);
     assert.ok(REFERENCE_REPOSITORIES.length >= 8);
     assert.ok(SHARED_BACKEND_SURFACES.length >= 10);
+    assert.equal(Object.keys(PRODUCT_WORKFLOW_CONTRACTS).length, 3);
+    assert.equal(backend.productWorkflowContractCount, 3);
     assert.equal(REFERENCE_REPOSITORIES.filter((item) => item.installedByResearch).length, 0);
     assert.equal(REFERENCE_REPOSITORIES.filter((item) => item.enabledInProduction).length, 0);
     for (const signal of BACKEND_SIGNALS_2026) {
@@ -310,6 +317,41 @@ describe("September 19 platform pattern convergence", () => {
       assert.equal(signal.productionCapability, false);
       assert.ok(signal.sourceUrl.startsWith("https://"));
     }
+  });
+
+  it("requires product-specific evidence and approval before sensitive workflow transitions", () => {
+    assert.deepEqual(evaluateProductWorkflowTransition({
+      product: "Business Builder", from: "captured", to: "scoped"
+    }), {
+      allowed: false, reason: "required_evidence_missing", product: "Business Builder",
+      from: "captured", to: "scoped", missingEvidence: ["scope_record"]
+    });
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Creator Studio", from: "packaged", to: "published",
+      evidence: { provider_receipt: { id: "receipt-1" } }
+    }).reason, "owner_approval_required");
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Creator Studio", from: "packaged", to: "published",
+      evidence: {
+        provider_receipt: { id: "receipt-1" },
+        owner_approval: { approvalId: "approval-1", approvedBy: "owner-1", approved: true }
+      }
+    }).allowed, true);
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Growth Studio", from: "previewed", to: "dispatched",
+      evidence: { provider_receipt: { id: "receipt-2" } }
+    }).reason, "transition_not_allowed");
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Growth Studio", from: "approved", to: "dispatched",
+      evidence: { provider_receipt: { id: "receipt-2" } }
+    }).reason, "owner_approval_required");
+    assert.equal(evaluateProductWorkflowTransition({
+      product: "Growth Studio", from: "approved", to: "dispatched",
+      evidence: {
+        provider_receipt: { id: "receipt-2" },
+        owner_approval: { approvalId: "approval-2", approvedBy: "owner-1", approved: true }
+      }
+    }).allowed, true);
   });
 
   it("scores backend reliability, retry delay, SLO budget and RAG quality deterministically", () => {
@@ -610,7 +652,7 @@ describe("September 19 platform pattern convergence", () => {
 
   it("keeps frontend pass-2 primitives and version explicit", () => {
     const frontend = getFrontendVisualIntelligence();
-    assert.equal(FRONTEND_VISUAL_VERSION, "1.1.0");
+    assert.equal(FRONTEND_VISUAL_VERSION, "1.2.0");
     assert.equal(frontend.version, FRONTEND_VISUAL_VERSION);
     assert.equal(frontend.visualPrimitiveCount, FRONTEND_VISUAL_PRIMITIVES_PASS2.length);
     assert.ok(FRONTEND_VISUAL_PRIMITIVES_PASS2.length >= 15);
@@ -648,7 +690,7 @@ describe("September 19 platform pattern convergence", () => {
 
   it("keeps frontend and visual research current, non-executing, and source-grounded", () => {
     const intelligence = getFrontendVisualIntelligence();
-    assert.equal(FRONTEND_VISUAL_SNAPSHOT_DATE, "2026-09-20");
+    assert.equal(FRONTEND_VISUAL_SNAPSHOT_DATE, "2026-09-30");
     assert.equal(intelligence.productionExecutionCount, 0);
     assert.equal(intelligence.researchOnly, true);
     assert.ok(FRONTEND_MARKET_SIGNALS_2026.length >= 15);
@@ -658,6 +700,36 @@ describe("September 19 platform pattern convergence", () => {
       assert.ok(signal.sourceUrl.startsWith("https://"));
       assert.ok(signal.asOf <= FRONTEND_VISUAL_SNAPSHOT_DATE);
     }
+    for (const signal of FRONTEND_MARKET_SIGNALS_PASS2_2026) {
+      assert.equal(signal.runtimeAuthority, "none");
+      assert.ok(signal.sourceUrl.startsWith("https://"));
+      assert.ok(signal.asOf <= FRONTEND_VISUAL_SNAPSHOT_DATE);
+    }
+  });
+
+  it("maps the requested public-company research into original SONARA brand kits", () => {
+    const intelligence = getFrontendVisualIntelligence();
+    const companies = new Set(FRONTEND_COMPANY_PATTERN_GROUPS_2026.flatMap((group) => group.companies));
+    for (const company of ["Marvel", "Rockstar Games", "DC", "Honda", "Epic Games / Fortnite", "TikTok", "Suno", "Activision / Call of Duty", "Meta", "Amazon", "Google", "Apple", "Ford", "Chevrolet", "Nintendo", "Walmart", "Netflix", "Vizio", "TCL", "PlayStation", "Reddit", "Uber", "Lyft", "quick-service restaurants", "Spotify", "Tesla", "SpaceX", "Airbnb", "Shopify", "Stripe", "Duolingo", "YouTube", "Xbox"]) {
+      assert.equal(companies.has(company), true, `missing research reference ${company}`);
+    }
+    assert.equal(intelligence.companyPatternGroupCount, FRONTEND_COMPANY_PATTERN_GROUPS_2026.length);
+    assert.equal(intelligence.brandKitCount, 5);
+    assert.deepEqual(intelligence.brandKits.products.map((item) => item.key), ["business_builder", "creator_studio", "growth_studio"]);
+    for (const item of intelligence.brandKits.products) {
+      const canonical = getBrandProduct(item.key);
+      assert.ok(canonical, `brand kit ${item.key} must map to a canonical product`);
+      assert.equal(item.name, canonical.name);
+      assert.equal(item.route, canonical.route);
+      assert.equal(item.dashboardRoute, canonical.dashboardRoute);
+      assert.equal(item.primaryRoute, canonical.primaryRoute);
+      assert.ok(item.logo.startsWith("/brand/"));
+    }
+    assert.equal(intelligence.brandKits.platform.name, SONARA_BRAND_REGISTRY.parent.platform);
+    assert.equal(intelligence.brandKits.platform.route, SONARA_BRAND_REGISTRY.publicRoutes.products);
+    assert.ok(intelligence.brandKits.sharedContracts.includes("Tenant-scoped server authorization and data access"));
+    assert.equal(intelligence.productionExecutionCount, 0);
+    assert.equal(FRONTEND_BRAND_KITS_2026.sourceUse.includes("Do not copy logos"), true);
   });
 
   it("maps the frontend research into task-specific surface archetypes", () => {
