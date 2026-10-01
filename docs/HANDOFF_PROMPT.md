@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 139 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 414 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 415 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,98 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 414 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 415 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - "2026-07-28" was a string, not a requirement
+
+Asked to upgrade the Integration Gateway for current MCP authorization
+requirements, with no connector bypassing tenant-scoped credentials or audit
+logging. Establishing what "current" means came first: the training cutoff behind
+this work is May 2026 and it is now October, so the specification was read, not
+recalled -- `modelcontextprotocol.io/specification/versioning` and
+`.../2026-07-28/basic/authorization`, both fetched live on 1 October 2026.
+
+Not a formality. Two findings contradict what an assistant would write from
+memory, and both are load-bearing:
+
+- **Dynamic Client Registration (RFC 7591) is deprecated** in this revision,
+  retained only for authorization servers without Client ID Metadata Documents. A
+  gateway written from training would have made a deprecated mechanism its primary
+  registration path.
+- **Negotiation is no longer the `initialize` handshake.** Every request carries
+  `io.modelcontextprotocol/protocolVersion` in `_meta`, Streamable HTTP adds an
+  `MCP-Protocol-Version` header, there is a `server/discover` RPC, and a mismatch
+  answers `UnsupportedProtocolVersionError`. The handshake is the
+  backward-compatibility path for `2025-11-25` and earlier.
+
+### The defect that was already here
+
+`lib/sonara-aggregation-control-plane.cjs` line 12 declared `mcp: "2026-07-28"`.
+Line 273 of that same file said "declaring a spec version is not runtime proof".
+`lib/sonara-platform-completeness.cjs` line 196 declared the revision again,
+independently. Nothing compared them, and no module held what the revision
+requires, so no check could measure a connector against anything.
+
+`lib/sonara-mcp-authorization-contract.cjs` holds the requirements now, each with
+the citation it was read from and its level in the specification's own word -- a
+SHOULD recorded as a MUST would make this repository stricter than the standard it
+claims to implement. Three functions carry the sharp edges:
+
+- `issuerMatches` is RFC 3986 6.2.1 simple string comparison, because the
+  specification forbids scheme/host case folding, default-port elision,
+  trailing-slash and percent-encoding normalization before comparing. Tolerance
+  here is the vulnerability, not a convenience.
+- `validateAuthorizationResponse` is the RFC 9207 table as four rows. The row that
+  gets lost is `iss` **absent** while metadata advertises it: a rejection, not a
+  pass -- and an implementation missing it behaves correctly on every honest
+  request.
+- `evaluateConnectorAuthorization` decides by transport, and both directions are
+  defects: an HTTP connector exempted from the OAuth MUSTs is unauthenticated, and
+  a stdio connector held to them can never be enabled, since stdio takes
+  credentials from the environment. Unrecognised transports fail closed.
+
+Tenant-scoped credentials and audit logging are SONARA's own, non-waivable on
+every transport including the one the specification exempts from OAuth.
+
+### What was broken to prove it
+
+`tests/a-version-string-is-not-conformance.test.js`, 28 tests. Five breaks, each
+caught by the test naming it: `issuerMatches` folding case and stripping a trailing
+slash (**2** red), removing the advertised-but-absent `iss` rejection (**1**),
+treating an unrecognised transport as HTTP (**1**), drifting the contract's
+revision from the declared baseline (**3**), holding stdio to the HTTP requirements
+(**1**). Restored by copy-aside and `md5sum -c`, not `git checkout`.
+
+`pnpm run verify:mcp-authorization` is the gate, and it is two-sided on purpose.
+Four breaks against it: drifting the aggregation baseline, flipping an MCP-capable
+registry record to `adapter_available`, replacing the issuer comparison with
+`new URL().href`, and making the classifier deny everything. The last matters most
+-- an all-deny classifier satisfies every refusal assertion in the file, so the
+gate also probes that a conforming connector is still admitted, and that probe was
+the only thing that fired. The `new URL().href` break is the realistic one: it is
+what a developer reaches for, and it accepted four forbidden forms at once.
+
+The gate asserts its own population too. Two registry records are MCP-capable
+(`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
+than passes, because that means the scan stopped matching.
+
+### What this is not
+
+No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure
+only. This is the prerequisite
+`docs/research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md` line 255
+names, written before the runtime so the runtime cannot be built around it; the
+gate refuses any MCP-capable record that becomes production-reachable while no
+runtime exists, so wiring one means producing conformance evidence rather than
+changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
+Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
+nothing here has been exercised against a live authorization server.
+
+
 
 ### 2026-10-01 - The autonomy breaker had never evaluated anything
 
@@ -2117,82 +2204,3 @@ Derived artifacts: paths 746 -> 767, routes 898 -> 912, migrations 135 -> 136,
 test files 392 -> 393.
 
 Verified: `verify:launch` exit 0.
-
-
-
-### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
-
-The header fix earlier today found one property decided in three media queries
-where only the widest ran. That is a class of defect, not an instance, and
-nothing here could detect it. `verify:breakpoints` now does, and the chain is
-63 commands.
-
-**It reported two confident falsehoods before it was right, and both matter.**
-
-First version compared bounds: same selector, property and value, a wider
-bound, no differing rule in between. It called
-`.sonara-header-tools { gap: 6px }` at 760px dead because the base rule also
-says 6px. Deleting it changed the rendered gap below 680px from 6px to 5px --
-a 680px rule sets 5px and sits *earlier* in the file, and media queries add no
-specificity, so among equal selectors source order decides. The 760px rule was
-overriding the 680px one, which no comparison of bounds can see. The check now
-simulates the cascade: the winner at a width is the last admitted declaration
-in source order, and a declaration is dead only when removing it leaves the
-winner identical at every bound, every bound minus one, and above them all.
-
-Second, it reported `button { min-height: 48px }` as always overridden by
-`.sonara-record-table :is(a, button, input, select)`. The parser split selector
-lists on every comma, so that `:is()` became four selectors including a bare
-`button` -- a fabricated rule appearing to govern every button on the site.
-Splitting only top-level commas fixed it. Deleting on that verdict would have
-dropped mobile buttons from 48px to 46px.
-
-**What caught both was a browser probe, not reasoning.** 9,456 computed values
--- 43 selector-and-property pairs, 5 pages, 24 widths -- captured before and
-after and diffed. It also caught an over-deletion of mine: stripping three
-selectors the gate never flagged took tap targets from 48px to 44px on phones,
-against the AGENTS.md rule on tap-target size. The final diff is empty, so the
-cleanup is behaviour-neutral by measurement rather than by argument. A check
-agreeing with your reasoning is not evidence; it was built from that reasoning.
-
-**Findings, in two classes, because they need different answers.** 31 dead
-declarations. Twenty-three said something already decided -- deleting them
-changes nothing. Eight expressed an intent that has never once reached a
-screen, every rule beating them saying otherwise: `main` capped at 640px below
-680px and `calc(100% - 20px)` below 420px, both beaten by a later 760px rule;
-`.hero { padding: 48px 0 38px }`; `.card { padding: 18px }` at 420px; icon
-buttons and the account summary at 42px; `.sonara-header-tools { gap: 5px }`.
-All were deleted, which keeps today's appearance exactly. **Honouring any of
-them instead would change what customers see on a phone, and that is the
-owner's decision, not a cleanup** -- the list above is the record of what was
-intended and never happened. Also fixed: `.sonara-product-grid` was listed
-twice inside one selector list, in two places.
-
-**Its own blind-spot guard failed first too.** Truncating the whole of
-sonara-design-system.css to twenty lines left the check green, because
-application-ui.css alone clears any total worth setting. Floors are now per
-stylesheet, and the numbers in that comment are what the parser reports (67
-rules / 170 declarations, and 701 / 2,199) rather than figures that merely read
-as measured -- the first draft carried invented ones.
-
-Falsified four ways, each restored with `md5sum -c`: a repeated declaration, an
-always-overridden one, an emptied stylesheet, and an `:is()` list that must not
-fabricate a bare selector. 72 selector-and-property groups are deliberately
-left unjudged for carrying a `min-width`, a range or an `!important` this model
-cannot evaluate, and the count is printed so the gap is visible.
-
-**An existing gate then caught the new one**, which is the system working.
-`a-line-comment-cannot-open-a-block-comment` failed: the script had its own
-comment stripper, "that is how the same bug shipped three times". It now uses
-the shared pattern -- but `CSS_COMMENT`, a new single branch in
-`lib/sonara-comment-stripping.cjs`, not the JavaScript `COMMENT`. `//` is not a
-comment in CSS, and that alternation reads `url(//cdn.example.com/x.png)` as one
-and blanks the rest of the line, closing brace included. Neither stylesheet
-holds such a value today, which is precisely the "works until somebody writes
-one" this module exists to stop repeating. Two tests cover the CSS form, and
-pointing `withoutCssComments` at `COMMENT` fails "the url was read as a
-comment". Line numbers survive stripping because this caller keeps the newlines
-rather than collapsing each comment to a space: a rule planted past a four-line
-block comment is reported at 2391 and really is on 2391.
-
-Verified: `verify:launch` exit 0, 63 chain commands.

@@ -2,6 +2,91 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - "2026-07-28" was a string, not a requirement
+
+Asked to upgrade the Integration Gateway for current MCP authorization
+requirements, with no connector bypassing tenant-scoped credentials or audit
+logging. Establishing what "current" means came first: the training cutoff behind
+this work is May 2026 and it is now October, so the specification was read, not
+recalled -- `modelcontextprotocol.io/specification/versioning` and
+`.../2026-07-28/basic/authorization`, both fetched live on 1 October 2026.
+
+Not a formality. Two findings contradict what an assistant would write from
+memory, and both are load-bearing:
+
+- **Dynamic Client Registration (RFC 7591) is deprecated** in this revision,
+  retained only for authorization servers without Client ID Metadata Documents. A
+  gateway written from training would have made a deprecated mechanism its primary
+  registration path.
+- **Negotiation is no longer the `initialize` handshake.** Every request carries
+  `io.modelcontextprotocol/protocolVersion` in `_meta`, Streamable HTTP adds an
+  `MCP-Protocol-Version` header, there is a `server/discover` RPC, and a mismatch
+  answers `UnsupportedProtocolVersionError`. The handshake is the
+  backward-compatibility path for `2025-11-25` and earlier.
+
+### The defect that was already here
+
+`lib/sonara-aggregation-control-plane.cjs` line 12 declared `mcp: "2026-07-28"`.
+Line 273 of that same file said "declaring a spec version is not runtime proof".
+`lib/sonara-platform-completeness.cjs` line 196 declared the revision again,
+independently. Nothing compared them, and no module held what the revision
+requires, so no check could measure a connector against anything.
+
+`lib/sonara-mcp-authorization-contract.cjs` holds the requirements now, each with
+the citation it was read from and its level in the specification's own word -- a
+SHOULD recorded as a MUST would make this repository stricter than the standard it
+claims to implement. Three functions carry the sharp edges:
+
+- `issuerMatches` is RFC 3986 6.2.1 simple string comparison, because the
+  specification forbids scheme/host case folding, default-port elision,
+  trailing-slash and percent-encoding normalization before comparing. Tolerance
+  here is the vulnerability, not a convenience.
+- `validateAuthorizationResponse` is the RFC 9207 table as four rows. The row that
+  gets lost is `iss` **absent** while metadata advertises it: a rejection, not a
+  pass -- and an implementation missing it behaves correctly on every honest
+  request.
+- `evaluateConnectorAuthorization` decides by transport, and both directions are
+  defects: an HTTP connector exempted from the OAuth MUSTs is unauthenticated, and
+  a stdio connector held to them can never be enabled, since stdio takes
+  credentials from the environment. Unrecognised transports fail closed.
+
+Tenant-scoped credentials and audit logging are SONARA's own, non-waivable on
+every transport including the one the specification exempts from OAuth.
+
+### What was broken to prove it
+
+`tests/a-version-string-is-not-conformance.test.js`, 28 tests. Five breaks, each
+caught by the test naming it: `issuerMatches` folding case and stripping a trailing
+slash (**2** red), removing the advertised-but-absent `iss` rejection (**1**),
+treating an unrecognised transport as HTTP (**1**), drifting the contract's
+revision from the declared baseline (**3**), holding stdio to the HTTP requirements
+(**1**). Restored by copy-aside and `md5sum -c`, not `git checkout`.
+
+`pnpm run verify:mcp-authorization` is the gate, and it is two-sided on purpose.
+Four breaks against it: drifting the aggregation baseline, flipping an MCP-capable
+registry record to `adapter_available`, replacing the issuer comparison with
+`new URL().href`, and making the classifier deny everything. The last matters most
+-- an all-deny classifier satisfies every refusal assertion in the file, so the
+gate also probes that a conforming connector is still admitted, and that probe was
+the only thing that fired. The `new URL().href` break is the realistic one: it is
+what a developer reaches for, and it accepted four forbidden forms at once.
+
+The gate asserts its own population too. Two registry records are MCP-capable
+(`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
+than passes, because that means the scan stopped matching.
+
+### What this is not
+
+No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure
+only. This is the prerequisite
+`docs/research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md` line 255
+names, written before the runtime so the runtime cannot be built around it; the
+gate refuses any MCP-capable record that becomes production-reachable while no
+runtime exists, so wiring one means producing conformance evidence rather than
+changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
+Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
+nothing here has been exercised against a live authorization server.
+
 ### 2026-10-01 - The autonomy breaker had never evaluated anything
 
 Asked to build the agent control plane: tool permissions, approvals, limits,

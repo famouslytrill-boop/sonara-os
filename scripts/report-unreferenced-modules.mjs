@@ -89,11 +89,6 @@ const TEST_ONLY = new Map([
     "The system-design mapping engine: 28 upstream topics mapped to SONARA-owned designs, with copying blocked because no "
     + "upstream licence file was found. Its only consumer was /admin/system-design-intelligence. It is reference material "
     + "for a person, so it waits for a surface that presents it as that rather than as something to run."],
-  ["lib/sonara-platform-completeness.cjs",
-    "The capability records -- what each surface is for, what it may read, and what it must show when there is nothing. "
-    + "Its only consumer was /admin/system. Of the four here this is the one with an obvious home: /owner/administration "
-    + "could render the record for each capability an owner holds. Not wired in the same change that removed the console, "
-    + "because a record that shapes what a customer sees deserves its own review."],
   ["lib/sonara-aggregator-sourcing-policy.cjs",
     "Research-only adapter sourcing economics and verified-depth formulas. It grants no provider or runtime authority; "
     + "keep it test-only until a reviewed connector control-plane surface explicitly consumes the policy."],
@@ -110,10 +105,6 @@ const TEST_ONLY = new Map([
     "Research-only commerce and omnichannel market radar. The module declares runtimeAuthority=none and executionEnabled=false; "
     + "keep it test-only until a reviewed Business Builder surface consumes the planning contract without granting payment, inventory, "
     + "provider, publication, or agent-spend authority."],
-  ["lib/sonara-aggregation-control-plane.cjs",
-    "Research-only aggregation architecture and deterministic planning formulas. It deliberately grants zero "
-    + "provider/runtime authority and is surfaced through docs/public research rather than required by the product; "
-    + "it remains test-only until a reviewed aggregation runtime explicitly consumes the contract."],
   ["lib/sonara-compliance-evidence-readiness.cjs",
     "Reports evidence and gaps and deliberately never emits a compliant state. No surface renders it yet; "
     + "wiring it is a product decision about what to show an owner, not a missing require."],
