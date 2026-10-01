@@ -75,6 +75,24 @@ The gate asserts its own population too. Two registry records are MCP-capable
 (`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
 than passes, because that means the scan stopped matching.
 
+### And one the scanner found, which was a real finding about a name
+
+CodeQL raised two high-severity "clear-text logging of sensitive information"
+alerts on the gate, both pointing at `BLOCKING_OAUTH_KEYS`. Nothing secret was
+being logged -- the constant holds requirement identifiers -- but the alert was
+not wrong about what it read: a constant named `*_OAUTH_KEYS` claims to hold
+OAuth keys, and the scanner believed the name, as a person would. The same
+family as a comment whose reason expired.
+
+Fixed by renaming rather than suppressing, so no security check was weakened and
+`SECURITY_NOTES.md` needs no entry: `BLOCKING_OAUTH_KEYS` ->
+`BLOCKING_OAUTH_REQUIREMENT_IDS`, the two sibling constants to `*_REQUIREMENT_IDS`,
+and the objects' `key` field to `id` throughout. `record.key` in the gate is left
+alone: it is the registry record's own field, and CodeQL did not flag it in the
+original, so it is not a source. The reject-row break was re-run after the rename
+to confirm the tests can still fail -- a refactor that quietly disarms its own
+tests would be this repository's defect wearing a tidier name.
+
 ### What this is not
 
 No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure

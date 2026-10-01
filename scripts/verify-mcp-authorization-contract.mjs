@@ -52,9 +52,9 @@ const {
   SPEC_READ_ON,
   CLIENT_REQUIREMENTS,
   SONARA_REQUIREMENTS,
-  OAUTH_REQUIREMENT_KEYS,
-  SONARA_REQUIREMENT_KEYS,
-  BLOCKING_OAUTH_KEYS,
+  OAUTH_REQUIREMENT_IDS,
+  SONARA_REQUIREMENT_IDS,
+  BLOCKING_OAUTH_REQUIREMENT_IDS,
   NEGOTIATION_BY_REVISION,
   issuerMatches,
   validateAuthorizationResponse,
@@ -74,15 +74,15 @@ if (CLIENT_REQUIREMENTS.length < 6) {
 if (SONARA_REQUIREMENTS.length < 2) {
   problems.push(`The contract holds only ${SONARA_REQUIREMENTS.length} SONARA requirement(s); tenant-scoped credentials and audit logging are both required.`);
 }
-if (BLOCKING_OAUTH_KEYS.length < 5) {
-  problems.push(`Only ${BLOCKING_OAUTH_KEYS.length} requirement(s) block an enablement. With too few, the classifier admits connectors it should refuse.`);
+if (BLOCKING_OAUTH_REQUIREMENT_IDS.length < 5) {
+  problems.push(`Only ${BLOCKING_OAUTH_REQUIREMENT_IDS.length} requirement(s) block an enablement. With too few, the classifier admits connectors it should refuse.`);
 }
 
 const uncited = CLIENT_REQUIREMENTS.filter((entry) => !/^https:\/\/modelcontextprotocol\.io\//.test(String(entry.citation || "")));
 if (uncited.length) {
   problems.push(
     "These requirements carry no specification citation, so nobody can check the level they claim:\n"
-    + uncited.map((entry) => `      ${entry.key}`).join("\n")
+    + uncited.map((entry) => `      ${entry.id}`).join("\n")
   );
 }
 
@@ -122,8 +122,8 @@ if (!currentNegotiation || currentNegotiation.style !== "per_request") {
 // everything, which would pass every refusal assertion above.
 function conformingRecord() {
   const declares = {};
-  for (const key of OAUTH_REQUIREMENT_KEYS) declares[key] = true;
-  for (const key of SONARA_REQUIREMENT_KEYS) declares[key] = true;
+  for (const id of OAUTH_REQUIREMENT_IDS) declares[id] = true;
+  for (const id of SONARA_REQUIREMENT_IDS) declares[id] = true;
   return { transport: "http", protocolRevision: CURRENT_PROTOCOL_REVISION, declares };
 }
 
@@ -137,19 +137,19 @@ if (!admitted.ok) {
 }
 
 const admittedDespite = [];
-for (const key of BLOCKING_OAUTH_KEYS.concat(SONARA_REQUIREMENT_KEYS)) {
+for (const id of BLOCKING_OAUTH_REQUIREMENT_IDS.concat(SONARA_REQUIREMENT_IDS)) {
   const record = conformingRecord();
-  delete record.declares[key];
+  delete record.declares[id];
   const decided = evaluateConnectorAuthorization(record);
-  if (decided.ok) admittedDespite.push(key);
-  else if (!decided.unmet.some((entry) => entry.key === key)) {
-    problems.push(`A connector missing ${key} is refused, but the refusal does not name ${key}: ${decided.reason}`);
+  if (decided.ok) admittedDespite.push(id);
+  else if (!decided.unmet.some((entry) => entry.id === id)) {
+    problems.push(`A connector missing ${id} is refused, but the refusal does not name ${id}: ${decided.reason}`);
   }
 }
 if (admittedDespite.length) {
   problems.push(
     "A connector may be enabled while not meeting these requirements:\n"
-    + admittedDespite.map((key) => `      ${key}`).join("\n")
+    + admittedDespite.map((id) => `      ${id}`).join("\n")
     + "\n\n    Each of these is a MUST in the specification or non-waivable in AGENTS.md."
   );
 }
@@ -241,10 +241,10 @@ if (problems.length) {
 
 console.log(
   `MCP authorization contract verified against revision ${CURRENT_PROTOCOL_REVISION} (specification read ${SPEC_READ_ON}): `
-  + `${CLIENT_REQUIREMENTS.length} specification requirement(s) of which ${BLOCKING_OAUTH_KEYS.length} block an enablement, `
+  + `${CLIENT_REQUIREMENTS.length} specification requirement(s) of which ${BLOCKING_OAUTH_REQUIREMENT_IDS.length} block an enablement, `
   + `${SONARA_REQUIREMENTS.length} non-waivable SONARA requirement(s), `
   + `${declarers.length} module(s) declaring the revision and all agreeing, `
-  + `${BLOCKING_OAUTH_KEYS.length + SONARA_REQUIREMENT_KEYS.length} refusal probe(s) and 1 admission probe, `
+  + `${BLOCKING_OAUTH_REQUIREMENT_IDS.length + SONARA_REQUIREMENT_IDS.length} refusal probe(s) and 1 admission probe, `
   + `${forbidden.length} forbidden issuer normalization(s) still rejected, `
   + `and ${mcpCapable.length} MCP-capable registry record(s) none of which is production-reachable.`
 );

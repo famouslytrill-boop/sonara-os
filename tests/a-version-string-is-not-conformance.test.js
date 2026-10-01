@@ -7,9 +7,9 @@ const {
   NEGOTIATION_BY_REVISION,
   CLIENT_REQUIREMENTS,
   SONARA_REQUIREMENTS,
-  OAUTH_REQUIREMENT_KEYS,
-  SONARA_REQUIREMENT_KEYS,
-  BLOCKING_OAUTH_KEYS,
+  OAUTH_REQUIREMENT_IDS,
+  SONARA_REQUIREMENT_IDS,
+  BLOCKING_OAUTH_REQUIREMENT_IDS,
   isKnownRevision,
   negotiationFor,
   issuerMatches,
@@ -25,13 +25,13 @@ const { PROTOCOL_BASELINE } = require("../lib/sonara-aggregation-control-plane.c
 // difference between naming a revision and conforming to it.
 
 // Every requirement declared, which is what a record has to produce to be
-// enabled. Built by reading the contract's own key lists rather than by writing
+// enabled. Built by reading the contract's own identifier lists rather than by writing
 // the names out again -- a hand-written list here would stop covering a
 // requirement the moment one is added, and would do it silently.
 function fullyDeclared(extra = {}) {
   const declares = {};
-  for (const key of OAUTH_REQUIREMENT_KEYS) declares[key] = true;
-  for (const key of SONARA_REQUIREMENT_KEYS) declares[key] = true;
+  for (const id of OAUTH_REQUIREMENT_IDS) declares[id] = true;
+  for (const id of SONARA_REQUIREMENT_IDS) declares[id] = true;
   return { transport: "http", protocolRevision: CURRENT_PROTOCOL_REVISION, declares, ...extra };
 }
 
@@ -39,10 +39,10 @@ describe("a version string is not conformance", () => {
   it("has requirements to check at all, so none of this passes by measuring nothing", () => {
     assert.ok(CLIENT_REQUIREMENTS.length >= 6, `only ${CLIENT_REQUIREMENTS.length} client requirements; this file has gone blind`);
     assert.ok(SONARA_REQUIREMENTS.length >= 2, `only ${SONARA_REQUIREMENTS.length} SONARA requirements`);
-    assert.ok(BLOCKING_OAUTH_KEYS.length >= 5, `only ${BLOCKING_OAUTH_KEYS.length} blocking requirements; an empty blocking set would let everything through`);
+    assert.ok(BLOCKING_OAUTH_REQUIREMENT_IDS.length >= 5, `only ${BLOCKING_OAUTH_REQUIREMENT_IDS.length} blocking requirements; an empty blocking set would let everything through`);
     for (const entry of CLIENT_REQUIREMENTS) {
-      assert.ok(entry.citation && /^https:\/\//.test(entry.citation), `${entry.key} has no specification citation, so its level cannot be checked against anything`);
-      assert.ok(["MUST", "MUST NOT", "SHOULD"].includes(entry.level), `${entry.key} has level ${entry.level}, which is not a word the specification uses`);
+      assert.ok(entry.citation && /^https:\/\//.test(entry.citation), `${entry.id} has no specification citation, so its level cannot be checked against anything`);
+      assert.ok(["MUST", "MUST NOT", "SHOULD"].includes(entry.level), `${entry.id} has level ${entry.level}, which is not a word the specification uses`);
     }
   });
 
@@ -197,14 +197,14 @@ describe("a version string is not conformance", () => {
     // One case per blocking requirement, generated from the contract's own list
     // so a new requirement is covered the moment it is added.
     it("refuses one with any single blocking requirement missing, and names it", () => {
-      for (const key of BLOCKING_OAUTH_KEYS) {
+      for (const id of BLOCKING_OAUTH_REQUIREMENT_IDS) {
         const record = fullyDeclared();
-        delete record.declares[key];
+        delete record.declares[id];
         const decided = evaluateConnectorAuthorization(record);
-        assert.equal(decided.ok, false, `a connector missing ${key} must not be enabled`);
+        assert.equal(decided.ok, false, `a connector missing ${id} must not be enabled`);
         assert.ok(
-          decided.unmet.some((entry) => entry.key === key),
-          `the refusal for a missing ${key} must name ${key}; it said: ${decided.reason}`
+          decided.unmet.some((entry) => entry.id === id),
+          `the refusal for a missing ${id} must name ${id}; it said: ${decided.reason}`
         );
       }
     });
@@ -213,19 +213,19 @@ describe("a version string is not conformance", () => {
       for (const transport of ["websocket", "grpc", "", undefined, "HTTP2"]) {
         const decided = evaluateConnectorAuthorization(fullyDeclared({ transport }));
         assert.equal(decided.ok, false, `transport ${JSON.stringify(transport)} must fail closed`);
-        assert.ok(decided.unmet.some((entry) => entry.key === "transport"), "the refusal must say the transport is the problem");
+        assert.ok(decided.unmet.some((entry) => entry.id === "transport"), "the refusal must say the transport is the problem");
       }
     });
 
     it("refuses an unknown protocol revision", () => {
       const decided = evaluateConnectorAuthorization(fullyDeclared({ protocolRevision: "2027-03-01" }));
       assert.equal(decided.ok, false);
-      assert.ok(decided.unmet.some((entry) => entry.key === "protocolRevision"));
+      assert.ok(decided.unmet.some((entry) => entry.id === "protocolRevision"));
     });
 
     it("does not demand HTTP authorization of a stdio connector, which could never satisfy it", () => {
       const declares = {};
-      for (const key of SONARA_REQUIREMENT_KEYS) declares[key] = true;
+      for (const id of SONARA_REQUIREMENT_IDS) declares[id] = true;
       const decided = evaluateConnectorAuthorization({ transport: "stdio", protocolRevision: CURRENT_PROTOCOL_REVISION, declares });
       assert.equal(decided.ok, true, `a stdio connector with tenant scoping and audit logging should pass, got: ${decided.reason}`);
       assert.equal(decided.transport, "stdio");
@@ -234,12 +234,12 @@ describe("a version string is not conformance", () => {
     // The owner's two, which are not protocol questions and do not get waived
     // by a transport the specification exempts from OAuth.
     it("still requires tenant-scoped credentials and audit logging on stdio", () => {
-      for (const key of SONARA_REQUIREMENT_KEYS) {
+      for (const id of SONARA_REQUIREMENT_IDS) {
         const declares = {};
-        for (const other of SONARA_REQUIREMENT_KEYS) if (other !== key) declares[other] = true;
+        for (const other of SONARA_REQUIREMENT_IDS) if (other !== id) declares[other] = true;
         const decided = evaluateConnectorAuthorization({ transport: "stdio", protocolRevision: CURRENT_PROTOCOL_REVISION, declares });
-        assert.equal(decided.ok, false, `a stdio connector without ${key} must not be enabled`);
-        assert.ok(decided.unmet.some((entry) => entry.key === key), `the refusal must name ${key}`);
+        assert.equal(decided.ok, false, `a stdio connector without ${id} must not be enabled`);
+        assert.ok(decided.unmet.some((entry) => entry.id === id), `the refusal must name ${id}`);
       }
     });
 
@@ -265,15 +265,15 @@ describe("a version string is not conformance", () => {
   // mechanism first.
   it("does not make deprecated Dynamic Client Registration a requirement", () => {
     assert.ok(
-      OAUTH_REQUIREMENT_KEYS.includes("clientIdMetadataDocument"),
+      OAUTH_REQUIREMENT_IDS.includes("clientIdMetadataDocument"),
       "Client ID Metadata Documents are the preferred registration path and must be recorded"
     );
     assert.ok(
-      !BLOCKING_OAUTH_KEYS.includes("clientIdMetadataDocument"),
+      !BLOCKING_OAUTH_REQUIREMENT_IDS.includes("clientIdMetadataDocument"),
       "Client ID Metadata Documents are SHOULD, not MUST; recording them as blocking would be stricter than the specification"
     );
     assert.ok(
-      !OAUTH_REQUIREMENT_KEYS.some((key) => /dynamicClientRegistration/i.test(key)),
+      !OAUTH_REQUIREMENT_IDS.some((id) => /dynamicClientRegistration/i.test(id)),
       "Dynamic Client Registration is deprecated in this revision and must not be carried as a requirement of its own"
     );
   });
