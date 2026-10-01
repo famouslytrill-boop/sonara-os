@@ -103,11 +103,87 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 404 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 405 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - A figure excused from measurement, and a status page written in the present tense
+
+`report-stale-claims.mjs` had five documents registered as awaiting a first review
+by 15 October. This closes one of them, `docs/owner/WHAT-IS-LEFT.md`, whose entry
+asked for its one hand-counted figure to be counted and either derived or re-dated.
+
+**The figure had drifted, but that is not the finding.** It read `22 record checks`
+and the true count was 27. The sentence beside it did not claim 22 was right -- it
+claimed the quantity was *unmeasurable*, that "record check" named no single thing a
+script could count, and that the number therefore belonged to a human's judgement.
+That was false. `lib/sonara-record-checks.cjs` exports `CHECKS`, a frozen array, and
+it is the one source both the runtime and `tests/record-checks.test.js` read.
+
+A figure excused from measurement is not a figure anybody re-measures. That is the
+fifth shape one level up: the exemption's reason was never true, rather than having
+stopped being true. A stale number gets re-counted by the next person who doubts it;
+a number declared uncountable does not.
+
+It is now derived by `scripts/verify-doc-counts.mjs` like the other seven in that
+block, and the module's own header -- which carried the same stale breakdown in
+words, "Twenty-two checks: eleven ... five ... six", invisible to every pattern that
+might have caught it -- is rewritten in digits so the same check guards it.
+
+### The second finding, in a part of the file nobody had pointed at
+
+The document opened with `## Current production status`, present tense: PR #373 "is
+merged", a Vercel deployment "is READY", and the live domain "serves that exact
+commit". `main` has merged four releases since. The claim was true when written and
+was sitting at the top of the document somebody opens to find out where things
+stand, with no date in any of its sentences.
+
+It now says which release it is the evidence for, that the commit named is no longer
+`main`'s head, and that **whether production serves one of the later ones is not
+asserted here** -- because asserting it needs somebody to go and look, and nobody
+has. The self-falsifying "there are no open pull requests as of this update" is
+gone; it cannot stay true for an hour.
+
+**The review date on that file is load-bearing only because a sentence carries a
+measurement verb next to a date.** `report-stale-claims.mjs` reads `Review by:` only
+on documents its marker counts as dated, and after the hand-count date was removed
+this document no longer matched -- so a review date on it would have been a promise
+nothing enforced. The file now states its evidence date in the form the marker sees,
+and says in the document why that sentence is not decoration.
+
+### Falsification
+
+Four probes, each restored by copy-aside and `md5sum -c`:
+
+* **Review date deleted** -> `says when it was checked and never says when to check
+  it again`, naming the file.
+* **Dated marker softened to "looked at in late September"** -> the tracked
+  population fell 34 -> 33 and the count with a review date fell 30 -> 29, which is
+  the dependency above, measured rather than reasoned.
+* **Document restated as 22** -> `says "22 record checks"; the true figure is 27`.
+* **`CHECKS` export truncated to three** -> the floor guard fires by name.
+
+Two earlier problems are worth recording because both produced a clean run that
+proved nothing. The first two probes against `lib/sonara-record-checks.cjs` reported
+`substring not found`, so no edit landed and the green result measured an unmodified
+tree -- a probe that does not apply is not a probe. And the floor guard itself read
+`require(...).CHECKS.length` directly, which threw a `TypeError` when the export was
+renamed, so the message explaining what to do never printed. A guard whose stated
+reason does not describe what happens is the thing this log keeps being about.
+
+### The register entry is removed, not re-dated
+
+`report-stale-claims.mjs` is two-sided and said so itself: with the review done it
+failed with `is registered as awaiting review and now has a review date. Remove the
+entry -- the review happened.` Four entries remain, all due 15 October:
+`docs/SHIP_READINESS.md`, `docs/WORKSPACE_WORKFLOW_AUDIT.md`,
+`docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md`, and
+`docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`. The last of those needs figures
+from outside this repository and cannot be closed from inside it.
+
+
 
 ### 2026-09-30 - Sixteen scripts nothing could run, and the guarantees hiding in three of them
 
