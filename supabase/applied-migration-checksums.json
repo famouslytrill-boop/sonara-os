@@ -133,5 +133,6 @@
   "20260926040000_align_user_preference_locales.sql": "9b852fb96e25630849b603583e69216ee8a9b716ccfb18d8cd43c57e3ca9bccf",
   "20260929020000_creator_records_can_be_archived.sql": "f7409120bcc7edaec7cf8270bb0a6951f05a83c19fd83654d48f8e93f6567da7",
   "20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql": "2524d65ff925c7a99eab49442ac506624a0e1d205dbbde545a4eb38d0d6b0f8e",
+  "20261001150000_a_business_owner_gets_a_second_thing_to_know.sql": "bdeaec272f57eba6d2567b871dc688a6cc2b526cb6e13488840be75c26679b8c",
   "20261001160000_work_that_comes_round_again.sql": "335f2651a43c880255627127d62899c96dc3292d91b36a1ab91df1b3e39546bd"
 }

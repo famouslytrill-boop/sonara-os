@@ -30,7 +30,16 @@ const app = require("../server");
 const SUPABASE_KEYS = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
 const CUSTOMER_USER = { id: "00000000-0000-0000-0000-000000000301", email: "tools@example.com" };
 const ORGANIZATION_ID = "00000000-0000-0000-0000-00000000ac01";
-const INPUT = { costBasis: "100", hoursPerUnit: "2", hourlyRate: "50", targetMargin: "50" };
+// Break-even rather than the pricing calculator.
+//
+// This file is about what a **free** tool does when the save fails, and its own
+// comment below says so. On 1 October 2026 thirty-four of the forty tools moved
+// behind a plan, the pricing calculator among them, so posting to that one here
+// stopped exercising the save path at all -- it exercised the paywall. The
+// break-even planner is one of the six that stayed free, which is what this
+// file needs. See lib/sonara-tool-access.cjs.
+const TOOL_PATH = "/business-builder/tools/break-even";
+const INPUT = { fixedCostsMonthly: "4000", pricePerSale: "50", variableCostPerSale: "30", cashOnHand: "12000" };
 
 function snapshotEnv() {
   return Object.fromEntries(SUPABASE_KEYS.map((key) => [key, process.env[key]]));
@@ -54,7 +63,7 @@ function stubFetch() {
 // The HTML case has to post a form, the way a browser does.
 function runPage() {
   return request(app)
-    .post("/business-builder/tools/pricing")
+    .post(TOOL_PATH)
     .set("Authorization", "Bearer customer-session")
     .set("Accept", "text/html")
     .type("form")
@@ -63,7 +72,7 @@ function runPage() {
 
 function runJson() {
   return request(app)
-    .post("/business-builder/tools/pricing")
+    .post(TOOL_PATH)
     .set("Authorization", "Bearer customer-session")
     .set("Accept", "application/json")
     .send(INPUT);
@@ -95,7 +104,7 @@ describe("an unsaved tool result does not print null", () => {
   // stopped working.
   it("still shows the output it worked out", async () => {
     const response = await runPage();
-    assert.match(response.text, /\$400\.00/, "the customer lost the result the tool exists to produce");
+    assert.match(response.text, /\$20\.00/, "the customer lost the result the tool exists to produce");
   });
 
   it("shows no reference number at all when nothing was saved", async () => {

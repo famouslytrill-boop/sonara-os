@@ -686,7 +686,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       heading: "Your businesses",
       body: "Choose a business to run, or add another one. Each business keeps its own customers, offers, orders, bookings, team, inventory, locations, and records.",
       sections: [`<section class="bb-business-list">${businessCards}</section>`, `<details class="bb-add-business"><summary>Add another business</summary>${createBusinessForm()}</details>`],
-      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/business-builder/tools", "Free tools"), linkAction("/support", "Support")],
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/business-builder/tools", "All tools"), linkAction("/support", "Support")],
       authenticated: true
     });
   }

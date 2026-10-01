@@ -540,6 +540,13 @@ function main() {
     // verification reports it every run". Measured here on 5 September 2026:
     // **twenty-five**, out of 307 tables with RLS enabled. The set had reached
     // twenty-seven before the durable event migration added four deliberately
+    // server-only operational tables, bringing the replay to **thirty-one out
+    // of 311**. **Thirty-two** since 1 October 2026:
+    // `business_management_credentials` holds the business owner's management
+    // passcode and is server-only for the same reason `user_recovery_codes` is:
+    // the stored hash is useless without a pepper only the server holds, and
+    // there is no read of that table a customer's own token should ever make.
+    // And the deep
     // server-only operational tables, bringing the replay to thirty-one out of
     // 311 -- and **thirty-two** once business_recurring_tasks took the same
     // server-only posture recurring_invoices has. And the deep
@@ -571,7 +578,7 @@ function main() {
           and not exists (
             select 1 from pg_policies p
             where p.schemaname = 'public' and p.tablename = c.relname);
-    `, ["closed_count_32", "closed_set_agent_evaluation_runs,audit_log,business_payment_accounts,business_recurring_tasks,call_sessions,call_signals,consent_records,db_health_snapshots,event_delivery_attempts,event_outbox,growth_campaign_sends,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,llm_observations,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
+    `, ["closed_count_33", "closed_set_agent_evaluation_runs,audit_log,business_management_credentials,business_payment_accounts,business_recurring_tasks,call_sessions,call_signals,consent_records,db_health_snapshots,event_delivery_attempts,event_outbox,growth_campaign_sends,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,llm_observations,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
 
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text

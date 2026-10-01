@@ -182,18 +182,6 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/business-builder/intake:
-    post:
-      operationId: createBusinessBuilderIntake
-      tags: [Business Builder]
-      summary: Save a Business Builder intake request and activity record.
-      security: [{ bearerAuth: [] }]
-      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/business-builder/records:
     get:
       operationId: listBusinessBuilderRecords

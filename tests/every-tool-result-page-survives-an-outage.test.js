@@ -71,8 +71,21 @@ function stubFetch() {
     }
     if (target.includes("/rest/v1/organization_memberships")) return json([{ organization_id: ORGANIZATION_ID }]);
     if (target.includes("/rest/v1/billing_entitlements")) {
-      const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1]).split(",").filter(Boolean);
-      return json(asked[0] ? [{ entitlement_key: asked[0], status: "active" }] : []);
+      const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1])
+        .split(",").map((key) => key.replace(/^"|"$/g, "")).filter(Boolean);
+      // Not simply `asked[0]`.
+      //
+      // The first key offered for Creator Studio and Growth Studio is
+      // `workspace_monthly`, which is a choose-one-workspace plan: a row
+      // carrying it opens nothing unless its metadata names the workspace. So
+      // this stub granted Business Builder -- whose first key is
+      // product-specific -- and silently granted neither of the other two.
+      // That did not matter while every tool was free. It did the moment
+      // thirty-four of them moved behind a plan, and twenty-five tools then
+      // looked broken when the stub was what was incomplete.
+      const opensEveryProduct = asked.find((key) => key.startsWith("all_three_"));
+      const key = opensEveryProduct || asked[0];
+      return json(key ? [{ entitlement_key: key, status: "active", metadata: {} }] : []);
     }
     return { ok: false, status: 500, headers: { get: () => null }, json: async () => ({}) };
   };

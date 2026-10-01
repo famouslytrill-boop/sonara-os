@@ -44,12 +44,17 @@ describe("SONARA SaaS functional routes", () => {
     else process.env.STRIPE_WEBHOOK_SECRET = previous;
   });
 
-  it("shows setup-required for protected intake without auth instead of fake success", async () => {
+  // The intake endpoint this used to post to was removed on 1 October 2026, so
+  // it now answers 404 and proves nothing about setup-required behaviour. The
+  // offer builder is the nearest surviving endpoint behind the same
+  // requireWorkspaceAccess("business_builder") gate, which is the property under
+  // test.
+  it("shows setup-required for a protected workspace POST without auth instead of fake success", async () => {
     const res = await request(app)
-      .post("/api/business-builder/intake")
+      .post("/api/business-builder/checklist")
       .set("Accept", "application/json")
-      .send({ company_name: "Test", contact_name: "Test", email: "test@example.com", goals: "Launch" });
-    assert.ok([401, 503].includes(res.status));
+      .send({ businessProfile: "yes", offer: "yes", pricing: "yes" });
+    assert.ok([401, 503].includes(res.status), `answered ${res.status}`);
     assert.equal(res.body.ok, false);
   });
 });
