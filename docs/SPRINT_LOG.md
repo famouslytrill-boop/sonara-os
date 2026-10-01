@@ -2,6 +2,340 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - Ordering by a column was counting as reading it
+
+`report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
+a column fetched into the response and compared to nothing, the way
+`consent_scope` was. It had a blind spot. PostgREST orders by a column whether or
+not the select list asks for it, and the select string and the order clause live
+in separate template chunks -- so stripping the select left `&order=created_at.desc`
+behind, the column name was still in the scope, and it read as used.
+
+Proven on a synthetic scope before touching anything: a function selecting
+`id,status,created_at` and using the timestamp for nothing but `order=`, reported
+zero unused columns. Had `consent_scope` also been ordered on, this check would
+have missed it entirely.
+
+### Four real ones, and three that look identical and are not
+
+Stripping order clauses surfaced seven. Each was opened rather than trusted, and
+they split two ways.
+
+**Genuinely fetched and never read** -- the column is now simply not selected, and
+the ordering is unaffected:
+
+- `routes/sonara-creator-profile-routes.cjs` -- only `artist_profile_id` is read.
+- `routes/sonara-lead-capture-routes.cjs` -- the lead rows render inline and
+  `created_at` is not among the fields printed.
+- `routes/sonara-prompt-library-routes.cjs` -- two recent-item reads map
+  `row.title` and `row.name` and nothing else.
+- `routes/sonara-route-registry-routes.cjs` -- three reads, all rendering inline;
+  `consent_scope` IS read there, which is worth noting, because that is the column
+  the original defect was about.
+
+**Read by a different file**, which tier 1 cannot see, so each ruling cites the
+line that reads the value:
+
+- `lib/sonara-module-records.cjs` -- `lib/sonara-module-crud.cjs` line 353:
+  `const when = record.created_at ? new Date(record.created_at) : null`.
+- `lib/sonara-workspace-dashboard-summary.cjs` -- `server.js` line 1907 prints it
+  in the Recent activity card. Removing it from either select would empty that
+  card.
+- `routes/sonara-last9-routes.cjs` -- `category`, forwarded whole as JSON by
+  `PUBLIC_GETS`, exactly like the `capabilities` and `connection_mode` the ruling
+  on that file already named. It had never surfaced, because the query also
+  carries `order=category.asc`. The masking demonstrating itself.
+
+That ratio is the thing to carry forward: **tier 1 means "not named in this file",
+not "unused".** Three of seven were live readers one file away, and acting on them
+without opening the consumer would have broken a visible card.
+
+### Broken both ways
+
+Re-selecting the timestamp in `sonara-lead-capture-routes.cjs` fails by name.
+Reverting the order-strip while keeping the three rulings fails with all three as
+"outlived their reason" -- which also proves the strip is the load-bearing part
+rather than decoration, since the rulings only exist because of it. Restores were
+copy-aside plus `md5sum -c`.
+
+One stale note corrected while here: an earlier session recorded that this script
+also counted a column named in a comment as used. It does not -- line 303 says "A
+column named in a comment is a column discussed, not used" and it strips comments
+through `lib/sonara-comment-stripping.cjs`. That half was already fixed; only the
+order clause remained.
+
+
+### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
+
+Setting out to measure the Creator Studio gap for the project-graph work rather
+than assume it, `creator_export_packages` turned out to have no writer: the export
+step in briefs -> assets -> versions -> approvals -> exports -> publishing is a
+table nothing fills. Then the odd part. `pnpm run verify:orphan-tables` was green,
+and its own message is "tables created and never queried", so either the gate knew
+and had accounted for it, or the gate could not see it.
+
+It could not see it. `scripts/report-orphan-tables.mjs` keeps a list of files whose
+mention of a table must not count as usage -- the generated contracts, the
+capability inventory, the generators. `lib/sonara-ecosystem-manifest.cjs` was not
+on it, and it is a declarative map from a domain name to a list of table names.
+Neither was `lib/creator-music-system-config.cjs`, which holds a required-tables
+array and a table-name-to-label map. Naming a table in either made it read as
+queried.
+
+Adding both surfaced **twenty** more tables. The report had been saying "20 unused
+tables, all accounted for"; the true figure is 40. Shape 2 from
+`.claude/skills/checks-that-cannot-lie`: measuring a different population from the
+one claimed. It claims to find tables nothing queries and actually finds tables
+nothing mentions.
+
+**This is the second time this exact defect has been found in this one file.** Its
+own comments record the first: the scan counted a `.ts` file as usage and reported
+"0 tables created and never queried" while ten were. Same shape, different hiding
+place.
+
+Verified before trusting the number: five of the twenty were checked by hand
+(`sonara_platform_pages`, `music_tracks`, `employee_posts`,
+`reference_intelligence_sources`, `creator_voice_profiles`) and each is referenced
+only by the four ignored inventories, `data/capability-inventory.json`, and the
+ecosystem manifest -- no runtime reference of any kind.
+
+All twenty are recorded with `decision: "keep"`, and none of those notes
+recommends building anything. Dropping a table is the destructive change AGENTS.md
+puts behind owner approval, and whether each gets wired or retired is a product
+decision nobody has made, so each note says what was measured instead of asserting
+an intent. Four clusters came out of it, which are worth knowing as clusters: the
+migration-016 artist-system subtree is unreachable because nothing creates a
+`creator_artist_system`; the migration-012 music tables are unreachable because
+nothing creates a `music_track`; five `sonara_platform_*` tables are a
+site-builder model with no reader while `scroll_sites` is the one that ships; and
+`employee_posts` overlaps `employee_announcements`, which is the one the
+application reads.
+
+Both directions were broken to prove the gate works. Removing one disposition
+fails naming it. Reverting the ignore-list change while keeping the twenty entries
+fails with all twenty as "listed as never queried and now are queried" -- which
+also proves the ignore-list change is the load-bearing part rather than
+decoration. Restores were copy-aside plus `md5sum -c`.
+
+### What this says about the Creator Project Graph
+
+The chain the owner asked for is further from existing than the table count
+suggests. 28 `creator_*` tables exist, and of the chain: there is no brief table
+(`creator_production_notes` is closest and is unread), no version lineage on
+`creator_assets` at all, no approval workflow (Growth Studio and the Prompt
+Library each have one, Creator Studio has none), and exports are an unwritten
+table. AI-generated-content disclosure exists at generation time --
+`lib/sonara-generation-provenance.cjs` renders `generated`, `rights_attested` and
+`consent_attested` from `creator_generation_assets` -- and stops there, because
+the rows it would travel into are never written.
+
+Also noted, not changed: `creator_assets.organization_id` is nullable. RLS is on
+with a service-role-only policy and every read filters by organization, so a null
+row is an orphan rather than a leak -- but it is a tenant column that can be
+absent, which newer tables assert against.
+
+
+### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
+
+`entity_agent_tool_registry` has had `enabled boolean not null default false` and
+`requires_approval boolean not null default true` since migration 008 -- two
+columns that look exactly like tool permissions, with safe defaults. Nothing has
+ever read either. Measured 1 October 2026: every reference is a contract list, a
+subsystem registry or a planning document, plus
+`routes/sonara-subsystem-routes.cjs`, whose own comment says "Adding a row to
+entity_agent_tool_registry registers a tool; it does not run one".
+
+The obvious move was to wire it up, and it would have been a cross-tenant
+authorization read. That table keys on `entity_id`; `public.entities` has no
+`organization_id` (008 line 32), which migration 20260813120000 already records
+for `agent_pending_actions`; and `lib/sonara-agent-runner.cjs` runs an action for
+an `organizationId`. Consulting one tenant's row to authorise another's work is
+worse than no check, because it looks like one.
+
+So `agent_tool_permissions` is organization-scoped, the registry stays the
+operator research record it was, and the distinction is written into the
+migration, the contract gate's new table group and the route's wiring comment.
+
+### Four kinds of absence, which the usual two would have collapsed
+
+`lib/sonara-agent-tool-permissions.cjs` keeps them apart, because `null` is not
+`[]` is not `0`:
+
+- **unwired** -- no reader here. Reported, untouched. Denying would refuse every
+  action at every unwired caller, a worse way to find a deployment gap. It is the
+  state the breaker sat in silently until this morning.
+- **unavailable** -- a reader was supplied and the read failed. **Escalates**, the
+  opposite of what the breaker does with a failed history read: the breaker is a
+  reliability heuristic, so absent evidence of failure must not penalise an
+  agent, while this is authorization, so absent evidence of permission must not
+  grant one. "Ask the owner" is not an outage.
+- **unconfigured** -- read succeeded, no rows. The model is not in force; the
+  authority module still governs. No rows as deny-everything would make applying
+  the migration an outage for every existing deployment, and as allow-everything
+  would make the table decorative. Opt-in per tenant, strict once opted in.
+- **denied** -- rows exist and this tool is absent, or present and not allowed.
+
+A truncated page reports as unreadable rather than as a short list: a tool missing
+from a partial read would otherwise be refused with a false reason attached.
+
+### What was broken to prove it
+
+25 new tests across two files. `...-is-actually-connected.test.js` drives the real
+Express route and injects nothing. Removing `readPermissions` from
+`routes/sonara-agent-activity-routes.cjs` turns **5 of its 7** red, including all
+three asserting the read happens and that the outcome changes; the two that stay
+green assert an action is NOT denied, correct in both states. That visible
+signature is exactly what was missing when the breaker was wired to nothing.
+
+Letting a permission row relax a gated action turns the invariant test red by
+name. Making an unreadable set fail open turns `verify:supabase-contract` red by
+name -- that gate checks both directions, because a model that only ever refuses
+is as broken as one that only ever permits and only the second gets noticed.
+Restores were copy-aside plus `md5sum -c`.
+
+### Left for the owner, and one small untruth left alone
+
+Nothing writes these rows yet, so every organization is `unconfigured` and
+behaviour is unchanged until an owner surface exists. Deliberate: granting a tool
+is a security setting change, which AGENTS.md puts behind owner approval.
+
+The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
+opened "One table" and the list had held two since August. Left as found rather
+than fixed inside a change about something else, recorded here so it was a known
+inaccuracy rather than a believed one -- and then fixed in its own commit, which
+is the whole reason it was deferred.
+
+### 2026-10-01 - "2026-07-28" was a string, not a requirement
+
+Asked to upgrade the Integration Gateway for current MCP authorization
+requirements, with no connector bypassing tenant-scoped credentials or audit
+logging. Establishing what "current" means came first: the training cutoff behind
+this work is May 2026 and it is now October, so the specification was read, not
+recalled -- `modelcontextprotocol.io/specification/versioning` and
+`.../2026-07-28/basic/authorization`, both fetched live on 1 October 2026.
+
+Not a formality. Two findings contradict what an assistant would write from
+memory, and both are load-bearing:
+
+- **Dynamic Client Registration (RFC 7591) is deprecated** in this revision,
+  retained only for authorization servers without Client ID Metadata Documents. A
+  gateway written from training would have made a deprecated mechanism its primary
+  registration path.
+- **Negotiation is no longer the `initialize` handshake.** Every request carries
+  `io.modelcontextprotocol/protocolVersion` in `_meta`, Streamable HTTP adds an
+  `MCP-Protocol-Version` header, there is a `server/discover` RPC, and a mismatch
+  answers `UnsupportedProtocolVersionError`. The handshake is the
+  backward-compatibility path for `2025-11-25` and earlier.
+
+### The defect that was already here
+
+`lib/sonara-aggregation-control-plane.cjs` line 12 declared `mcp: "2026-07-28"`.
+Line 273 of that same file said "declaring a spec version is not runtime proof".
+`lib/sonara-platform-completeness.cjs` line 196 declared the revision again,
+independently. Nothing compared them, and no module held what the revision
+requires, so no check could measure a connector against anything.
+
+`lib/sonara-mcp-authorization-contract.cjs` holds the requirements now, each with
+the citation it was read from and its level in the specification's own word -- a
+SHOULD recorded as a MUST would make this repository stricter than the standard it
+claims to implement. Three functions carry the sharp edges:
+
+- `issuerMatches` is RFC 3986 6.2.1 simple string comparison, because the
+  specification forbids scheme/host case folding, default-port elision,
+  trailing-slash and percent-encoding normalization before comparing. Tolerance
+  here is the vulnerability, not a convenience.
+- `validateAuthorizationResponse` is the RFC 9207 table as four rows. The row that
+  gets lost is `iss` **absent** while metadata advertises it: a rejection, not a
+  pass -- and an implementation missing it behaves correctly on every honest
+  request.
+- `evaluateConnectorAuthorization` decides by transport, and both directions are
+  defects: an HTTP connector exempted from the OAuth MUSTs is unauthenticated, and
+  a stdio connector held to them can never be enabled, since stdio takes
+  credentials from the environment. Unrecognised transports fail closed.
+
+Tenant-scoped credentials and audit logging are SONARA's own, non-waivable on
+every transport including the one the specification exempts from OAuth.
+
+### What was broken to prove it
+
+`tests/a-version-string-is-not-conformance.test.js`, 28 tests. Five breaks, each
+caught by the test naming it: `issuerMatches` folding case and stripping a trailing
+slash (**2** red), removing the advertised-but-absent `iss` rejection (**1**),
+treating an unrecognised transport as HTTP (**1**), drifting the contract's
+revision from the declared baseline (**3**), holding stdio to the HTTP requirements
+(**1**). Restored by copy-aside and `md5sum -c`, not `git checkout`.
+
+`pnpm run verify:mcp-authorization` is the gate, and it is two-sided on purpose.
+Four breaks against it: drifting the aggregation baseline, flipping an MCP-capable
+registry record to `adapter_available`, replacing the issuer comparison with
+`new URL().href`, and making the classifier deny everything. The last matters most
+-- an all-deny classifier satisfies every refusal assertion in the file, so the
+gate also probes that a conforming connector is still admitted, and that probe was
+the only thing that fired. The `new URL().href` break is the realistic one: it is
+what a developer reaches for, and it accepted four forbidden forms at once.
+
+The gate asserts its own population too. Two registry records are MCP-capable
+(`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
+than passes, because that means the scan stopped matching.
+
+### And one the scanner found, which took two attempts and a primary source
+
+CodeQL raised two high-severity "clear-text logging of sensitive information"
+alerts on the gate, both naming `BLOCKING_OAUTH_KEYS`. Nothing secret was logged
+-- the constant holds requirement identifiers -- but the alert was not wrong
+about the name.
+
+The first fix was wrong, and worth recording because the reasoning was
+plausible. The constant was renamed to `BLOCKING_OAUTH_REQUIREMENT_IDS` on the
+theory that the `KEYS` suffix was the trigger. CodeQL failed again on the new
+head, identically. The theory was comfortable and untested.
+
+The answer was in CodeQL's own source --
+`shared/concepts/codeql/concepts/internal/SensitiveDataHeuristics.qll` in
+`github/codeql`, read 1 October 2026. `maybePassword()` matches the literal
+string **`oauth`**:
+
+```
+(pass(wd|word|code|.?phrase)(?!.*question)|(auth(entication|ori[sz]ation)?).?key|oauth|api.?(key|tok)|([_-]|\b)mfa([_-]|\b))
+```
+
+So `KEYS` was never the trigger and the first rename kept the one that was. Note
+also that bare `auth` does NOT match -- only `oauth`, or `auth`/`authorization`
+followed by `key` -- which is why `AUTHORIZATION_PATH` in the same module was
+never flagged, and `notSensitiveRegexp` excludes anything containing `path`
+anyway.
+
+The constants are now `SPEC_REQUIREMENT_IDS` and `BLOCKING_SPEC_REQUIREMENT_IDS`,
+and the objects' `key` field is `id`. Renamed rather than suppressed, so no
+security check is weakened and `SECURITY_NOTES.md` needs no entry.
+`record.key` in the gate is deliberately untouched: it is the `AI_INTEGRATIONS`
+record's own field, and CodeQL did not flag it.
+
+Verified before pushing this time, not after, by transcribing those regexes and
+running them over every identifier in the three files: the gate script, where
+both alerts were, classifies **zero** identifiers as sensitive. The two tokens
+that still match (`OAuth`, `secrets`) sit inside string literals, which are
+prose rather than names. That transcription lives in the scratchpad rather than
+the repository -- it is a one-off measurement against an external project's
+internals, and a copy of somebody else's regex kept here would be a claim that
+rots the next time they change it.
+
+The reject-row break was re-run after each rename, and still turns the test red
+both times: a refactor that quietly disarms its own tests would be this
+repository's defect wearing a tidier name.
+
+### What this is not
+
+No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure
+only. This is the prerequisite
+`docs/research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md` line 255
+names, written before the runtime so the runtime cannot be built around it; the
+gate refuses any MCP-capable record that becomes production-reachable while no
+runtime exists, so wiring one means producing conformance evidence rather than
+changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
+Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
+nothing here has been exercised against a live authorization server.
+
 ### 2026-10-01 - The autonomy breaker had never evaluated anything
 
 Asked to build the agent control plane: tool permissions, approvals, limits,

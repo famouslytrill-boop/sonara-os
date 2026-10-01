@@ -358,8 +358,8 @@ function registerWorkspacePage(app, productArea, deps) {
 
     const scope = `?organization_id=eq.${encodeURIComponent(context.organizationId)}&product_area=eq.${encodeURIComponent(productArea)}&${visibility.query}`;
     const [templates, collections] = await Promise.all([
-      restRequest(context, "sonara_prompt_templates", `${scope}&select=id,title,updated_at&order=updated_at.desc&limit=20`).catch(() => ({ ok: false })),
-      restRequest(context, "sonara_prompt_collections", `${scope}&select=id,name,updated_at&order=updated_at.desc&limit=20`).catch(() => ({ ok: false }))
+      restRequest(context, "sonara_prompt_templates", `${scope}&select=id,title&order=updated_at.desc&limit=20`).catch(() => ({ ok: false })),
+      restRequest(context, "sonara_prompt_collections", `${scope}&select=id,name&order=updated_at.desc&limit=20`).catch(() => ({ ok: false }))
     ]);
 
     const cards = [];

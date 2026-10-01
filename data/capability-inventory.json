@@ -56,11 +56,11 @@
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
     "openApiApiOperationCount": 307,
-    "databaseTableCount": 334,
+    "databaseTableCount": 335,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 314,
-    "neverQueriedTableCount": 20,
-    "migrationCount": 139,
+    "queriedTableCount": 295,
+    "neverQueriedTableCount": 40,
+    "migrationCount": 140,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 22,
@@ -85089,7 +85089,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 464
+        "line": 477
       },
       "contractCompleteness": {
         "route": true,
@@ -85192,7 +85192,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 767
+        "line": 780
       },
       "contractCompleteness": {
         "route": true,
@@ -94462,6 +94462,7 @@
         "directTables": [
           "agent_action_logs",
           "agent_pending_actions",
+          "agent_tool_permissions",
           "event_outbox",
           "growth_content_queue"
         ],
@@ -94502,6 +94503,22 @@
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260813120000_agent_pending_actions.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "agent_tool_permissions",
+            "tableId": "table:agent_tool_permissions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
               ],
               "policyEvidence": []
             }
@@ -94616,13 +94633,14 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
         ],
         "persistenceMode": "agent_registry_route_contract"
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 721
+        "line": 734
       },
       "contractCompleteness": {
         "route": true,
@@ -94812,7 +94830,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 988
+        "line": 1001
       },
       "contractCompleteness": {
         "route": true,
@@ -94937,6 +94955,7 @@
         "directTables": [
           "agent_action_logs",
           "agent_pending_actions",
+          "agent_tool_permissions",
           "event_outbox",
           "growth_content_queue"
         ],
@@ -94977,6 +94996,22 @@
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260813120000_agent_pending_actions.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "agent_tool_permissions",
+            "tableId": "table:agent_tool_permissions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
               ],
               "policyEvidence": []
             }
@@ -95093,13 +95128,14 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
         ],
         "persistenceMode": "agent_registry_route_contract"
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 664
+        "line": 677
       },
       "contractCompleteness": {
         "route": true,
@@ -95270,7 +95306,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 830
+        "line": 843
       },
       "contractCompleteness": {
         "route": true,
@@ -95430,7 +95466,7 @@
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 865
+        "line": 878
       },
       "contractCompleteness": {
         "route": true,
@@ -95546,6 +95582,7 @@
           "agent_action_logs",
           "agent_pending_actions",
           "agent_schedules",
+          "agent_tool_permissions",
           "event_outbox",
           "growth_content_queue"
         ],
@@ -95602,6 +95639,22 @@
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260813180000_agent_schedules.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "agent_tool_permissions",
+            "tableId": "table:agent_tool_permissions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
               ],
               "policyEvidence": []
             }
@@ -95701,13 +95754,14 @@
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 899
+        "line": 912
       },
       "contractCompleteness": {
         "route": true,
@@ -172691,6 +172745,103 @@
       "orphanDisposition": null
     },
     {
+      "id": "table:agent_tool_permissions",
+      "schema": "public",
+      "name": "agent_tool_permissions",
+      "columnCount": 9,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "tool_name",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "allowed",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "requires_approval",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:app_experience_settings",
       "schema": "public",
       "name": "app_experience_settings",
@@ -179364,9 +179515,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. The root of the artist-system tree that creator_song_blueprints, creator_prompt_packs and creator_export_packages hang off. Nothing creates one, so the whole subtree is unreachable from the running application."
+      }
     },
     {
       "id": "table:creator_assets",
@@ -179606,9 +179761,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. package_type, package_name, export_data jsonb, file_manifest jsonb. The export step in the Creator Studio chain, and nothing writes it -- so an export leaves no record, and the AI-generation provenance recorded at generation time has nowhere to travel to."
+      }
     },
     {
       "id": "table:creator_follows",
@@ -180362,9 +180521,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Influence references for an artist system. Reachable only through creator_artist_systems, which nothing creates."
+      }
     },
     {
       "id": "table:creator_narrative_arcs",
@@ -180502,9 +180665,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Narrative structure for an artist system. Same unreachable subtree."
+      }
     },
     {
       "id": "table:creator_production_notes",
@@ -180610,9 +180777,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. The closest thing in this schema to a creative brief, and nothing reads or writes it."
+      }
     },
     {
       "id": "table:creator_profiles",
@@ -181960,9 +182131,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Sections of a song blueprint. Same unreachable subtree."
+      }
     },
     {
       "id": "table:creator_sonic_profiles",
@@ -182854,9 +183029,13 @@
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "creator-artist-system",
+        "decision": "keep",
+        "note": "Migration 016. Distinct from creator_voice_consents, which IS queried: consent is enforced, while the profile is stored by nothing that runs."
+      }
     },
     {
       "id": "table:customer_invoice_lines",
@@ -183949,9 +184128,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. DAW export settings. No route reads or writes it."
+      }
     },
     {
       "id": "table:daw_sessions",
@@ -185003,9 +185186,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "employee-operations",
+        "decision": "keep",
+        "note": "An internal noticeboard. employee_announcements is the one the running application reads; this has no reader and the two overlap in purpose, so wiring it would need a decision about which is the real one."
+      }
     },
     {
       "id": "table:employee_profiles",
@@ -199293,9 +199480,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. A per-organization provider list, which AGENTS.md routes through Provider Gateway instead; nothing queries this table."
+      }
     },
     {
       "id": "table:music_projects",
@@ -199632,9 +199823,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. Stems belonging to a music_track, and nothing creates a track."
+      }
     },
     {
       "id": "table:music_tracks",
@@ -199746,9 +199941,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "music-production",
+        "decision": "keep",
+        "note": "Migration 012. Nothing creates one, so music_stems and the analysis tables below it are unreachable too."
+      }
     },
     {
       "id": "table:notification_preferences",
@@ -204805,9 +205004,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "reference-intelligence",
+        "decision": "keep",
+        "note": "Migration 20260722201600. Actions derived from a reference intelligence insight, and nothing produces an insight."
+      }
     },
     {
       "id": "table:reference_intelligence_insights",
@@ -204942,9 +205145,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "reference-intelligence",
+        "decision": "keep",
+        "note": "Migration 20260722201600. Nothing writes it, so the actions table above is unreachable."
+      }
     },
     {
       "id": "table:reference_intelligence_sources",
@@ -205103,9 +205310,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "reference-intelligence",
+        "decision": "keep",
+        "note": "Migration 20260722201600. The intake end of a pipeline whose other two tables are also unread."
+      }
     },
     {
       "id": "table:release_plans",
@@ -208769,9 +208980,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. The app/module/page/template/publication set is a site-builder model with no reader; sonara_platforms itself is queried, these five are not."
+      }
     },
     {
       "id": "table:sonara_platform_modules",
@@ -208916,9 +209131,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model."
+      }
     },
     {
       "id": "table:sonara_platform_pages",
@@ -209095,9 +209314,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model. Cinematic scroll sites ship through scroll_sites instead, which is queried."
+      }
     },
     {
       "id": "table:sonara_platform_publications",
@@ -209204,9 +209427,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "organization_scoped_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model."
+      }
     },
     {
       "id": "table:sonara_platform_templates",
@@ -209333,9 +209560,13 @@
       },
       "databaseContractCore": true,
       "tenancy": "global_registry",
-      "queryCoverage": "queried_by_runtime_source_audit",
+      "queryCoverage": "not_queried_by_runtime_source_audit",
       "subsystem": null,
-      "orphanDisposition": null
+      "orphanDisposition": {
+        "group": "platform-builder",
+        "decision": "keep",
+        "note": "Migration 010. Part of the same unread site-builder model."
+      }
     },
     {
       "id": "table:sonara_platforms",
@@ -220446,6 +220677,20 @@
         "business_recurring_tasks"
       ],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql",
+      "creates": [
+        "agent_tool_permissions"
+      ],
+      "alters": [
+        "agent_tool_permissions"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "agent_tool_permissions"
+      ],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -231422,7 +231667,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 464
+          "line": 477
         },
         "contractCompleteness": {
           "route": true,
@@ -231525,7 +231770,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 767
+          "line": 780
         },
         "contractCompleteness": {
           "route": true,
@@ -231643,6 +231888,7 @@
           "directTables": [
             "agent_action_logs",
             "agent_pending_actions",
+            "agent_tool_permissions",
             "event_outbox",
             "growth_content_queue"
           ],
@@ -231683,6 +231929,22 @@
                 ],
                 "rlsEvidence": [
                   "supabase/migrations/20260813120000_agent_pending_actions.sql"
+                ],
+                "policyEvidence": []
+              }
+            },
+            {
+              "table": "agent_tool_permissions",
+              "tableId": "table:agent_tool_permissions",
+              "migrationLineage": {
+                "createdBy": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+                ],
+                "changedBy": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+                ],
+                "rlsEvidence": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
                 ],
                 "policyEvidence": []
               }
@@ -231797,13 +232059,14 @@
             "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
             "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
             "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-            "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+            "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+            "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
           ],
           "persistenceMode": "agent_registry_route_contract"
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 721
+          "line": 734
         },
         "contractCompleteness": {
           "route": true,
@@ -231993,7 +232256,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 988
+          "line": 1001
         },
         "contractCompleteness": {
           "route": true,
@@ -232118,6 +232381,7 @@
           "directTables": [
             "agent_action_logs",
             "agent_pending_actions",
+            "agent_tool_permissions",
             "event_outbox",
             "growth_content_queue"
           ],
@@ -232158,6 +232422,22 @@
                 ],
                 "rlsEvidence": [
                   "supabase/migrations/20260813120000_agent_pending_actions.sql"
+                ],
+                "policyEvidence": []
+              }
+            },
+            {
+              "table": "agent_tool_permissions",
+              "tableId": "table:agent_tool_permissions",
+              "migrationLineage": {
+                "createdBy": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+                ],
+                "changedBy": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+                ],
+                "rlsEvidence": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
                 ],
                 "policyEvidence": []
               }
@@ -232274,13 +232554,14 @@
             "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
             "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
             "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-            "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+            "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+            "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
           ],
           "persistenceMode": "agent_registry_route_contract"
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 664
+          "line": 677
         },
         "contractCompleteness": {
           "route": true,
@@ -232451,7 +232732,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 830
+          "line": 843
         },
         "contractCompleteness": {
           "route": true,
@@ -232611,7 +232892,7 @@
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 865
+          "line": 878
         },
         "contractCompleteness": {
           "route": true,
@@ -232727,6 +233008,7 @@
             "agent_action_logs",
             "agent_pending_actions",
             "agent_schedules",
+            "agent_tool_permissions",
             "event_outbox",
             "growth_content_queue"
           ],
@@ -232783,6 +233065,22 @@
                 ],
                 "rlsEvidence": [
                   "supabase/migrations/20260813180000_agent_schedules.sql"
+                ],
+                "policyEvidence": []
+              }
+            },
+            {
+              "table": "agent_tool_permissions",
+              "tableId": "table:agent_tool_permissions",
+              "migrationLineage": {
+                "createdBy": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+                ],
+                "changedBy": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
+                ],
+                "rlsEvidence": [
+                  "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
                 ],
                 "policyEvidence": []
               }
@@ -232882,13 +233180,14 @@
             "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
             "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
             "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
-            "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+            "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+            "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
           ],
           "persistenceMode": "endpoint_handler_evidence"
         },
         "source": {
           "file": "routes/sonara-agent-activity-routes.cjs",
-          "line": 899
+          "line": 912
         },
         "contractCompleteness": {
           "route": true,
@@ -232926,6 +233225,12 @@
         "table": "agent_schedules",
         "migrationFiles": [
           "supabase/migrations/20260813180000_agent_schedules.sql"
+        ]
+      },
+      {
+        "table": "agent_tool_permissions",
+        "migrationFiles": [
+          "supabase/migrations/20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
         ]
       },
       {
@@ -264939,7 +265244,7 @@
       "workspace": "business_builder_agent_ops",
       "source": {
         "file": "routes/sonara-agent-activity-routes.cjs",
-        "line": 899
+        "line": 912
       },
       "currentDestination": "/owner/agent-activity",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

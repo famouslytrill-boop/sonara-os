@@ -16,9 +16,9 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | Form action destinations traced to registered pages | 57 |
 | Traced forms with no matching method/path route | 0 |
 | Route data contracts needing explicit review | 280 |
-| Active migration tables | 334 |
-| Runtime-queried / never-queried tables | 314 / 20 |
-| Migration files | 139 |
+| Active migration tables | 335 |
+| Runtime-queried / never-queried tables | 295 / 40 |
+| Migration files | 140 |
 | SQL functions / triggers / calling routes / missing function definition | 32 / 49 / 22 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
@@ -56,7 +56,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_resource_registry` | 259 |
 | `handler_source_table_reference` | 184 |
 | `needs_explicit_data_contract` | 280 |
-- 20 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
+- 40 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations
 

@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3039 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 139 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 140 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 414 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 417 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,353 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 414 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 418 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - Ordering by a column was counting as reading it
+
+`report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
+a column fetched into the response and compared to nothing, the way
+`consent_scope` was. It had a blind spot. PostgREST orders by a column whether or
+not the select list asks for it, and the select string and the order clause live
+in separate template chunks -- so stripping the select left `&order=created_at.desc`
+behind, the column name was still in the scope, and it read as used.
+
+Proven on a synthetic scope before touching anything: a function selecting
+`id,status,created_at` and using the timestamp for nothing but `order=`, reported
+zero unused columns. Had `consent_scope` also been ordered on, this check would
+have missed it entirely.
+
+### Four real ones, and three that look identical and are not
+
+Stripping order clauses surfaced seven. Each was opened rather than trusted, and
+they split two ways.
+
+**Genuinely fetched and never read** -- the column is now simply not selected, and
+the ordering is unaffected:
+
+- `routes/sonara-creator-profile-routes.cjs` -- only `artist_profile_id` is read.
+- `routes/sonara-lead-capture-routes.cjs` -- the lead rows render inline and
+  `created_at` is not among the fields printed.
+- `routes/sonara-prompt-library-routes.cjs` -- two recent-item reads map
+  `row.title` and `row.name` and nothing else.
+- `routes/sonara-route-registry-routes.cjs` -- three reads, all rendering inline;
+  `consent_scope` IS read there, which is worth noting, because that is the column
+  the original defect was about.
+
+**Read by a different file**, which tier 1 cannot see, so each ruling cites the
+line that reads the value:
+
+- `lib/sonara-module-records.cjs` -- `lib/sonara-module-crud.cjs` line 353:
+  `const when = record.created_at ? new Date(record.created_at) : null`.
+- `lib/sonara-workspace-dashboard-summary.cjs` -- `server.js` line 1907 prints it
+  in the Recent activity card. Removing it from either select would empty that
+  card.
+- `routes/sonara-last9-routes.cjs` -- `category`, forwarded whole as JSON by
+  `PUBLIC_GETS`, exactly like the `capabilities` and `connection_mode` the ruling
+  on that file already named. It had never surfaced, because the query also
+  carries `order=category.asc`. The masking demonstrating itself.
+
+That ratio is the thing to carry forward: **tier 1 means "not named in this file",
+not "unused".** Three of seven were live readers one file away, and acting on them
+without opening the consumer would have broken a visible card.
+
+### Broken both ways
+
+Re-selecting the timestamp in `sonara-lead-capture-routes.cjs` fails by name.
+Reverting the order-strip while keeping the three rulings fails with all three as
+"outlived their reason" -- which also proves the strip is the load-bearing part
+rather than decoration, since the rulings only exist because of it. Restores were
+copy-aside plus `md5sum -c`.
+
+One stale note corrected while here: an earlier session recorded that this script
+also counted a column named in a comment as used. It does not -- line 303 says "A
+column named in a comment is a column discussed, not used" and it strips comments
+through `lib/sonara-comment-stripping.cjs`. That half was already fixed; only the
+order clause remained.
+
+
+
+
+### 2026-10-01 - The orphan report was counting manifests as queries, and said 20 when it was 40
+
+Setting out to measure the Creator Studio gap for the project-graph work rather
+than assume it, `creator_export_packages` turned out to have no writer: the export
+step in briefs -> assets -> versions -> approvals -> exports -> publishing is a
+table nothing fills. Then the odd part. `pnpm run verify:orphan-tables` was green,
+and its own message is "tables created and never queried", so either the gate knew
+and had accounted for it, or the gate could not see it.
+
+It could not see it. `scripts/report-orphan-tables.mjs` keeps a list of files whose
+mention of a table must not count as usage -- the generated contracts, the
+capability inventory, the generators. `lib/sonara-ecosystem-manifest.cjs` was not
+on it, and it is a declarative map from a domain name to a list of table names.
+Neither was `lib/creator-music-system-config.cjs`, which holds a required-tables
+array and a table-name-to-label map. Naming a table in either made it read as
+queried.
+
+Adding both surfaced **twenty** more tables. The report had been saying "20 unused
+tables, all accounted for"; the true figure is 40. Shape 2 from
+`.claude/skills/checks-that-cannot-lie`: measuring a different population from the
+one claimed. It claims to find tables nothing queries and actually finds tables
+nothing mentions.
+
+**This is the second time this exact defect has been found in this one file.** Its
+own comments record the first: the scan counted a `.ts` file as usage and reported
+"0 tables created and never queried" while ten were. Same shape, different hiding
+place.
+
+Verified before trusting the number: five of the twenty were checked by hand
+(`sonara_platform_pages`, `music_tracks`, `employee_posts`,
+`reference_intelligence_sources`, `creator_voice_profiles`) and each is referenced
+only by the four ignored inventories, `data/capability-inventory.json`, and the
+ecosystem manifest -- no runtime reference of any kind.
+
+All twenty are recorded with `decision: "keep"`, and none of those notes
+recommends building anything. Dropping a table is the destructive change AGENTS.md
+puts behind owner approval, and whether each gets wired or retired is a product
+decision nobody has made, so each note says what was measured instead of asserting
+an intent. Four clusters came out of it, which are worth knowing as clusters: the
+migration-016 artist-system subtree is unreachable because nothing creates a
+`creator_artist_system`; the migration-012 music tables are unreachable because
+nothing creates a `music_track`; five `sonara_platform_*` tables are a
+site-builder model with no reader while `scroll_sites` is the one that ships; and
+`employee_posts` overlaps `employee_announcements`, which is the one the
+application reads.
+
+Both directions were broken to prove the gate works. Removing one disposition
+fails naming it. Reverting the ignore-list change while keeping the twenty entries
+fails with all twenty as "listed as never queried and now are queried" -- which
+also proves the ignore-list change is the load-bearing part rather than
+decoration. Restores were copy-aside plus `md5sum -c`.
+
+### What this says about the Creator Project Graph
+
+The chain the owner asked for is further from existing than the table count
+suggests. 28 `creator_*` tables exist, and of the chain: there is no brief table
+(`creator_production_notes` is closest and is unread), no version lineage on
+`creator_assets` at all, no approval workflow (Growth Studio and the Prompt
+Library each have one, Creator Studio has none), and exports are an unwritten
+table. AI-generated-content disclosure exists at generation time --
+`lib/sonara-generation-provenance.cjs` renders `generated`, `rights_attested` and
+`consent_attested` from `creator_generation_assets` -- and stops there, because
+the rows it would travel into are never written.
+
+Also noted, not changed: `creator_assets.organization_id` is nullable. RLS is on
+with a service-role-only policy and every read filters by organization, so a null
+row is an orphan rather than a leak -- but it is a tenant column that can be
+absent, which newer tables assert against.
+
+
+
+
+### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
+
+`entity_agent_tool_registry` has had `enabled boolean not null default false` and
+`requires_approval boolean not null default true` since migration 008 -- two
+columns that look exactly like tool permissions, with safe defaults. Nothing has
+ever read either. Measured 1 October 2026: every reference is a contract list, a
+subsystem registry or a planning document, plus
+`routes/sonara-subsystem-routes.cjs`, whose own comment says "Adding a row to
+entity_agent_tool_registry registers a tool; it does not run one".
+
+The obvious move was to wire it up, and it would have been a cross-tenant
+authorization read. That table keys on `entity_id`; `public.entities` has no
+`organization_id` (008 line 32), which migration 20260813120000 already records
+for `agent_pending_actions`; and `lib/sonara-agent-runner.cjs` runs an action for
+an `organizationId`. Consulting one tenant's row to authorise another's work is
+worse than no check, because it looks like one.
+
+So `agent_tool_permissions` is organization-scoped, the registry stays the
+operator research record it was, and the distinction is written into the
+migration, the contract gate's new table group and the route's wiring comment.
+
+### Four kinds of absence, which the usual two would have collapsed
+
+`lib/sonara-agent-tool-permissions.cjs` keeps them apart, because `null` is not
+`[]` is not `0`:
+
+- **unwired** -- no reader here. Reported, untouched. Denying would refuse every
+  action at every unwired caller, a worse way to find a deployment gap. It is the
+  state the breaker sat in silently until this morning.
+- **unavailable** -- a reader was supplied and the read failed. **Escalates**, the
+  opposite of what the breaker does with a failed history read: the breaker is a
+  reliability heuristic, so absent evidence of failure must not penalise an
+  agent, while this is authorization, so absent evidence of permission must not
+  grant one. "Ask the owner" is not an outage.
+- **unconfigured** -- read succeeded, no rows. The model is not in force; the
+  authority module still governs. No rows as deny-everything would make applying
+  the migration an outage for every existing deployment, and as allow-everything
+  would make the table decorative. Opt-in per tenant, strict once opted in.
+- **denied** -- rows exist and this tool is absent, or present and not allowed.
+
+A truncated page reports as unreadable rather than as a short list: a tool missing
+from a partial read would otherwise be refused with a false reason attached.
+
+### What was broken to prove it
+
+25 new tests across two files. `...-is-actually-connected.test.js` drives the real
+Express route and injects nothing. Removing `readPermissions` from
+`routes/sonara-agent-activity-routes.cjs` turns **5 of its 7** red, including all
+three asserting the read happens and that the outcome changes; the two that stay
+green assert an action is NOT denied, correct in both states. That visible
+signature is exactly what was missing when the breaker was wired to nothing.
+
+Letting a permission row relax a gated action turns the invariant test red by
+name. Making an unreadable set fail open turns `verify:supabase-contract` red by
+name -- that gate checks both directions, because a model that only ever refuses
+is as broken as one that only ever permits and only the second gets noticed.
+Restores were copy-aside plus `md5sum -c`.
+
+### Left for the owner, and one small untruth left alone
+
+Nothing writes these rows yet, so every organization is `unconfigured` and
+behaviour is unchanged until an owner surface exists. Deliberate: granting a tool
+is a security setting change, which AGENTS.md puts behind owner approval.
+
+The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
+opened "One table" and the list had held two since August. Left as found rather
+than fixed inside a change about something else, recorded here so it was a known
+inaccuracy rather than a believed one -- and then fixed in its own commit, which
+is the whole reason it was deferred.
+
+
+
+### 2026-10-01 - "2026-07-28" was a string, not a requirement
+
+Asked to upgrade the Integration Gateway for current MCP authorization
+requirements, with no connector bypassing tenant-scoped credentials or audit
+logging. Establishing what "current" means came first: the training cutoff behind
+this work is May 2026 and it is now October, so the specification was read, not
+recalled -- `modelcontextprotocol.io/specification/versioning` and
+`.../2026-07-28/basic/authorization`, both fetched live on 1 October 2026.
+
+Not a formality. Two findings contradict what an assistant would write from
+memory, and both are load-bearing:
+
+- **Dynamic Client Registration (RFC 7591) is deprecated** in this revision,
+  retained only for authorization servers without Client ID Metadata Documents. A
+  gateway written from training would have made a deprecated mechanism its primary
+  registration path.
+- **Negotiation is no longer the `initialize` handshake.** Every request carries
+  `io.modelcontextprotocol/protocolVersion` in `_meta`, Streamable HTTP adds an
+  `MCP-Protocol-Version` header, there is a `server/discover` RPC, and a mismatch
+  answers `UnsupportedProtocolVersionError`. The handshake is the
+  backward-compatibility path for `2025-11-25` and earlier.
+
+### The defect that was already here
+
+`lib/sonara-aggregation-control-plane.cjs` line 12 declared `mcp: "2026-07-28"`.
+Line 273 of that same file said "declaring a spec version is not runtime proof".
+`lib/sonara-platform-completeness.cjs` line 196 declared the revision again,
+independently. Nothing compared them, and no module held what the revision
+requires, so no check could measure a connector against anything.
+
+`lib/sonara-mcp-authorization-contract.cjs` holds the requirements now, each with
+the citation it was read from and its level in the specification's own word -- a
+SHOULD recorded as a MUST would make this repository stricter than the standard it
+claims to implement. Three functions carry the sharp edges:
+
+- `issuerMatches` is RFC 3986 6.2.1 simple string comparison, because the
+  specification forbids scheme/host case folding, default-port elision,
+  trailing-slash and percent-encoding normalization before comparing. Tolerance
+  here is the vulnerability, not a convenience.
+- `validateAuthorizationResponse` is the RFC 9207 table as four rows. The row that
+  gets lost is `iss` **absent** while metadata advertises it: a rejection, not a
+  pass -- and an implementation missing it behaves correctly on every honest
+  request.
+- `evaluateConnectorAuthorization` decides by transport, and both directions are
+  defects: an HTTP connector exempted from the OAuth MUSTs is unauthenticated, and
+  a stdio connector held to them can never be enabled, since stdio takes
+  credentials from the environment. Unrecognised transports fail closed.
+
+Tenant-scoped credentials and audit logging are SONARA's own, non-waivable on
+every transport including the one the specification exempts from OAuth.
+
+### What was broken to prove it
+
+`tests/a-version-string-is-not-conformance.test.js`, 28 tests. Five breaks, each
+caught by the test naming it: `issuerMatches` folding case and stripping a trailing
+slash (**2** red), removing the advertised-but-absent `iss` rejection (**1**),
+treating an unrecognised transport as HTTP (**1**), drifting the contract's
+revision from the declared baseline (**3**), holding stdio to the HTTP requirements
+(**1**). Restored by copy-aside and `md5sum -c`, not `git checkout`.
+
+`pnpm run verify:mcp-authorization` is the gate, and it is two-sided on purpose.
+Four breaks against it: drifting the aggregation baseline, flipping an MCP-capable
+registry record to `adapter_available`, replacing the issuer comparison with
+`new URL().href`, and making the classifier deny everything. The last matters most
+-- an all-deny classifier satisfies every refusal assertion in the file, so the
+gate also probes that a conforming connector is still admitted, and that probe was
+the only thing that fired. The `new URL().href` break is the realistic one: it is
+what a developer reaches for, and it accepted four forbidden forms at once.
+
+The gate asserts its own population too. Two registry records are MCP-capable
+(`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
+than passes, because that means the scan stopped matching.
+
+### And one the scanner found, which took two attempts and a primary source
+
+CodeQL raised two high-severity "clear-text logging of sensitive information"
+alerts on the gate, both naming `BLOCKING_OAUTH_KEYS`. Nothing secret was logged
+-- the constant holds requirement identifiers -- but the alert was not wrong
+about the name.
+
+The first fix was wrong, and worth recording because the reasoning was
+plausible. The constant was renamed to `BLOCKING_OAUTH_REQUIREMENT_IDS` on the
+theory that the `KEYS` suffix was the trigger. CodeQL failed again on the new
+head, identically. The theory was comfortable and untested.
+
+The answer was in CodeQL's own source --
+`shared/concepts/codeql/concepts/internal/SensitiveDataHeuristics.qll` in
+`github/codeql`, read 1 October 2026. `maybePassword()` matches the literal
+string **`oauth`**:
+
+```
+(pass(wd|word|code|.?phrase)(?!.*question)|(auth(entication|ori[sz]ation)?).?key|oauth|api.?(key|tok)|([_-]|\b)mfa([_-]|\b))
+```
+
+So `KEYS` was never the trigger and the first rename kept the one that was. Note
+also that bare `auth` does NOT match -- only `oauth`, or `auth`/`authorization`
+followed by `key` -- which is why `AUTHORIZATION_PATH` in the same module was
+never flagged, and `notSensitiveRegexp` excludes anything containing `path`
+anyway.
+
+The constants are now `SPEC_REQUIREMENT_IDS` and `BLOCKING_SPEC_REQUIREMENT_IDS`,
+and the objects' `key` field is `id`. Renamed rather than suppressed, so no
+security check is weakened and `SECURITY_NOTES.md` needs no entry.
+`record.key` in the gate is deliberately untouched: it is the `AI_INTEGRATIONS`
+record's own field, and CodeQL did not flag it.
+
+Verified before pushing this time, not after, by transcribing those regexes and
+running them over every identifier in the three files: the gate script, where
+both alerts were, classifies **zero** identifiers as sensitive. The two tokens
+that still match (`OAuth`, `secrets`) sit inside string literals, which are
+prose rather than names. That transcription lives in the scratchpad rather than
+the repository -- it is a one-off measurement against an external project's
+internals, and a copy of somebody else's regex kept here would be a claim that
+rots the next time they change it.
+
+The reject-row break was re-run after each rename, and still turns the test red
+both times: a refactor that quietly disarms its own tests would be this
+repository's defect wearing a tidier name.
+
+### What this is not
+
+No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure
+only. This is the prerequisite
+`docs/research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md` line 255
+names, written before the runtime so the runtime cannot be built around it; the
+gate refuses any MCP-capable record that becomes production-reachable while no
+runtime exists, so wiring one means producing conformance evidence rather than
+changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
+Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
+nothing here has been exercised against a live authorization server.
+
+
 
 ### 2026-10-01 - The autonomy breaker had never evaluated anything
 
@@ -1804,395 +2146,3 @@ page. It is the removal of a claim that it already does.
 Verified: typecheck, lint over all 918 files, 5142 tests passing, 52 gates, build,
 `pnpm audit` clean, and the three sub-project suites this touches -- aws-emulator
 39, serverless-cli 221, songsmith 44.
-
-
-
-### 2026-09-30 - A tenant-isolation gate blind to ten of fifteen route helpers, found by a linter that was switched off
-
-Two findings, and the first found the second.
-
-**`pnpm run lint` visited 918 files and applied no rule to 184 of them.** Every
-config block in `eslint.config.mjs` matched an extension those files do not have:
-`scripts/**/*.cjs` was covered and `scripts/**/*.mjs` was not, and the last block's
-`*.mjs` has no `**/` so it matches only the repository root. Measured with
-`eslint --print-config` on one file per directory and extension: api/\*.js 1,
-routes/\*.cjs 46, lib/\*.cjs 258, scripts/\*.cjs 15, tests/\*.js 393, public/\*.js 20
-and server.js resolved to two rules; lib/\*.js 1, **scripts/\*.mjs 108**,
-tests/\*.cjs 11, tests/\*.mjs 4, examples/\*.js 2, tools/\*.js 57 and tools/\*.mjs 1
-resolved to none. A file dropped into `scripts/` carrying both a duplicate object
-key and a call to an undefined function linted clean and exited 0.
-
-The 108 unlinted files in `scripts/` are the release-chain gates themselves. A
-green lint run over the checks that are supposed to catch things, which never read
-them.
-
-`no-dupe-keys` and sixteen rules beside it are in `eslint:recommended`, which this
-config does not extend, and `@eslint/js` is not a dependency, so extending the
-preset means adding one. The rules are named instead, hoisted into one
-`correctnessRules` object rather than the five identical copies that were there.
-Run against the whole linted tree first: seven errors, every one `no-dupe-keys`.
-
-**Six of those seven were in `lib/sonara-route-registry.cjs`** — 47 literal pairs,
-41 distinct keys, two appended blocks. `/business-builder/control-center` was
-written as "Business Builder" and silently overridden four lines later by "Business
-Control Center"; the override is what runs and matches its Growth sibling, so it is
-what was kept. The seventh was a push fixture where `endpoint` appeared twice with
-`...VALID` between them, and VALID carries its own endpoint: the leading one was
-dead, and deleting the trailing one as redundant would have changed the
-subscriber's address.
-
-**Then the widened population reported three unused values inside the release
-gates, and one of them was a real hole.**
-
-`scripts/report-tenant-scoped-queries.mjs` destructured `GLOBAL_TABLES` and never
-read it — a value fetched into a decision and never used, shape 3 in
-`.claude/skills/checks-that-cannot-lie`. Pulling on it found this:
-
-**The script read `args[1]` as the table for every `rest()` call, and that is one
-of four signatures in use.** Fifteen declarations across `routes/`: five
-`rest(config, table, query, options)`, three `rest(config, path, init)`, three
-`rest(config, path)`, two `rest(config, query, options)`, and one
-`rest(table, query, options)` with the table at index **0**. For ten of those files
-argument 1 is a path or a query string, never a name in `TENANT_SCOPED_TABLES`, so
-every call in them fell into "carries no organization" and its organization filter
-was never looked at. `filtersRows` read `args[3]` as the options object for the
-same reason.
-
-Falsified before being believed: deleting `organization_id=eq.${ctx.organizationId}`
-from the business list query in
-`routes/sonara-business-control-plane-routes.cjs` — `business_workspaces` is in
-`TENANT_SCOPED_TABLES` — left the script exiting **0 with byte-identical output**.
-Not one of the counts moved. The bucket that read as 59 harmless calls was mostly
-misclassification.
-
-**What the gate does now.** It reads each file's own `rest` declaration by
-parameter name and indexes by it; resolves a table held in a module constant, so
-`` `${EMPLOYEES_TABLE}?organization_id=...` `` yields a name instead of a shrug;
-splits a `path` argument at its first `?`; expands `${scope}` interpolated into a
-query from its nearest preceding declaration; and treats only a name recorded in
-`GLOBAL_TABLES` as carrying no organization — a name in neither list is unresolved,
-which routes it into the blind-query check that already fails on a literal query
-naming no organization.
-
-26 → **56** calls verified as filtered. 59 → 12 in the global bucket. The
-unresolved count rose 27 → 40, and that rise is the point: what changed is that
-unreadable calls are now counted as unreadable instead of waved past as harmless.
-`RECORDED_UNRESOLVED` carries the reason.
-
-**Four calls read a tenant-scoped table without an organization on purpose**, and
-each was verified by reading its route rather than assumed from its shape:
-`GET /creator/:handle` is registered with no guard and finds a public profile by
-handle with `status=eq.active` and only `PUBLIC_PROFILE_COLUMNS`;
-`GET /account/following` scopes by the viewer's own follow ids and the renderer
-drops rows whose `public_handle` is null, which is what unpublish sets; the
-slug-uniqueness check in `POST /api/lead-capture-page` must look across
-organizations to answer "taken by somebody else" and selects `organization_id`
-alone; the published-scroll page and `GET /shared/:token` are public by design.
-
-They are recorded with **the filter that stands in for the organization**, and the
-exemption applies only while that filter is still in the query. Remove
-`status=eq.active` from the public profile lookup and it stops exempting, because
-the thing that made it safe is gone. Two-sided as well: an entry matching no call
-in the run fails.
-
-**Falsified five ways.** A leak in the `rest(table, query)` file fails naming
-`business_workspaces`. A leak in a `rest(config, path)` file fails naming
-`recurring_invoices`. Removing `status=eq.active` fails, so the exemption is
-conditional on its own justification. An exemption matching nothing fails as a
-stale reason. Emptying `SOURCE_DIRS` prints "this check has gone blind" and
-"a pass in this state is the check measuring nothing". Every edited file was
-restored from a copy and checked byte-identical with `md5sum -c`.
-
-**Also**: `eslint.config.cjs` is deleted — flat-config precedence loads the
-`.mjs`, so it was never read, as an earlier entry here and NICE-3 in
-`docs/audits/2026-07-27-ENGINEERING_AUDIT.md` both say. Two configs for one
-question, one dead, is the shape of the duplicate keys above.
-`scripts/check-research-lab-public-copy.mjs` imported `readdirSync` and never
-called it, residue of the globbing its own comment rejects, and
-`scripts/verify-customer-ready-production-experience.mjs` parsed `package.json`
-and consulted it nowhere.
-
-**`tools/` is still not linted, and that is recorded rather than quietly skipped.**
-Its 58 files are four sub-projects with their own CI jobs, and covering them
-surfaced ten problems that belong to those projects. Three look like real defects:
-`fail(code, message, namespace)` in `tools/aws-emulator/src/services/identity.js`
-ignores `namespace`, `handleSts` destructures `store` and never uses it, and
-`SERVERLESS_YML(name, region, typescript)` in
-`tools/serverless-cli/src/scaffold.js` ignores `typescript` while the comment above
-it says a build step "will look for the build step and not find one". Renaming
-those arguments to `_` to make the config green would have buried three questions,
-so they are named in `eslint.config.mjs` and here, and `tools/` gets its own change.
-
-
-
-### 2026-09-29 - Eleven API paths a library declared and the application never served
-
-`lib/creator-music-system-config.cjs` declared sixteen paths. Five were
-registered. The other eleven -- `/api/creator/artist-systems`,
-`/api/creator/voice-profiles`, `/api/creator/influence-maps`,
-`/api/creator/narrative-arcs`, `/api/creator/song-blueprints`,
-`/api/creator/song-sections`, `/api/creator/production-notes`,
-`/api/creator/prompt-packs`, `/api/creator/release-packages`,
-`/api/creator/quality-checks`, `/api/creator/export-packages` -- were registered
-nowhere, by no route and no library. `public/creator-music-system.js` called all
-eleven, `/creator-studio/music-system/new` told the customer to use that helper
-"with the Creator Studio API routes to save real records", and the music system
-home page showed eleven cards reading "Ready for saved records."
-
-Nothing saved a record. The eleven tables are real: migration 020 creates each
-with row-level security and they are in the database contract. No code reads or
-writes one.
-
-**What was removed.** The eleven declarations, the helper file, the
-`<script src="/creator-music-system.js">` tag in `basicLayout`, the sentence on
-the create page, and the eleven cards -- replaced by one card that names the
-eleven record areas and says the schema exists and saving is not built. That is
-the withdrawal of a claim, not a decision never to build it. The build pattern,
-for whoever does: `RESOURCES` in `lib/sonara-module-crud.cjs` plus
-`buildDomainModuleRecord` in `lib/sonara-module-records.cjs`, which is how the
-three resources that do persist are wired. Note that adding a `RESOURCES` entry
-also registers a redirect to `/<product-slug>/<resource>`, so that page has to
-exist or the fix reintroduces a dead path.
-
-**The gate, and the third instance.** This is the same shape as the fourteen
-Creator Studio row controls and the three unreachable media rules: a declaration
-is what made the capability look present.
-`scripts/report-declared-api-paths-nothing-serves.mjs` is registered as
-`verify:declared-api-paths` and fails on an `/api` path any file in `lib/`
-declares that the running application does not serve, unless it is recorded with
-a reason. Two-sided, like `report-orphan-tables.mjs`: an exemption naming a path
-that is now served, or that no library declares any more, fails as well.
-
-**It asks the application rather than reading the source, and that is the whole
-design.** The first version compared string literals in `server.js` and
-`routes/` against string literals in `lib/`, and reported seventy-four unserved
-paths. About seventy were wrong. The Business Builder record pages register in a
-loop -- `app.post(page.api, ...)` -- so the path never sits next to a verb as a
-literal, and a scan of literals measures the routes somebody typed out while
-reporting them as the routes the application answers. The served set is now
-walked off the Express router stack of the real app.
-
-Four more of the seventy-four were real routes under a different parameter name:
-the page table declares `/api/business/quotes/:id/invoice` and the server
-registers `/api/business/quotes/:quoteId/invoice`. Express matches by position,
-so `:anything` compares as `:`. That is the only loosening, and it was worth
-four false findings.
-
-Eight paths are recorded as deliberately not served, each reason confirmed by
-opening the file: `/api/` is a `startsWith` prefix test in two modules;
-`/api/business/time-entries` is the time-clock page's resource key, looked up by
-`pageForApi()` and `RESOURCE_MAP`, with the real work at `/start` and `/stop` and
-`form.action` set so no rendered form posts to it; and six are upstream endpoints
-this application calls outward -- Open WebUI, Ollama, two Ollama/OpenAI probe
-paths, a Hugging Face model URL, and RAGFlow.
-
-**Falsified four ways before being trusted.** Reintroducing one declaration
-failed naming `/api/creator/artist-systems` and the file that declared it. An
-exemption for `/api/creator/music-projects`, which is served, failed as a stale
-reason. An exemption for a path no library mentions failed as covering nothing.
-Emptying the `lib/` scan printed `BLIND: only 0 declared /api paths found (floor
-50)` and refused to report a pass rather than passing on an empty list. Both
-files were restored from copies and checked byte-identical with `md5sum -c`.
-
-Chain length 63 to 64. `docs/owner/WHAT-IS-LEFT.md` and
-`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` carry the derived count;
-`fix:doc-counts` repaired the second. `docs/manual-wire-creator-music-system.md`
-described the deleted helper as "connects forms ... once the write APIs are
-wired" and told the reader to run `npm`; both are corrected.
-
-
-
-### 2026-09-29 - The service worker nothing registers, and five orphaned client bundles
-
-Four crawls now read the rendered surface. All four read HTML, so a button wired
-to `fetch()` is invisible to every one of them: the path lives in a client
-bundle and nothing in the markup says where it goes.
-`tests/every-path-a-button-calls-exists.test.js` reads the bundles.
-
-**The finding is a capability that does not exist in production.**
-`public/sonara-experience.js` line 57 holds the only
-`navigator.serviceWorker.register("/sw.js")` in the repository, and no page
-serves that file. So the service worker is never installed, the offline precache
-never runs, and the thirty-one paths in `public/sw.js` reach nothing. Fetching
-`/`, `/pricing` and `/free-tools` confirms no served page mentions a service
-worker at all. Wiring it up changes caching for every visitor, so it is recorded
-here for the owner rather than switched on.
-
-Five path-carrying bundles are served by nothing: `sonara-experience.js`,
-`sonara-interface-engine.js`, `creator-music-system.js`,
-`sonara-builder-2027.js`, `sonara-cohesive-2027.js`, plus `sw.js` which is only
-reachable through that registration. Two consequences worth naming.
-`tests/brand-palette.test.js` asserts the `theme-color` values in
-`sonara-interface-engine.js` match the palette -- a check whose subject no
-browser receives. And `creator-music-system.js` wires eleven `/api/creator/*`
-endpoints, none registered, while `/creator-music-system/create` tells customers
-in prose to "use the browser helper /creator-music-system.js ... to save real
-records".
-
-**Two detector errors of mine, both caught by measuring instead of matching.**
-
-Reading `<script src=` out of the route sources reported
-`creator-music-system.js` as loaded: the tag is real, inside `basicLayout`, a
-fallback that `const layout = deps.layout || basicLayout` never reaches because
-the real layout is always supplied. All sixteen routes of that surface were
-fetched and none serves it. Loadedness is a fact about a response, so the check
-renders pages and reads the script tags out of the HTML -- the same correction as
-"fetch rather than match against the route table", which earlier reported nine
-static assets as dead links that all answer 200.
-
-The first version also floored the served-bundle check at twenty literals
-examined. Not one of the six served bundles contains a path literal, so the
-floor was a number I had written rather than measured, and it failed honestly.
-That assertion is now a forward guard that says so, and the load-bearing check
-is the two-sided orphan list.
-
-Two more literals, `"/signals"` and `"/status"`, resolve to nothing and are not
-paths: the source builds `"/api/calls/" + encodeURIComponent(callId) + "/status"`
-at runtime and both full routes are registered. Fragments adjacent to a `+` are
-out of scope and the count skipped that way is bounded, so the exclusion cannot
-grow to cover a real one.
-
-Falsified both directions, each restored with `md5sum -c`: a dead path added to a
-served bundle fails "resolve to no route and no file"; dropping a name from the
-orphan list fails "the set of path-carrying client bundles that no page serves
-has changed". The list fails on an addition and on a removal, so nobody can wire
-one up and leave its stale reason behind.
-
-Verified: `verify:launch` exit 0.
-
-
-
-### 2026-09-29 - Fourteen dead Creator Studio controls, and the green gate that was reading 28 of 35 pages
-
-Every Creator Studio record page rendered controls that did nothing. Seven Edit
-links answered 404; six Archive buttons and one status control posted to paths
-with no handler for their method. At full contrast, indistinguishable from
-working features.
-
-**One cause, and it is worth stating exactly.** The card renderer asks
-`recordEdit.canEdit`, `recordArchive.canArchive` and `recordStatus.hasStatus` --
-predicates about a page's *shape*. The routes that answer them were registered
-inside `ALL_OWNER_PAGES.forEach`. So Business Builder got both halves and
-Creator Studio got the rendering half only. The three handlers are now
-registrars called from both loops, each with its own guard, because two copies
-would be two places to forget the next workspace.
-
-**Why every check was green: the crawls read the empty state.** A control
-rendered once per row renders zero times against an empty table.
-`no-dead-links` crawls logged out; `every-form-posts-somewhere` crawls signed in
-but unseeded, and its own header said so -- "Covering row actions needs a seeded
-crawl, which is a larger change than this and is not pretended at here". That
-honest scope limit was concealing fourteen live defects.
-`tests/every-row-control-reaches-a-handler.test.js` seeds every table with one
-row, runs both passes, and checks only what appears exclusively in the seeded
-one. Links are fetched rather than matched, because `express.static` serves
-assets that are not registered routes and matching reported nine false deaths.
-
-**The sharper finding is that a gate for this already existed and was green.**
-`an-archived-record-is-off-the-list-not-out-of-the-books` has a check whose own
-comment names the exact failure -- "either a page offers a button the database
-cannot honour or a column sits unused" -- and it derived its set from
-`ALL_OWNER_PAGES` alone. It measured 28 of the 35 record pages and reported on
-"which tables can be archived". That is the recurring defect in its second form:
-a check measuring a different population from the one it claims. It now reads
-every record page, and every migration that adds the column rather than one
-named file.
-
-Widening it immediately found the next two layers, neither of which the crawl
-could see. No migration created `archived_at` on any Creator Studio table, so
-registering the route alone would have replaced a 404 with a PostgREST error
-about a missing column -- the same dead button one layer further in. And the six
-page declarations did not *select* the column, so the list could not tell an
-archived row from a current one. Migration 136 adds it to the six;
-`creator_artist_profiles` is excluded because it declares
-`status in ('active','paused','archived')` and no page is given two ways to
-retire a record. Both facts are derived from `canArchive`, not listed by hand.
-
-Falsified both ways, each restored with `md5sum -c`: unregistering the Creator
-Studio edit routes fails "7 row-level link(s) do not answer"; dropping one table
-from the migration fails "the migration and the derived set disagree about which
-tables can be archived".
-
-Derived artifacts: paths 746 -> 767, routes 898 -> 912, migrations 135 -> 136,
-test files 392 -> 393.
-
-Verified: `verify:launch` exit 0.
-
-
-
-### 2026-09-28 - A gate for dead breakpoints, and the two wrong answers it gave first
-
-The header fix earlier today found one property decided in three media queries
-where only the widest ran. That is a class of defect, not an instance, and
-nothing here could detect it. `verify:breakpoints` now does, and the chain is
-63 commands.
-
-**It reported two confident falsehoods before it was right, and both matter.**
-
-First version compared bounds: same selector, property and value, a wider
-bound, no differing rule in between. It called
-`.sonara-header-tools { gap: 6px }` at 760px dead because the base rule also
-says 6px. Deleting it changed the rendered gap below 680px from 6px to 5px --
-a 680px rule sets 5px and sits *earlier* in the file, and media queries add no
-specificity, so among equal selectors source order decides. The 760px rule was
-overriding the 680px one, which no comparison of bounds can see. The check now
-simulates the cascade: the winner at a width is the last admitted declaration
-in source order, and a declaration is dead only when removing it leaves the
-winner identical at every bound, every bound minus one, and above them all.
-
-Second, it reported `button { min-height: 48px }` as always overridden by
-`.sonara-record-table :is(a, button, input, select)`. The parser split selector
-lists on every comma, so that `:is()` became four selectors including a bare
-`button` -- a fabricated rule appearing to govern every button on the site.
-Splitting only top-level commas fixed it. Deleting on that verdict would have
-dropped mobile buttons from 48px to 46px.
-
-**What caught both was a browser probe, not reasoning.** 9,456 computed values
--- 43 selector-and-property pairs, 5 pages, 24 widths -- captured before and
-after and diffed. It also caught an over-deletion of mine: stripping three
-selectors the gate never flagged took tap targets from 48px to 44px on phones,
-against the AGENTS.md rule on tap-target size. The final diff is empty, so the
-cleanup is behaviour-neutral by measurement rather than by argument. A check
-agreeing with your reasoning is not evidence; it was built from that reasoning.
-
-**Findings, in two classes, because they need different answers.** 31 dead
-declarations. Twenty-three said something already decided -- deleting them
-changes nothing. Eight expressed an intent that has never once reached a
-screen, every rule beating them saying otherwise: `main` capped at 640px below
-680px and `calc(100% - 20px)` below 420px, both beaten by a later 760px rule;
-`.hero { padding: 48px 0 38px }`; `.card { padding: 18px }` at 420px; icon
-buttons and the account summary at 42px; `.sonara-header-tools { gap: 5px }`.
-All were deleted, which keeps today's appearance exactly. **Honouring any of
-them instead would change what customers see on a phone, and that is the
-owner's decision, not a cleanup** -- the list above is the record of what was
-intended and never happened. Also fixed: `.sonara-product-grid` was listed
-twice inside one selector list, in two places.
-
-**Its own blind-spot guard failed first too.** Truncating the whole of
-sonara-design-system.css to twenty lines left the check green, because
-application-ui.css alone clears any total worth setting. Floors are now per
-stylesheet, and the numbers in that comment are what the parser reports (67
-rules / 170 declarations, and 701 / 2,199) rather than figures that merely read
-as measured -- the first draft carried invented ones.
-
-Falsified four ways, each restored with `md5sum -c`: a repeated declaration, an
-always-overridden one, an emptied stylesheet, and an `:is()` list that must not
-fabricate a bare selector. 72 selector-and-property groups are deliberately
-left unjudged for carrying a `min-width`, a range or an `!important` this model
-cannot evaluate, and the count is printed so the gap is visible.
-
-**An existing gate then caught the new one**, which is the system working.
-`a-line-comment-cannot-open-a-block-comment` failed: the script had its own
-comment stripper, "that is how the same bug shipped three times". It now uses
-the shared pattern -- but `CSS_COMMENT`, a new single branch in
-`lib/sonara-comment-stripping.cjs`, not the JavaScript `COMMENT`. `//` is not a
-comment in CSS, and that alternation reads `url(//cdn.example.com/x.png)` as one
-and blanks the rest of the line, closing brace included. Neither stylesheet
-holds such a value today, which is precisely the "works until somebody writes
-one" this module exists to stop repeating. Two tests cover the CSS form, and
-pointing `withoutCssComments` at `COMMENT` fails "the url was read as a
-comment". Line numbers survive stripping because this caller keeps the newlines
-rather than collapsing each comment to a space: a rule planted past a four-line
-block comment is reported at 2391 and really is on 2391.
-
-Verified: `verify:launch` exit 0, 63 chain commands.

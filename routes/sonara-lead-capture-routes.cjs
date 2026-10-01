@@ -1119,7 +1119,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     const leads = await rest(
       scope.config,
       `${LEADS_TABLE}?organization_id=eq.${enc(scope.organizationId)}`
-        + `&select=id,name,email,phone,source,status,score,score_band,score_provisional,assigned_to,routing_note,created_at`
+        + `&select=id,name,email,phone,source,status,score,score_band,score_provisional,assigned_to,routing_note`
         + `&order=created_at.desc&limit=200`
     );
     const people = await rest(

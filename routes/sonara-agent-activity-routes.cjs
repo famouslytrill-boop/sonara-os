@@ -36,6 +36,7 @@
 // those read identically from here. It says so rather than showing a tick.
 
 const { TABLE, createActionHistoryReader, createActionLogRecorder } = require("../lib/sonara-agent-action-log.cjs");
+const { createToolPermissionReader } = require("../lib/sonara-agent-tool-permissions.cjs");
 const { SENSITIVE_CATEGORY_NAMES } = require("../lib/sonara-agent-authority.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
 const { createEventOutboxRepository, createRunEventPublisher } = require("../lib/sonara-event-outbox.cjs");
@@ -384,7 +385,19 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
       // agent_key, so a mismatch here would read a population this runner never
       // writes to and report a clean record for ever. They are the same string for
       // that reason, and a test asserts it.
-      readHistory: createActionHistoryReader({ organizationId, agentKey: "owner_queue", getSupabaseServerConfig })
+      readHistory: createActionHistoryReader({ organizationId, agentKey: "owner_queue", getSupabaseServerConfig }),
+      // Which tools this organization has permitted. Wired in the same change
+      // that added the model, for the reason the paragraph above records: a
+      // reader that exists and is called by nobody is the shape this file
+      // already shipped once, and it reads as a working gate from every angle
+      // except the one that matters.
+      //
+      // Organization-scoped, which is the whole argument for the table existing.
+      // `entity_agent_tool_registry` has `enabled` and `requires_approval`
+      // columns and would look like the natural source, but it keys on
+      // `entity_id` and `public.entities` has no `organization_id`, so reading it
+      // here would authorise this organization's work from another tenant's row.
+      readPermissions: createToolPermissionReader({ organizationId, getSupabaseServerConfig })
     };
     // Keep the existing owner-queue page usable in isolated test/dev setups
     // that deliberately omit Supabase configuration. In a configured runtime,
