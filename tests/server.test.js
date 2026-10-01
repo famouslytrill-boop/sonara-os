@@ -702,7 +702,6 @@ describe("auth setup", () => {
     const dashboard = await request(app).get("/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const settings = await request(app).get("/settings").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const businessBuilder = await request(app).get("/business-builder/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
-    const businessIntake = await request(app).get("/business-builder/intake").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const creatorAssets = await request(app).get("/creator-studio/assets").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const growthCampaigns = await request(app).get("/growth-studio/campaigns").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
 
@@ -725,8 +724,6 @@ describe("auth setup", () => {
     assert.match(businessBuilder.text, /Log out/);
     assert.equal([...businessBuilder.text.matchAll(/action="\/logout"/g)].length, 2);
     assert.doesNotMatch(businessBuilder.text, /Everything in this workspace|All \d+ pages/);
-    assert.equal(businessIntake.status, 303);
-    assert.equal(businessIntake.headers.location, "/business-builder/launch-readiness?from=%2Fbusiness-builder%2Fintake");
     assert.equal(creatorAssets.status, 200);
     assert.match(creatorAssets.text, /Asset Catalog/);
     assert.match(creatorAssets.text, /Create asset record/);
@@ -1042,44 +1039,6 @@ describe("product module APIs", () => {
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Business offer recorded/);
     assert.match(res.text, /Reference ID: module-output-2/);
-  });
-
-  it("POST /api/business-builder/intake writes intake requests and activity when configured", async function() {
-    configureSupabase();
-    const calls = [];
-    const originalFetch = global.fetch;
-    global.fetch = async (url, options = {}) => {
-      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
-      if (String(url).includes("/auth/v1/user")) {
-        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000107", email: "customer@example.com" }) };
-      }
-      if (String(url).includes("/organization_members")) {
-        return { ok: true, json: async () => [{ organization_id: organizationId }] };
-      }
-      if (String(url).includes("/intake_requests") && options.method === "POST") {
-        return { ok: true, json: async () => [{ id: "00000000-0000-0000-0000-000000000201" }] };
-      }
-      if (String(url).includes("/activity_events")) return { ok: true, json: async () => [{ id: "activity-1" }] };
-      return { ok: true, json: async () => [] };
-    };
-
-    const res = await request(app)
-      .post("/api/business-builder/intake")
-      .set("Authorization", "Bearer customer-session")
-      .send({
-        name: "Launch Owner",
-        email: "owner@example.com",
-        serviceInterest: "business setup",
-        message: "I need help launching a service business."
-      });
-
-    global.fetch = originalFetch;
-
-    assert.equal(res.status, 200);
-    assert.equal(res.body.saved, true);
-    assert.equal(res.body.intakeRequestId, "00000000-0000-0000-0000-000000000201");
-    assert.ok(calls.some((call) => call.url.includes("/intake_requests") && call.method === "POST"));
-    assert.ok(calls.some((call) => call.url.includes("/activity_events") && call.method === "POST"));
   });
 
   it("GET and POST /api/business-builder/checklist use launch checklist records", async function() {

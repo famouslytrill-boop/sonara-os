@@ -834,7 +834,7 @@ registerProduct("business-builder", {
     ["Bookings & Payment Setup", "Checkout stays closed until your payments are fully set up. Nobody is charged before you are ready."],
     ["Customer Records", "Keep customer records private and organization-scoped, ready for real operations."]
   ],
-  checklist: ["Business profile", "Offer", "Intake", "Pricing", "Payment", "Support", "Legal", "Analytics"]
+  checklist: ["Business profile", "Offer", "Pricing", "Payment", "Support", "Legal", "Analytics"]
 });
 
 registerProduct("creator-studio", {
@@ -1428,17 +1428,6 @@ app.post("/api/business-builder/offers", async (req, res) => {
   });
 });
 
-app.post("/api/business-builder/intake", requireWorkspaceAccess("business_builder"), async (req, res) => {
-  const validation = requireFields(req.body, ["name", "email", "message", "serviceInterest"]);
-  if (!validation.ok) return sendValidationFailure(req, res, validation, "/business-builder/intake");
-  const output = {
-    referenceId: randomUUID(),
-    summary: `${req.body.name} requested ${req.body.serviceInterest}.`,
-    nextAction: "Review request and follow up through the support queue."
-  };
-  return sendWorkspacePostResult(req, res, await saveBusinessBuilderIntake(req, output), "Business intake recorded", "/business-builder/intake");
-});
-
 app.get("/api/business-builder/records", requirePaidOrOwnerAccess("business_builder"), async (req, res) => res.status(200).json(await readModuleRecords(req, "business_builder")));
 app.get("/api/business-builder/readiness", (req, res) => res.status(200).json(productReadinessJson("business_builder")));
 app.get("/api/business-builder/checklist", requireWorkspaceAccess("business_builder"), async (req, res) => res.status(200).json(await listChecklistItems(req)));
@@ -1783,7 +1772,6 @@ function workspaceServiceCard(page, paid) {
 function workspaceFormSections(page) {
   const forms = {
     business_offer: businessOfferForm,
-    business_intake: businessIntakeForm,
     business_checklist: businessChecklistCard,
     creator_asset: creatorAssetForm,
     creator_offer: creatorOfferForm,
@@ -1898,7 +1886,12 @@ function workspaceRecordsCard(summary) {
   if (!summary.ok) return brandCard("Records", plainLanguage.setupRequiredSentence(summary.service || summary.code || "account_database"));
   const counts = summary.counts || {};
   return brandCard("Records", [
-    `Intake: ${countLabel(counts.intake)}.`,
+    // Past requests, not a feature. The intake form and the endpoint that
+    // accepted submissions were removed on 1 October 2026, so this number can
+    // only go down. It is still shown because the rows are the customer's, and a
+    // record that silently stops being listed is worse than one labelled for
+    // what it is.
+    `Intake requests on file (no longer collected): ${countLabel(counts.intake)}.`,
     `Checklist: ${countLabel(counts.checklist)}.`,
     `Support: ${countLabel(counts.support)}.`
   ].join(" "));
@@ -1945,21 +1938,8 @@ function businessOfferForm() {
   </article>`;
 }
 
-function businessIntakeForm() {
-  return `<article class="card">
-    <h2>Intake request</h2>
-    <form method="post" action="/api/business-builder/intake">
-      <label>Name<input name="name" type="text" required></label>
-      <label>Email<input name="email" type="email" required></label>
-      <label>Service interest<input name="serviceInterest" type="text" required></label>
-      <label>Message<textarea name="message" rows="5" required></textarea></label>
-      <button type="submit">Record intake</button>
-    </form>
-  </article>`;
-}
-
 function businessChecklistCard() {
-  return checklistCard("Launch Setup Checklist", ["Business profile", "Offer", "Intake", "Pricing", "Payment", "Support", "Legal", "Analytics"]);
+  return checklistCard("Launch Setup Checklist", ["Business profile", "Offer", "Pricing", "Payment", "Support", "Legal", "Analytics"]);
 }
 
 function creatorAssetForm() {
@@ -2421,105 +2401,6 @@ async function readModuleRecords(req, productKey) {
   };
 }
 
-async function safeInsertBusinessBuilderCustomerFromIntake(organizationId, userId, intakeRecord) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok || !organizationId) return { ok: false, code: "setup_required", rows: [] };
-
-  const businessResponse = await fetch(`${config.url}/rest/v1/business_workspaces?select=id&organization_id=eq.${encodeURIComponent(organizationId)}&deleted_at=is.null&order=created_at.asc&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (!businessResponse?.ok) return { ok: false, code: "business_lookup_failed", rows: [] };
-
-  const businesses = await businessResponse.json().catch(() => []);
-  const businessId = businesses[0]?.id;
-  if (!businessId) return { ok: false, code: "business_required", rows: [] };
-
-  const response = await fetch(`${config.url}/rest/v1/customer_records`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify({
-      organization_id: organizationId,
-      business_id: businessId,
-      user_id: userId || null,
-      name: String(intakeRecord.contact_name || intakeRecord.company_name || "New lead").trim(),
-      email: intakeRecord.email || null,
-      phone: intakeRecord.phone || null,
-      status: "lead",
-      notes: intakeRecord.goals || null,
-      metadata: {
-        company_name: intakeRecord.company_name || null,
-        industry: intakeRecord.industry || null,
-        budget: intakeRecord.budget || null,
-        timeline: intakeRecord.timeline || null,
-        current_website: intakeRecord.current_website || null,
-        needed_services: Array.isArray(intakeRecord.needed_services) ? intakeRecord.needed_services : [],
-        source: "business_builder_intake"
-      }
-    })
-  }).catch(() => undefined);
-
-  return {
-    ok: Boolean(response?.ok),
-    code: response?.ok ? "saved" : "save_failed",
-    businessId,
-    rows: response?.ok ? await response.json().catch(() => []) : []
-  };
-}
-
-async function saveBusinessBuilderIntake(req, output) {
-  const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-  if (!organization.ok) {
-    return { ok: true, saved: false, code: "setup_required", service: "customer_organization", output };
-  }
-
-  const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: true, saved: false, code: "setup_required", service: "supabase", output };
-
-  const record = {
-    organization_id: organization.organizationId,
-    user_id: req.sonaraUser?.id || null,
-    company_name: String(req.body.companyName || req.body.company_name || "").trim() || null,
-    contact_name: String(req.body.name || req.body.contactName || "").trim(),
-    email: String(req.body.email || "").trim(),
-    phone: String(req.body.phone || "").trim() || null,
-    industry: String(req.body.industry || "").trim() || null,
-    budget: String(req.body.budget || "").trim() || null,
-    timeline: String(req.body.timeline || "").trim() || null,
-    goals: String(req.body.message || req.body.goals || "").trim(),
-    current_website: String(req.body.currentWebsite || req.body.current_website || "").trim() || null,
-    needed_services: splitList(req.body.neededServices || req.body.serviceInterest || ""),
-    status: "new"
-  };
-
-  const intake = await fetch(`${config.url}/rest/v1/intake_requests`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify(record)
-  }).catch(() => undefined);
-  if (!intake?.ok) return { ok: true, saved: false, code: "setup_required", service: "intake_requests", output };
-  const rows = await intake.json().catch(() => []);
-  const customerRecord = await safeInsertBusinessBuilderCustomerFromIntake(
-    organization.organizationId,
-    req.sonaraUser?.id,
-    record
-  );
-  await insertActivityEvent(organization.organizationId, req.sonaraUser?.id, "business_builder.intake_created", {
-    intake_request_id: rows[0]?.id || null
-  });
-  const email = await sendIntakeConfirmationEmail({ email: record.email, referenceId: rows[0]?.id || output.referenceId, contactName: record.contact_name });
-  return {
-    ok: true,
-    saved: true,
-    code: "saved",
-    emailDelivery: email.ok ? "sent" : "setup_required",
-    intakeRequestId: rows[0]?.id,
-    customerRecordSaved: customerRecord.ok,
-    customerRecordId: customerRecord.rows?.[0]?.id || null,
-    businessId: customerRecord.businessId || null,
-    output
-  };
-}
-
 // `ok: true` with an empty `items` was returned for all three failures here,
 // so a consumer checking the field that means success saw success and no
 // records -- indistinguishable from a customer who has none. createChecklistItem
@@ -2606,21 +2487,6 @@ async function deleteChecklistItem(req) {
   if (!response?.ok) return { ok: false, saved: false, code: "checklist_delete_failed" };
   await insertActivityEvent(organization.organizationId, req.sonaraUser?.id, "business_builder.checklist_deleted", { checklist_item_id: id });
   return { ok: true, saved: true, code: "deleted" };
-}
-
-async function sendIntakeConfirmationEmail({ email, referenceId, contactName }) {
-  if (getReadiness().services.emailDelivery !== "enabled") return { ok: false, error: "resend_not_configured" };
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getEnv("RESEND_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: getEnv("RESEND_FROM_EMAIL"),
-      to: [email],
-      subject: "Business Builder intake received",
-      text: [`Hello ${contactName || "there"},`, "", "Your Business Builder intake was recorded.", `Reference: ${referenceId}`, "", "A SONARA operator will review next steps after setup and support routing are confirmed."].join("\n")
-    })
-  }).catch(() => undefined);
-  return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
 }
 
 function productReadinessJson(productKey) {
