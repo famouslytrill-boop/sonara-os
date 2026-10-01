@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3101 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3166 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 137 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 138 migrations, 147 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 409 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 410 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,7 +103,7 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 22 most recent entries of 408 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 22 most recent entries of 409 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
@@ -207,6 +207,146 @@ too, so the case had to be rewritten to assert what the branch is actually for
 -- that a comment inside an interpolation is removed.
 
 Files restored by copy-aside and `md5sum -c` throughout.
+
+
+### 2026-10-01 - A business owner gets a second thing to know
+
+Asked for business owners to have their own passwords for the security and
+management of their business -- employees, sub-applications, time clocks,
+employee operations.
+
+### The gap, measured rather than assumed
+
+`requireBusinessManager` in `server.js` proves exactly two things: the request
+carries a valid customer session, and that user holds an active `owner` or
+`manager` row in `business_memberships`. Both are properties of the **browser**.
+`CUSTOMER_SESSION_MAX_AGE_SECONDS` is one hour and
+`CUSTOMER_REFRESH_MAX_AGE_SECONDS` is thirty days, both read out of
+`lib/sonara-customer-auth.cjs`. So for up to a month, whoever holds the browser
+holds every employee record, wage rate, pay statement, the time clock and the pay
+run, with nothing further to know.
+
+`lib/sonara-business-passcode.cjs` is the thing that is not in the browser.
+`supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql`
+adds `business_management_credentials`, one row per business, RLS on with no
+policy -- every read goes through the server, which is the only context holding
+the pepper.
+
+**Hashed, not encrypted, and the word matters.** Encryption is reversible by
+whoever holds the key. A passcode is HMAC'd under a pepper derived from
+`SONARA_TOTP_KEY` -- environment only, never the database -- and that result is
+run through scrypt at 2^15. Nobody can read a passcode back out, including
+SONARA; there is no recovery, only replacement. This is the opposite call from
+`lib/sonara-secret-box.cjs`, which *rejected* scrypt for recovery codes, and both
+are right: a recovery code is ninety-six random bits where slow hashing buys
+nothing, and a passcode is chosen by a person where it is the whole defence.
+
+The unlock is an HMAC token in a `SameSite=Strict` httpOnly cookie, signed over
+organization, user, expiry **and the credential's `updated_at`**. Changing the
+passcode moves that value, so every outstanding unlock stops verifying at once,
+on every device. That is what makes a change a way to remove access rather than a
+note for next time.
+
+### Two defects in my own code, both found by running it
+
+Neither was visible by reading, which is why the probe happened before the tests.
+
+* `if (isPasswordLeaked(value))` tested the **Promise** an async function
+  returns -- always truthy -- so **every** passcode was rejected as breached,
+  including good ones. The real function also returns `{ leaked, checked }`, not
+  a boolean, and reaches the network. It is now a separate async wrapper, and
+  `checked: false` reports `breachCheck: "unavailable"` rather than "clear",
+  because a lookup that did not happen is not evidence of anything.
+* A "counting" rule compared the digits against the literal `"0123456789"` while
+  also requiring twelve digits. No twelve-character string can satisfy both, so
+  the rule **could never fire**. Replaced with the actual question -- is every
+  adjacent character one step from the last -- which works at any length.
+
+### What the gate does when no passcode is set
+
+It lets the request through, and says so on the page: *"protected by your sign-in
+alone"*. Refusing would lock an owner out of their own payroll over a feature
+nobody has told them about. What it must never do is pass **quietly**, so the
+banner has its own test; make the gate silent and that test fails.
+
+Three further states are refusals, and none is collapsed into "no passcode set":
+the credential row could not be read, the verifying key is not configured, and
+the credential is locked out. Reading a failed database call as "this business has
+no passcode" would be a way through the gate by breaking something.
+
+### What CodeQL caught that the tests did not
+
+The first push raised four high-severity alerts, and two of them were fair.
+
+`js/weak-password-hashing`, twice: the construction peppered **before**
+stretching -- `scrypt(HMAC(pepper, passcode), salt)` -- so the passcode's first
+stop was HMAC-SHA-256, a deliberately fast hash. The security property was the
+same either way, and the reading was still right: "the slow part is further down
+this file" is a property of the file rather than of the line, and whoever next
+moved the `scryptSync` call would take the protection with it and nothing would
+say so. It is now `HMAC(pepper, scrypt(passcode, salt))` -- the passcode goes
+straight into scrypt, the pepper is applied over the digest, which is the
+construction OWASP describes for a pepper held outside the database.
+
+`js/missing-rate-limiting`, twice, on the two handlers that verify a passcode.
+The limiter was attached but its fallback was `(req, res, next) => next()`, so a
+deployment that forgot to pass `createRateLimiter` would have served an
+unthrottled passcode-guessing endpoint while every line of the module still read
+as rate-limited. The fallback now refuses, and `/lock` is throttled too. The
+five-wrong-answers lockout was never a substitute: it counts per credential, so
+it bounds guesses against one business rather than requests from one caller
+across all of them.
+
+Those two alerts stay open, and `SECURITY_NOTES.md` says why. CodeQL recognises
+rate limiting from a short list of npm packages and has no model for this
+repository's own `createRateLimiter`; adding `express-rate-limit` to quiet a
+scanner would be a tenth production dependency for a capability the codebase
+already has. They are not dismissed either -- dismissing them would remove the
+only visible record that the pattern exists, so a future handler with genuinely
+no limiter would look like the same accepted noise.
+
+What replaced the assurance is a measurement: four tests wire the **real**
+limiter into the real routes with the RPC counter mocked, and prove the eleventh
+attempt in the five-minute window is refused, that it never reaches the
+credential read, that `Retry-After: 300` is sent, that both an address bucket and
+a person bucket are consumed, and that `/passcode` and `/lock` are throttled as
+well. Falsified by taking the limiter off `/unlock` (four red), dropping the
+`subject` scope (one red), and raising `maxAttempts` to 10,000 (three red).
+
+Also corrected: `EXPECTED_FILES` in `scripts/verify-proprietary-notice.mjs` said
+328 against 330. It passed locally and failed in CI because the script enumerates
+tracked files, and the two new ones were still untracked when the chain was run.
+Run the chain after `git add`, not before.
+
+### Verified
+
+57 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
+falsified before being trusted. Twelve breaks, each caught by name:
+
+| Broken                                               | Test that went red                                        |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| Dropped the gate from one protected surface           | names only surfaces server.js actually puts the gate in front of |
+| Failed credential read returned "no passcode set"     | refuses when the credential cannot be read                 |
+| Unlock token stopped being bound to the passcode version | stops working the moment the passcode changes           |
+| Reintroduced the Promise bug                          | accepts an ordinary phrase, +5 others                      |
+| Verified the passcode before checking the lockout     | refuses to unlock while locked                             |
+| Removed the "nothing is protected" wording            | says plainly that nothing is protected when no passcode is set |
+| Removed the `service_role` grant                      | the migration's own assertion, against real PostgreSQL     |
+| Added an RLS policy to the credential table           | likewise                                                   |
+| Pointed the smoke probe at a typo                     | `/business-builder/owner/security` is not served            |
+| Went back to peppering before scrypt                  | puts the passcode into scrypt first and nothing faster      |
+| Dropped the pepper entirely                           | does not verify under a different pepper, +1                |
+| Restored the passthrough rate-limiter fallback        | refuses to serve the passcode endpoints with no rate limiter |
+
+Every touched file restored by copy-aside and `md5sum -c`, not
+`git checkout --`.
+
+One stale comment removed on the way past: the block above the pay-period and
+owner-administration registrations in `server.js` called them "read-only and
+admin-gated" over "tables that cross every organization". Both are
+organization-scoped, both write, and the admin plane was removed the same day. A
+wrong reason inside a gate is worse than none, because it is what the next person
+reads instead of checking.
 
 
 
@@ -2103,154 +2243,3 @@ the first on "a frame header with no frame after it is not an MP3".
   `accept` will act on.
 - `ID3` is a magic number; a frame sync is two bytes of coincidence. Do not put
   a bare sync back in the signature table.
-
-
-
-### 2026-09-21 - Eleven places still said the application had one production dependency
-
-Asked to update the repository and the website with what has already been
-installed. The installing happened on 20 September; what had not happened was
-telling the rest of the repository about it.
-
-## What was measured
-
-`package.json` declares **nine** production dependencies and **five**
-development dependencies. Eleven live statements said otherwise, all of them in
-present tense, none of them dated:
-
-- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
-- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
-  `lib/sonara-structured-log.cjs`
-- `lib/sonara-screenshot-tool-radar-batch12.cjs`
-- `scripts/report-register-opportunities.mjs`
-- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
-- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
-- four guidance lines in `data/open-source-tools.ts`
-
-Every one was **load-bearing reasoning**: no multipart parser because there is
-one dependency; no YAML parser because there is one dependency; this module
-"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
-arrives". A second had arrived, eight of them, and the sentences explaining
-decisions by the old count read exactly as they did when they were true. That is
-the defect this repository is organised around, in prose rather than in code.
-
-**The reasoning mostly survives and was checked rather than assumed.** None of
-the nine production dependencies is a multipart parser and nothing in either
-dependency list parses YAML, both measured rather than recalled. So the
-conclusions stand and the premises were wrong, which is the most dangerous
-combination: nothing breaks, and the next person inherits a reason that will not
-hold the next time it is leaned on.
-
-## The register record whose trigger fired and was never read
-
-`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
-ended: "tests/the-auth-surface-stays-small.test.js fails if that single
-dependency stops being single, which is what would make this record worth
-revisiting."
-
-It stopped being single on 20 September. The test **was not weakened** -- it
-still asserts `deepEqual` against the whole manifest, so a tenth dependency
-fails it -- it was updated to the new exact list, correctly, because the change
-was intentional. But the record it was the trigger for was never revisited.
-
-So this is that revisit, written into the record as a dated addendum: the finding
-does not change, because the reason was never really the count. There is still no
-compile step and none of the nine is a TypeScript library needing one. What had
-to be corrected is the **trigger**, since a count that has already moved cannot
-warn about moving.
-
-## The owner's install document was wrong in two ways, one of them worse
-
-`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
-"one production dependency: `express`. Four development dependencies", and it
-said **"Version 22 is what this was verified on (`v22.22.2`)"**.
-
-The second is the one that mattered. `package.json` declares
-`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
-runtime rather than a preference --
-`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
-changes. The document told the owner to install a Node major that production
-does not run, in five places, which is why every `pnpm` command in this session
-printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
-with the reason the warning is worth acting on rather than reading past.
-
-A section on installing Claude Code was added beside the Supabase CLI one,
-because it belongs in the same category and for the same reason: a tool a person
-runs by hand, deliberately not in `package.json`, where adding it would put it
-on the critical path of every production build.
-
-Its facts were read from the npm registry rather than recalled, and the first
-draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
-`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
-`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
-and the shell script installs under `$HOME` and refuses to run under `sudo`. The
-native installer is listed first because it involves no package manager at all,
-which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
-of this repository's dependency tree.
-
-## `verify:dependency-claims`, the 58th chain command
-
-`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
-undated and mostly lived in source comments, so nothing watched it. The new
-check reads `package.json` and fails when a tracked file states a
-production-dependency count that does not match.
-
-Four things about how it is built, each because the first attempt got it wrong:
-
-- **It reads words, not just digits.** The first version matched digits and
-  found **none of the eleven** -- every one was written as "one" or "single".
-  `WORDS` covers zero to twelve plus `single` and `sole`.
-- **Past-tense statements are not current-state claims.** "went from one
-  production dependency to nine" is a true sentence about a change. A count
-  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
-  with an optional article, is skipped. The marker list is short on purpose: an
-  escape hatch wide enough to launder a current-state claim is worse than no
-  check, and "this is an Express 4 application with one production dependency"
-  has no marker and fails.
-- **It fails when it finds nothing.** A reword that drops every claim out of the
-  pattern is the check going blind, not the repository improving. Proved by
-  misspelling the pattern: `ERROR: no production-dependency count claim was
-  found anywhere in the repository`.
-- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
-  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
-  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
-  text can no longer be found fails, so an exemption cannot outlive the sentence
-  it excuses.
-
-Falsified in four directions before being trusted. It also found three of the
-eleven that grepping had missed, including the install document.
-
-## The website was calling an installed adapter a research candidate
-
-`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
-eight of its packages were production dependencies and a tested 195-line adapter
-existed. `setup_required` would have been the other wrong answer: it says
-configuration is what is left, and configuration is not what is left -- nothing
-calls the adapter, so every variable could be set and still nothing would be
-measured.
-
-`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
-`adapter built` and `enabled in production` are three different states, and this
-vocabulary had the first and the last. Added `adapter_built`, rendered
-"Adapter built, not enabled".
-
-The label map falls back to `"Review required"` for an unknown state, so the
-next state added would have gone unlabelled the same quiet way. Two tests now:
-every availability state in use must have a label and that label must appear on
-the page, with `Review required` asserted absent; and the OpenTelemetry entry
-must stay `adapter_built` **while** an `@opentelemetry` package is still a
-production dependency, so if the packages are removed the test says to move the
-entry back rather than leaving a state that overstates.
-
-## What the next person should not have to rediscover
-
-- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
-  words as well as digits.
-- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
-  because production is 24; the `Unsupported engine` warning means the local
-  Node is wrong, not that the field is.
-- A register record's revisit trigger is only as good as somebody reading it.
-  Better Auth's was a dependency count, which fired silently; it is now the
-  build step.
-- "Research candidate" on `/free-launch-stack` means researched. An installed,
-  unwired adapter is `adapter_built`.

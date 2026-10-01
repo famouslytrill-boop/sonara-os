@@ -11,17 +11,17 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 857,
+    "routeOperationCount": 861,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 532,
+      "GET": 533,
       "PATCH": 10,
-      "POST": 312
+      "POST": 315
     },
     "workspaceCount": 12,
-    "declaredPageCount": 286,
+    "declaredPageCount": 287,
     "workspaceRouteCounts": {
-      "business_builder": 324,
+      "business_builder": 328,
       "business_builder_agent_ops": 7,
       "creator_studio": 119,
       "cross_workspace_formulas": 5,
@@ -34,10 +34,10 @@
       "sonara_shared_api": 109
     },
     "actionDestinationCounts": {
-      "exact": 328,
+      "exact": 329,
       "form_reference": 292,
       "machine_ingress": 2,
-      "parent_route": 54,
+      "parent_route": 57,
       "route_pair": 97,
       "workspace_fallback": 84
     },
@@ -47,7 +47,7 @@
       "explicit_no_persistent_table_expected": 137,
       "explicit_resource_registry": 259,
       "handler_source_table_reference": 181,
-      "needs_explicit_data_contract": 276
+      "needs_explicit_data_contract": 280
     },
     "routesUsingWorkspaceHomeFallback": 84,
     "formActionLinkCount": 53,
@@ -56,19 +56,19 @@
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
     "openApiApiOperationCount": 304,
-    "databaseTableCount": 332,
-    "databaseContractCoreTableCount": 146,
-    "queriedTableCount": 312,
+    "databaseTableCount": 333,
+    "databaseContractCoreTableCount": 147,
+    "queriedTableCount": 313,
     "neverQueriedTableCount": 20,
-    "migrationCount": 137,
+    "migrationCount": 138,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 23,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 276,
+    "routeDataContractsNeedingExplicitReview": 280,
     "routeDataReviewByMethod": {
-      "GET": 194,
-      "POST": 82
+      "GET": 195,
+      "POST": 85
     },
     "routeDestinationReviewByWorkspace": {
       "business_builder": 14,
@@ -120,8 +120,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 324,
-      "registeredPageCount": 93,
+      "routeCount": 328,
+      "registeredPageCount": 94,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -206,6 +206,7 @@
         "/business-builder/owner/schedules",
         "/business-builder/owner/schedules/:recordId/edit",
         "/business-builder/owner/schedules/week",
+        "/business-builder/owner/security",
         "/business-builder/owner/services",
         "/business-builder/owner/services/:recordId/edit",
         "/business-builder/owner/staff",
@@ -359,6 +360,7 @@
             "/business-builder/owner/sales",
             "/business-builder/owner/schedules",
             "/business-builder/owner/schedules/week",
+            "/business-builder/owner/security",
             "/business-builder/owner/services",
             "/business-builder/owner/staff",
             "/business-builder/owner/stock-counts",
@@ -1857,7 +1859,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1423
+        "line": 1451
       },
       "contractCompleteness": {
         "route": true,
@@ -1965,7 +1967,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 781
+        "line": 808
       },
       "contractCompleteness": {
         "route": true,
@@ -2073,7 +2075,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 938
+        "line": 965
       },
       "contractCompleteness": {
         "route": true,
@@ -2179,7 +2181,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -2285,7 +2287,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -2399,7 +2401,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1128
+        "line": 1155
       },
       "contractCompleteness": {
         "route": true,
@@ -3463,7 +3465,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1145
+        "line": 1172
       },
       "contractCompleteness": {
         "route": true,
@@ -3680,7 +3682,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1289
       },
       "contractCompleteness": {
         "route": true,
@@ -4687,7 +4689,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1412
+        "line": 1440
       },
       "contractCompleteness": {
         "route": true,
@@ -5010,7 +5012,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1411
+        "line": 1439
       },
       "contractCompleteness": {
         "route": true,
@@ -5572,7 +5574,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1410
+        "line": 1438
       },
       "contractCompleteness": {
         "route": true,
@@ -15764,7 +15766,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1224
+        "line": 1252
       },
       "contractCompleteness": {
         "route": true,
@@ -16244,7 +16246,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1482
       },
       "contractCompleteness": {
         "route": true,
@@ -16806,7 +16808,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1453
+        "line": 1481
       },
       "contractCompleteness": {
         "route": true,
@@ -22491,7 +22493,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1506
       },
       "contractCompleteness": {
         "route": true,
@@ -23053,7 +23055,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1477
+        "line": 1505
       },
       "contractCompleteness": {
         "route": true,
@@ -26210,7 +26212,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1500
+        "line": 1528
       },
       "contractCompleteness": {
         "route": true,
@@ -30811,7 +30813,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1508
+        "line": 1536
       },
       "contractCompleteness": {
         "route": true,
@@ -31778,7 +31780,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 890
+        "line": 917
       },
       "contractCompleteness": {
         "route": true,
@@ -31895,7 +31897,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1210
+        "line": 1238
       },
       "contractCompleteness": {
         "route": true,
@@ -32011,7 +32013,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1098
+        "line": 1125
       },
       "contractCompleteness": {
         "route": true,
@@ -32119,7 +32121,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1072
+        "line": 1099
       },
       "contractCompleteness": {
         "route": true,
@@ -32227,7 +32229,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1058
+        "line": 1085
       },
       "contractCompleteness": {
         "route": true,
@@ -32339,7 +32341,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1291
+        "line": 1319
       },
       "contractCompleteness": {
         "route": true,
@@ -32729,7 +32731,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1646
+        "line": 1674
       },
       "contractCompleteness": {
         "route": true,
@@ -32837,7 +32839,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -33224,7 +33226,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1293
+        "line": 1321
       },
       "contractCompleteness": {
         "route": true,
@@ -33936,7 +33938,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -34222,7 +34224,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -34330,7 +34332,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1688
       },
       "contractCompleteness": {
         "route": true,
@@ -34699,7 +34701,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1332
+        "line": 1360
       },
       "contractCompleteness": {
         "route": true,
@@ -34807,7 +34809,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -34913,7 +34915,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1694
+        "line": 1722
       },
       "contractCompleteness": {
         "route": true,
@@ -35115,7 +35117,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1362
+        "line": 1390
       },
       "contractCompleteness": {
         "route": true,
@@ -35223,7 +35225,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -35331,7 +35333,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1678
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -35533,7 +35535,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1315
+        "line": 1343
       },
       "contractCompleteness": {
         "route": true,
@@ -35731,7 +35733,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -35839,7 +35841,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -35947,7 +35949,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -44351,9 +44353,7 @@
         "confidence": "exact",
         "reason": "page_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": {
         "title": "Pay Periods",
         "productOwner": "business_builder",
@@ -44440,9 +44440,7 @@
         "confidence": "exact",
         "reason": "page_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": {
         "title": ":periodId",
         "productOwner": "business_builder",
@@ -52451,6 +52449,95 @@
       "action": false
     },
     {
+      "id": "GET /business-builder/owner/security",
+      "method": "GET",
+      "route": "/business-builder/owner/security",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": "Security",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [
+          "locked",
+          "next",
+          "saved"
+        ],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 218
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /business-builder/owner/services",
       "method": "GET",
       "route": "/business-builder/owner/services",
@@ -59818,7 +59905,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -60268,7 +60355,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -60376,7 +60463,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -60484,7 +60571,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -63277,7 +63364,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 845
+        "line": 872
       },
       "contractCompleteness": {
         "route": true,
@@ -63383,7 +63470,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -63491,7 +63578,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1646
+        "line": 1674
       },
       "contractCompleteness": {
         "route": true,
@@ -64678,7 +64765,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -65076,7 +65163,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -65368,7 +65455,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -65476,7 +65563,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -65680,7 +65767,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1688
       },
       "contractCompleteness": {
         "route": true,
@@ -67584,7 +67671,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -67692,7 +67779,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1678
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -67890,7 +67977,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -67998,7 +68085,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -69047,7 +69134,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -69155,7 +69242,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -70032,7 +70119,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -70140,7 +70227,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -70248,7 +70335,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -71155,7 +71242,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -74752,7 +74839,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1170
+        "line": 1197
       },
       "contractCompleteness": {
         "route": true,
@@ -74949,7 +75036,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 993
+        "line": 1020
       },
       "contractCompleteness": {
         "route": true,
@@ -75055,7 +75142,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -75226,7 +75313,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -75674,7 +75761,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1646
+        "line": 1674
       },
       "contractCompleteness": {
         "route": true,
@@ -75782,7 +75869,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -76367,7 +76454,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -76571,7 +76658,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -77391,7 +77478,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1688
       },
       "contractCompleteness": {
         "route": true,
@@ -77771,7 +77858,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -77879,7 +77966,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -78077,7 +78164,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1678
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -78311,7 +78398,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -78509,7 +78596,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -78617,7 +78704,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -79833,7 +79920,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -79941,7 +80028,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -80233,7 +80320,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -82240,7 +82327,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 975
+        "line": 1002
       },
       "contractCompleteness": {
         "route": true,
@@ -82681,7 +82768,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -82778,7 +82865,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -82875,7 +82962,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -82972,7 +83059,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83069,7 +83156,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83166,7 +83253,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83263,7 +83350,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83360,7 +83447,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83457,7 +83544,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83554,7 +83641,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83651,7 +83738,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83748,7 +83835,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83845,7 +83932,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83942,7 +84029,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1556
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -84052,7 +84139,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1044
+        "line": 1071
       },
       "contractCompleteness": {
         "route": true,
@@ -84234,7 +84321,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1107
+        "line": 1134
       },
       "contractCompleteness": {
         "route": true,
@@ -84333,7 +84420,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1521
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -84700,7 +84787,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1534
+        "line": 1562
       },
       "contractCompleteness": {
         "route": true,
@@ -84797,7 +84884,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -84822,9 +84909,7 @@
         "confidence": "exact",
         "reason": "page_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": {
         "title": "Administration",
         "productOwner": "sonara_industries",
@@ -85224,7 +85309,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 900
+        "line": 927
       },
       "contractCompleteness": {
         "route": true,
@@ -85330,7 +85415,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -86206,7 +86291,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -86496,7 +86581,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -88050,7 +88135,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 957
+        "line": 984
       },
       "contractCompleteness": {
         "route": true,
@@ -88251,7 +88336,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1272
+        "line": 1300
       },
       "contractCompleteness": {
         "route": true,
@@ -88742,7 +88827,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1048
+        "line": 1075
       },
       "contractCompleteness": {
         "route": true,
@@ -89808,7 +89893,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -90135,7 +90220,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -90232,7 +90317,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1518
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -91653,7 +91738,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1418
+        "line": 1446
       },
       "contractCompleteness": {
         "route": true,
@@ -94292,7 +94377,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1158
+        "line": 1185
       },
       "contractCompleteness": {
         "route": true,
@@ -96034,7 +96119,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1229
+        "line": 1257
       },
       "contractCompleteness": {
         "route": true,
@@ -96389,7 +96474,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1231
+        "line": 1259
       },
       "contractCompleteness": {
         "route": true,
@@ -98876,7 +98961,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1413
+        "line": 1441
       },
       "contractCompleteness": {
         "route": true,
@@ -99154,7 +99239,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1351
+        "line": 1379
       },
       "contractCompleteness": {
         "route": true,
@@ -99708,7 +99793,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1399
+        "line": 1427
       },
       "contractCompleteness": {
         "route": true,
@@ -100245,7 +100330,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1386
+        "line": 1414
       },
       "contractCompleteness": {
         "route": true,
@@ -119000,7 +119085,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1228
+        "line": 1256
       },
       "contractCompleteness": {
         "route": true,
@@ -120222,7 +120307,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1429
+        "line": 1457
       },
       "contractCompleteness": {
         "route": true,
@@ -121324,7 +121409,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1442
+        "line": 1470
       },
       "contractCompleteness": {
         "route": true,
@@ -127034,7 +127119,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1456
+        "line": 1484
       },
       "contractCompleteness": {
         "route": true,
@@ -128427,7 +128512,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1465
+        "line": 1493
       },
       "contractCompleteness": {
         "route": true,
@@ -140322,7 +140407,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 333
+        "line": 335
       },
       "contractCompleteness": {
         "route": true,
@@ -140654,7 +140739,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 332
+        "line": 334
       },
       "contractCompleteness": {
         "route": true,
@@ -140851,7 +140936,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1086
+        "line": 1113
       },
       "contractCompleteness": {
         "route": true,
@@ -140953,7 +141038,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1122
+        "line": 1149
       },
       "contractCompleteness": {
         "route": true,
@@ -141149,7 +141234,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1052
+        "line": 1079
       },
       "contractCompleteness": {
         "route": true,
@@ -141640,7 +141725,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1375
+        "line": 1403
       },
       "contractCompleteness": {
         "route": true,
@@ -147480,9 +147565,7 @@
         "confidence": "route_pair",
         "reason": "matching_get_route"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -147562,9 +147645,7 @@
         "confidence": "parent_route",
         "reason": "nearest_registered_parent_page"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -153842,6 +153923,245 @@
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/security/lock",
+      "method": "POST",
+      "route": "/business-builder/owner/security/lock",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [
+          "ok"
+        ],
+        "redirectTargetsObserved": [
+          "${SECURITY_PATH}?locked=1"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 364
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/security/passcode",
+      "method": "POST",
+      "route": "/business-builder/owner/security/passcode",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [
+          "confirmPasscode",
+          "currentPasscode",
+          "passcode"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 244
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /business-builder/owner/security/unlock",
+      "method": "POST",
+      "route": "/business-builder/owner/security/unlock",
+      "kind": "form_or_action",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [
+          "next",
+          "passcode"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "business_management_credentials"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-security-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 313
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -160714,7 +161034,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 859
+        "line": 886
       },
       "contractCompleteness": {
         "route": true,
@@ -167282,7 +167602,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1116
+        "line": 1143
       },
       "contractCompleteness": {
         "route": true,
@@ -167307,9 +167627,7 @@
         "confidence": "parent_route",
         "reason": "nearest_registered_parent_page"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -167382,9 +167700,7 @@
         "confidence": "parent_route",
         "reason": "nearest_registered_parent_page"
       },
-      "accessMiddleware": [
-        "requireBusinessManager"
-      ],
+      "accessMiddleware": [],
       "routeRegistry": null,
       "openApi": null,
       "request": {
@@ -169766,6 +170082,19 @@
           "migrations": [
             "supabase/migrations/010_sonara_platform_current_schema.sql",
             "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-business-security-routes.cjs",
+      "source": "routes/sonara-business-security-routes.cjs",
+      "tableCount": 1,
+      "tables": [
+        {
+          "table": "business_management_credentials",
+          "migrations": [
+            "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
           ]
         }
       ]
@@ -175133,6 +175462,103 @@
           "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
           "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": true,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:business_management_credentials",
+      "schema": "public",
+      "name": "business_management_credentials",
+      "columnCount": 9,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "passcode_hash",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "failed_attempts",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "locked_until",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "last_verified_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "set_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql"
         ],
         "policyEvidence": []
       },
@@ -219577,6 +220003,20 @@
       "drops": [],
       "rlsEnabled": [],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql",
+      "creates": [
+        "business_management_credentials"
+      ],
+      "alters": [
+        "business_management_credentials"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "business_management_credentials"
+      ],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -251549,6 +251989,7 @@
         "product_lifecycle_events",
         "business_workspaces",
         "business_memberships",
+        "business_management_credentials",
         "business_employee_invites",
         "business_employee_profiles",
         "business_service_catalog",
@@ -252281,7 +252722,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1128
+        "line": 1155
       },
       "destination": {
         "route": "/account",
@@ -252576,7 +253017,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1145
+        "line": 1172
       },
       "destination": {
         "route": "/account/setup",
@@ -252671,7 +253112,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1289
       },
       "destination": {
         "route": "/dashboard",
@@ -252793,7 +253234,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1224
+        "line": 1252
       },
       "destination": {
         "route": "/dashboard",
@@ -253437,7 +253878,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 890
+        "line": 917
       },
       "destination": {
         "route": "/dashboard",
@@ -253490,7 +253931,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -253633,7 +254074,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -253686,7 +254127,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -253739,7 +254180,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1688
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -253833,7 +254274,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/help",
@@ -253886,7 +254327,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1694
+        "line": 1722
       },
       "destination": {
         "route": "/business-builder/intake",
@@ -253980,7 +254421,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1362
+        "line": 1390
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -254033,7 +254474,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -254127,7 +254568,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1315
+        "line": 1343
       },
       "destination": {
         "route": "/business-builder/login",
@@ -254215,7 +254656,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -254268,7 +254709,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -254321,7 +254762,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -254786,6 +255227,38 @@
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
     {
+      "id": "GET /business-builder/owner/security",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 218
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [
+          "locked",
+          "next",
+          "saved"
+        ],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
       "id": "GET /business-builder/owner/sub-apps",
       "workspace": "business_builder",
       "kind": "page_or_download",
@@ -254821,7 +255294,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -254906,7 +255379,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -254959,7 +255432,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/records",
@@ -255012,7 +255485,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -256051,7 +256524,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -256142,7 +256615,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -256195,7 +256668,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -256289,7 +256762,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1688
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -256553,7 +257026,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -256641,7 +257114,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -256694,7 +257167,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -256851,7 +257324,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -256904,7 +257377,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -256989,7 +257462,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -257042,7 +257515,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -257095,7 +257568,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -257256,7 +257729,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -258198,7 +258671,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -258393,7 +258866,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -258586,7 +259059,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1660
+        "line": 1688
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -258746,7 +259219,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -258799,7 +259272,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -258922,7 +259395,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -258975,7 +259448,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -259126,7 +259599,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -259179,7 +259652,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -259306,7 +259779,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1707
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -260132,7 +260605,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1044
+        "line": 1071
       },
       "destination": {
         "route": "/login",
@@ -260333,7 +260806,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1048
+        "line": 1075
       },
       "destination": {
         "route": "/signup",
@@ -261253,7 +261726,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1086
+        "line": 1113
       },
       "destination": {
         "route": "/auth/login",
@@ -261310,7 +261783,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1122
+        "line": 1149
       },
       "destination": {
         "route": "/logout",
@@ -261404,7 +261877,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1052
+        "line": 1079
       },
       "destination": {
         "route": "/auth/signup",
@@ -261579,6 +262052,98 @@
       },
       "responseKindsObserved": [
         "redirect"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/security/lock",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 364
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "json",
+        "redirect"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/security/passcode",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 244
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "confirmPasscode",
+          "currentPasscode",
+          "passcode"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /business-builder/owner/security/unlock",
+      "workspace": "business_builder",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-business-security-routes.cjs",
+        "line": 313
+      },
+      "destination": {
+        "route": "/business-builder/owner/security",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "business_management_credentials"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "next",
+          "passcode"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -263247,7 +263812,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1116
+        "line": 1143
       },
       "destination": {
         "route": "/logout",
@@ -263659,7 +264224,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1289
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263729,7 +264294,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1224
+        "line": 1252
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263739,7 +264304,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1482
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263749,7 +264314,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1506
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263789,7 +264354,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1500
+        "line": 1528
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -263999,7 +264564,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 890
+        "line": 917
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
