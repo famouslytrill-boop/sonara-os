@@ -182,18 +182,6 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/business-builder/intake:
-    post:
-      operationId: createBusinessBuilderIntake
-      tags: [Business Builder]
-      summary: Save a Business Builder intake request and activity record.
-      security: [{ bearerAuth: [] }]
-      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/business-builder/records:
     get:
       operationId: listBusinessBuilderRecords
@@ -1633,6 +1621,71 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "303": { description: Browser form redirect carrying how many drafts were created. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring-work:
+    post:
+      operationId: createRecurringTask
+      tags: [Business Builder]
+      summary: Set up work that comes round again - opening, closing, a weekly clean, a monthly count.
+      description: >-
+        A browser form, so every outcome is a 303 back to the recurring work
+        page. A refusal carries `problem=invalid` and `why` holding one or more
+        short codes - never the sentences themselves, because the page prints
+        them and a crafted link must not be able to choose that text. The codes
+        and their sentences are `PROBLEMS` in lib/sonara-recurring-tasks.cjs,
+        which is also the validator, so this endpoint and any later caller refuse
+        the same things for the same reasons. Nothing is scheduled by saving one:
+        a template produces a task when the business presses the run button
+        below.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the recurring work page, carrying the reason when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring-work/disable:
+    post:
+      operationId: disableRecurringTask
+      tags: [Business Builder]
+      summary: Switch off one recurring job so it stops producing tasks.
+      description: >-
+        An update, not a delete. The template and everything it has already
+        issued stay on file, and the id from the form body is filtered by the
+        signed-in business as well as by id - the service role bypasses row
+        level security, so that filter is the whole tenant boundary.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the recurring work page. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring-work/enable:
+    post:
+      operationId: enableRecurringTask
+      tags: [Business Builder]
+      summary: Switch one recurring job back on.
+      description: >-
+        Switching on does not issue anything by itself. The next press of the run
+        button works out what is due, and a job that was off through several
+        occurrences produces one task rather than one per occurrence missed.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the recurring work page. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring-work/run:
+    post:
+      operationId: runRecurringTasks
+      tags: [Business Builder]
+      summary: Turn every recurring job that is due into a task on the staff task list.
+      description: >-
+        One task per job, never one per occurrence missed. A job three weeks
+        behind produces a single task for the most recent day it fell due, and
+        the page reports how many earlier occurrences were passed over rather
+        than queueing them. The task is a row in `employee_tasks`, which
+        /staff/tasks already serves, so there is no second task list. The
+        template's `last_issued_on` moves only after the task exists: the other
+        order loses an occurrence whenever the write fails, and nobody complains
+        about a task they never saw. The redirect reports three outcomes rather
+        than two - `done` counts the tasks created, `refused` the jobs that could
+        not become one, and `unrecorded` the tasks that were created but whose
+        template could not be advanced. The last carries `problem=unrecorded`
+        because its consequence is specific: pressing again offers the same day
+        and creates that task a second time.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect carrying how many tasks were created. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/customers/import:
     post:
       operationId: importCustomers

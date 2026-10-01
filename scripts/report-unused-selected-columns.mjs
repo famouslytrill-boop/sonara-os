@@ -280,7 +280,25 @@ const STAR_SELECT_COUNT = 20;
 // actually sends, split on commas, deep-equals `source.columns`. A column added
 // to the export sources and not to the query, or the reverse, fails that test
 // by name.
-const COMPUTED_SELECT_COUNT = 27;
+//
+// 27 -> 29 on 1 October 2026: the two reads in
+// routes/sonara-recurring-task-routes.cjs, both `select=${TEMPLATE_COLUMNS}`.
+//
+// It cannot be literal here either, and the reason is the same shape as the
+// accounting export above with a sharper consequence. The page read and the run
+// read must ask for the same columns: the page prints what
+// lib/sonara-recurring-tasks.cjs says is due, and the run handler issues from it.
+// A literal in both places that drifted -- the run read losing `anchor_day`, say
+// -- would not error. `nextOccurrence` would fall back to the day `starts_on`
+// carries, compute a different date from the one the page showed, and issue a
+// task for it. Two copies of one column list is exactly how that happens.
+//
+// What replaces the scanner's reading, as above:
+// tests/work-that-comes-round-again-comes-round-once.test.js asserts the two
+// selects the routes actually send are identical, and that the set covers every
+// column the engine reads to decide a date. A column dropped from one and not the
+// other fails that test by name.
+const COMPUTED_SELECT_COUNT = 29;
 
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.

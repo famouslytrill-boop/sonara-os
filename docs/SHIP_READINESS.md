@@ -236,7 +236,7 @@ customers out of their own records.
 > itself is still the owner's decision, against production rather than a replay.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 137 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 139 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
@@ -427,7 +427,7 @@ cannot:
 | Nothing would route to it anyway | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
 
 The shipped product is the Express CommonJS application: `server.js`, `routes/`,
-`lib/`, **286 registered GET routes**, deployed as one serverless function.
+`lib/`, **287 registered GET routes**, deployed as one serverless function.
 
 **What it cost, before it was found.** `scripts/report-orphan-tables.mjs` counted
 a table as "queried" when any `.ts` file named it. So the release chain reported
@@ -580,7 +580,7 @@ reports these tables as used.
   `server.js` to add the mount, was deleted on 30 September 2026 as spent -- the
   mount it was written to add is already there twice over.
 
-- **31 tables have RLS enabled with no explicit policy**, which closes
+- **33 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever
   reads with the service-role key that is the posture you want — it is what
   stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
@@ -593,7 +593,7 @@ reports these tables as used.
   succeeded since 5 August. So it had reported nothing for a month while the set
   nearly doubled.
 
-  Measured against the replay (all 137 migrations on an empty database, so this
+  Measured against the replay (all 139 migrations on an empty database, so this
   is the migrations' intended end state, not production's): **31 of 311 tables
   with RLS enabled.**
 
