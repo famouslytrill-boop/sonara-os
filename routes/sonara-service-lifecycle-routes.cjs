@@ -8,6 +8,7 @@
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
 const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
+const { isFreeTool, productForTool } = require("../lib/sonara-tool-access.cjs");
 const { applyPreset, describe: describePreset } = require("../lib/sonara-tool-presets.cjs");
 const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
 const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
@@ -109,6 +110,7 @@ function catalogCardBody(item) {
 module.exports = function registerServiceLifecycleRoutes(app, deps) {
   const {
     resolveCustomerSession,
+    getCustomerPaidEntitlement,
     layout,
     brandCard,
     actionCard,
@@ -859,24 +861,105 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   // Free tool pages and POST actions
   // ---------------------------------------------------------------------------
 
-  // The free tools compute for anybody, and save for a customer.
+  // Six of the forty tools compute for anybody. The other thirty-four need a
+  // plan. lib/sonara-tool-access.cjs holds which and why.
   //
-  // Until 19 August 2026 both halves were behind a login. The effect was a
-  // funnel that advertised and then refused: /business-builder/tools is a public
-  // page listing ten tools by name and description, and every one of them
-  // answered a visitor who clicked it with a redirect to /login.
+  // The comment that used to stand here is worth keeping, because the thing it
+  // warned about is still the thing to get wrong. Until 19 August 2026 every
+  // tool was behind a login, and the effect was a funnel that advertised and
+  // then refused: /business-builder/tools listed ten tools by name and
+  // description, and every one of them answered a visitor who clicked it with a
+  // redirect to /login. Gating the *computation* did not drive a signup, it
+  // drove a bounce.
   //
-  // These are the most differentiated thing in the product and the cheapest to
-  // give away -- pure arithmetic, no model call, no provider, no per-use cost,
-  // and nothing read from the database to produce the answer. Gating the
-  // *computation* does not drive a signup, it drives a bounce; gating the
-  // *saving* is what drives a signup, and that is unchanged.
+  // The owner's decision on 1 October 2026 reduces the free set and puts the
+  // rest behind the paywall. That is a pricing decision. The funnel failure is
+  // not, so it is held here instead:
   //
-  // **Nothing moved from paid to free.** The free plan already included these
-  // tools; they moved from free-after-signup to free-before-signup, which is a
-  // funnel change rather than a pricing change.
+  //   * a locked tool still answers 200 with a page naming it, what it works
+  //     out, and what opens it -- never a redirect, never a 404;
+  //   * the directory labels every entry, so a locked tool is never presented as
+  //     free before it refuses;
+  //   * the six that remain free are exactly the six the public home page names
+  //     under "Free, and no account needed", and a test reads server.js to check
+  //     that rather than trusting the list.
+  //
+  // Saving is unchanged: it still requires an account, for free and locked tools
+  // alike.
+
+  // What this request may do with this tool.
+  //
+  // Three refusals, each its own reason, because they want different words on
+  // the page: nobody is signed in, the plan does not cover it, or this
+  // deployment cannot read entitlements at all. The last one refuses rather
+  // than opening the tool -- an entitlement reader that is missing is not a
+  // customer who has paid.
+  async function toolAccess(req, res, tool) {
+    if (isFreeTool(tool.path)) return { ok: true, free: true };
+
+    const productKey = productForTool(tool.path);
+    // A tool whose product cannot be worked out is not one to open on a guess
+    // about which plan covers it.
+    if (!productKey) return { ok: false, free: false, code: "unknown_product" };
+
+    const session = typeof resolveCustomerSession === "function"
+      ? await resolveCustomerSession(req, res).catch(() => ({ ok: false }))
+      : { ok: false };
+    const user = session.ok ? session.user : null;
+    if (user) req.sonaraUser = user;
+    if (!user) return { ok: false, free: false, code: "sign_in_required", productKey };
+
+    if (typeof getCustomerPaidEntitlement !== "function") {
+      return { ok: false, free: false, code: "entitlement_unreadable", productKey, user };
+    }
+    const entitlement = await getCustomerPaidEntitlement(user, productKey).catch(() => ({ ok: false }));
+    if (!entitlement?.ok) return { ok: false, free: false, code: "plan_required", productKey, user };
+    return { ok: true, free: false, user, entitlement };
+  }
+
+  const LOCKED_TOOL_REASONS = Object.freeze({
+    sign_in_required: "Sign in and open it on a plan that covers this studio.",
+    plan_required: "Your current plan does not cover this studio's tools yet.",
+    entitlement_unreadable: "We could not check your plan just now, so this stays closed. Nothing has changed, and this is not a problem with your account.",
+    unknown_product: "This tool is not attached to a studio, so there is no plan that opens it. That is a fault on our side.",
+    not_saved: "This stays closed for now."
+  });
+
+  // The page a locked tool answers with.
+  //
+  // 200 and not a redirect, and it says what the tool does. Somebody who clicked
+  // "Stop-order planner" is owed the sentence explaining what a stop-order
+  // planner works out, or the paywall is just a wall.
+  function lockedToolPage(tool, access) {
+    const reason = LOCKED_TOOL_REASONS[access.code] || LOCKED_TOOL_REASONS.not_saved;
+    const actions = [linkAction("/pricing", "See what plans cover")];
+    if (access.code === "sign_in_required") actions.push(linkAction("/login", "Sign in"));
+    actions.push(linkAction(`/${tool.slug}/tools`, "All tools"), linkAction("/support", "Ask us"));
+    return layout({
+      title: `${tool.title} | On a paid plan`,
+      eyebrow: "On a paid plan",
+      heading: tool.title,
+      body: tool.description,
+      sections: [
+        brandCard("What opens this", reason),
+        brandCard(
+          "What stays free",
+          "Six tools are free with no account and no card: break-even and runway, stock reorder, rate card, split sheet, campaign budget split, and referral reward. They are linked from the home page and from every tool directory."
+        )
+      ],
+      actions
+    });
+  }
+
   for (const tool of TOOLS) {
     app.get(tool.path, async (req, res) => {
+      // The paywall, before anything is rendered.
+      const access = await toolAccess(req, res, tool);
+      if (!access.ok) {
+        if (wantsJson(req)) return res.status(access.code === "sign_in_required" ? 401 : 403).json({ ok: false, code: access.code, tool: tool.module });
+        return res.status(200).type("html").send(lockedToolPage(tool, access));
+      }
+
       // Resolved, not required. The gate that used to sit here did two jobs and
       // only one of them was gating -- it also worked out who was asking, which
       // is what decides the framing below and, on POST, whether there is anyone
@@ -948,6 +1031,14 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     });
 
     app.post(tool.path, async (req, res) => {
+      // Before the field check, deliberately. Validating first would tell a
+      // caller which inputs a locked tool wants, and would report a locked tool
+      // as a badly filled form rather than as one they cannot open.
+      const postAccess = await toolAccess(req, res, tool);
+      if (!postAccess.ok) {
+        if (wantsJson(req)) return res.status(postAccess.code === "sign_in_required" ? 401 : 403).json({ ok: false, code: postAccess.code, tool: tool.module });
+        return res.status(200).type("html").send(lockedToolPage(tool, postAccess));
+      }
       const validation = requireFields(req.body, tool.requiredFields);
       if (!validation.ok) return sendValidationFailure(req, res, validation, tool.path);
       if (tool.validate) {
@@ -1589,21 +1680,28 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           title: `${product.name} Start`,
           eyebrow: "Get started",
           heading: `Start with ${product.name}`,
-          body: `Use the ${product.name} free tools yourself, then request done-for-you help whenever you want a hand.`,
+          body: `Use the free ${product.name} tools yourself, add the rest with a plan, then request done-for-you help whenever you want a hand.`,
           sections: [
             checklistCard("Getting started", [
               "Create a free account",
               "Create or attach your organization",
-              "Open the free tools",
+              "Open the free tools, or add the rest with a plan",
               "Save your outputs once your workspace is set up",
               "Request services from the catalog",
               "Upgrade for saved records and tracking"
             ]),
-            actionCard("Free tools", `Start with: ${productTools.map((tool) => tool.title).join(", ")}.`, [linkAction(`/${product.slug}/tools`, "Open tools")]),
+            // Named from the free set rather than from every tool. This card
+            // used to list all of them under the heading "Free tools", which
+            // became a promise the gate refuses the moment the paywall landed.
+            actionCard(
+              "Free tools",
+              `No account and no card: ${productTools.filter((tool) => isFreeTool(tool.path)).map((tool) => tool.title).join(", ")}. The other ${productTools.filter((tool) => !isFreeTool(tool.path)).length} open on a plan that covers ${product.name}.`,
+              [linkAction(`/${product.slug}/tools`, "Open tools")]
+            ),
             actionCard("Workspace", "Your organization scopes every saved record. Free accounts can create one in account setup.", [linkAction("/account/setup", "Account setup"), linkAction(`/${product.slug}/dashboard`, "Dashboard")]),
             actionCard("Services", "Request done-for-you work with tracked statuses and deliverables.", [linkAction("/service-catalog", "Service catalog"), linkAction("/requests", "My requests")])
           ],
-          actions: [linkAction("/signup", "Start Free"), linkAction(`/${product.slug}/tools`, "Free tools"), linkAction(`/${product.slug}`, product.name), linkAction("/pricing", "Pricing")]
+          actions: [linkAction("/signup", "Start Free"), linkAction(`/${product.slug}/tools`, "All tools"), linkAction(`/${product.slug}`, product.name), linkAction("/pricing", "Pricing")]
         })
       );
     });
@@ -1612,8 +1710,25 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       const definitions = getProductPageDefinitions(product.slug);
       const existingFree = definitions.free.filter((page) => !page.path.includes("/records/") && page.module !== "help");
       const technologyCount = getPlacementCounts(readOpenSourceTools())[product.productKey] || 0;
+      // Every entry labelled, locked ones included and not hidden.
+      //
+      // Hiding them would make the product look smaller than it is, and showing
+      // them unlabelled is the advertise-then-refuse funnel this file's comment
+      // above exists about. So the card says which it is, and the button says
+      // what happens when you press it.
       const sections = [
-        ...productTools.map((tool) => actionCard(tool.title, tool.description, [linkAction(tool.path, "Open tool")])),
+        ...productTools.map((tool) => {
+          const free = isFreeTool(tool.path);
+          return actionCard(
+            free ? `${tool.title} — free` : `${tool.title} — on a paid plan`,
+            free
+              ? `${tool.description} No account and no card needed.`
+              : `${tool.description} Opens on a plan that covers ${product.name}.`,
+            free
+              ? [linkAction(tool.path, "Open tool")]
+              : [linkAction(tool.path, "See what opens it"), linkAction("/pricing", "Compare plans")]
+          );
+        }),
         ...existingFree.map((page) => actionCard(page.title, page.body, [linkAction(page.path, "Open")])),
         actionCard(
           "Reviewed technology references",
@@ -1627,7 +1742,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           title: `${product.name} Tools`,
           eyebrow: "Tool directory",
           heading: `${product.name} tools`,
-          body: "Free tools are available once you're signed in, and give you a real result even before your workspace is fully set up.",
+          body: `Six tools across the three studios are free with no account and no card. The rest open on a plan that covers ${product.name}. Every tool below says which it is before you press anything.`,
           sections,
           actions: [linkAction(`/${product.slug}/start`, "Start guide"), linkAction(`/${product.slug}/technology`, "Technology references"), linkAction(`/${product.slug}`, product.name), linkAction("/login", "Login"), linkAction("/signup", "Create account")]
         })

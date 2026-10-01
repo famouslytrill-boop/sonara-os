@@ -130,13 +130,13 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/free-tools", (req, res) => sendMarketingPage(res, {
     title: "Free tools",
-    eyebrow: "Useful before you pay a cent",
+    eyebrow: "Six free, and the rest on a plan",
     heading: "Get a real result in your first few minutes.",
-    body: "Sign in and use the free planning tools in every workspace — no sales call, no service request first. You sign in so your work saves to your own account and stays there.",
+    body: "Six tools are free with no account and no card, two in each studio, and they give a real answer in a couple of minutes. The other thirty-four open on a plan that covers that studio. Every directory below labels each tool before you press anything, so no tool is advertised as free and then refused.",
     sections: [
-      actionCard("Business Builder tools", "Offer outline, pricing calculator, setup score, launch checklist, first customer record, and package builder.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
-      actionCard("Creator Studio tools", "Creator profile, asset checklist, release checklist, content brief, content plan, and song plan.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
-      actionCard("Growth Studio tools", "Campaign outline, follow-up wording, permission checklist, offer angles, numbers calculator, and growth setup score.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
+      actionCard("Business Builder tools", "Free with no account: break-even and runway, and the stock reorder planner. Thirteen more open on a plan that covers Business Builder, and the directory says which is which.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
+      actionCard("Creator Studio tools", "Free with no account: the rate card builder, and the split sheet whose shares are checked to add up to a hundred. Eleven more open on a plan that covers Creator Studio.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
+      actionCard("Growth Studio tools", "Free with no account: the campaign budget split against a target cost per lead, and the referral reward planner. Ten more open on a plan that covers Growth Studio.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
     ],
     actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
   }));
