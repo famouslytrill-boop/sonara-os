@@ -2,6 +2,105 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-01 - A comment should not change what a report measures
+
+Found while adding a JSDoc block to `server.js` for an unrelated feature: the
+block moved `data/capability-inventory.json` from 50 recorded UI form links to
+42. A comment, changing what a release-chain report measures.
+
+Two bugs in `lib/sonara-comment-stripping.cjs`, then a third in the generator
+that the first two had been masking.
+
+### A `/*` inside a string opened a comment
+
+`server.js` sets a Content-Security-Policy containing
+`connect-src 'self' https://*.supabase.co`. That is `/` and `*` adjacent, inside
+a double-quoted string. The single regex has no idea where strings are, so its
+block branch read them as an opener and swallowed everything to the next `*/`
+anywhere in the file -- measured, the two lines after that header, `next();` and
+its closing `});`, vanished from every report that strips `server.js`.
+
+The `[^:]` guard in that regex was written for the `https://` half of exactly
+this hazard. It is no help: the guard is on the line branch and the damage came
+from the block branch, one character later.
+
+### Collapsing a comment renumbered the file
+
+The replacement was a single space, so a multi-line comment made the stripped
+text shorter than the file and moved every line after it up. Harmless for a
+consumer that asks what the text contains; wrong for one that takes a line
+number from the real file and indexes into the stripped text -- and
+`sourceBlockForRoute` in `scripts/generate-capability-inventory.cjs` does exactly
+that, with a line number out of a V8 stack trace.
+
+`withoutComments` is now a left-to-right scanner that copies string and template
+literals through untouched, follows `${ ... }` back into code, treats a
+backslash pair opaquely so `/https?:\/\//g` is not read as a line comment, and
+emits one newline for every newline it consumes. `withoutSqlComments` and
+`withoutCssComments` preserve newlines too; the note on the CSS one saying a
+line-reporting caller "cannot use this" is now wrong and is corrected rather
+than deleted, because it described the JavaScript stripper just as accurately
+and nobody had written that down.
+
+Measured across **831 JavaScript files**: zero line drift, zero lines of code
+swallowed, asserted in the test rather than claimed here.
+
+One limit stated rather than implied: this is a scanner, not a parser, so a regex
+literal holding an unescaped `/*` -- `/[/*]/` -- would still be read as an
+opener. A first attempt to assert no file contains one failed, on this module,
+matching the example inside the comment that documents the limit. Pattern
+matching prose as code, in the file about not doing that. Replaced with a case
+that exercises the limit directly, where it cannot false-positive.
+
+### The third bug, which the first two were hiding
+
+With strings no longer swallowed, three form links swapped rather than three
+appearing: the billing checkout, the billing portal and the employee invite
+dropped out. Not a stripper problem -- `localFunctionsFor` finds
+`billingPanel` and its body does contain the form.
+
+`formActionsForPage` has a budget of resolved function bodies per page, and it
+was **40**. The walk now sees more resolvable names, so it spent its forty on
+other branches first. Raising it to 120 brings all three back and takes the
+total to 53; at 400 it is still 53, and the generator takes the same twenty
+seconds at 40 as at 400. So the old number was never a performance decision.
+
+With the budget put back to 40 and the new reporting in place, the walk runs out
+on **41 of the 286 declared pages**. The figure read as a census of the
+application's forms while being an incomplete one, and which forms were missing
+depended on which names the scanner resolved first -- so it moved on edits that
+had nothing to do with forms.
+
+The bound stays, because an unbounded walk over a call graph is slow on a bad
+day. What changed is that binding it is visible:
+`pagesTruncatedByFormWalkBudget` is in the summary and
+`tests/the-form-walk-says-when-it-gave-up.test.js` fails if it is not empty, if
+the budget drops below the measured threshold, or -- the shape that would pass
+every other assertion -- if the walk finds almost no forms at all.
+
+### Verified
+
+`verify:gates`, 5,220 tests, lint, typecheck, build, `smoke:routes`,
+`verify:db`, `test:docs`, `scan:client-secrets`. Seven breaks, each watched fail
+by name:
+
+| Broken                                           | Test that went red                                        |
+| ------------------------------------------------ | --------------------------------------------------------- |
+| Restored the single regex                         | 5 cases including renumbers none of them                  |
+| Stopped emitting newlines for a block comment     | keeps the line count unchanged, +2                        |
+| Stopped copying strings through                   | does not treat the slashes in an https URL as a comment, +3 |
+| Dropped the backslash-pair rule                   | does not read a regular expression's escaped slashes as a comment |
+| Stopped following template interpolations         | removes a comment that is inside a template interpolation, +1 |
+| Put the form-walk budget back to 40               | truncated no page, +2                                     |
+| Stopped recording truncation at all               | records the budget it ran under, +1                        |
+
+The fifth of those was caught only after the first version of its test passed
+without the branch: copying a template verbatim keeps the code inside `${ }`
+too, so the case had to be rewritten to assert what the branch is actually for
+-- that a comment inside an interpolation is removed.
+
+Files restored by copy-aside and `md5sum -c` throughout.
+
 ### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
 
 Asked to find and build what the business operating system is missing. The method
