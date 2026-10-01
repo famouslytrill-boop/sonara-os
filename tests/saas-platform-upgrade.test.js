@@ -45,12 +45,47 @@ function customerFetchMock(overrides = {}) {
     if (address.includes("/auth/v1/user")) {
       return { ok: true, json: async () => CUSTOMER_USER };
     }
+    // A customer whose plan covers all three studios.
+    //
+    // Added 1 October 2026, when thirty-four of the forty tools moved behind a
+    // plan (lib/sonara-tool-access.cjs). Before that this mock did not need to
+    // say anything about billing, because every tool opened for anybody. The
+    // cases below are about what a tool *does* -- validation, determinism, save
+    // state -- so a mock that cannot get past the paywall would turn each of
+    // them into a second test of the paywall.
+    //
+    // An `all_three_` key rather than the first one offered: `workspace_monthly`
+    // is a choose-one-workspace plan and opens nothing unless its metadata names
+    // the workspace, so granting it would have opened Business Builder and
+    // quietly opened neither of the other two.
+    if (address.includes("/rest/v1/billing_entitlements")) {
+      const asked = decodeURIComponent((address.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1])
+        .split(",").map((key) => key.replace(/^"|"$/g, "")).filter(Boolean);
+      const key = asked.find((candidate) => candidate.startsWith("all_three_")) || asked[0];
+      return { ok: true, json: async () => (key ? [{ entitlement_key: key, status: "active", metadata: {} }] : []) };
+    }
+    // Membership is deliberately NOT answered here. Tests that need one pass
+    // organizationMembershipHandler as an override, and at least one -- the
+    // service-request case -- is specifically about a customer who has no
+    // membership. Answering it from the shared mock made that test green against
+    // a state it exists to rule out.
     return { ok: false, json: async () => [] };
   };
 }
 
 function organizationMembershipHandler() {
   return { ok: true, json: async () => [{ organization_id: ORGANIZATION_ID }] };
+}
+
+// A signed-in customer with a workspace and a plan covering all three studios.
+//
+// Separate from customerFetchMock rather than folded into it: that one is also
+// used by cases about a customer who has *no* membership, and answering the
+// membership read from the shared mock made one of them green against the state
+// it exists to rule out. The entitlement reader asks for the organization first,
+// so a plan without a membership grants nothing.
+function entitledCustomerFetchMock(overrides = {}) {
+  return customerFetchMock({ "/rest/v1/organization_memberships": organizationMembershipHandler, ...overrides });
 }
 
 describe("software-in-a-service platform upgrade", () => {
@@ -445,7 +480,16 @@ describe("software-in-a-service platform upgrade", () => {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       clearSupabaseEnv();
       try {
-        for (const route of ["/business-builder/tools/pricing", "/creator-studio/tools/brief", "/growth-studio/tools/kpi"]) {
+        // The three studios' free tools, taken from the register rather than
+        // written out, so this cannot drift from what the paywall allows. The
+        // routes named here before -- pricing, brief and kpi -- all moved behind
+        // a plan on 1 October 2026, and a stranger is exactly who cannot open
+        // them.
+        const { FREE_TOOL_PATHS } = require("../lib/sonara-tool-access.cjs");
+        const strangerRoutes = ["business-builder", "creator-studio", "growth-studio"]
+          .map((slug) => FREE_TOOL_PATHS.find((toolPath) => toolPath.startsWith(`/${slug}/`)));
+        assert.ok(strangerRoutes.every(Boolean), "a studio has no free tool, so a stranger can open nothing in it");
+        for (const route of strangerRoutes) {
           const res = await request(app).get(route).set("Accept", "text/html");
           assert.equal(res.status, 200, `${route} should open for anybody`);
           // A tool renders a form and its own words. If a customer's record ever
@@ -499,7 +543,7 @@ describe("software-in-a-service platform upgrade", () => {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       setSupabaseEnv();
       const originalFetch = global.fetch;
-      global.fetch = customerFetchMock();
+      global.fetch = entitledCustomerFetchMock();
       try {
         for (const [route, body] of [
           ["/business-builder/tools/offer", {}],
@@ -512,7 +556,17 @@ describe("software-in-a-service platform upgrade", () => {
           ["/growth-studio/tools/lead-followup", {}],
           ["/growth-studio/tools/readiness", {}]
         ]) {
-          const res = await request(app).post(route).set("Accept", "application/json").send(body);
+          // Signed in, deliberately. Every route listed here moved behind a plan
+          // on 1 October 2026, and an anonymous POST to one now answers 401
+          // before any field is looked at -- which is correct, and is the
+          // paywall's own test rather than this one's. The mock above grants a
+          // plan covering all three studios, so what is measured here is still
+          // the field check.
+          const res = await request(app)
+            .post(route)
+            .set("Authorization", "Bearer customer-session")
+            .set("Accept", "application/json")
+            .send(body);
           assert.equal(res.status, 400, `${route} should reject missing fields`);
           assert.equal(res.body.code, "validation_failed");
         }
@@ -526,7 +580,7 @@ describe("software-in-a-service platform upgrade", () => {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       setSupabaseEnv();
       const originalFetch = global.fetch;
-      global.fetch = customerFetchMock();
+      global.fetch = entitledCustomerFetchMock();
       try {
         const res = await request(app)
           .post("/business-builder/tools/pricing")

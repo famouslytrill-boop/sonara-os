@@ -165,7 +165,7 @@ describe("public site", () => {
     assert.match(res.text, /payment connection/);
     assert.doesNotMatch(res.text, /setup_required/);
     assert.doesNotMatch(res.text, /Public readiness shell/);
-    assert.match(res.text, /free tools in all three studios/);
+    assert.match(res.text, /six free tools across the three studios/);
   });
 
   it("public pages use customer-facing setup language", async function() {

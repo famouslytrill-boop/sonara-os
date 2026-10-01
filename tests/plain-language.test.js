@@ -301,11 +301,17 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out visitor, so the crawl skips it rather than reading its copy.
   // 107 -> 108 on 1 October 2026: /business-builder/owner/pay-periods refuses a
   // signed-out visitor, so the crawl skips it rather than reading its copy.
-  // 108 -> 107 on 1 October 2026: /business-builder/intake is no longer served.
-  // It was a hidden redirect to /business-builder/launch-readiness and so was
-  // counted among the skipped; the intake form and the endpoint that accepted
-  // submissions were removed, and the page with them.
-  const SIGNED_IN_SKIPPED = 107;
+  // 108 -> 109 the same day: /business-builder/owner/security does the same. Its
+  // copy is covered instead by
+  // tests/a-management-passcode-is-a-second-thing-to-know.test.js, which signs in
+  // and asserts the wording the page shows when no passcode is set.
+  // 109 -> 108 the same day: /business-builder/intake is no longer served. It was
+  // a hidden redirect to /business-builder/launch-readiness and so was counted
+  // among the skipped; the intake form and the endpoint that accepted submissions
+  // were removed, and the page with them. Two changes landing together move this
+  // number in opposite directions, which is why both lines are here rather than
+  // one net figure nobody could account for.
+  const SIGNED_IN_SKIPPED = 108;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

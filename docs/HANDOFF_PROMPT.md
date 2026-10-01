@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 2967 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3036 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 137 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 138 migrations, 147 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 408 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 411 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,7 +103,7 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 22 most recent entries of 408 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 22 most recent entries of 411 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
@@ -197,6 +197,341 @@ a derived count that was only just stabilised.
 That is a product decision about whether a business owner can quote their
 customers, not a form to delete, and it is recorded here as asked-for and not yet
 done rather than quietly scoped out.
+
+
+### 2026-10-01 - Six tools stay free, thirty-four need a plan
+
+Asked to reduce the free tools and put the rest behind the paywall.
+
+Forty tools are registered at runtime -- fifteen Business Builder, thirteen
+Creator Studio, twelve Growth Studio, counted from `app.locals.sonaraFreeTools`
+rather than from the route registry, where a commented-out path had already made
+a regex say forty-one.
+
+### Which six, and why it is not a list somebody picked
+
+Exactly six tool paths are named on the public home page, under the heading
+"Free, and no account needed" and the sentence "no account, no card": break-even
+and runway, stock reorder, rate card, split sheet, campaign budget split, and
+referral reward. Those six stay free. The free set is therefore a consequence of
+what SONARA already says in public, and
+`tests/a-locked-tool-is-never-advertised-as-free.test.js` reads `server.js`,
+extracts every tool path the home page links, and fails if that set and
+`lib/sonara-tool-access.cjs` differ **in either direction**. Change one without
+the other and it says so.
+
+### The failure this had to avoid, which is on the record
+
+`routes/sonara-service-lifecycle-routes.cjs` carried a comment explaining why
+the tools were free: until 19 August 2026 they were all behind a login while
+`/business-builder/tools` listed ten of them by name and description, so the
+funnel advertised and then refused. Gating the computation drove a bounce, not a
+signup.
+
+The pricing decision is the owner's. That funnel failure is not, so it is held
+in code instead:
+
+* a locked tool answers **200 with a page** naming it, saying what it works out
+  and what opens it -- never a redirect, never a 404;
+* the three directories label every entry, locked ones shown rather than hidden,
+  because hiding them makes the product look smaller than it is;
+* the paywall runs **before** the field check on POST, so a locked tool is not
+  reported as a badly filled form and does not disclose which inputs it wants.
+
+### Copy that would have become false
+
+Four claims had to move, and finding them was most of the work:
+
+* the free plan's own description said "the free tools in all three studios";
+* `/free-tools` named individual tools -- the pricing calculator, the setup
+  score, the content brief -- that are now behind a plan;
+* each product's start page listed every tool under the heading "Free tools";
+* the home page's "All ... tools" links sat under "Free, and no account needed".
+
+A test asserts the first two directly: the free plan must not promise the tools
+in all three studios, and `/free-tools` must name no locked tool's title.
+
+One of my own new sentences was caught by an existing check rather than by me:
+`no-page-lies-when-the-database-is-down` flagged the phrase "nothing here" on
+`/free-tools` as an empty-state claim about a customer's records. Reworded rather
+than exempted -- an exemption would have been the wrong fix for prose.
+
+### A test mock that had been granting one product of three
+
+`tests/every-tool-result-page-survives-an-outage.test.js` posts to every tool
+with a stubbed Supabase. Its billing stub echoed back the **first** entitlement
+key the request asked for, and for Creator Studio and Growth Studio that is
+`workspace_monthly` -- a choose-one-workspace plan, which opens nothing unless
+its metadata names the workspace. So the stub granted Business Builder and
+silently granted neither of the other two.
+
+That cost nothing while every tool was free. The moment thirty-four moved behind
+a plan, twenty-five tools looked broken and the stub was what was incomplete. It
+now prefers an `all_three_` key. The same correction, with the same reason, went
+into `saas-platform-upgrade`, where it also had to stay **out** of the shared
+customer mock: one case there is specifically about a customer with no
+membership, and answering the membership read for everybody made that case green
+against the state it exists to rule out.
+
+### Verified
+
+5,217 tests, `verify:gates`, lint, typecheck, build, `smoke:routes`, `verify:db`,
+`test:docs`, `scan:client-secrets`. Seven breaks, each watched fail by name:
+
+| Broken                                        | Test that went red                                         |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| Freed every tool                               | frees some tools but not all of them, +2                   |
+| Locked a tool the home page advertises         | matches exactly the tools the public home page links       |
+| Answered a locked tool with 404                | answers a locked tool with a page that names it            |
+| Hid locked tools from the directory            | all three directory cases, +1                              |
+| Validated fields before the paywall            | refuses a locked tool before it checks the fields, +1      |
+| Made a locked tool 404 (smoke)                 | a tool behind the paywall answered 404                     |
+| Locked the free tool too (smoke)               | a free tool answered as if it were locked                  |
+
+The first of those is worth a note: freeing everything leaves the
+"answers a locked tool" case green, because an empty locked set iterates zero
+times. It is caught by the population guard beside it, which is why that guard
+is there.
+
+
+### 2026-10-01 - A comment should not change what a report measures
+
+Found while adding a JSDoc block to `server.js` for an unrelated feature: the
+block moved `data/capability-inventory.json` from 50 recorded UI form links to
+42. A comment, changing what a release-chain report measures.
+
+Two bugs in `lib/sonara-comment-stripping.cjs`, then a third in the generator
+that the first two had been masking.
+
+### A `/*` inside a string opened a comment
+
+`server.js` sets a Content-Security-Policy containing
+`connect-src 'self' https://*.supabase.co`. That is `/` and `*` adjacent, inside
+a double-quoted string. The single regex has no idea where strings are, so its
+block branch read them as an opener and swallowed everything to the next `*/`
+anywhere in the file -- measured, the two lines after that header, `next();` and
+its closing `});`, vanished from every report that strips `server.js`.
+
+The `[^:]` guard in that regex was written for the `https://` half of exactly
+this hazard. It is no help: the guard is on the line branch and the damage came
+from the block branch, one character later.
+
+### Collapsing a comment renumbered the file
+
+The replacement was a single space, so a multi-line comment made the stripped
+text shorter than the file and moved every line after it up. Harmless for a
+consumer that asks what the text contains; wrong for one that takes a line
+number from the real file and indexes into the stripped text -- and
+`sourceBlockForRoute` in `scripts/generate-capability-inventory.cjs` does exactly
+that, with a line number out of a V8 stack trace.
+
+`withoutComments` is now a left-to-right scanner that copies string and template
+literals through untouched, follows `${ ... }` back into code, treats a
+backslash pair opaquely so `/https?:\/\//g` is not read as a line comment, and
+emits one newline for every newline it consumes. `withoutSqlComments` and
+`withoutCssComments` preserve newlines too; the note on the CSS one saying a
+line-reporting caller "cannot use this" is now wrong and is corrected rather
+than deleted, because it described the JavaScript stripper just as accurately
+and nobody had written that down.
+
+Measured across **831 JavaScript files**: zero line drift, zero lines of code
+swallowed, asserted in the test rather than claimed here.
+
+One limit stated rather than implied: this is a scanner, not a parser, so a regex
+literal holding an unescaped `/*` -- `/[/*]/` -- would still be read as an
+opener. A first attempt to assert no file contains one failed, on this module,
+matching the example inside the comment that documents the limit. Pattern
+matching prose as code, in the file about not doing that. Replaced with a case
+that exercises the limit directly, where it cannot false-positive.
+
+### The third bug, which the first two were hiding
+
+With strings no longer swallowed, three form links swapped rather than three
+appearing: the billing checkout, the billing portal and the employee invite
+dropped out. Not a stripper problem -- `localFunctionsFor` finds
+`billingPanel` and its body does contain the form.
+
+`formActionsForPage` has a budget of resolved function bodies per page, and it
+was **40**. The walk now sees more resolvable names, so it spent its forty on
+other branches first. Raising it to 120 brings all three back and takes the
+total to 53; at 400 it is still 53, and the generator takes the same twenty
+seconds at 40 as at 400. So the old number was never a performance decision.
+
+With the budget put back to 40 and the new reporting in place, the walk runs out
+on **41 of the 286 declared pages**. The figure read as a census of the
+application's forms while being an incomplete one, and which forms were missing
+depended on which names the scanner resolved first -- so it moved on edits that
+had nothing to do with forms.
+
+The bound stays, because an unbounded walk over a call graph is slow on a bad
+day. What changed is that binding it is visible:
+`pagesTruncatedByFormWalkBudget` is in the summary and
+`tests/the-form-walk-says-when-it-gave-up.test.js` fails if it is not empty, if
+the budget drops below the measured threshold, or -- the shape that would pass
+every other assertion -- if the walk finds almost no forms at all.
+
+### Verified
+
+`verify:gates`, 5,220 tests, lint, typecheck, build, `smoke:routes`,
+`verify:db`, `test:docs`, `scan:client-secrets`. Seven breaks, each watched fail
+by name:
+
+| Broken                                           | Test that went red                                        |
+| ------------------------------------------------ | --------------------------------------------------------- |
+| Restored the single regex                         | 5 cases including renumbers none of them                  |
+| Stopped emitting newlines for a block comment     | keeps the line count unchanged, +2                        |
+| Stopped copying strings through                   | does not treat the slashes in an https URL as a comment, +3 |
+| Dropped the backslash-pair rule                   | does not read a regular expression's escaped slashes as a comment |
+| Stopped following template interpolations         | removes a comment that is inside a template interpolation, +1 |
+| Put the form-walk budget back to 40               | truncated no page, +2                                     |
+| Stopped recording truncation at all               | records the budget it ran under, +1                        |
+
+The fifth of those was caught only after the first version of its test passed
+without the branch: copying a template verbatim keeps the code inside `${ }`
+too, so the case had to be rewritten to assert what the branch is actually for
+-- that a comment inside an interpolation is removed.
+
+Files restored by copy-aside and `md5sum -c` throughout.
+
+
+### 2026-10-01 - A business owner gets a second thing to know
+
+Asked for business owners to have their own passwords for the security and
+management of their business -- employees, sub-applications, time clocks,
+employee operations.
+
+### The gap, measured rather than assumed
+
+`requireBusinessManager` in `server.js` proves exactly two things: the request
+carries a valid customer session, and that user holds an active `owner` or
+`manager` row in `business_memberships`. Both are properties of the **browser**.
+`CUSTOMER_SESSION_MAX_AGE_SECONDS` is one hour and
+`CUSTOMER_REFRESH_MAX_AGE_SECONDS` is thirty days, both read out of
+`lib/sonara-customer-auth.cjs`. So for up to a month, whoever holds the browser
+holds every employee record, wage rate, pay statement, the time clock and the pay
+run, with nothing further to know.
+
+`lib/sonara-business-passcode.cjs` is the thing that is not in the browser.
+`supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql`
+adds `business_management_credentials`, one row per business, RLS on with no
+policy -- every read goes through the server, which is the only context holding
+the pepper.
+
+**Hashed, not encrypted, and the word matters.** Encryption is reversible by
+whoever holds the key. A passcode is HMAC'd under a pepper derived from
+`SONARA_TOTP_KEY` -- environment only, never the database -- and that result is
+run through scrypt at 2^15. Nobody can read a passcode back out, including
+SONARA; there is no recovery, only replacement. This is the opposite call from
+`lib/sonara-secret-box.cjs`, which *rejected* scrypt for recovery codes, and both
+are right: a recovery code is ninety-six random bits where slow hashing buys
+nothing, and a passcode is chosen by a person where it is the whole defence.
+
+The unlock is an HMAC token in a `SameSite=Strict` httpOnly cookie, signed over
+organization, user, expiry **and the credential's `updated_at`**. Changing the
+passcode moves that value, so every outstanding unlock stops verifying at once,
+on every device. That is what makes a change a way to remove access rather than a
+note for next time.
+
+### Two defects in my own code, both found by running it
+
+Neither was visible by reading, which is why the probe happened before the tests.
+
+* `if (isPasswordLeaked(value))` tested the **Promise** an async function
+  returns -- always truthy -- so **every** passcode was rejected as breached,
+  including good ones. The real function also returns `{ leaked, checked }`, not
+  a boolean, and reaches the network. It is now a separate async wrapper, and
+  `checked: false` reports `breachCheck: "unavailable"` rather than "clear",
+  because a lookup that did not happen is not evidence of anything.
+* A "counting" rule compared the digits against the literal `"0123456789"` while
+  also requiring twelve digits. No twelve-character string can satisfy both, so
+  the rule **could never fire**. Replaced with the actual question -- is every
+  adjacent character one step from the last -- which works at any length.
+
+### What the gate does when no passcode is set
+
+It lets the request through, and says so on the page: *"protected by your sign-in
+alone"*. Refusing would lock an owner out of their own payroll over a feature
+nobody has told them about. What it must never do is pass **quietly**, so the
+banner has its own test; make the gate silent and that test fails.
+
+Three further states are refusals, and none is collapsed into "no passcode set":
+the credential row could not be read, the verifying key is not configured, and
+the credential is locked out. Reading a failed database call as "this business has
+no passcode" would be a way through the gate by breaking something.
+
+### What CodeQL caught that the tests did not
+
+The first push raised four high-severity alerts, and two of them were fair.
+
+`js/weak-password-hashing`, twice: the construction peppered **before**
+stretching -- `scrypt(HMAC(pepper, passcode), salt)` -- so the passcode's first
+stop was HMAC-SHA-256, a deliberately fast hash. The security property was the
+same either way, and the reading was still right: "the slow part is further down
+this file" is a property of the file rather than of the line, and whoever next
+moved the `scryptSync` call would take the protection with it and nothing would
+say so. It is now `HMAC(pepper, scrypt(passcode, salt))` -- the passcode goes
+straight into scrypt, the pepper is applied over the digest, which is the
+construction OWASP describes for a pepper held outside the database.
+
+`js/missing-rate-limiting`, twice, on the two handlers that verify a passcode.
+The limiter was attached but its fallback was `(req, res, next) => next()`, so a
+deployment that forgot to pass `createRateLimiter` would have served an
+unthrottled passcode-guessing endpoint while every line of the module still read
+as rate-limited. The fallback now refuses, and `/lock` is throttled too. The
+five-wrong-answers lockout was never a substitute: it counts per credential, so
+it bounds guesses against one business rather than requests from one caller
+across all of them.
+
+Those two alerts stay open, and `SECURITY_NOTES.md` says why. CodeQL recognises
+rate limiting from a short list of npm packages and has no model for this
+repository's own `createRateLimiter`; adding `express-rate-limit` to quiet a
+scanner would be a tenth production dependency for a capability the codebase
+already has. They are not dismissed either -- dismissing them would remove the
+only visible record that the pattern exists, so a future handler with genuinely
+no limiter would look like the same accepted noise.
+
+What replaced the assurance is a measurement: four tests wire the **real**
+limiter into the real routes with the RPC counter mocked, and prove the eleventh
+attempt in the five-minute window is refused, that it never reaches the
+credential read, that `Retry-After: 300` is sent, that both an address bucket and
+a person bucket are consumed, and that `/passcode` and `/lock` are throttled as
+well. Falsified by taking the limiter off `/unlock` (four red), dropping the
+`subject` scope (one red), and raising `maxAttempts` to 10,000 (three red).
+
+Also corrected: `EXPECTED_FILES` in `scripts/verify-proprietary-notice.mjs` said
+328 against 330. It passed locally and failed in CI because the script enumerates
+tracked files, and the two new ones were still untracked when the chain was run.
+Run the chain after `git add`, not before.
+
+### Verified
+
+57 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
+falsified before being trusted. Twelve breaks, each caught by name:
+
+| Broken                                               | Test that went red                                        |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| Dropped the gate from one protected surface           | names only surfaces server.js actually puts the gate in front of |
+| Failed credential read returned "no passcode set"     | refuses when the credential cannot be read                 |
+| Unlock token stopped being bound to the passcode version | stops working the moment the passcode changes           |
+| Reintroduced the Promise bug                          | accepts an ordinary phrase, +5 others                      |
+| Verified the passcode before checking the lockout     | refuses to unlock while locked                             |
+| Removed the "nothing is protected" wording            | says plainly that nothing is protected when no passcode is set |
+| Removed the `service_role` grant                      | the migration's own assertion, against real PostgreSQL     |
+| Added an RLS policy to the credential table           | likewise                                                   |
+| Pointed the smoke probe at a typo                     | `/business-builder/owner/security` is not served            |
+| Went back to peppering before scrypt                  | puts the passcode into scrypt first and nothing faster      |
+| Dropped the pepper entirely                           | does not verify under a different pepper, +1                |
+| Restored the passthrough rate-limiter fallback        | refuses to serve the passcode endpoints with no rate limiter |
+
+Every touched file restored by copy-aside and `md5sum -c`, not
+`git checkout --`.
+
+One stale comment removed on the way past: the block above the pay-period and
+owner-administration registrations in `server.js` called them "read-only and
+admin-gated" over "tables that cross every organization". Both are
+organization-scoped, both write, and the admin plane was removed the same day. A
+wrong reason inside a gate is worse than none, because it is what the next person
+reads instead of checking.
 
 
 
@@ -1804,443 +2139,3 @@ and 36 of 269 register records carrying a reciprocal licence from
 went from 19 countable claims to 20 and the new one matches,
 `verify:doc-script-paths` resolves 84 paths across 426 documents, and
 `report-stale-claims` accepted it because it carries a review date.
-
-
-
-### 2026-09-22 - Five tests were editing the repository they test, and a finally does not survive a signal
-
-Carried over from the 21 September session as a known defect deliberately left
-alone: two tests mutated real tracked files and restored them in a `finally`.
-Measured properly, it was **five**, and the check written to stop a sixth found
-three of them.
-
-## Why a `finally` is not enough here
-
-It survives a thrown assertion. It does not survive a signal, and this is not
-hypothetical -- it happened during the 19 September session. An interrupted run
-left:
-
-- `supabase/migrations/20260728120000_member_read_policies.sql` **truncated to
-  33 unterminated `execute '` statements**, because the edit under test is
-  `.replace(/create policy[\s\S]*?;/gi, "")` and that pattern reaches across
-  `execute '...'` bodies;
-- `.ai/shared/CURRENT_STATE.md` missing the `<!-- superseded-by: -->` pointer
-  that its own gate reads.
-
-Nothing in the working tree said why. `pnpm run verify:launch` then failed for
-reasons that looked unrelated to the interruption, and **`git add -A` would have
-committed both**. One case in
-`an-applied-migration-cannot-be-edited.test.js` does not edit the frozen
-migration at all -- it **deletes** it.
-
-## The five, and what each would have left behind
-
-| test | wrote into | what an interrupted run leaves |
-| --- | --- | --- |
-| `an-applied-migration-cannot-be-edited` | `supabase/migrations/` | a frozen migration stripped of every policy, or gone |
-| `a-shared-baseline-that-is-behind-must-say-so` | `.ai/shared/` | the baseline missing the pointer its gate requires |
-| `env-check-can-report-a-name-it-does-not-know` | **`lib/`** | a probe module in the population three gates measure |
-| `dated-claims-say-when-to-recheck` | `docs/` | a probe document four doc checks then report on |
-| `orphan-tables` | `supabase/migrations/` | a migration creating a table nothing reads |
-
-The `lib/` one is the most expensive and was the one I had not noticed. `lib/`
-is the population `verify:proprietary-notice` counts **by equality**, that
-`report-unreferenced-modules` reports on, and that `verify:coverage-floor`
-measures -- so a single interrupted run would have turned three unrelated gates
-red at once, and the notice gate's message would have been about a file count
-rather than about a leftover probe.
-
-## The fix, and why not a signal handler
-
-`tests/helpers/script-sandbox.cjs` copies the parts of the tree a release script
-reads into `os.tmpdir()` and runs the script there. The scripts under `scripts/`
-resolve their own root from `import.meta.url`, so a copy carrying `scripts/`,
-`lib/`, `supabase/` and `package.json` is a working tree as far as they can tell
--- measured rather than assumed: `verify-applied-migrations.mjs` reports the same
-122 frozen and 3 generator-owned migrations inside one as outside, and all three
-of its failure cases reproduce there.
-
-A signal handler was the alternative and is worse: it would still lose to
-SIGKILL, and it leaves the window open while it installs. A disposable copy has
-no window.
-
-Two things the helper needed that guessing would have missed, both found by
-running the script and reading what it asked for:
-
-- `verify-agent-development-sync.mjs` takes its root from `process.cwd()` and
-  asks git three questions, so that sandbox **links** the real `.git`. Checked
-  rather than assumed that all three are reads -- `rev-parse --verify --quiet`,
-  `cat-file -e`, `rev-parse --is-shallow-repository` -- because linking a
-  writable `.git` into a directory tests mutate would be a worse version of the
-  problem being fixed.
-- `verify-env.mjs` refuses without `.env.example`, which is not a directory and
-  would not have been in any list I wrote from memory.
-
-The helper asserts its own copy is real: below 200 files it stops, because a
-sandbox that copied almost nothing would make every "and the checker failed"
-assertion in every calling test pass for the wrong reason. Measured at 498 for
-the default list -- **the first draft of that comment said "1,000+", which was a
-figure I had not checked, and it was corrected to the measured value before
-commit.**
-
-## The check that found the other three
-
-`tests/no-test-writes-a-tracked-file.test.js` reads the test sources, because
-the failure only appears when a run is interrupted and a test cannot arrange
-that for itself. It went through three versions, and the first two are the
-interesting part:
-
-1. **Whole argument list.** It reported
-   `copyFileSync(path.join(ROOT, "server.js"), path.join(base, ...))` as a write
-   into the repository. That call reads **from** the repository into a temp
-   directory, which is what the sandbox helper does -- the check had the
-   direction backwards. Fixed by looking only at the destination argument, which
-   is argument 0 for a write and argument **1** for a copy or a rename.
-2. **Destination only, no resolution.** It then passed, reporting zero
-   offenders, while `orphan-tables.test.js` was writing a real migration --
-   because the destination is the variable `migration`, and the text at the call
-   site says nothing. Fixed by resolving a bare identifier from its nearest
-   preceding declaration, the same technique
-   `scripts/report-tenant-scoped-queries.mjs` uses. That version found all three
-   remaining cases.
-
-So the check caught a real bug in itself twice before it caught anything else,
-and the second version is the dangerous kind: green, specific-looking, and
-measuring nothing.
-
-It also refuses to pass on an empty measurement. Tests write to temp
-directories constantly, so fewer than 20 filesystem writes across the suite
-means the pattern stopped matching rather than the suite got clean. The
-allowance list is two-sided: `tests/helpers/script-sandbox.cjs` is allowed to
-write because it copies out of the repository, and an entry naming a file that
-is gone, or one that no longer writes anything, fails.
-
-## Falsified before trusted
-
-- A planted test writing `path.join(root, "docs", "probe.md")` is named with its
-  resolved destination, exit 1.
-- An allowance pointing at a file with no write: `no longer writes anything`,
-  exit 1.
-- An allowance pointing at a missing file: `is allowed and absent`, exit 1.
-- And the property itself, measured by mtime rather than by content, because a
-  restore rewrites a file even when the bytes match: running all five tests
-  leaves `20260728120000_member_read_policies.sql`,
-  `applied-migration-checksums.json` and `CURRENT_STATE.md` with **unchanged
-  mtimes**, and no probe file anywhere. Running the **old** versions changes
-  them.
-
-One falsification of mine was itself wrong and worth recording: I first tested
-the stale-allowance direction by pointing it at `tests/helpers/system-zip.cjs`,
-it passed, and I nearly called the check broken. That file contains one real
-write, so the allowance was not stale and the check was right. Picking a subject
-that genuinely has the property you are trying to remove proves nothing.
-
-## And the same shape in a test I wrote the day before
-
-The chain went red on `tests/observability.test.js`, in the one case that
-starts the real OpenTelemetry SDK: **timeout of 15000ms exceeded**. It passed
-standalone in 127ms and passed the full release chain twice on 21 September.
-
-The case started the SDK inline, bounded the shutdown flush with a 3s race and
-unregistered the global providers afterwards, asserting the global meter was a
-`NoopMeter` again. The cleanup was sound. What was not sound was starting the
-SDK in the suite's own process at all: `HttpInstrumentation` patches `http` on
-start, and by the time this file runs several hundred supertest requests have
-been through it, so the flush to an endpoint that is not there can hang where
-standalone it fails fast.
-
-Two runs green is not evidence, which is the lesson from the audio/mpeg sniffer
-one day earlier -- 1 in 2,053, green 2,052 times.
-
-The assertion is worth keeping: without it, "plaintext OTLP is refused in
-production" is indistinguishable from a URL parser that rejects `http://`
-everywhere. So it now runs in a **child process** with a 20s timeout and
-`killSignal: "SIGKILL"`. A hung flush costs that one test and nothing else, and
-no global provider can survive into the rest of the suite because the process
-holding it is gone. A killed child is asserted as a failure rather than read as
-a pass -- `result.signal` must be null -- because "the probe died" says nothing
-about the rule.
-
-## A follow-up, found by correcting my own comment
-
-The floor assertion in `no-test-writes-a-tracked-file.test.js` carried
-`// 363 on 21 September 2026`, and the code beside it saw **359**. I had quoted
-`verify:doc-counts`, which counts `.test.js` **and** `.test.mjs`, into a check
-that read `.test.js` only.
-
-The wrong figure was the symptom. The hole was that **four `.test.mjs` suites
-were outside the population the gate claimed to cover** -- `brand-assets`,
-`brand-registry`, `brand-routes` and `platform-prep`. None of them writes to the
-filesystem at all today, which is exactly the condition under which a gate stops
-covering something without anybody noticing: the hole is real, it is empty, so
-nothing fails while it sits open.
-
-The pattern is `\.test\.(js|mjs)$` now, the figure is counted by the function
-rather than quoted from a check that counts a different set, and the floor
-asserts **both** extensions are present -- at least 200 `.test.js` and at least
-one `.test.mjs` -- so the new half of the pattern cannot sit unexercised if the
-`.mjs` suites are ever renamed away.
-
-Falsified with a planted `.test.mjs` writing to `docs/`, which the previous
-version ignored entirely and this one names with its resolved destination.
-
-Second time in two days that a figure I had not measured went into a comment I
-wrote -- the sandbox helper's "1,000+" was really 498. Both were caught before
-commit, and both by the same habit: run the thing and read the number rather
-than reusing one that was in front of me.
-
-## What the next person should not have to rediscover
-
-- A test that has to break something breaks a copy.
-  `createScriptSandbox` from `tests/helpers/script-sandbox.cjs`, and the copy
-  list is found by running the script and reading what it asks for.
-- `tests/no-test-writes-a-tracked-file.test.js` resolves one level of variable.
-  A destination built through two hops would slip past it, which is why its
-  message names the helper rather than claiming the suite is clean.
-- Argument 1, not argument 0, is the destination of `copyFileSync`, `cpSync` and
-  `renameSync`. Getting that wrong reports the fix as the defect.
-- Do not start the OpenTelemetry SDK in the suite's own process. The case that
-  needs it runs in a hard-killed child; `tests/observability.test.js` says why.
-- Suite-wide checks read `.test.js` **and** `.test.mjs`. There are four of the
-  latter and they are easy to leave out of a `readdirSync` filter.
-
-
-
-### 2026-09-21 - The upload sniffer guessed audio/mpeg once in every two thousand runs
-
-`sonara-industries` failed on PR #338 at head `74ab8383`, in
-`tests/an-upload-arrives-intact.test.js`: "returns null for a type it cannot
-tell, rather than guessing" got `'audio/mpeg'` where it expected `null`. It
-passed locally and it passed on the next head, all 53 checks green, which is how
-this kind of defect hides.
-
-## It was not a flake in the test
-
-The test feeds `multipart.sniff` 64 random bytes. The signature for
-`audio/mpeg` was:
-
-```
-b.subarray(0, 3).toString("latin1") === "ID3" || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)
-```
-
-`ID3` is a magic number. **An MPEG frame sync is not**: it is eleven set bits,
-`0xFF` then the top three bits of the next byte, which 1 in 2,048 random byte
-pairs satisfies. Measured rather than reasoned: **974 false positives in
-2,000,000 random 64-byte buffers, 1 in 2,053, every one of them audio/mpeg.**
-
-So the test was right and the sniffer was wrong, and the consequence is not
-cosmetic. `accept` decides on `sniff`, so **a file whose bytes are nothing in
-particular could be accepted as audio/mpeg wherever that type is allowed** --
-which is the failure `sniff`'s own doc comment warns about, reached from the
-other direction:
-
-> A caller deciding whether to accept an upload has to be able to tell "this is
-> a JPEG" from "I could not tell", and folding the second into the first is how
-> a page ends up serving a text/html file as an image.
-
-## What the fix is, and why not the smaller one
-
-Validating the header's reserved fields -- version `01`, layer `00`, bitrate
-index `0000`/`1111`, sample-rate index `11`, none of which a real frame carries
--- cuts the rate by about two thirds. That is still roughly 1 in 5,500, which
-is worse than useless: a rarer intermittent failure is harder to diagnose than
-a frequent one.
-
-So a frame sync is believed only when the buffer holds a **whole frame** and the
-**next frame begins where this one says it will**. That needs the bitrate and
-sample-rate tables and the Layer I / Layer II-III length formulas, which is
-about forty lines, and it is the actual definition of an MP3 rather than a
-proxy for one.
-
-It also means a 64-byte fragment of a tagless MP3 now returns `null`, and that
-is correct rather than a regression: 64 bytes genuinely cannot identify a
-tagless MP3, the smallest common frame being larger than that, and "I could not
-tell" is the answer this function exists to be able to give. An ID3 tag needs
-none of it.
-
-Measured after:
-
-| input | before | after |
-| --- | --- | --- |
-| 2,000,000 random 64-byte buffers | 974 false `audio/mpeg` | **0** |
-| 300,000 random 4,096-byte buffers | -- | **0** |
-| tagless MPEG1 Layer III, two frames (`FF FB 90 04`, length 417) | `audio/mpeg` | `audio/mpeg` |
-| `ID3` + 32 bytes | `audio/mpeg` | `audio/mpeg` |
-
-## The test was added to, not weakened
-
-Three new cases make the random-byte case deterministic, because a defect that
-takes two thousand runs to show is one that comes back unnoticed:
-
-- a bare frame header with no frame after it is not an MP3;
-- four headers carrying a reserved version, a reserved layer, a bad bitrate
-  index and a reserved sample rate, each `null`;
-- the tagless two-frame MP3 is still recognised, which is why the sync is read
-  at all;
-- and `accept` refuses a bare sync **even when `audio/mpeg` is on the allowed
-  list**, which states the authorisation consequence as a test rather than as a
-  comment.
-
-Falsified by restoring the old one-line signature: both new cases fail by name,
-the first on "a frame header with no frame after it is not an MP3".
-
-## What the next person should not have to rediscover
-
-- A test that feeds random bytes and asserts `null` is a probabilistic test. It
-  is a good test -- it found this -- but when it fails, the rate is the first
-  thing to measure, not the last.
-- `sniff` is an authorisation input, not a convenience. Anything it returns,
-  `accept` will act on.
-- `ID3` is a magic number; a frame sync is two bytes of coincidence. Do not put
-  a bare sync back in the signature table.
-
-
-
-### 2026-09-21 - Eleven places still said the application had one production dependency
-
-Asked to update the repository and the website with what has already been
-installed. The installing happened on 20 September; what had not happened was
-telling the rest of the repository about it.
-
-## What was measured
-
-`package.json` declares **nine** production dependencies and **five**
-development dependencies. Eleven live statements said otherwise, all of them in
-present tense, none of them dated:
-
-- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
-- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
-  `lib/sonara-structured-log.cjs`
-- `lib/sonara-screenshot-tool-radar-batch12.cjs`
-- `scripts/report-register-opportunities.mjs`
-- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
-- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
-- four guidance lines in `data/open-source-tools.ts`
-
-Every one was **load-bearing reasoning**: no multipart parser because there is
-one dependency; no YAML parser because there is one dependency; this module
-"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
-arrives". A second had arrived, eight of them, and the sentences explaining
-decisions by the old count read exactly as they did when they were true. That is
-the defect this repository is organised around, in prose rather than in code.
-
-**The reasoning mostly survives and was checked rather than assumed.** None of
-the nine production dependencies is a multipart parser and nothing in either
-dependency list parses YAML, both measured rather than recalled. So the
-conclusions stand and the premises were wrong, which is the most dangerous
-combination: nothing breaks, and the next person inherits a reason that will not
-hold the next time it is leaned on.
-
-## The register record whose trigger fired and was never read
-
-`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
-ended: "tests/the-auth-surface-stays-small.test.js fails if that single
-dependency stops being single, which is what would make this record worth
-revisiting."
-
-It stopped being single on 20 September. The test **was not weakened** -- it
-still asserts `deepEqual` against the whole manifest, so a tenth dependency
-fails it -- it was updated to the new exact list, correctly, because the change
-was intentional. But the record it was the trigger for was never revisited.
-
-So this is that revisit, written into the record as a dated addendum: the finding
-does not change, because the reason was never really the count. There is still no
-compile step and none of the nine is a TypeScript library needing one. What had
-to be corrected is the **trigger**, since a count that has already moved cannot
-warn about moving.
-
-## The owner's install document was wrong in two ways, one of them worse
-
-`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
-"one production dependency: `express`. Four development dependencies", and it
-said **"Version 22 is what this was verified on (`v22.22.2`)"**.
-
-The second is the one that mattered. `package.json` declares
-`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
-runtime rather than a preference --
-`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
-changes. The document told the owner to install a Node major that production
-does not run, in five places, which is why every `pnpm` command in this session
-printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
-with the reason the warning is worth acting on rather than reading past.
-
-A section on installing Claude Code was added beside the Supabase CLI one,
-because it belongs in the same category and for the same reason: a tool a person
-runs by hand, deliberately not in `package.json`, where adding it would put it
-on the critical path of every production build.
-
-Its facts were read from the npm registry rather than recalled, and the first
-draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
-`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
-`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
-and the shell script installs under `$HOME` and refuses to run under `sudo`. The
-native installer is listed first because it involves no package manager at all,
-which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
-of this repository's dependency tree.
-
-## `verify:dependency-claims`, the 58th chain command
-
-`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
-undated and mostly lived in source comments, so nothing watched it. The new
-check reads `package.json` and fails when a tracked file states a
-production-dependency count that does not match.
-
-Four things about how it is built, each because the first attempt got it wrong:
-
-- **It reads words, not just digits.** The first version matched digits and
-  found **none of the eleven** -- every one was written as "one" or "single".
-  `WORDS` covers zero to twelve plus `single` and `sole`.
-- **Past-tense statements are not current-state claims.** "went from one
-  production dependency to nine" is a true sentence about a change. A count
-  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
-  with an optional article, is skipped. The marker list is short on purpose: an
-  escape hatch wide enough to launder a current-state claim is worse than no
-  check, and "this is an Express 4 application with one production dependency"
-  has no marker and fails.
-- **It fails when it finds nothing.** A reword that drops every claim out of the
-  pattern is the check going blind, not the repository improving. Proved by
-  misspelling the pattern: `ERROR: no production-dependency count claim was
-  found anywhere in the repository`.
-- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
-  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
-  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
-  text can no longer be found fails, so an exemption cannot outlive the sentence
-  it excuses.
-
-Falsified in four directions before being trusted. It also found three of the
-eleven that grepping had missed, including the install document.
-
-## The website was calling an installed adapter a research candidate
-
-`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
-eight of its packages were production dependencies and a tested 195-line adapter
-existed. `setup_required` would have been the other wrong answer: it says
-configuration is what is left, and configuration is not what is left -- nothing
-calls the adapter, so every variable could be set and still nothing would be
-measured.
-
-`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
-`adapter built` and `enabled in production` are three different states, and this
-vocabulary had the first and the last. Added `adapter_built`, rendered
-"Adapter built, not enabled".
-
-The label map falls back to `"Review required"` for an unknown state, so the
-next state added would have gone unlabelled the same quiet way. Two tests now:
-every availability state in use must have a label and that label must appear on
-the page, with `Review required` asserted absent; and the OpenTelemetry entry
-must stay `adapter_built` **while** an `@opentelemetry` package is still a
-production dependency, so if the packages are removed the test says to move the
-entry back rather than leaving a state that overstates.
-
-## What the next person should not have to rediscover
-
-- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
-  words as well as digits.
-- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
-  because production is 24; the `Unsupported engine` warning means the local
-  Node is wrong, not that the field is.
-- A register record's revisit trigger is only as good as somebody reading it.
-  Better Auth's was a dependency count, which fired silently; it is now the
-  build step.
-- "Research candidate" on `/free-launch-stack` means researched. An installed,
-  unwired adapter is `adapter_built`.
