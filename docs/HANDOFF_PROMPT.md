@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3101 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3104 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 137 migrations, 146 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 138 migrations, 147 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 408 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 409 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,182 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 407 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 408 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-01 - Work that comes round again, and a table queried for weeks with nothing checking it
+
+A business runs on recurring work: open, close, the weekly deep clean, the monthly
+stock count. None of it could be expressed. `employee_tasks` has existed since
+migration 013 and holds one-off work only, and on the morning of 1 October exactly
+one route wrote to it -- `routes/sonara-last9-routes.cjs`, one task at a time,
+by hand.
+
+`supabase/migrations/20261001160000_work_that_comes_round_again.sql` adds **one**
+table, `business_recurring_tasks`, the template. The occurrences it produces are
+rows in `employee_tasks`, which `/staff/tasks` already serves, so an employee sees
+recurring work on the page they already use. That mirrors `recurring_invoices` ->
+`customer_invoices` deliberately: a template table plus the product's own record
+table, rather than a parallel record table half the application does not know
+about. 138 migrations replay in order against an empty PostgreSQL 16.
+
+`lib/sonara-recurring-tasks.cjs` is the engine, pure, and imports `dateInMonth`,
+`parseDay` and `toIsoDay` from `lib/sonara-recurring-invoices.cjs` rather than
+restating them. The month-anchor trap -- "the 31st" clamping to the 28th in
+February and then walking three days earlier for ever if you step from the clamped
+result -- is solved once there and reused. What is *not* shared is the cadence set:
+this one has `daily`, and adding that to the invoice engine would widen the money
+path to serve a cleaning rota.
+
+### Copying the invoice rule to tasks was a bug, and a probe found it
+
+The invoice engine refuses to catch up: one run, one period, dated the day it was
+due. Written literally into tasks that is worse than catching up. A daily checklist
+three weeks behind then needs **twenty-one presses**, each producing a task for a
+day that has gone -- catch-up by repetition, which is the thing the invoice engine
+refuses in one place and would have reintroduced in another.
+
+So `latestDue` fast-forwards: one press, one task, for the most recent occurrence
+that has actually fallen due, with the number skipped **reported** rather than
+swallowed ("20 earlier occurrences were passed over rather than queued up"). It
+fast-forwards through real occurrences rather than jumping to today, so a weekly job
+stays on its weekday and a monthly one stays on its anchor. Past
+`FAST_FORWARD_LIMIT` (4,000 occurrences, about eleven years of daily work) it
+refuses with a reason instead of returning a date that is not actually the latest.
+
+**The first version of the test for this could not fail on the bug it named.**
+"creates one task, not one per day missed" asserted the count, and one press writes
+one task whether the engine fast-forwards or steps a single occurrence. Found by
+breaking the engine and watching the test stay green; it now asserts the day on the
+task as well.
+
+Broken to prove the rest: moving `last_issued_on` before the task write (1 test
+red), stepping one occurrence instead of fast-forwarding (7 red), dropping the
+`organization_id` filter from the switch-off PATCH (2 red), and rendering the empty
+state on a failed read (1 red). The migration's own assertions were proven against
+real PostgreSQL by removing the `select` grant ("service_role cannot read ...") and
+by adding a `delete` grant ("service_role can delete ... no delete path was meant
+to exist").
+
+### employee_tasks had been queried in production with nothing checking it
+
+Adding the feature surfaced this, and it is the recurring defect again.
+`scripts/verify-supabase-contract.mjs` scans the runtime for table references with
+five patterns: a table named at the point of use, or through a `*_TABLE` constant.
+`routes/sonara-last9-routes.cjs` reads `supabaseList(config, "employee_tasks", ...)`
+-- the table as a helper's **second argument**, which none of the five match. So
+`employee_tasks` was queried by live code and checked against no contract at all,
+and what surfaced it was an unrelated new module happening to declare the name as a
+constant.
+
+`employee_tasks` is now in `BUSINESS_OPERATIONS_TABLES`, whose migration set already
+names the migration that creates it. **Four more tables are in the same state right
+now** -- `business_vertical_templates`, `employee_announcements`, `location_events`
+and `motion_sensor_events` -- measured by adding the missing pattern and reading
+what failed. They are not fixed here because each belongs to a different extension
+set and needs its creating migration named, which is its own change rather than a
+rider on a product feature. The missing pattern is one regex; the contracting is the
+work.
+
+### A validation sentence crossing a redirect is a page an attacker can write
+
+Found by reading the diff rather than by a check. The first version put the joined
+validation sentences into the query string -- `?problem=invalid:Give+this+a+name`
+-- and the page printed them. `brandCard` escapes, so it was never script. It was
+worse-shaped than script: a crafted link would have put **plausible text in the
+application's own voice, inside a card, on the real page, at the real address**,
+read by the signed-in owner. "Your account is suspended, ring 0800 123 4567" would
+have looked exactly like a product message.
+
+So the wire carries short codes, `PROBLEMS` in `lib/sonara-recurring-tasks.cjs`
+holds the sentences, and `problemSentences` drops any code it did not write. One
+sentence that interpolated the submitted cadence was reworded so it interpolates
+nothing. Proven by replacing the lookup with an echo of the parameter: two tests
+red, including the one that sends `?why=Your+account+is+suspended...` and asserts
+the page does not contain it.
+
+### Three outcomes on the run button, not two
+
+Also found by reading the diff. A task written whose template could not be advanced
+was counted as a refusal, so the page could report **"0 tasks created" while a task
+sat on somebody's list** -- wrong in the direction that makes a business press the
+button again and get it twice. It is now counted and reported on its own
+(`problem=unrecorded`), with a card that says pressing again would create it a
+second time. Proven by folding it back into the refusal count: one test red.
+
+Two more small findings from the same read. A day of the month typed as `01` was
+stored verbatim and refused by the column's check constraint -- a save that failed
+in the database, so no validation code was ever produced and the page said "that did
+not save" with nothing to read; the validator now canonicalises through `Number()`
+and a test walks all 31 days in both spellings against the column's own pattern. And
+that constraint was written as a regex **and** a cast to integer joined by `and`;
+PostgreSQL does not promise which arm it evaluates first, so a non-numeric value
+could raise `invalid input syntax for type integer` from a different layer instead of
+a constraint violation. It is one regex now.
+
+### Two caps that would have been silent, and a notice that was already false
+
+The page read 200 templates and the run button read 200 templates, and neither said
+when there were more. Both now read one past the cap, which is the only thing that
+makes a cap detectable, and the run reports `unseen=1` rather than returning a
+confident count of what it created.
+
+The page's truncation notice was already wrong before anybody hit it: it said the
+rest "still run and are still counted when you press the button". The button reads
+the newest first under the same cap, so they do not. A notice that is wrong is worse
+than no notice -- it is what the next person reads instead of checking. It now says
+the ones not shown are also not issued, and that pressing again reads the same ones
+so switching some off is what brings the rest into view.
+
+The employee cap was the one with teeth. `employeeName` answers "somebody no longer
+on file" for an id it cannot find, and past 500 employees that sentence would have
+been printed **about people who are still employed**, on the strength of a read that
+was cut short -- a definite statement about a business's own staff. Truncation now
+changes what that fallback says rather than only adding a notice somebody might not
+connect to the names above it. Both proven by breaking them: one test red each.
+
+One of the assertions written for this was a tautology that could never fail, caught
+while re-reading. It is gone.
+
+### A comment where a table name goes removes the query from the tenant audit
+
+Caught by the release chain, and worth writing down because it is invisible on
+review. `scripts/report-tenant-scoped-queries.mjs` works out which table a `rest()`
+call touches by reading the argument after `rest(config,`. A comment placed in that
+position -- between the arguments, which reads perfectly well -- **is** what the
+reader finds, so the call joined its blind spot and the recorded count of
+unresolvable calls went from 40 to 41. The audit said so by name and refused.
+
+The query was still correctly scoped; what stopped was anything checking that. The
+comment is above the call now. A comment is not a table name, and putting it where a
+table name goes is how a query quietly stops being read.
+
+### What this deliberately does not do
+
+**It is not on a timer.** `POST /api/agents/schedule/tick` exists and its menu is
+restricted to the self-serve actions -- the ones that read and report. Creating work
+against somebody's day is a change, so the page shows what is due and the business
+presses the button, which is the same answer
+`routes/sonara-recurring-invoice-routes.cjs` gives about its own. The arithmetic does
+not care who calls it, so putting it on a timer later is a registration and not a
+rewrite.
+
+**There is no delete.** Switching a template off is an update, and the migration
+asserts that `service_role` has no `DELETE` privilege so the claim cannot quietly
+stop being true.
+
+**The due date is midday UTC, and the day is also written on the task in words.**
+`employee_tasks.due_at` is `timestamptz` and an occurrence is a calendar day.
+Midnight UTC is the wrong day across the whole western hemisphere; midday is right
+from UTC-12 through UTC+11 and a day late in UTC+12 and east, which is New Zealand,
+Fiji and Kiribati. No hour covers all of them -- the inhabited offsets span
+twenty-six hours and a day has twenty-four -- so `buildTask` writes "Scheduled for
+2026-10-05." into the description, which is right everywhere.
+
+
 
 ### 2026-10-01 - Clocked hours become pay, and one shift table turns out to be two
 
@@ -2002,154 +2173,3 @@ the first on "a frame header with no frame after it is not an MP3".
   `accept` will act on.
 - `ID3` is a magic number; a frame sync is two bytes of coincidence. Do not put
   a bare sync back in the signature table.
-
-
-
-### 2026-09-21 - Eleven places still said the application had one production dependency
-
-Asked to update the repository and the website with what has already been
-installed. The installing happened on 20 September; what had not happened was
-telling the rest of the repository about it.
-
-## What was measured
-
-`package.json` declares **nine** production dependencies and **five**
-development dependencies. Eleven live statements said otherwise, all of them in
-present tense, none of them dated:
-
-- `public/sonara-scroll-frames.js` -- **shipped to customers' browsers**
-- `lib/sonara-tabular-import.cjs`, `lib/sonara-voice-clone-adapter.cjs`,
-  `lib/sonara-structured-log.cjs`
-- `lib/sonara-screenshot-tool-radar-batch12.cjs`
-- `scripts/report-register-opportunities.mjs`
-- `tests/the-credential-gate-speaks-before-the-chain-runs.test.js`
-- `docs/owner/INSTALL.md`, `docs/MONITORING_AND_BACKUPS.md`
-- four guidance lines in `data/open-source-tools.ts`
-
-Every one was **load-bearing reasoning**: no multipart parser because there is
-one dependency; no YAML parser because there is one dependency; this module
-"adds no dependency" and `EXTERNAL-SERVICES.md` "sets the rules before a second
-arrives". A second had arrived, eight of them, and the sentences explaining
-decisions by the old count read exactly as they did when they were true. That is
-the defect this repository is organised around, in prose rather than in code.
-
-**The reasoning mostly survives and was checked rather than assumed.** None of
-the nine production dependencies is a multipart parser and nothing in either
-dependency list parses YAML, both measured rather than recalled. So the
-conclusions stand and the premises were wrong, which is the most dangerous
-combination: nothing breaks, and the next person inherits a reason that will not
-hold the next time it is leaned on.
-
-## The register record whose trigger fired and was never read
-
-`data/open-source-tools.ts` rules out Better Auth on architecture, and its note
-ended: "tests/the-auth-surface-stays-small.test.js fails if that single
-dependency stops being single, which is what would make this record worth
-revisiting."
-
-It stopped being single on 20 September. The test **was not weakened** -- it
-still asserts `deepEqual` against the whole manifest, so a tenth dependency
-fails it -- it was updated to the new exact list, correctly, because the change
-was intentional. But the record it was the trigger for was never revisited.
-
-So this is that revisit, written into the record as a dated addendum: the finding
-does not change, because the reason was never really the count. There is still no
-compile step and none of the nine is a TypeScript library needing one. What had
-to be corrected is the **trigger**, since a count that has already moved cannot
-warn about moving.
-
-## The owner's install document was wrong in two ways, one of them worse
-
-`docs/owner/INSTALL.md` is what the owner follows to set up a machine. It said
-"one production dependency: `express`. Four development dependencies", and it
-said **"Version 22 is what this was verified on (`v22.22.2`)"**.
-
-The second is the one that mattered. `package.json` declares
-`"engines": { "node": "24.x" }`, and on Vercel that field *is* the production
-runtime rather than a preference --
-`tests/the-runtime-ci-tests-is-one-production-may-run.test.js` fails if it
-changes. The document told the owner to install a Node major that production
-does not run, in five places, which is why every `pnpm` command in this session
-printed `WARN Unsupported engine: wanted: {"node":"24.x"}`. Corrected to 24,
-with the reason the warning is worth acting on rather than reading past.
-
-A section on installing Claude Code was added beside the Supabase CLI one,
-because it belongs in the same category and for the same reason: a tool a person
-runs by hand, deliberately not in `package.json`, where adding it would put it
-on the critical path of every production build.
-
-Its facts were read from the npm registry rather than recalled, and the first
-draft had one of them wrong: **`engines.node` is `>=22.0.0`, not `>=18`**, with
-`@anthropic-ai/claude-code` at `2.1.278`. The `https://claude.ai/install.sh` and
-`install.ps1` endpoints were checked too -- both 302 to `downloads.claude.ai`,
-and the shell script installs under `$HOME` and refuses to run under `sudo`. The
-native installer is listed first because it involves no package manager at all,
-which is the closest thing to `AGENTS.md`'s intent for a tool that is not part
-of this repository's dependency tree.
-
-## `verify:dependency-claims`, the 58th chain command
-
-`report-stale-claims.mjs` watches **dated** claims in `docs/`. This claim was
-undated and mostly lived in source comments, so nothing watched it. The new
-check reads `package.json` and fails when a tracked file states a
-production-dependency count that does not match.
-
-Four things about how it is built, each because the first attempt got it wrong:
-
-- **It reads words, not just digits.** The first version matched digits and
-  found **none of the eleven** -- every one was written as "one" or "single".
-  `WORDS` covers zero to twelve plus `single` and `sole`.
-- **Past-tense statements are not current-state claims.** "went from one
-  production dependency to nine" is a true sentence about a change. A count
-  reached through `from`, `was`, `were`, `until`, `against`, `had` or `then`,
-  with an optional article, is skipped. The marker list is short on purpose: an
-  escape hatch wide enough to launder a current-state claim is worse than no
-  check, and "this is an Express 4 application with one production dependency"
-  has no marker and fails.
-- **It fails when it finds nothing.** A reword that drops every claim out of the
-  pattern is the check going blind, not the repository improving. Proved by
-  misspelling the pattern: `ERROR: no production-dependency count claim was
-  found anywhere in the repository`.
-- **Historical documents are exempted two-sidedly.** `SPRINT_LOG.md`,
-  `HANDOFF_PROMPT.md`, `data/open-source-tools.ts` and one dated
-  `SECURITY_NOTES.md` entry, each with what makes it history; an entry whose
-  text can no longer be found fails, so an exemption cannot outlive the sentence
-  it excuses.
-
-Falsified in four directions before being trusted. It also found three of the
-eleven that grepping had missed, including the install document.
-
-## The website was calling an installed adapter a research candidate
-
-`/free-launch-stack` showed OpenTelemetry as **"Research candidate"** while
-eight of its packages were production dependencies and a tested 195-line adapter
-existed. `setup_required` would have been the other wrong answer: it says
-configuration is what is left, and configuration is not what is left -- nothing
-calls the adapter, so every variable could be set and still nothing would be
-measured.
-
-`.claude/skills/researching-screenshot-tools` is explicit that `researched`,
-`adapter built` and `enabled in production` are three different states, and this
-vocabulary had the first and the last. Added `adapter_built`, rendered
-"Adapter built, not enabled".
-
-The label map falls back to `"Review required"` for an unknown state, so the
-next state added would have gone unlabelled the same quiet way. Two tests now:
-every availability state in use must have a label and that label must appear on
-the page, with `Review required` asserted absent; and the OpenTelemetry entry
-must stay `adapter_built` **while** an `@opentelemetry` package is still a
-production dependency, so if the packages are removed the test says to move the
-entry back rather than leaving a state that overstates.
-
-## What the next person should not have to rediscover
-
-- The count is checked now. `pnpm run verify:dependency-claims`, and it reads
-  words as well as digits.
-- `engines.node` is the production runtime. `docs/owner/INSTALL.md` says 24
-  because production is 24; the `Unsupported engine` warning means the local
-  Node is wrong, not that the field is.
-- A register record's revisit trigger is only as good as somebody reading it.
-  Better Auth's was a dependency count, which fired silently; it is now the
-  build step.
-- "Research candidate" on `/free-launch-stack` means researched. An installed,
-  unwired adapter is `adapter_built`.

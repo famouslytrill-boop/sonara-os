@@ -301,7 +301,12 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out visitor, so the crawl skips it rather than reading its copy.
   // 107 -> 108 on 1 October 2026: /business-builder/owner/pay-periods refuses a
   // signed-out visitor, so the crawl skips it rather than reading its copy.
-  const SIGNED_IN_SKIPPED = 108;
+  // 108 -> 109 on 1 October 2026: /business-builder/owner/recurring-work is
+  // behind requireBusinessManager for the same reason, so it answers 303 to a
+  // signed-out crawl. Its copy is read by
+  // tests/work-that-comes-round-again-comes-round-once.test.js instead, which
+  // drives the route with the guard stubbed.
+  const SIGNED_IN_SKIPPED = 109;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

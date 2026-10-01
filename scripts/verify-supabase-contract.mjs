@@ -18,6 +18,12 @@ const promptLibrarySecurityMigrationName = "20260726194500_prompt_library_produc
 // later carries its own runtime assertions and is named here, which is the same
 // pattern the reference-intelligence extension established.
 const usageLedgerMigrationName = "20260910020000_usage_credit_ledger.sql";
+// Work that comes round again. Named here because the per-table loop below
+// requires every canonical table to be checked by a contract-bearing migration,
+// and this one carries its own assertion block: the table, RLS on with no
+// policy, the service-role grants, no DELETE, a non-nullable organization and a
+// cadence constraint.
+const recurringTaskMigrationName = "20261001160000_work_that_comes_round_again.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
@@ -124,6 +130,21 @@ const researchIntakeMigrationNames = [
 // /stock-counts and /transfers read and write them, but they sit outside the
 // 145-table canonical contract that predates those pages.
 const BUSINESS_OPERATIONS_TABLES = Object.freeze([
+  // The task list /staff/tasks serves, and what business_recurring_tasks issues
+  // occurrences into. Added 1 October 2026, and it had been queried by the
+  // runtime since long before that: routes/sonara-last9-routes.cjs reads it as
+  // `supabaseList(config, "employee_tasks", ...)`, and the runtime scan near the
+  // bottom of this file matches a table named at the point of use or through a
+  // `*_TABLE` constant -- not one passed as a helper's second argument. So this
+  // table was queried in production and checked by nothing, and what surfaced it
+  // was an unrelated module happening to declare the name as a constant.
+  //
+  // Four more tables are in that same state right now: business_vertical_templates,
+  // employee_announcements, location_events and motion_sensor_events. They are
+  // not added here because they belong to different extension sets and each needs
+  // its creating migration named; that is its own change rather than a rider on
+  // this one.
+  "employee_tasks",
   "purchase_orders",
   "inventory_count_sessions",
   "location_transfers",
@@ -183,10 +204,10 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // Existing fleet route sessions are now linked from work orders. Migration
   // 015 creates the table and enables RLS; keeping it in the reviewed
   // operations set makes that relationship explicit without rewriting the
-  // frozen canonical 146-table contract.
+  // frozen canonical 147-table contract.
   "route_tracking_sessions",
   // Canonical job execution between an accepted quote/booking and an invoice.
-  // These postdate the frozen 146-table runtime contract, so they are reviewed
+  // These postdate the frozen 147-table runtime contract, so they are reviewed
   // through their own migration rather than rewriting historical checksums.
   "business_work_orders",
   "business_work_order_assignments",
@@ -324,6 +345,7 @@ const marketIntelligenceMigrationPath = path.join(migrationsDirectory, marketInt
 const researchIntakeMigrationPaths = researchIntakeMigrationNames.map((name) => path.join(migrationsDirectory, name));
 const promptLibraryMigrationPath = path.join(migrationsDirectory, promptLibraryMigrationName);
 const promptLibrarySecurityMigrationPath = path.join(migrationsDirectory, promptLibrarySecurityMigrationName);
+const recurringTaskMigrationPath = path.join(migrationsDirectory, recurringTaskMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
 const {
   DATABASE_FUNCTIONS,
@@ -363,7 +385,7 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 const allSql = migrationFiles.map((name) => read(path.join(migrationsDirectory, name))).join("\n").toLowerCase();
-const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, promptLibrarySecurityMigrationPath, usageLedgerMigrationPath]
+const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, promptLibrarySecurityMigrationPath, usageLedgerMigrationPath, recurringTaskMigrationPath]
   .map(read)
   .join("\n")
   .toLowerCase();
@@ -396,7 +418,11 @@ if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonica
 // Historical baseline: expected 135 canonical tables before Prompt Library added 10 organization-scoped tables.
 // 146 since 10 September 2026: usage_credit_ledger, the append-only credit
 // ledger that lets the six priced metered capabilities actually be charged for.
-if (DATABASE_TABLES.length !== 146) fail(`expected 146 canonical tables, found ${DATABASE_TABLES.length}`);
+// 147 since 1 October 2026: business_recurring_tasks, the template behind work
+// that comes round again. Its occurrences are rows in employee_tasks, which was
+// already here -- the count rose by one because one table was added, not because
+// a second kind of task arrived.
+if (DATABASE_TABLES.length !== 147) fail(`expected 147 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 11) fail(`expected 11 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);
