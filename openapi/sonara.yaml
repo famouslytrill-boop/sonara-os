@@ -3202,7 +3202,7 @@ paths:
         schema: {type: string, format: uuid}
     post:
       operationId: editCreatorProjectGraph
-      summary: Add sources, clips or captions, remove entries, archive or restore using an expected revision
+      summary: Edit entries or restore a device draft through source authorization and expected-revision checks
       security:
         - bearerAuth: []
       requestBody:
@@ -3213,9 +3213,25 @@ paths:
               type: object
               required: [action, revision]
               properties:
-                action: {type: string, enum: [add_source, add_clip, add_caption, remove, archive, restore]}
+                action: {type: string, enum: [add_source, add_clip, add_caption, update_source, update_clip, update_caption, remove, archive, restore, restore_snapshot]}
                 revision: {type: integer, minimum: 1}
+                deviceScope:
+                  type: string
+                  description: Captured user and organization IDs separated by a colon; checked against freshly resolved identity for restore_snapshot. Never tenant authority.
+                snapshot:
+                  type: object
+                  description: Project JSON for restore_snapshot; projectId, medium and original revision must match the destination. Sources are reauthorized and graph edges are derived.
+                  required: [version, projectId, title, medium, revision, graph]
+                  properties:
+                    version: {type: integer, enum: [1]}
+                    projectId: {type: string, format: uuid}
+                    title: {type: string, minLength: 1, maxLength: 180}
+                    medium: {type: string, enum: [audio, video, image, mixed]}
+                    revision: {type: integer, minimum: 1}
+                    graph: {type: object}
                 assetId: {type: string, format: uuid}
+                assetRef: {type: string, pattern: '^(library|generation):[0-9a-f-]+$'}
+                origin: {type: string, enum: [library, generation]}
                 sourceId: {type: string, format: uuid}
                 nodeId: {type: string, format: uuid}
                 durationMs: {type: integer, minimum: 1, maximum: 86400000}
@@ -3241,7 +3257,7 @@ paths:
       - name: format
         in: path
         required: true
-        schema: {type: string, enum: [json, vtt, csv]}
+        schema: {type: string, enum: [json, vtt, srt, csv]}
     get:
       operationId: exportCreatorProject
       summary: Download a deterministic manifest, caption track or edit list after checking source access

@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const express = require("express");
 const request = require("supertest");
 const { createHash } = require("node:crypto");
-const { validateGraph, applyCommand, exportProject } = require("../lib/sonara-creator-project-graph.cjs");
+const { validateGraph, applyCommand, validateSnapshot, exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const register = require("../routes/sonara-creator-project-routes.cjs");
 const { FREE_TOOL_PATHS } = require("../lib/sonara-tool-access.cjs");
@@ -59,6 +59,56 @@ function database() {
 }
 const req = { sonaraAccess: { user: { id: id(3) } } };
 describe("Creator Project Graph", () => {
+  it("uses one graph interface for server and browser drafts and excludes untrusted metadata", () => {
+    const browser = {};
+    require("node:vm").runInNewContext(require("node:fs").readFileSync(require.resolve("../public/creator-project-graph-core.js"), "utf8"), { globalThis: browser, TextEncoder: globalThis.TextEncoder });
+    const graph = applyCommand(empty(), { action: "add_caption", startMs: 0, endMs: 1000, text: "Original caption" }, id(31));
+    const input = { version: 1, projectId: id(10), title: "Draft", medium: "video", revision: 1, graph: { ...graph, edges: [{ from: "fake", to: "fake" }] }, serviceKey: "discard", organization_id: id(99), signedUrl: "discard" };
+    assert.deepEqual(JSON.parse(JSON.stringify(browser.SonaraCreatorGraph.validateSnapshot(input, id(10)))), validateSnapshot(input, id(10)));
+    assert.deepEqual(Object.keys(validateSnapshot(input, id(10))), ["version", "projectId", "title", "medium", "revision", "graph"]);
+    assert.equal(validateSnapshot(input).graph.edges.length, 0);
+    for (const changed of [{ projectId: id(11) }, { revision: 0 }, { revision: 1.5 }, { medium: "provider_code" }, { title: "" }, { graph: { version: 1, nodes: Array(501).fill({}) } }]) assert.throws(() => validateSnapshot({ ...input, ...changed }, id(10)));
+  });
+  it("exports stable SRT timing and escapes caption markup without execution", () => {
+    let graph = applyCommand(empty(), { action: "add_caption", startMs: 1500, endMs: 3000, text: "<b>Owned</b>\nsecond line" }, id(31));
+    graph = applyCommand(graph, { action: "add_caption", startMs: 10, endMs: 1000, text: "First" }, id(32));
+    const output = exportProject({ id: id(10), title: "Film", medium: "video", revision: 1, graph }, "srt");
+    assert.equal(output.extension, "srt");
+    assert.equal(output.data, "1\n00:00:00,010 --> 00:00:01,000\nFirst\n\n2\n00:00:01,500 --> 00:00:03,000\n&lt;b&gt;Owned&lt;/b&gt; second line\n");
+    assert.equal(exportProject({ graph: { ...graph, nodes: [...graph.nodes].reverse() } }, "srt").data, output.data);
+  });
+  it("restores a device snapshot through source authorization, revision CAS and captured identity", async () => {
+    const db = database(); const made = await db.store.create(req, { title: "Film", medium: "video" });
+    const graph = applyCommand(empty(), { action: "add_source", assetId: id(20), durationMs: 2000 }, id(30));
+    const snapshot = { version: 1, projectId: id(10), title: "Local name", medium: "video", revision: 1, graph };
+    const command = { action: "restore_snapshot", revision: 1, deviceScope: `${id(3)}:${id(1)}`, snapshot };
+    assert.equal(made.ok, true);
+    assert.equal((await db.store.command(req, id(10), { ...command, deviceScope: `${id(5)}:${id(1)}` })).code, "workspace_changed");
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, projectId: id(11) } })).code, "invalid_graph");
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, revision: 2 } })).code, "revision_conflict");
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, medium: "audio" } })).code, "invalid_graph");
+    const foreign = applyCommand(empty(), { action: "add_source", assetId: id(21), durationMs: 2000 }, id(30));
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, graph: foreign } })).code, "source_unavailable");
+    const generated = applyCommand(empty(), { action: "add_source", assetId: id(22), origin: "generation", durationMs: 2000 }, id(30));
+    db.generated[0].user_id = id(5);
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, graph: generated } })).code, "source_unavailable");
+    const restored = await db.store.command(req, id(10), command);
+    assert.equal(restored.project.revision, 2); assert.equal(restored.project.title, "Film"); assert.deepEqual(restored.project.graph, graph);
+    assert.equal((await db.store.command(req, id(10), command)).code, "revision_conflict");
+    const changedIdentity = { sonaraAccess: { user: { id: id(5) } } };
+    assert.equal((await db.store.command(changedIdentity, id(10), { ...command, revision: 2, snapshot: { ...snapshot, revision: 2 } })).code, "workspace_changed");
+    await db.store.command(req, id(10), { action: "archive", revision: 2 });
+    assert.equal((await db.store.command(req, id(10), { ...command, revision: 3, snapshot: { ...snapshot, revision: 3 } })).code, "project_archived");
+  });
+  it("does not overwrite a cloud race or claim success when snapshot storage fails", async () => {
+    const db = database(); await db.store.create(req, { title: "Film", medium: "video" });
+    const snapshot = { version: 1, projectId: id(10), title: "Film", medium: "video", revision: 1, graph: applyCommand(empty(), { action: "add_caption", startMs: 0, endMs: 1000, text: "Kept" }, id(31)) };
+    const command = { action: "restore_snapshot", revision: 1, deviceScope: `${id(3)}:${id(1)}`, snapshot };
+    db.loseRace();
+    assert.equal((await db.store.command(req, id(10), command)).code, "revision_conflict");
+    assert.equal(db.projects[0].graph.nodes.length, 0);
+    db.setOffline(); assert.equal((await db.store.command(req, id(10), command)).status, 503);
+  });
   it("derives source-to-clip edges and preserves mute intent", () => {
     const source = applyCommand(empty(), { action: "add_source", assetId: id(20), durationMs: 3000 }, id(30));
     const graph = applyCommand(source, { action: "add_clip", sourceId: id(30), inMs: 500, outMs: 2500, startMs: 1000, muted: "true" }, id(31));
