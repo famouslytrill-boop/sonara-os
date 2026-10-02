@@ -16204,7 +16204,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 76
+        "line": 82
       },
       "contractCompleteness": {
         "route": true,
@@ -16296,7 +16296,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 81
+        "line": 87
       },
       "contractCompleteness": {
         "route": true,
@@ -16390,7 +16390,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 86
+        "line": 92
       },
       "contractCompleteness": {
         "route": true,
@@ -69742,7 +69742,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 35
+        "line": 40
       },
       "contractCompleteness": {
         "route": true,
@@ -69818,7 +69818,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 45
+        "line": 50
       },
       "contractCompleteness": {
         "route": true,
@@ -122344,7 +122344,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 80
+        "line": 86
       },
       "contractCompleteness": {
         "route": true,
@@ -122373,7 +122373,7 @@
       "routeRegistry": null,
       "openApi": {
         "operationId": "editCreatorProjectGraph",
-        "summary": "Add sources, clips or captions, remove entries, archive or restore using an expected revision",
+        "summary": "Edit entries or restore a device draft through source authorization and expected-revision checks",
         "tags": [],
         "requestBodyRef": null,
         "requestBodyDeclared": true,
@@ -122438,7 +122438,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 85
+        "line": 91
       },
       "contractCompleteness": {
         "route": true,
@@ -255601,7 +255601,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 76
+        "line": 82
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -255629,7 +255629,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 81
+        "line": 87
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
@@ -255659,7 +255659,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 86
+        "line": 92
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
@@ -259768,7 +259768,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 35
+        "line": 40
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -263476,7 +263476,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 80
+        "line": 86
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -263506,7 +263506,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 85
+        "line": 91
       },
       "destination": {
         "route": "/creator-studio/projects/:id",

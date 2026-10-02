@@ -10,4 +10,6 @@ SONARA Industries is the parent company. SONARA One is the shared application pl
 
 **Caption**: creator-entered text with start and end times on the project timeline. It is not an automatically inferred transcript.
 
+**Device Draft**: a validated Creator Project snapshot edited in an already-open browser page. Its original workspace revision is preserved. Device persistence is an explicit action, scoped to the captured user, organization and project, with a separate local revision to detect competing tabs. Saving to the workspace rechecks the current identity, subscription, source permissions and project revision. A local draft contains references and text, not copies of source media or provider credentials.
+
 See `docs/architecture/CREATOR_PROJECT_GRAPH_V1.md` for the implementation, source research, routes, limitations and remaining work.
