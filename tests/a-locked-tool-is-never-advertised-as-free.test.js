@@ -1,7 +1,10 @@
 "use strict";
 
-// Thirty-four of the forty tools now need a plan. The pricing decision is the
-// owner's. The failure mode is not, and it is a specific one with a history in
+// Twenty-eight of the forty-three tools need a plan. The pricing decision is the
+// owner's, and it moved on 2 October 2026: four free in each studio rather than
+// two, plus three at the parent company. The counts are derived here rather than
+// restated, because this file asserting "six" is how a test starts guarding a
+// figure that has changed. The failure mode is not, and it is a specific one with a history in
 // this repository: until 19 August 2026 every tool was behind a login while
 // /business-builder/tools listed ten of them by name, so the funnel advertised
 // and then refused. The comment in routes/sonara-service-lifecycle-routes.cjs
@@ -22,18 +25,32 @@ const root = path.join(__dirname, "..");
 describe("a locked tool is never advertised as free", () => {
   const app = require("../server.js");
   const tools = app.locals.sonaraFreeTools || [];
+  // The parent company's three are registered separately, by
+  // routes/sonara-parent-tool-routes.cjs, because they are not lifecycle products
+  // and compute in the browser rather than on a POST. They are still free tools,
+  // so the three assertions about *which* tools are free have to see them --
+  // reading only sonaraFreeTools made this file measure twelve of fifteen and
+  // report it as all of them. The describes below about what a locked tool
+  // answers keep reading `tools`, because a parent tool has no POST to answer
+  // with and no plan that could lock it.
+  const everyFreeTool = [...tools, ...(app.locals.sonaraParentTools || [])];
 
   describe("which tools are free", () => {
     it("reads a population worth measuring", () => {
       assert.ok(tools.length >= 30, `only ${tools.length} tools registered; this check has gone blind`);
+      assert.equal(
+        everyFreeTool.length - tools.length,
+        3,
+        `${everyFreeTool.length - tools.length} parent-company tools registered; the owner's decision was three`
+      );
     });
 
     // Both directions matter and an empty set would satisfy neither.
     it("frees some tools but not all of them", () => {
-      const { free, locked } = access.partitionTools(tools);
-      assert.ok(free.length > 0, "no tool is free; the home page promises six");
+      const { free, locked } = access.partitionTools(everyFreeTool);
+      assert.ok(free.length > 0, `no tool is free; the home page promises ${access.FREE_TOOL_COUNT}`);
       assert.ok(locked.length > 0, "every tool is free; nothing is behind the paywall");
-      assert.equal(free.length + locked.length, tools.length);
+      assert.equal(free.length + locked.length, everyFreeTool.length);
       assert.equal(free.length, access.FREE_TOOL_PATHS.length);
     });
 
@@ -43,7 +60,7 @@ describe("a locked tool is never advertised as free", () => {
     it("matches exactly the tools the public home page links", () => {
       const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
       const home = server.slice(server.indexOf("sonara-conversion-home"));
-      const advertised = tools
+      const advertised = everyFreeTool
         .map((tool) => tool.path)
         .filter((toolPath) => home.includes(`href=\\"${toolPath}\\"`))
         .sort();
@@ -58,7 +75,7 @@ describe("a locked tool is never advertised as free", () => {
     });
 
     it("every free path is a tool that exists", () => {
-      const known = new Set(tools.map((tool) => tool.path));
+      const known = new Set(everyFreeTool.map((tool) => tool.path));
       for (const toolPath of access.FREE_TOOL_PATHS) {
         assert.ok(known.has(toolPath), `${toolPath} is listed as free and is not a registered tool`);
       }
@@ -163,7 +180,13 @@ describe("a locked tool is never advertised as free", () => {
         /the free tools in all three studios/,
         "the free plan still advertises the tools in all three studios"
       );
-      assert.match(description, /twelve free studio tools and three SONARA tools/i, "the free plan no longer says how many tools are free");
+      // Was /six free tools/i until 2 October 2026 — a test asserting the stale
+      // sentence, which passed while the page it guards had gone wrong. Derived
+      // now from the same list the gate reads.
+      assert.ok(
+        description.includes(String(access.FREE_TOOL_COUNT)),
+        `the free plan says "${description}" and ${access.FREE_TOOL_COUNT} tools are free`
+      );
     });
 
     // The marketing page named individual tools that are now behind the plan.

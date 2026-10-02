@@ -12,6 +12,11 @@ const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { getGuide } = require("../lib/sonara-guides.cjs");
 const { UI_LOCALES, SUPPORTED_LOCALE_CODES, normalizeLocale } = require("../lib/sonara-locale-contract.cjs");
 const { renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.cjs");
+// The free-tool count and its one sentence. Read rather than restated: the
+// /free-tools page below carried its own copy of "Six tools ... two in each
+// studio" and three per-studio cards each naming their two by hand, and every
+// one of those went stale the day the free set changed.
+const { FREE_TOOL_COUNT, freeToolSentence, freeToolCountByCompany } = require("../lib/sonara-tool-access.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -128,19 +133,44 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/dashboard", "All workspaces")]
   }));
 
-  app.get("/free-tools", (req, res) => sendMarketingPage(res, {
-    title: "Free tools",
-    eyebrow: "Fifteen free tools · No signup",
-    heading: "Get a real result before you subscribe.",
-    body: "Four tools in each studio and three SONARA tools are free. Open them and get your results without signing up or entering a card. The remaining studio tools open with the subscription that covers that workspace.",
-    sections: [
-      actionCard("SONARA tools", "Format JSON, fingerprint text, and estimate storage. Process your input locally and download the result.", [linkAction("/tools", "Open SONARA tools")]),
-      actionCard("Business Builder tools", "Free: break-even and runway, stock reorder, offer builder, and pricing calculator.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
-      actionCard("Creator Studio tools", "Free: rate card, split sheet, creative brief, and release checklist.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
-      actionCard("Growth Studio tools", "Free: campaign budget, referral reward, campaign outline, and KPI calculator.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
-    ],
-    actions: [linkAction("/pricing", "Compare subscriptions"), linkAction("/tutorials", "Tutorials")]
-  }));
+  // Named counts, no named tools.
+  //
+  // Each card used to name its studio's free tools in prose -- "break-even and
+  // runway, and the stock reorder planner" -- and said how many more were
+  // locked. Both halves went stale on 2 October 2026 when the free set changed,
+  // and the stale half is the dangerous one: naming a tool as free that a gate
+  // then refuses is the advertise-then-refuse funnel
+  // routes/sonara-service-lifecycle-routes.cjs exists to prevent.
+  //
+  // So this page counts and links, and the directory it links to is the page
+  // that names them -- built from the same list the gate reads.
+  app.get("/free-tools", (req, res) => {
+    const counts = freeToolCountByCompany();
+    const studios = [
+      ["Business Builder", "business_builder", "/business-builder/tools"],
+      ["Creator Studio", "creator_studio", "/creator-studio/tools"],
+      ["Growth Studio", "growth_studio", "/growth-studio/tools"]
+    ];
+    return sendMarketingPage(res, {
+      title: "Free tools",
+      eyebrow: `${FREE_TOOL_COUNT} free, and the rest on a plan`,
+      heading: "Get a real result in your first few minutes.",
+      body: `${freeToolSentence()} They give a real answer in a couple of minutes, and nothing is saved unless you ask. Every directory below labels each tool as free or on a plan before you press anything, so no tool is advertised as free and then refused.`,
+      sections: [
+        actionCard(
+          "SONARA Industries tools",
+          `${counts.sonara_industries} free with no account, and the only three that run entirely on your own device: format your JSON, fingerprint your text, and estimate what your files and backups need. Nothing you type into one is uploaded.`,
+          [linkAction("/tools", "Open SONARA Industries tools")]
+        ),
+        ...studios.map(([name, key, directory]) => actionCard(
+          `${name} tools`,
+          `${counts[key]} free with no account and no card. The rest open on a plan that covers ${name}, and the directory names every one of them either way.`,
+          [linkAction(directory, `Open ${name} tools`)]
+        ))
+      ],
+      actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
+    });
+  });
 
   app.get("/how-it-works", (req, res) => sendMarketingPage(res, {
     title: "How SONARA works",
@@ -286,14 +316,13 @@ function registerRouteRegistryRoutes(app, deps) {
     return res.status(200).type("html").send(responsePage("Password updated", "Your password has been changed. Sign in with the new password.", [linkAction("/login", "Sign in")]));
   });
 
-  app.get("/account/profile", requireCustomer, (req, res) => sendPage(res, {
-    title: "Profile",
-    eyebrow: "Your account",
-    heading: "Profile",
-    body: "Review the identity attached to this signed-in account.",
-    sections: [accountNoticeCard(req), brandCard("Email address", req.sonaraUser?.email || "Email address not returned."), brandCard("Profile editing", setupMessage)],
-    actions: [linkAction("/account", "Account"), linkAction("/account/security", "Security"), logoutAction()]
-  }));
+  // /account/profile moved to routes/sonara-account-profile-routes.cjs on
+  // 3 October 2026. What was here showed the account's email beside a card
+  // reading "This feature works, but saving needs your records connected by an
+  // administrator first" -- on a page with no form, for a column
+  // (profiles.full_name) that no route in this repository had ever written. The
+  // sentence read as "come back later" and nothing was coming. The replacement
+  // saves a name, a headline, a description and a picture.
 
   app.get("/account/security", requireCustomer, (req, res) => sendPage(res, {
     title: "Account security",

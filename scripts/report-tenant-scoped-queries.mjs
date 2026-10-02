@@ -169,6 +169,58 @@ const READ_WITHOUT_ORGANIZATION = [
       "somebody else' rather than handing the owner a constraint violation -- the " +
       "comment above it says so. organization_id is the only column selected, and " +
       "it is compared against the caller's own."
+  },
+  {
+    file: "routes/sonara-growth-event-routes.cjs",
+    table: "growth_events",
+    requires: ["status=neq.draft"],
+    reason:
+      "GET and POST /events/:slug, registered with no guard -- a published event's " +
+      "public page. The slug IS the scope: growth_events_slug_key makes it unique " +
+      "across the table, so one slug names one event, and status=neq.draft means an " +
+      "unpublished one cannot be reached by guessing addresses. A stranger has no " +
+      "organization to be filtered to. The same shape as /book/:slug. Two reads " +
+      "that could have been scoped and were not -- the venue by id and the RSVP " +
+      "count -- were tightened rather than exempted when this check named them; " +
+      "they carry organization_id=eq. from the event now."
+  },
+  {
+    file: "routes/sonara-growth-event-routes.cjs",
+    table: "growth_events",
+    requires: ["select=id&slug=eq."],
+    reason:
+      "The slug-uniqueness check inside POST /api/growth/events/publish, which does " +
+      "require growth_studio workspace access. It has to look across organizations " +
+      "to answer 'taken by somebody else' rather than handing the owner a " +
+      "constraint violation with no explanation. `id` is the only column selected " +
+      "and it is compared against the caller's own event id, so nothing from " +
+      "another organization reaches the page. Same reasoning as the " +
+      "lead_capture_pages entry above."
+  },
+  {
+    file: "routes/sonara-merchant-store-routes.cjs",
+    table: "merchant_storefronts",
+    requires: ["enabled=eq.true"],
+    reason:
+      "GET and POST /store/:slug, registered with no guard -- a published shop's " +
+      "public page. The slug IS the scope: merchant_storefronts_slug_key makes it " +
+      "unique across the table, and enabled=eq.true means an unpublished shop " +
+      "cannot be reached by guessing addresses. A stranger has no organization to " +
+      "be filtered to. Everything the page then reads IS scoped: the catalogue is " +
+      "fetched with organization_id taken off the shop row this query returned, " +
+      "which is what makes one unfiltered read enough."
+  },
+  {
+    file: "routes/sonara-merchant-store-routes.cjs",
+    table: "merchant_storefronts",
+    requires: ["select=organization_id&slug=eq."],
+    reason:
+      "The slug-uniqueness check inside POST /api/business/storefront/publish, " +
+      "which does require a business manager. It has to look across organizations " +
+      "to answer 'taken by somebody else' rather than handing the owner a " +
+      "constraint violation with no explanation. organization_id is the only " +
+      "column selected and it is compared against the caller's own, so nothing " +
+      "from another organization reaches the page."
   }
 ];
 

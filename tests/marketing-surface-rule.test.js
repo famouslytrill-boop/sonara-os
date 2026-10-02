@@ -34,7 +34,17 @@ const CINEMATIC = new Set([
   // The explainer behind a shared result, and the most literal front door here:
   // whoever lands on it arrived from a link a stranger sent them and has never
   // heard of this company. Orienting them is the page's entire job.
-  "/shared"
+  "/shared",
+  // SONARA Industries' own tool directory, added 2 October 2026. A front door for
+  // the same reason /free-tools is one: a visitor who has not chosen a studio
+  // lands on it to find out what there is. The three tools it links are on the
+  // calm side below -- a directory orients, a calculator is worked.
+  "/tools",
+  // Creator Studio's public marketplace, added 3 October 2026. Browsing what is
+  // for sale is the definition of a front door: nobody arriving here is mid-task,
+  // and the page's job is to show what exists. The page a buyer opens for one
+  // listing is parameterised and not on either list.
+  "/marketplace"
 ]);
 
 // Public pages that stay calm, each with the reason. Being public is not the
@@ -73,7 +83,20 @@ const CALM = new Map([
   ["/technology-radar", "a governance reference showing reviewed and blocked external technologies"],
   ["/business-builder/launch-readiness", "an operational checklist showing what is still setup required"],
   ["/creator-studio/launch-readiness", "an operational checklist showing what is still setup required"],
-  ["/growth-studio/launch-readiness", "an operational checklist showing what is still setup required"]
+  ["/growth-studio/launch-readiness", "an operational checklist showing what is still setup required"],
+  // The parent company's three tools, added 2 October 2026. They are public and
+  // need no account, and they are still work screens: somebody pastes something in
+  // and reads the result. The studio tools are not on either list because they are
+  // registered as product routes rather than public ones; these have no product, so
+  // PUBLIC_ROUTES is the only honest home for them and they get classified here
+  // like anything else public.
+  //
+  // Three different tools were listed here until the merge of #416, which had built
+  // the parent company's front door independently and shipped first. The entries
+  // moved rather than the rule.
+  ["/tools/data-formatter", "a form somebody pastes JSON into and reads the result"],
+  ["/tools/text-fingerprint", "a form somebody pastes text into and reads a fingerprint"],
+  ["/tools/storage-budget", "a calculator somebody fills in to get a figure"]
 ]);
 
 function isPage(route) {

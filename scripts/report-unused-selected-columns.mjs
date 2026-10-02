@@ -93,6 +93,15 @@ const ACCOUNTED = Object.freeze({
       "Surfaced when `order=` stopped counting as a reading of the value."
     ].join(" ")
   },
+  "routes/sonara-merchant-store-routes.cjs": {
+    columns: ["price_cents", "product_id"],
+    reason: [
+      "readCatalogue hands merchant_product_variants rows whole to storefrontFor in lib/sonara-merchant-storefront.cjs, and both columns are read there rather than in the route.",
+      "price_cents: offerFor at line 114 reads it -- `const priceCents = integerCents(variant?.price_cents)` -- and refuses the variant at zero, because `not null default 0` makes zero indistinguishable from an unset price and a shop that sells it gives stock away.",
+      "product_id: storefrontFor at line 178 reads it -- `const product = productById.get(variant.product_id)` -- to pair a variant with its product, and withholds any variant whose product did not come back rather than pricing it against nothing.",
+      "Both opened on 2 October 2026 to confirm the lines. Three more columns were found in the same finding and are NOT recorded here, because they were not read anywhere: category and sku are gone from the select, and created_at on the order is now printed on the owner's page."
+    ].join(" ")
+  },
   "routes/sonara-pay-period-routes.cjs": {
     columns: ["break_minutes", "clock_out_at", "effective_from", "effective_to", "pay_type", "rate_cents"],
     reason: [

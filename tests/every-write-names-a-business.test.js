@@ -57,6 +57,23 @@ function sourceFiles() {
   return files;
 }
 
+// `organization_id: <something>.organization_id`, where <something> is a path
+// that does not go through the request. One dot or many: `page.organization_id`
+// and `found.event.organization_id` are the same safe shape, and
+// `req.body.organization_id` is the unsafe one however it is spelled.
+const TENANT_FROM_ROW = /organization_id:\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\.organization_id/g;
+
+function takesTenantFromAFetchedRow(body) {
+  for (const match of String(body).matchAll(TENANT_FROM_ROW)) {
+    const segments = match[1].split(".");
+    // Anything reached through the request is the caller choosing their own
+    // tenant, which is the defect rather than the pattern.
+    if (segments.includes("req") || segments.includes("request")) continue;
+    return true;
+  }
+  return false;
+}
+
 function writingHandlers() {
   const found = [];
   for (const file of sourceFiles()) {
@@ -76,12 +93,23 @@ function writingHandlers() {
         // The fourth is a public route: it has no session to resolve an
         // organization from, so it takes the tenant off a row it fetched under
         // its own filter -- `organization_id: page.organization_id`, where
-        // `page` was found by the slug in the URL. The negative lookahead is the
-        // load-bearing part: `organization_id: req.body.organization_id` is the
-        // exact bug this whole check exists to catch, and it would otherwise
-        // match this pattern and be waved through as scoped.
+        // `page` was found by the slug in the URL.
+        //
+        // `takesTenantFromAFetchedRow` is the fourth, and it reads one dot or
+        // several. It allowed exactly one until 2 October 2026, when
+        // POST /events/:slug wrote `organization_id: found.event.organization_id`
+        // -- the same safe shape one level deeper -- and was reported as writing
+        // with the service key and never establishing whose data it is. Widening
+        // it rather than reshaping that handler, because the next person writing
+        // `found.page.organization_id` should be covered too.
+        //
+        // What must NOT widen with it is the bug this whole check exists to
+        // catch: `organization_id: req.body.organization_id`, a caller naming
+        // the tenant they want to write into. So the path is captured and then
+        // rejected if any segment of it is `req` -- a test below feeds that
+        // exact string in and asserts it is still refused.
         knowsTheBusiness: /resolveOrganization|getCustomerPrimaryOrganization|organizationId/.test(body)
-          || /organization_id:\s*(?!req\b)[A-Za-z_$][\w$]*\.organization_id/.test(body)
+          || takesTenantFromAFetchedRow(body)
       });
     }
   }
@@ -106,6 +134,27 @@ describe("every write names a business", () => {
       "these write with the service key and never establish whose data it is:\n  " +
         unscoped.map((handler) => `${handler.key} [${handler.file}]`).join("\n  ")
     );
+  });
+
+  // The widened pattern, tested on the string it must still refuse.
+  //
+  // Widening a check is how a check stops catching its own bug, so the two cases
+  // are fed in directly rather than trusted from reading the regex.
+  it("still refuses a handler that takes the tenant from the request", () => {
+    // Safe: one dot, and several.
+    assert.equal(takesTenantFromAFetchedRow('organization_id: page.organization_id'), true);
+    assert.equal(takesTenantFromAFetchedRow('organization_id: found.event.organization_id'), true);
+    assert.equal(takesTenantFromAFetchedRow('organization_id: a.b.c.d.organization_id'), true);
+
+    // The bug. A caller naming the tenant they want written into, at any depth.
+    assert.equal(takesTenantFromAFetchedRow('organization_id: req.body.organization_id'), false);
+    assert.equal(takesTenantFromAFetchedRow('organization_id: req.query.organization_id'), false);
+    assert.equal(takesTenantFromAFetchedRow('organization_id: request.body.organization_id'), false);
+    assert.equal(takesTenantFromAFetchedRow('organization_id: outer.req.body.organization_id'), false);
+
+    // And it does not fire on nothing.
+    assert.equal(takesTenantFromAFetchedRow('organization_id: "hard-coded"'), false);
+    assert.equal(takesTenantFromAFetchedRow(''), false);
   });
 
   // A reason that has outlived what it excuses is what the next person reads

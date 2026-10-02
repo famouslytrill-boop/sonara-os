@@ -317,12 +317,48 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out crawl. Its copy is read by
   // tests/work-that-comes-round-again-comes-round-once.test.js instead, which
   // drives the route with the guard stubbed.
-  // 109 -> 110 on 2 October: the new subscribed Creator projects page also
-  // refuses the outage stub's unreadable entitlement. The entitled pass above
-  // reads its actual empty state; creator-project-graph.test.js exercises edits.
-  // 110 -> 114: generation pages now enforce paid Creator access. The
-  // outage stub cannot verify billing; focused route tests exercise their copy.
-  const SIGNED_IN_SKIPPED = 114;
+  // 109 -> 110 on 2 October 2026: the subscribed Creator projects page refuses the
+  // outage stub's unreadable entitlement. The entitled pass above reads its actual
+  // empty state; tests/creator-project-graph.test.js exercises edits.
+  // 110 -> 111 on 2 October 2026: /creator-studio/owner/approval-graph is behind
+  // requireWorkspaceAccess("creator_studio") and needs a resolved organization, so
+  // a signed-out crawl gets a 503 and never reads its copy. The copy is read
+  // instead by tests/an-unanswered-disclosure-is-not-a-no.test.js, which drives the
+  // route with the guard stubbed and asserts both the sentence it shows when a
+  // version is cleared and the one it shows when a disclosure is unanswered.
+  // 111 -> 112 on 2 October 2026: /growth-studio/owner/events is behind
+  // requireWorkspaceAccess("growth_studio") and needs a resolved organization, so
+  // a signed-out crawl gets a 503 and never reads its copy. Its copy is read
+  // instead by tests/a-confirmed-seat-is-a-seat.test.js, which drives the route
+  // with the guard stubbed. The public half, /events/:slug, is parameterised and
+  // was never in this crawl -- that page's wording is asserted in the same file.
+  // 112 -> 113 on 2 October 2026: /business-builder/owner/store is behind
+  // requireBusinessManager, so a signed-out crawl gets a 303 and never reads its
+  // copy. Its copy is read instead by tests/a-price-nobody-set-is-not-free.test.js,
+  // which drives the route with the guard stubbed and asserts both the sentence it
+  // shows about not taking payment and the reason it gives for each thing that is
+  // not on sale. The public half, /store/:slug, is parameterised and was never in
+  // this crawl; the same file asserts its wording.
+  // 113 -> 114 on 3 October 2026: /account/profile/picture answers 503 to the
+  // crawl, which signs in with no connected database. The route reads the profile
+  // row to find the stored path and refuses rather than redirecting when it cannot
+  // -- a redirect to the profile would be indistinguishable from "you have no
+  // picture", which is a definite statement about somebody's own data made on the
+  // strength of a request that did not happen. Its copy is read instead by
+  // tests/a-profile-a-person-can-actually-set.test.js, which drives both branches
+  // with the read stubbed. /account/profile and /account/permissions are in this
+  // crawl and their copy is read here.
+  // +4 on 2 October 2026, from #417: generation pages now enforce paid Creator
+  // access. The outage stub cannot verify billing; focused route tests exercise
+  // their copy.
+  // 118, merged 3 October 2026. Both branches arrived at "114" from a common base
+  // of 110 -- this one by adding the four pages above, #417 by adding four
+  // generation pages -- and git merged the two identical lines cleanly into one
+  // number that was wrong for both. Nothing conflicted, because nothing differed.
+  // The crawl is what noticed. A count two branches each increment is a count a
+  // clean merge can silently halve, so this was measured on the merged tree rather
+  // than taken from either side.
+  const SIGNED_IN_SKIPPED = 118;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

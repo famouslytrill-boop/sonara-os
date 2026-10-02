@@ -2,6 +2,985 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - A marketplace, and two bugs the module tests could not see
+
+The owner's brief: "Creator studio comes with a Marketplace. Where users can sell and
+monetize the audio and video creations and generations, pictures and art."
+
+**The rule that organises it: you cannot sell what you cannot publish.**
+`lib/sonara-creator-marketplace.cjs` composes `publishReadiness` from the approval
+graph rather than restating its conditions -- two functions each deciding "is this
+cleared" agree on the day they are written and drift on the day somebody adds a
+blocker to one. Its test adds a blocker on the publish side and asserts it reaches the
+listing side, which is the only way to check a composition rather than a coincidence.
+
+What listing adds, each about money rather than approval: rights attested (three
+states, unanswered refuses), consent separately when a person's voice, face or
+likeness is in it -- holding the copyright in a recording is not permission to sell a
+synthetic version of it -- a price nobody set refused rather than offered at nothing,
+a licence chosen from four that each say what they mean, and a currency mismatch
+refused rather than converted at a rate nobody agreed. Nothing takes money: checkout
+needs the owner's commerce credentials, and a cleared listing says so instead of
+showing a Buy button that cannot charge.
+
+**Bug one, shipped in the module for about ten minutes.** `publicListing` compared
+the disclosure against `"disclosed"`, which is not one of the approval graph's three
+values (`declared_ai`, `declared_human`, `not_recorded`). A work whose AI disclosure
+had been recorded would have been shown to buyers as not disclosed -- silently, in the
+worst direction. It imports the graph's `DISCLOSURE` now.
+
+**Bug two, which 39 passing module tests could not see.** The routes filtered
+`creator_asset_approvals` on `version_id`. That table keys on `asset_version_id`. Every
+approvals read would have failed, every listing would have refused as
+`approval_unreadable`, and nothing could ever have gone on sale. The routes also read
+no `created_at`, and a review request has no `decided_at` -- so a re-review requested
+after an approval would have sorted *first*, and the listing would have stayed cleared
+in exactly the case where somebody had stopped being sure. A module test cannot see the
+query a route builds. `tests/a-listing-on-sale-is-a-listing-still-cleared.test.js`
+drives the real routes against a recording fetch and checks every column they name
+against the table's real columns from the generated inventory; restoring `version_id`
+fails it by name.
+
+**The cross-tenant test refused my first public page, correctly.** `/marketplace` read
+`creator_listings` across every organization in one query.
+`tests/cross-tenant-isolation.test.js` holds that a signed-in route never queries a
+tenant-scoped table without an organization, and it has no exemption list --
+deliberately. So instead of an exemption, the public side got a table that is not
+tenant data: `creator_marketplace_entries`, **no organization_id and no column a buyer
+may not see**, with the migration asserting the exact column set so a column added
+later fails the replay rather than quietly becoming public. The public pages read that
+and nothing else. A public query against it cannot leak a private field because there
+is none to leak, which is stronger than a public query that remembered to leave one
+out.
+
+That first page had a second problem the redesign removed: it called
+`versionFor(null, ...)`, which built `organization_id=eq.null` -- a filter matching
+nothing -- so the public marketplace could never have shown a single listing.
+
+**A snapshot has to be kept true, so the routes own that.** Listing asks the gate again
+at the moment of the decision and writes exactly what it cleared, state first and
+catalogue second, putting the state back if the catalogue write fails. Withdrawing
+removes the catalogue row first, so a failure leaves the work off sale. An edit to
+something on sale re-asks: a new price refreshes what buyers see, an edit that makes it
+unsellable takes it down and says why. And `takeVersionOffSale` is called from the
+approval graph when a version's approval is withdrawn, rejected, or reopened for
+review -- the snapshot cannot see an approval change, so the place the approval changes
+takes it down. Every one of its queries is scoped to the organization.
+
+**Three smaller things the gates found:** the empty-state check refused my copy, which
+said "*so there is nothing to offer for sale*" in the branch where the versions could
+not be read -- a claim of emptiness as the consequence of a failed read; the
+row-link crawl found `/marketplace/undefined` for an entry without an id; and the
+reserved-handle check found `marketplace` claimable as a creator handle.
+
+**And a gap in a check that is not mine.** `tests/member-read-policies.test.js`
+examines 57 tables and cannot see 30 more -- every table read through a `*_TABLE`
+constant instead of a literal URL. It reports full coverage over a third of its
+population missing. `creator_listings` was caught only because one function names it
+literally. Recorded here and fixed in the next change, not this one.
+
+| break | result |
+|---|---|
+| approvals filtered on `version_id` again | 2 red, one listing the non-existent column |
+| `created_at` dropped from the approvals read | 1 red |
+| the public page reads `creator_listings` again | 1 red, naming the table |
+| withdraw changes state before stopping the sale | 2 red |
+| a price edit leaves the old public price | 1 red |
+| the approval-graph hook removed from `decide` | 1 red |
+| an `organization_id` on the public catalogue | replay red, listing the columns |
+| the creator's private note added to the catalogue | replay red, listing the columns |
+| the module stops composing `publishReadiness` | 6 red |
+| an unanswered rights attestation reads as yes | 5 red |
+| silence about a person read as no person | 1 red |
+| a price of zero offered | 1 red |
+| the disclosure compared to a literal again | 2 red |
+| a draft shown publicly | 1 red |
+| `rights_attested` not null default false | replay red |
+| `price_cents` default 0 | replay red |
+| a payout column / a card column | replay red, each by name |
+| the state check removed | replay red |
+
+`pnpm test` 5845 passing; `verify:gates` 0; `verify:db`, lint, typecheck, build,
+smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file.
+
+
+### 2026-10-03 - My subscription gate could not see the limiter the next merge added
+
+Two things from merging `main` at 090b9904 (#417 and #418), both found because the
+merged tree was measured rather than trusted.
+
+**A count two branches each incremented, merged cleanly into a wrong number.**
+`tests/plain-language.test.js` records how many routes the signed-in crawl skips.
+Both branches started at 110 and both added four, so both wrote `114`. The lines were
+identical, git merged them without a conflict, and the result was wrong for both
+sides. The crawl measured 118. Nothing conflicted because nothing differed -- which is
+the whole hazard: a merge tool sees text, and two correct increments of the same
+number are the same text. Any count that more than one branch can bump is a count a
+clean merge can silently halve; this one now says so where it is recorded.
+
+**The gate I wrote a few hours earlier was blind to a limiter, and reported it whole.**
+#417 added a rate limiter on Creator generation submissions -- one a paying
+subscriber can hit -- built as
+
+    (deps.createRateLimiter || createRateLimiter)({ name: "creator.generation.submit", ... })
+
+`verify-subscription-completeness` matched `createRateLimiter({` and the auth
+factory's form, and this is neither. So on the merged tree it printed *"17 rate
+limiters, every one accounted for"* and exited 0. It did not fail on an unregistered
+limiter; it never saw one. Shape 2 exactly: a scan naming a smaller population than
+the one it claims, and printing the claim. The suite was green and the gate was green
+and the thing the gate exists to watch had just changed.
+
+It was caught by reading what #417 changed rather than by any check -- the commit
+message said it had "hardened generation submission bursts", and a sentence about
+bursts is a sentence about a limiter.
+
+Fixed by replacing two patterns with one that reads every call form, and by making
+the parser prove itself before its count is believed: `PARSER_FIXTURES` holds one of
+each form this repository uses -- direct, through `deps`, the either-or form that got
+through, and the auth factory -- plus a function definition it must not read as a
+limiter. The limiter is registered as a ceiling: 120 a minute, 7200 an hour, well
+over the floor.
+
+**What the gate still does not check, said in its header.** #417 also added a
+generation *allowance* -- a sum included each billing period that answers 429 once
+spent. That is a quota, not a rate limit, and it exists because each generation costs
+money at an upstream provider; its own page says "Provider limits still apply. No
+extra purchase required." That is the owner's stated exception in the owner's terms,
+and whether an included allowance is right is a pricing decision. What would be this
+gate's business is a page offering to sell more, and the copy check would catch that.
+
+| break | result |
+|---|---|
+| parser reverted to the form that missed `(a \|\| b)({...})` | red, *no longer reads the either-or form* |
+| the new limiter's registration removed | red, *does not know why it exists* |
+| generation submissions throttled to 5 a minute | red, *300 per hour ... below the 600/hour* |
+| the either-or fixture deleted from the gate | its test red, *tests its parser on every call form* |
+
+`pnpm test` and `verify:gates` both 0 on the merged tree -- each read from its own
+file.
+
+
+### 2026-10-03 - A floor that a realistic throttle sat exactly on
+
+The owner's instruction, three times over: "there are no rate limits once
+subscribed... Nothing else to buy nothing else to do. You subscribe, you use the
+service"; "everything in that workspace becomes yours to do with and use as you
+please for that subscription length"; and -- the clause that is easy to lose and
+that changes what can honestly be promised -- "there are no provider quotes rate
+limits still stand but providing quotes and intake forms are out".
+
+So an **upstream provider's** limit still applies, because it is not ours to waive.
+What is forbidden is ours. `scripts/verify-subscription-completeness.mjs` holds the
+three parts of that which are actually checkable, and its output says it holds three
+rather than the whole promise, because a check implying it had verified "nothing else
+to buy" whole would be the defect this repository is about.
+
+**What the measurement found.** Seventeen rate limiters, and none of them throttles a
+subscriber's ordinary work: eight sit on surfaces with nobody signed in, five stand in
+front of a secret, and the four a signed-in person can hit are at 1800/hour
+(procurement), 2700/hour (work orders), 240/hour (scroll sites) and 20/hour (avatar
+uploads). No customer-facing string asks for a quote, an intake form, a demo or a word
+with sales -- 51,701 strings across 327 runtime files, zero findings. The promise holds
+today; what did not exist was anything to stop it quietly stopping.
+
+**The floor was badly chosen and the falsification is what showed it.** The first draft
+held subscriber-facing limiters to 300/hour. Throttling work orders from 45 a minute to
+5 -- a cap somebody meets during an ordinary afternoon -- lands on exactly 300/hour, and
+the comparison was `perHour < floor`, so the break passed. Not an undetected break: a
+*detected-as-fine* break, which is worse, because the number had been chosen to look
+reasonable rather than against anything. It is 600/hour now, five a minute fails by
+name, and the two limiters underneath it carry their own figure in `RATE_EXCEPTIONS`
+with the reason measured -- an exception with a number somebody has to look at is
+harder to erode than a floor quietly lowered to fit.
+
+**An escape hatch found by trying to use it.** Reclassifying every `abuse_ceiling` as
+an `anonymous_surface` leaves the floor applied to nothing and the gate green. It fails
+now: *"no limiter is registered as an abuse_ceiling, so the floor below was applied to
+nothing"*. This is shape 1 arriving through a category rather than through an empty
+list, and it is the shape to expect of any check that classifies before it measures.
+
+The registration is two-sided as usual: an unregistered limiter fails, a registration
+for a limiter that no longer exists fails, and an exception recorded for a limiter that
+has risen above the floor fails naming the figure.
+
+### Falsified, not assumed
+
+| break | result |
+|---|---|
+| work orders throttled to 5/minute | **green first time** -- 300/hour sat exactly on the floor; after the fix, red naming the figure |
+| work orders throttled to 2/minute | red, *120 per hour ... below the 600/hour* |
+| a limiter nobody registered | red, *this check does not know why it exists* |
+| a quote in customer copy | red, naming the file and quoting the string |
+| an exception for a limiter now above the floor | red, *has an exception recorded for being below* |
+| a registration for a limiter that no longer exists | red, naming it |
+| every ceiling reclassified as an anonymous surface | red, *the floor below was applied to nothing* |
+| the floor dropped back to 300 | its test red, *five writes a minute sits exactly on* |
+| the gate stops disclaiming what it does not check | its test red |
+| the detector stops looking for a quote | 4 red, including the gate's own fixture self-test |
+
+`pnpm test` 5763 passing, `verify:gates` 0 across 63 commands -- every exit code read
+from its own file.
+
+
+### 2026-10-03 - A bucket that existed without a feature, and a permission with two states
+
+The owner's brief asks for profiles with pictures and settings, and for camera,
+microphone and contacts permissions. The first thing to establish was what was
+already here, and the first answer was wrong.
+
+**A false finding of my own, corrected before it went anywhere.** I grepped for
+served profile routes with `grep -hoE 'app\.(get|post)\("/[^"]*(profile|account)[^"]*"'
+| sed 's/.*"//'`, and `sed` stripped to the *last* quote on each line, leaving empty
+output. I read that as "no profile route exists". `/account/profile`,
+`/account/preferences`, `/account/settings`, `/settings` and `/account/data` all
+exist and have for months. The lesson is the ordinary one and worth writing down
+anyway: an empty grep result and a grep that produced empty strings look identical,
+and the pipeline was mine.
+
+**What is actually true is narrower and more interesting.**
+
+`/account/profile` was served, signed in, and had **no form on it**. It printed the
+account's email beside a card reading *"This feature works, but saving needs your
+records connected by an administrator first."* `public.profiles.full_name` has
+existed since migration 011 and **no route in this repository has ever written it**
+-- the `full_name` hits in `routes/` are all `business_employees`, a different table
+about a different person. The sentence read as "come back later" on a page where
+nothing was coming.
+
+And the storage side, which is this repository's recurring defect in its most
+convincing form:
+
+- `lib/sonara-ecosystem-manifest.cjs` declares an `avatars` bucket.
+- `20260716130000_launch_storage_buckets.sql` creates it, private.
+- `scripts/verify-production-schema.mjs` asserts it is present, and passes.
+- **Nothing had ever written a byte to it.**
+
+The gate was not broken and its statement was not false. *"The avatars bucket
+exists"* was true every release. It simply was not evidence for the thing a reader
+takes it as evidence for, and there was no check for the other half. That is the
+whole shape: not a lie, a true statement standing where a different one is needed.
+
+`scripts/verify-declared-buckets.mjs` is the other half, and writing it found four
+more: `business-assets`, `support-attachments`, `release-packages` and `exports` are
+all declared, all provisioned, and written by nothing. Each is now recorded with a
+reason I opened a file to confirm rather than one I reasoned to -- `business_assets`
+has no `storage_path`, `object_path` or `bucket_id` column; there is no attachment
+table at all; `creator_release_packages` is a plan (tracklist, checklist, status) with
+nowhere to record an archive; and every export here sets `Content-Disposition` and
+streams, so there is nothing to store.
+
+**My first draft of that gate had three guessed reasons and one was flatly wrong.**
+It said `music-stems` was written by an edge worker. `routes/creator-generation-routes.cjs`
+writes it from this process, picking between `music-stems` and `creator-assets` with a
+ternary and POSTing to `/storage/v1/object/` directly. The detector only knew the
+`bucket:` option shape, so it reported the bucket unwritten, my wrong reason matched,
+and the check passed. The two-sided design caught it the moment the detector widened --
+an entry claiming no writer for a bucket that has one now fails by name.
+
+**And then the gate failed its own falsification.** Deleting `{ bucket: AVATAR_BUCKET }`
+from the upload -- the original bug, reintroduced exactly -- left it green. It was
+asking two questions separately: does this file name the bucket, and does this file
+upload anything. A file naming the bucket in an unused constant answers yes to both.
+It now traces the name to the call, through the variable it was assigned to, so the
+ternary case works and the disconnected case fails.
+
+### Permissions: three states, and why not a boolean
+
+`public.device_capability_profiles` (migration 015) holds `supports_audio boolean
+default false` and five more of that shape, and nothing has ever read or written it
+from a route -- lucky, because the shape cannot express what it is about:
+
+    the person said no   ->  false
+    nobody ever asked    ->  false
+
+Different facts, opposite behaviour. "Never asked" is a prompt to show once; "said
+no" is a prompt never to show again, and showing it again is what makes somebody
+uninstall an application. It also has no camera, microphone or contacts column --
+three the owner named.
+
+`device_permission_grants` makes a decision a **row**, constrained to `granted` or
+`denied`, with **no default**. No row means nobody has been asked. That is the one
+encoding of three states that cannot decay into two when somebody later adds a
+column with a default, because there is no column and no default to add to. The
+table carries no `organization_id`: a person's microphone is not their employer's to
+decide, and the read policy is `user_id = auth.uid()` with no update or delete, so a
+change of mind is a new row and the history of consent survives.
+
+`mayAsk` is the deliberate name. A granted row means this person wants the feature;
+the browser still runs its own prompt. Anything called `mayUse` would be claiming
+something this cannot know.
+
+**A gate caught a real production bug.** `device_permission_grants` had no
+`service_role` grant, so after the July Data API hardening the server could not have
+read it at all -- every permission would have read as `not_recorded`, which is the
+absent-read-as-a-value defect arriving through the grant table instead of the column.
+`tests/a-table-created-after-the-data-api-hardening-declares-its-surface.test.js`
+named it.
+
+**A 404 on your own account page.** `/account/profile/picture` first answered 404 when
+you had no picture. Correct about the resource, a dead end for the person, and it made
+this the one route in the signed-in crawl that did not resolve. It redirects to the
+profile now, where the page says there is no picture yet and offers the form -- while
+an *unreadable* profile still answers 503 saying "this is not the same as having no
+picture", because a redirect there would be a definite statement about somebody's data
+on the strength of a request that did not happen.
+
+A profile picture is also stored against the person, not a workspace:
+`lib/sonara-file-storage.cjs` grew `personalPathFor` and an `ownerPrefix` that refuses
+a call naming both an organization and a user. Filing a face under an organization's
+folder would mean somebody leaving a workspace either takes it with them or loses it.
+Both ids are uuids, so the `person/` segment is what stops one addressing the other's
+folder.
+
+The avatar check delegates to `multipart.sniff` rather than the signature table I
+first wrote, which missed `GIF87a` and had no minimum-length guard. GIF87a is in the
+accepted set, so reintroducing a private table fails two assertions at once.
+
+### Falsified, not assumed
+
+Each failing by name, restored by copy-aside and `md5sum -c`.
+
+| break | result |
+|---|---|
+| a profile column becomes `not null default ''` | replay red: *profiles gained a non-nullable profile column (3 of 4 nullable)* |
+| `state` gets a default | replay red: *has default 'granted'::text. A grant with a default is a decision nobody made* |
+| an `organization_id` appears on the grants table | replay red: *a person's microphone is not their employer's to decide* |
+| the check admits `not_recorded` | replay red: *two encodings of the same fact and a reader that has to guess* |
+| the state check is removed | replay red: *no state check constraint, so state accepts anything* |
+| `not_recorded` collapses into `denied` | 5 red |
+| an unreadable read reported as never asked | 2 red |
+| a missing form field read as a no | 1 red |
+| the avatar check trusts the declared content type | 4 red |
+| an emptied box keeps the old value | 1 red |
+| a failed read draws the empty form | 1 red, *draws no empty form over a profile it could not read* |
+| a private signature table comes back | 2 red, including the GIF87a case |
+| the avatar writer disconnected from its bucket | **green first time** -- the gate was rewritten, then 1 red |
+| the creator bucket stops reaching its upload | 2 red, naming both buckets |
+| a new bucket declared with no writer | 1 red |
+| the manifest stops declaring buckets | 1 red, *this check cannot see it* |
+| the manifest trimmed to two buckets | 1 red, *this check has gone blind* |
+| an expired reason (a bucket recorded unwritten that has a writer) | 1 red, naming the file that writes it |
+
+`pnpm test` 5747 passing. `verify:gates` 0 across 62 commands, `verify:db` 0,
+`verify:migration-replay` 147 migrations, lint, typecheck, build, smoke:routes and
+`audit --audit-level moderate` 0 -- every exit code read from its own file.
+
+
+### 2026-10-02 - Two branches built the same two features, and one filename held both
+
+`main` moved to 48934ac8 while PR #415 was open. #416 had built the Creator Project
+Graph and the fifteen-tool free split independently, and merged first. The merge came
+back `dirty` with 22 conflicts, two of which were not conflicts in the ordinary sense.
+
+**`lib/sonara-creator-project-graph.cjs` existed on both sides and was two different
+modules.** #416's is the media timeline -- sources, clips, captions, and a
+JSON/WebVTT/CSV export. Mine is the permission chain over whatever a timeline
+produces: brief, version, approval, and whether a machine's part in it was recorded.
+An add/add conflict presents these as one file to pick between; picking either would
+have deleted a working feature. #416's keeps the name because it shipped; mine became
+`lib/sonara-creator-approval-graph.cjs`, with its route at
+`/creator-studio/owner/approval-graph` and its migration renamed to match. Both
+modules now open by saying which one they are not -- the one thing that stops an
+approval being read as an edit the next time somebody greps for "project graph".
+
+**The free split reached fifteen twice, by different routes.** Both sides promoted two
+more tools per studio and both added three at the parent company, and no two of those
+ten picks agreed. #416's shipped, so #416's are the fifteen. What did not survive is
+mine: `lib/sonara-industries-tools.cjs` and its three server-rendered calculators are
+deleted rather than added, because six at the parent company contradicts the owner's
+decision of three.
+
+That is the product half. The engineering half went the other way, because #416 left
+the count written down in words on five surfaces -- the home page's `<p class="fine">`
+and its FAQ, the free plan description, the tool directory body, and the
+`/free-tools` page, which also named individual free tools in prose. Every one was
+correct when written and every one would have been wrong the next time the split
+moved, which is a thing that has now happened twice in one day. They read
+`freeToolSentence()` now; the home page's markup became a template literal to carry
+it, and `scripts/verify-free-tool-count.mjs` fails the build on a page that states a
+different number. #416's three parent tools were also outside `FREE_TOOL_PATHS`,
+which made `freeToolCountByCompany()` report 0 at the parent company while three
+pages said three -- they are in the list now, which is what makes the count derivable
+rather than asserted.
+
+**A test retargeted rather than deleted.**
+`tests/the-parent-company-has-its-own-front-door.test.js` was written against my
+three. Everything in it that was about *which* three is gone; everything about the
+shape of a parent tool is kept and now runs against #416's. Three checks are new, and
+they exist because #416's design makes a promise mine did not: each page says the
+input is "processed locally and is not uploaded or saved". So the test asserts there
+is no POST route that could receive it, that the form names neither an action nor a
+method, and that the page ships the script and a `<noscript>` saying why nothing
+happened without it. A sentence about where somebody's data goes is the one kind of
+copy that must not be able to drift from the code.
+
+**And the gate I was relying on did not catch the thing I merged.**
+
+The last falsification was meant to be routine: put #416's sentence back on the home
+page and watch `verify:free-tool-count` refuse it. It did not. Exit 0, and the summary
+line said *0 literal counts found*.
+
+Two separate holes, found only because the break was actually run rather than
+reasoned about:
+
+1. **The patterns knew three sentence shapes and both of #416's were a fourth.**
+   `<count> free tools` and `<count> tools are free` do not match *"Four tools **in
+   each studio** are free"* or *"Four free tools **per studio**"* — the words in the
+   middle break the adjacency. So the check had been reporting zero while two stale
+   sentences sat in `server.js`, one of which it then caught the moment the shapes
+   were added: the pricing FAQ still said *"Four free tools per studio and three
+   SONARA tools"*. That one was real, and in the tree, and would have shipped.
+
+2. **It compared every number it found against the total.** These sentences state a
+   *per-studio* figure and a *parent* figure. A check that reads "four" and asks
+   whether it equals fifteen is wrong about the sentence it is reading, so getting
+   the shapes right required `CLAIMS` to carry which figure each shape asserts, with
+   the more specific patterns claiming their span first so `<count> free tools` does
+   not re-read "four free tools per studio" and demand fifteen.
+
+3. **It tolerated a count that was correct.** This is the one worth keeping. A literal
+   that agrees with the list passes, goes stale on the next change, and nothing is
+   watching when it does — which is not a hypothetical, it is this exact file's
+   previous two entries. The check now fails any literal count in customer-facing
+   copy, and the two cases differ only in what the message says: *"but 4 are free in
+   each studio"*, or *"which is right today and is still a figure written into a
+   page"*.
+
+Falsified, each failing by name and restored by copy-aside and `md5sum -c`:
+
+| break | result |
+|---|---|
+| a POST handler for a parent tool | 1 red, `/tools/data-formatter accepted a POST` |
+| an `action` on the form | 1 red, naming the destination it printed |
+| the three parent paths leave `FREE_TOOL_PATHS` | 3 red in the test, and the gate red twice, once by the message *no parent-company tool is free* |
+| #416's sentence back on the home page | **green, twice** — which is why the detector was rewritten |
+| the rewritten detector, same sentence | 2 red, both *right today and still a figure written into a page* |
+| the rewritten detector, "Nine tools in each studio" | 1 red, *but 4 are free in each studio* |
+
+The third row is a correction to something this entry claimed before the break was
+run: I had written "3 red" for the form `action`, and it is 1 — the assertion loops
+over three tools and the first failure ends the `it`. The fourth row is the one that
+matters. A check that has never failed is a check nobody has verified, and this one
+had passed every run since it was written four commits earlier.
+
+**Two more literals, both inside checks rather than pages.**
+`scripts/smoke-routes.cjs` asserted `FREE_TOOL_PATHS.length === 12` and failed for
+being right about the previous split; it now asserts the four per-company figures,
+and dropping one Creator Studio tool makes it say *"Creator Studio must expose four
+public tools"* rather than printing two numbers. `tests/a-locked-tool-is-never-advertised-as-free.test.js`
+was reading only `app.locals.sonaraFreeTools`, so it measured twelve of fifteen and
+reported it as all of them — shape 2, a scan naming a smaller population than it
+claims. It reads the union with `sonaraParentTools` now, and asserts the difference is
+exactly three so the union going back to one list fails by name.
+
+**One thing to know before regenerating anything mid-merge.**
+`scripts/verify-proprietary-notice.mjs` counts tracked files with `git ls-files`,
+which lists a conflicted path once per stage. Run with conflicts unresolved it read
+365 shipped files; on the resolved tree it reads 349. Neither is wrong — the first was
+counting the same files three times. Resolve the merge before pinning any derived
+count, or the figure that gets committed is an artefact of the conflict.
+
+
+### 2026-10-02 - A page that said a read had failed when there was nothing to read
+
+Found while testing something else, which is the only reason it was found at all.
+
+Hardening `groupBy` in `routes/sonara-creator-project-graph-routes.cjs` -- a dynamic
+property write of the same shape as the storefront's injection, though reached from
+the database rather than from a request -- needed a test, so one fed it a row whose
+`asset_id` was `__proto__`. The guard dropped the row, the asset ended up with no
+group, and the page said:
+
+> Cover art -- we could not read its versions just now. That is not the same as
+> having none.
+
+Which is itself false. The read had succeeded. The asset had no versions.
+
+**`graphForBrief` was inferring a failed read from a missing key**, and both cases
+produce a missing key: a read that failed, and an asset with no versions yet. The
+map cannot tell them apart, and guessing picked the alarming one -- so the page told
+a creator something definite and wrong about their own data on the strength of a
+request that had worked. That is this repository's recurring defect pointed the
+other way round: not a success reported falsely, but a failure.
+
+Worse, **my own earlier test had encoded the conflation**: "reports an asset whose
+versions could not be read as unreadable, not as empty", asserting exactly this
+behaviour with an empty map. It was written to guard the three-state discipline and
+instead froze a two-state guess.
+
+The fix is an explicit `versionsReadable`, passed by the caller, which is the only
+place that knows. A missing key now means the asset has no versions. The route
+passes `read.versions.ok` even though it already bails on a failed read -- being
+explicit there is the point, because the module must not guess it.
+
+Two tests now, where there was one: an unreadable read with `versionsReadable: false`
+reports unreadable, and an empty map with the default reports no versions. Falsified
+by restoring the inference: 2 red, by name.
+
+The `groupBy` guard that started this is covered too -- removing it leaves
+`out["__proto__"]` reading `Object.prototype`, and `.push` on it throws, so a
+malformed row takes the page down. 1 red. It had been green with the guard removed
+until this test existed, which made it an unverified check: exactly what
+`.claude/skills/checks-that-cannot-lie/SKILL.md` says to assume about any check that
+has never failed.
+
+`lib/sonara-industries-tools.cjs` has the same `values[key] = parsed` shape and is
+**not** a problem: `key` comes from a `spec` literal written a few lines below each
+call, and the request supplies the value, which is parsed as a number. Stated in the
+file, because the two look identical and only one of them is a bug.
+
+### 2026-10-02 - A form field name was a property name
+
+CodeQL, high severity: *Remote property injection -- a property name to write to
+depends on a user-provided value*, on `lib/sonara-merchant-storefront.cjs`.
+`quantitiesFrom` built `quantities[variantId] = text` on a plain object, and
+`variantId` came straight out of a form field name.
+
+**Measured rather than described**, because "prototype pollution" is a phrase that
+makes people nod without checking:
+
+    const plain = {};
+    plain["__proto__"] = "1";
+    Object.prototype.hasOwnProperty.call(plain, "__proto__")   // false
+
+    const second = {};
+    second["constructor"] = "x";
+    typeof second.constructor                                   // "string"
+
+The first is the commercially interesting one: a field named `qty___proto__` sets
+no own property, so **the line silently vanishes from an order the buyer is then
+told was placed**. The second overwrites a real property with a string.
+
+Two halves to the fix, and each is asserted on its own. `quantitiesFrom` returns a
+**Map**, whose keys are not properties, so there is nothing for a crafted name to
+reach. And the key has to match `UUID_PATTERN`, because a variant id is a
+`gen_random_uuid()` value and `qty_banana` is not a variant -- which is the
+correctness half, and means `priceOrder` never has to ask. `priceOrder` also copies
+a plain-object argument through `Object.keys`, so an inherited property cannot reach
+the loop by the other door.
+
+The store test's fixtures used ids like `v1`, which the uuid check correctly
+refuses, so they are real uuids now -- the fixtures were wrong about the data, not
+the check.
+
+**Two of my own new assertions were too broad, both caught by running them.** The
+"no dynamic property write remains" check matched `quantities[key]` inside
+`priceOrder`'s object-to-Map conversion, which is a READ with a key from
+`Object.keys` -- own properties only, and safe. A check that fires on the safe shape
+gets relaxed until it fires on nothing, so it targets an assignment specifically.
+And the comment-stripping was needed again, for the fourth time in this session's
+work, because the module's header quotes the old code.
+
+Falsified three ways, each failing and restored with `md5sum -c`: back to a plain
+object with a dynamic write (5 red), the uuid check removed with the Map kept (2
+red), and inherited properties allowed into the loop (1 red). Suite 5679 passing.
+
+### 2026-10-02 - Reading the wrong exit code, and an email check that could be made slow
+
+Two commits went out saying `verify:gates 0` while the chain was exiting 1. The
+mistake is worth writing down because it is the second instance in one session of
+the same class, and the class is this repository's own subject: **a signal that
+reports success without being true**, this time in how I read the signal rather
+than in the signal itself.
+
+The command was:
+
+    pnpm run verify:gates > out.txt 2>&1; echo "GATES: $?"
+
+The task runner reports the exit status of the **compound** command, and `echo`
+always succeeds, so it reported 0. The chain had failed, and `out.txt` ended with
+`ELIFECYCLE Command failed with exit code 1` the whole time. The earlier instance
+in the same session was reading `$?` after a pipe. Both have the same shape: the
+status examined is not the status of the thing being tested.
+
+**The practice that replaces it:** write the real code to its own file --
+`{ pnpm run verify:gates > out.txt 2>&1; echo $? > gates.code; }` -- and read that
+file. There is then nothing in the chain of custody that can succeed on its own.
+Doing that immediately showed exit 1 twice more, for two further causes, which is
+the point.
+
+**What was actually failing.** `verify:api`: seven POST routes registered by Express
+and absent from `openapi/sonara.yaml` -- the four Growth Studio event endpoints and
+the three storefront ones. Then `verify:handoff` behind it, stale. Then
+`report-unused-selected-columns` on five columns in the store route.
+
+**The CodeQL alert was real, and it is measured rather than asserted.** High
+severity, *Polynomial regular expression used on uncontrolled data*, on the email
+check `/^[^@\s]+@[^@\s]+\.[^@\s]+$/` in `lib/sonara-growth-events.cjs` -- which runs
+on whatever a stranger types into the public RSVP form. `[^@\s]` matches `.`, so
+`[^@\s]+\.[^@\s]+` can split a run of punctuation many ways and the engine tries
+them.
+
+On the shape CodeQL named (`!@!.` then repetitions of `!.`): 1.3ms at 2,005
+characters, 4.9ms at 4,005, 19.6ms at 8,005. Quadrupling as the length doubles, which
+is the quadratic signature. Free to send, expensive to match, and there was no
+length bound before the regex.
+
+`lib/sonara-email-shape.cjs` replaces it with `indexOf`/`lastIndexOf` and one
+whitespace scan -- no quantifier to be ambiguous -- and refuses anything over 320
+characters before walking. It had to agree with the two check constraints on
+`growth_event_rsvps.email` and `merchant_orders.buyer_email`, because a validator
+looser than a constraint produces a save that fails in production with no
+explanation.
+
+**Two assertions in my own new test were wrong.** It asserted *exact* agreement with
+the constraint and failed on `a@b.co.`, which PostgreSQL accepts because `[^@\s]+`
+matches a dot so `co.` satisfies the final group. Being stricter is safe; claiming
+exact agreement was the overclaim, so it now asserts only the dangerous direction --
+never accept what the row refuses -- and records where it is deliberately tighter.
+And its "no quadratic pattern remains" check failed on the new module's **own header
+comment**, which quotes the old pattern in order to explain the replacement: prose
+matched as code, the third time in this session's work after the contract check's
+money scan hit it twice. It strips comments with the shared stripper now.
+
+The two-sided half of that exceptions list then refused an entry I had written for
+`a@b.`, because the database rejects that one too, so the reason described no
+disagreement. That is the check doing to my list exactly what
+`report-orphan-tables.mjs` does to its own.
+
+**Five selected columns in the store route**, from my own gate. Two are gone rather
+than ruled on (`category` and `sku` were selected and shown nowhere -- the time to
+select a column is when something reads it). One is now rendered: an order's
+`created_at`, because an owner looking at an order needs to know when it came in.
+Two are recorded in `ACCOUNTED` with the lines that read them, both in
+`lib/sonara-merchant-storefront.cjs`: `price_cents` at line 114 and `product_id` at
+line 178.
+
+`lib/sonara-env-value-checks.cjs` keeps the old email pattern. It reads environment
+variables set at deploy time, which is not uncontrolled data in the sense CodeQL
+means, and sweeping it in would be a different change. Worth doing separately.
+
+### 2026-10-02 - A price nobody set is not free
+
+Business Builder could hold products and variants with prices. It could not put
+them in front of a stranger: no route, no address, nowhere to say what the shop is
+called. The same gap `public_booking_pages` filled for appointments, and this is
+deliberately the same shape, `enabled boolean not null default false` included --
+this migration publishes nobody.
+
+**The invariant it exists for.** `merchant_product_variants.price_cents` is
+`not null default 0`, so zero is indistinguishable between "this is free" and
+"nobody has set a price yet". That default was right for the catalogue and is
+dangerous at the till. CLAUDE.md records the version that already shipped here:
+`Number(null)` is `0` and finite, which made unpriced services read as free across
+twenty-three columns.
+
+So `offerFor` refuses a variant at zero, and says in words that zero means nobody
+filled it in rather than that it is free. **An unreadable price is a different
+answer from zero** -- `price_unreadable` against `price_not_set` -- because they
+are different problems and the owner fixes them differently. There is no `is_free`
+flag: giving something away is a decision somebody should make out loud, and
+inventing a column for it would be inventing the decision.
+
+**The owner sees what the visitor does not.** A shop that silently hides a variant
+nobody priced is a shop whose owner never finds out why it looks empty. So
+`storefrontFor` returns `{ offered, withheld }` and the owner's page prints a
+reason per withheld line, while the public page simply does not show them -- and a
+test asserts a stranger is not shown the owner's reason either.
+
+**A total is never taken from the request.** `priceOrder` takes the offers the
+server read and quantities from the form, and there is no price parameter a caller
+could pass one through. The test posts `price_cents`, `unit_price_cents`,
+`subtotal_cents` and `line_total_cents` and asserts the order still totals 1200.
+
+**A line not on sale refuses the whole order.** Quietly dropping it would charge
+somebody for less than they asked for and call it their order.
+
+**Two currencies do not add up.** A variant priced in another currency is withheld
+rather than converted, because there is no exchange rate here and inventing one
+makes a figure wrong by a factor rather than by a rounding.
+
+**A line's price is a frozen copy, not a join.** An order's total must not change
+when the owner edits the price next week -- somebody agreed to a figure, and a
+receipt that re-prices itself cannot be argued with. The variant reference is kept
+so the owner can still see what was bought.
+
+**What it does not do, and says so twice.** It takes no money and stores no card:
+there is no card column, no CVV, no token, no charge path, and the migration asserts
+against the live catalogue that none appears later. Taking payment runs through the
+organization's own connected account. The public page says "Nothing is charged here
+and no card details are asked for or stored" before the form and again on the
+confirmation, because a buyer who has just pressed "Place this order" would
+otherwise reasonably believe they had paid. It sends nothing, and it decrements no
+stock -- the catalogue migration already said nothing decrements inventory, and
+implying an order did would be a claim about a capability that does not exist. A
+test greps both files for every send path, every card field and `inventory_items`.
+
+**The half-written order.** If the order row saves and its lines do not, the buyer
+is told exactly that: their order reached the shop, what was in it was not
+recorded, nothing was charged, and to contact the shop quoting their name. A total
+with nothing behind it is the kind of record that gets argued about later, and
+reporting success would be the lie.
+
+Two unfiltered reads recorded with their standing-in filter, both necessary: the
+public page finds a shop by a globally unique slug, and publish has to look across
+organizations to answer "that address is taken". Everything the public page then
+reads is scoped by the organization it took off that shop row, which is what makes
+one unfiltered read enough.
+
+Falsified: twelve assertions, each failing by name and restored with `md5sum -c` --
+five on the migration (card column, missing frozen-price columns, the enabled
+default, both unique indexes) and seven on the code: zero offered as free (5 red),
+the `Number(null)` guard removed (1 red), a not-on-sale line dropped instead of
+refusing (2 red), a currency converted silently (1 red), the route taking the total
+from the request (1 red), a missing radio publishing the shop (1 red), and a failed
+line write reported as success (1 red).
+
+`verify:migration-replay` applies 143 migrations in order to an empty PostgreSQL
+with every `do $$` assertion executing. Suite 5659 passing, 0 unfiltered tenant
+queries.
+
+**Not built.** A checkout. Taking money needs the connected payment path and
+credentials only the owner has -- `docs/owner/OWNER-STEPS.md` action 5. This shop is
+honest about that rather than pretending: it records what somebody wants and says
+plainly that payment happens elsewhere.
+
+### 2026-10-02 - A confirmed seat is a seat
+
+Growth Studio could plan a campaign and capture a lead. It could not hold a date,
+a place, and the people who said they would be there -- which is what a lot of
+small businesses and most creators actually run on.
+
+**The defect this was built to refuse.** An RSVP system that silently accepts more
+people than the room holds hands somebody a confirmation that is not true, and
+they find out at the door. That is this repository's recurring defect -- a signal
+that reports success without being true -- in its most expensive form, because the
+person who believed it travelled.
+
+**Capacity is three-state, and that is the whole feature.** A number, or nobody has
+recorded one. Absent read as unlimited silently oversells a real room; absent read
+as zero refuses every event whose owner left the box empty. So the third answer is
+the honest one: `admit` returns `capacity_not_recorded`, a distinct outcome from
+`confirmed`, and the page says in words that no capacity is recorded so this is a
+registration of interest rather than a confirmed seat. `capacity integer` is
+nullable on both tables, the migration's `do $$` block asserts it against the live
+catalogue, and `scripts/verify-supabase-contract.mjs` asserts the declaration that
+produces it.
+
+**Seats, not rows.** One row for a family of four takes four. A party that does not
+fit whole is waitlisted whole -- confirming two of four and saying "confirmed" is
+the lie, and splitting the row silently decides which two of somebody's family are
+coming. A waitlisted or withdrawn row counts for nothing, or an owner turns people
+away from a room with space in it.
+
+**An unreadable count is not an empty one.** `seatsTaken` carries `{ ok }`, and
+`admit` refuses rather than confirming when it could not read who is already
+coming. Confirming against a count you do not have is how a room gets oversold by
+a page that looked like it checked.
+
+**A cancelled event stays readable.** `status` is draft / published / cancelled and
+cancelled is not a soft delete: somebody holding an RSVP opens the page they were
+given and is told, where a 404 tells them nothing. Cancellation keeps the slug, and
+a test asserts the cancel handler does not clear it.
+
+**What it deliberately does not do.** It sends nothing -- AGENTS.md puts alerts off
+or user-controlled by default, so an RSVP is recorded and nobody is messaged, and a
+test greps both files for every send path. It takes no money: an RSVP is not a
+ticket, and the migration asserts against the live catalogue that no column here
+holds a price, an amount or a card. And the public page shows counts, never people:
+`publicSummary` has no name or email field by construction, and the public read
+selects `party_size,state` and nothing else, because the cheapest way never to leak
+a field is never to fetch it.
+
+**Two cross-tenant reads I had left open.** `report-tenant-scoped-queries.mjs`
+named four unfiltered reads. Two are global by design and are recorded with their
+standing-in filter: the public page finds an event by a globally unique slug, and
+the publish handler has to look across organizations to answer "that address is
+taken". **The other two were laziness** -- the venue read and the public RSVP count
+both had the event's organization in hand and did not use it, and the venue one
+would have rendered another tenant's name and address on a public page if
+`venue_id` ever crossed the boundary. Both carry `organization_id=eq.` now.
+
+**A gate too narrow for a safe shape.** `tests/every-write-names-a-business.test.js`
+accepted `organization_id: page.organization_id` -- one dot -- and reported
+`POST /events/:slug` as writing with the service key and never establishing whose
+data it is, because mine reads `found.event.organization_id`. Widened to any dotted
+path, with the request excluded at every depth, and a new test feeds
+`req.body.organization_id`, `request.body.organization_id` and
+`outer.req.body.organization_id` straight in to prove the widening did not let the
+bug through.
+
+**Two false positives in a contract check I had just written**, both shape 7 --
+pattern matching prose as code. The money check scanned the whole migration and
+failed on the do-block that names `'%price%'` and `'%card%'` in order to assert no
+such column exists; narrowed to the schema half, it still failed on the header
+comment saying AGENTS.md "forbids storing raw card data or CVV". It splits at
+`do $$` and strips SQL comments with `lib/sonara-comment-stripping.cjs` now, and
+fails loudly if the split ever stops working.
+
+Six contract assertions falsified, each failing by name and restored with
+`md5sum -c`: capacity made `not null default 0`, `attending` made
+`not null default false`, the one-person-per-event unique index removed, a price
+column added, the published-needs-slug constraint removed, a delete grant added.
+Seven against the code: unrecorded capacity treated as room (1 red), partial
+admission allowed (3 red), an unreadable list counted as zero (5 red), waitlisted
+rows counted against the room (1 red), an unanswered answer written as false (2
+red), the public read selecting names and emails (1 red), and cancel clearing the
+slug (1 red).
+
+`verify:migration-replay` applies 142 migrations in order to an empty PostgreSQL
+with every `do $$` assertion executing. Suite 5599 passing, and the tenant-query
+audit reports 0 unfiltered.
+
+**Not built, and worth saying plainly.** The owner's brief for Growth Studio also
+named public access channels, radio creation, streaming, and text and video chat.
+None of that is here. This is the date-place-people core, which is the part that
+stands alone and had a schema worth getting right; a broadcast channel is its own
+change with its own consent and moderation questions.
+
+### 2026-10-02 - The parent company gets a front door, and five pages stop holding the same number
+
+The owner's decision: four free tools in each studio rather than two, and three
+at the parent company. Six became fifteen.
+
+**SONARA Industries had no public tool of its own.** All forty sat under
+`/business-builder/`, `/creator-studio/` or `/growth-studio/`, so a visitor who
+had not chosen a studio had nothing to open -- and the question they actually had,
+"which of these is for me?", is the one question no studio can answer without
+recommending itself. `lib/sonara-industries-tools.cjs` answers it, plus what
+re-typing the same record between products costs in a year, and how many products
+hold a copy of the same customer list. `/tools` is their directory.
+
+The test each had to pass to be there: a tool that would be just as correct inside
+one studio belongs in that studio. The two that look closest to a studio tool are
+distinguished by their **inputs**, not by their titles --
+`/business-builder/tools/software-spend` prices seats on one product
+(`activeSeats`), `/tools/subscription-count` prices duplication across a stack
+(`productsHoldingCustomers`) -- and
+`tests/the-parent-company-has-its-own-front-door.test.js` asserts the two share no
+required field, because two tools taking the same inputs are the same question.
+
+**No price of ours is written into any of them.** CLAUDE.md records three stale
+comparisons this repository has already shipped. A calculator with a baked-in
+price is a figure that goes out of date inside the product, where nobody looks. A
+test asserts the module contains no monthly price and does link `/pricing`, which
+is generated from the plans.
+
+**Five surfaces each held their own copy of the count.** The free plan's
+description, two cards in the lifecycle routes, the marketing page, and the home
+page all said "six", four of them also naming which tools were free in prose.
+Every one was correct when written and wrong the same afternoon -- and the prose
+half is the dangerous one, because naming a tool as free that the gate then
+refuses is the advertise-then-refuse funnel
+`routes/sonara-service-lifecycle-routes.cjs` has a long comment about, arriving by
+a different door. They read `freeToolSentence()` and `freeToolCountByCompany()`
+now. The sentence branches: "4 in each studio" while the three are equal, all
+three spelled out when they are not, and both branches were checked by running
+them.
+
+**`scripts/verify-free-tool-count.mjs`, and the guard that was wrong first.** The
+first draft demanded at least one stated count as its blindness guard -- and once
+every page was derived there were none, so the guard refused the state the change
+was for. Zero findings is the goal here, which makes "found nothing" and "can no
+longer see" identical. It tests the detector against three stale sentences it must
+catch and the derived form it must not, then reports zero meaning zero.
+
+**Three checks caught me rather than my reading it.**
+
+  * The gate itself refused a sentence I had written minutes earlier:
+    `"Twelve tools across the three studios are free"`, hardcoded inside the new
+    parent module while the free set was fifteen.
+  * `tests/a-line-comment-cannot-open-a-block-comment.test.js` refused my own
+    comment stripper by name -- "that is how the same bug shipped three times".
+    It uses `lib/sonara-comment-stripping.cjs` now, which is a scanner rather
+    than a regex and copies string contents through.
+  * `tests/no-dead-links.test.js` found `/null/tools` linked from all three new
+    tool pages. Four places built `/${tool.slug}/tools` and
+    `/${tool.slug}/dashboard`; I had fixed one of them by reading. One
+    `toolDirectory` / `toolDashboardLinks` pair replaced all four, and a
+    parent-company tool returns no dashboard link rather than one to nowhere.
+
+**Two tests were asserting prose that had stopped being true.** `server.test.js`
+required the pricing page to say "six free tools across the three studios", and
+`a-locked-tool-is-never-advertised-as-free.test.js` required the free plan to
+match `/six free tools/i`. Both passed while the pages they guard had gone wrong.
+Both derive the figure now.
+
+Also: `/tools` is on the marketing surface and its three calculators are not,
+which is AGENTS.md's own line between a public overview screen and a work screen;
+`"tools"` joined `RESERVED_HANDLES` because a test asserts that list covers every
+top-level served route, and it was right to.
+
+Suite 5541 passing. `verify:gates` includes `verify:free-tool-count`, falsified
+four ways: a stale literal in a page (fails by file and sentence), a parent tool
+leaving the free set (fails naming why no plan covers it), the detector losing a
+pattern (fails naming the fixture), and the studios going unequal -- which
+correctly passed, because the sentence adapts.
+
+### 2026-10-02 - The Creator Project Graph, and the question nobody answered
+
+Creator Studio could hold an asset and could hold a file. It could not say which
+brief a piece belonged to, which version of it was current, who had approved
+which version, or whether a machine made it. Four questions, and the fourth is the
+one that matters commercially: publishing a generated piece without a disclosure
+is a provenance claim made on a creator's behalf.
+
+**Three tables and one column.** `supabase/migrations/20261002010000_creator_approval_graph.sql`
+adds `creator_briefs`, `creator_asset_versions` and `creator_asset_approvals`, and
+one nullable `brief_id` on the `creator_assets` table that
+`routes/sonara-asset-file-routes.cjs` already writes. All three are keyed on
+`organization_id`, RLS on with no policy, and granted select/insert/update but
+never delete -- a rejection is a recorded state, and deleting the row erases the
+record that somebody said no.
+
+**`ai_disclosure` is nullable on purpose.** Yes / no / **nobody has answered** are
+three states, and the cheapest defect in this codebase to ship would be
+`Boolean(row.ai_disclosure)`, which reads the third as the second. The migration's
+own `do $$` block asserts `is_nullable = 'YES'` against the live catalogue;
+`scripts/verify-supabase-contract.mjs` asserts the text that produces it and
+refuses a `NOT NULL` or a default. Two checks that fail for different reasons, so
+a change defeating one does not pass the other.
+
+**An approval belongs to one version, not to the asset.** If
+`creator_asset_approvals.asset_version_id` pointed at `creator_assets`, approving
+v1 would clear v2 and every later edit -- a gate asked once and then answered for
+work nobody saw. The contract gate asserts the foreign key; the test asserts the
+behaviour, because a key pointing at the right table is not the same as a decision
+function reading it.
+
+`lib/sonara-creator-project-graph.cjs` holds the decisions and nothing else.
+`publishReadiness` refuses on two grounds and reports both at once: not approved,
+and machine-made with no recorded disclosure. It will not use `provenance` to
+answer the disclosure question -- how a file was made and what was declared about
+it are different, and using one for the other is how a disclosure nobody gave
+starts reading as one that was.
+
+**A comment that asserted the opposite of the code.** The module said "a later
+`review_requested` does not undo an approval". The code sorts by
+`decidedAt || createdAt` and takes the latest, so it does. The test was written,
+it failed, and **the comment was corrected rather than the behaviour**: somebody
+asking for another review is somebody who is no longer sure, and the safe reading
+is "under review". The ordinary flow is untouched, and the test now asserts that
+too -- a review request created before the approval that answers it still loses to
+it.
+
+**Registered, and with real forms.** `routes/sonara-creator-project-graph-routes.cjs`
+serves `/creator-studio/owner/project-graph` and six POST endpoints, all behind
+`requireWorkspaceAccess("creator_studio")`, every write scoped by
+`organization_id` as well as by id because the service-role key bypasses RLS.
+Three gates caught what was missing rather than my reading it:
+`verify-route-registry` refused the page as absent from the canonical registry,
+`tests/form-reachability.test.js` named five endpoints with no form, and
+`report-orphan-tables` would have named the tables had the routes not been wired
+into `server.js`. Every endpoint now has a form on the page, offering only the
+values the schema's check constraints allow, read from the module rather than
+retyped. Problem codes round-trip through the query string and the sentence is
+looked up on the page, so a crafted link cannot put text in this product's voice.
+
+**Verified by breaking it.** Five contract assertions each failed by name with the
+migration broken and passed after `md5sum -c` restored it: `ai_disclosure` made
+`not null default false`, the approval repointed at `creator_assets`, the unique
+constraint removed, a delete grant added, the `brief_id` column renamed. Five more
+against the code: `disclosureOf` returning `declared_human` for an absent answer
+(6 tests red), the disclosure blocker disabled (3 red), the route writing `false`
+instead of `null` (1 red, by name), the organization filter dropped from the
+id-addressed PATCH (1 red), and a failed read rendering as an empty page (1 red).
+
+`pnpm run verify:migration-replay` applies 141 migrations in order to an empty
+PostgreSQL with every `do $$` assertion executing. Suite 5506 passing. The
+tenant-query audit went from 77 to 83 organization-filtered `rest()` calls with
+none unfiltered, which is the six new reads and writes accounted for.
 ### 2026-10-02 - Creator Project Graph and fifteen anonymous tools
 
 Built on Claude's main baseline a9aa277. Added private creative projects with

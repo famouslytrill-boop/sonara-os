@@ -165,7 +165,12 @@ describe("public site", () => {
     assert.match(res.text, /payment connection/);
     assert.doesNotMatch(res.text, /setup_required/);
     assert.doesNotMatch(res.text, /Public readiness shell/);
-    assert.match(res.text, /twelve free studio tools and three SONARA tools/);
+    // Was /six free tools across the three studios/ until 2 October 2026 -- a
+    // test asserting prose that had stopped being true, which passed while the
+    // page it guards had gone wrong. Derived from the same list the gate reads,
+    // so the assertion moves when the free set does.
+    const { FREE_TOOL_COUNT } = require("../lib/sonara-tool-access.cjs");
+    assert.match(res.text, new RegExp(`${FREE_TOOL_COUNT} free tools across SONARA Industries and the three studios`));
   });
 
   it("public pages use customer-facing setup language", async function() {

@@ -60,6 +60,26 @@ const agentQueueMigrationNames = [
 const agentToolPermissionMigrationNames = [
   "20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
 ];
+// The Creator Studio project graph, added 2 October 2026. Its own list rather
+// than appended to creatorArtistSystemMigrationNames: that list is migration
+// 016's subtree, whose head nothing writes, and these three tables hang off
+// creator_assets, which routes/sonara-asset-file-routes.cjs genuinely writes.
+const creatorProjectGraphMigrationNames = [
+  "20261002010000_creator_approval_graph.sql"
+];
+// Venues, events and RSVPs, added 2 October 2026. Its own list rather than folded
+// into growthStudioMigrationNames: that group is the campaign and lead control
+// plane, and an event is not a campaign -- nothing here sends anything, which is
+// the distinction the assertions below are written to keep.
+const growthEventMigrationNames = [
+  "20261002060000_public_events_and_rsvps.sql"
+];
+// The shop and the orders placed on it, added 2 October 2026. Its own list rather
+// than folded into businessOperationsMigrationNames: that group is the back office,
+// and this is a public front door with its own rule about what a zero price means.
+const merchantStoreMigrationNames = [
+  "20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
@@ -288,6 +308,61 @@ const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedu
 // entity_id and public.entities has no organization_id, so reading it to
 // authorise an organization's run would be a cross-tenant authorization read.
 const AGENT_TOOL_PERMISSION_TABLES = Object.freeze(["agent_tool_permissions"]);
+// Brief -> asset -> version -> approval. A separate group from
+// CREATOR_ARTIST_SYSTEM_TABLES above because that group's comment describes
+// migration 016, and these are not in it.
+//
+// The one column worth naming here is creator_asset_versions.ai_disclosure. It is
+// nullable on purpose, and the assertions below fail if a later migration makes it
+// NOT NULL DEFAULT false: that would turn "nobody has answered yet" into "this is
+// not AI-generated", which is a provenance claim the schema would be making on a
+// creator's behalf. AGENTS.md requires provenance and consent safety, and the
+// three-state rule in CLAUDE.md is exactly this case.
+// A place, a thing happening there, and who said they are coming.
+//
+// A separate group from GROWTH_STUDIO_TABLES because that one is the campaign and
+// lead control plane. The reason worth stating: nothing in these three sends
+// anything. An event page is the organization's own content; a campaign send is
+// an owner-approval category in AGENTS.md, and keeping them in different groups
+// means the next person wiring a notification has to notice which side they are on.
+// The public shop, and what people ordered from it.
+//
+// Separate from BUSINESS_OPERATIONS_TABLES because that group is the back office.
+// The distinction worth stating: an order here is a record of what somebody wants
+// and carries no card, no token and no charge. Taking the money runs through
+// business_payment_accounts, which the connected-payment group already governs, and
+// which an owner sets up themselves.
+const MERCHANT_STORE_TABLES = Object.freeze([
+  "merchant_storefronts",
+  "merchant_orders",
+  "merchant_order_lines"
+]);
+const GROWTH_EVENT_TABLES = Object.freeze([
+  "growth_venues",
+  "growth_events",
+  "growth_event_rsvps"
+]);
+const CREATOR_APPROVAL_GRAPH_TABLES = Object.freeze([
+  "creator_briefs",
+  "creator_asset_versions",
+  "creator_asset_approvals"
+]);
+
+// One person's decisions about their own device. Its own group because it is the
+// only table here keyed on a person with no organization_id at all: a camera
+// decision belongs to whoever made it and not to a workspace they happen to be
+// in. Three states live in the row count rather than in a column -- no row means
+// nobody has been asked -- so there is deliberately no boolean to contract for.
+const DEVICE_PERMISSION_TABLES = Object.freeze(["device_permission_grants"]);
+
+// Creator Studio's marketplace. One table, pointing at a version rather than an
+// asset so a buyer gets the thing they heard. lib/sonara-creator-marketplace.cjs
+// composes the approval graph's publishReadiness rather than restating it:
+// selling is never easier than publishing.
+// Two tables: the creator's own listing (tenant data, every read scoped), and the
+// public catalogue (no organization, exactly the columns a buyer may see -- its
+// migration asserts the set). Public pages read only the second.
+const CREATOR_MARKETPLACE_TABLES = Object.freeze(["creator_listings", "creator_marketplace_entries"]);
 // Cinematic scroll sites. One table holding one row per site, whose `document`
 // column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
 // rather than folded into the Growth Studio list: the migration is its own
@@ -428,6 +503,9 @@ const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, 
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
 const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
 const agentToolPermissionSql = readExtension(agentToolPermissionMigrationNames, "agent tool permissions");
+const creatorProjectGraphSql = readExtension(creatorProjectGraphMigrationNames, "Creator Studio project graph");
+const growthEventSql = readExtension(growthEventMigrationNames, "Growth Studio events and RSVPs");
+const merchantStoreSql = readExtension(merchantStoreMigrationNames, "merchant storefront and orders");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
 const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
@@ -549,6 +627,164 @@ for (const required of [
 // security setting is an owner-approval category in AGENTS.md.
 if (/grant[^;]*delete[^;]*agent_tool_permissions/.test(agentToolPermissionSql)) {
   fail("the agent tool permissions migration grants DELETE; withdrawing a permission is an update so the record of what was granted survives");
+}
+verifyExtension(CREATOR_APPROVAL_GRAPH_TABLES, creatorProjectGraphSql, "Creator Studio project graph");
+// `ai_disclosure boolean` with no NOT NULL and no default. Asserted as the exact
+// column declaration rather than by absence of "not null", because absence is
+// what a weaker check measures and absence is satisfied by the column having been
+// renamed or removed. The migration's own do-block asserts is_nullable = 'YES'
+// against the live catalogue; this asserts the text that produces it, so the two
+// fail for different reasons and a change that defeats one does not pass the other.
+if (!/\bai_disclosure\s+boolean\s*,/.test(creatorProjectGraphSql)) {
+  fail("creator_asset_versions.ai_disclosure must be declared `ai_disclosure boolean` -- nullable, so an unanswered disclosure question stays unanswered rather than reading as 'not AI-generated'");
+}
+if (/ai_disclosure\s+boolean[^,]*(not\s+null|default)/.test(creatorProjectGraphSql)) {
+  fail("creator_asset_versions.ai_disclosure must not be NOT NULL or defaulted; a default would make the schema assert a provenance answer nobody gave");
+}
+// An approval belongs to one version, not to the asset. If this foreign key ever
+// pointed at creator_assets, approving one version would silently approve every
+// later edit of the same asset -- which is the gate-that-was-never-there shape, in
+// the schema rather than in a page.
+if (!/asset_version_id\s+uuid\s+not\s+null\s+references\s+public\.creator_asset_versions\(id\)/.test(creatorProjectGraphSql)) {
+  fail("creator_asset_approvals.asset_version_id must reference public.creator_asset_versions(id); an approval on the asset would carry forward to versions nobody reviewed");
+}
+for (const required of [
+  "organization_id uuid not null references public.organizations(id)",
+  "unique (asset_id, version_number)",
+  "check (version_number >= 1)"
+]) {
+  if (!creatorProjectGraphSql.includes(required.toLowerCase())) fail(`the Creator Studio project graph migration is missing: ${required}`);
+}
+// brief_id has to stay nullable: creator_assets already holds rows, and an asset
+// that predates briefs does not belong to one.
+if (!/add\s+column\s+if\s+not\s+exists\s+brief_id\s+uuid\s+references\s+public\.creator_briefs\(id\)/.test(creatorProjectGraphSql)) {
+  fail("the Creator Studio project graph migration must add creator_assets.brief_id as a nullable reference; existing assets belong to no brief");
+}
+// No delete grant on any of the three. A rejected version and a withdrawn
+// approval are states, not absences: deleting the row would erase the record that
+// somebody said no, and `destructive data changes` is an owner-approval category
+// in AGENTS.md.
+for (const table of CREATOR_APPROVAL_GRAPH_TABLES) {
+  if (new RegExp(`grant[^;]*delete[^;]*${table}`).test(creatorProjectGraphSql)) {
+    fail(`the Creator Studio project graph migration grants DELETE on ${table}; a rejection is a recorded state and deleting it erases the record`);
+  }
+}
+
+verifyExtension(GROWTH_EVENT_TABLES, growthEventSql, "Growth Studio events and RSVPs");
+// Capacity is three-state on both tables, and that is the whole feature.
+// `not null default 0` would make every event with an unfilled box an event nobody
+// can attend; `not null default` anything else invents a room size somebody gets
+// turned away on. Asserted as the exact declaration rather than by absence of
+// "not null", because absence is also satisfied by the column having been removed.
+for (const table of ["growth_venues", "growth_events"]) {
+  if (!new RegExp(`capacity integer check \\(capacity is null or capacity >= 0\\)`).test(growthEventSql)) {
+    fail(`${table}.capacity must be declared \`capacity integer check (capacity is null or capacity >= 0)\` -- nullable, so "nobody has recorded a capacity" stays a state distinct from zero`);
+    break;
+  }
+}
+if (/capacity integer[^,]*(not null|default)/.test(growthEventSql)) {
+  fail("a capacity column is NOT NULL or defaulted; absent capacity would become a number nobody recorded");
+}
+// And the same for the attendance answer.
+if (!/\battending boolean,/.test(growthEventSql)) {
+  fail("growth_event_rsvps.attending must be declared `attending boolean` -- nullable, so somebody who has not answered has not declined");
+}
+if (/attending boolean[^,]*(not null|default)/.test(growthEventSql)) {
+  fail("growth_event_rsvps.attending is NOT NULL or defaulted; an unanswered question would become a no");
+}
+// One person, one RSVP per event. Without it, a refreshed form holds two seats for
+// one person and the count an owner reads is wrong in the direction that makes
+// them turn people away.
+if (!/unique index if not exists growth_event_rsvps_person_key[\s\S]{0,120}\(event_id, lower\(email\)\)/.test(growthEventSql)) {
+  fail("growth_event_rsvps has no unique index on (event_id, lower(email)); one person could hold two seats");
+}
+// Published and addressable are the same thing, enforced at the table rather than
+// only in the form.
+if (!/check \(status <> 'published' or slug is not null\)/.test(growthEventSql)) {
+  fail("growth_events can be published with no slug; there would be no page to publish it to");
+}
+// Nothing here holds money or a card. An RSVP is not a ticket, and AGENTS.md
+// forbids storing raw card data or CVV -- the way to be certain is to have nowhere
+// to put it.
+//
+// Measured against the schema half, with comments stripped. Two false positives
+// in a row, both shape 7 -- pattern matching prose as code -- in a check written
+// minutes earlier:
+//
+//   1. the whole file matched, because the migration's own do-block names
+//      '%price%' and '%card%' in the assertion that no such column exists;
+//   2. the schema half still matched, because the header comment says AGENTS.md
+//      "forbids storing raw card data or CVV".
+//
+// So the split is at `do $$` -- everything before declares, everything after
+// asserts -- and SQL comments come out with lib/sonara-comment-stripping.cjs
+// rather than a regex written here, which is what
+// tests/a-line-comment-cannot-open-a-block-comment.test.js requires.
+const { withoutSqlComments } = require(path.join(root, "lib", "sonara-comment-stripping.cjs"));
+const growthEventSchemaSql = withoutSqlComments(growthEventSql.split("do $$")[0]);
+if (growthEventSchemaSql.length < 2000) {
+  fail(`the Growth Studio events schema half is ${growthEventSchemaSql.length} bytes; the split on \`do $$\` has stopped working and these assertions are measuring almost nothing`);
+}
+if (/\b(card_number|cvv|price_cents|amount_cents|payment_intent|stripe_)/.test(growthEventSchemaSql)) {
+  fail("an events table holds a price, an amount or a card reference; an RSVP is not a ticket and card data must not be stored");
+}
+// No delete grant on any of the three. A withdrawn RSVP and a cancelled event are
+// recorded states; deleting either erases a record somebody will ask about.
+for (const table of GROWTH_EVENT_TABLES) {
+  if (new RegExp(`grant[^;]*delete[^;]*${table}`).test(growthEventSql)) {
+    fail(`the Growth Studio events migration grants DELETE on ${table}; a withdrawal is a recorded state and deleting it erases it`);
+  }
+}
+for (const required of [
+  "organization_id uuid not null references public.organizations(id)",
+  "party_size integer not null default 1 check (party_size between 1 and 50)",
+  "check (ends_at is null or ends_at >= starts_at)"
+]) {
+  if (!growthEventSql.includes(required.toLowerCase())) fail(`the Growth Studio events migration is missing: ${required}`);
+}
+
+verifyExtension(MERCHANT_STORE_TABLES, merchantStoreSql, "merchant storefront and orders");
+// The schema half, comments stripped -- the same split as the events check above,
+// and for the same reason: the do-block names '%card%' in order to assert no such
+// column exists, and the header comment quotes AGENTS.md on card data.
+const merchantStoreSchemaSql = withoutSqlComments(merchantStoreSql.split("do $$")[0]);
+if (merchantStoreSchemaSql.length < 2000) {
+  fail(`the merchant storefront schema half is ${merchantStoreSchemaSql.length} bytes; the split on \`do $$\` has stopped working and these assertions are measuring almost nothing`);
+}
+// No card, no CVV, no payment token. AGENTS.md forbids storing raw card data, and
+// the way to be certain is to have nowhere to put it: taking the money runs through
+// the organization's own connected account.
+if (/\b(card_number|cardnumber|cvv|pan_|payment_token|card_token)/.test(merchantStoreSchemaSql)) {
+  fail("a storefront table holds a card, a CVV or a payment token; raw card data must never be stored and payment runs through the connected account");
+}
+// A line's money and quantity are frozen copies and must always be there. A line
+// with no price is a line that cannot be totalled, and the point of copying the
+// figure is that it is never absent.
+for (const required of [
+  "unit_price_cents integer not null check (unit_price_cents >= 0)",
+  "line_total_cents integer not null check (line_total_cents >= 0)",
+  "quantity integer not null check (quantity between 1 and 999)",
+  "subtotal_cents integer not null check (subtotal_cents >= 0)",
+  "enabled boolean not null default false",
+  "organization_id uuid not null references public.organizations(id)"
+]) {
+  if (!merchantStoreSchemaSql.includes(required.toLowerCase())) {
+    fail(`the merchant storefront migration is missing: ${required}`);
+  }
+}
+// Unpublished until published, and one address names one shop.
+if (!/create unique index if not exists merchant_storefronts_slug_key/.test(merchantStoreSchemaSql)) {
+  fail("merchant_storefronts.slug is not unique; one public address could name two shops");
+}
+if (!/create unique index if not exists merchant_storefronts_organization_key/.test(merchantStoreSchemaSql)) {
+  fail("merchant_storefronts has no unique index per organization; \"the shop\" would be ambiguous everywhere it is read");
+}
+// No delete grant. A cancelled order is a recorded state that both the buyer and
+// the owner need.
+for (const table of MERCHANT_STORE_TABLES) {
+  if (new RegExp(`grant[^;]*delete[^;]*${table}`).test(merchantStoreSql)) {
+    fail(`the merchant storefront migration grants DELETE on ${table}; a cancelled order is a recorded state and deleting it erases it`);
+  }
 }
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
@@ -784,7 +1020,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -1016,7 +1252,7 @@ if (unwiredPermission.requiresOwnerApproval || unwiredPermission.permission !== 
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${CREATOR_APPROVAL_GRAPH_TABLES.length} reviewed Creator Studio project graph tables, ${GROWTH_EVENT_TABLES.length} reviewed Growth Studio event tables, ${MERCHANT_STORE_TABLES.length} reviewed merchant storefront tables, ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

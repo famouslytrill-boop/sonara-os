@@ -8,7 +8,7 @@
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
 const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
-const { isFreeTool, productForTool } = require("../lib/sonara-tool-access.cjs");
+const { isFreeTool, productForTool, freeToolSentence } = require("../lib/sonara-tool-access.cjs");
 const { applyPreset, describe: describePreset } = require("../lib/sonara-tool-presets.cjs");
 const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
 const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
@@ -251,6 +251,22 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       .replace(/^./, (char) => char.toUpperCase());
   }
 
+  // Where a tool's "All tools" link goes, and whether it has a studio dashboard.
+  //
+  // Four places built these as `/${tool.slug}/tools` and
+  // `/${tool.slug}/dashboard`. That was correct while every tool belonged to a
+  // studio, and on 2 October 2026 the parent company's three arrived with no
+  // slug -- so three tool pages shipped a link to `/null/tools`, which
+  // tests/no-dead-links.test.js found by crawling rather than by my reading it.
+  //
+  // One helper rather than four patched call sites, because the fifth place
+  // somebody adds will take the shape of the first four.
+  const toolDirectory = (tool) => tool.directoryPath || `/${tool.slug}/tools`;
+  // A parent-company tool has no studio dashboard to send anybody to. An empty
+  // list rather than a link to nowhere: a dashboard for "SONARA Industries" does
+  // not exist, and inventing the link is how /null/tools happened.
+  const toolDashboardLinks = (tool) => (tool.slug ? [linkAction(`/${tool.slug}/dashboard`, "Product dashboard")] : []);
+
   function sendToolResult(req, res, result, tool) {
     // 503 with ok: false when nothing was saved, matching the two sibling write
     // endpoints. This answered 200 with ok: true for a write that stored
@@ -299,8 +315,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         sections,
         actions: [
           linkAction(tool.path, "Run again"),
-          linkAction(`/${tool.slug}/tools`, "All tools"),
-          linkAction(`/${tool.slug}/dashboard`, "Product dashboard"),
+          linkAction(toolDirectory(tool), "All tools"),
+          ...toolDashboardLinks(tool),
           linkAction("/dashboard", "Dashboard")
         ]
       })
@@ -901,7 +917,11 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     const reason = LOCKED_TOOL_REASONS[access.code] || LOCKED_TOOL_REASONS.not_saved;
     const actions = [linkAction("/pricing", "See what plans cover")];
     if (access.code === "sign_in_required") actions.push(linkAction("/login", "Sign in"));
-    actions.push(linkAction(`/${tool.slug}/tools`, "All tools"), linkAction("/support", "Ask us"));
+    // directoryPath for the parent-company tools, which have no slug. Without
+    // this the link read `/null/tools`. They are all free so this page is not
+    // reached for one today, but a link that is only correct because the branch
+    // is unreachable is a link that breaks the day it becomes reachable.
+    actions.push(linkAction(toolDirectory(tool), "All tools"), linkAction("/support", "Ask us"));
     return layout({
       title: `${tool.title} | On a paid plan`,
       eyebrow: "On a paid plan",
@@ -911,7 +931,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         brandCard("What opens this", reason),
         brandCard(
           "What stays free",
-          "Four tools per studio are free with no account or card, plus three SONARA tools. See the free-tools directory for the complete list."
+          `${freeToolSentence()} They are linked from the home page and from every tool directory.`
         )
       ],
       actions
@@ -983,13 +1003,13 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           ],
           actions: signedIn
             ? [
-                linkAction(`/${tool.slug}/tools`, "All tools"),
-                linkAction(`/${tool.slug}/dashboard`, "Product dashboard"),
+                linkAction(toolDirectory(tool), "All tools"),
+                ...toolDashboardLinks(tool),
                 linkAction("/dashboard", "Dashboard"),
                 logoutAction()
               ]
             : [
-                linkAction(`/${tool.slug}/tools`, "All tools"),
+                linkAction(toolDirectory(tool), "All tools"),
                 linkAction("/signup", "Create a free account"),
                 linkAction("/pricing", "Pricing")
               ]
@@ -1706,7 +1726,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           title: `${product.name} Tools`,
           eyebrow: "Tool directory",
           heading: `${product.name} tools`,
-          body: `Four tools in each studio and three SONARA tools are free with no account and no card. The rest open on a plan that covers ${product.name}. Every tool below says which it is before you press anything.`,
+          body: `${freeToolSentence()} The rest open on a plan that covers ${product.name}. Every tool below says which it is before you press anything.`,
           sections,
           actions: [linkAction(`/${product.slug}/start`, "Start guide"), linkAction(`/${product.slug}/technology`, "Technology references"), linkAction(`/${product.slug}`, product.name), linkAction("/login", "Login"), linkAction("/signup", "Create account")]
         })

@@ -5,7 +5,7 @@ process.env.NODE_ENV = "test";
 const assert = require("node:assert/strict");
 const request = require("supertest");
 const app = require("../server");
-const { FREE_TOOL_PATHS } = require("../lib/sonara-tool-access.cjs");
+const { FREE_TOOL_PATHS, freeToolCountByCompany } = require("../lib/sonara-tool-access.cjs");
 
 const publicRoutes = [
   "/",
@@ -102,7 +102,20 @@ async function run() {
   // And one that is still free computes for a visitor with no account at all.
   // Without this, the assertion above would pass just as well on a build that
   // had locked everything.
-  assert.equal(FREE_TOOL_PATHS.length, 12, "each child must expose four public tools");
+  // The owner's split, asserted per company rather than as one number. This line
+  // held a literal 12 and failed on 2 October 2026 for being right about the
+  // previous split -- a check with the figure written into it goes stale exactly
+  // when the thing it guards changes, which is the one moment it needed to work.
+  const freeByCompany = freeToolCountByCompany();
+  assert.equal(freeByCompany.business_builder, 4, "Business Builder must expose four public tools");
+  assert.equal(freeByCompany.creator_studio, 4, "Creator Studio must expose four public tools");
+  assert.equal(freeByCompany.growth_studio, 4, "Growth Studio must expose four public tools");
+  assert.equal(freeByCompany.sonara_industries, 3, "SONARA Industries must expose three public tools");
+  assert.equal(
+    FREE_TOOL_PATHS.length,
+    freeByCompany.business_builder + freeByCompany.creator_studio + freeByCompany.growth_studio + freeByCompany.sonara_industries,
+    "the free list holds a tool that belongs to no company, so one of the counts above is measuring less than the list"
+  );
   for (const path of FREE_TOOL_PATHS) {
     const freeTool = await request(app).get(path).set("Accept", "text/html");
     assert.equal(freeTool.status, 200, `${path} answered ${freeTool.status} to a visitor`);
