@@ -45,10 +45,29 @@ const EMPLOYEE = "c3c3c3c3-0000-4000-8000-00000000003c";
 const TEMPLATE = "d4d4d4d4-0000-4000-8000-00000000004d";
 const PAGE = "/business-builder/owner/recurring-work";
 
-// Fixed so every assertion below reads against one day rather than against
-// whenever the suite happens to run.
-const TODAY = "2026-10-01";
-const NOW = new Date(`${TODAY}T09:00:00.000Z`);
+// Two different days, and conflating them into one constant is what broke this
+// file overnight on 2 October 2026.
+//
+// FIXED_DAY is the day the ENGINE tests run against, and it is pinned because
+// they inject it: `isDue(template, { now: NOW })`. Their arithmetic depends on
+// it -- `passedOver: 20` is exactly the span from 10 September to 1 October --
+// so a moving day would make those assertions meaningless.
+//
+// REAL_TODAY is the day the ROUTE tests run against, and it cannot be pinned.
+// They drive `POST /api/business/recurring-work/run` over HTTP, so the engine
+// reads the process clock and no fixture can reach it. The original constant
+// said "Fixed so every assertion below reads against one day rather than against
+// whenever the suite happens to run" -- true of the eight that inject NOW, false
+// of the two that do not, and the comment is what made the mistake look
+// deliberate. Those two passed on 1 October and failed on 2 October, which is a
+// test that was only ever true on the day it was written.
+const FIXED_DAY = "2026-10-01";
+const NOW = new Date(`${FIXED_DAY}T09:00:00.000Z`);
+
+// The UTC day, which is the day lib/sonara-recurring-tasks.cjs computes from.
+const utcDay = (date) => date.toISOString().slice(0, 10);
+const REAL_TODAY = utcDay(new Date());
+const daysBefore = (isoDay, days) => utcDay(new Date(new Date(`${isoDay}T00:00:00.000Z`).getTime() - days * 86400000));
 
 function template(overrides = {}) {
   return {
@@ -145,7 +164,7 @@ describe("work that comes round again comes round once", () => {
       // The populations have to match in both directions. A column on the task
       // the migrations do not have fails above; a column buildTask stopped
       // producing would leave the list here passing over nothing.
-      const built = buildTask({ template: template(), issueOn: TODAY, organizationId: ORG, createdBy: USER });
+      const built = buildTask({ template: template(), issueOn: FIXED_DAY, organizationId: ORG, createdBy: USER });
       assert.ok(built.ok, built.reason);
       for (const column of Object.keys(built.task)) {
         assert.ok(hasColumn("employee_tasks", column), `buildTask writes employee_tasks.${column}, which no migration creates`);
@@ -201,7 +220,7 @@ describe("work that comes round again comes round once", () => {
       const behind = template({ cadence: "daily", last_issued_on: "2026-09-10" });
       const due = isDue(behind, { now: NOW });
       assert.equal(due.due, true);
-      assert.equal(due.issueOn, TODAY, "a daily template behind by three weeks must land on today, not on 11 September");
+      assert.equal(due.issueOn, FIXED_DAY, "a daily template behind by three weeks must land on today, not on 11 September");
       assert.equal(due.passedOver, 20);
     });
 
@@ -277,36 +296,36 @@ describe("work that comes round again comes round once", () => {
     });
 
     it("refuses a task with no business rather than writing an unowned row", () => {
-      const built = buildTask({ template: { ...template(), organization_id: null }, issueOn: TODAY });
+      const built = buildTask({ template: { ...template(), organization_id: null }, issueOn: FIXED_DAY });
       assert.equal(built.ok, false);
       assert.match(built.reason, /belong to nobody/);
       assert.equal(built.task, null);
     });
 
     it("refuses a task with no title and a date that is not one", () => {
-      assert.equal(buildTask({ template: template({ title: "   " }), issueOn: TODAY, organizationId: ORG }).ok, false);
+      assert.equal(buildTask({ template: template({ title: "   " }), issueOn: FIXED_DAY, organizationId: ORG }).ok, false);
       assert.equal(buildTask({ template: template(), issueOn: "the fifth", organizationId: ORG }).ok, false);
       assert.equal(buildTask({ template: template(), issueOn: null, organizationId: ORG }).ok, false);
     });
 
     it("carries the template's priority, and falls back rather than writing a word the column refuses", () => {
-      assert.equal(buildTask({ template: template({ priority: "urgent" }), issueOn: TODAY, organizationId: ORG }).task.priority, "urgent");
-      assert.equal(buildTask({ template: template({ priority: "catastrophic" }), issueOn: TODAY, organizationId: ORG }).task.priority, "normal");
+      assert.equal(buildTask({ template: template({ priority: "urgent" }), issueOn: FIXED_DAY, organizationId: ORG }).task.priority, "urgent");
+      assert.equal(buildTask({ template: template({ priority: "catastrophic" }), issueOn: FIXED_DAY, organizationId: ORG }).task.priority, "normal");
       for (const priority of PRIORITIES) {
-        assert.equal(buildTask({ template: template({ priority }), issueOn: TODAY, organizationId: ORG }).task.priority, priority);
+        assert.equal(buildTask({ template: template({ priority }), issueOn: FIXED_DAY, organizationId: ORG }).task.priority, priority);
       }
     });
 
     it("issues work for somebody who has left, unassigned, rather than dropping it", () => {
-      const built = buildTask({ template: template({ assigned_employee_id: null }), issueOn: TODAY, organizationId: ORG });
+      const built = buildTask({ template: template({ assigned_employee_id: null }), issueOn: FIXED_DAY, organizationId: ORG });
       assert.equal(built.ok, true);
       assert.equal(built.task.assigned_employee_id, null);
     });
 
     it("links the task back to what made it", () => {
-      const built = buildTask({ template: template(), issueOn: TODAY, organizationId: ORG });
+      const built = buildTask({ template: template(), issueOn: FIXED_DAY, organizationId: ORG });
       assert.equal(built.task.metadata.recurring_task_id, TEMPLATE);
-      assert.equal(built.task.metadata.issued_for, TODAY);
+      assert.equal(built.task.metadata.issued_for, FIXED_DAY);
     });
   });
 
@@ -547,13 +566,22 @@ describe("work that comes round again comes round once", () => {
       // that produces a task dated 11 September is the stepping bug, and the
       // count would have passed over it. Found by breaking the engine and
       // watching this test stay green.
-      const { app, calls } = buildApp({ templates: [template({ cadence: "daily", last_issued_on: "2026-09-10" })] });
+      // Three weeks behind RELATIVE TO THE DAY THIS RUNS, because the route reads
+      // the process clock. A literal start date would also have made the comment
+      // drift -- "three weeks behind" stops being true the day after it is
+      // written.
+      const firstMissed = daysBefore(REAL_TODAY, 20);
+      const { app, calls } = buildApp({ templates: [template({ cadence: "daily", last_issued_on: daysBefore(REAL_TODAY, 21) })] });
       await request(app).post("/api/business/recurring-work/run").send({});
       const writes = taskWrites(calls);
       assert.equal(writes.length, 1, "a template three weeks behind produced more than one task");
-      assert.equal(writes[0].body.due_at, `${TODAY}T12:00:00.000Z`, "the task was dated the first missed day rather than the most recent one");
-      assert.equal(writes[0].body.metadata.issued_for, TODAY);
-      assert.match(writes[0].body.description, new RegExp(`Scheduled for ${TODAY}`));
+      // Both directions, so this cannot pass by asserting whatever came out: the
+      // task must carry the most recent due day, and must NOT carry the first one
+      // missed, which is the stepping bug this test exists for.
+      assert.equal(writes[0].body.due_at, `${REAL_TODAY}T12:00:00.000Z`, "the task was not dated the most recent day due");
+      assert.notEqual(writes[0].body.due_at, `${firstMissed}T12:00:00.000Z`, "the task was dated the first missed day, which is the stepping bug");
+      assert.equal(writes[0].body.metadata.issued_for, REAL_TODAY);
+      assert.match(writes[0].body.description, new RegExp(`Scheduled for ${REAL_TODAY}`));
     });
 
     it("moves the template on only after the task exists", async () => {
@@ -564,11 +592,29 @@ describe("work that comes round again comes round once", () => {
     });
 
     it("records the occurrence it issued, not the day it was pressed", async () => {
-      const { app, calls } = buildApp({ templates: [template({ cadence: "weekly", starts_on: "2026-08-04", last_issued_on: "2026-09-08" })] });
+      // Relative to the route's own clock, like the test above, and for a sharper
+      // reason than symmetry: with the literal dates this carried until 2 October
+      // 2026 -- starts_on 4 August, last issued 8 September -- the weekly
+      // occurrences land on 29 September and then 6 OCTOBER. It passed today and
+      // would have started failing on 6 October, four days out. A second instance
+      // of the same defect, found by looking for it rather than by it going red.
+      //
+      // Weekly from 59 days ago puts occurrences every 7 days at -59, -52, ...,
+      // -10, -3. Seeded as issued at -31, the most recent one due is three days
+      // ago -- deliberately NOT today, because "not the day it was pressed" is
+      // the whole property and the two must be different days for the assertion
+      // to mean anything.
+      const mostRecentDue = daysBefore(REAL_TODAY, 3);
+      const { app, calls } = buildApp({ templates: [template({
+        cadence: "weekly",
+        starts_on: daysBefore(REAL_TODAY, 59),
+        last_issued_on: daysBefore(REAL_TODAY, 31)
+      })] });
       await request(app).post("/api/business/recurring-work/run").send({});
       const patched = templateUpdates(calls);
       assert.equal(patched.length, 1);
-      assert.equal(patched[0].body.last_issued_on, "2026-09-29");
+      assert.equal(patched[0].body.last_issued_on, mostRecentDue, "the template was not moved on to the occurrence it issued");
+      assert.notEqual(patched[0].body.last_issued_on, REAL_TODAY, "the template recorded the day the button was pressed rather than the occurrence it issued");
     });
 
     it("scopes every write to the business, because the service key bypasses row level security", async () => {
@@ -616,7 +662,8 @@ describe("work that comes round again comes round once", () => {
     });
 
     it("creates nothing when nothing is due, and says so", async () =>{
-      const { app, calls } = buildApp({ templates: [template({ last_issued_on: TODAY })] });
+      // Issued today already, so nothing is due -- today by the route's clock.
+      const { app, calls } = buildApp({ templates: [template({ last_issued_on: REAL_TODAY })] });
       const response = await request(app).post("/api/business/recurring-work/run").send({});
       assert.equal(taskWrites(calls).length, 0);
       assert.match(response.headers.location, /problem=nothing_due/);
