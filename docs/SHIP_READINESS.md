@@ -580,7 +580,7 @@ reports these tables as used.
   `server.js` to add the mount, was deleted on 30 September 2026 as spent -- the
   mount it was written to add is already there twice over.
 
-- **34 tables have RLS enabled with no explicit policy**, which closes
+- **35 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever
   reads with the service-role key that is the posture you want — it is what
   stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
