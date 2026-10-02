@@ -2,6 +2,91 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - A price nobody set is not free
+
+Business Builder could hold products and variants with prices. It could not put
+them in front of a stranger: no route, no address, nowhere to say what the shop is
+called. The same gap `public_booking_pages` filled for appointments, and this is
+deliberately the same shape, `enabled boolean not null default false` included --
+this migration publishes nobody.
+
+**The invariant it exists for.** `merchant_product_variants.price_cents` is
+`not null default 0`, so zero is indistinguishable between "this is free" and
+"nobody has set a price yet". That default was right for the catalogue and is
+dangerous at the till. CLAUDE.md records the version that already shipped here:
+`Number(null)` is `0` and finite, which made unpriced services read as free across
+twenty-three columns.
+
+So `offerFor` refuses a variant at zero, and says in words that zero means nobody
+filled it in rather than that it is free. **An unreadable price is a different
+answer from zero** -- `price_unreadable` against `price_not_set` -- because they
+are different problems and the owner fixes them differently. There is no `is_free`
+flag: giving something away is a decision somebody should make out loud, and
+inventing a column for it would be inventing the decision.
+
+**The owner sees what the visitor does not.** A shop that silently hides a variant
+nobody priced is a shop whose owner never finds out why it looks empty. So
+`storefrontFor` returns `{ offered, withheld }` and the owner's page prints a
+reason per withheld line, while the public page simply does not show them -- and a
+test asserts a stranger is not shown the owner's reason either.
+
+**A total is never taken from the request.** `priceOrder` takes the offers the
+server read and quantities from the form, and there is no price parameter a caller
+could pass one through. The test posts `price_cents`, `unit_price_cents`,
+`subtotal_cents` and `line_total_cents` and asserts the order still totals 1200.
+
+**A line not on sale refuses the whole order.** Quietly dropping it would charge
+somebody for less than they asked for and call it their order.
+
+**Two currencies do not add up.** A variant priced in another currency is withheld
+rather than converted, because there is no exchange rate here and inventing one
+makes a figure wrong by a factor rather than by a rounding.
+
+**A line's price is a frozen copy, not a join.** An order's total must not change
+when the owner edits the price next week -- somebody agreed to a figure, and a
+receipt that re-prices itself cannot be argued with. The variant reference is kept
+so the owner can still see what was bought.
+
+**What it does not do, and says so twice.** It takes no money and stores no card:
+there is no card column, no CVV, no token, no charge path, and the migration asserts
+against the live catalogue that none appears later. Taking payment runs through the
+organization's own connected account. The public page says "Nothing is charged here
+and no card details are asked for or stored" before the form and again on the
+confirmation, because a buyer who has just pressed "Place this order" would
+otherwise reasonably believe they had paid. It sends nothing, and it decrements no
+stock -- the catalogue migration already said nothing decrements inventory, and
+implying an order did would be a claim about a capability that does not exist. A
+test greps both files for every send path, every card field and `inventory_items`.
+
+**The half-written order.** If the order row saves and its lines do not, the buyer
+is told exactly that: their order reached the shop, what was in it was not
+recorded, nothing was charged, and to contact the shop quoting their name. A total
+with nothing behind it is the kind of record that gets argued about later, and
+reporting success would be the lie.
+
+Two unfiltered reads recorded with their standing-in filter, both necessary: the
+public page finds a shop by a globally unique slug, and publish has to look across
+organizations to answer "that address is taken". Everything the public page then
+reads is scoped by the organization it took off that shop row, which is what makes
+one unfiltered read enough.
+
+Falsified: twelve assertions, each failing by name and restored with `md5sum -c` --
+five on the migration (card column, missing frozen-price columns, the enabled
+default, both unique indexes) and seven on the code: zero offered as free (5 red),
+the `Number(null)` guard removed (1 red), a not-on-sale line dropped instead of
+refusing (2 red), a currency converted silently (1 red), the route taking the total
+from the request (1 red), a missing radio publishing the shop (1 red), and a failed
+line write reported as success (1 red).
+
+`verify:migration-replay` applies 143 migrations in order to an empty PostgreSQL
+with every `do $$` assertion executing. Suite 5659 passing, 0 unfiltered tenant
+queries.
+
+**Not built.** A checkout. Taking money needs the connected payment path and
+credentials only the owner has -- `docs/owner/OWNER-STEPS.md` action 5. This shop is
+honest about that rather than pretending: it records what somebody wants and says
+plainly that payment happens elsewhere.
+
 ### 2026-10-02 - A confirmed seat is a seat
 
 Growth Studio could plan a campaign and capture a lead. It could not hold a date,

@@ -328,7 +328,14 @@ describe("signed-in workspaces speak plainly", () => {
   // instead by tests/a-confirmed-seat-is-a-seat.test.js, which drives the route
   // with the guard stubbed. The public half, /events/:slug, is parameterised and
   // was never in this crawl -- that page's wording is asserted in the same file.
-  const SIGNED_IN_SKIPPED = 111;
+  // 111 -> 112 on 2 October 2026: /business-builder/owner/store is behind
+  // requireBusinessManager, so a signed-out crawl gets a 303 and never reads its
+  // copy. Its copy is read instead by tests/a-price-nobody-set-is-not-free.test.js,
+  // which drives the route with the guard stubbed and asserts both the sentence it
+  // shows about not taking payment and the reason it gives for each thing that is
+  // not on sale. The public half, /store/:slug, is parameterised and was never in
+  // this crawl; the same file asserts its wording.
+  const SIGNED_IN_SKIPPED = 112;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

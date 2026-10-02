@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3044 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3047 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 142 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 143 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 420 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 421 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,98 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 422 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 423 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - A price nobody set is not free
+
+Business Builder could hold products and variants with prices. It could not put
+them in front of a stranger: no route, no address, nowhere to say what the shop is
+called. The same gap `public_booking_pages` filled for appointments, and this is
+deliberately the same shape, `enabled boolean not null default false` included --
+this migration publishes nobody.
+
+**The invariant it exists for.** `merchant_product_variants.price_cents` is
+`not null default 0`, so zero is indistinguishable between "this is free" and
+"nobody has set a price yet". That default was right for the catalogue and is
+dangerous at the till. CLAUDE.md records the version that already shipped here:
+`Number(null)` is `0` and finite, which made unpriced services read as free across
+twenty-three columns.
+
+So `offerFor` refuses a variant at zero, and says in words that zero means nobody
+filled it in rather than that it is free. **An unreadable price is a different
+answer from zero** -- `price_unreadable` against `price_not_set` -- because they
+are different problems and the owner fixes them differently. There is no `is_free`
+flag: giving something away is a decision somebody should make out loud, and
+inventing a column for it would be inventing the decision.
+
+**The owner sees what the visitor does not.** A shop that silently hides a variant
+nobody priced is a shop whose owner never finds out why it looks empty. So
+`storefrontFor` returns `{ offered, withheld }` and the owner's page prints a
+reason per withheld line, while the public page simply does not show them -- and a
+test asserts a stranger is not shown the owner's reason either.
+
+**A total is never taken from the request.** `priceOrder` takes the offers the
+server read and quantities from the form, and there is no price parameter a caller
+could pass one through. The test posts `price_cents`, `unit_price_cents`,
+`subtotal_cents` and `line_total_cents` and asserts the order still totals 1200.
+
+**A line not on sale refuses the whole order.** Quietly dropping it would charge
+somebody for less than they asked for and call it their order.
+
+**Two currencies do not add up.** A variant priced in another currency is withheld
+rather than converted, because there is no exchange rate here and inventing one
+makes a figure wrong by a factor rather than by a rounding.
+
+**A line's price is a frozen copy, not a join.** An order's total must not change
+when the owner edits the price next week -- somebody agreed to a figure, and a
+receipt that re-prices itself cannot be argued with. The variant reference is kept
+so the owner can still see what was bought.
+
+**What it does not do, and says so twice.** It takes no money and stores no card:
+there is no card column, no CVV, no token, no charge path, and the migration asserts
+against the live catalogue that none appears later. Taking payment runs through the
+organization's own connected account. The public page says "Nothing is charged here
+and no card details are asked for or stored" before the form and again on the
+confirmation, because a buyer who has just pressed "Place this order" would
+otherwise reasonably believe they had paid. It sends nothing, and it decrements no
+stock -- the catalogue migration already said nothing decrements inventory, and
+implying an order did would be a claim about a capability that does not exist. A
+test greps both files for every send path, every card field and `inventory_items`.
+
+**The half-written order.** If the order row saves and its lines do not, the buyer
+is told exactly that: their order reached the shop, what was in it was not
+recorded, nothing was charged, and to contact the shop quoting their name. A total
+with nothing behind it is the kind of record that gets argued about later, and
+reporting success would be the lie.
+
+Two unfiltered reads recorded with their standing-in filter, both necessary: the
+public page finds a shop by a globally unique slug, and publish has to look across
+organizations to answer "that address is taken". Everything the public page then
+reads is scoped by the organization it took off that shop row, which is what makes
+one unfiltered read enough.
+
+Falsified: twelve assertions, each failing by name and restored with `md5sum -c` --
+five on the migration (card column, missing frozen-price columns, the enabled
+default, both unique indexes) and seven on the code: zero offered as free (5 red),
+the `Number(null)` guard removed (1 red), a not-on-sale line dropped instead of
+refusing (2 red), a currency converted silently (1 red), the route taking the total
+from the request (1 red), a missing radio publishing the shop (1 red), and a failed
+line write reported as success (1 red).
+
+`verify:migration-replay` applies 143 migrations in order to an empty PostgreSQL
+with every `do $$` assertion executing. Suite 5659 passing, 0 unfiltered tenant
+queries.
+
+**Not built.** A checkout. Taking money needs the connected payment path and
+credentials only the owner has -- `docs/owner/OWNER-STEPS.md` action 5. This shop is
+honest about that rather than pretending: it records what somebody wants and says
+plainly that payment happens elsewhere.
+
+
 
 ### 2026-10-02 - A confirmed seat is a seat
 
@@ -2085,82 +2172,3 @@ Each break watched fail by name, each file restored by copy-aside and `md5sum -c
 - a secret-shaped name put in `publicEnv` -> two findings, including the both-lists
   contradiction
 - a technology record's `blockedUses` emptied -> "the record only says a name"
-
-
-
-### 2026-09-30 - A check that read one file and reported a pass
-
-Three rules `AGENTS.md` states, enforced by nothing in the release chain.
-
-**The sharpest is a security rule the owner documentation already writes down.**
-`docs/owner/INSTALL-ALL-KEYS.md` says in bold that there is no public Supabase
-service-role variable and there must never be one. The rule is right: this project
-inherits the Vercel and Supabase convention where a `NEXT_PUBLIC_` prefix means the
-value may be shipped to a browser, so a service-role key behind that prefix hands out
-row-level-security bypass. `AGENTS.md` states it too -- keep service-role secrets
-server-only.
-
-`scripts/check-env-safety.mjs` was written for it, and it is the clearest instance of
-shape 1 this repository has produced:
-
-- its scan roots were `app`, `components`, `lib`, `src`; three of the four do not
-  exist here;
-- its file filter was `/\.(ts|tsx|js|jsx)$/`, so of `lib/` -- **256 `.cjs` modules** --
-  it could see **one file**;
-- its second rule only fired on `.tsx`, and this repository has none, so that half
-  could never fire at all;
-- and it printed "Environment safety check passed." and exited 0.
-
-One file read, a pass reported, and nothing ran it, which is the only reason that did
-not matter.
-
-**Two build rules were in the same state.** `"packageManager": "pnpm@"` was asserted
-by `check-security-basics.mjs`, and the absence of `package-lock.json` plus the
-presence of `pnpm-lock.yaml` and `.env.example` by `check-repo-standards.mjs`. Nothing
-ran either, and **no other file in the repository read `package-lock.json` or
-`"packageManager"` at all**. An npm lockfile could have been committed and the whole
-chain would have passed.
-
-`scripts/verify-repository-standards.mjs` replaces all three, wired in as
-`verify:repo-standards` (chain 66 -> 67). It scans recursively across six groups:
-1,420 files today (366 runtime, 34 browser, 143 config, 458 docs, 415 tests, 4 root),
-with a floor of 800. The forbidden shape matches exactly once -- inside the sentence
-that forbids it -- and that one file is a two-sided register entry keyed on the
-sentence itself, so rewording the prohibition fails the gate rather than quietly
-widening it.
-
-**One thing worth recording about writing the test.** The first draft of
-`tests/a-public-variable-cannot-carry-a-service-role-key.test.js` spelled the
-forbidden variable name in its own explanatory comment, and the new gate failed on
-the test file -- correctly, because it scans `tests/`. The fix was to stop spelling
-it, not to exempt the test. It is the same discipline `verify:retired-names` uses by
-reading its ledger instead of holding a copy: a scanner or its test that spells what
-it forbids is a file that has to be excused from its own rule, and an exemption is
-the thing that later gets widened.
-
-**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
-
-- the forbidden name planted in a runtime `.cjs` -> named by file
-- `package-lock.json` created -> "two lockfiles mean two dependency trees"
-- `packageManager` switched to npm -> named, quoting the value it found
-- the forbidding sentence reworded -> "that sentence is no longer there ... this one
-  would be covering a leaked service-role key"
-- `verify:repo-standards` removed from the chain -> the test fails with "is not
-  reachable from verify:launch"
-- the runtime group narrowed to one extension -> "the gate read 0 runtime files while
-  lib/ alone holds 256 .cjs modules"
-
-**Still open, and named so it is not lost:** 21 files in `scripts/` that no
-`package.json` script, workflow or test invokes. Four cannot run at all --
-`verify-all.mjs` (24 of the 34 pnpm scripts it lists no longer exist),
-`verify-security.mjs` (requires `next.config.mjs` and `src/config/securityConfig.ts`,
-**and is cited in `SECURITY_NOTES.md` as though it runs**),
-`validate-infrastructure.mjs` ("No recognized app source folder found"),
-`run-frontend-lint.mjs` (lints a `frontend/` directory deleted long ago). Three print
-a sentence and enforce nothing: `audit-repo-consistency.mjs` (two lines),
-`security-scan-plan.mjs` (four), `seed-entity-defaults.mjs`. Three more hold real
-properties on live files that nothing checks -- `check-provider-registry.mjs` reads
-`data/provider-registry.ts`, which **no other file in the repository reads**, and
-asserts `serverOnlyEnv` is declared and that session replay is not on by default.
-`report-unreferenced-modules.mjs` covers `lib/` and `routes/` by design and says so;
-`scripts/` has no equivalent, and that gate is the next piece of work.

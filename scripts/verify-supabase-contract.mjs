@@ -72,6 +72,12 @@ const creatorProjectGraphMigrationNames = [
 const growthEventMigrationNames = [
   "20261002060000_public_events_and_rsvps.sql"
 ];
+// The shop and the orders placed on it, added 2 October 2026. Its own list rather
+// than folded into businessOperationsMigrationNames: that group is the back office,
+// and this is a public front door with its own rule about what a zero price means.
+const merchantStoreMigrationNames = [
+  "20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
@@ -317,6 +323,18 @@ const AGENT_TOOL_PERMISSION_TABLES = Object.freeze(["agent_tool_permissions"]);
 // anything. An event page is the organization's own content; a campaign send is
 // an owner-approval category in AGENTS.md, and keeping them in different groups
 // means the next person wiring a notification has to notice which side they are on.
+// The public shop, and what people ordered from it.
+//
+// Separate from BUSINESS_OPERATIONS_TABLES because that group is the back office.
+// The distinction worth stating: an order here is a record of what somebody wants
+// and carries no card, no token and no charge. Taking the money runs through
+// business_payment_accounts, which the connected-payment group already governs, and
+// which an owner sets up themselves.
+const MERCHANT_STORE_TABLES = Object.freeze([
+  "merchant_storefronts",
+  "merchant_orders",
+  "merchant_order_lines"
+]);
 const GROWTH_EVENT_TABLES = Object.freeze([
   "growth_venues",
   "growth_events",
@@ -468,6 +486,7 @@ const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval qu
 const agentToolPermissionSql = readExtension(agentToolPermissionMigrationNames, "agent tool permissions");
 const creatorProjectGraphSql = readExtension(creatorProjectGraphMigrationNames, "Creator Studio project graph");
 const growthEventSql = readExtension(growthEventMigrationNames, "Growth Studio events and RSVPs");
+const merchantStoreSql = readExtension(merchantStoreMigrationNames, "merchant storefront and orders");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
 const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
@@ -696,6 +715,50 @@ for (const required of [
   "check (ends_at is null or ends_at >= starts_at)"
 ]) {
   if (!growthEventSql.includes(required.toLowerCase())) fail(`the Growth Studio events migration is missing: ${required}`);
+}
+
+verifyExtension(MERCHANT_STORE_TABLES, merchantStoreSql, "merchant storefront and orders");
+// The schema half, comments stripped -- the same split as the events check above,
+// and for the same reason: the do-block names '%card%' in order to assert no such
+// column exists, and the header comment quotes AGENTS.md on card data.
+const merchantStoreSchemaSql = withoutSqlComments(merchantStoreSql.split("do $$")[0]);
+if (merchantStoreSchemaSql.length < 2000) {
+  fail(`the merchant storefront schema half is ${merchantStoreSchemaSql.length} bytes; the split on \`do $$\` has stopped working and these assertions are measuring almost nothing`);
+}
+// No card, no CVV, no payment token. AGENTS.md forbids storing raw card data, and
+// the way to be certain is to have nowhere to put it: taking the money runs through
+// the organization's own connected account.
+if (/\b(card_number|cardnumber|cvv|pan_|payment_token|card_token)/.test(merchantStoreSchemaSql)) {
+  fail("a storefront table holds a card, a CVV or a payment token; raw card data must never be stored and payment runs through the connected account");
+}
+// A line's money and quantity are frozen copies and must always be there. A line
+// with no price is a line that cannot be totalled, and the point of copying the
+// figure is that it is never absent.
+for (const required of [
+  "unit_price_cents integer not null check (unit_price_cents >= 0)",
+  "line_total_cents integer not null check (line_total_cents >= 0)",
+  "quantity integer not null check (quantity between 1 and 999)",
+  "subtotal_cents integer not null check (subtotal_cents >= 0)",
+  "enabled boolean not null default false",
+  "organization_id uuid not null references public.organizations(id)"
+]) {
+  if (!merchantStoreSchemaSql.includes(required.toLowerCase())) {
+    fail(`the merchant storefront migration is missing: ${required}`);
+  }
+}
+// Unpublished until published, and one address names one shop.
+if (!/create unique index if not exists merchant_storefronts_slug_key/.test(merchantStoreSchemaSql)) {
+  fail("merchant_storefronts.slug is not unique; one public address could name two shops");
+}
+if (!/create unique index if not exists merchant_storefronts_organization_key/.test(merchantStoreSchemaSql)) {
+  fail("merchant_storefronts has no unique index per organization; \"the shop\" would be ambiguous everywhere it is read");
+}
+// No delete grant. A cancelled order is a recorded state that both the buyer and
+// the owner need.
+for (const table of MERCHANT_STORE_TABLES) {
+  if (new RegExp(`grant[^;]*delete[^;]*${table}`).test(merchantStoreSql)) {
+    fail(`the merchant storefront migration grants DELETE on ${table}; a cancelled order is a recorded state and deleting it erases it`);
+  }
 }
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
@@ -931,7 +994,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_PROJECT_GRAPH_TABLES, ...GROWTH_EVENT_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_PROJECT_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -1163,7 +1226,7 @@ if (unwiredPermission.requiresOwnerApproval || unwiredPermission.permission !== 
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${CREATOR_PROJECT_GRAPH_TABLES.length} reviewed Creator Studio project graph tables, ${GROWTH_EVENT_TABLES.length} reviewed Growth Studio event tables, ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${CREATOR_PROJECT_GRAPH_TABLES.length} reviewed Creator Studio project graph tables, ${GROWTH_EVENT_TABLES.length} reviewed Growth Studio event tables, ${MERCHANT_STORE_TABLES.length} reviewed merchant storefront tables, ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime
