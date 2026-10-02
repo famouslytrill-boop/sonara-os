@@ -354,6 +354,15 @@ const CREATOR_APPROVAL_GRAPH_TABLES = Object.freeze([
 // in. Three states live in the row count rather than in a column -- no row means
 // nobody has been asked -- so there is deliberately no boolean to contract for.
 const DEVICE_PERMISSION_TABLES = Object.freeze(["device_permission_grants"]);
+
+// Creator Studio's marketplace. One table, pointing at a version rather than an
+// asset so a buyer gets the thing they heard. lib/sonara-creator-marketplace.cjs
+// composes the approval graph's publishReadiness rather than restating it:
+// selling is never easier than publishing.
+// Two tables: the creator's own listing (tenant data, every read scoped), and the
+// public catalogue (no organization, exactly the columns a buyer may see -- its
+// migration asserts the set). Public pages read only the second.
+const CREATOR_MARKETPLACE_TABLES = Object.freeze(["creator_listings", "creator_marketplace_entries"]);
 // Cinematic scroll sites. One table holding one row per site, whose `document`
 // column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
 // rather than folded into the Growth Studio list: the migration is its own
@@ -1011,7 +1020,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...DEVICE_PERMISSION_TABLES]);
+const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {

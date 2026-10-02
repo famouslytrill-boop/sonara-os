@@ -11,43 +11,43 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 901,
+    "routeOperationCount": 908,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 549,
+      "GET": 552,
       "PATCH": 10,
-      "POST": 339
+      "POST": 343
     },
     "workspaceCount": 12,
-    "declaredPageCount": 295,
+    "declaredPageCount": 297,
     "workspaceRouteCounts": {
       "business_builder": 335,
       "business_builder_agent_ops": 7,
-      "creator_studio": 127,
+      "creator_studio": 132,
       "cross_workspace_formulas": 5,
       "growth_studio": 121,
       "research_catalog": 12,
       "research_lab": 15,
       "shared_account": 27,
       "shared_infrastructure": 3,
-      "sonara_shared": 134,
+      "sonara_shared": 136,
       "sonara_shared_api": 115
     },
     "actionDestinationCounts": {
-      "exact": 342,
+      "exact": 345,
       "form_reference": 296,
       "machine_ingress": 2,
-      "parent_route": 65,
-      "route_pair": 104,
+      "parent_route": 68,
+      "route_pair": 105,
       "workspace_fallback": 92
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
-      "explicit_no_persistent_table_expected": 144,
+      "explicit_no_persistent_table_expected": 146,
       "explicit_resource_registry": 259,
       "handler_source_table_reference": 201,
-      "needs_explicit_data_contract": 293
+      "needs_explicit_data_contract": 298
     },
     "routesUsingWorkspaceHomeFallback": 92,
     "formActionLinkCount": 58,
@@ -56,19 +56,19 @@
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
     "openApiApiOperationCount": 325,
-    "databaseTableCount": 347,
+    "databaseTableCount": 349,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 306,
+    "queriedTableCount": 308,
     "neverQueriedTableCount": 41,
-    "migrationCount": 148,
+    "migrationCount": 149,
     "databaseFunctionCount": 33,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 293,
+    "routeDataContractsNeedingExplicitReview": 298,
     "routeDataReviewByMethod": {
-      "GET": 202,
-      "POST": 91
+      "GET": 203,
+      "POST": 95
     },
     "routeDestinationReviewByWorkspace": {
       "business_builder": 16,
@@ -425,8 +425,8 @@
         "/api/creator-studio",
         "/api/creator"
       ],
-      "routeCount": 127,
-      "registeredPageCount": 67,
+      "routeCount": 132,
+      "registeredPageCount": 68,
       "registeredPageRoutes": [
         "/creator-studio/album-cycles",
         "/creator-studio/album-cycles/:recordId/edit",
@@ -468,6 +468,7 @@
         "/creator-studio/offers",
         "/creator-studio/offers/free",
         "/creator-studio/owner/approval-graph",
+        "/creator-studio/owner/marketplace",
         "/creator-studio/product-lifecycle",
         "/creator-studio/projects",
         "/creator-studio/projects/:id",
@@ -578,7 +579,8 @@
         {
           "name": "Owner operations",
           "routes": [
-            "/creator-studio/owner/approval-graph"
+            "/creator-studio/owner/approval-graph",
+            "/creator-studio/owner/marketplace"
           ]
         },
         {
@@ -901,8 +903,8 @@
       "routePrefixes": [
         "/"
       ],
-      "routeCount": 134,
-      "registeredPageCount": 117,
+      "routeCount": 136,
+      "registeredPageCount": 119,
       "registeredPageRoutes": [
         "/",
         "/about",
@@ -968,6 +970,8 @@
         "/manifest.webmanifest",
         "/market-intelligence",
         "/market-intelligence/invention-systems",
+        "/marketplace",
+        "/marketplace/:id",
         "/notifications",
         "/offline",
         "/onboarding",
@@ -1881,7 +1885,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1462
+        "line": 1465
       },
       "contractCompleteness": {
         "route": true,
@@ -1987,7 +1991,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 830
+        "line": 833
       },
       "contractCompleteness": {
         "route": true,
@@ -2093,7 +2097,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 987
+        "line": 990
       },
       "contractCompleteness": {
         "route": true,
@@ -2197,7 +2201,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -2301,7 +2305,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -2413,7 +2417,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1177
+        "line": 1180
       },
       "contractCompleteness": {
         "route": true,
@@ -3625,7 +3629,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1194
+        "line": 1197
       },
       "contractCompleteness": {
         "route": true,
@@ -3841,7 +3845,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1311
+        "line": 1314
       },
       "contractCompleteness": {
         "route": true,
@@ -4848,7 +4852,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1451
+        "line": 1454
       },
       "contractCompleteness": {
         "route": true,
@@ -5169,7 +5173,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1450
+        "line": 1453
       },
       "contractCompleteness": {
         "route": true,
@@ -5731,7 +5735,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1449
+        "line": 1452
       },
       "contractCompleteness": {
         "route": true,
@@ -15921,7 +15925,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1274
+        "line": 1277
       },
       "contractCompleteness": {
         "route": true,
@@ -16677,7 +16681,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1493
+        "line": 1496
       },
       "contractCompleteness": {
         "route": true,
@@ -17239,7 +17243,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1492
+        "line": 1495
       },
       "contractCompleteness": {
         "route": true,
@@ -22928,7 +22932,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1517
+        "line": 1520
       },
       "contractCompleteness": {
         "route": true,
@@ -23490,7 +23494,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1516
+        "line": 1519
       },
       "contractCompleteness": {
         "route": true,
@@ -26645,7 +26649,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1541
+        "line": 1544
       },
       "contractCompleteness": {
         "route": true,
@@ -31244,7 +31248,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1549
+        "line": 1552
       },
       "contractCompleteness": {
         "route": true,
@@ -32210,7 +32214,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 939
+        "line": 942
       },
       "contractCompleteness": {
         "route": true,
@@ -32325,7 +32329,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1260
+        "line": 1263
       },
       "contractCompleteness": {
         "route": true,
@@ -32439,7 +32443,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1147
+        "line": 1150
       },
       "contractCompleteness": {
         "route": true,
@@ -32545,7 +32549,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1121
+        "line": 1124
       },
       "contractCompleteness": {
         "route": true,
@@ -32651,7 +32655,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1107
+        "line": 1110
       },
       "contractCompleteness": {
         "route": true,
@@ -32761,7 +32765,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1341
+        "line": 1344
       },
       "contractCompleteness": {
         "route": true,
@@ -33149,7 +33153,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1687
+        "line": 1690
       },
       "contractCompleteness": {
         "route": true,
@@ -33255,7 +33259,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -33642,7 +33646,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1343
+        "line": 1346
       },
       "contractCompleteness": {
         "route": true,
@@ -34351,7 +34355,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -34635,7 +34639,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -34741,7 +34745,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1701
+        "line": 1704
       },
       "contractCompleteness": {
         "route": true,
@@ -35107,7 +35111,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1382
+        "line": 1385
       },
       "contractCompleteness": {
         "route": true,
@@ -35213,7 +35217,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -35412,7 +35416,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1412
+        "line": 1415
       },
       "contractCompleteness": {
         "route": true,
@@ -35518,7 +35522,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -35624,7 +35628,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1719
+        "line": 1722
       },
       "contractCompleteness": {
         "route": true,
@@ -35823,7 +35827,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1365
+        "line": 1368
       },
       "contractCompleteness": {
         "route": true,
@@ -36019,7 +36023,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -36125,7 +36129,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -36231,7 +36235,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -60371,7 +60375,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -60820,7 +60824,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -60926,7 +60930,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -61032,7 +61036,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -63881,7 +63885,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 894
+        "line": 897
       },
       "contractCompleteness": {
         "route": true,
@@ -63985,7 +63989,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -64091,7 +64095,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1687
+        "line": 1690
       },
       "contractCompleteness": {
         "route": true,
@@ -65278,7 +65282,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -65678,7 +65682,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -65970,7 +65974,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -66076,7 +66080,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -66277,7 +66281,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1701
+        "line": 1704
       },
       "contractCompleteness": {
         "route": true,
@@ -68212,7 +68216,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -68318,7 +68322,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1719
+        "line": 1722
       },
       "contractCompleteness": {
         "route": true,
@@ -68514,7 +68518,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -68620,7 +68624,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -69667,7 +69671,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -69773,7 +69777,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -69860,7 +69864,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 265
+        "line": 270
       },
       "contractCompleteness": {
         "route": true,
@@ -69868,6 +69872,90 @@
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /creator-studio/owner/marketplace",
+      "method": "GET",
+      "route": "/creator-studio/owner/marketplace",
+      "kind": "page_or_download",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Marketplace",
+        "productOwner": "creator_studio",
+        "visibility": "product",
+        "requiredRole": "customer",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_login",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 248
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "route-convention",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -70892,7 +70980,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -70998,7 +71086,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -71104,7 +71192,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -72009,7 +72097,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -75658,7 +75746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1219
+        "line": 1222
       },
       "contractCompleteness": {
         "route": true,
@@ -75852,7 +75940,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1042
+        "line": 1045
       },
       "contractCompleteness": {
         "route": true,
@@ -75956,7 +76044,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -76258,7 +76346,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1559
+        "line": 1562
       },
       "contractCompleteness": {
         "route": true,
@@ -76706,7 +76794,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1687
+        "line": 1690
       },
       "contractCompleteness": {
         "route": true,
@@ -76812,7 +76900,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -77396,7 +77484,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -77597,7 +77685,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -78414,7 +78502,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1701
+        "line": 1704
       },
       "contractCompleteness": {
         "route": true,
@@ -78791,7 +78879,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -78897,7 +78985,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -79093,7 +79181,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1719
+        "line": 1722
       },
       "contractCompleteness": {
         "route": true,
@@ -79325,7 +79413,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -79521,7 +79609,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -79627,7 +79715,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -80927,7 +81015,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -81033,7 +81121,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -81322,7 +81410,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "contractCompleteness": {
         "route": true,
@@ -83373,7 +83461,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1024
+        "line": 1027
       },
       "contractCompleteness": {
         "route": true,
@@ -83812,7 +83900,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -83907,7 +83995,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84002,7 +84090,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84097,7 +84185,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84192,7 +84280,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84287,7 +84375,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84382,7 +84470,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84477,7 +84565,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84572,7 +84660,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84667,7 +84755,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84762,7 +84850,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84857,7 +84945,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -84952,7 +85040,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -85047,7 +85135,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1597
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -85155,7 +85243,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1093
+        "line": 1096
       },
       "contractCompleteness": {
         "route": true,
@@ -85335,7 +85423,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1156
+        "line": 1159
       },
       "contractCompleteness": {
         "route": true,
@@ -85432,7 +85520,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1565
       },
       "contractCompleteness": {
         "route": true,
@@ -85622,6 +85710,172 @@
       "action": false
     },
     {
+      "id": "GET /marketplace",
+      "method": "GET",
+      "route": "/marketplace",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/marketplace",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Marketplace",
+        "productOwner": "sonara_industries",
+        "visibility": "public",
+        "requiredRole": null,
+        "requiredPlan": "free",
+        "requiredProvider": null,
+        "readiness": "ready",
+        "navigationPlacement": "primary"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 533
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "route-convention",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /marketplace/:id",
+      "method": "GET",
+      "route": "/marketplace/:id",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/marketplace/:id",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          404,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 575
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /notifications",
       "method": "GET",
       "route": "/notifications",
@@ -85798,7 +86052,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1575
+        "line": 1578
       },
       "contractCompleteness": {
         "route": true,
@@ -85893,7 +86147,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1559
+        "line": 1562
       },
       "contractCompleteness": {
         "route": true,
@@ -86316,7 +86570,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 949
+        "line": 952
       },
       "contractCompleteness": {
         "route": true,
@@ -86420,7 +86674,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -87294,7 +87548,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -87580,7 +87834,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1559
+        "line": 1562
       },
       "contractCompleteness": {
         "route": true,
@@ -89134,7 +89388,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1006
+        "line": 1009
       },
       "contractCompleteness": {
         "route": true,
@@ -89332,7 +89586,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1322
+        "line": 1325
       },
       "contractCompleteness": {
         "route": true,
@@ -89821,7 +90075,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1097
+        "line": 1100
       },
       "contractCompleteness": {
         "route": true,
@@ -91022,7 +91276,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -91346,7 +91600,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1601
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -91765,7 +92019,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1559
+        "line": 1562
       },
       "contractCompleteness": {
         "route": true,
@@ -93192,7 +93446,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1457
+        "line": 1460
       },
       "contractCompleteness": {
         "route": true,
@@ -96153,7 +96407,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1207
+        "line": 1210
       },
       "contractCompleteness": {
         "route": true,
@@ -97950,7 +98204,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1279
+        "line": 1282
       },
       "contractCompleteness": {
         "route": true,
@@ -98305,7 +98559,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1281
+        "line": 1284
       },
       "contractCompleteness": {
         "route": true,
@@ -100792,7 +101046,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1452
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -101068,7 +101322,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1401
+        "line": 1404
       },
       "contractCompleteness": {
         "route": true,
@@ -101605,7 +101859,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1436
+        "line": 1439
       },
       "contractCompleteness": {
         "route": true,
@@ -121345,7 +121599,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1278
+        "line": 1281
       },
       "contractCompleteness": {
         "route": true,
@@ -122569,7 +122823,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1468
+        "line": 1471
       },
       "contractCompleteness": {
         "route": true,
@@ -123677,7 +123931,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1481
+        "line": 1484
       },
       "contractCompleteness": {
         "route": true,
@@ -124599,7 +124853,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 461
+        "line": 466
       },
       "contractCompleteness": {
         "route": true,
@@ -124676,7 +124930,9 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "creator_asset_approvals",
-          "creator_asset_versions"
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
         ],
         "candidateTables": [
           "creator_asset_approvals",
@@ -124716,6 +124972,38 @@
               ],
               "policyEvidence": []
             }
+          },
+          {
+            "table": "creator_listings",
+            "tableId": "table:creator_listings",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_entries",
+            "tableId": "table:creator_marketplace_entries",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
           }
         ],
         "noPersistenceReason": null,
@@ -124726,13 +125014,14 @@
         "sourceModule": "module:routes/sonara-creator-approval-graph-routes.cjs",
         "moduleTableCandidateCount": 4,
         "schemaMigrations": [
-          "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          "supabase/migrations/20261002010000_creator_approval_graph.sql",
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 547
+        "line": 558
       },
       "contractCompleteness": {
         "route": true,
@@ -124847,7 +125136,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 503
+        "line": 508
       },
       "contractCompleteness": {
         "route": true,
@@ -124923,7 +125212,9 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "creator_asset_approvals",
-          "creator_asset_versions"
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
         ],
         "candidateTables": [
           "creator_asset_approvals",
@@ -124963,6 +125254,38 @@
               ],
               "policyEvidence": []
             }
+          },
+          {
+            "table": "creator_listings",
+            "tableId": "table:creator_listings",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_entries",
+            "tableId": "table:creator_marketplace_entries",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
           }
         ],
         "noPersistenceReason": null,
@@ -124973,13 +125296,14 @@
         "sourceModule": "module:routes/sonara-creator-approval-graph-routes.cjs",
         "moduleTableCandidateCount": 4,
         "schemaMigrations": [
-          "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          "supabase/migrations/20261002010000_creator_approval_graph.sql",
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 522
+        "line": 527
       },
       "contractCompleteness": {
         "route": true,
@@ -125210,7 +125534,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 414
+        "line": 419
       },
       "contractCompleteness": {
         "route": true,
@@ -125325,7 +125649,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 440
+        "line": 445
       },
       "contractCompleteness": {
         "route": true,
@@ -130611,7 +130935,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1495
+        "line": 1498
       },
       "contractCompleteness": {
         "route": true,
@@ -132004,7 +132328,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1504
+        "line": 1507
       },
       "contractCompleteness": {
         "route": true,
@@ -144370,7 +144694,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 343
+        "line": 344
       },
       "contractCompleteness": {
         "route": true,
@@ -144700,7 +145024,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 342
+        "line": 343
       },
       "contractCompleteness": {
         "route": true,
@@ -144896,7 +145220,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1135
+        "line": 1138
       },
       "contractCompleteness": {
         "route": true,
@@ -144996,7 +145320,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1171
+        "line": 1174
       },
       "contractCompleteness": {
         "route": true,
@@ -145191,7 +145515,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1101
+        "line": 1104
       },
       "contractCompleteness": {
         "route": true,
@@ -145680,7 +146004,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1425
+        "line": 1428
       },
       "contractCompleteness": {
         "route": true,
@@ -165047,7 +165371,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 908
+        "line": 911
       },
       "contractCompleteness": {
         "route": true,
@@ -167493,6 +167817,338 @@
         "persistence": "explicit_resource_registry",
         "openApi": false,
         "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace",
+      "method": "POST",
+      "route": "/creator-studio/owner/marketplace",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [
+          "medium",
+          "title",
+          "versionId"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 360
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace/:id",
+      "method": "POST",
+      "route": "/creator-studio/owner/marketplace/:id",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [
+          "consentAttested",
+          "currency",
+          "licence",
+          "note",
+          "priceCents",
+          "rightsAttested",
+          "title"
+        ],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 389
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace/:id/list",
+      "method": "POST",
+      "route": "/creator-studio/owner/marketplace/:id/list",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 465
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace/:id/withdraw",
+      "method": "POST",
+      "route": "/creator-studio/owner/marketplace/:id/withdraw",
+      "kind": "form_or_action",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_entries"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 505
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
       },
       "action": true
     },
@@ -171852,7 +172508,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1165
+        "line": 1168
       },
       "contractCompleteness": {
         "route": true,
@@ -174671,6 +175327,37 @@
           "table": "creator_briefs",
           "migrations": [
             "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-creator-marketplace-routes.cjs",
+      "source": "routes/sonara-creator-marketplace-routes.cjs",
+      "tableCount": 4,
+      "tables": [
+        {
+          "table": "creator_asset_approvals",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          ]
+        },
+        {
+          "table": "creator_asset_versions",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          ]
+        },
+        {
+          "table": "creator_listings",
+          "migrations": [
+            "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+          ]
+        },
+        {
+          "table": "creator_marketplace_entries",
+          "migrations": [
+            "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
           ]
         }
       ]
@@ -185220,6 +185907,263 @@
         "decision": "keep",
         "note": "Migration 016. Influence references for an artist system. Reachable only through creator_artist_systems, which nothing creates."
       }
+    },
+    {
+      "id": "table:creator_listings",
+      "schema": "public",
+      "name": "creator_listings",
+      "columnCount": 15,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "version_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "medium",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "price_cents",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "licence",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "personal_use",
+            "commercial_single",
+            "commercial_unlimited",
+            "exclusive_transfer"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "draft",
+            "listed",
+            "withdrawn",
+            "sold_exclusively"
+          ],
+          "fallback": "draft"
+        },
+        {
+          "name": "rights_attested",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "consent_attested",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_marketplace_entries",
+      "schema": "public",
+      "name": "creator_marketplace_entries",
+      "columnCount": 9,
+      "columns": [
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "medium",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "price_cents",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "licence",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [
+            "personal_use",
+            "commercial_single",
+            "commercial_unlimited",
+            "exclusive_transfer"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "made_by_machine",
+          "type": "boolean",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "ai_disclosed",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "listed_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "global_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
     },
     {
       "id": "table:creator_narrative_arcs",
@@ -226626,6 +227570,23 @@
           "table": "device_permission_grants"
         }
       ]
+    },
+    {
+      "file": "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql",
+      "creates": [
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "alters": [
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -259436,7 +260397,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1177
+        "line": 1180
       },
       "destination": {
         "route": "/account",
@@ -259724,7 +260685,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1194
+        "line": 1197
       },
       "destination": {
         "route": "/account/setup",
@@ -259818,7 +260779,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1311
+        "line": 1314
       },
       "destination": {
         "route": "/dashboard",
@@ -259938,7 +260899,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1274
+        "line": 1277
       },
       "destination": {
         "route": "/dashboard",
@@ -260672,7 +261633,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 939
+        "line": 942
       },
       "destination": {
         "route": "/dashboard",
@@ -260723,7 +261684,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -260863,7 +261824,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -260914,7 +261875,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -260965,7 +261926,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1701
+        "line": 1704
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -261056,7 +262017,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/business-builder/help",
@@ -261147,7 +262108,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1412
+        "line": 1415
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -261198,7 +262159,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -261289,7 +262250,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1365
+        "line": 1368
       },
       "destination": {
         "route": "/business-builder/login",
@@ -261375,7 +262336,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -261426,7 +262387,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -261477,7 +262438,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -262077,7 +263038,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -262160,7 +263121,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -262211,7 +263172,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/business-builder/records",
@@ -262262,7 +263223,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -263297,7 +264258,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -263387,7 +264348,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -263438,7 +264399,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -263529,7 +264490,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1701
+        "line": 1704
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -263795,7 +264756,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -263881,7 +264842,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -263932,7 +264893,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -264087,7 +265048,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -264138,7 +265099,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -264189,7 +265150,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 265
+        "line": 270
       },
       "destination": {
         "route": "/creator-studio/owner/approval-graph",
@@ -264211,6 +265172,37 @@
       },
       "responseKindsObserved": [
         "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /creator-studio/owner/marketplace",
+      "workspace": "creator_studio",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 248
+      },
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
@@ -264280,7 +265272,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -264331,7 +265323,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -264382,7 +265374,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -264541,7 +265533,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -265480,7 +266472,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -265672,7 +266664,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -265862,7 +266854,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1701
+        "line": 1704
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -266019,7 +267011,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -266070,7 +267062,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -266191,7 +267183,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -266242,7 +267234,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -266421,7 +267413,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -266472,7 +267464,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1741
+        "line": 1744
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -266596,7 +267588,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1748
+        "line": 1751
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -267418,7 +268410,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1093
+        "line": 1096
       },
       "destination": {
         "route": "/login",
@@ -267618,7 +268610,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1097
+        "line": 1100
       },
       "destination": {
         "route": "/signup",
@@ -268717,7 +269709,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1135
+        "line": 1138
       },
       "destination": {
         "route": "/auth/login",
@@ -268772,7 +269764,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1171
+        "line": 1174
       },
       "destination": {
         "route": "/logout",
@@ -268865,7 +269857,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1101
+        "line": 1104
       },
       "destination": {
         "route": "/auth/signup",
@@ -269704,6 +270696,148 @@
       "responseKindsObserved": [
         "json",
         "send"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace",
+      "workspace": "creator_studio",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 360
+      },
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "medium",
+          "title",
+          "versionId"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace/:id",
+      "workspace": "creator_studio",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 389
+      },
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "consentAttested",
+          "currency",
+          "licence",
+          "note",
+          "priceCents",
+          "rightsAttested",
+          "title"
+        ],
+        "query": [],
+        "pathParams": [
+          "id"
+        ]
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace/:id/list",
+      "workspace": "creator_studio",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 465
+      },
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "id"
+        ]
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /creator-studio/owner/marketplace/:id/withdraw",
+      "workspace": "creator_studio",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-creator-marketplace-routes.cjs",
+        "line": 505
+      },
+      "destination": {
+        "route": "/creator-studio/owner/marketplace",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_listings",
+        "creator_marketplace_entries"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "id"
+        ]
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -270760,7 +271894,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1165
+        "line": 1168
       },
       "destination": {
         "route": "/logout",
@@ -271169,7 +272303,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1311
+        "line": 1314
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271239,7 +272373,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1274
+        "line": 1277
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271249,7 +272383,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1493
+        "line": 1496
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271259,7 +272393,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1517
+        "line": 1520
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271299,7 +272433,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1541
+        "line": 1544
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271509,7 +272643,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 939
+        "line": 942
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271709,7 +272843,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 414
+        "line": 419
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -271719,7 +272853,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-approval-graph-routes.cjs",
-        "line": 440
+        "line": 445
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

@@ -39,7 +39,12 @@ const CINEMATIC = new Set([
   // the same reason /free-tools is one: a visitor who has not chosen a studio
   // lands on it to find out what there is. The three tools it links are on the
   // calm side below -- a directory orients, a calculator is worked.
-  "/tools"
+  "/tools",
+  // Creator Studio's public marketplace, added 3 October 2026. Browsing what is
+  // for sale is the definition of a front door: nobody arriving here is mid-task,
+  // and the page's job is to show what exists. The page a buyer opens for one
+  // listing is parameterised and not on either list.
+  "/marketplace"
 ]);
 
 // Public pages that stay calm, each with the reason. Being public is not the

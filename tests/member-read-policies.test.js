@@ -93,7 +93,16 @@ const SERVICE_ROLE_ONLY = new Map([
   // where the business's revenue settles, and a member who could write it could
   // redirect it. Connecting and disconnecting are owner actions, so the read is
   // owner-level too. Same reason as business_permission_grants above.
-  ["business_payment_accounts", "names where the business's money settles; connect and disconnect are owner actions, so the read is owner-level"]
+  ["business_payment_accounts", "names where the business's money settles; connect and disconnect are owner actions, so the read is owner-level"],
+  // Creator Studio's marketplace listings, added 3 October 2026. Closed by
+  // decision: it is in verify-migration-replay's closed set, asserted against the
+  // live catalogue. The reason is that a listing's clearance depends on its
+  // version and that version's approvals, and those tables are closed too -- a
+  // member able to read listings but not what clears them would see a sale they
+  // cannot evaluate. Every read and write goes through the server, which applies
+  // lib/sonara-creator-marketplace.cjs. The public side reads
+  // creator_marketplace_entries, which has no organization and is not tenant data.
+  ["creator_listings", "closed with the approval-graph tables its clearance depends on; every read goes through the marketplace gate on the server"]
 ]);
 
 // Not tenant data at all, so member scoping does not apply.

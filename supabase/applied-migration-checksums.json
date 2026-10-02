@@ -143,5 +143,6 @@
   "20261002120000_a_storefront_a_stranger_can_buy_from.sql": "45f6a566ea9c4dc43f5302e708a662507c7b9e968cfd9f4cc5b00b75fe252913",
   "20261002010000_creator_approval_graph.sql": "7f867b1f6e8f46ea8beca1f4c75b4a42062b78a681066d57fd2bbbabb4980006",
   "20261003010000_a_profile_a_person_can_set.sql": "7b8864102b57bec324bd33f9d3d3009d369a4b6d43613a698601688d49f3427a",
-  "20261002075825_included_generation_periods.sql": "5e12843d34f4b19877e5bead104b4cdecf0f647fdde154884455f79c4baf4cdb"
+  "20261002075825_included_generation_periods.sql": "5e12843d34f4b19877e5bead104b4cdecf0f647fdde154884455f79c4baf4cdb",
+  "20261003060000_a_marketplace_for_creative_work.sql": "e81dc46839392e0836b59b55abab586db30416ce32cd3d3f273a14ea02732b0d"
 }

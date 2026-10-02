@@ -2,6 +2,108 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - A marketplace, and two bugs the module tests could not see
+
+The owner's brief: "Creator studio comes with a Marketplace. Where users can sell and
+monetize the audio and video creations and generations, pictures and art."
+
+**The rule that organises it: you cannot sell what you cannot publish.**
+`lib/sonara-creator-marketplace.cjs` composes `publishReadiness` from the approval
+graph rather than restating its conditions -- two functions each deciding "is this
+cleared" agree on the day they are written and drift on the day somebody adds a
+blocker to one. Its test adds a blocker on the publish side and asserts it reaches the
+listing side, which is the only way to check a composition rather than a coincidence.
+
+What listing adds, each about money rather than approval: rights attested (three
+states, unanswered refuses), consent separately when a person's voice, face or
+likeness is in it -- holding the copyright in a recording is not permission to sell a
+synthetic version of it -- a price nobody set refused rather than offered at nothing,
+a licence chosen from four that each say what they mean, and a currency mismatch
+refused rather than converted at a rate nobody agreed. Nothing takes money: checkout
+needs the owner's commerce credentials, and a cleared listing says so instead of
+showing a Buy button that cannot charge.
+
+**Bug one, shipped in the module for about ten minutes.** `publicListing` compared
+the disclosure against `"disclosed"`, which is not one of the approval graph's three
+values (`declared_ai`, `declared_human`, `not_recorded`). A work whose AI disclosure
+had been recorded would have been shown to buyers as not disclosed -- silently, in the
+worst direction. It imports the graph's `DISCLOSURE` now.
+
+**Bug two, which 39 passing module tests could not see.** The routes filtered
+`creator_asset_approvals` on `version_id`. That table keys on `asset_version_id`. Every
+approvals read would have failed, every listing would have refused as
+`approval_unreadable`, and nothing could ever have gone on sale. The routes also read
+no `created_at`, and a review request has no `decided_at` -- so a re-review requested
+after an approval would have sorted *first*, and the listing would have stayed cleared
+in exactly the case where somebody had stopped being sure. A module test cannot see the
+query a route builds. `tests/a-listing-on-sale-is-a-listing-still-cleared.test.js`
+drives the real routes against a recording fetch and checks every column they name
+against the table's real columns from the generated inventory; restoring `version_id`
+fails it by name.
+
+**The cross-tenant test refused my first public page, correctly.** `/marketplace` read
+`creator_listings` across every organization in one query.
+`tests/cross-tenant-isolation.test.js` holds that a signed-in route never queries a
+tenant-scoped table without an organization, and it has no exemption list --
+deliberately. So instead of an exemption, the public side got a table that is not
+tenant data: `creator_marketplace_entries`, **no organization_id and no column a buyer
+may not see**, with the migration asserting the exact column set so a column added
+later fails the replay rather than quietly becoming public. The public pages read that
+and nothing else. A public query against it cannot leak a private field because there
+is none to leak, which is stronger than a public query that remembered to leave one
+out.
+
+That first page had a second problem the redesign removed: it called
+`versionFor(null, ...)`, which built `organization_id=eq.null` -- a filter matching
+nothing -- so the public marketplace could never have shown a single listing.
+
+**A snapshot has to be kept true, so the routes own that.** Listing asks the gate again
+at the moment of the decision and writes exactly what it cleared, state first and
+catalogue second, putting the state back if the catalogue write fails. Withdrawing
+removes the catalogue row first, so a failure leaves the work off sale. An edit to
+something on sale re-asks: a new price refreshes what buyers see, an edit that makes it
+unsellable takes it down and says why. And `takeVersionOffSale` is called from the
+approval graph when a version's approval is withdrawn, rejected, or reopened for
+review -- the snapshot cannot see an approval change, so the place the approval changes
+takes it down. Every one of its queries is scoped to the organization.
+
+**Three smaller things the gates found:** the empty-state check refused my copy, which
+said "*so there is nothing to offer for sale*" in the branch where the versions could
+not be read -- a claim of emptiness as the consequence of a failed read; the
+row-link crawl found `/marketplace/undefined` for an entry without an id; and the
+reserved-handle check found `marketplace` claimable as a creator handle.
+
+**And a gap in a check that is not mine.** `tests/member-read-policies.test.js`
+examines 57 tables and cannot see 30 more -- every table read through a `*_TABLE`
+constant instead of a literal URL. It reports full coverage over a third of its
+population missing. `creator_listings` was caught only because one function names it
+literally. Recorded here and fixed in the next change, not this one.
+
+| break | result |
+|---|---|
+| approvals filtered on `version_id` again | 2 red, one listing the non-existent column |
+| `created_at` dropped from the approvals read | 1 red |
+| the public page reads `creator_listings` again | 1 red, naming the table |
+| withdraw changes state before stopping the sale | 2 red |
+| a price edit leaves the old public price | 1 red |
+| the approval-graph hook removed from `decide` | 1 red |
+| an `organization_id` on the public catalogue | replay red, listing the columns |
+| the creator's private note added to the catalogue | replay red, listing the columns |
+| the module stops composing `publishReadiness` | 6 red |
+| an unanswered rights attestation reads as yes | 5 red |
+| silence about a person read as no person | 1 red |
+| a price of zero offered | 1 red |
+| the disclosure compared to a literal again | 2 red |
+| a draft shown publicly | 1 red |
+| `rights_attested` not null default false | replay red |
+| `price_cents` default 0 | replay red |
+| a payout column / a card column | replay red, each by name |
+| the state check removed | replay red |
+
+`pnpm test` 5845 passing; `verify:gates` 0; `verify:db`, lint, typecheck, build,
+smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file.
+
+
 ### 2026-10-03 - My subscription gate could not see the limiter the next merge added
 
 Two things from merging `main` at 090b9904 (#417 and #418), both found because the

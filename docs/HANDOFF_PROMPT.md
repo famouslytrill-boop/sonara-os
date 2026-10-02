@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3055 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3058 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 148 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 428 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- Supabase over PostgREST for data. 149 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- 44 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
+- 430 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,115 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 24 most recent entries of 431 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 24 most recent entries of 432 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-03 - A marketplace, and two bugs the module tests could not see
+
+The owner's brief: "Creator studio comes with a Marketplace. Where users can sell and
+monetize the audio and video creations and generations, pictures and art."
+
+**The rule that organises it: you cannot sell what you cannot publish.**
+`lib/sonara-creator-marketplace.cjs` composes `publishReadiness` from the approval
+graph rather than restating its conditions -- two functions each deciding "is this
+cleared" agree on the day they are written and drift on the day somebody adds a
+blocker to one. Its test adds a blocker on the publish side and asserts it reaches the
+listing side, which is the only way to check a composition rather than a coincidence.
+
+What listing adds, each about money rather than approval: rights attested (three
+states, unanswered refuses), consent separately when a person's voice, face or
+likeness is in it -- holding the copyright in a recording is not permission to sell a
+synthetic version of it -- a price nobody set refused rather than offered at nothing,
+a licence chosen from four that each say what they mean, and a currency mismatch
+refused rather than converted at a rate nobody agreed. Nothing takes money: checkout
+needs the owner's commerce credentials, and a cleared listing says so instead of
+showing a Buy button that cannot charge.
+
+**Bug one, shipped in the module for about ten minutes.** `publicListing` compared
+the disclosure against `"disclosed"`, which is not one of the approval graph's three
+values (`declared_ai`, `declared_human`, `not_recorded`). A work whose AI disclosure
+had been recorded would have been shown to buyers as not disclosed -- silently, in the
+worst direction. It imports the graph's `DISCLOSURE` now.
+
+**Bug two, which 39 passing module tests could not see.** The routes filtered
+`creator_asset_approvals` on `version_id`. That table keys on `asset_version_id`. Every
+approvals read would have failed, every listing would have refused as
+`approval_unreadable`, and nothing could ever have gone on sale. The routes also read
+no `created_at`, and a review request has no `decided_at` -- so a re-review requested
+after an approval would have sorted *first*, and the listing would have stayed cleared
+in exactly the case where somebody had stopped being sure. A module test cannot see the
+query a route builds. `tests/a-listing-on-sale-is-a-listing-still-cleared.test.js`
+drives the real routes against a recording fetch and checks every column they name
+against the table's real columns from the generated inventory; restoring `version_id`
+fails it by name.
+
+**The cross-tenant test refused my first public page, correctly.** `/marketplace` read
+`creator_listings` across every organization in one query.
+`tests/cross-tenant-isolation.test.js` holds that a signed-in route never queries a
+tenant-scoped table without an organization, and it has no exemption list --
+deliberately. So instead of an exemption, the public side got a table that is not
+tenant data: `creator_marketplace_entries`, **no organization_id and no column a buyer
+may not see**, with the migration asserting the exact column set so a column added
+later fails the replay rather than quietly becoming public. The public pages read that
+and nothing else. A public query against it cannot leak a private field because there
+is none to leak, which is stronger than a public query that remembered to leave one
+out.
+
+That first page had a second problem the redesign removed: it called
+`versionFor(null, ...)`, which built `organization_id=eq.null` -- a filter matching
+nothing -- so the public marketplace could never have shown a single listing.
+
+**A snapshot has to be kept true, so the routes own that.** Listing asks the gate again
+at the moment of the decision and writes exactly what it cleared, state first and
+catalogue second, putting the state back if the catalogue write fails. Withdrawing
+removes the catalogue row first, so a failure leaves the work off sale. An edit to
+something on sale re-asks: a new price refreshes what buyers see, an edit that makes it
+unsellable takes it down and says why. And `takeVersionOffSale` is called from the
+approval graph when a version's approval is withdrawn, rejected, or reopened for
+review -- the snapshot cannot see an approval change, so the place the approval changes
+takes it down. Every one of its queries is scoped to the organization.
+
+**Three smaller things the gates found:** the empty-state check refused my copy, which
+said "*so there is nothing to offer for sale*" in the branch where the versions could
+not be read -- a claim of emptiness as the consequence of a failed read; the
+row-link crawl found `/marketplace/undefined` for an entry without an id; and the
+reserved-handle check found `marketplace` claimable as a creator handle.
+
+**And a gap in a check that is not mine.** `tests/member-read-policies.test.js`
+examines 57 tables and cannot see 30 more -- every table read through a `*_TABLE`
+constant instead of a literal URL. It reports full coverage over a third of its
+population missing. `creator_listings` was caught only because one function names it
+literally. Recorded here and fixed in the next change, not this one.
+
+| break | result |
+|---|---|
+| approvals filtered on `version_id` again | 2 red, one listing the non-existent column |
+| `created_at` dropped from the approvals read | 1 red |
+| the public page reads `creator_listings` again | 1 red, naming the table |
+| withdraw changes state before stopping the sale | 2 red |
+| a price edit leaves the old public price | 1 red |
+| the approval-graph hook removed from `decide` | 1 red |
+| an `organization_id` on the public catalogue | replay red, listing the columns |
+| the creator's private note added to the catalogue | replay red, listing the columns |
+| the module stops composing `publishReadiness` | 6 red |
+| an unanswered rights attestation reads as yes | 5 red |
+| silence about a person read as no person | 1 red |
+| a price of zero offered | 1 red |
+| the disclosure compared to a literal again | 2 red |
+| a draft shown publicly | 1 red |
+| `rights_attested` not null default false | replay red |
+| `price_cents` default 0 | replay red |
+| a payout column / a card column | replay red, each by name |
+| the state check removed | replay red |
+
+`pnpm test` 5845 passing; `verify:gates` 0; `verify:db`, lint, typecheck, build,
+smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file.
+
+
+
 
 ### 2026-10-03 - My subscription gate could not see the limiter the next merge added
 
@@ -2062,143 +2166,3 @@ too, so the case had to be rewritten to assert what the branch is actually for
 -- that a comment inside an interpolation is removed.
 
 Files restored by copy-aside and `md5sum -c` throughout.
-
-
-### 2026-10-01 - A business owner gets a second thing to know
-
-Asked for business owners to have their own passwords for the security and
-management of their business -- employees, sub-applications, time clocks,
-employee operations.
-
-### The gap, measured rather than assumed
-
-`requireBusinessManager` in `server.js` proves exactly two things: the request
-carries a valid customer session, and that user holds an active `owner` or
-`manager` row in `business_memberships`. Both are properties of the **browser**.
-`CUSTOMER_SESSION_MAX_AGE_SECONDS` is one hour and
-`CUSTOMER_REFRESH_MAX_AGE_SECONDS` is thirty days, both read out of
-`lib/sonara-customer-auth.cjs`. So for up to a month, whoever holds the browser
-holds every employee record, wage rate, pay statement, the time clock and the pay
-run, with nothing further to know.
-
-`lib/sonara-business-passcode.cjs` is the thing that is not in the browser.
-`supabase/migrations/20261001150000_a_business_owner_gets_a_second_thing_to_know.sql`
-adds `business_management_credentials`, one row per business, RLS on with no
-policy -- every read goes through the server, which is the only context holding
-the pepper.
-
-**Hashed, not encrypted, and the word matters.** Encryption is reversible by
-whoever holds the key. A passcode is HMAC'd under a pepper derived from
-`SONARA_TOTP_KEY` -- environment only, never the database -- and that result is
-run through scrypt at 2^15. Nobody can read a passcode back out, including
-SONARA; there is no recovery, only replacement. This is the opposite call from
-`lib/sonara-secret-box.cjs`, which *rejected* scrypt for recovery codes, and both
-are right: a recovery code is ninety-six random bits where slow hashing buys
-nothing, and a passcode is chosen by a person where it is the whole defence.
-
-The unlock is an HMAC token in a `SameSite=Strict` httpOnly cookie, signed over
-organization, user, expiry **and the credential's `updated_at`**. Changing the
-passcode moves that value, so every outstanding unlock stops verifying at once,
-on every device. That is what makes a change a way to remove access rather than a
-note for next time.
-
-### Two defects in my own code, both found by running it
-
-Neither was visible by reading, which is why the probe happened before the tests.
-
-* `if (isPasswordLeaked(value))` tested the **Promise** an async function
-  returns -- always truthy -- so **every** passcode was rejected as breached,
-  including good ones. The real function also returns `{ leaked, checked }`, not
-  a boolean, and reaches the network. It is now a separate async wrapper, and
-  `checked: false` reports `breachCheck: "unavailable"` rather than "clear",
-  because a lookup that did not happen is not evidence of anything.
-* A "counting" rule compared the digits against the literal `"0123456789"` while
-  also requiring twelve digits. No twelve-character string can satisfy both, so
-  the rule **could never fire**. Replaced with the actual question -- is every
-  adjacent character one step from the last -- which works at any length.
-
-### What the gate does when no passcode is set
-
-It lets the request through, and says so on the page: *"protected by your sign-in
-alone"*. Refusing would lock an owner out of their own payroll over a feature
-nobody has told them about. What it must never do is pass **quietly**, so the
-banner has its own test; make the gate silent and that test fails.
-
-Three further states are refusals, and none is collapsed into "no passcode set":
-the credential row could not be read, the verifying key is not configured, and
-the credential is locked out. Reading a failed database call as "this business has
-no passcode" would be a way through the gate by breaking something.
-
-### What CodeQL caught that the tests did not
-
-The first push raised four high-severity alerts, and two of them were fair.
-
-`js/weak-password-hashing`, twice: the construction peppered **before**
-stretching -- `scrypt(HMAC(pepper, passcode), salt)` -- so the passcode's first
-stop was HMAC-SHA-256, a deliberately fast hash. The security property was the
-same either way, and the reading was still right: "the slow part is further down
-this file" is a property of the file rather than of the line, and whoever next
-moved the `scryptSync` call would take the protection with it and nothing would
-say so. It is now `HMAC(pepper, scrypt(passcode, salt))` -- the passcode goes
-straight into scrypt, the pepper is applied over the digest, which is the
-construction OWASP describes for a pepper held outside the database.
-
-`js/missing-rate-limiting`, twice, on the two handlers that verify a passcode.
-The limiter was attached but its fallback was `(req, res, next) => next()`, so a
-deployment that forgot to pass `createRateLimiter` would have served an
-unthrottled passcode-guessing endpoint while every line of the module still read
-as rate-limited. The fallback now refuses, and `/lock` is throttled too. The
-five-wrong-answers lockout was never a substitute: it counts per credential, so
-it bounds guesses against one business rather than requests from one caller
-across all of them.
-
-Those two alerts stay open, and `SECURITY_NOTES.md` says why. CodeQL recognises
-rate limiting from a short list of npm packages and has no model for this
-repository's own `createRateLimiter`; adding `express-rate-limit` to quiet a
-scanner would be a tenth production dependency for a capability the codebase
-already has. They are not dismissed either -- dismissing them would remove the
-only visible record that the pattern exists, so a future handler with genuinely
-no limiter would look like the same accepted noise.
-
-What replaced the assurance is a measurement: four tests wire the **real**
-limiter into the real routes with the RPC counter mocked, and prove the eleventh
-attempt in the five-minute window is refused, that it never reaches the
-credential read, that `Retry-After: 300` is sent, that both an address bucket and
-a person bucket are consumed, and that `/passcode` and `/lock` are throttled as
-well. Falsified by taking the limiter off `/unlock` (four red), dropping the
-`subject` scope (one red), and raising `maxAttempts` to 10,000 (three red).
-
-Also corrected: `EXPECTED_FILES` in `scripts/verify-proprietary-notice.mjs` said
-328 against 330. It passed locally and failed in CI because the script enumerates
-tracked files, and the two new ones were still untracked when the chain was run.
-Run the chain after `git add`, not before.
-
-### Verified
-
-57 tests in `tests/a-management-passcode-is-a-second-thing-to-know.test.js`, each
-falsified before being trusted. Twelve breaks, each caught by name:
-
-| Broken                                               | Test that went red                                        |
-| ---------------------------------------------------- | --------------------------------------------------------- |
-| Dropped the gate from one protected surface           | names only surfaces server.js actually puts the gate in front of |
-| Failed credential read returned "no passcode set"     | refuses when the credential cannot be read                 |
-| Unlock token stopped being bound to the passcode version | stops working the moment the passcode changes           |
-| Reintroduced the Promise bug                          | accepts an ordinary phrase, +5 others                      |
-| Verified the passcode before checking the lockout     | refuses to unlock while locked                             |
-| Removed the "nothing is protected" wording            | says plainly that nothing is protected when no passcode is set |
-| Removed the `service_role` grant                      | the migration's own assertion, against real PostgreSQL     |
-| Added an RLS policy to the credential table           | likewise                                                   |
-| Pointed the smoke probe at a typo                     | `/business-builder/owner/security` is not served            |
-| Went back to peppering before scrypt                  | puts the passcode into scrypt first and nothing faster      |
-| Dropped the pepper entirely                           | does not verify under a different pepper, +1                |
-| Restored the passthrough rate-limiter fallback        | refuses to serve the passcode endpoints with no rate limiter |
-
-Every touched file restored by copy-aside and `md5sum -c`, not
-`git checkout --`.
-
-One stale comment removed on the way past: the block above the pay-period and
-owner-administration registrations in `server.js` called them "read-only and
-admin-gated" over "tables that cross every organization". Both are
-organization-scoped, both write, and the admin plane was removed the same day. A
-wrong reason inside a gate is worse than none, because it is what the next person
-reads instead of checking.

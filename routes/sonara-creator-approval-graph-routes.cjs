@@ -25,6 +25,11 @@
 // the shape routes/sonara-agent-activity-routes.cjs already shipped once.
 
 const graph = require("../lib/sonara-creator-approval-graph.cjs");
+// A version that stops being approved cannot stay on sale. The marketplace keeps a
+// public snapshot of what it cleared, and the snapshot cannot see an approval
+// change by itself -- so the place where the approval changes is the place that
+// takes it down.
+const { takeVersionOffSale } = require("./sonara-creator-marketplace-routes.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
@@ -541,6 +546,12 @@ function registerCreatorApprovalGraphRoutes(app, deps = {}) {
       })
     }).catch(() => undefined);
 
+    // Asking for review again means somebody is no longer sure, which is exactly
+    // what un-clears a version (the approval graph reads the latest decision, and a
+    // request is a decision). Anything on sale from it comes down now.
+    if (written?.ok) {
+      await takeVersionOffSale({ config: scope.config, supabaseHeaders, organizationId: scope.organizationId, versionId });
+    }
     return res.redirect(303, back(written?.ok ? { done: "review" } : { problem: "save_failed" }));
   });
 
@@ -573,6 +584,10 @@ function registerCreatorApprovalGraphRoutes(app, deps = {}) {
       })
     }).catch(() => undefined);
 
+    // Rejected or withdrawn: nothing from this version may stay on sale.
+    if (written?.ok && state !== "approved") {
+      await takeVersionOffSale({ config: scope.config, supabaseHeaders, organizationId: scope.organizationId, versionId });
+    }
     return res.redirect(303, back(written?.ok ? { done: state } : { problem: "save_failed" }));
   });
 }
