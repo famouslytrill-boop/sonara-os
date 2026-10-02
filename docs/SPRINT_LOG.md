@@ -2,6 +2,44 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - Three CodeQL alerts on the multipart parser, measured before fixed
+
+PR #415 merged with CodeQL red on its last two heads: three high-severity alerts,
+all in `lib/sonara-multipart.cjs`, a file that PR never edited. The profile picture
+upload it added made `multipart.parse` reachable from a new request path, and the
+dataflow connected. The alerts were therefore on `main`, which made them this
+change's first job.
+
+Each was measured rather than taken on the scanner's word -- in both directions.
+
+**Polynomial regular expression on the Content-Type header.**
+`/^multipart\/form-data\s*;\s*(.*)$/i` has two quantifiers that can each take a
+space; on a header that fails at the end it backtracks between them. Measured: 5ms
+at 2,000 characters, 20ms at 4,000, 72ms at 8,000, 278ms at 16,000 -- four times
+the cost per doubling. The failing input needs a line feed inside the header, which
+Node's HTTP parser rejects, so the scanner was right about the shape and probably
+wrong about reachability. Fixed anyway, with string operations: whether a regex is
+safe should not depend on which parser sits in front of it. The replacement refuses
+a line terminator anywhere, exactly as the old pattern's `.` did, so it is no more
+permissive than what it replaced. Same input, 0.02ms.
+
+**Two remote property injections.** `parse` wrote every form field onto a plain
+object under the name the sender chose, and `parseDisposition` did the same with
+every parameter on the Content-Disposition line. Measured: a field called
+`constructor` replaced `fields.constructor` with a string, and a field called
+`__proto__` stored nothing, counted nothing against the field limit, and vanished.
+Both now collect into a `Map`; `parseDisposition` reads back only `name` and
+`filename` by literal key, and `parse` returns its fields through `Object.fromEntries`,
+which defines own data properties and runs no setter. `constructor`, `__proto__` and
+`prototype` are refused as field names outright -- no form here uses them, so a
+request that does is refused rather than reinterpreted.
+
+`tests/a-form-field-cannot-name-a-property.test.js`: 11 tests. Against the flagged
+code, 5 fail by name -- the three reserved names, the write-site check, and the
+timing test, which measured **2,688ms** for a 50,000-character header against a
+200ms bound. The existing 35 upload tests and 29 profile tests pass unchanged.
+
+
 ### 2026-10-03 - A marketplace, and two bugs the module tests could not see
 
 The owner's brief: "Creator studio comes with a Marketplace. Where users can sell and
