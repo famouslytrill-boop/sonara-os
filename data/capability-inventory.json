@@ -90334,7 +90334,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 498
+        "line": 511
       },
       "contractCompleteness": {
         "route": true,
@@ -171865,7 +171865,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 529
+        "line": 542
       },
       "contractCompleteness": {
         "route": true,
