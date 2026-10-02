@@ -2,6 +2,69 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - A test that was only true on the day it was written
+
+`main` went red overnight with nothing pushed to it. Two tests in
+`tests/work-that-comes-round-again-comes-round-once.test.js` -- mine, from the
+recurring-work change on 1 October -- failed because the date changed.
+
+    AssertionError: the task was dated the first missed day rather than the most recent one
+    + actual   '2026-10-02T12:00:00.000Z'
+    - expected '2026-10-01T12:00:00.000Z'
+
+The engine was right and the test was wrong. `const TODAY = "2026-10-01"` was a
+literal, and the comment above it read "Fixed so every assertion below reads
+against one day rather than against whenever the suite happens to run" -- which is
+the reasoning error, written down and made to look deliberate.
+
+**One constant was doing two incompatible jobs.** Eight engine tests inject the
+clock (`isDue(template, { now: NOW })`) and their arithmetic depends on a pinned
+day: `passedOver: 20` is exactly 10 September to 1 October, so a moving day would
+make them meaningless. Two route tests drive
+`POST /api/business/recurring-work/run` over HTTP, where the engine reads the
+process clock and no fixture can reach it. Those two compared the real clock's
+answer against the literal, so they were true on 1 October and false on 2 October.
+
+Now split: `FIXED_DAY` stays pinned for the injected-clock tests, and `REAL_TODAY`
+plus a `daysBefore` helper derive the route tests' expectations from the same
+clock the code reads.
+
+### A second one, four days from going off
+
+Then the file was searched for the shape rather than for the failure: every
+`it(...)` that calls `request(app)` and also carries a date literal. Four came
+back, and one was a bomb.
+
+"records the occurrence it issued, not the day it was pressed" used a weekly
+template starting 4 August, last issued 8 September. Those occurrences land on 29
+September and then **6 October**. It passed on 2 October and would have started
+failing on 6 October. Same defect, not yet triggered, and it would have broken
+`main` again on a day nobody was expecting it.
+
+The other three send `starts_on: "2026-10-06"` as form input, and
+`lib/sonara-recurring-tasks.cjs` never compares `starts_on` to today -- checked
+rather than assumed, because a past start date is the entire point of catch-up.
+Those are genuinely date-independent and were left alone.
+
+### Kept sharp rather than made to pass
+
+The easy fix is to assert whatever the engine produced, which would have removed
+the failure and the test. Both route tests now assert in both directions: the task
+carries the most recent day due **and** not the first day missed; the template
+moves to the occurrence **and** not to the day the button was pressed. Those two
+days are deliberately different -- the weekly fixture lands three days before
+today -- because if they coincided the second assertion would prove nothing.
+
+Proven by breaking: reintroducing the stepping bug in `latestDue` turns **seven**
+red including the HTTP-driven one, and making the route record the press day turns
+the new assertion red by name. Restores were copy-aside plus `md5sum -c`.
+
+`faketime` is not available here, so date-independence is not proven by moving the
+clock -- it rests on there being no date literal left in either route test and on
+both expectations deriving from the clock the route reads. Worth saying plainly
+rather than claiming more.
+
+
 ### 2026-10-01 - Ordering by a column was counting as reading it
 
 `report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
