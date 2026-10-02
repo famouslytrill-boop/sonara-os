@@ -2,6 +2,81 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - Reading the wrong exit code, and an email check that could be made slow
+
+Two commits went out saying `verify:gates 0` while the chain was exiting 1. The
+mistake is worth writing down because it is the second instance in one session of
+the same class, and the class is this repository's own subject: **a signal that
+reports success without being true**, this time in how I read the signal rather
+than in the signal itself.
+
+The command was:
+
+    pnpm run verify:gates > out.txt 2>&1; echo "GATES: $?"
+
+The task runner reports the exit status of the **compound** command, and `echo`
+always succeeds, so it reported 0. The chain had failed, and `out.txt` ended with
+`ELIFECYCLE Command failed with exit code 1` the whole time. The earlier instance
+in the same session was reading `$?` after a pipe. Both have the same shape: the
+status examined is not the status of the thing being tested.
+
+**The practice that replaces it:** write the real code to its own file --
+`{ pnpm run verify:gates > out.txt 2>&1; echo $? > gates.code; }` -- and read that
+file. There is then nothing in the chain of custody that can succeed on its own.
+Doing that immediately showed exit 1 twice more, for two further causes, which is
+the point.
+
+**What was actually failing.** `verify:api`: seven POST routes registered by Express
+and absent from `openapi/sonara.yaml` -- the four Growth Studio event endpoints and
+the three storefront ones. Then `verify:handoff` behind it, stale. Then
+`report-unused-selected-columns` on five columns in the store route.
+
+**The CodeQL alert was real, and it is measured rather than asserted.** High
+severity, *Polynomial regular expression used on uncontrolled data*, on the email
+check `/^[^@\s]+@[^@\s]+\.[^@\s]+$/` in `lib/sonara-growth-events.cjs` -- which runs
+on whatever a stranger types into the public RSVP form. `[^@\s]` matches `.`, so
+`[^@\s]+\.[^@\s]+` can split a run of punctuation many ways and the engine tries
+them.
+
+On the shape CodeQL named (`!@!.` then repetitions of `!.`): 1.3ms at 2,005
+characters, 4.9ms at 4,005, 19.6ms at 8,005. Quadrupling as the length doubles, which
+is the quadratic signature. Free to send, expensive to match, and there was no
+length bound before the regex.
+
+`lib/sonara-email-shape.cjs` replaces it with `indexOf`/`lastIndexOf` and one
+whitespace scan -- no quantifier to be ambiguous -- and refuses anything over 320
+characters before walking. It had to agree with the two check constraints on
+`growth_event_rsvps.email` and `merchant_orders.buyer_email`, because a validator
+looser than a constraint produces a save that fails in production with no
+explanation.
+
+**Two assertions in my own new test were wrong.** It asserted *exact* agreement with
+the constraint and failed on `a@b.co.`, which PostgreSQL accepts because `[^@\s]+`
+matches a dot so `co.` satisfies the final group. Being stricter is safe; claiming
+exact agreement was the overclaim, so it now asserts only the dangerous direction --
+never accept what the row refuses -- and records where it is deliberately tighter.
+And its "no quadratic pattern remains" check failed on the new module's **own header
+comment**, which quotes the old pattern in order to explain the replacement: prose
+matched as code, the third time in this session's work after the contract check's
+money scan hit it twice. It strips comments with the shared stripper now.
+
+The two-sided half of that exceptions list then refused an entry I had written for
+`a@b.`, because the database rejects that one too, so the reason described no
+disagreement. That is the check doing to my list exactly what
+`report-orphan-tables.mjs` does to its own.
+
+**Five selected columns in the store route**, from my own gate. Two are gone rather
+than ruled on (`category` and `sku` were selected and shown nowhere -- the time to
+select a column is when something reads it). One is now rendered: an order's
+`created_at`, because an owner looking at an order needs to know when it came in.
+Two are recorded in `ACCOUNTED` with the lines that read them, both in
+`lib/sonara-merchant-storefront.cjs`: `price_cents` at line 114 and `product_id` at
+line 178.
+
+`lib/sonara-env-value-checks.cjs` keeps the old email pattern. It reads environment
+variables set at deploy time, which is not uncontrolled data in the sense CodeQL
+means, and sweeping it in would be a different change. Worth doing separately.
+
 ### 2026-10-02 - A price nobody set is not free
 
 Business Builder could hold products and variants with prices. It could not put

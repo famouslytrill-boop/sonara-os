@@ -1413,6 +1413,91 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/growth/venues:
+    post:
+      operationId: addGrowthVenue
+      tags: [Growth Studio]
+      summary: Add a venue an event can happen at.
+      description: >-
+        Capacity is optional and is stored as null when not given. Null means
+        nobody has recorded a capacity, which is neither zero nor unlimited.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the events page with a done or problem code. A refused or failed write redirects the same way with a problem code, so this status does not by itself mean a row was written." }
+  /api/growth/events:
+    post:
+      operationId: addGrowthEvent
+      tags: [Growth Studio]
+      summary: Add an event, always as a draft.
+      description: >-
+        Saved as a draft whatever is posted. Putting something on a public URL is
+        its own action at /api/growth/events/publish rather than a side effect of
+        saving a draft.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the events page with a done or problem code." }
+  /api/growth/events/publish:
+    post:
+      operationId: publishGrowthEvent
+      tags: [Growth Studio]
+      summary: Give an event a public address and publish it.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code. An address another organization holds is refused with problem=slug_taken rather than a constraint violation." }
+  /api/growth/events/cancel:
+    post:
+      operationId: cancelGrowthEvent
+      tags: [Growth Studio]
+      summary: Cancel an event, with a reason the people who booked will read.
+      description: >-
+        A cancellation is not a delete and keeps the event's public address. Somebody
+        holding an RSVP opens the page they were given and is told it is off; a 404
+        would tell them nothing.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code." }
+  /api/business/storefront:
+    post:
+      operationId: saveMerchantStorefront
+      tags: [Business Builder]
+      summary: Name the shop, set its currency, and open or close it to orders.
+      description: >-
+        One storefront per organization, so this updates the existing row rather than
+        creating a second. Taking orders is separate from being published: a shop can
+        be readable while closed.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the shop page with a done or problem code." }
+  /api/business/storefront/publish:
+    post:
+      operationId: publishMerchantStorefront
+      tags: [Business Builder]
+      summary: Give the shop a public address and publish it.
+      description: >-
+        Publishes only on an explicit yes. A posted form with the field absent leaves
+        the shop private rather than putting it on a public URL.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code. An address another organization holds is refused with problem=slug_taken." }
+  /api/business/orders/status:
+    post:
+      operationId: setMerchantOrderStatus
+      tags: [Business Builder]
+      summary: Confirm, fulfil or cancel an order.
+      description: >-
+        Cancelling records a reason and keeps the order. No money moves through this
+        endpoint: an order is a record of what somebody wants, and payment runs
+        through the organization's own connected account.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code." }
   /api/creator/briefs:
     post:
       operationId: openCreatorBrief

@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 143 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 421 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 422 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,88 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 423 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 424 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - Reading the wrong exit code, and an email check that could be made slow
+
+Two commits went out saying `verify:gates 0` while the chain was exiting 1. The
+mistake is worth writing down because it is the second instance in one session of
+the same class, and the class is this repository's own subject: **a signal that
+reports success without being true**, this time in how I read the signal rather
+than in the signal itself.
+
+The command was:
+
+    pnpm run verify:gates > out.txt 2>&1; echo "GATES: $?"
+
+The task runner reports the exit status of the **compound** command, and `echo`
+always succeeds, so it reported 0. The chain had failed, and `out.txt` ended with
+`ELIFECYCLE Command failed with exit code 1` the whole time. The earlier instance
+in the same session was reading `$?` after a pipe. Both have the same shape: the
+status examined is not the status of the thing being tested.
+
+**The practice that replaces it:** write the real code to its own file --
+`{ pnpm run verify:gates > out.txt 2>&1; echo $? > gates.code; }` -- and read that
+file. There is then nothing in the chain of custody that can succeed on its own.
+Doing that immediately showed exit 1 twice more, for two further causes, which is
+the point.
+
+**What was actually failing.** `verify:api`: seven POST routes registered by Express
+and absent from `openapi/sonara.yaml` -- the four Growth Studio event endpoints and
+the three storefront ones. Then `verify:handoff` behind it, stale. Then
+`report-unused-selected-columns` on five columns in the store route.
+
+**The CodeQL alert was real, and it is measured rather than asserted.** High
+severity, *Polynomial regular expression used on uncontrolled data*, on the email
+check `/^[^@\s]+@[^@\s]+\.[^@\s]+$/` in `lib/sonara-growth-events.cjs` -- which runs
+on whatever a stranger types into the public RSVP form. `[^@\s]` matches `.`, so
+`[^@\s]+\.[^@\s]+` can split a run of punctuation many ways and the engine tries
+them.
+
+On the shape CodeQL named (`!@!.` then repetitions of `!.`): 1.3ms at 2,005
+characters, 4.9ms at 4,005, 19.6ms at 8,005. Quadrupling as the length doubles, which
+is the quadratic signature. Free to send, expensive to match, and there was no
+length bound before the regex.
+
+`lib/sonara-email-shape.cjs` replaces it with `indexOf`/`lastIndexOf` and one
+whitespace scan -- no quantifier to be ambiguous -- and refuses anything over 320
+characters before walking. It had to agree with the two check constraints on
+`growth_event_rsvps.email` and `merchant_orders.buyer_email`, because a validator
+looser than a constraint produces a save that fails in production with no
+explanation.
+
+**Two assertions in my own new test were wrong.** It asserted *exact* agreement with
+the constraint and failed on `a@b.co.`, which PostgreSQL accepts because `[^@\s]+`
+matches a dot so `co.` satisfies the final group. Being stricter is safe; claiming
+exact agreement was the overclaim, so it now asserts only the dangerous direction --
+never accept what the row refuses -- and records where it is deliberately tighter.
+And its "no quadratic pattern remains" check failed on the new module's **own header
+comment**, which quotes the old pattern in order to explain the replacement: prose
+matched as code, the third time in this session's work after the contract check's
+money scan hit it twice. It strips comments with the shared stripper now.
+
+The two-sided half of that exceptions list then refused an entry I had written for
+`a@b.`, because the database rejects that one too, so the reason described no
+disagreement. That is the check doing to my list exactly what
+`report-orphan-tables.mjs` does to its own.
+
+**Five selected columns in the store route**, from my own gate. Two are gone rather
+than ruled on (`category` and `sku` were selected and shown nowhere -- the time to
+select a column is when something reads it). One is now rendered: an order's
+`created_at`, because an owner looking at an order needs to know when it came in.
+Two are recorded in `ACCOUNTED` with the lines that read them, both in
+`lib/sonara-merchant-storefront.cjs`: `price_cents` at line 114 and `product_id` at
+line 178.
+
+`lib/sonara-env-value-checks.cjs` keeps the old email pattern. It reads environment
+variables set at deploy time, which is not uncontrolled data in the sense CodeQL
+means, and sweeping it in would be a different change. Worth doing separately.
+
+
 
 ### 2026-10-02 - A price nobody set is not free
 
@@ -1939,236 +2016,3 @@ entry -- the review happened.` Four entries remain, all due 15 October:
 `docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md`, and
 `docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`. The last of those needs figures
 from outside this repository and cannot be closed from inside it.
-
-
-
-### 2026-09-30 - Sixteen scripts nothing could run, and the guarantees hiding in three of them
-
-`report-unreferenced-modules.mjs` asks "does anything require this?" of `lib/` and
-`routes/`, and says so plainly. `scripts/` -- the one directory whose files exist
-only to be executed -- had no equivalent. **24 of its 122 files were reachable from
-nothing at all.**
-
-`scripts/report-unreferenced-scripts.mjs` closes that, wired in as
-`verify:unreferenced-scripts` (chain 67 -> 69 with the register gate below). Roots are `package.json`'s
-scripts, the workflows and the shipped code; reachability is transitive.
-
-**Comments are stripped first, and that is a measured requirement rather than a
-precaution.** The first run of this analysis reported `verify-all.mjs` as
-**reachable** -- because a comment in `verify-retired-public-names.mjs` explains
-that nothing runs it. A sentence saying "nothing runs this" counted as something
-running it. The measurement would have exonerated the exact file it exists to find.
-
-**Then the gate accused its own register.** Once it was wired into the chain, its
-`OPERATOR_TOOLS` entries made all five of those files read as reachable, and the
-two-sided register failed as stale on every one. A register entry is a mention, not
-a call -- the same error as the comment, one layer up. The gate now excludes its own
-source, and says so.
-
-### The ruling, each classification measured by running the file
-
-**Nine could not run at all.** `verify-all.mjs` presented itself as the complete
-verification runner and listed 34 pnpm scripts of which **24 no longer existed**, so
-it died on its second command -- while `pnpm run verify:all` maps to `verify:launch`.
-`post-deploy-check.sh` called four absent commands. The other seven each asserted an
-`app/`, `src/` or `frontend/` tree this repository does not have.
-
-**Three printed a sentence and enforced nothing** -- `audit-repo-consistency.mjs` was
-two lines of `console.log` describing a "scaffold".
-
-**One was a spent codemod.** `wire-free-launch-stack-local.cjs` patched `server.js`
-to mount the Free Launch Stack, and `server.js` already registers it.
-
-**Five are operator tools** and are registered with what they do and when you would
-run them: the two git-worktree helpers, `bootstrap-local.mjs`,
-`dependency-audit.mjs`, `check-software.mjs`.
-
-### The guarantee that was genuinely unchecked
-
-`data/provider-registry.ts` was read by **no other file in the repository**. Its only
-reader was `check-provider-registry.mjs`, which nothing ran, whose only caller was
-`verify-all.mjs`, which nothing ran either. And it asked:
-
-    if (!text.includes("serverOnlyEnv")) findings.push("provider records must declare serverOnlyEnv");
-
-One occurrence anywhere satisfied it -- and the **type declaration** contains the
-word, so it passed on the type alone. **Proven:** with a record's `serverOnlyEnv`
-field deleted outright, that check still found the word and reported a pass.
-
-`scripts/verify-provider-and-technology-registers.mjs` replaces it and
-`check-technology-registry.mjs`, as `verify:provider-registers`. The property that
-matters, and that nothing was asking: the register names **seven** variables
-server-only -- the Supabase service-role key and database password, both Stripe
-secrets, the OpenRouter key, the GitHub token, the Resend key -- and none of them
-appears in any of the **104 files under `public/`**, the directory a browser
-downloads. Per record it also requires both env lists present, no secret-shaped name in
-`publicEnv`, no name in both lists, and a blocked provider not configured by default;
-for technologies, a licence that is not plainly allowed must carry human review, a
-blocked licence must not be scaffolded, and `blockedUses` must be non-empty.
-
-### Three documents that asserted something untrue
-
-- **`docs/SHIP_READINESS.md` held a decision open that had been made and shipped.**
-  It said the page "has never been mounted in `server.js`" and "returns 404", and
-  offered the owner three options. `server.js:10` requires the module, `:478`
-  registers it, the app serves `/free-launch-stack` and `/api/free-launch-stack`,
-  `:1041` links it in navigation, and
-  `tests/a-route-module-nobody-mounts-serves-nobody.test.js` asserts a 200. The code,
-  the test and its register were all current; only this document was not -- in the
-  file an owner opens to see what still needs them.
-- **`SECURITY_NOTES.md` cited `scripts/verify-security.mjs` as a check unaffected by
-  an audit decision.** Nothing ran it and it could not run: it required
-  `next.config.mjs`, `src/config/securityConfig.ts` and a PowerShell script, none of
-  which exist, and exited 1.
-- **The marketing-copy skill named `check-public-claims.mjs` for general
-  overclaiming.** Deleted and **deliberately not replaced.** Its fourteen blocked
-  phrases match **23 times** across the 359 files of the real copy population, and
-  every match is a disclaimer: "SONARA does not publish ... guaranteed revenue",
-  "it is not legal advice", "No free tool replaces ... qualified legal advice". The
-  old script allowed for that by looking for a disclaimer fragment anywhere in the
-  same file, so one disclaimer excused every phrase in it. A negation-aware phrase
-  gate would be a check nobody trusts; the skill now says plainly that overclaiming
-  is caught by a person reading the copy, which is the same situation as before minus
-  a sentence claiming otherwise.
-
-### A dead environment variable the deletions uncovered
-
-Removing the sixteen scripts turned `verify:env` red, which is the gate working:
-**`SONARA_CRON_SECRET` was classified and read by nothing.** Its only reader had
-been `check-risks.mjs`, where it appeared as a *pattern in a list of secrets to
-hunt for* -- `docs/owner/INSTALL-ALL-KEYS.md` already recorded it that way. So
-`verify:env`'s "read by a source file" test was itself satisfied by a mention, in a
-script nothing ran.
-
-The scheduled tick is authorised by `SONARA_SCHEDULE_TICK_SECRET`, read at
-`routes/sonara-agent-activity-routes.cjs:884` and wired to
-`.github/workflows/agent-schedule-tick.yml`. `SONARA_CRON_SECRET` is the superseded
-name, and it was still in `.env.example`, in the classification, in the **owner's
-own Vercel setup script**, and in three documents telling the owner to set it. All
-five are corrected; the setup script now prompts for the variable that is actually
-read.
-
-`docs/VERCEL_PRODUCTION_ENV.md` also said **"Framework: Next.js"**. `vercel.json`
-sets `"framework": null` and this is an Express application served through
-`api/index.js`. Corrected in the same pass.
-
-**A correction to my own first measurement, recorded because the wrong version is
-persuasive:** a `process.env.NAME` grep reported that eleven of the setup script's
-eighteen variables had no reader, including `STRIPE_SECRET_KEY`. That was the grep
-being too narrow -- they are read as `getEnv("STRIPE_SECRET_KEY")`, a helper with a
-string literal. `verify:env` has a string-literal pass and reported exactly **one**
-problem, and it was right. Only `SONARA_CRON_SECRET` was dead.
-
-`.ps1` was then added to the gate's population: leaving a language out would make it
-measure less than the `scripts/` it reports on, which is the same shape-2 defect.
-Both PowerShell files are owner-run tools and are registered as such -- 108 files,
-101 reachable, 7 operator tools.
-
-### And an orphan table the deletions uncovered
-
-`verify:orphan-tables` also turned red: **`platform_jobs` is created by three
-migrations and queried by nothing.** What had been keeping it off the orphan list
-was a line in `scripts/worker-smoke-test.mjs`:
-
-    if (!migration.includes("platform_jobs")) {
-
-A string check that a *migration file mentions the table name*, inside a script
-nothing ran and which exited 1 when run. The report counted it as a query.
-
-The comments in `scripts/report-orphan-tables.mjs` record three earlier instances
-of exactly this -- "tables were counted as queried on the strength of it, so this
-report said '0 tables created and never queried' while ten were exactly that", and
-"as newly queried, when all three had only been named". **This is the fourth.** The
-pattern across all four findings in this change is one sentence: *a mention is not a
-use* -- of a script, of an environment variable, of a table.
-
-The table is now registered in `lib/sonara-orphan-tables.cjs` under
-`server-infrastructure` with `decision: "keep"`, on the same terms as
-`platform_job_events`, which records events for it. 20 unused tables, all accounted
-for. Nothing was made to query it: inventing a reader to quiet a gate is the
-opposite of the point.
-
-**And then it happened twice more, to me, in the same change.** The first draft of
-that register entry quoted the offending line verbatim -- the table name inside an
-`includes()` call -- and the report immediately reported the table as queried again.
-The second instance was subtler: the `HISTORICAL_SCRIPTS` entry I added to
-`verify-doc-script-paths.mjs` quoted the same line, and `scripts/` is inside the
-orphan report's searched population, so that one did it too. Both registers now
-describe the line without spelling the name, and say why.
-
-Three occurrences of one mistake inside the paragraph documenting it is the most
-useful thing in this entry. The rule is not "remember to strip comments" -- both
-registers were code, not comments. It is that **anything which names a thing in
-order to talk about it will be read as using it**, unless the measurement excludes
-it or the prose declines to spell it. `lib/sonara-orphan-tables.cjs` is excluded by
-name in that report's `INVENTORIES` list, which is why the register key itself is
-safe; `scripts/verify-doc-script-paths.mjs` is not, and nothing said so until it
-fired.
-
-**A fourth, for completeness, because it proves the rule generalises past tables.**
-The `HISTORICAL_SCRIPTS` entry for the deleted security script described what it
-required, and named a PowerShell scanner among them. `scripts/` is inside the new
-unreferenced-scripts population, so that operator tool immediately read as
-*reachable* and its own register entry failed as stale. Four instances, three
-different gates, one cause. The register files are the worst place for it precisely
-because naming things is what they are for -- so their prose now describes files
-rather than spelling them, and says why.
-
-### The Gitleaks failure, and a wrong diagnosis corrected
-
-`scanners` failed on the first two pushes: OSV and Trivy green, **Gitleaks red.**
-
-**The first diagnosis was wrong, and is recorded here because it was plausible.**
-The new register gate declares the shapes a real key starts with -- `sk_live_`,
-`whsec_`, `ghp_` and the rest -- as literals, and a detection pattern is
-indistinguishable from the thing it detects. That looked like the obvious cause, and
-it was acted on: the prefixes were reassembled from fragments and a comment was
-written explaining that Gitleaks had been right.
-
-It had not been. The tell was visible and was initially walked past:
-`docs/SPRINT_LOG.md` has carried `sk_live_` in prose on **nine** lines for weeks,
-through many green runs. Gitleaks' `stripe-access-token` and `generic-api-key` rules
-need a prefix followed by a **key-shaped body**, not a bare prefix.
-
-**Reproduced rather than reasoned about.** Gitleaks 8.30.1 -- the pinned version,
-fetched and checksum-verified the same way the workflow does -- run over this tree,
-with the workflow's own comparison against
-`.github/security/gitleaks-reviewed-findings.json` reimplemented on its stated key of
-`file + rule + SHA-256(line)`:
-
-    findings: 57 | matched baseline: 56 | NEW: 0 | STALE: 1
-
-**Zero new findings.** The register gate's line was never the problem. The single
-stale baseline entry was `scripts/security-scan-plan.mjs` -- one of the thirteen
-scripts deleted in this change -- and the baseline's own policy line says it fails on
-"any changed source line, new finding, scanner error, or **stale baseline entry**".
-
-So the cause was a deletion leaving a reviewed-findings entry pointing at a file that
-no longer exists: the *fifth* instance in this change of a record outliving the thing
-it described, and the one that took longest to see because a more interesting
-explanation was available.
-
-The entry is removed, 58 to 57. The prefix reassembly was **reverted**: it fixed a
-problem that did not exist, and the comment justifying it was false. A simpler line
-with a verified reason beats a cleverer one with an invented reason -- which is the
-repository's own rule about writing reasons into comments, and this entry is what
-breaking it looks like. The comment there now records the measurement instead.
-
-Re-run after the real fix: `NEW: 0 | STALE: 0`, so the gate passes.
-
-### Falsified before being trusted
-
-Each break watched fail by name, each file restored by copy-aside and `md5sum -c`:
-
-- comment stripping removed -> **the first version of the test PASSED.** It matched
-  `/withoutComments|withoutHashComments/` anywhere in the file, and the surviving
-  import line satisfied it. The assertion now names the call site, and the same break
-  fails with "does not call withoutComments(source)". An assertion that survives the
-  break it was written for is this repository's defect, committed in a test hunting it.
-- the `SELF` exclusion dropped -> the register accuses all five of its own entries
-- each new gate removed from the chain -> "is not reachable from verify:launch"
-- a server-only name planted in an existing file under `public/` -> named by file
-- a record's `serverOnlyEnv` deleted -> named by record, while the old check passed
-- a secret-shaped name put in `publicEnv` -> two findings, including the both-lists
-  contradiction
-- a technology record's `blockedUses` emptied -> "the record only says a name"

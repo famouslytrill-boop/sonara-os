@@ -11,71 +11,71 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 878,
+    "routeOperationCount": 891,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 538,
+      "GET": 542,
       "PATCH": 10,
-      "POST": 327
+      "POST": 336
     },
     "workspaceCount": 12,
-    "declaredPageCount": 292,
+    "declaredPageCount": 294,
     "workspaceRouteCounts": {
-      "business_builder": 331,
+      "business_builder": 335,
       "business_builder_agent_ops": 7,
       "creator_studio": 120,
       "cross_workspace_formulas": 5,
-      "growth_studio": 116,
+      "growth_studio": 121,
       "research_catalog": 12,
       "research_lab": 15,
       "shared_account": 21,
       "shared_infrastructure": 3,
-      "sonara_shared": 133,
+      "sonara_shared": 137,
       "sonara_shared_api": 115
     },
     "actionDestinationCounts": {
-      "exact": 334,
+      "exact": 338,
       "form_reference": 296,
       "machine_ingress": 2,
-      "parent_route": 61,
-      "route_pair": 99,
-      "workspace_fallback": 86
+      "parent_route": 62,
+      "route_pair": 101,
+      "workspace_fallback": 92
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 141,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 190,
-      "needs_explicit_data_contract": 284
+      "handler_source_table_reference": 201,
+      "needs_explicit_data_contract": 286
     },
-    "routesUsingWorkspaceHomeFallback": 86,
+    "routesUsingWorkspaceHomeFallback": 92,
     "formActionLinkCount": 57,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 313,
-    "databaseTableCount": 338,
+    "openApiApiOperationCount": 320,
+    "databaseTableCount": 344,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 298,
+    "queriedTableCount": 304,
     "neverQueriedTableCount": 40,
-    "migrationCount": 141,
+    "migrationCount": 143,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 22,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 284,
+    "routeDataContractsNeedingExplicitReview": 286,
     "routeDataReviewByMethod": {
-      "GET": 196,
+      "GET": 198,
       "POST": 88
     },
     "routeDestinationReviewByWorkspace": {
-      "business_builder": 14,
+      "business_builder": 16,
       "business_builder_agent_ops": 1,
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
-      "growth_studio": 5,
+      "growth_studio": 9,
       "research_lab": 1,
       "shared_infrastructure": 1,
       "sonara_shared_api": 61
@@ -120,8 +120,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 331,
-      "registeredPageCount": 94,
+      "routeCount": 335,
+      "registeredPageCount": 95,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -215,6 +215,7 @@
         "/business-builder/owner/stock-counts",
         "/business-builder/owner/stock-counts/:recordId",
         "/business-builder/owner/stock-counts/:recordId/edit",
+        "/business-builder/owner/store",
         "/business-builder/owner/sub-apps",
         "/business-builder/owner/sub-apps/:subAppId",
         "/business-builder/owner/sub-apps/:subAppId/:schemaKey",
@@ -364,6 +365,7 @@
             "/business-builder/owner/services",
             "/business-builder/owner/staff",
             "/business-builder/owner/stock-counts",
+            "/business-builder/owner/store",
             "/business-builder/owner/sub-apps",
             "/business-builder/owner/time",
             "/business-builder/owner/transfers",
@@ -607,8 +609,8 @@
         "/api/growth-studio",
         "/api/growth"
       ],
-      "routeCount": 116,
-      "registeredPageCount": 56,
+      "routeCount": 121,
+      "registeredPageCount": 57,
       "registeredPageRoutes": [
         "/growth-studio/analytics",
         "/growth-studio/assistant",
@@ -635,6 +637,7 @@
         "/growth-studio/offers",
         "/growth-studio/offers/free",
         "/growth-studio/owner/chat-widget",
+        "/growth-studio/owner/events",
         "/growth-studio/owner/ideal-customer",
         "/growth-studio/owner/lead-routing",
         "/growth-studio/pipeline",
@@ -737,6 +740,7 @@
           "name": "Owner operations",
           "routes": [
             "/growth-studio/owner/chat-widget",
+            "/growth-studio/owner/events",
             "/growth-studio/owner/ideal-customer",
             "/growth-studio/owner/lead-routing"
           ]
@@ -892,8 +896,8 @@
       "routePrefixes": [
         "/"
       ],
-      "routeCount": 133,
-      "registeredPageCount": 115,
+      "routeCount": 137,
+      "registeredPageCount": 117,
       "registeredPageRoutes": [
         "/",
         "/about",
@@ -928,6 +932,7 @@
         "/docs",
         "/earnings-disclaimer",
         "/ecosystem",
+        "/events/:slug",
         "/feedback",
         "/forgot-password",
         "/free-launch-stack",
@@ -995,6 +1000,7 @@
         "/staff/tasks",
         "/staff/time",
         "/start",
+        "/store/:slug",
         "/subprocessor-notice",
         "/support",
         "/technology-radar",
@@ -1868,7 +1874,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1449
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -1974,7 +1980,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 817
+        "line": 823
       },
       "contractCompleteness": {
         "route": true,
@@ -2080,7 +2086,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 974
+        "line": 980
       },
       "contractCompleteness": {
         "route": true,
@@ -2184,7 +2190,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -2288,7 +2294,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -2400,7 +2406,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1164
+        "line": 1170
       },
       "contractCompleteness": {
         "route": true,
@@ -3462,7 +3468,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1181
+        "line": 1187
       },
       "contractCompleteness": {
         "route": true,
@@ -3677,7 +3683,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1298
+        "line": 1304
       },
       "contractCompleteness": {
         "route": true,
@@ -4682,7 +4688,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1438
+        "line": 1444
       },
       "contractCompleteness": {
         "route": true,
@@ -5003,7 +5009,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1437
+        "line": 1443
       },
       "contractCompleteness": {
         "route": true,
@@ -5563,7 +5569,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1436
+        "line": 1442
       },
       "contractCompleteness": {
         "route": true,
@@ -15753,7 +15759,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1267
       },
       "contractCompleteness": {
         "route": true,
@@ -16235,7 +16241,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1480
+        "line": 1486
       },
       "contractCompleteness": {
         "route": true,
@@ -16795,7 +16801,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1479
+        "line": 1485
       },
       "contractCompleteness": {
         "route": true,
@@ -22478,7 +22484,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1504
+        "line": 1510
       },
       "contractCompleteness": {
         "route": true,
@@ -23038,7 +23044,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1503
+        "line": 1509
       },
       "contractCompleteness": {
         "route": true,
@@ -26193,7 +26199,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1526
+        "line": 1532
       },
       "contractCompleteness": {
         "route": true,
@@ -30792,7 +30798,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1534
+        "line": 1540
       },
       "contractCompleteness": {
         "route": true,
@@ -31757,7 +31763,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 926
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -31872,7 +31878,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1247
+        "line": 1253
       },
       "contractCompleteness": {
         "route": true,
@@ -31986,7 +31992,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1134
+        "line": 1140
       },
       "contractCompleteness": {
         "route": true,
@@ -32092,7 +32098,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1108
+        "line": 1114
       },
       "contractCompleteness": {
         "route": true,
@@ -32198,7 +32204,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1094
+        "line": 1100
       },
       "contractCompleteness": {
         "route": true,
@@ -32308,7 +32314,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1328
+        "line": 1334
       },
       "contractCompleteness": {
         "route": true,
@@ -32696,7 +32702,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1672
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -32802,7 +32808,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -33187,7 +33193,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1330
+        "line": 1336
       },
       "contractCompleteness": {
         "route": true,
@@ -33897,7 +33903,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -34181,7 +34187,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -34287,7 +34293,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1686
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -34654,7 +34660,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1369
+        "line": 1375
       },
       "contractCompleteness": {
         "route": true,
@@ -34760,7 +34766,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -34960,7 +34966,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1399
+        "line": 1405
       },
       "contractCompleteness": {
         "route": true,
@@ -35066,7 +35072,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -35172,7 +35178,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -35372,7 +35378,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1352
+        "line": 1358
       },
       "contractCompleteness": {
         "route": true,
@@ -35568,7 +35574,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -35674,7 +35680,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -35780,7 +35786,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -55068,6 +55074,97 @@
       "action": false
     },
     {
+      "id": "GET /business-builder/owner/store",
+      "method": "GET",
+      "route": "/business-builder/owner/store",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/store",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": "Store",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts",
+          "products"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
+        "moduleTableCandidateCount": 6,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 182
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /business-builder/owner/sub-apps",
       "method": "GET",
       "route": "/business-builder/owner/sub-apps",
@@ -59829,7 +59926,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -60277,7 +60374,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -60383,7 +60480,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -60489,7 +60586,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -63355,7 +63452,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 881
+        "line": 887
       },
       "contractCompleteness": {
         "route": true,
@@ -63459,7 +63556,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -63565,7 +63662,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1672
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -64752,7 +64849,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -65152,7 +65249,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -65442,7 +65539,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -65548,7 +65645,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -65750,7 +65847,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1686
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -67652,7 +67749,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -67758,7 +67855,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -67954,7 +68051,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -68060,7 +68157,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -69107,7 +69204,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -69213,7 +69310,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70175,7 +70272,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -70281,7 +70378,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -70387,7 +70484,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -71292,7 +71389,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -74952,7 +75049,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1206
+        "line": 1212
       },
       "contractCompleteness": {
         "route": true,
@@ -75147,7 +75244,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1029
+        "line": 1035
       },
       "contractCompleteness": {
         "route": true,
@@ -75251,7 +75348,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -75340,6 +75437,139 @@
       "action": false
     },
     {
+      "id": "GET /events/:slug",
+      "method": "GET",
+      "route": "/events/:slug",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/events/:slug",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "slug"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "slug"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_event_rsvps",
+            "tableId": "table:growth_event_rsvps",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_venues",
+            "tableId": "table:growth_venues",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 555
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /feedback",
       "method": "GET",
       "route": "/feedback",
@@ -75420,7 +75650,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1544
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -75866,7 +76096,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1672
+        "line": 1678
       },
       "contractCompleteness": {
         "route": true,
@@ -75972,7 +76202,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -76555,7 +76785,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -76757,7 +76987,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -77575,7 +77805,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1686
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -77953,7 +78183,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -78059,7 +78289,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78255,7 +78485,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1710
       },
       "contractCompleteness": {
         "route": true,
@@ -78487,7 +78717,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78683,7 +78913,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -78789,7 +79019,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -78930,6 +79160,92 @@
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /growth-studio/owner/events",
+      "method": "GET",
+      "route": "/growth-studio/owner/events",
+      "kind": "page_or_download",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/owner/events",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Events",
+        "productOwner": "growth_studio",
+        "visibility": "product",
+        "requiredRole": "customer",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_login",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 124
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -80003,7 +80319,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -80109,7 +80425,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "contractCompleteness": {
         "route": true,
@@ -80399,7 +80715,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "contractCompleteness": {
         "route": true,
@@ -82464,7 +82780,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1011
+        "line": 1017
       },
       "contractCompleteness": {
         "route": true,
@@ -82903,7 +83219,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -82998,7 +83314,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83093,7 +83409,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83188,7 +83504,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83283,7 +83599,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83378,7 +83694,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83473,7 +83789,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83568,7 +83884,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83663,7 +83979,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83758,7 +84074,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83853,7 +84169,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -83948,7 +84264,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84043,7 +84359,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84138,7 +84454,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1582
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -84246,7 +84562,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1080
+        "line": 1086
       },
       "contractCompleteness": {
         "route": true,
@@ -84426,7 +84742,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1143
+        "line": 1149
       },
       "contractCompleteness": {
         "route": true,
@@ -84523,7 +84839,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1547
+        "line": 1553
       },
       "contractCompleteness": {
         "route": true,
@@ -84888,7 +85204,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1560
+        "line": 1566
       },
       "contractCompleteness": {
         "route": true,
@@ -84983,7 +85299,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1544
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -85406,7 +85722,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 936
+        "line": 942
       },
       "contractCompleteness": {
         "route": true,
@@ -85510,7 +85826,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -86384,7 +86700,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -86672,7 +86988,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1544
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -88224,7 +88540,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 993
+        "line": 999
       },
       "contractCompleteness": {
         "route": true,
@@ -88423,7 +88739,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1309
+        "line": 1315
       },
       "contractCompleteness": {
         "route": true,
@@ -88912,7 +89228,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1084
+        "line": 1090
       },
       "contractCompleteness": {
         "route": true,
@@ -89896,6 +90212,143 @@
       "action": false
     },
     {
+      "id": "GET /store/:slug",
+      "method": "GET",
+      "route": "/store/:slug",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/store/:slug",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "slug"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "slug"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts"
+        ],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts",
+          "products"
+        ],
+        "tableLineage": [
+          {
+            "table": "merchant_product_variants",
+            "tableId": "table:merchant_product_variants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_products",
+            "tableId": "table:merchant_products",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_storefronts",
+            "tableId": "table:merchant_storefronts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
+        "moduleTableCandidateCount": 6,
+        "schemaMigrations": [
+          "supabase/migrations/20260818100000_merchant_product_catalogue.sql",
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 498
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /subprocessor-notice",
       "method": "GET",
       "route": "/subprocessor-notice",
@@ -89976,7 +90429,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -90301,7 +90754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1586
+        "line": 1592
       },
       "contractCompleteness": {
         "route": true,
@@ -90801,7 +91254,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1544
+        "line": 1550
       },
       "contractCompleteness": {
         "route": true,
@@ -92220,7 +92673,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1444
+        "line": 1450
       },
       "contractCompleteness": {
         "route": true,
@@ -94859,7 +95312,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1194
+        "line": 1200
       },
       "contractCompleteness": {
         "route": true,
@@ -96653,7 +97106,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1266
+        "line": 1272
       },
       "contractCompleteness": {
         "route": true,
@@ -97006,7 +97459,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1268
+        "line": 1274
       },
       "contractCompleteness": {
         "route": true,
@@ -99491,7 +99944,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1439
+        "line": 1445
       },
       "contractCompleteness": {
         "route": true,
@@ -99767,7 +100220,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1388
+        "line": 1394
       },
       "contractCompleteness": {
         "route": true,
@@ -100302,7 +100755,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1423
+        "line": 1429
       },
       "contractCompleteness": {
         "route": true,
@@ -105029,6 +105482,126 @@
         "persistence": "explicit_resource_registry",
         "openApi": true,
         "requestFieldSource": "resource_registry_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/orders/status",
+      "method": "POST",
+      "route": "/api/business/orders/status",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/orders",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "setMerchantOrderStatus",
+        "summary": "Confirm, fulfil or cancel an order.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "order_id",
+          "reason",
+          "status"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_orders"
+        ],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts",
+          "products"
+        ],
+        "tableLineage": [
+          {
+            "table": "merchant_orders",
+            "tableId": "table:merchant_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
+        "moduleTableCandidateCount": 6,
+        "schemaMigrations": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 356
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
       },
       "action": true
     },
@@ -113190,6 +113763,246 @@
       "action": true
     },
     {
+      "id": "POST /api/business/storefront",
+      "method": "POST",
+      "route": "/api/business/storefront",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "saveMerchantStorefront",
+        "summary": "Name the shop, set its currency, and open or close it to orders.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "accepts_orders",
+          "currency",
+          "headline",
+          "intro"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_storefronts"
+        ],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts",
+          "products"
+        ],
+        "tableLineage": [
+          {
+            "table": "merchant_storefronts",
+            "tableId": "table:merchant_storefronts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
+        "moduleTableCandidateCount": 6,
+        "schemaMigrations": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 316
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/storefront/publish",
+      "method": "POST",
+      "route": "/api/business/storefront/publish",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "publishMerchantStorefront",
+        "summary": "Give the shop a public address and publish it.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "enabled",
+          "slug"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_storefronts"
+        ],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts",
+          "products"
+        ],
+        "tableLineage": [
+          {
+            "table": "merchant_storefronts",
+            "tableId": "table:merchant_storefronts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
+        "moduleTableCandidateCount": 6,
+        "schemaMigrations": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 331
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /api/business/sub-app-records",
       "method": "POST",
       "route": "/api/business/sub-app-records",
@@ -119679,7 +120492,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1265
+        "line": 1271
       },
       "contractCompleteness": {
         "route": true,
@@ -120901,7 +121714,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1455
+        "line": 1461
       },
       "contractCompleteness": {
         "route": true,
@@ -122007,7 +122820,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1468
+        "line": 1474
       },
       "contractCompleteness": {
         "route": true,
@@ -128458,7 +129271,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1482
+        "line": 1488
       },
       "contractCompleteness": {
         "route": true,
@@ -129849,7 +130662,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1491
+        "line": 1497
       },
       "contractCompleteness": {
         "route": true,
@@ -133101,6 +133914,364 @@
       "action": true
     },
     {
+      "id": "POST /api/growth/events",
+      "method": "POST",
+      "route": "/api/growth/events",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "addGrowthEvent",
+        "summary": "Add an event, always as a draft.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "venue_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_events",
+          "growth_venues"
+        ],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_venues",
+            "tableId": "table:growth_venues",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 347
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/events/cancel",
+      "method": "POST",
+      "route": "/api/growth/events/cancel",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "cancelGrowthEvent",
+        "summary": "Cancel an event, with a reason the people who booked will read.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "event_id",
+          "reason"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_events"
+        ],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 412
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/events/publish",
+      "method": "POST",
+      "route": "/api/growth/events/publish",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "publishGrowthEvent",
+        "summary": "Give an event a public address and publish it.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "event_id",
+          "slug"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_events"
+        ],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 382
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /api/growth/experiments",
       "method": "POST",
       "route": "/api/growth/experiments",
@@ -134434,6 +135605,122 @@
       "source": {
         "file": "routes/growth-studio-control-routes.cjs",
         "line": 845
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/venues",
+      "method": "POST",
+      "route": "/api/growth/venues",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "addGrowthVenue",
+        "summary": "Add a venue an event can happen at.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "address",
+          "capacity",
+          "name",
+          "time_zone"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_venues"
+        ],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_venues",
+            "tableId": "table:growth_venues",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 319
       },
       "contractCompleteness": {
         "route": true,
@@ -141742,7 +143029,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 337
+        "line": 339
       },
       "contractCompleteness": {
         "route": true,
@@ -142072,7 +143359,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 336
+        "line": 338
       },
       "contractCompleteness": {
         "route": true,
@@ -142267,7 +143554,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1122
+        "line": 1128
       },
       "contractCompleteness": {
         "route": true,
@@ -142367,7 +143654,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1158
+        "line": 1164
       },
       "contractCompleteness": {
         "route": true,
@@ -142561,7 +143848,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1088
+        "line": 1094
       },
       "contractCompleteness": {
         "route": true,
@@ -143050,7 +144337,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1412
+        "line": 1418
       },
       "contractCompleteness": {
         "route": true,
@@ -162432,7 +163719,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 895
+        "line": 901
       },
       "contractCompleteness": {
         "route": true,
@@ -167763,6 +169050,141 @@
       "action": true
     },
     {
+      "id": "POST /events/:slug",
+      "method": "POST",
+      "route": "/events/:slug",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/events/:slug",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "slug"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "slug"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "candidateTables": [
+          "growth_event_rsvps",
+          "growth_events",
+          "growth_venues"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_event_rsvps",
+            "tableId": "table:growth_event_rsvps",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_venues",
+            "tableId": "table:growth_venues",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-event-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 599
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
       "id": "POST /growth-studio/tools/budget-split",
       "method": "POST",
       "route": "/growth-studio/tools/budget-split",
@@ -169127,7 +170549,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1152
+        "line": 1158
       },
       "contractCompleteness": {
         "route": true,
@@ -170281,6 +171703,179 @@
         "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /store/:slug",
+      "method": "POST",
+      "route": "/store/:slug",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/store/:slug",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "slug"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "slug"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts"
+        ],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_product_variants",
+          "merchant_products",
+          "merchant_storefronts",
+          "products"
+        ],
+        "tableLineage": [
+          {
+            "table": "merchant_order_lines",
+            "tableId": "table:merchant_order_lines",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_orders",
+            "tableId": "table:merchant_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_product_variants",
+            "tableId": "table:merchant_product_variants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_products",
+            "tableId": "table:merchant_products",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_storefronts",
+            "tableId": "table:merchant_storefronts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
+        "moduleTableCandidateCount": 6,
+        "schemaMigrations": [
+          "supabase/migrations/20260818100000_merchant_product_catalogue.sql",
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 529
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
       },
       "action": true
     },
@@ -172068,6 +173663,31 @@
       ]
     },
     {
+      "id": "module:routes/sonara-growth-event-routes.cjs",
+      "source": "routes/sonara-growth-event-routes.cjs",
+      "tableCount": 3,
+      "tables": [
+        {
+          "table": "growth_event_rsvps",
+          "migrations": [
+            "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+          ]
+        },
+        {
+          "table": "growth_events",
+          "migrations": [
+            "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+          ]
+        },
+        {
+          "table": "growth_venues",
+          "migrations": [
+            "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+          ]
+        }
+      ]
+    },
+    {
       "id": "module:routes/sonara-huggingface-routes.cjs",
       "source": "routes/sonara-huggingface-routes.cjs",
       "tableCount": 1,
@@ -172597,6 +174217,49 @@
           "migrations": [
             "supabase/migrations/010_sonara_platform_current_schema.sql",
             "supabase/migrations/011_sonara_saas_launch_system.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-merchant-store-routes.cjs",
+      "source": "routes/sonara-merchant-store-routes.cjs",
+      "tableCount": 6,
+      "tables": [
+        {
+          "table": "merchant_order_lines",
+          "migrations": [
+            "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "merchant_orders",
+          "migrations": [
+            "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "merchant_product_variants",
+          "migrations": [
+            "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+          ]
+        },
+        {
+          "table": "merchant_products",
+          "migrations": [
+            "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+          ]
+        },
+        {
+          "table": "merchant_storefronts",
+          "migrations": [
+            "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "products",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql"
           ]
         }
       ]
@@ -194257,6 +195920,296 @@
       "orphanDisposition": null
     },
     {
+      "id": "table:growth_event_rsvps",
+      "schema": "public",
+      "name": "growth_event_rsvps",
+      "columnCount": 12,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "attending",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "party_size",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "confirmed"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:growth_events",
+      "schema": "public",
+      "name": "growth_events",
+      "columnCount": 18,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "venue_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "summary",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "event"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "draft"
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "capacity",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "cancellation_reason",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:growth_experiment_variants",
       "schema": "public",
       "name": "growth_experiment_variants",
@@ -195639,6 +197592,119 @@
             "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
           }
         ]
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:growth_venues",
+      "schema": "public",
+      "name": "growth_venues",
+      "columnCount": 11,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "capacity",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "time_zone",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "UTC"
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+        ],
+        "policyEvidence": []
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
@@ -200533,6 +202599,256 @@
       "orphanDisposition": null
     },
     {
+      "id": "table:merchant_order_lines",
+      "schema": "public",
+      "name": "merchant_order_lines",
+      "columnCount": 11,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "variant_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "unit_price_cents",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "line_total_cents",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "usd"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:merchant_orders",
+      "schema": "public",
+      "name": "merchant_orders",
+      "columnCount": 14,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "storefront_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "buyer_name",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "buyer_email",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "placed"
+        },
+        {
+          "name": "subtotal_cents",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "usd"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "cancellation_reason",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:merchant_product_variants",
       "schema": "public",
       "name": "merchant_product_variants",
@@ -200766,6 +203082,127 @@
         ],
         "rlsEvidence": [
           "supabase/migrations/20260818100000_merchant_product_catalogue.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:merchant_storefronts",
+      "schema": "public",
+      "name": "merchant_storefronts",
+      "columnCount": 12,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "headline",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "intro",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "usd"
+        },
+        {
+          "name": "accepts_orders",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
         ],
         "policyEvidence": []
       },
@@ -222642,6 +225079,46 @@
         "creator_asset_approvals",
         "creator_asset_versions",
         "creator_briefs"
+      ],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261002060000_public_events_and_rsvps.sql",
+      "creates": [
+        "growth_event_rsvps",
+        "growth_events",
+        "growth_venues"
+      ],
+      "alters": [
+        "growth_event_rsvps",
+        "growth_events",
+        "growth_venues"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "growth_event_rsvps",
+        "growth_events",
+        "growth_venues"
+      ],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+      "creates": [
+        "merchant_order_lines",
+        "merchant_orders",
+        "merchant_storefronts"
+      ],
+      "alters": [
+        "merchant_order_lines",
+        "merchant_orders",
+        "merchant_storefronts"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "merchant_order_lines",
+        "merchant_orders",
+        "merchant_storefronts"
       ],
       "policies": []
     }
@@ -255410,7 +257887,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1164
+        "line": 1170
       },
       "destination": {
         "route": "/account",
@@ -255703,7 +258180,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1181
+        "line": 1187
       },
       "destination": {
         "route": "/account/setup",
@@ -255796,7 +258273,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1298
+        "line": 1304
       },
       "destination": {
         "route": "/dashboard",
@@ -255916,7 +258393,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1267
       },
       "destination": {
         "route": "/dashboard",
@@ -256558,7 +259035,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 926
+        "line": 932
       },
       "destination": {
         "route": "/dashboard",
@@ -256609,7 +259086,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -256750,7 +259227,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -256801,7 +259278,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -256852,7 +259329,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1686
+        "line": 1692
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -256944,7 +259421,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/help",
@@ -257036,7 +259513,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1399
+        "line": 1405
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -257087,7 +259564,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -257179,7 +259656,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1352
+        "line": 1358
       },
       "destination": {
         "route": "/business-builder/login",
@@ -257265,7 +259742,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -257316,7 +259793,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -257367,7 +259844,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -257899,6 +260376,39 @@
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
     {
+      "id": "GET /business-builder/owner/store",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 182
+      },
+      "destination": {
+        "route": "/business-builder/owner/store",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "merchant_order_lines",
+        "merchant_orders",
+        "merchant_product_variants",
+        "merchant_products",
+        "merchant_storefronts",
+        "products"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
       "id": "GET /business-builder/owner/sub-apps",
       "workspace": "business_builder",
       "kind": "page_or_download",
@@ -257934,7 +260444,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -258017,7 +260527,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -258068,7 +260578,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/business-builder/records",
@@ -258119,7 +260629,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -259170,7 +261680,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -259259,7 +261769,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -259310,7 +261820,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -259402,7 +261912,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1686
+        "line": 1692
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -259664,7 +262174,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -259750,7 +262260,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -259801,7 +262311,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -259956,7 +262466,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -260007,7 +262517,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -260121,7 +262631,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -260172,7 +262682,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -260223,7 +262733,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -260382,7 +262892,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -261335,7 +263845,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -261528,7 +264038,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -261719,7 +264229,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1686
+        "line": 1692
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -261877,7 +264387,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -261928,7 +264438,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -262049,7 +264559,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -262100,7 +264610,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -262134,6 +264644,36 @@
         "support_email_delivery_attempts",
         "support_requests",
         "user_roles"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /growth-studio/owner/events",
+      "workspace": "growth_studio",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 124
+      },
+      "destination": {
+        "route": "/growth-studio/owner/events",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "growth_event_rsvps",
+        "growth_events",
+        "growth_venues"
       ],
       "requestFieldsObserved": {
         "body": [],
@@ -262249,7 +264789,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -262300,7 +264840,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1726
+        "line": 1732
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -262425,7 +264965,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1733
+        "line": 1739
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -263261,7 +265801,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1080
+        "line": 1086
       },
       "destination": {
         "route": "/login",
@@ -263460,7 +266000,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1084
+        "line": 1090
       },
       "destination": {
         "route": "/signup",
@@ -264378,7 +266918,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1122
+        "line": 1128
       },
       "destination": {
         "route": "/auth/login",
@@ -264433,7 +266973,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1158
+        "line": 1164
       },
       "destination": {
         "route": "/logout",
@@ -264525,7 +267065,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1088
+        "line": 1094
       },
       "destination": {
         "route": "/auth/signup",
@@ -266458,7 +268998,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1152
+        "line": 1158
       },
       "destination": {
         "route": "/logout",
@@ -266994,7 +269534,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1298
+        "line": 1304
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267064,7 +269604,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1261
+        "line": 1267
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267074,7 +269614,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1480
+        "line": 1486
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267084,7 +269624,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1504
+        "line": 1510
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267124,7 +269664,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1526
+        "line": 1532
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267334,7 +269874,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 926
+        "line": 932
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267375,6 +269915,26 @@
       "source": {
         "file": "routes/sonara-operations-expansion-routes.cjs",
         "line": 111
+      },
+      "currentDestination": "/business-builder/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/business/storefront",
+      "workspace": "business_builder",
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 316
+      },
+      "currentDestination": "/business-builder/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/business/storefront/publish",
+      "workspace": "business_builder",
+      "source": {
+        "file": "routes/sonara-merchant-store-routes.cjs",
+        "line": 331
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -267575,6 +270135,46 @@
       "source": {
         "file": "routes/growth-studio-control-routes.cjs",
         "line": 805
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/events",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 347
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/events/cancel",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 412
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/events/publish",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 382
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/venues",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-event-routes.cjs",
+        "line": 319
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

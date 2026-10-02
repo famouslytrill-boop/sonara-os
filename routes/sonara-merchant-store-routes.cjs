@@ -103,12 +103,20 @@ function registerMerchantStoreRoutes(app, deps = {}) {
 
   // The catalogue, scoped. Used by both sides: the owner's page passes its own
   // organization, and the public page passes the one it read off the shop.
+  //
+  // `category` and `sku` were selected here and shown nowhere.
+  // report-unused-selected-columns.mjs named them, and they are gone rather than
+  // ruled on: grouping a shop by category and showing a SKU are both reasonable
+  // things to add, and the time to select the column is when something reads it.
+  // `price_cents` and `product_id` stay and are read by
+  // lib/sonara-merchant-storefront.cjs rather than by this file, which is recorded
+  // in that script's ACCOUNTED with the lines that read them.
   async function readCatalogue(config, organizationId) {
     const orgFilter = `organization_id=eq.${enc(organizationId)}`;
     const products = await rest(config,
-      `${PRODUCT_TABLE}?select=id,name,category,description,status&${orgFilter}&order=name.asc&limit=${PRODUCT_CAP}`);
+      `${PRODUCT_TABLE}?select=id,name,status&${orgFilter}&order=name.asc&limit=${PRODUCT_CAP}`);
     const variants = await rest(config,
-      `${VARIANT_TABLE}?select=id,product_id,variant_name,sku,price_cents,currency,status&${orgFilter}&order=variant_name.asc&limit=${VARIANT_CAP}`);
+      `${VARIANT_TABLE}?select=id,product_id,variant_name,price_cents,currency,status&${orgFilter}&order=variant_name.asc&limit=${VARIANT_CAP}`);
     return { ok: products.ok && variants.ok, products: products.rows, variants: variants.rows };
   }
 
@@ -243,7 +251,11 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         `Orders (${orders.rows.length})`,
         orders.rows.map((order) => [
           `<p>${escapeHtml(order.buyer_name)} (${escapeHtml(order.buyer_email)}) — ${escapeHtml(order.status)}, `
-          + `${escapeHtml(storefront.money(Number(order.subtotal_cents) || 0, order.currency))}</p>`,
+          + `${escapeHtml(storefront.money(Number(order.subtotal_cents) || 0, order.currency))}`
+          // The date, because an owner looking at an order needs to know when it
+          // came in. It was selected and shown nowhere until
+          // report-unused-selected-columns.mjs said so.
+          + `${order.created_at ? `, placed ${escapeHtml(new Date(order.created_at).toUTCString())}` : ", no date recorded"}</p>`,
           order.note ? `<p>They said: ${escapeHtml(order.note)}</p>` : "",
           order.cancellation_reason ? `<p>Cancelled because: ${escapeHtml(order.cancellation_reason)}</p>` : "",
           orderStatusForm(order)
