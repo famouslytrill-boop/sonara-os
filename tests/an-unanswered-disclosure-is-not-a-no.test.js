@@ -28,22 +28,22 @@ const fs = require("node:fs");
 const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
-const registerCreatorProjectGraphRoutes = require("../routes/sonara-creator-project-graph-routes.cjs");
+const registerCreatorApprovalGraphRoutes = require("../routes/sonara-creator-approval-graph-routes.cjs");
 const {
   VERSION_SOURCES, MACHINE_SOURCES, APPROVAL_STATES, BRIEF_STATUSES, BRIEF_INTENTS,
   DISCLOSURE, TITLE_MAX, NOTE_MAX,
   nextVersionNumber, disclosureOf, madeByMachine, approvalStateOf, publishReadiness,
   graphForBrief, normalizeBrief, problemSentence
-} = require("../lib/sonara-creator-project-graph.cjs");
+} = require("../lib/sonara-creator-approval-graph.cjs");
 
 const ORG = "a1a1a1a1-0000-4000-8000-00000000001a";
 const USER = "b2b2b2b2-0000-4000-8000-00000000002b";
 const BRIEF = "c3c3c3c3-0000-4000-8000-00000000003c";
 const ASSET = "d4d4d4d4-0000-4000-8000-00000000004d";
 const VERSION = "e5e5e5e5-0000-4000-8000-00000000005e";
-const PAGE = "/creator-studio/owner/project-graph";
+const PAGE = "/creator-studio/owner/approval-graph";
 
-const MIGRATION = path.join(__dirname, "..", "supabase", "migrations", "20261002010000_creator_project_graph.sql");
+const MIGRATION = path.join(__dirname, "..", "supabase", "migrations", "20261002010000_creator_approval_graph.sql");
 
 function version(overrides = {}) {
   return { id: VERSION, assetId: ASSET, versionNumber: 1, source: "uploaded", aiDisclosure: null, provenance: null, note: null, ...overrides };
@@ -82,7 +82,7 @@ function buildApp({
     return { ok: writeOk, status: writeOk ? 201 : 500, json: async () => [] };
   };
 
-  registerCreatorProjectGraphRoutes(app, {
+  registerCreatorApprovalGraphRoutes(app, {
     layout: ({ title, heading, body, sections = [] }) => `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p>${sections.join("")}</html>`,
     brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><p>${cardBody}</p></article>`,
     linkAction: (href, label) => `<a href="${href}">${label}</a>`,
@@ -666,15 +666,15 @@ describe("an unanswered disclosure is not a no", () => {
   describe("it is reachable", () => {
     it("is registered in server.js, so its tables are not orphans", () => {
       const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-      assert.ok(server.includes("sonara-creator-project-graph-routes.cjs"), "server.js does not require the project graph routes");
-      assert.match(server, /registerCreatorProjectGraphRoutes\(app,/, "server.js requires the module but never calls it");
+      assert.ok(server.includes("sonara-creator-approval-graph-routes.cjs"), "server.js does not require the approval graph routes");
+      assert.match(server, /registerCreatorApprovalGraphRoutes\(app,/, "server.js requires the module but never calls it");
     });
 
     it("refuses to register without every dependency it uses", () => {
       const required = ["layout", "brandCard", "linkAction", "escapeHtml", "requireWorkspaceAccess", "getCustomerPrimaryOrganization", "getSupabaseServerConfig", "supabaseHeaders"];
       for (const missing of required) {
         const deps = Object.fromEntries(required.filter((name) => name !== missing).map((name) => [name, () => {}]));
-        assert.throws(() => registerCreatorProjectGraphRoutes(express(), deps), new RegExp(missing), `registering without ${missing} did not throw`);
+        assert.throws(() => registerCreatorApprovalGraphRoutes(express(), deps), new RegExp(missing), `registering without ${missing} did not throw`);
       }
     });
   });

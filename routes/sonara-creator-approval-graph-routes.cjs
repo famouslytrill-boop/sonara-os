@@ -4,7 +4,7 @@
 
 // The Creator Studio project graph, as pages a creator can actually use.
 //
-//   GET  /creator-studio/owner/project-graph        briefs, assets, versions, what may publish
+//   GET  /creator-studio/owner/approval-graph        briefs, assets, versions, what may publish
 //   POST /api/creator/briefs                        open a brief
 //   POST /api/creator/briefs/status                 move a brief on
 //   POST /api/creator/assets/versions               record a new version of an asset
@@ -13,18 +13,18 @@
 //   POST /api/creator/assets/versions/decide        approve or reject one
 //
 // Every table this writes was created by
-// supabase/migrations/20261002010000_creator_project_graph.sql, and this file is
+// supabase/migrations/20261002010000_creator_approval_graph.sql, and this file is
 // the reader that keeps them out of lib/sonara-orphan-tables.cjs. That is not a
 // formality: the migration-016 artist-system subtree is unreachable precisely
 // because nothing creates a row at its head, and twenty tables in this repository
 // are created and never queried. A graph nobody can open is the twenty-first.
 //
-// The decisions all live in lib/sonara-creator-project-graph.cjs. This file reads,
+// The decisions all live in lib/sonara-creator-approval-graph.cjs. This file reads,
 // writes and renders; it does not decide whether something may be published,
 // because a page that asks the question and then renders the button regardless is
 // the shape routes/sonara-agent-activity-routes.cjs already shipped once.
 
-const graph = require("../lib/sonara-creator-project-graph.cjs");
+const graph = require("../lib/sonara-creator-approval-graph.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
@@ -45,9 +45,9 @@ const ASSET_CAP = 300;
 const VERSION_CAP = 500;
 const APPROVAL_CAP = 500;
 
-function registerCreatorProjectGraphRoutes(app, deps = {}) {
+function registerCreatorApprovalGraphRoutes(app, deps = {}) {
   for (const name of REQUIRED) {
-    if (!deps[name]) throw new TypeError(`registerCreatorProjectGraphRoutes requires ${name}`);
+    if (!deps[name]) throw new TypeError(`registerCreatorApprovalGraphRoutes requires ${name}`);
   }
   const {
     layout, brandCard, linkAction, escapeHtml,
@@ -56,7 +56,7 @@ function registerCreatorProjectGraphRoutes(app, deps = {}) {
   } = deps;
 
   const enc = encodeURIComponent;
-  const PAGE = "/creator-studio/owner/project-graph";
+  const PAGE = "/creator-studio/owner/approval-graph";
   const guard = requireWorkspaceAccess("creator_studio");
 
   async function scopeFor(req) {
@@ -137,7 +137,7 @@ function registerCreatorProjectGraphRoutes(app, deps = {}) {
   //
   // This one is not reached from a request: `id` is `asset_id` or
   // `asset_version_id`, both declared `uuid not null` in
-  // supabase/migrations/20261002010000_creator_project_graph.sql (lines 64 and 87),
+  // supabase/migrations/20261002010000_creator_approval_graph.sql (lines 64 and 87),
   // so PostgreSQL refuses anything that is not a uuid and `__proto__` cannot arrive.
   // The guard is here anyway, because "safe because of a column type two files away"
   // is a reason that holds today and is not visible from here tomorrow.
@@ -577,4 +577,4 @@ function registerCreatorProjectGraphRoutes(app, deps = {}) {
   });
 }
 
-module.exports = registerCreatorProjectGraphRoutes;
+module.exports = registerCreatorApprovalGraphRoutes;

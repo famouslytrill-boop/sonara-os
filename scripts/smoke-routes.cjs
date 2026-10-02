@@ -5,6 +5,7 @@ process.env.NODE_ENV = "test";
 const assert = require("node:assert/strict");
 const request = require("supertest");
 const app = require("../server");
+const { FREE_TOOL_PATHS, freeToolCountByCompany } = require("../lib/sonara-tool-access.cjs");
 
 const publicRoutes = [
   "/",
@@ -14,14 +15,19 @@ const publicRoutes = [
   "/tutorials",
   "/tutorials/getting-started",
   "/forgot-password",
-  "/reset-password"
+  "/reset-password",
+  "/tools",
+  "/tools/data-formatter",
+  "/tools/text-fingerprint",
+  "/tools/storage-budget"
 ];
 const protectedRoutes = [
   "/dashboard",
   "/notifications",
   "/account/preferences",
   "/business-builder/routes",
-  "/creator-studio/rights"
+  "/creator-studio/rights",
+  "/creator-studio/projects"
 ];
 const mojibake = /Ã.|â(?:€|€™|€œ|€�|€¦|€“|€”|€¢)|Â./;
 
@@ -88,7 +94,7 @@ async function run() {
   // of them by name, so the funnel advertised and then refused. Thirty-four
   // tools moved behind a plan on 1 October 2026 and the same trap is one
   // `res.status(404)` away.
-  const lockedTool = await request(app).get("/business-builder/tools/pricing").set("Accept", "text/html");
+  const lockedTool = await request(app).get("/business-builder/tools/rota").set("Accept", "text/html");
   assert.equal(lockedTool.status, 200, `a tool behind the paywall answered ${lockedTool.status} instead of explaining itself`);
   assert.match(lockedTool.text, /On a paid plan/, "a locked tool did not say it is on a paid plan");
   assert.match(lockedTool.text, /\/pricing/, "a locked tool did not link the plans");
@@ -96,9 +102,25 @@ async function run() {
   // And one that is still free computes for a visitor with no account at all.
   // Without this, the assertion above would pass just as well on a build that
   // had locked everything.
-  const freeTool = await request(app).get("/business-builder/tools/break-even").set("Accept", "text/html");
-  assert.equal(freeTool.status, 200, `a free tool answered ${freeTool.status} to a visitor`);
-  assert.doesNotMatch(freeTool.text, /On a paid plan/, "a free tool answered as if it were locked");
+  // The owner's split, asserted per company rather than as one number. This line
+  // held a literal 12 and failed on 2 October 2026 for being right about the
+  // previous split -- a check with the figure written into it goes stale exactly
+  // when the thing it guards changes, which is the one moment it needed to work.
+  const freeByCompany = freeToolCountByCompany();
+  assert.equal(freeByCompany.business_builder, 4, "Business Builder must expose four public tools");
+  assert.equal(freeByCompany.creator_studio, 4, "Creator Studio must expose four public tools");
+  assert.equal(freeByCompany.growth_studio, 4, "Growth Studio must expose four public tools");
+  assert.equal(freeByCompany.sonara_industries, 3, "SONARA Industries must expose three public tools");
+  assert.equal(
+    FREE_TOOL_PATHS.length,
+    freeByCompany.business_builder + freeByCompany.creator_studio + freeByCompany.growth_studio + freeByCompany.sonara_industries,
+    "the free list holds a tool that belongs to no company, so one of the counts above is measuring less than the list"
+  );
+  for (const path of FREE_TOOL_PATHS) {
+    const freeTool = await request(app).get(path).set("Accept", "text/html");
+    assert.equal(freeTool.status, 200, `${path} answered ${freeTool.status} to a visitor`);
+    assert.doesNotMatch(freeTool.text, /On a paid plan/, `${path} answered as if it were locked`);
+  }
   // The management-passcode page is where a business owner sets the credential
   // the pay-period and controls pages sit behind. It must be served -- a 404
   // here means an owner cannot set one, and the gate in front of those pages

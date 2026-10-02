@@ -492,7 +492,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     // that ordering is the only reason the ambiguity is harmless.
     //
     // Written down because the identical inference was a real defect elsewhere the
-    // same day: lib/sonara-creator-project-graph.cjs treated a missing group as a
+    // same day: lib/sonara-creator-approval-graph.cjs treated a missing group as a
     // failed read, and the page told a creator their versions could not be read when
     // the asset simply had none. Here it would fail the safe way -- priceOrder would
     // answer "nothing ordered" rather than claiming something false -- but "safe

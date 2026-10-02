@@ -94,13 +94,69 @@ if (files.length < 50) {
   fail(`only ${files.length} runtime files were read; this check has gone blind`);
 }
 
-// "<count> tools are free", "<count> free tools", "<count> of the forty tools".
-// Each is a shape this repository's copy has actually used.
-const PATTERNS = [
-  /\b([A-Za-z]+|\d+)\s+(?:more\s+)?free\s+tools?\b/gi,
-  /\b([A-Za-z]+|\d+)\s+tools?\s+(?:are|is)\s+free\b/gi,
-  /\b([A-Za-z]+|\d+)\s+tools?\s+across\s+(?:the\s+three\s+studios|SONARA)/gi
-];
+// Each of these is a shape this repository's copy has actually used, and each
+// says which figure it is claiming -- because three different numbers get written
+// into these sentences and comparing all of them to the total is how a check
+// passes a sentence that is wrong about the thing it names.
+//
+// Ordered most specific first. A general pattern is not allowed to re-read a span
+// a specific one already claimed: "four free tools per studio" states 4 per
+// studio, and the "<count> free tools" pattern reading the same span would demand
+// 15 and fail a correct sentence. OVERLAP below is what enforces that.
+//
+// `scope` picks the figure. "studio" is only meaningful while the three studios
+// hold the same number, so an unequal split makes any such sentence wrong by
+// construction and is failed before the comparison.
+const CLAIMS = Object.freeze([
+  { scope: "studio", pattern: /\b([A-Za-z]+|\d+)\s+(?:free\s+)?tools?\s+(?:in|per)\s+each\s+studio\b/gi },
+  { scope: "studio", pattern: /\b([A-Za-z]+|\d+)\s+(?:more\s+)?free\s+tools?\s+per\s+studio\b/gi,  },
+  { scope: "parent", pattern: /\b([A-Za-z]+|\d+)\s+SONARA\s+tools?\b/gi },
+  { scope: "total", pattern: /\b([A-Za-z]+|\d+)\s+(?:more\s+)?free\s+tools?\b/gi },
+  { scope: "total", pattern: /\b([A-Za-z]+|\d+)\s+tools?\s+(?:are|is)\s+free\b/gi },
+  { scope: "total", pattern: /\b([A-Za-z]+|\d+)\s+tools?\s+across\s+(?:the\s+three\s+studios|SONARA)/gi }
+]);
+
+const SCOPE_LABEL = Object.freeze({
+  total: "free in total",
+  studio: "free in each studio",
+  parent: "free at the parent company"
+});
+
+// The three studios have to agree before "in each studio" can mean anything.
+// Checked here rather than inside the loop so an unequal split is reported once
+// and by name instead of as a pile of per-sentence failures.
+const studiosAgree = new Set([counts.business_builder, counts.creator_studio, counts.growth_studio]).size === 1;
+
+function expectationFor(scope) {
+  if (scope === "studio") return studiosAgree ? counts.business_builder : null;
+  if (scope === "parent") return counts.sonara_industries;
+  return expected;
+}
+
+// Every count a piece of text states, with the figure each one is claiming.
+// Shared by the runtime scan and the detector self-test below, so the two cannot
+// drift apart -- a self-test exercising different code from the scan proves
+// nothing about the scan.
+function readClaims(text) {
+  const found = [];
+  const taken = [];
+  const overlaps = (start, end) => taken.some(([from, to]) => start < to && from < end);
+  for (const claim of CLAIMS) {
+    for (const match of text.matchAll(claim.pattern)) {
+      const start = match.index;
+      const end = start + match[0].length;
+      if (overlaps(start, end)) continue;
+      const raw = String(match[1]);
+      // A template placeholder is the correct answer, not a statement to check.
+      if (/^\$?\{/.test(raw) || raw === "FREE_TOOL_COUNT") continue;
+      const value = /^\d+$/.test(raw) ? Number(raw) : NUMBER_WORDS[raw.toLowerCase()];
+      if (value === undefined) continue;
+      taken.push([start, end]);
+      found.push({ value, scope: claim.scope, text: match[0].trim() });
+    }
+  }
+  return found;
+}
 
 let statementsFound = 0;
 let derivedUses = 0;
@@ -129,21 +185,39 @@ for (const file of files) {
   const relative = path.relative(repoRoot, file);
   if (source.includes("freeToolSentence(") || source.includes("FREE_TOOL_COUNT")) derivedUses += 1;
 
-  for (const pattern of PATTERNS) {
-    for (const match of source.matchAll(pattern)) {
-      const raw = String(match[1]);
-      // A template placeholder is the correct answer, not a statement to check.
-      if (/^\$?\{/.test(raw) || raw === "FREE_TOOL_COUNT") continue;
-      const value = /^\d+$/.test(raw) ? Number(raw) : NUMBER_WORDS[raw.toLowerCase()];
-      if (value === undefined) continue;
-      statementsFound += 1;
-      if (value !== expected) {
-        fail(
-          `${relative} states "${match[0].trim()}" but ${expected} tools are free.\n`
-          + "  Read lib/sonara-tool-access.cjs instead of writing the figure: freeToolSentence() for the\n"
-          + "  sentence, FREE_TOOL_COUNT for the number, freeToolCountByCompany() for the breakdown."
-        );
-      }
+  for (const claim of readClaims(source)) {
+    statementsFound += 1;
+    const want = expectationFor(claim.scope);
+    if (want === null) {
+      fail(
+        `${relative} states "${claim.text}" while the studios hold `
+        + `${counts.business_builder}/${counts.creator_studio}/${counts.growth_studio}, `
+        + "so no single number is true of each of them."
+      );
+      continue;
+    }
+    // A literal fails whether or not it is right, and that is the point.
+    //
+    // The first version of this check only failed a count that disagreed with the
+    // list, which meant it reported a problem one change after the problem was
+    // introduced -- the sentence is true when written and the build is green, and
+    // it goes wrong later with nothing watching. Five surfaces did exactly that on
+    // 2 October 2026, and then it happened again the same day when two branches
+    // changed the split independently. A correct literal is the state immediately
+    // before a wrong one.
+    //
+    // So the two cases differ only in what the message says. Neither passes.
+    const hint =
+      "  Read lib/sonara-tool-access.cjs instead of writing the figure: freeToolSentence() for the\n"
+      + "  sentence, FREE_TOOL_COUNT for the number, freeToolCountByCompany() for the breakdown.";
+    if (claim.value !== want) {
+      fail(`${relative} states "${claim.text}" but ${want} are ${SCOPE_LABEL[claim.scope]}.\n${hint}`);
+    } else {
+      fail(
+        `${relative} states "${claim.text}", which is right today and is still a figure written`
+        + ` into a page. ${want} are ${SCOPE_LABEL[claim.scope]} as the list stands; the next change`
+        + ` to it makes this sentence false with nothing watching.\n${hint}`
+      );
     }
   }
 }
@@ -188,30 +262,27 @@ if (!parentPaths.length) {
 // So the detector is tested on input it must reject. These three fixtures are the
 // shapes the five stale sentences actually took; if a pattern stops matching its
 // own fixture, this fails by name and the zero above stops meaning anything.
+// The last two arrived on 2 October 2026 from the branch that merged first, and
+// neither was caught: the check only knew the "<count> free tools" and "<count>
+// tools are free" shapes, and both of these name a per-studio or parent figure in
+// the middle of the sentence. Each was verified to get through before the shapes
+// above were added -- a fixture nobody watched fail is a fixture that proves the
+// detector matches something, not that it matches this.
 const DETECTOR_FIXTURES = Object.freeze([
-  { text: 'description: "the six free tools across the three studios"', shouldMatch: 6 },
-  { text: 'body: "Six tools are free with no account and no card"', shouldMatch: 6 },
-  { text: 'body: "Twelve tools across the three studios are free"', shouldMatch: 12 }
+  { text: 'description: "the six free tools across the three studios"', scope: "total", shouldMatch: 6 },
+  { text: 'body: "Six tools are free with no account and no card"', scope: "total", shouldMatch: 6 },
+  { text: 'body: "Twelve tools across the three studios are free"', scope: "total", shouldMatch: 12 },
+  { text: 'body: "Four tools in each studio are free, plus three SONARA tools."', scope: "studio", shouldMatch: 4 },
+  { text: 'body: "Four tools in each studio are free, plus three SONARA tools."', scope: "parent", shouldMatch: 3 },
+  { text: '"<p>Four free tools per studio and three SONARA tools; results need no signup.</p>"', scope: "studio", shouldMatch: 4 }
 ]);
 
-function detect(text) {
-  const found = [];
-  for (const pattern of PATTERNS) {
-    for (const match of text.matchAll(pattern)) {
-      const raw = String(match[1]);
-      if (/^\$?\{/.test(raw) || raw === "FREE_TOOL_COUNT") continue;
-      const value = /^\d+$/.test(raw) ? Number(raw) : NUMBER_WORDS[raw.toLowerCase()];
-      if (value !== undefined) found.push(value);
-    }
-  }
-  return found;
-}
-
 for (const fixture of DETECTOR_FIXTURES) {
-  const found = detect(fixture.text);
-  if (!found.includes(fixture.shouldMatch)) {
+  const found = readClaims(fixture.text).filter((claim) => claim.scope === fixture.scope);
+  if (!found.some((claim) => claim.value === fixture.shouldMatch)) {
     fail(
-      `the detector no longer reads ${fixture.shouldMatch} out of ${JSON.stringify(fixture.text)}. `
+      `the detector no longer reads ${fixture.shouldMatch} ${SCOPE_LABEL[fixture.scope]} out of `
+      + `${JSON.stringify(fixture.text)}. `
       + "Until that is fixed, finding no stale counts in the runtime means nothing."
     );
   }
@@ -220,7 +291,7 @@ for (const fixture of DETECTOR_FIXTURES) {
 // And it must not fire on the derived form, or every page would fail for being
 // correct -- which is how a check gets weakened until it is switched off.
 const DERIVED_FIXTURE = "body: `${freeToolSentence()} The rest open on a plan.`";
-if (detect(DERIVED_FIXTURE).length) {
+if (readClaims(DERIVED_FIXTURE).length) {
   fail(`the detector fires on the derived form ${JSON.stringify(DERIVED_FIXTURE)}, which is the form every page is supposed to use`);
 }
 if (derivedUses < 3) {
@@ -232,7 +303,7 @@ console.log(
   `Free tool count verified: ${expected} free across ${files.length} runtime files `
   + `(${counts.business_builder}/${counts.creator_studio}/${counts.growth_studio} per studio, `
   + `${counts.sonara_industries} at the parent). ${statementsFound} literal counts stated in customer-facing `
-  + `strings, all agreeing; ${derivedUses} files read the figure rather than writing it. The detector was `
+  + `strings; ${derivedUses} files read the figure rather than writing it. The detector was `
   + `tested against ${DETECTOR_FIXTURES.length} stale sentences it must catch and the derived form it must not, `
   + "so a zero above means none were found rather than that nothing was looked for."
 );

@@ -57,7 +57,9 @@ const APPLIED_MIGRATIONS = Object.freeze([
   "20260728130000_sync_published_catalog_names.sql",
   "20260803180000_sync_catalog_paid_access.sql",
   "20260812120000_retire_removed_catalog_products.sql",
-  "20260827100000_published_catalog_is_complete.sql"
+  "20260827100000_published_catalog_is_complete.sql",
+  "20260905190000_sync_catalog_plan_floors.sql",
+  "20260905193000_published_catalog_is_complete.sql"
 ]);
 
 // 20260812120000 was named as applied in the comment above and left out of the
@@ -73,7 +75,7 @@ const APPLIED_MIGRATIONS = Object.freeze([
 // Regenerating an applied file is not a no-op that is merely wasteful. It is a
 // change that passes every local check and reaches no customer, which is this
 // repository's recurring defect wearing a migration's clothes.
-const migrationName = "20260905190000_sync_catalog_plan_floors.sql";
+const migrationName = "20261002100000_sync_creator_project_catalog.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 
 // The assertions live in their own migration, at the END of the sequence, and
@@ -98,7 +100,7 @@ const outputPath = path.join(root, "supabase", "migrations", migrationName);
 // describe what changed on 12 August. The two assertions move here, because
 // they describe what must be true once the whole history has run -- and only
 // here are they checking the catalog the application actually ships.
-const assertionMigrationName = "20260905193000_published_catalog_is_complete.sql";
+const assertionMigrationName = "20261002110000_creator_project_catalog_is_complete.sql";
 const assertionOutputPath = path.join(root, "supabase", "migrations", assertionMigrationName);
 
 // Every migration that puts a row into service_catalog_items must be dated

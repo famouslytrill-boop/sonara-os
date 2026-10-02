@@ -4,26 +4,31 @@
 //
 // All forty tools sat under /business-builder/, /creator-studio/ or
 // /growth-studio/, so a visitor who had not yet decided which studio they needed
-// had nothing to open — and the one question they actually had ("which of these
-// is for me?") was the one question no studio can answer without recommending
-// itself. The parent company now has three tools and a directory at /tools.
+// had nothing to open. The parent company now has three tools and a directory at
+// /tools, served by routes/sonara-parent-tool-routes.cjs.
 //
-// Three things about them have to stay true, and each has a way of quietly
-// stopping:
+// This file was written on 2 October 2026 against a different three. Two branches
+// built the parent company's front door the same day; #416 merged first, so its
+// three shipped and the three this file was written for were dropped rather than
+// added to — six at the parent company would contradict the owner's decision of
+// three. What survived the rename is every assertion that was about the *shape* of
+// a parent tool rather than about which three they are, because each of those still
+// has a way of quietly stopping:
 //
-// **Every parent tool must be free.** They carry no productKey, because there is
-// no "SONARA Industries" plan. If one left the free set, toolAccess would reach
-// `productForTool` → null → `unknown_product`, and a customer would be told "That
-// is a fault on our side" on a page we shipped. The gate is right; the page would
-// be ours to answer for.
+// **Every parent tool must be free.** None carries a productKey, because there is
+// no "SONARA Industries" plan. If one left the free set, `productForTool` would
+// return null and a visitor would be told "that is a fault on our side" on a page
+// we shipped.
 //
 // **The count must not be written down anywhere.** Five surfaces each held their
 // own "six" on 2 October 2026. All five were correct and all five were wrong the
-// same afternoon.
+// same afternoon — and then the set changed a second time that day, which is the
+// reason this is a gate and not a note.
 //
-// **A refusal must stay a refusal.** Each of the three has a case with no answer —
-// nothing ticked, nothing being re-typed, a count that contradicts itself — and
-// each must say so rather than return a confident zero.
+// **"Processing stays on your device" must be true.** Each of these three pages
+// says so in those words. A claim about where somebody's data goes is not a
+// marketing sentence; the assertion below is that there is no server route that
+// could receive it.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -31,7 +36,6 @@ const path = require("node:path");
 const request = require("supertest");
 
 const access = require("../lib/sonara-tool-access.cjs");
-const industries = require("../lib/sonara-industries-tools.cjs");
 const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
 const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
 
@@ -39,31 +43,26 @@ const root = path.join(__dirname, "..");
 
 describe("the parent company has its own front door", () => {
   const app = require("../server.js");
-  const registered = app.locals.sonaraFreeTools || [];
+  const parentTools = app.locals.sonaraParentTools || [];
+  const freeTools = app.locals.sonaraFreeTools || [];
 
   describe("the three tools exist and are reachable", () => {
     it("registers three parent-company tools", () => {
-      assert.equal(industries.INDUSTRIES_TOOLS.length, 3, "the owner's decision was three at the parent company");
+      assert.equal(parentTools.length, 3, "the owner's decision was three at the parent company");
       assert.equal(access.freeToolCountByCompany().sonara_industries, 3);
     });
 
-    it("serves a directory at /tools that labels every one of them", async () => {
+    it("serves a directory at /tools that links every one of them", async () => {
       const response = await request(app).get("/tools").set("accept", "text/html");
       assert.equal(response.status, 200);
-      for (const tool of industries.INDUSTRIES_TOOLS) {
-        assert.ok(response.text.includes(`${tool.title} — free`), `/tools does not label ${tool.title} as free`);
+      for (const tool of parentTools) {
         assert.ok(response.text.includes(tool.path), `/tools does not link ${tool.path}`);
-      }
-      // And it points at the studios rather than pretending to be the index of
-      // everything, so each company's own directory stays the page that names
-      // that company's tools.
-      for (const directory of ["/business-builder/tools", "/creator-studio/tools", "/growth-studio/tools"]) {
-        assert.ok(response.text.includes(directory), `/tools does not link ${directory}`);
+        assert.ok(response.text.includes(tool.title), `/tools does not name ${tool.title}`);
       }
     });
 
     it("answers each one with a working form to a visitor with no account", async () => {
-      for (const tool of industries.INDUSTRIES_TOOLS) {
+      for (const tool of parentTools) {
         const response = await request(app).get(tool.path).set("accept", "text/html");
         assert.equal(response.status, 200, `${tool.path} did not render for a visitor`);
         assert.match(response.text, /<form/i, `${tool.path} rendered no form`);
@@ -71,31 +70,72 @@ describe("the parent company has its own front door", () => {
       }
     });
 
-    it("computes each one for a visitor with no account", async () => {
-      for (const tool of industries.INDUSTRIES_TOOLS) {
-        const body = {};
-        for (const field of tool.requiredFields) body[field] = "10";
-        const response = await request(app).post(tool.path).set("accept", "text/html").type("form").send(body);
-        assert.equal(response.status, 200, `${tool.path} answered ${response.status}`);
-        assert.match(response.text, /Free tool result/, `${tool.path} computed nothing`);
+    // The pages say the work happens on the device. A <noscript> that tells the
+    // visitor why nothing happened is the difference between a page that degrades
+    // and a page that silently does nothing.
+    it("says what a visitor without JavaScript gets, rather than a dead button", async () => {
+      for (const tool of parentTools) {
+        const response = await request(app).get(tool.path).set("accept", "text/html");
+        assert.match(response.text, /<noscript>/i, `${tool.path} has no fallback notice`);
+        assert.ok(
+          response.text.includes("/sonara-parent-tools.js"),
+          `${tool.path} claims on-device processing and loads no script to do it`
+        );
+      }
+    });
+  });
+
+  describe("nothing typed into a parent tool is uploaded", () => {
+    // The claim, in the page's own words. Asserted rather than trusted, because a
+    // sentence about where somebody's data goes is the one kind of copy that must
+    // not be able to drift away from the code.
+    it("promises on the page that the input stays on the device", async () => {
+      for (const tool of parentTools) {
+        const response = await request(app).get(tool.path).set("accept", "text/html");
+        assert.match(
+          response.text,
+          /processed locally and is not uploaded or saved/i,
+          `${tool.path} does not state where the input goes`
+        );
+      }
+    });
+
+    it("has no route that could receive it", async () => {
+      for (const tool of parentTools) {
+        const response = await request(app).post(tool.path).type("form").send({ text: "{}" });
+        assert.notEqual(
+          response.status,
+          200,
+          `${tool.path} accepted a POST, and the page tells the visitor nothing is uploaded`
+        );
+      }
+    });
+
+    // The form has no action and no method, so a submit cannot navigate; the
+    // script calls preventDefault. Both have to hold: an action-less form on a
+    // page whose script failed to load would POST to the page itself, which is
+    // what the assertion above covers, and a form with an action would send the
+    // input somewhere whatever the script did.
+    it("gives the form nowhere to send", async () => {
+      for (const tool of parentTools) {
+        const response = await request(app).get(tool.path).set("accept", "text/html");
+        const form = (response.text.match(/<form[^>]*>/i) || [""])[0];
+        assert.doesNotMatch(form, /\saction=/i, `${tool.path}'s form names a destination: ${form}`);
+        assert.doesNotMatch(form, /\smethod=/i, `${tool.path}'s form names a method: ${form}`);
       }
     });
   });
 
   describe("every parent tool is free, because no plan could open one", () => {
-    it("carries no productKey and no slug", () => {
-      for (const tool of industries.INDUSTRIES_TOOLS) {
-        assert.equal(tool.productKey, null, `${tool.path} claims a product key, and there is no parent-company plan`);
-        assert.equal(tool.slug, null, `${tool.path} claims a studio slug`);
-        assert.equal(tool.directoryPath, "/tools", `${tool.path} has no directory to link back to`);
-      }
-    });
-
     // The assertion the comment in lib/sonara-tool-access.cjs promises. Without
     // it that comment is a reason nobody checked.
     it("is in the free set, every one", () => {
-      for (const tool of industries.INDUSTRIES_TOOLS) {
-        assert.ok(access.isFreeTool(tool.path), `${tool.path} is not free and no plan covers it; it would answer "a fault on our side"`);
+      for (const tool of parentTools) {
+        assert.ok(
+          access.isFreeTool(tool.path),
+          `${tool.path} is not free and no plan covers it; it would answer "a fault on our side"`
+        );
+        assert.ok(access.isParentTool(tool.path), `${tool.path} is not read as a parent tool`);
       }
       assert.equal(access.FREE_TOOL_PATHS.filter((toolPath) => access.isParentTool(toolPath)).length, 3);
     });
@@ -103,7 +143,7 @@ describe("the parent company has its own front door", () => {
     // Not registered as a product prefix, deliberately. If somebody added it,
     // a parent tool could be locked behind an entitlement nobody sells.
     it("has no entitlement a gate could check", () => {
-      for (const tool of industries.INDUSTRIES_TOOLS) {
+      for (const tool of parentTools) {
         assert.equal(access.productForTool(tool.path), null, `${tool.path} resolved to a product key`);
       }
     });
@@ -116,141 +156,20 @@ describe("the parent company has its own front door", () => {
       assert.ok(studioTools.length >= 18, `only ${studioTools.length} studio tools read; this check has gone blind`);
     });
 
-    it("shares no module key or path with one", () => {
-      const modules = new Set(studioTools.map((tool) => tool.module));
+    it("shares no path with one", () => {
       const paths = new Set(studioTools.map((tool) => tool.path));
-      for (const tool of industries.INDUSTRIES_TOOLS) {
-        assert.ok(!modules.has(tool.module), `${tool.module} is already a studio tool's module key`);
+      for (const tool of parentTools) {
         assert.ok(!paths.has(tool.path), `${tool.path} is already a studio tool's path`);
       }
     });
 
-    // The claim in lib/sonara-industries-tools.cjs is that subscription-count
-    // asks a different question from software-spend: duplication of one record
-    // across products, rather than seat utilisation on one product. Asserted by
-    // the inputs, because two tools taking the same inputs are answering the same
-    // question whatever their titles say.
-    it("asks subscription-count a different question from software-spend", () => {
-      const softwareSpend = studioTools.find((tool) => tool.path === "/business-builder/tools/software-spend");
-      const subscriptionCount = industries.INDUSTRIES_TOOLS.find((tool) => tool.path === "/tools/subscription-count");
-      assert.ok(softwareSpend, "software-spend is gone; this comparison is measuring nothing");
-      assert.ok(subscriptionCount);
-      const spendFields = new Set(softwareSpend.requiredFields);
-      const countFields = new Set(subscriptionCount.requiredFields);
-      const shared = [...countFields].filter((field) => spendFields.has(field));
-      assert.deepEqual(shared, [], `the two take the same inputs (${shared.join(", ")}), so they are the same question`);
-      assert.ok(countFields.has("productsHoldingCustomers"), "the duplication input is what makes this a different tool");
-      assert.ok(spendFields.has("activeSeats"), "the utilisation input is what makes software-spend a different tool");
-    });
-  });
-
-  describe("which studio, when it cannot say", () => {
-    it("names no studio when nothing was ticked", () => {
-      const result = industries.whichStudio({});
-      assert.match(result.whichOne, /Nothing was ticked/);
-      // The failure that matters: picking the first studio and calling it advice.
-      for (const studio of industries.STUDIOS) {
-        assert.ok(!String(result.whichOne).includes(studio.name), `it named ${studio.name} on no answers`);
+    // A /tools/<key> that collided with a studio slug would be two pages at one
+    // address, and Express would serve whichever registered first.
+    it("claims no address a studio directory already owns", () => {
+      const reserved = new Set(["/tools", "/business-builder/tools", "/creator-studio/tools", "/growth-studio/tools"]);
+      for (const tool of parentTools) {
+        assert.ok(!reserved.has(tool.path), `${tool.path} is a directory address, not a tool address`);
       }
-      assert.ok(result.whyNotAGuess, "it did not say why it is refusing");
-    });
-
-    it("names one studio when the answers point at one", () => {
-      const result = industries.whichStudio({ makingWork: "yes", rightsMatter: "yes" });
-      assert.match(result.whichOne, /Creator Studio/);
-      assert.ok(!/Business Builder\.|Growth Studio\./.test(result.whichOne));
-    });
-
-    it("names both when they tie, rather than breaking the tie silently", () => {
-      const result = industries.whichStudio({ makingWork: "yes", needCustomers: "yes" });
-      assert.match(result.whichOne, /Creator Studio and Growth Studio/);
-      assert.ok(result.whyTwo, "a tie was reported without saying it is a real answer");
-    });
-
-    it("reads only an affirmative as a yes", () => {
-      assert.equal(industries.saidYes("yes"), true);
-      assert.equal(industries.saidYes("on"), true);
-      assert.equal(industries.saidYes("no"), false);
-      assert.equal(industries.saidYes(""), false);
-      assert.equal(industries.saidYes(undefined), false);
-      // "no" must not count. A checkbox posted as "no" that scored would make
-      // every answer a yes.
-      const result = industries.whichStudio({ makingWork: "no", rightsMatter: "no" });
-      assert.match(result.whichOne, /Nothing was ticked/);
-    });
-
-    it("takes its studio names from the positioning rather than from prose", () => {
-      const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
-      assert.ok(industries.STUDIOS.length === 3);
-      for (const studio of industries.STUDIOS) {
-        assert.ok(agents.includes(studio.name), `${studio.name} is not a name AGENTS.md uses`);
-        assert.ok(agents.includes(studio.forWhat), `${studio.name}'s description is not the one AGENTS.md fixes`);
-      }
-    });
-  });
-
-  describe("re-typing cost, when there is nothing to count", () => {
-    it("says nothing is being re-typed rather than reporting $0.00 a year", () => {
-      const result = industries.retypingCost({ copiesPerWeek: "0", minutesPerCopy: "5", hourlyRate: "40", peopleDoingIt: "1" });
-      assert.match(result.yearlyCost, /Nothing is being re-typed/);
-      assert.ok(!/\$0\.00 a year/.test(result.yearlyCost));
-    });
-
-    it("names the box it could not read rather than returning NaN", () => {
-      const result = industries.retypingCost({ copiesPerWeek: "lots", minutesPerCopy: "5", hourlyRate: "40", peopleDoingIt: "1" });
-      assert.match(result.couldNotCalculate, /times a week/);
-      assert.ok(!JSON.stringify(result).includes("NaN"));
-      assert.ok(result.nothingWasGuessed);
-    });
-
-    it("multiplies by the number of people, not just one of them", () => {
-      const one = industries.retypingCost({ copiesPerWeek: "20", minutesPerCopy: "3", hourlyRate: "40", peopleDoingIt: "1" });
-      const two = industries.retypingCost({ copiesPerWeek: "20", minutesPerCopy: "3", hourlyRate: "40", peopleDoingIt: "2" });
-      assert.notEqual(one.yearlyCost, two.yearlyCost, "the number of people changed nothing");
-      assert.match(two.yearlyCost, /4160\.00/);
-    });
-
-    it("invents no error rate for the cost it cannot measure", () => {
-      const result = industries.retypingCost({ copiesPerWeek: "20", minutesPerCopy: "3", hourlyRate: "40", peopleDoingIt: "2" });
-      assert.match(result.theOtherCost, /not going to invent an error rate/);
-    });
-
-    it("quotes no price of ours, so nothing in it can go stale", () => {
-      const source = fs.readFileSync(path.join(root, "lib", "sonara-industries-tools.cjs"), "utf8");
-      // The three stale comparisons this repository has already shipped were all
-      // a remembered price written into a file. There is no price in this one.
-      assert.doesNotMatch(source, /\$\d+(\.\d+)?\s*(a|per)\s*month/i, "a monthly price is written into the parent tools");
-      assert.ok(source.includes("/pricing"), "it does not point at the page that is generated from the plans");
-    });
-  });
-
-  describe("subscription count, when the numbers contradict each other", () => {
-    it("refuses when more products hold the list than exist", () => {
-      const result = industries.subscriptionCount({ productCount: "3", monthlyTotal: "100", productsHoldingCustomers: "5" });
-      assert.match(result.couldNotCalculate, /cannot both be true/);
-      // The quiet version of this bug is taking the minimum and reporting a
-      // confident answer to a question nobody asked.
-      assert.ok(!result.yearlyTotal, "it computed a total from figures it had just called impossible");
-      assert.match(result.nothingWasGuessed, /not quietly taken the smaller number/);
-    });
-
-    it("counts duplicates as copies beyond the first, not as the number holding it", () => {
-      const result = industries.subscriptionCount({ productCount: "8", monthlyTotal: "400", productsHoldingCustomers: "6" });
-      assert.match(result.duplicateCustomerLists, /^5 duplicate copies/);
-      assert.match(result.yearlyTotal, /4800\.00/);
-    });
-
-    it("says one place holds it when only one does", () => {
-      const result = industries.subscriptionCount({ productCount: "4", monthlyTotal: "100", productsHoldingCustomers: "1" });
-      assert.match(result.duplicateCustomerLists, /One place holds your customer list/);
-      assert.doesNotMatch(result.duplicateCustomerLists, /duplicate/);
-    });
-
-    it("says you are paying for nothing rather than dividing by zero", () => {
-      const result = industries.subscriptionCount({ productCount: "0", monthlyTotal: "0", productsHoldingCustomers: "0" });
-      assert.match(result.yearlyTotal, /paying for nothing/);
-      assert.ok(!JSON.stringify(result).includes("NaN"));
-      assert.ok(!JSON.stringify(result).includes("Infinity"));
     });
   });
 
@@ -275,10 +194,10 @@ describe("the parent company has its own front door", () => {
       );
     });
 
-    it("has the five surfaces reading the figure rather than holding one", () => {
+    it("has every surface reading the figure rather than holding one", () => {
       const readers = [
+        path.join(root, "server.js"),
         path.join(root, "lib", "sonara-stripe-plans.cjs"),
-        path.join(root, "lib", "sonara-industries-tools.cjs"),
         path.join(root, "routes", "sonara-service-lifecycle-routes.cjs"),
         path.join(root, "routes", "sonara-route-registry-routes.cjs")
       ];
@@ -310,9 +229,13 @@ describe("the parent company has its own front door", () => {
 
     it("answers all fifteen to a visitor with no account", async () => {
       assert.equal(access.FREE_TOOL_PATHS.length, 15);
+      const registered = [...freeTools, ...parentTools];
+      assert.ok(registered.length >= 15, `only ${registered.length} tools registered; this check has gone blind`);
       for (const toolPath of access.FREE_TOOL_PATHS) {
-        const tool = registered.find((entry) => entry.path === toolPath);
-        assert.ok(tool, `${toolPath} is listed as free and is not a registered tool`);
+        assert.ok(
+          registered.some((entry) => entry.path === toolPath),
+          `${toolPath} is listed as free and is not a registered tool`
+        );
         const response = await request(app).get(toolPath).set("accept", "text/html");
         assert.equal(response.status, 200, `${toolPath} answered ${response.status}`);
         assert.doesNotMatch(response.text, /On a paid plan/, `${toolPath} is advertised as free and answered as locked`);

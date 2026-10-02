@@ -27,7 +27,7 @@ const { PUBLIC_ROUTES, CUSTOMER_ROUTES } = require("../lib/sonara-route-registry
 
 // Public pages that exist to attract and orient someone who has not signed up.
 const CINEMATIC = new Set([
-  "/", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/free-launch-stack", "/pricing",
+  "/", "/tools", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/free-launch-stack", "/pricing",
   "/how-it-works", "/tutorials", "/tutorials/getting-started", "/tutorials/business-builder",
   "/tutorials/creator-studio", "/tutorials/growth-studio", "/contact", "/security",
   "/business-builder", "/creator-studio", "/growth-studio", "/help", "/prompt-library",
@@ -47,6 +47,9 @@ const CINEMATIC = new Set([
 // someone opens a readiness checklist to see what is not set up yet, and
 // neither is improved by parallax.
 const CALM = new Map([
+  ["/tools/data-formatter", "a local working form"],
+  ["/tools/text-fingerprint", "a local working form"],
+  ["/tools/storage-budget", "a local working form"],
   // Not calm because it is a document -- it is a full marketing page. It is on
   // this side because it renders its own <html> outside the SONARA shell, so
   // the stage and the depth script are not its to carry. The rule being checked
@@ -77,14 +80,18 @@ const CALM = new Map([
   ["/creator-studio/launch-readiness", "an operational checklist showing what is still setup required"],
   ["/growth-studio/launch-readiness", "an operational checklist showing what is still setup required"],
   // The parent company's three tools, added 2 October 2026. They are public and
-  // need no account, and they are still work screens: somebody fills in four
-  // boxes and reads a number. The studio tools are not on either list because
-  // they are registered as product routes rather than public ones; these have no
-  // product, so PUBLIC_ROUTES is the only honest home for them and they get
-  // classified here like anything else public.
-  ["/tools/which-studio", "six boxes and an answer; a visitor is working it, not being oriented by it"],
-  ["/tools/retyping-cost", "a calculator somebody fills in to get a figure"],
-  ["/tools/subscription-count", "a calculator somebody fills in to get a figure"]
+  // need no account, and they are still work screens: somebody pastes something in
+  // and reads the result. The studio tools are not on either list because they are
+  // registered as product routes rather than public ones; these have no product, so
+  // PUBLIC_ROUTES is the only honest home for them and they get classified here
+  // like anything else public.
+  //
+  // Three different tools were listed here until the merge of #416, which had built
+  // the parent company's front door independently and shipped first. The entries
+  // moved rather than the rule.
+  ["/tools/data-formatter", "a form somebody pastes JSON into and reads the result"],
+  ["/tools/text-fingerprint", "a form somebody pastes text into and reads a fingerprint"],
+  ["/tools/storage-budget", "a calculator somebody fills in to get a figure"]
 ]);
 
 function isPage(route) {

@@ -171,7 +171,8 @@ function entitledFetch() {
     if (table === "organizations") return ok([{ id: ORGANIZATION_ID, name: "Plain Language Ltd" }]);
     if (table === "billing_entitlements") {
       const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1]).split(",").filter(Boolean);
-      return ok(asked[0] ? [{ entitlement_key: asked[0], status: "active" }] : []);
+      const granted = asked.includes("all_three_monthly") ? "all_three_monthly" : asked[0];
+      return ok(granted ? [{ entitlement_key: granted, status: "active" }] : []);
     }
     // Every other read succeeds and returns nothing, so a page renders its
     // empty state rather than its outage state.
@@ -316,26 +317,29 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out crawl. Its copy is read by
   // tests/work-that-comes-round-again-comes-round-once.test.js instead, which
   // drives the route with the guard stubbed.
-  // 109 -> 110 on 2 October 2026: /creator-studio/owner/project-graph is behind
+  // 109 -> 110 on 2 October 2026: the subscribed Creator projects page refuses the
+  // outage stub's unreadable entitlement. The entitled pass above reads its actual
+  // empty state; tests/creator-project-graph.test.js exercises edits.
+  // 110 -> 111 on 2 October 2026: /creator-studio/owner/approval-graph is behind
   // requireWorkspaceAccess("creator_studio") and needs a resolved organization, so
   // a signed-out crawl gets a 503 and never reads its copy. The copy is read
   // instead by tests/an-unanswered-disclosure-is-not-a-no.test.js, which drives the
   // route with the guard stubbed and asserts both the sentence it shows when a
   // version is cleared and the one it shows when a disclosure is unanswered.
-  // 110 -> 111 on 2 October 2026: /growth-studio/owner/events is behind
+  // 111 -> 112 on 2 October 2026: /growth-studio/owner/events is behind
   // requireWorkspaceAccess("growth_studio") and needs a resolved organization, so
   // a signed-out crawl gets a 503 and never reads its copy. Its copy is read
   // instead by tests/a-confirmed-seat-is-a-seat.test.js, which drives the route
   // with the guard stubbed. The public half, /events/:slug, is parameterised and
   // was never in this crawl -- that page's wording is asserted in the same file.
-  // 111 -> 112 on 2 October 2026: /business-builder/owner/store is behind
+  // 112 -> 113 on 2 October 2026: /business-builder/owner/store is behind
   // requireBusinessManager, so a signed-out crawl gets a 303 and never reads its
   // copy. Its copy is read instead by tests/a-price-nobody-set-is-not-free.test.js,
   // which drives the route with the guard stubbed and asserts both the sentence it
   // shows about not taking payment and the reason it gives for each thing that is
   // not on sale. The public half, /store/:slug, is parameterised and was never in
   // this crawl; the same file asserts its wording.
-  const SIGNED_IN_SKIPPED = 112;
+  const SIGNED_IN_SKIPPED = 113;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

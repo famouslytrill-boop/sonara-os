@@ -159,7 +159,7 @@ function registerRouteRegistryRoutes(app, deps) {
       sections: [
         actionCard(
           "SONARA Industries tools",
-          `${counts.sonara_industries} free with no account, and they are the ones no single studio could answer: which studio fits your work, what re-typing the same record costs you, and how many products hold your customer list.`,
+          `${counts.sonara_industries} free with no account, and the only three that run entirely on your own device: format your JSON, fingerprint your text, and estimate what your files and backups need. Nothing you type into one is uploaded.`,
           [linkAction("/tools", "Open SONARA Industries tools")]
         ),
         ...studios.map(([name, key, directory]) => actionCard(

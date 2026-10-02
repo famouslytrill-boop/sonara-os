@@ -33,6 +33,8 @@ const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
   "20260723060500_business_integration_connections.sql"
 ];
+const creatorProjectMigrationNames = ["20261002090000_creator_project_graph.sql"];
+const CREATOR_PROJECT_TABLES = Object.freeze(["creator_projects"]);
 const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
 ];
@@ -63,7 +65,7 @@ const agentToolPermissionMigrationNames = [
 // 016's subtree, whose head nothing writes, and these three tables hang off
 // creator_assets, which routes/sonara-asset-file-routes.cjs genuinely writes.
 const creatorProjectGraphMigrationNames = [
-  "20261002010000_creator_project_graph.sql"
+  "20261002010000_creator_approval_graph.sql"
 ];
 // Venues, events and RSVPs, added 2 October 2026. Its own list rather than folded
 // into growthStudioMigrationNames: that group is the campaign and lead control
@@ -340,7 +342,7 @@ const GROWTH_EVENT_TABLES = Object.freeze([
   "growth_events",
   "growth_event_rsvps"
 ]);
-const CREATOR_PROJECT_GRAPH_TABLES = Object.freeze([
+const CREATOR_APPROVAL_GRAPH_TABLES = Object.freeze([
   "creator_briefs",
   "creator_asset_versions",
   "creator_asset_approvals"
@@ -479,6 +481,7 @@ const contractSql = [contractMigrationPath, referenceContractExtensionPath, prod
   .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
+const creatorProjectSql = readExtension(creatorProjectMigrationNames, "Creator Project Graph");
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
 const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, "Creator Studio artist system");
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
@@ -545,6 +548,10 @@ for (const required of [
   if (!businessControlSql.includes(required)) fail(`Business Builder control-plane extension is missing: ${required}`);
 }
 
+verifyExtension(CREATOR_PROJECT_TABLES, creatorProjectSql, "Creator Project Graph");
+for (const required of ["revoke all on public.creator_projects from public, anon, authenticated", "grant select on public.creator_projects to authenticated", "grant all on public.creator_projects to service_role", "public.sonara_is_org_member(organization_id)", "revision integer not null", "graph jsonb not null"]) {
+  if (!creatorProjectSql.includes(required)) fail(`Creator Project Graph extension is missing: ${required}`);
+}
 verifyExtension(CREATOR_GENERATION_TABLES, creatorGenerationSql, "Creator Studio generation");
 verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator Studio artist system");
 // BUSINESS_OPERATIONS_TABLES was only ever used to stop the runtime scan
@@ -602,7 +609,7 @@ for (const required of [
 if (/grant[^;]*delete[^;]*agent_tool_permissions/.test(agentToolPermissionSql)) {
   fail("the agent tool permissions migration grants DELETE; withdrawing a permission is an update so the record of what was granted survives");
 }
-verifyExtension(CREATOR_PROJECT_GRAPH_TABLES, creatorProjectGraphSql, "Creator Studio project graph");
+verifyExtension(CREATOR_APPROVAL_GRAPH_TABLES, creatorProjectGraphSql, "Creator Studio project graph");
 // `ai_disclosure boolean` with no NOT NULL and no default. Asserted as the exact
 // column declaration rather than by absence of "not null", because absence is
 // what a weaker check measures and absence is satisfied by the column having been
@@ -638,7 +645,7 @@ if (!/add\s+column\s+if\s+not\s+exists\s+brief_id\s+uuid\s+references\s+public\.
 // approval are states, not absences: deleting the row would erase the record that
 // somebody said no, and `destructive data changes` is an owner-approval category
 // in AGENTS.md.
-for (const table of CREATOR_PROJECT_GRAPH_TABLES) {
+for (const table of CREATOR_APPROVAL_GRAPH_TABLES) {
   if (new RegExp(`grant[^;]*delete[^;]*${table}`).test(creatorProjectGraphSql)) {
     fail(`the Creator Studio project graph migration grants DELETE on ${table}; a rejection is a recorded state and deleting it erases the record`);
   }
@@ -994,7 +1001,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_PROJECT_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES]);
+const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -1226,7 +1233,7 @@ if (unwiredPermission.requiresOwnerApproval || unwiredPermission.permission !== 
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${CREATOR_PROJECT_GRAPH_TABLES.length} reviewed Creator Studio project graph tables, ${GROWTH_EVENT_TABLES.length} reviewed Growth Studio event tables, ${MERCHANT_STORE_TABLES.length} reviewed merchant storefront tables, ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${CREATOR_APPROVAL_GRAPH_TABLES.length} reviewed Creator Studio project graph tables, ${GROWTH_EVENT_TABLES.length} reviewed Growth Studio event tables, ${MERCHANT_STORE_TABLES.length} reviewed merchant storefront tables, ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

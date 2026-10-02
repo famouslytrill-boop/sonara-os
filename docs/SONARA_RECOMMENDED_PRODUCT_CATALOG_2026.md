@@ -67,7 +67,7 @@ automatically an executable one.
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
 | Brand & Asset Library | Starter | `active` | `/creator-studio/assets` | Yes |
-| Content Projects & Reuse | Starter | `active` | `/creator-studio/tools/brief` | Yes |
+| Content Projects & Reuse | Starter | `active` | `/creator-studio/projects` | Yes |
 | Release Packager | Core | `active` | `/creator-studio/music-system` | Yes |
 | Selling Your Work | Free | `active` | `/creator-studio/offers/free` | Yes |
 | Rate Card Builder | Free | `active` | `/creator-studio/tools/rate-card` | Yes |

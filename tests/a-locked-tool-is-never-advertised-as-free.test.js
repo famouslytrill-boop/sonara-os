@@ -25,18 +25,32 @@ const root = path.join(__dirname, "..");
 describe("a locked tool is never advertised as free", () => {
   const app = require("../server.js");
   const tools = app.locals.sonaraFreeTools || [];
+  // The parent company's three are registered separately, by
+  // routes/sonara-parent-tool-routes.cjs, because they are not lifecycle products
+  // and compute in the browser rather than on a POST. They are still free tools,
+  // so the three assertions about *which* tools are free have to see them --
+  // reading only sonaraFreeTools made this file measure twelve of fifteen and
+  // report it as all of them. The describes below about what a locked tool
+  // answers keep reading `tools`, because a parent tool has no POST to answer
+  // with and no plan that could lock it.
+  const everyFreeTool = [...tools, ...(app.locals.sonaraParentTools || [])];
 
   describe("which tools are free", () => {
     it("reads a population worth measuring", () => {
       assert.ok(tools.length >= 30, `only ${tools.length} tools registered; this check has gone blind`);
+      assert.equal(
+        everyFreeTool.length - tools.length,
+        3,
+        `${everyFreeTool.length - tools.length} parent-company tools registered; the owner's decision was three`
+      );
     });
 
     // Both directions matter and an empty set would satisfy neither.
     it("frees some tools but not all of them", () => {
-      const { free, locked } = access.partitionTools(tools);
+      const { free, locked } = access.partitionTools(everyFreeTool);
       assert.ok(free.length > 0, `no tool is free; the home page promises ${access.FREE_TOOL_COUNT}`);
       assert.ok(locked.length > 0, "every tool is free; nothing is behind the paywall");
-      assert.equal(free.length + locked.length, tools.length);
+      assert.equal(free.length + locked.length, everyFreeTool.length);
       assert.equal(free.length, access.FREE_TOOL_PATHS.length);
     });
 
@@ -46,7 +60,7 @@ describe("a locked tool is never advertised as free", () => {
     it("matches exactly the tools the public home page links", () => {
       const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
       const home = server.slice(server.indexOf("sonara-conversion-home"));
-      const advertised = tools
+      const advertised = everyFreeTool
         .map((tool) => tool.path)
         .filter((toolPath) => home.includes(`href=\\"${toolPath}\\"`))
         .sort();
@@ -61,7 +75,7 @@ describe("a locked tool is never advertised as free", () => {
     });
 
     it("every free path is a tool that exists", () => {
-      const known = new Set(tools.map((tool) => tool.path));
+      const known = new Set(everyFreeTool.map((tool) => tool.path));
       for (const toolPath of access.FREE_TOOL_PATHS) {
         assert.ok(known.has(toolPath), `${toolPath} is listed as free and is not a registered tool`);
       }

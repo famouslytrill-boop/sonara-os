@@ -2,6 +2,121 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - Two branches built the same two features, and one filename held both
+
+`main` moved to 48934ac8 while PR #415 was open. #416 had built the Creator Project
+Graph and the fifteen-tool free split independently, and merged first. The merge came
+back `dirty` with 22 conflicts, two of which were not conflicts in the ordinary sense.
+
+**`lib/sonara-creator-project-graph.cjs` existed on both sides and was two different
+modules.** #416's is the media timeline -- sources, clips, captions, and a
+JSON/WebVTT/CSV export. Mine is the permission chain over whatever a timeline
+produces: brief, version, approval, and whether a machine's part in it was recorded.
+An add/add conflict presents these as one file to pick between; picking either would
+have deleted a working feature. #416's keeps the name because it shipped; mine became
+`lib/sonara-creator-approval-graph.cjs`, with its route at
+`/creator-studio/owner/approval-graph` and its migration renamed to match. Both
+modules now open by saying which one they are not -- the one thing that stops an
+approval being read as an edit the next time somebody greps for "project graph".
+
+**The free split reached fifteen twice, by different routes.** Both sides promoted two
+more tools per studio and both added three at the parent company, and no two of those
+ten picks agreed. #416's shipped, so #416's are the fifteen. What did not survive is
+mine: `lib/sonara-industries-tools.cjs` and its three server-rendered calculators are
+deleted rather than added, because six at the parent company contradicts the owner's
+decision of three.
+
+That is the product half. The engineering half went the other way, because #416 left
+the count written down in words on five surfaces -- the home page's `<p class="fine">`
+and its FAQ, the free plan description, the tool directory body, and the
+`/free-tools` page, which also named individual free tools in prose. Every one was
+correct when written and every one would have been wrong the next time the split
+moved, which is a thing that has now happened twice in one day. They read
+`freeToolSentence()` now; the home page's markup became a template literal to carry
+it, and `scripts/verify-free-tool-count.mjs` fails the build on a page that states a
+different number. #416's three parent tools were also outside `FREE_TOOL_PATHS`,
+which made `freeToolCountByCompany()` report 0 at the parent company while three
+pages said three -- they are in the list now, which is what makes the count derivable
+rather than asserted.
+
+**A test retargeted rather than deleted.**
+`tests/the-parent-company-has-its-own-front-door.test.js` was written against my
+three. Everything in it that was about *which* three is gone; everything about the
+shape of a parent tool is kept and now runs against #416's. Three checks are new, and
+they exist because #416's design makes a promise mine did not: each page says the
+input is "processed locally and is not uploaded or saved". So the test asserts there
+is no POST route that could receive it, that the form names neither an action nor a
+method, and that the page ships the script and a `<noscript>` saying why nothing
+happened without it. A sentence about where somebody's data goes is the one kind of
+copy that must not be able to drift from the code.
+
+**And the gate I was relying on did not catch the thing I merged.**
+
+The last falsification was meant to be routine: put #416's sentence back on the home
+page and watch `verify:free-tool-count` refuse it. It did not. Exit 0, and the summary
+line said *0 literal counts found*.
+
+Two separate holes, found only because the break was actually run rather than
+reasoned about:
+
+1. **The patterns knew three sentence shapes and both of #416's were a fourth.**
+   `<count> free tools` and `<count> tools are free` do not match *"Four tools **in
+   each studio** are free"* or *"Four free tools **per studio**"* — the words in the
+   middle break the adjacency. So the check had been reporting zero while two stale
+   sentences sat in `server.js`, one of which it then caught the moment the shapes
+   were added: the pricing FAQ still said *"Four free tools per studio and three
+   SONARA tools"*. That one was real, and in the tree, and would have shipped.
+
+2. **It compared every number it found against the total.** These sentences state a
+   *per-studio* figure and a *parent* figure. A check that reads "four" and asks
+   whether it equals fifteen is wrong about the sentence it is reading, so getting
+   the shapes right required `CLAIMS` to carry which figure each shape asserts, with
+   the more specific patterns claiming their span first so `<count> free tools` does
+   not re-read "four free tools per studio" and demand fifteen.
+
+3. **It tolerated a count that was correct.** This is the one worth keeping. A literal
+   that agrees with the list passes, goes stale on the next change, and nothing is
+   watching when it does — which is not a hypothetical, it is this exact file's
+   previous two entries. The check now fails any literal count in customer-facing
+   copy, and the two cases differ only in what the message says: *"but 4 are free in
+   each studio"*, or *"which is right today and is still a figure written into a
+   page"*.
+
+Falsified, each failing by name and restored by copy-aside and `md5sum -c`:
+
+| break | result |
+|---|---|
+| a POST handler for a parent tool | 1 red, `/tools/data-formatter accepted a POST` |
+| an `action` on the form | 1 red, naming the destination it printed |
+| the three parent paths leave `FREE_TOOL_PATHS` | 3 red in the test, and the gate red twice, once by the message *no parent-company tool is free* |
+| #416's sentence back on the home page | **green, twice** — which is why the detector was rewritten |
+| the rewritten detector, same sentence | 2 red, both *right today and still a figure written into a page* |
+| the rewritten detector, "Nine tools in each studio" | 1 red, *but 4 are free in each studio* |
+
+The third row is a correction to something this entry claimed before the break was
+run: I had written "3 red" for the form `action`, and it is 1 — the assertion loops
+over three tools and the first failure ends the `it`. The fourth row is the one that
+matters. A check that has never failed is a check nobody has verified, and this one
+had passed every run since it was written four commits earlier.
+
+**Two more literals, both inside checks rather than pages.**
+`scripts/smoke-routes.cjs` asserted `FREE_TOOL_PATHS.length === 12` and failed for
+being right about the previous split; it now asserts the four per-company figures,
+and dropping one Creator Studio tool makes it say *"Creator Studio must expose four
+public tools"* rather than printing two numbers. `tests/a-locked-tool-is-never-advertised-as-free.test.js`
+was reading only `app.locals.sonaraFreeTools`, so it measured twelve of fifteen and
+reported it as all of them — shape 2, a scan naming a smaller population than it
+claims. It reads the union with `sonaraParentTools` now, and asserts the difference is
+exactly three so the union going back to one list fails by name.
+
+**One thing to know before regenerating anything mid-merge.**
+`scripts/verify-proprietary-notice.mjs` counts tracked files with `git ls-files`,
+which lists a conflicted path once per stage. Run with conflicts unresolved it read
+365 shipped files; on the resolved tree it reads 349. Neither is wrong — the first was
+counting the same files three times. Resolve the merge before pinning any derived
+count, or the figure that gets committed is an artefact of the conflict.
+
+
 ### 2026-10-02 - A page that said a read had failed when there was nothing to read
 
 Found while testing something else, which is the only reason it was found at all.
@@ -436,7 +551,7 @@ which version, or whether a machine made it. Four questions, and the fourth is t
 one that matters commercially: publishing a generated piece without a disclosure
 is a provenance claim made on a creator's behalf.
 
-**Three tables and one column.** `supabase/migrations/20261002010000_creator_project_graph.sql`
+**Three tables and one column.** `supabase/migrations/20261002010000_creator_approval_graph.sql`
 adds `creator_briefs`, `creator_asset_versions` and `creator_asset_approvals`, and
 one nullable `brief_id` on the `creator_assets` table that
 `routes/sonara-asset-file-routes.cjs` already writes. All three are keyed on
@@ -501,6 +616,28 @@ id-addressed PATCH (1 red), and a failed read rendering as an empty page (1 red)
 PostgreSQL with every `do $$` assertion executing. Suite 5506 passing. The
 tenant-query audit went from 77 to 83 organization-filtered `rest()` calls with
 none unfiltered, which is the six new reads and writes accounted for.
+### 2026-10-02 - Creator Project Graph and fifteen anonymous tools
+
+Built on Claude's main baseline a9aa277. Added private creative projects with
+owned source references, clip placement/mute, timed captions, optimistic
+revision updates, archive/restore, and real JSON/WebVTT/CSV downloads. Reused
+the existing asset library and storage. Updated the Creator dashboard/catalog,
+route/OpenAPI/schema contracts, migration checksums and capability inventory.
+Exactly four studio tools per child are public, plus three local SONARA tools.
+Their results need no signup. The graph itself opens through the existing
+Creator subscription guard, without an intake/quote or provider requirement.
+
+The full suite passed: 5,459 tests, six existing pending. Dependency audit,
+parse/type/lint/build and API/route/schema checks passed. Isolated PostgreSQL/WASM
+execution validated the graph migration and privileges; native full-history
+replay and rendered browser checks could not run locally. Browser downloads
+were truncated; this container cannot switch to an unprivileged user for
+PostgreSQL initdb. CI must supply that evidence before merge/activation.
+
+`docs/architecture/CREATOR_PROJECT_GRAPH_V1.md` records implemented behavior
+and the larger marketplace/community/device/worker/subscription-allowance
+roadmap. Research entries are not silently installed or enabled. Production
+migration application and deployment are still outstanding.
 
 ### 2026-10-02 - A test that was only true on the day it was written
 

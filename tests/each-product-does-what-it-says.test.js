@@ -66,7 +66,8 @@ function stubFetch() {
     if (table === "organizations") return json([{ id: ORGANIZATION_ID, name: "Audit Ltd" }]);
     if (table === "billing_entitlements") {
       const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1]).split(",").filter(Boolean);
-      return json(asked[0] ? [{ entitlement_key: asked[0], status: "active" }] : []);
+      const granted = asked.includes("all_three_monthly") ? "all_three_monthly" : asked[0];
+      return json(granted ? [{ entitlement_key: granted, status: "active" }] : []);
     }
     if (method === "POST" || method === "PATCH") return json([{ id: "created" }], 201);
     return json([]);
