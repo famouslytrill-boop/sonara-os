@@ -1413,6 +1413,68 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/briefs:
+    post:
+      operationId: openCreatorBrief
+      tags: [Creator Studio]
+      summary: Open a creator brief to group the work that belongs together.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the project graph with a done or problem code. A refused or failed write redirects the same way with a problem code, so this status does not by itself mean a row was written." }
+  /api/creator/briefs/status:
+    post:
+      operationId: setCreatorBriefStatus
+      tags: [Creator Studio]
+      summary: Record where a creator brief has got to.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the project graph with a done or problem code." }
+  /api/creator/assets/versions:
+    post:
+      operationId: recordCreatorAssetVersion
+      tags: [Creator Studio]
+      summary: Record a new version of a creator asset.
+      description: >-
+        The AI-disclosure answer has three states. An absent answer is stored as
+        null and never defaulted to false, because "nobody has answered" is not
+        "this is not AI-generated".
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the project graph with a done or problem code." }
+  /api/creator/assets/versions/disclose:
+    post:
+      operationId: discloseCreatorAssetVersion
+      tags: [Creator Studio]
+      summary: Answer the AI-disclosure question for one version.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the project graph with a done or problem code." }
+  /api/creator/assets/versions/review:
+    post:
+      operationId: requestCreatorAssetVersionReview
+      tags: [Creator Studio]
+      summary: Ask for a review of one version of a creator asset.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the project graph with a done or problem code." }
+  /api/creator/assets/versions/decide:
+    post:
+      operationId: decideCreatorAssetVersion
+      tags: [Creator Studio]
+      summary: Approve, reject or withdraw one version of a creator asset.
+      description: >-
+        A decision is a new row rather than an edit of the review request, so the
+        record of who asked and who answered survives. An approval stands on the
+        one version it was given on and does not carry forward to a later version.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the project graph with a done or problem code." }
   /api/creator/artists:
     get:
       operationId: listCreatorArtists

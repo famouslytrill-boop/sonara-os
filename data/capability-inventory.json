@@ -11,19 +11,19 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 864,
+    "routeOperationCount": 871,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 533,
+      "GET": 534,
       "PATCH": 10,
-      "POST": 318
+      "POST": 324
     },
     "workspaceCount": 12,
-    "declaredPageCount": 287,
+    "declaredPageCount": 288,
     "workspaceRouteCounts": {
       "business_builder": 331,
       "business_builder_agent_ops": 7,
-      "creator_studio": 119,
+      "creator_studio": 120,
       "cross_workspace_formulas": 5,
       "growth_studio": 116,
       "research_catalog": 12,
@@ -31,43 +31,43 @@
       "shared_account": 21,
       "shared_infrastructure": 3,
       "sonara_shared": 126,
-      "sonara_shared_api": 109
+      "sonara_shared_api": 115
     },
     "actionDestinationCounts": {
-      "exact": 329,
+      "exact": 330,
       "form_reference": 296,
       "machine_ingress": 2,
-      "parent_route": 57,
+      "parent_route": 61,
       "route_pair": 96,
-      "workspace_fallback": 84
+      "workspace_fallback": 86
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 137,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 184,
-      "needs_explicit_data_contract": 280
+      "handler_source_table_reference": 190,
+      "needs_explicit_data_contract": 281
     },
-    "routesUsingWorkspaceHomeFallback": 84,
+    "routesUsingWorkspaceHomeFallback": 86,
     "formActionLinkCount": 57,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 307,
-    "databaseTableCount": 335,
+    "openApiApiOperationCount": 313,
+    "databaseTableCount": 338,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 295,
+    "queriedTableCount": 298,
     "neverQueriedTableCount": 40,
-    "migrationCount": 140,
+    "migrationCount": 141,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 22,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 280,
+    "routeDataContractsNeedingExplicitReview": 281,
     "routeDataReviewByMethod": {
-      "GET": 195,
+      "GET": 196,
       "POST": 85
     },
     "routeDestinationReviewByWorkspace": {
@@ -78,7 +78,7 @@
       "growth_studio": 5,
       "research_lab": 1,
       "shared_infrastructure": 1,
-      "sonara_shared_api": 59
+      "sonara_shared_api": 61
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -423,8 +423,8 @@
         "/api/creator-studio",
         "/api/creator"
       ],
-      "routeCount": 119,
-      "registeredPageCount": 65,
+      "routeCount": 120,
+      "registeredPageCount": 66,
       "registeredPageRoutes": [
         "/creator-studio/album-cycles",
         "/creator-studio/album-cycles/:recordId/edit",
@@ -465,6 +465,7 @@
         "/creator-studio/music-system/song",
         "/creator-studio/offers",
         "/creator-studio/offers/free",
+        "/creator-studio/owner/project-graph",
         "/creator-studio/product-lifecycle",
         "/creator-studio/prompt-blueprints",
         "/creator-studio/prompt-blueprints/:recordId/edit",
@@ -567,6 +568,12 @@
           "routes": [
             "/creator-studio/dashboard",
             "/creator-studio/start"
+          ]
+        },
+        {
+          "name": "Owner operations",
+          "routes": [
+            "/creator-studio/owner/project-graph"
           ]
         },
         {
@@ -872,7 +879,7 @@
       "routePrefixes": [
         "/api"
       ],
-      "routeCount": 109,
+      "routeCount": 115,
       "registeredPageCount": 0,
       "registeredPageRoutes": [],
       "categories": [],
@@ -1857,7 +1864,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1447
+        "line": 1449
       },
       "contractCompleteness": {
         "route": true,
@@ -1963,7 +1970,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 815
+        "line": 817
       },
       "contractCompleteness": {
         "route": true,
@@ -2069,7 +2076,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 972
+        "line": 974
       },
       "contractCompleteness": {
         "route": true,
@@ -2173,7 +2180,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -2277,7 +2284,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -2389,7 +2396,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1162
+        "line": 1164
       },
       "contractCompleteness": {
         "route": true,
@@ -3451,7 +3458,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1179
+        "line": 1181
       },
       "contractCompleteness": {
         "route": true,
@@ -3666,7 +3673,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1296
+        "line": 1298
       },
       "contractCompleteness": {
         "route": true,
@@ -4671,7 +4678,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1436
+        "line": 1438
       },
       "contractCompleteness": {
         "route": true,
@@ -4992,7 +4999,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1435
+        "line": 1437
       },
       "contractCompleteness": {
         "route": true,
@@ -5552,7 +5559,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1434
+        "line": 1436
       },
       "contractCompleteness": {
         "route": true,
@@ -15742,7 +15749,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1261
       },
       "contractCompleteness": {
         "route": true,
@@ -15863,7 +15870,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -15912,7 +15920,8 @@
         "sourceModule": "module:routes/sonara-module-crud-routes.cjs",
         "moduleTableCandidateCount": 0,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -16049,7 +16058,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -16098,7 +16108,8 @@
         "sourceModule": "module:routes/sonara-module-crud-routes.cjs",
         "moduleTableCandidateCount": 0,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -16220,7 +16231,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1480
       },
       "contractCompleteness": {
         "route": true,
@@ -16780,7 +16791,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1477
+        "line": 1479
       },
       "contractCompleteness": {
         "route": true,
@@ -22463,7 +22474,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1502
+        "line": 1504
       },
       "contractCompleteness": {
         "route": true,
@@ -23023,7 +23034,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1501
+        "line": 1503
       },
       "contractCompleteness": {
         "route": true,
@@ -26178,7 +26189,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1524
+        "line": 1526
       },
       "contractCompleteness": {
         "route": true,
@@ -30777,7 +30788,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1532
+        "line": 1534
       },
       "contractCompleteness": {
         "route": true,
@@ -31742,7 +31753,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 924
+        "line": 926
       },
       "contractCompleteness": {
         "route": true,
@@ -31857,7 +31868,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1245
+        "line": 1247
       },
       "contractCompleteness": {
         "route": true,
@@ -31971,7 +31982,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1132
+        "line": 1134
       },
       "contractCompleteness": {
         "route": true,
@@ -32077,7 +32088,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1106
+        "line": 1108
       },
       "contractCompleteness": {
         "route": true,
@@ -32183,7 +32194,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1092
+        "line": 1094
       },
       "contractCompleteness": {
         "route": true,
@@ -32293,7 +32304,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1326
+        "line": 1328
       },
       "contractCompleteness": {
         "route": true,
@@ -32681,7 +32692,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1670
+        "line": 1672
       },
       "contractCompleteness": {
         "route": true,
@@ -32787,7 +32798,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -33172,7 +33183,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1328
+        "line": 1330
       },
       "contractCompleteness": {
         "route": true,
@@ -33882,7 +33893,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -34166,7 +34177,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -34272,7 +34283,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1686
       },
       "contractCompleteness": {
         "route": true,
@@ -34639,7 +34650,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1367
+        "line": 1369
       },
       "contractCompleteness": {
         "route": true,
@@ -34745,7 +34756,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -34945,7 +34956,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1397
+        "line": 1399
       },
       "contractCompleteness": {
         "route": true,
@@ -35051,7 +35062,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -35157,7 +35168,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1702
+        "line": 1704
       },
       "contractCompleteness": {
         "route": true,
@@ -35357,7 +35368,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1350
+        "line": 1352
       },
       "contractCompleteness": {
         "route": true,
@@ -35553,7 +35564,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -35659,7 +35670,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -35765,7 +35776,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -59814,7 +59825,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -60262,7 +60273,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -60368,7 +60379,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -60474,7 +60485,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -63340,7 +63351,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 879
+        "line": 881
       },
       "contractCompleteness": {
         "route": true,
@@ -63444,7 +63455,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -63550,7 +63561,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1670
+        "line": 1672
       },
       "contractCompleteness": {
         "route": true,
@@ -64680,7 +64691,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -64729,13 +64741,14 @@
         "sourceModule": "module:server.js",
         "moduleTableCandidateCount": 24,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -64812,7 +64825,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -64829,7 +64843,8 @@
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -64912,7 +64927,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -64929,7 +64945,8 @@
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -65131,7 +65148,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -65421,7 +65438,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -65527,7 +65544,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -65729,7 +65746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1686
       },
       "contractCompleteness": {
         "route": true,
@@ -67631,7 +67648,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -67737,7 +67754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1702
+        "line": 1704
       },
       "contractCompleteness": {
         "route": true,
@@ -67933,7 +67950,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -68039,7 +68056,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -69086,7 +69103,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -69192,7 +69209,94 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /creator-studio/owner/project-graph",
+      "method": "GET",
+      "route": "/creator-studio/owner/project-graph",
+      "kind": "page_or_download",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/project-graph",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Project Graph",
+        "productOwner": "creator_studio",
+        "visibility": "product",
+        "requiredRole": "customer",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_login",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 250
       },
       "contractCompleteness": {
         "route": true,
@@ -70067,7 +70171,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -70173,7 +70277,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -70279,7 +70383,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -71184,7 +71288,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -74844,7 +74948,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1204
+        "line": 1206
       },
       "contractCompleteness": {
         "route": true,
@@ -75039,7 +75143,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1027
+        "line": 1029
       },
       "contractCompleteness": {
         "route": true,
@@ -75143,7 +75247,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -75312,7 +75416,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1544
       },
       "contractCompleteness": {
         "route": true,
@@ -75758,7 +75862,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1670
+        "line": 1672
       },
       "contractCompleteness": {
         "route": true,
@@ -75864,7 +75968,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -76447,7 +76551,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -76649,7 +76753,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -77467,7 +77571,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1686
       },
       "contractCompleteness": {
         "route": true,
@@ -77845,7 +77949,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -77951,7 +78055,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -78147,7 +78251,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1702
+        "line": 1704
       },
       "contractCompleteness": {
         "route": true,
@@ -78379,7 +78483,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -78575,7 +78679,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -78681,7 +78785,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -79895,7 +79999,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -80001,7 +80105,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -80291,7 +80395,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "contractCompleteness": {
         "route": true,
@@ -82356,7 +82460,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1009
+        "line": 1011
       },
       "contractCompleteness": {
         "route": true,
@@ -82795,7 +82899,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -82890,7 +82994,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -82985,7 +83089,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83080,7 +83184,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83175,7 +83279,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83270,7 +83374,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83365,7 +83469,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83460,7 +83564,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83555,7 +83659,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83650,7 +83754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83745,7 +83849,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83840,7 +83944,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -83935,7 +84039,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -84030,7 +84134,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1582
       },
       "contractCompleteness": {
         "route": true,
@@ -84138,7 +84242,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1078
+        "line": 1080
       },
       "contractCompleteness": {
         "route": true,
@@ -84318,7 +84422,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1141
+        "line": 1143
       },
       "contractCompleteness": {
         "route": true,
@@ -84415,7 +84519,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1547
       },
       "contractCompleteness": {
         "route": true,
@@ -84780,7 +84884,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1558
+        "line": 1560
       },
       "contractCompleteness": {
         "route": true,
@@ -84875,7 +84979,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1544
       },
       "contractCompleteness": {
         "route": true,
@@ -85298,7 +85402,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 934
+        "line": 936
       },
       "contractCompleteness": {
         "route": true,
@@ -85402,7 +85506,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -86276,7 +86380,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -86564,7 +86668,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1544
       },
       "contractCompleteness": {
         "route": true,
@@ -88116,7 +88220,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 991
+        "line": 993
       },
       "contractCompleteness": {
         "route": true,
@@ -88315,7 +88419,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1307
+        "line": 1309
       },
       "contractCompleteness": {
         "route": true,
@@ -88804,7 +88908,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1082
+        "line": 1084
       },
       "contractCompleteness": {
         "route": true,
@@ -89868,7 +89972,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -90193,7 +90297,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1586
       },
       "contractCompleteness": {
         "route": true,
@@ -90288,7 +90392,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1544
       },
       "contractCompleteness": {
         "route": true,
@@ -91707,7 +91811,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1442
+        "line": 1444
       },
       "contractCompleteness": {
         "route": true,
@@ -91843,7 +91947,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -91892,7 +91997,8 @@
         "sourceModule": "module:routes/sonara-module-crud-routes.cjs",
         "moduleTableCandidateCount": 0,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -94344,7 +94450,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1192
+        "line": 1194
       },
       "contractCompleteness": {
         "route": true,
@@ -96138,7 +96244,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1264
+        "line": 1266
       },
       "contractCompleteness": {
         "route": true,
@@ -96491,7 +96597,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1266
+        "line": 1268
       },
       "contractCompleteness": {
         "route": true,
@@ -98976,7 +99082,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1437
+        "line": 1439
       },
       "contractCompleteness": {
         "route": true,
@@ -99252,7 +99358,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1386
+        "line": 1388
       },
       "contractCompleteness": {
         "route": true,
@@ -99787,7 +99893,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1421
+        "line": 1423
       },
       "contractCompleteness": {
         "route": true,
@@ -119164,7 +119270,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1263
+        "line": 1265
       },
       "contractCompleteness": {
         "route": true,
@@ -120056,7 +120162,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -120378,13 +120485,14 @@
           "supabase/migrations/20260819060000_shared_module_outputs.sql",
           "supabase/migrations/20260819070000_shared_links.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
       "source": {
         "file": "server.js",
-        "line": 1453
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -120522,7 +120630,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -120571,7 +120680,8 @@
         "sourceModule": "module:routes/sonara-module-crud-routes.cjs",
         "moduleTableCandidateCount": 0,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -120708,7 +120818,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -120757,7 +120868,8 @@
         "sourceModule": "module:routes/sonara-module-crud-routes.cjs",
         "moduleTableCandidateCount": 0,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -120894,7 +121006,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -120943,7 +121056,8 @@
         "sourceModule": "module:routes/sonara-module-crud-routes.cjs",
         "moduleTableCandidateCount": 0,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -121484,7 +121598,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1466
+        "line": 1468
       },
       "contractCompleteness": {
         "route": true,
@@ -122098,6 +122212,522 @@
       "action": true
     },
     {
+      "id": "POST /api/creator/assets/versions",
+      "method": "POST",
+      "route": "/api/creator/assets/versions",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/creator-studio/assets",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "recordCreatorAssetVersion",
+        "summary": "Record a new version of a creator asset.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "ai_disclosure",
+          "asset_id",
+          "note",
+          "source"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_asset_versions",
+          "creator_assets"
+        ],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_asset_versions",
+            "tableId": "table:creator_asset_versions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_assets",
+            "tableId": "table:creator_assets",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 440
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator/assets/versions/decide",
+      "method": "POST",
+      "route": "/api/creator/assets/versions/decide",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/creator-studio/assets",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "decideCreatorAssetVersion",
+        "summary": "Approve, reject or withdraw one version of a creator asset.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "note",
+          "state",
+          "version_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions"
+        ],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_asset_approvals",
+            "tableId": "table:creator_asset_approvals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_asset_versions",
+            "tableId": "table:creator_asset_versions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 526
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator/assets/versions/disclose",
+      "method": "POST",
+      "route": "/api/creator/assets/versions/disclose",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/creator-studio/assets",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "discloseCreatorAssetVersion",
+        "summary": "Answer the AI-disclosure question for one version.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "ai_disclosure",
+          "version_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_asset_versions"
+        ],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_asset_versions",
+            "tableId": "table:creator_asset_versions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 482
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator/assets/versions/review",
+      "method": "POST",
+      "route": "/api/creator/assets/versions/review",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/creator-studio/assets",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "requestCreatorAssetVersionReview",
+        "summary": "Ask for a review of one version of a creator asset.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "note",
+          "version_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions"
+        ],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_asset_approvals",
+            "tableId": "table:creator_asset_approvals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_asset_versions",
+            "tableId": "table:creator_asset_versions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 501
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /api/creator/automations/validate",
       "method": "POST",
       "route": "/api/creator/automations/validate",
@@ -122211,6 +122841,233 @@
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator/briefs",
+      "method": "POST",
+      "route": "/api/creator/briefs",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "openCreatorBrief",
+        "summary": "Open a creator brief to group the work that belongs together.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_briefs"
+        ],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_briefs",
+            "tableId": "table:creator_briefs",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 393
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "generic_openapi_body_contract"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator/briefs/status",
+      "method": "POST",
+      "route": "/api/creator/briefs/status",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "setCreatorBriefStatus",
+        "summary": "Record where a creator brief has got to.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "brief_id",
+          "status"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_briefs"
+        ],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_assets",
+          "creator_briefs"
+        ],
+        "tableLineage": [
+          {
+            "table": "creator_briefs",
+            "tableId": "table:creator_briefs",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-graph-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 419
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "handler_or_route_path_observation"
       },
@@ -127192,7 +128049,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1480
+        "line": 1482
       },
       "contractCompleteness": {
         "route": true,
@@ -128583,7 +129440,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1489
+        "line": 1491
       },
       "contractCompleteness": {
         "route": true,
@@ -140476,7 +141333,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 336
+        "line": 337
       },
       "contractCompleteness": {
         "route": true,
@@ -140806,7 +141663,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 335
+        "line": 336
       },
       "contractCompleteness": {
         "route": true,
@@ -141001,7 +141858,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1122
       },
       "contractCompleteness": {
         "route": true,
@@ -141101,7 +141958,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1156
+        "line": 1158
       },
       "contractCompleteness": {
         "route": true,
@@ -141295,7 +142152,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1086
+        "line": 1088
       },
       "contractCompleteness": {
         "route": true,
@@ -141784,7 +142641,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1410
+        "line": 1412
       },
       "contractCompleteness": {
         "route": true,
@@ -161166,7 +162023,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 893
+        "line": 895
       },
       "contractCompleteness": {
         "route": true,
@@ -162306,7 +163163,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -162323,7 +163181,8 @@
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -162408,7 +163267,8 @@
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
               ],
               "changedBy": [
-                "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+                "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+                "supabase/migrations/20261002010000_creator_project_graph.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -162425,7 +163285,8 @@
         "sourceModule": "module:routes/sonara-asset-file-routes.cjs",
         "moduleTableCandidateCount": 2,
         "schemaMigrations": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -167857,7 +168718,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1150
+        "line": 1152
       },
       "contractCompleteness": {
         "route": true,
@@ -170457,6 +171318,37 @@
             "supabase/migrations/011_sonara_saas_launch_system.sql",
             "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
             "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-creator-project-graph-routes.cjs",
+      "source": "routes/sonara-creator-project-graph-routes.cjs",
+      "tableCount": 4,
+      "tables": [
+        {
+          "table": "creator_asset_approvals",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_project_graph.sql"
+          ]
+        },
+        {
+          "table": "creator_asset_versions",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_project_graph.sql"
+          ]
+        },
+        {
+          "table": "creator_assets",
+          "migrations": [
+            "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          ]
+        },
+        {
+          "table": "creator_briefs",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_project_graph.sql"
           ]
         }
       ]
@@ -179524,10 +180416,246 @@
       }
     },
     {
+      "id": "table:creator_asset_approvals",
+      "schema": "public",
+      "name": "creator_asset_approvals",
+      "columnCount": 10,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "asset_version_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "review_requested",
+            "approved",
+            "rejected",
+            "withdrawn"
+          ],
+          "fallback": "review_requested"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "requested_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "decided_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_asset_versions",
+      "schema": "public",
+      "name": "creator_asset_versions",
+      "columnCount": 12,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "version_number",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "uploaded",
+            "generated",
+            "edited",
+            "imported"
+          ],
+          "fallback": "uploaded"
+        },
+        {
+          "name": "ai_disclosure",
+          "type": "boolean",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "provenance",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{}"
+        },
+        {
+          "name": "checksum",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:creator_assets",
       "schema": "public",
       "name": "creator_assets",
-      "columnCount": 11,
+      "columnCount": 12,
       "columns": [
         {
           "name": "id",
@@ -179629,6 +180757,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "brief_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -179636,7 +180772,8 @@
           "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
         ],
         "changedBy": [
-          "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          "supabase/migrations/012_sonara_full_ecosystem_schema.sql",
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
@@ -179644,6 +180781,113 @@
         "policyEvidence": []
       },
       "databaseContractCore": true,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_briefs",
+      "schema": "public",
+      "name": "creator_briefs",
+      "columnCount": 9,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "summary",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "intent",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "original",
+            "adaptation",
+            "commission",
+            "campaign"
+          ],
+          "fallback": "original"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "open",
+            "in_progress",
+            "delivered",
+            "closed"
+          ],
+          "fallback": "open"
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002010000_creator_project_graph.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
       "queryCoverage": "queried_by_runtime_source_audit",
       "subsystem": null,
@@ -220691,6 +221935,27 @@
         "agent_tool_permissions"
       ],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261002010000_creator_project_graph.sql",
+      "creates": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_briefs"
+      ],
+      "alters": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_assets",
+        "creator_briefs"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_briefs"
+      ],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -253457,7 +254722,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1162
+        "line": 1164
       },
       "destination": {
         "route": "/account",
@@ -253750,7 +255015,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1179
+        "line": 1181
       },
       "destination": {
         "route": "/account/setup",
@@ -253843,7 +255108,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1296
+        "line": 1298
       },
       "destination": {
         "route": "/dashboard",
@@ -253963,7 +255228,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1261
       },
       "destination": {
         "route": "/dashboard",
@@ -254605,7 +255870,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 924
+        "line": 926
       },
       "destination": {
         "route": "/dashboard",
@@ -254656,7 +255921,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -254797,7 +256062,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -254848,7 +256113,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -254899,7 +256164,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1686
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -254991,7 +256256,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/help",
@@ -255083,7 +256348,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1397
+        "line": 1399
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -255134,7 +256399,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -255226,7 +256491,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1350
+        "line": 1352
       },
       "destination": {
         "route": "/business-builder/login",
@@ -255312,7 +256577,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -255363,7 +256628,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -255414,7 +256679,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -255981,7 +257246,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -256064,7 +257329,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -256115,7 +257380,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/business-builder/records",
@@ -256166,7 +257431,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -257217,7 +258482,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -257306,7 +258571,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -257357,7 +258622,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -257449,7 +258714,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1686
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -257711,7 +258976,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -257797,7 +259062,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -257848,7 +259113,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -258003,7 +259268,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -258054,7 +259319,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -258088,6 +259353,37 @@
         "support_email_delivery_attempts",
         "support_requests",
         "user_roles"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /creator-studio/owner/project-graph",
+      "workspace": "creator_studio",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 250
+      },
+      "destination": {
+        "route": "/creator-studio/owner/project-graph",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_assets",
+        "creator_briefs"
       ],
       "requestFieldsObserved": {
         "body": [],
@@ -258137,7 +259433,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -258188,7 +259484,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -258239,7 +259535,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -258398,7 +259694,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -259351,7 +260647,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -259544,7 +260840,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -259735,7 +261031,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1686
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -259893,7 +261189,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -259944,7 +261240,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -260065,7 +261361,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -260116,7 +261412,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -260265,7 +261561,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -260316,7 +261612,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1726
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -260441,7 +261737,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1733
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -261277,7 +262573,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1078
+        "line": 1080
       },
       "destination": {
         "route": "/login",
@@ -261476,7 +262772,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1082
+        "line": 1084
       },
       "destination": {
         "route": "/signup",
@@ -262394,7 +263690,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1122
       },
       "destination": {
         "route": "/auth/login",
@@ -262449,7 +263745,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1156
+        "line": 1158
       },
       "destination": {
         "route": "/logout",
@@ -262541,7 +263837,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1086
+        "line": 1088
       },
       "destination": {
         "route": "/auth/signup",
@@ -264474,7 +265770,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1150
+        "line": 1152
       },
       "destination": {
         "route": "/logout",
@@ -264884,7 +266180,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1296
+        "line": 1298
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264954,7 +266250,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1261
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264964,7 +266260,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1480
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264974,7 +266270,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1502
+        "line": 1504
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265014,7 +266310,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1524
+        "line": 1526
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265224,7 +266520,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 924
+        "line": 926
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265395,6 +266691,26 @@
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
         "line": 331
+      },
+      "currentDestination": "/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/creator/briefs",
+      "workspace": "sonara_shared_api",
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 393
+      },
+      "currentDestination": "/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/creator/briefs/status",
+      "workspace": "sonara_shared_api",
+      "source": {
+        "file": "routes/sonara-creator-project-graph-routes.cjs",
+        "line": 419
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

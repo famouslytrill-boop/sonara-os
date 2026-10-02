@@ -31,6 +31,7 @@ const registerImportRoutes = require("./routes/sonara-import-routes.cjs");
 const registerRecurringInvoiceRoutes = require("./routes/sonara-recurring-invoice-routes.cjs");
 const registerRecurringTaskRoutes = require("./routes/sonara-recurring-task-routes.cjs");
 const registerRotaRoutes = require("./routes/sonara-rota-routes.cjs");
+const registerCreatorProjectGraphRoutes = require("./routes/sonara-creator-project-graph-routes.cjs");
 // Moved to lib/sonara-env-value-checks.cjs on 18 September 2026 so that
 // scripts/verify-email-env.mjs applies the SAME placeholder and email rules
 // this file's readiness surface applies, rather than a looser copy. See the
@@ -730,6 +731,7 @@ registerImportRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBu
 registerRecurringInvoiceRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 
 registerRecurringTaskRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+registerCreatorProjectGraphRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 
 registerRotaRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 

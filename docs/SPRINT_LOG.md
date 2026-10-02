@@ -2,6 +2,80 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - The Creator Project Graph, and the question nobody answered
+
+Creator Studio could hold an asset and could hold a file. It could not say which
+brief a piece belonged to, which version of it was current, who had approved
+which version, or whether a machine made it. Four questions, and the fourth is the
+one that matters commercially: publishing a generated piece without a disclosure
+is a provenance claim made on a creator's behalf.
+
+**Three tables and one column.** `supabase/migrations/20261002010000_creator_project_graph.sql`
+adds `creator_briefs`, `creator_asset_versions` and `creator_asset_approvals`, and
+one nullable `brief_id` on the `creator_assets` table that
+`routes/sonara-asset-file-routes.cjs` already writes. All three are keyed on
+`organization_id`, RLS on with no policy, and granted select/insert/update but
+never delete -- a rejection is a recorded state, and deleting the row erases the
+record that somebody said no.
+
+**`ai_disclosure` is nullable on purpose.** Yes / no / **nobody has answered** are
+three states, and the cheapest defect in this codebase to ship would be
+`Boolean(row.ai_disclosure)`, which reads the third as the second. The migration's
+own `do $$` block asserts `is_nullable = 'YES'` against the live catalogue;
+`scripts/verify-supabase-contract.mjs` asserts the text that produces it and
+refuses a `NOT NULL` or a default. Two checks that fail for different reasons, so
+a change defeating one does not pass the other.
+
+**An approval belongs to one version, not to the asset.** If
+`creator_asset_approvals.asset_version_id` pointed at `creator_assets`, approving
+v1 would clear v2 and every later edit -- a gate asked once and then answered for
+work nobody saw. The contract gate asserts the foreign key; the test asserts the
+behaviour, because a key pointing at the right table is not the same as a decision
+function reading it.
+
+`lib/sonara-creator-project-graph.cjs` holds the decisions and nothing else.
+`publishReadiness` refuses on two grounds and reports both at once: not approved,
+and machine-made with no recorded disclosure. It will not use `provenance` to
+answer the disclosure question -- how a file was made and what was declared about
+it are different, and using one for the other is how a disclosure nobody gave
+starts reading as one that was.
+
+**A comment that asserted the opposite of the code.** The module said "a later
+`review_requested` does not undo an approval". The code sorts by
+`decidedAt || createdAt` and takes the latest, so it does. The test was written,
+it failed, and **the comment was corrected rather than the behaviour**: somebody
+asking for another review is somebody who is no longer sure, and the safe reading
+is "under review". The ordinary flow is untouched, and the test now asserts that
+too -- a review request created before the approval that answers it still loses to
+it.
+
+**Registered, and with real forms.** `routes/sonara-creator-project-graph-routes.cjs`
+serves `/creator-studio/owner/project-graph` and six POST endpoints, all behind
+`requireWorkspaceAccess("creator_studio")`, every write scoped by
+`organization_id` as well as by id because the service-role key bypasses RLS.
+Three gates caught what was missing rather than my reading it:
+`verify-route-registry` refused the page as absent from the canonical registry,
+`tests/form-reachability.test.js` named five endpoints with no form, and
+`report-orphan-tables` would have named the tables had the routes not been wired
+into `server.js`. Every endpoint now has a form on the page, offering only the
+values the schema's check constraints allow, read from the module rather than
+retyped. Problem codes round-trip through the query string and the sentence is
+looked up on the page, so a crafted link cannot put text in this product's voice.
+
+**Verified by breaking it.** Five contract assertions each failed by name with the
+migration broken and passed after `md5sum -c` restored it: `ai_disclosure` made
+`not null default false`, the approval repointed at `creator_assets`, the unique
+constraint removed, a delete grant added, the `brief_id` column renamed. Five more
+against the code: `disclosureOf` returning `declared_human` for an absent answer
+(6 tests red), the disclosure blocker disabled (3 red), the route writing `false`
+instead of `null` (1 red, by name), the organization filter dropped from the
+id-addressed PATCH (1 red), and a failed read rendering as an empty page (1 red).
+
+`pnpm run verify:migration-replay` applies 141 migrations in order to an empty
+PostgreSQL with every `do $$` assertion executing. Suite 5506 passing. The
+tenant-query audit went from 77 to 83 organization-filtered `rest()` calls with
+none unfiltered, which is the six new reads and writes accounted for.
+
 ### 2026-10-02 - A test that was only true on the day it was written
 
 `main` went red overnight with nothing pushed to it. Two tests in

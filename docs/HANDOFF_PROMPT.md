@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3039 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3041 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 140 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 141 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 417 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 418 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,87 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 419 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 420 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - The Creator Project Graph, and the question nobody answered
+
+Creator Studio could hold an asset and could hold a file. It could not say which
+brief a piece belonged to, which version of it was current, who had approved
+which version, or whether a machine made it. Four questions, and the fourth is the
+one that matters commercially: publishing a generated piece without a disclosure
+is a provenance claim made on a creator's behalf.
+
+**Three tables and one column.** `supabase/migrations/20261002010000_creator_project_graph.sql`
+adds `creator_briefs`, `creator_asset_versions` and `creator_asset_approvals`, and
+one nullable `brief_id` on the `creator_assets` table that
+`routes/sonara-asset-file-routes.cjs` already writes. All three are keyed on
+`organization_id`, RLS on with no policy, and granted select/insert/update but
+never delete -- a rejection is a recorded state, and deleting the row erases the
+record that somebody said no.
+
+**`ai_disclosure` is nullable on purpose.** Yes / no / **nobody has answered** are
+three states, and the cheapest defect in this codebase to ship would be
+`Boolean(row.ai_disclosure)`, which reads the third as the second. The migration's
+own `do $$` block asserts `is_nullable = 'YES'` against the live catalogue;
+`scripts/verify-supabase-contract.mjs` asserts the text that produces it and
+refuses a `NOT NULL` or a default. Two checks that fail for different reasons, so
+a change defeating one does not pass the other.
+
+**An approval belongs to one version, not to the asset.** If
+`creator_asset_approvals.asset_version_id` pointed at `creator_assets`, approving
+v1 would clear v2 and every later edit -- a gate asked once and then answered for
+work nobody saw. The contract gate asserts the foreign key; the test asserts the
+behaviour, because a key pointing at the right table is not the same as a decision
+function reading it.
+
+`lib/sonara-creator-project-graph.cjs` holds the decisions and nothing else.
+`publishReadiness` refuses on two grounds and reports both at once: not approved,
+and machine-made with no recorded disclosure. It will not use `provenance` to
+answer the disclosure question -- how a file was made and what was declared about
+it are different, and using one for the other is how a disclosure nobody gave
+starts reading as one that was.
+
+**A comment that asserted the opposite of the code.** The module said "a later
+`review_requested` does not undo an approval". The code sorts by
+`decidedAt || createdAt` and takes the latest, so it does. The test was written,
+it failed, and **the comment was corrected rather than the behaviour**: somebody
+asking for another review is somebody who is no longer sure, and the safe reading
+is "under review". The ordinary flow is untouched, and the test now asserts that
+too -- a review request created before the approval that answers it still loses to
+it.
+
+**Registered, and with real forms.** `routes/sonara-creator-project-graph-routes.cjs`
+serves `/creator-studio/owner/project-graph` and six POST endpoints, all behind
+`requireWorkspaceAccess("creator_studio")`, every write scoped by
+`organization_id` as well as by id because the service-role key bypasses RLS.
+Three gates caught what was missing rather than my reading it:
+`verify-route-registry` refused the page as absent from the canonical registry,
+`tests/form-reachability.test.js` named five endpoints with no form, and
+`report-orphan-tables` would have named the tables had the routes not been wired
+into `server.js`. Every endpoint now has a form on the page, offering only the
+values the schema's check constraints allow, read from the module rather than
+retyped. Problem codes round-trip through the query string and the sentence is
+looked up on the page, so a crafted link cannot put text in this product's voice.
+
+**Verified by breaking it.** Five contract assertions each failed by name with the
+migration broken and passed after `md5sum -c` restored it: `ai_disclosure` made
+`not null default false`, the approval repointed at `creator_assets`, the unique
+constraint removed, a delete grant added, the `brief_id` column renamed. Five more
+against the code: `disclosureOf` returning `declared_human` for an absent answer
+(6 tests red), the disclosure blocker disabled (3 red), the route writing `false`
+instead of `null` (1 red, by name), the organization filter dropped from the
+id-addressed PATCH (1 red), and a failed read rendering as an empty page (1 red).
+
+`pnpm run verify:migration-replay` applies 141 migrations in order to an empty
+PostgreSQL with every `do $$` assertion executing. Suite 5506 passing. The
+tenant-query audit went from 77 to 83 organization-filtered `rest()` calls with
+none unfiltered, which is the six new reads and writes accounted for.
+
+
 
 ### 2026-10-02 - A test that was only true on the day it was written
 
@@ -2128,86 +2204,3 @@ function rethrows anything that is not its own stop sentinel, so unexpected thro
 already fail loudly; those two lines could not fail and read as an error channel
 being checked. Removed. The four mutation tests around them are good work and are
 untouched.
-
-
-
-### 2026-09-30 - The last 184 unlinted files, and the three questions that kept them out
-
-The previous entry covered 734 of the 918 files `pnpm run lint` names and left
-`tools/` -- 58 files across four sub-projects -- deliberately out, because linting
-it surfaced three things that needed answering rather than silencing. Answered, so
-`tools/` is covered and every directory and extension in the linted tree now
-resolves to the same nineteen rules. **918 of 918.**
-
-**One was a real defect.** `fail(code, message, namespace)` in
-`tools/aws-emulator/src/services/identity.js` took a namespace from all ten of its
-call sites and passed `queryErrorXml(code, message)` -- no namespace. And
-`queryErrorXml` hardcoded SQS's `xmlns`. So every IAM and STS **error** this
-emulator returned went out under `queue.amazonaws.com` while every matching
-**success** went out under `iam.amazonaws.com` or `sts.amazonaws.com`, because
-`xmlAnswer()` beside it does pass its third argument through. Two functions of the
-same shape, one honouring its namespace and one discarding it, which is what made
-ten call sites look like they were setting something.
-
-For an emulator whose stated purpose is that an SDK cannot tell the difference,
-that is the product. `queryErrorXml` now takes a `namespace` option defaulting to
-the value it hardcoded, so the two callers that pass none -- `services/index.js`
-and `services/sqs.js` -- are unchanged.
-
-**Nothing tested it.** Neither suite in `tools/aws-emulator/tests/` looked at an
-error envelope's `xmlns`, which is why this held. There is a test now, asserting
-all three namespaces including the SQS default, and it was falsified by putting the
-original `queryErrorXml(code, message)` back: 38 pass, 1 fail, "an STS error is not
-in the STS namespace". Restored and checked byte-identical.
-
-**One was not a defect, and saying so matters.** `SERVERLESS_YML(name, region,
-typescript)` in `tools/serverless-cli/src/scaffold.js` ignored `typescript`, and the
-previous entry recorded it as a probable defect on the strength of a comment
-fragment -- "somebody reading the generated project will look for the build step and
-not find one". Reading the whole comment reverses it: there is no build step **by
-design**, Node 22 and `nodejs22.x` both strip types on load, and the handler paths
-in the manifest are extension-less, so `serverless.yml` is byte-identical for a .js
-and a .ts project. The parameter cannot change the output. Removed rather than
-used, which is the opposite of what the earlier note implied.
-
-**One was neither.** `handleSts(request, { store })` destructured a store it never
-used, because STS here is stateless -- the note above it says it does not evaluate
-trust policies. `handleIam` beside it takes the same shape and does use it, and the
-dispatcher passes the context to both, so the destructure is gone and no call site
-changes.
-
-The remaining seven were this config's fault rather than the code's:
-`tools/songsmith/public` is browser code being read as Node, `tools/**/*.mjs` was
-being read as commonjs and threw a parse error on its first `import`, and `region`
-in `roles(store, region)` is ignored on purpose with a comment saying why, so it is
-`_region`.
-
-**Two more lists made two-sided, in the same idiom.** Both were measured during the
-previous change and held back:
-
-`TECHNICAL_ROUTE_PREFIXES` in `lib/sonara-plain-language.cjs` had three entries --
-`/route-registry`, `/system-design`, `/database` -- matching **zero** served routes,
-while every other entry covers between one and forty-seven. `isTechnicalRoute` is
-only ever called with a served route path, so they exempted nothing from the
-plain-language rules. Harmless until a page is added at one of those addresses,
-which would then arrive silently exempt. `/admin/database` and
-`/admin/system-design-intelligence` do exist and are already covered by `/admin`.
-
-`PLAIN_ROUTE_TITLES` in `lib/sonara-route-registry.cjs` had a title for
-`/creator-studio/tools/readiness`, which does not exist -- Business Builder and
-Growth Studio both serve one, Creator Studio has thirteen `tools/*` pages and no
-readiness page, and nothing links to that address. `plainRouteTitle` is keyed on the
-route, so it was a value that could never be returned.
-
-`tests/plain-language.test.js` now fails on a prefix matching no served route and on
-an emptied list; `tests/route-registry.test.js` fails on a title key naming no
-served route and on an emptied table. All four falsified: reintroducing each dead
-entry fails by name, and emptying each list fails with "emptied rather than
-corrected". Both files restored byte-identical.
-
-Removing the title is not a decision that Creator Studio should not have a readiness
-page. It is the removal of a claim that it already does.
-
-Verified: typecheck, lint over all 918 files, 5142 tests passing, 52 gates, build,
-`pnpm audit` clean, and the three sub-project suites this touches -- aws-emulator
-39, serverless-cli 221, songsmith 44.

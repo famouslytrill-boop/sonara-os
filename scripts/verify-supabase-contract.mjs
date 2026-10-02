@@ -58,6 +58,13 @@ const agentQueueMigrationNames = [
 const agentToolPermissionMigrationNames = [
   "20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql"
 ];
+// The Creator Studio project graph, added 2 October 2026. Its own list rather
+// than appended to creatorArtistSystemMigrationNames: that list is migration
+// 016's subtree, whose head nothing writes, and these three tables hang off
+// creator_assets, which routes/sonara-asset-file-routes.cjs genuinely writes.
+const creatorProjectGraphMigrationNames = [
+  "20261002010000_creator_project_graph.sql"
+];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
@@ -286,6 +293,21 @@ const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedu
 // entity_id and public.entities has no organization_id, so reading it to
 // authorise an organization's run would be a cross-tenant authorization read.
 const AGENT_TOOL_PERMISSION_TABLES = Object.freeze(["agent_tool_permissions"]);
+// Brief -> asset -> version -> approval. A separate group from
+// CREATOR_ARTIST_SYSTEM_TABLES above because that group's comment describes
+// migration 016, and these are not in it.
+//
+// The one column worth naming here is creator_asset_versions.ai_disclosure. It is
+// nullable on purpose, and the assertions below fail if a later migration makes it
+// NOT NULL DEFAULT false: that would turn "nobody has answered yet" into "this is
+// not AI-generated", which is a provenance claim the schema would be making on a
+// creator's behalf. AGENTS.md requires provenance and consent safety, and the
+// three-state rule in CLAUDE.md is exactly this case.
+const CREATOR_PROJECT_GRAPH_TABLES = Object.freeze([
+  "creator_briefs",
+  "creator_asset_versions",
+  "creator_asset_approvals"
+]);
 // Cinematic scroll sites. One table holding one row per site, whose `document`
 // column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
 // rather than folded into the Growth Studio list: the migration is its own
@@ -425,6 +447,7 @@ const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, 
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
 const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
 const agentToolPermissionSql = readExtension(agentToolPermissionMigrationNames, "agent tool permissions");
+const creatorProjectGraphSql = readExtension(creatorProjectGraphMigrationNames, "Creator Studio project graph");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
 const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
@@ -539,6 +562,47 @@ for (const required of [
 // security setting is an owner-approval category in AGENTS.md.
 if (/grant[^;]*delete[^;]*agent_tool_permissions/.test(agentToolPermissionSql)) {
   fail("the agent tool permissions migration grants DELETE; withdrawing a permission is an update so the record of what was granted survives");
+}
+verifyExtension(CREATOR_PROJECT_GRAPH_TABLES, creatorProjectGraphSql, "Creator Studio project graph");
+// `ai_disclosure boolean` with no NOT NULL and no default. Asserted as the exact
+// column declaration rather than by absence of "not null", because absence is
+// what a weaker check measures and absence is satisfied by the column having been
+// renamed or removed. The migration's own do-block asserts is_nullable = 'YES'
+// against the live catalogue; this asserts the text that produces it, so the two
+// fail for different reasons and a change that defeats one does not pass the other.
+if (!/\bai_disclosure\s+boolean\s*,/.test(creatorProjectGraphSql)) {
+  fail("creator_asset_versions.ai_disclosure must be declared `ai_disclosure boolean` -- nullable, so an unanswered disclosure question stays unanswered rather than reading as 'not AI-generated'");
+}
+if (/ai_disclosure\s+boolean[^,]*(not\s+null|default)/.test(creatorProjectGraphSql)) {
+  fail("creator_asset_versions.ai_disclosure must not be NOT NULL or defaulted; a default would make the schema assert a provenance answer nobody gave");
+}
+// An approval belongs to one version, not to the asset. If this foreign key ever
+// pointed at creator_assets, approving one version would silently approve every
+// later edit of the same asset -- which is the gate-that-was-never-there shape, in
+// the schema rather than in a page.
+if (!/asset_version_id\s+uuid\s+not\s+null\s+references\s+public\.creator_asset_versions\(id\)/.test(creatorProjectGraphSql)) {
+  fail("creator_asset_approvals.asset_version_id must reference public.creator_asset_versions(id); an approval on the asset would carry forward to versions nobody reviewed");
+}
+for (const required of [
+  "organization_id uuid not null references public.organizations(id)",
+  "unique (asset_id, version_number)",
+  "check (version_number >= 1)"
+]) {
+  if (!creatorProjectGraphSql.includes(required.toLowerCase())) fail(`the Creator Studio project graph migration is missing: ${required}`);
+}
+// brief_id has to stay nullable: creator_assets already holds rows, and an asset
+// that predates briefs does not belong to one.
+if (!/add\s+column\s+if\s+not\s+exists\s+brief_id\s+uuid\s+references\s+public\.creator_briefs\(id\)/.test(creatorProjectGraphSql)) {
+  fail("the Creator Studio project graph migration must add creator_assets.brief_id as a nullable reference; existing assets belong to no brief");
+}
+// No delete grant on any of the three. A rejected version and a withdrawn
+// approval are states, not absences: deleting the row would erase the record that
+// somebody said no, and `destructive data changes` is an owner-approval category
+// in AGENTS.md.
+for (const table of CREATOR_PROJECT_GRAPH_TABLES) {
+  if (new RegExp(`grant[^;]*delete[^;]*${table}`).test(creatorProjectGraphSql)) {
+    fail(`the Creator Studio project graph migration grants DELETE on ${table}; a rejection is a recorded state and deleting it erases the record`);
+  }
 }
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
@@ -774,7 +838,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_PROJECT_GRAPH_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -1006,7 +1070,7 @@ if (unwiredPermission.requiresOwnerApproval || unwiredPermission.permission !== 
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${AGENT_TOOL_PERMISSION_TABLES.length} reviewed agent tool permission table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${DURABLE_EVENT_FOUNDATION_TABLES.length} reviewed durable event foundation tables, ${TRANSLATION_FOUNDATION_TABLES.length} reviewed translation foundation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${CREATOR_PROJECT_GRAPH_TABLES.length} reviewed Creator Studio project graph tables, ${DATABASE_FUNCTIONS.length} canonical functions and ${DURABLE_EVENT_FOUNDATION_FUNCTIONS.length} reviewed event functions and ${DURABLE_WORKER_FUNCTIONS.length} reviewed worker functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

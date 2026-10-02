@@ -316,7 +316,13 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out crawl. Its copy is read by
   // tests/work-that-comes-round-again-comes-round-once.test.js instead, which
   // drives the route with the guard stubbed.
-  const SIGNED_IN_SKIPPED = 109;
+  // 109 -> 110 on 2 October 2026: /creator-studio/owner/project-graph is behind
+  // requireWorkspaceAccess("creator_studio") and needs a resolved organization, so
+  // a signed-out crawl gets a 503 and never reads its copy. The copy is read
+  // instead by tests/an-unanswered-disclosure-is-not-a-no.test.js, which drives the
+  // route with the guard stubbed and asserts both the sentence it shows when a
+  // version is cleared and the one it shows when a disclosure is unanswered.
+  const SIGNED_IN_SKIPPED = 110;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
