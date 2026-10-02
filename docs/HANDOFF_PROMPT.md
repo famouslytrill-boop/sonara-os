@@ -103,11 +103,70 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 23 most recent entries of 430 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 24 most recent entries of 431 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-03 - My subscription gate could not see the limiter the next merge added
+
+Two things from merging `main` at 090b9904 (#417 and #418), both found because the
+merged tree was measured rather than trusted.
+
+**A count two branches each incremented, merged cleanly into a wrong number.**
+`tests/plain-language.test.js` records how many routes the signed-in crawl skips.
+Both branches started at 110 and both added four, so both wrote `114`. The lines were
+identical, git merged them without a conflict, and the result was wrong for both
+sides. The crawl measured 118. Nothing conflicted because nothing differed -- which is
+the whole hazard: a merge tool sees text, and two correct increments of the same
+number are the same text. Any count that more than one branch can bump is a count a
+clean merge can silently halve; this one now says so where it is recorded.
+
+**The gate I wrote a few hours earlier was blind to a limiter, and reported it whole.**
+#417 added a rate limiter on Creator generation submissions -- one a paying
+subscriber can hit -- built as
+
+    (deps.createRateLimiter || createRateLimiter)({ name: "creator.generation.submit", ... })
+
+`verify-subscription-completeness` matched `createRateLimiter({` and the auth
+factory's form, and this is neither. So on the merged tree it printed *"17 rate
+limiters, every one accounted for"* and exited 0. It did not fail on an unregistered
+limiter; it never saw one. Shape 2 exactly: a scan naming a smaller population than
+the one it claims, and printing the claim. The suite was green and the gate was green
+and the thing the gate exists to watch had just changed.
+
+It was caught by reading what #417 changed rather than by any check -- the commit
+message said it had "hardened generation submission bursts", and a sentence about
+bursts is a sentence about a limiter.
+
+Fixed by replacing two patterns with one that reads every call form, and by making
+the parser prove itself before its count is believed: `PARSER_FIXTURES` holds one of
+each form this repository uses -- direct, through `deps`, the either-or form that got
+through, and the auth factory -- plus a function definition it must not read as a
+limiter. The limiter is registered as a ceiling: 120 a minute, 7200 an hour, well
+over the floor.
+
+**What the gate still does not check, said in its header.** #417 also added a
+generation *allowance* -- a sum included each billing period that answers 429 once
+spent. That is a quota, not a rate limit, and it exists because each generation costs
+money at an upstream provider; its own page says "Provider limits still apply. No
+extra purchase required." That is the owner's stated exception in the owner's terms,
+and whether an included allowance is right is a pricing decision. What would be this
+gate's business is a page offering to sell more, and the copy check would catch that.
+
+| break | result |
+|---|---|
+| parser reverted to the form that missed `(a \|\| b)({...})` | red, *no longer reads the either-or form* |
+| the new limiter's registration removed | red, *does not know why it exists* |
+| generation submissions throttled to 5 a minute | red, *300 per hour ... below the 600/hour* |
+| the either-or fixture deleted from the gate | its test red, *tests its parser on every call form* |
+
+`pnpm test` and `verify:gates` both 0 on the merged tree -- each read from its own
+file.
+
+
+
 
 ### 2026-10-03 - A floor that a realistic throttle sat exactly on
 

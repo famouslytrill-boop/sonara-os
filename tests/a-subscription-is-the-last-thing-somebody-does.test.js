@@ -71,6 +71,28 @@ describe("a subscription is the last thing somebody does", () => {
       assert.match(gate, /records why \$\{name\} exists and no runtime file creates it/);
     });
 
+    it("tests its parser on every call form before believing its own count", () => {
+      // #417 built a limiter as `(deps.createRateLimiter || createRateLimiter)({...})`
+      // and the first parser, which matched `createRateLimiter({`, never saw it --
+      // so the gate went on printing "every one accounted for" over a limiter it
+      // could not read. A form the parser misses does not fail as unregistered; it
+      // vanishes. The fixtures are the only thing that makes the count mean "all".
+      assert.match(gate, /const PARSER_FIXTURES = Object\.freeze\(\[/);
+      for (const form of ["direct", "through deps", "either-or", "auth factory"]) {
+        assert.ok(gate.includes(`form: "${form}"`), `the parser is no longer shown the ${form} form`);
+      }
+      assert.match(gate, /\(deps\.createRateLimiter \|\| createRateLimiter\)\(/, "the form that got through is not among the fixtures");
+    });
+
+    it("sees the generation limiter #417 added", () => {
+      const output = execFileSync(process.execPath, [GATE], { cwd: root, encoding: "utf8" });
+      const count = Number(output.match(/(\d+) rate limiters/)?.[1]);
+      // 17 was the figure the blind parser printed. Below 18 means a form has
+      // dropped out of view again.
+      assert.ok(count >= 18, `the gate sees ${count} limiters; creator.generation.submit has dropped out of view`);
+      assert.match(gate, /"creator\.generation\.submit": "abuse_ceiling"/);
+    });
+
     it("refuses when nothing is left in the category the floor applies to", () => {
       // Without this, reclassifying every ceiling as an anonymous surface makes
       // the floor apply to nothing and the gate pass.

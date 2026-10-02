@@ -40,6 +40,17 @@
 // and `verify:margins` cover adjacent ground and neither is this. Saying so is
 // the point: a check that implied it had verified "nothing else to buy" whole
 // would be the defect this repository is about.
+//
+// It also does not check the **generation allowance** #417 added
+// (lib/sonara-generation-allowance.cjs): a sum included each billing period for
+// AI generation, which answers 429 once used up. That is a quota rather than a
+// rate limit, it exists because each generation costs real money at an upstream
+// provider, and its own page says "Provider limits still apply. No extra purchase
+// required." -- the owner's stated exception ("provider ... rate limits still
+// stand") in the owner's own terms, with nothing offered for sale. Whether an
+// included allowance is the right answer is a pricing decision and the owner's.
+// What would be this check's business is a page offering to sell more, and the
+// copy check below would catch that.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -77,6 +88,11 @@ const LIMITERS = Object.freeze({
   "business.procurement_mutation": "abuse_ceiling",
   "business.work_order_mutation": "abuse_ceiling",
   "scroll_site_write": "abuse_ceiling",
+  // Added by #417. 120 a minute per subscriber, 7200 an hour -- a ceiling over a
+  // runaway client, well clear of anybody pressing a button. Separate from the
+  // generation allowance in lib/sonara-generation-allowance.cjs, which is a quota
+  // and is described in the header rather than checked here.
+  "creator.generation.submit": "abuse_ceiling",
   account_avatar_upload: "abuse_ceiling",
   lead_capture_chat: "anonymous_surface",
   public_booking: "anonymous_surface",
@@ -141,22 +157,35 @@ if (files.length < 100) {
 /**
  * Every rate limiter the runtime constructs, with its numbers.
  *
- * Two shapes, because the application has two: `createRateLimiter({ name: "x",
- * ... })` and `createAuthRateLimiter("auth.x", { ... })`. A third shape would read
- * as no limiters at all, which the population guard below is for.
+ * One pattern for every call form, because the first version had one pattern per
+ * form it knew about and the application grew a form it did not. #417 added
+ *
+ *     (deps.createRateLimiter || createRateLimiter)({ name: "creator.generation.submit", ... })
+ *
+ * -- a limiter a paying Creator subscriber can hit -- and this check went on
+ * reporting "17 rate limiters, every one accounted for" because
+ * `createRateLimiter({` does not match `createRateLimiter)({`. It did not fail on
+ * an unregistered limiter. It never saw one. That is shape 2: a scan naming a
+ * smaller population than the one it claims, and printing the claim.
+ *
+ * The pattern: anything ending `RateLimiter`, an optional closing paren (the
+ * `(a || b)(` form), the call's open paren, an optional string name (the auth
+ * factory's form), then the options object. A definition or a forwarder --
+ * `function createRateLimiter({ name, ... })` -- matches too and is skipped below
+ * because its `name` is a variable rather than a literal; the forwarder's call
+ * sites are where the names are, and they are picked up as calls.
+ *
+ * PARSER_FIXTURES below hold one of each form, including the one that got through.
  */
+const LIMITER_CALL = /[Cc]reate(?:Auth)?RateLimiter\)?\s*\(\s*(?:"([^"]+)"\s*,\s*)?\{([\s\S]{0,700}?)\}\s*\)/g;
+
 function limitersIn(source) {
   const found = [];
-  const direct = /createRateLimiter\(\{([\s\S]{0,600}?)\}\)/g;
-  for (const match of source.matchAll(direct)) {
-    const body = match[1];
-    const name = body.match(/name:\s*"([^"]+)"/);
-    if (!name) continue;
-    found.push({ name: name[1], ...numbersIn(body) });
-  }
-  const auth = /createAuthRateLimiter\(\s*"([^"]+)"\s*,\s*\{([\s\S]{0,600}?)\}\)/g;
-  for (const match of source.matchAll(auth)) {
-    found.push({ name: match[1], ...numbersIn(match[2]) });
+  for (const match of source.matchAll(LIMITER_CALL)) {
+    const body = match[2];
+    const literal = match[1] || (body.match(/name:\s*"([^"]+)"/) || [])[1];
+    if (!literal) continue;
+    found.push({ name: literal, ...numbersIn(body) });
   }
   return found;
 }
@@ -179,6 +208,33 @@ for (const file of files) {
     if (limiter.name === "name") continue;
     seen.set(limiter.name, { ...limiter, file: path.relative(repoRoot, file) });
   }
+}
+
+// The parser, tested on every call form this repository uses before its count is
+// believed. A form it cannot read does not fail as unregistered -- it vanishes --
+// so the only way to know the population is whole is to show the parser each
+// shape and watch it read the name back.
+const PARSER_FIXTURES = Object.freeze([
+  { form: "direct", source: 'createRateLimiter({ name: "a.direct", windowSeconds: 60, maxAttempts: 30 })', name: "a.direct" },
+  { form: "through deps", source: 'deps.createRateLimiter({ name: "a.deps", windowSeconds: 60, maxAttempts: 30 })', name: "a.deps" },
+  // The form that got through. #417's generation limiter is built this way.
+  { form: "either-or", source: '(deps.createRateLimiter || createRateLimiter)({\n    name: "a.either", windowSeconds: 60, maxAttempts: 120,\n  })', name: "a.either" },
+  { form: "auth factory", source: 'createAuthRateLimiter("a.auth", { windowSeconds: 900, maxAttempts: 10 })', name: "a.auth" }
+]);
+
+for (const fixture of PARSER_FIXTURES) {
+  const read = limitersIn(fixture.source).map((limiter) => limiter.name);
+  if (!read.includes(fixture.name)) {
+    fail(
+      `the limiter parser no longer reads the ${fixture.form} form: ${JSON.stringify(fixture.source)}. `
+      + "A limiter built that way is invisible to this check, so \"every one accounted for\" would be a claim about "
+      + "fewer limiters than exist."
+    );
+  }
+}
+// And a definition must not be read as a limiter. `name` there is a parameter.
+if (limitersIn("function createRateLimiter({ name, windowSeconds, maxAttempts }) {}").length) {
+  fail("the limiter parser reads a function definition as a limiter; its names would be variables, not limiters.");
 }
 
 // Shape 1, twice over: no limiters found, or far fewer than the application has.
