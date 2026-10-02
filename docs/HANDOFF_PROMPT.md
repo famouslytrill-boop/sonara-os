@@ -103,11 +103,109 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 20 most recent entries of 424 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 22 most recent entries of 426 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - A page that said a read had failed when there was nothing to read
+
+Found while testing something else, which is the only reason it was found at all.
+
+Hardening `groupBy` in `routes/sonara-creator-project-graph-routes.cjs` -- a dynamic
+property write of the same shape as the storefront's injection, though reached from
+the database rather than from a request -- needed a test, so one fed it a row whose
+`asset_id` was `__proto__`. The guard dropped the row, the asset ended up with no
+group, and the page said:
+
+> Cover art -- we could not read its versions just now. That is not the same as
+> having none.
+
+Which is itself false. The read had succeeded. The asset had no versions.
+
+**`graphForBrief` was inferring a failed read from a missing key**, and both cases
+produce a missing key: a read that failed, and an asset with no versions yet. The
+map cannot tell them apart, and guessing picked the alarming one -- so the page told
+a creator something definite and wrong about their own data on the strength of a
+request that had worked. That is this repository's recurring defect pointed the
+other way round: not a success reported falsely, but a failure.
+
+Worse, **my own earlier test had encoded the conflation**: "reports an asset whose
+versions could not be read as unreadable, not as empty", asserting exactly this
+behaviour with an empty map. It was written to guard the three-state discipline and
+instead froze a two-state guess.
+
+The fix is an explicit `versionsReadable`, passed by the caller, which is the only
+place that knows. A missing key now means the asset has no versions. The route
+passes `read.versions.ok` even though it already bails on a failed read -- being
+explicit there is the point, because the module must not guess it.
+
+Two tests now, where there was one: an unreadable read with `versionsReadable: false`
+reports unreadable, and an empty map with the default reports no versions. Falsified
+by restoring the inference: 2 red, by name.
+
+The `groupBy` guard that started this is covered too -- removing it leaves
+`out["__proto__"]` reading `Object.prototype`, and `.push` on it throws, so a
+malformed row takes the page down. 1 red. It had been green with the guard removed
+until this test existed, which made it an unverified check: exactly what
+`.claude/skills/checks-that-cannot-lie/SKILL.md` says to assume about any check that
+has never failed.
+
+`lib/sonara-industries-tools.cjs` has the same `values[key] = parsed` shape and is
+**not** a problem: `key` comes from a `spec` literal written a few lines below each
+call, and the request supplies the value, which is parsed as a number. Stated in the
+file, because the two look identical and only one of them is a bug.
+
+
+
+### 2026-10-02 - A form field name was a property name
+
+CodeQL, high severity: *Remote property injection -- a property name to write to
+depends on a user-provided value*, on `lib/sonara-merchant-storefront.cjs`.
+`quantitiesFrom` built `quantities[variantId] = text` on a plain object, and
+`variantId` came straight out of a form field name.
+
+**Measured rather than described**, because "prototype pollution" is a phrase that
+makes people nod without checking:
+
+    const plain = {};
+    plain["__proto__"] = "1";
+    Object.prototype.hasOwnProperty.call(plain, "__proto__")   // false
+
+    const second = {};
+    second["constructor"] = "x";
+    typeof second.constructor                                   // "string"
+
+The first is the commercially interesting one: a field named `qty___proto__` sets
+no own property, so **the line silently vanishes from an order the buyer is then
+told was placed**. The second overwrites a real property with a string.
+
+Two halves to the fix, and each is asserted on its own. `quantitiesFrom` returns a
+**Map**, whose keys are not properties, so there is nothing for a crafted name to
+reach. And the key has to match `UUID_PATTERN`, because a variant id is a
+`gen_random_uuid()` value and `qty_banana` is not a variant -- which is the
+correctness half, and means `priceOrder` never has to ask. `priceOrder` also copies
+a plain-object argument through `Object.keys`, so an inherited property cannot reach
+the loop by the other door.
+
+The store test's fixtures used ids like `v1`, which the uuid check correctly
+refuses, so they are real uuids now -- the fixtures were wrong about the data, not
+the check.
+
+**Two of my own new assertions were too broad, both caught by running them.** The
+"no dynamic property write remains" check matched `quantities[key]` inside
+`priceOrder`'s object-to-Map conversion, which is a READ with a key from
+`Object.keys` -- own properties only, and safe. A check that fires on the safe shape
+gets relaxed until it fires on nothing, so it targets an assignment specifically.
+And the comment-stripping was needed again, for the fourth time in this session's
+work, because the module's header quotes the old code.
+
+Falsified three ways, each failing and restored with `md5sum -c`: back to a plain
+object with a dynamic write (5 red), the uuid check removed with the Map kept (2
+red), and inherited properties allowed into the loop (1 red). Suite 5679 passing.
+
+
 
 ### 2026-10-02 - Reading the wrong exit code, and an email check that could be made slow
 

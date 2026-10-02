@@ -485,6 +485,19 @@ function registerMerchantStoreRoutes(app, deps = {}) {
       products: catalogue.ok ? catalogue.products : null,
       variants: catalogue.ok ? catalogue.variants : null
     });
+    // `offered` is [] both when nothing is on sale and when the catalogue could not
+    // be read, so **it must never be read without `split.ok` beside it**. Both
+    // callers check `split.ok` first -- the GET renders split.reason through
+    // shopSections, and the POST refuses at line 551 before pricing anything -- and
+    // that ordering is the only reason the ambiguity is harmless.
+    //
+    // Written down because the identical inference was a real defect elsewhere the
+    // same day: lib/sonara-creator-project-graph.cjs treated a missing group as a
+    // failed read, and the page told a creator their versions could not be read when
+    // the asset simply had none. Here it would fail the safe way -- priceOrder would
+    // answer "nothing ordered" rather than claiming something false -- but "safe
+    // because of a check in another function" is a reason that is invisible from
+    // here, so it is now visible from here.
     return {
       ok: true,
       missing: false,

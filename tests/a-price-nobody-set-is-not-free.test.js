@@ -38,6 +38,7 @@ const express = require("express");
 const request = require("supertest");
 const registerMerchantStoreRoutes = require("../routes/sonara-merchant-store-routes.cjs");
 const shopLib = require("../lib/sonara-merchant-storefront.cjs");
+const { withoutComments } = require("../lib/sonara-comment-stripping.cjs");
 
 const ORG = "a1a1a1a1-0000-4000-8000-00000000001a";
 const OTHER_ORG = "a2a2a2a2-0000-4000-8000-00000000002a";
@@ -46,13 +47,19 @@ const SHOP = "c3c3c3c3-0000-4000-8000-00000000003c";
 const ORDER = "e5e5e5e5-0000-4000-8000-00000000005e";
 const OWNER_PAGE = "/business-builder/owner/store";
 const SLUG = "the-corner-shop";
+// Real uuids. Variant and product ids are `gen_random_uuid()` values, and
+// quantitiesFrom refuses a form field whose id is not shaped like one -- which is
+// half of the fix for the remote-property-injection alert on 2 October 2026.
+const PRODUCT_ID = "d1d1d1d1-0000-4000-8000-00000000d1d1";
+const VARIANT_ID = "f1f1f1f1-0000-4000-8000-00000000f1f1";
+const VARIANT_TWO = "f2f2f2f2-0000-4000-8000-00000000f2f2";
 
 const MIGRATION = path.join(__dirname, "..", "supabase", "migrations", "20261002120000_a_storefront_a_stranger_can_buy_from.sql");
 const ROUTES = path.join(__dirname, "..", "routes", "sonara-merchant-store-routes.cjs");
 const MODULE = path.join(__dirname, "..", "lib", "sonara-merchant-storefront.cjs");
 
-const product = (overrides = {}) => ({ id: "p1", name: "Mug", category: "Kitchen", description: null, status: "active", ...overrides });
-const variant = (overrides = {}) => ({ id: "v1", product_id: "p1", variant_name: "Large", sku: null, price_cents: 1200, currency: "usd", status: "active", ...overrides });
+const product = (overrides = {}) => ({ id: PRODUCT_ID, name: "Mug", status: "active", ...overrides });
+const variant = (overrides = {}) => ({ id: VARIANT_ID, product_id: PRODUCT_ID, variant_name: "Large", price_cents: 1200, currency: "usd", status: "active", ...overrides });
 const shopRow = (overrides = {}) => ({
   id: SHOP, organization_id: ORG, slug: SLUG, enabled: true,
   headline: "The Corner Shop", intro: "Things we make.", currency: "usd", accepts_orders: true, ...overrides
@@ -210,7 +217,7 @@ describe("a price nobody set is not free", () => {
       const split = shopLib.storefrontFor({
         storefront: shopRow(),
         products: [product()],
-        variants: [variant(), variant({ id: "v2", variant_name: "Small", price_cents: 0 })]
+        variants: [variant(), variant({ id: VARIANT_TWO, variant_name: "Small", price_cents: 0 })]
       });
       assert.equal(split.ok, true);
       assert.equal(split.offered.length, 1);
@@ -239,7 +246,7 @@ describe("a price nobody set is not free", () => {
     const offered = shopLib.storefrontFor({ storefront: shopRow(), products: [product()], variants: [variant()] }).offered;
 
     it("totals from the price it read, not from anything posted", () => {
-      const priced = shopLib.priceOrder({ offered, quantities: { v1: "3" }, currency: "usd" });
+      const priced = shopLib.priceOrder({ offered, quantities: new Map([[VARIANT_ID, "3"]]), currency: "usd" });
       assert.equal(priced.ok, true);
       assert.equal(priced.subtotalCents, 3600);
       assert.equal(priced.lines[0].unitPriceCents, 1200);
@@ -249,7 +256,7 @@ describe("a price nobody set is not free", () => {
     });
 
     it("refuses the whole order when one line is not on sale", () => {
-      const priced = shopLib.priceOrder({ offered, quantities: { v1: "1", v2: "1" }, currency: "usd" });
+      const priced = shopLib.priceOrder({ offered, quantities: new Map([[VARIANT_ID, "1"], [VARIANT_TWO, "1"]]), currency: "usd" });
       assert.equal(priced.ok, false);
       assert.deepEqual([...priced.problems], ["not_on_sale"]);
       assert.equal(priced.lines.length, 0, "it priced the lines it liked and dropped the rest");
@@ -258,7 +265,7 @@ describe("a price nobody set is not free", () => {
 
     it("refuses an unusable quantity rather than rounding it", () => {
       for (const quantity of ["0.5", "-1", "nine", String(shopLib.QUANTITY_MAX + 1)]) {
-        const priced = shopLib.priceOrder({ offered, quantities: { v1: quantity }, currency: "usd" });
+        const priced = shopLib.priceOrder({ offered, quantities: new Map([[VARIANT_ID, quantity]]), currency: "usd" });
         assert.equal(priced.ok, false, `quantity ${quantity} was accepted`);
         assert.ok(priced.problems.includes("quantity_unusable"));
       }
@@ -271,7 +278,7 @@ describe("a price nobody set is not free", () => {
     });
 
     it("refuses when the shop could not be read", () => {
-      const priced = shopLib.priceOrder({ offered: null, quantities: { v1: "1" } });
+      const priced = shopLib.priceOrder({ offered: null, quantities: new Map([[VARIANT_ID, "1"]]) });
       assert.equal(priced.ok, false);
       assert.deepEqual([...priced.problems], ["shop_unreadable"]);
     });
@@ -283,7 +290,7 @@ describe("a price nobody set is not free", () => {
           products: [product()],
           variants: [variant({ price_cents: 1 })]
         }).offered,
-        quantities: { v1: "3" },
+        quantities: new Map([[VARIANT_ID, "3"]]),
         currency: "usd"
       });
       assert.equal(priced.subtotalCents, 3);
@@ -294,7 +301,93 @@ describe("a price nobody set is not free", () => {
     it("drops a blank or zero box rather than refusing a mostly-empty form", () => {
       // A shop page has a box against every line. Refusing the form because most
       // of them are empty would make a shop with twelve things unusable.
-      assert.deepEqual(shopLib.quantitiesFrom({ qty_v1: "2", qty_v2: "0", qty_v3: "", other: "x" }), { v1: "2" });
+      const read = shopLib.quantitiesFrom({
+        [`qty_${VARIANT_ID}`]: "2",
+        [`qty_${VARIANT_TWO}`]: "0",
+        other: "x"
+      });
+      assert.ok(read instanceof Map, "quantitiesFrom must return a Map, so a form field name cannot become a property name");
+      assert.deepEqual([...read.entries()], [[VARIANT_ID, "2"]]);
+    });
+  });
+
+  describe("a form field name cannot become a property name", () => {
+    // CodeQL, 2 October 2026: "Remote property injection -- a property name to write
+    // to depends on a user-provided value." The function built
+    // `quantities[variantId] = text` on a plain object, with `variantId` taken
+    // straight out of a form field name.
+    //
+    // Not theoretical, and the two behaviours are asserted below rather than
+    // described: on a plain object `["__proto__"] = "1"` creates no own property at
+    // all, so a buyer's line silently vanishes from an order they are then told was
+    // placed; and `["constructor"] = "x"` overwrites a real property with a string.
+
+    it("demonstrates what the old shape did, so the fix is not taken on trust", () => {
+      const plain = {};
+      plain["__proto__"] = "1";
+      assert.equal(Object.prototype.hasOwnProperty.call(plain, "__proto__"), false,
+        "a plain object now keeps __proto__ as an own property, so this risk has changed shape");
+      const second = {};
+      second["constructor"] = "x";
+      assert.equal(typeof second.constructor, "string", "constructor is no longer overwritable, so this risk has changed shape");
+    });
+
+    it("returns a Map, which has no property names to collide with", () => {
+      const read = shopLib.quantitiesFrom({ [`qty_${VARIANT_ID}`]: "1" });
+      assert.ok(read instanceof Map);
+      // The structural half: a Map's keys are not properties, so there is nothing
+      // for a crafted field name to reach.
+      assert.equal(read.get("__proto__"), undefined);
+    });
+
+    it("refuses a field whose id is not shaped like a variant id", () => {
+      const read = shopLib.quantitiesFrom({
+        "qty___proto__": "9",
+        "qty_constructor": "9",
+        "qty_prototype": "9",
+        "qty_banana": "9",
+        "qty_": "9",
+        "qty_../../etc": "9",
+        [`qty_${VARIANT_ID}`]: "2"
+      });
+      assert.deepEqual([...read.keys()], [VARIANT_ID], "something other than a variant id got through");
+    });
+
+    it("keeps an inherited property out of the pricing loop", () => {
+      // The other door: a caller passing a plain object whose prototype carries a
+      // variant id. `Object.keys` sees own properties only, so it cannot reach the
+      // loop and the order comes back as nothing ordered rather than as a line
+      // nobody asked for.
+      const offered = shopLib.storefrontFor({
+        storefront: shopRow(), products: [product()], variants: [variant()]
+      }).offered;
+      const inherited = Object.create({ [VARIANT_ID]: "99" });
+      const priced = shopLib.priceOrder({ offered, quantities: inherited, currency: "usd" });
+      assert.equal(priced.ok, false);
+      assert.deepEqual([...priced.problems], ["nothing_ordered"]);
+    });
+
+    it("prices nothing from a crafted order, end to end", async () => {
+      const { app, calls } = buildApp();
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({
+        buyer_name: "Dale", buyer_email: "dale@example.com",
+        "qty___proto__": "5", "qty_constructor": "5", "qty_banana": "5"
+      });
+      assert.equal(response.status, 400);
+      assert.match(response.text, /Nothing was ordered/);
+      assert.equal(writes(calls, "merchant_orders").length, 0, "a crafted field name produced an order");
+    });
+
+    it("holds no dynamic property write in the module any more", () => {
+      const source = withoutComments(fs.readFileSync(MODULE, "utf8"));
+      // The shape that was replaced. Comments stripped, because the header explains
+      // the old code and would otherwise match it.
+      // An assignment, not a read. The first version of this assertion matched
+      // `quantities[key]` inside priceOrder's object-to-Map conversion, which is a
+      // READ with a key from Object.keys -- own properties only, and safe. A check
+      // that fires on the safe shape gets relaxed until it fires on nothing.
+      assert.doesNotMatch(source, /quantities\[[^\]]+\]\s*=[^=]/, "a dynamic property write on a quantities object is back");
+      assert.match(source, /quantities\.set\(/, "quantitiesFrom no longer builds a Map");
     });
   });
 
@@ -331,7 +424,7 @@ describe("a price nobody set is not free", () => {
     });
 
     it("shows nothing that is not on sale, and gives no reason to a stranger", async () => {
-      const { app } = buildApp({ variants: [variant(), variant({ id: "v2", variant_name: "Unpriced", price_cents: 0 })] });
+      const { app } = buildApp({ variants: [variant(), variant({ id: VARIANT_TWO, variant_name: "Unpriced", price_cents: 0 })] });
       const response = await request(app).get(`/store/${SLUG}`);
       assert.ok(!response.text.includes("Unpriced"), "a variant nobody priced was shown to a buyer");
       assert.ok(!response.text.includes("nobody has filled it in"), "a stranger was shown the owner's reason");
@@ -366,7 +459,7 @@ describe("a price nobody set is not free", () => {
 
     it("records the order and its lines at the price the server read", async () => {
       const { app, calls } = buildApp();
-      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "2" });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "2" });
       assert.equal(response.status, 200);
 
       const order = writes(calls, "merchant_orders")[0].body;
@@ -387,7 +480,7 @@ describe("a price nobody set is not free", () => {
     it("ignores a price posted in the form", async () => {
       const { app, calls } = buildApp();
       await request(app).post(`/store/${SLUG}`).type("form").send({
-        ...buyer, qty_v1: "1",
+        ...buyer, [`qty_${VARIANT_ID}`]: "1",
         price_cents: "1", unit_price_cents: "1", subtotal_cents: "1", line_total_cents: "1"
       });
       const order = writes(calls, "merchant_orders")[0].body;
@@ -396,8 +489,8 @@ describe("a price nobody set is not free", () => {
     });
 
     it("refuses the whole order when it contains something not on sale", async () => {
-      const { app, calls } = buildApp({ variants: [variant(), variant({ id: "v2", price_cents: 0 })] });
-      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "1", qty_v2: "1" });
+      const { app, calls } = buildApp({ variants: [variant(), variant({ id: VARIANT_TWO, price_cents: 0 })] });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1", [`qty_${VARIANT_TWO}`]: "1" });
       assert.equal(response.status, 400);
       assert.match(response.text, /none of it has been placed/);
       assert.equal(writes(calls, "merchant_orders").length, 0, "it placed a partial order");
@@ -410,7 +503,7 @@ describe("a price nobody set is not free", () => {
       assert.equal(writes(empty.calls, "merchant_orders").length, 0);
 
       const bad = buildApp();
-      const b = await request(bad.app).post(`/store/${SLUG}`).type("form").send({ buyer_name: "Dale", buyer_email: "nope", qty_v1: "1" });
+      const b = await request(bad.app).post(`/store/${SLUG}`).type("form").send({ buyer_name: "Dale", buyer_email: "nope", [`qty_${VARIANT_ID}`]: "1" });
       assert.equal(b.status, 400);
       assert.match(b.text, /does not look like an email/);
       assert.equal(writes(bad.calls, "merchant_orders").length, 0);
@@ -418,14 +511,14 @@ describe("a price nobody set is not free", () => {
 
     it("refuses when the shop is closed, with 409 and no write", async () => {
       const { app, calls } = buildApp({ shops: [shopRow({ accepts_orders: false })] });
-      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "1" });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1" });
       assert.equal(response.status, 409);
       assert.equal(writes(calls, "merchant_orders").length, 0);
     });
 
     it("writes the shop's organization, never one named in the request", async () => {
       const { app, calls } = buildApp({ shops: [shopRow({ organization_id: OTHER_ORG })] });
-      await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "1", organization_id: ORG });
+      await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1", organization_id: ORG });
       assert.equal(writes(calls, "merchant_orders")[0].body.organization_id, OTHER_ORG);
     });
 
@@ -433,7 +526,7 @@ describe("a price nobody set is not free", () => {
       // A total with nothing behind it is the kind of record that gets argued
       // about later. Reporting success would be the lie.
       const { app } = buildApp({ lineWriteOk: false });
-      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "1" });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1" });
       assert.equal(response.status, 503);
       assert.match(response.text, /could not record what was in it/);
       assert.match(response.text, /Nothing has been charged/);
@@ -441,7 +534,7 @@ describe("a price nobody set is not free", () => {
 
     it("says nothing was ordered when the order row itself failed", async () => {
       const { app, calls } = buildApp({ writeOk: false });
-      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "1" });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1" });
       assert.equal(response.status, 503);
       assert.match(response.text, /Nothing has been ordered and nothing has been charged/);
       assert.equal(writes(calls, "merchant_order_lines").length, 0, "it wrote lines against an order that does not exist");
@@ -449,14 +542,14 @@ describe("a price nobody set is not free", () => {
 
     it("tells the buyer again that nothing was charged", async () => {
       const { app } = buildApp();
-      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, qty_v1: "1" });
+      const response = await request(app).post(`/store/${SLUG}`).type("form").send({ ...buyer, [`qty_${VARIANT_ID}`]: "1" });
       assert.match(response.text, /Nothing is charged here and no card details are asked for or stored/);
     });
   });
 
   describe("the owner's page", () => {
     it("lists what is not on sale, with the reason", async () => {
-      const { app } = buildApp({ variants: [variant(), variant({ id: "v2", variant_name: "Unpriced", price_cents: 0 })] });
+      const { app } = buildApp({ variants: [variant(), variant({ id: VARIANT_TWO, variant_name: "Unpriced", price_cents: 0 })] });
       const response = await request(app).get(OWNER_PAGE);
       assert.equal(response.status, 200);
       assert.match(response.text, /Not on sale, and why/);

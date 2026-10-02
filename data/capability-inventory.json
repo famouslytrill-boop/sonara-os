@@ -69397,7 +69397,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 250
+        "line": 265
       },
       "contractCompleteness": {
         "route": true,
@@ -123555,7 +123555,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 440
+        "line": 461
       },
       "contractCompleteness": {
         "route": true,
@@ -123688,7 +123688,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 526
+        "line": 547
       },
       "contractCompleteness": {
         "route": true,
@@ -123803,7 +123803,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 482
+        "line": 503
       },
       "contractCompleteness": {
         "route": true,
@@ -123935,7 +123935,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 501
+        "line": 522
       },
       "contractCompleteness": {
         "route": true,
@@ -124166,7 +124166,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 393
+        "line": 414
       },
       "contractCompleteness": {
         "route": true,
@@ -124281,7 +124281,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 419
+        "line": 440
       },
       "contractCompleteness": {
         "route": true,
@@ -262568,7 +262568,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 250
+        "line": 265
       },
       "destination": {
         "route": "/creator-studio/owner/project-graph",
@@ -270074,7 +270074,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 393
+        "line": 414
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -270084,7 +270084,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-project-graph-routes.cjs",
-        "line": 419
+        "line": 440
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

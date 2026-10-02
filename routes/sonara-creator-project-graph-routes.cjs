@@ -128,11 +128,26 @@ function registerCreatorProjectGraphRoutes(app, deps = {}) {
     createdAt: row.created_at
   });
 
+  // Group rows by a uuid, with the uuid checked before it becomes a property name.
+  //
+  // `out[id] = out[id] || []` is a dynamic property write, and the storefront had
+  // the same shape read off a form field name -- CodeQL raised that one as remote
+  // property injection on 2 October 2026, and `["__proto__"] = x` on a plain object
+  // sets no own property at all, so the group silently vanishes.
+  //
+  // This one is not reached from a request: `id` is `asset_id` or
+  // `asset_version_id`, both declared `uuid not null` in
+  // supabase/migrations/20261002010000_creator_project_graph.sql (lines 64 and 87),
+  // so PostgreSQL refuses anything that is not a uuid and `__proto__` cannot arrive.
+  // The guard is here anyway, because "safe because of a column type two files away"
+  // is a reason that holds today and is not visible from here tomorrow.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   function groupBy(rows, key) {
     const out = {};
     for (const row of rows) {
       const id = row[key];
-      if (!id) continue;
+      if (!UUID.test(String(id || ""))) continue;
       (out[id] = out[id] || []).push(row);
     }
     return out;
@@ -304,7 +319,13 @@ function registerCreatorProjectGraphRoutes(app, deps = {}) {
         brief,
         assets: own,
         versionsByAsset,
-        approvalsByVersion
+        approvalsByVersion,
+        // Said rather than left to be inferred from a missing key. This page already
+        // bails above when the read failed, so it is always true here -- which is
+        // exactly why the module must not guess it: a missing key here means the
+        // asset has no versions, and the page said "we could not read them" until
+        // this was passed.
+        versionsReadable: read.versions.ok
       });
 
       // Each piece on this brief gets its own state sentence and its own forms.

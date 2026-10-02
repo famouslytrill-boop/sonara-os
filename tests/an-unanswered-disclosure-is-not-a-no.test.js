@@ -257,7 +257,26 @@ describe("an unanswered disclosure is not a no", () => {
   });
 
   describe("the graph for a brief", () => {
-    it("reports an asset whose versions could not be read as unreadable, not as empty", () => {
+    it("reports an asset whose versions could not be read as unreadable", () => {
+      // The caller says the read failed. This asserted the same thing with an empty
+      // map until 2 October 2026, which encoded a conflation: a failed read and an
+      // asset with no versions both produce a missing key, and the module guessed
+      // the alarming one, so the page told a creator their versions could not be
+      // read when the asset simply had none.
+      const assembled = graphForBrief({
+        brief: { id: BRIEF, title: "Autumn single" },
+        assets: [{ id: ASSET, title: "Cover art" }],
+        versionsByAsset: {},
+        approvalsByVersion: {},
+        versionsReadable: false
+      });
+      assert.equal(assembled.ok, true);
+      assert.equal(assembled.unreadable, 1);
+      assert.equal(assembled.publishable, 0);
+      assert.equal(assembled.nodes[0].readiness, null);
+    });
+
+    it("reports an asset with no versions as having none, not as unreadable", () => {
       const assembled = graphForBrief({
         brief: { id: BRIEF, title: "Autumn single" },
         assets: [{ id: ASSET, title: "Cover art" }],
@@ -265,9 +284,9 @@ describe("an unanswered disclosure is not a no", () => {
         approvalsByVersion: {}
       });
       assert.equal(assembled.ok, true);
-      assert.equal(assembled.unreadable, 1);
-      assert.equal(assembled.publishable, 0);
-      assert.equal(assembled.nodes[0].readiness, null);
+      assert.equal(assembled.unreadable, 0, "an asset with no versions was reported as unreadable");
+      assert.equal(assembled.nodes[0].versions.length, 0);
+      assert.equal(assembled.nodes[0].latest, null);
     });
 
     it("takes the newest version by number rather than by list order", () => {
@@ -605,6 +624,42 @@ describe("an unanswered disclosure is not a no", () => {
         assert.match(response.headers.location, /problem=workspace/, route);
         assert.equal(calls.length, 0, `${route} touched the database with no workspace`);
       }
+    });
+  });
+
+  describe("a row id cannot become a property name", () => {
+    // `groupBy` builds `out[id] = out[id] || []`, which is a dynamic property write.
+    // The storefront had the same shape taking its key from a form field name, and
+    // CodeQL raised that one as remote property injection on 2 October 2026.
+    //
+    // This one is not reached from a request -- asset_id and asset_version_id are
+    // `uuid not null` in the migration, so PostgreSQL refuses anything else. The
+    // guard is still there, because a reason that lives in a column type two files
+    // away is not visible from this one, and this test is why the guard is not
+    // simply trusted: without it, `out["__proto__"]` reads Object.prototype and
+    // `.push` on it throws, so a malformed row takes the page down.
+    it("ignores a row whose id is not a uuid, rather than throwing on it", async () => {
+      const { app } = buildApp({
+        versions: [
+          { id: VERSION, asset_id: "__proto__", version_number: 1, source: "uploaded", ai_disclosure: null, provenance: null, note: null },
+          { id: "e6e6e6e6-0000-4000-8000-00000000006e", asset_id: "constructor", version_number: 1, source: "uploaded", ai_disclosure: null, provenance: null, note: null }
+        ]
+      });
+      const response = await request(app).get(PAGE);
+      assert.equal(response.status, 200, "a row with a non-uuid id took the page down");
+      // The real asset has no usable version, and says so, rather than being handed
+      // a group assembled from a prototype.
+      assert.match(response.text, /no version recorded yet/);
+    });
+
+    it("still groups real uuids", async () => {
+      const { app } = buildApp();
+      const response = await request(app).get(PAGE);
+      assert.equal(response.status, 200);
+      // The ordinary path: a version whose asset_id is a real uuid is attached, so
+      // the guard above is not passing by rejecting everything.
+      assert.match(response.text, /v1:/);
+      assert.doesNotMatch(response.text, /no version recorded yet/);
     });
   });
 
