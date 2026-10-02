@@ -28,9 +28,13 @@ describe("pricing", () => {
   });
 
   it("shows the plans we intend to sell", () => {
-    for (const [name, price] of [["Free", "$0"], ["One workspace", "$29/mo"], ["All three", "$59/mo"], ["Team", "$109/mo"], ["Business Builder setup", "We quote you"]]) {
+    for (const [name, price] of [["Free", "$0"], ["One workspace", "$29/mo"], ["All three", "$59/mo"], ["Team", "$109/mo"]]) {
       assert.ok(page.includes(`${name} - ${price}`), `the pricing page must offer ${name} at ${price}`);
     }
+  });
+
+  it("does not sell quoted setup packages", () => {
+    assert.doesNotMatch(page, /We quote you|Business Builder setup/);
   });
 
   it("exposes the plan table so the amounts can be checked", () => {

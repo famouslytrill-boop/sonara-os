@@ -398,6 +398,10 @@ async function main() {
     "/help",
     "/docs",
     "/free-tools",
+    "/tools",
+    "/tools/data-formatter",
+    "/tools/text-fingerprint",
+    "/tools/storage-budget",
     "/service-catalog",
     "/pricing",
     "/security",
@@ -427,13 +431,21 @@ async function main() {
     "/billing",
     "/business-builder/dashboard",
     "/creator-studio/dashboard",
+    "/creator-studio/projects",
+    "/api/creator-studio/projects",
     "/growth-studio/dashboard"
   ]) {
     await checkProtectedRoute(path, "customer_auth_required");
   }
 
+  // These routes were retired; refusing login is weaker than proving absence.
   for (const path of ["/admin", "/admin/database", "/api/admin/database-readiness"]) {
-    await checkProtectedRoute(path, "admin_auth_required");
+    const response = await fetchPath(path, { accept: "application/json" });
+    const text = await responseText(response);
+    const payload = parseJson(text, path);
+    assertCheck(response.status === 404, `${path}: retired operator route must return 404`);
+    assertCheck(payload?.ok === false && payload?.code === "not_found", `${path}: retired operator route unexpectedly answered`);
+    assertCheck(!secretPattern.test(text), `${path}: response exposes secret material`);
   }
 
   await checkManifestAndAssets();

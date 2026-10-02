@@ -177,8 +177,8 @@ const HEADER_LINES = 6;
 // `--write` syncs the two counts and nothing else. A file missing its notice,
 // a notice naming the wrong holder, or a stale exclusion still fails the run --
 // a fixer that could launder those would be worse than no fixer.
-const EXPECTED_FILES = 342;
-const EXPECTED_PUBLIC_FILES = 20;
+const EXPECTED_FILES = 345;
+const EXPECTED_PUBLIC_FILES = 22;
 
 function licenceHolder() {
   const licensePath = path.join(root, "LICENSE");

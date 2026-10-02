@@ -134,8 +134,8 @@ describe("every completed generation is charged", () => {
   it("tells no credit apart from a failed check, because they need different actions", () => {
     assert.match(
       ROUTE,
-      /decision\.code === "insufficient_credit" \? 402 : 503/,
-      "402 for no credit and 503 for an unreadable ledger -- a blanket 402 would have somebody buy credit to fix a database blip"
+      /httpStatus: exhausted \? 429 : 503/,
+      "429 for an exhausted included allowance and 503 for an unreadable subscription -- no extra purchase fixes either"
     );
   });
 

@@ -302,6 +302,32 @@ function main() {
       }
     }
 
+    behaves(psql, "included generation reserves, settles and isolates tenants",
+      fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
+      ["generation_reserves_settles_and_isolates"]);
+
+    // Two independent PostgreSQL sessions must not reserve the same pool.
+    const concurrentOrg = "10000000-0000-4000-8000-000000000006";
+    behaves(psql, "concurrent generation fixture", `
+      insert into public.organizations(id, name) values ('${concurrentOrg}', 'Concurrency probe');
+      insert into public.billing_subscriptions(organization_id, provider, provider_subscription_ref, plan_slug, status, current_period_end, metadata)
+      values ('${concurrentOrg}', 'stripe', 'sub_generation_concurrency', 'all_three_monthly', 'active', now() + interval '10 days',
+        jsonb_build_object('source', 'stripe_webhook', 'current_period_start', now() - interval '20 days'));
+      select 'generation_concurrency_ready';`, ["generation_concurrency_ready"]);
+    const concurrencyCommands = ["7", "8"].map((digit) => {
+      const file = path.join(socketDir, `generation-session-${digit}.sql`);
+      fs.writeFileSync(file, `begin; select public.generation_usage('${concurrentOrg}', 'reserve', '10000000-0000-4000-8000-00000000000${digit}', 300); select pg_sleep(0.2); commit;`);
+      if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, file]);
+      return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+    });
+    const concurrent = shell(`${concurrencyCommands[0]} & ${concurrencyCommands[1]} & wait`);
+    if (concurrent.status !== 0 || !(concurrent.stdout || "").includes("included_generation_exhausted")) {
+      stop(`Concurrent generation reservations failed: ${concurrent.stderr || concurrent.stdout}`);
+    }
+    behaves(psql, "concurrent generation cannot overspend", `
+      select 'generation_concurrent_holds_' || count(*) from public.generation_usage_reservations where organization_id = '${concurrentOrg}';
+      delete from public.organizations where id = '${concurrentOrg}';`, ["generation_concurrent_holds_1"]);
+
     // Proof the replay built something, rather than passing on a cluster where
     // every statement quietly did nothing.
     const missing = [];
