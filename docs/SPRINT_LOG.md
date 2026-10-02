@@ -2,6 +2,68 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - A floor that a realistic throttle sat exactly on
+
+The owner's instruction, three times over: "there are no rate limits once
+subscribed... Nothing else to buy nothing else to do. You subscribe, you use the
+service"; "everything in that workspace becomes yours to do with and use as you
+please for that subscription length"; and -- the clause that is easy to lose and
+that changes what can honestly be promised -- "there are no provider quotes rate
+limits still stand but providing quotes and intake forms are out".
+
+So an **upstream provider's** limit still applies, because it is not ours to waive.
+What is forbidden is ours. `scripts/verify-subscription-completeness.mjs` holds the
+three parts of that which are actually checkable, and its output says it holds three
+rather than the whole promise, because a check implying it had verified "nothing else
+to buy" whole would be the defect this repository is about.
+
+**What the measurement found.** Seventeen rate limiters, and none of them throttles a
+subscriber's ordinary work: eight sit on surfaces with nobody signed in, five stand in
+front of a secret, and the four a signed-in person can hit are at 1800/hour
+(procurement), 2700/hour (work orders), 240/hour (scroll sites) and 20/hour (avatar
+uploads). No customer-facing string asks for a quote, an intake form, a demo or a word
+with sales -- 51,701 strings across 327 runtime files, zero findings. The promise holds
+today; what did not exist was anything to stop it quietly stopping.
+
+**The floor was badly chosen and the falsification is what showed it.** The first draft
+held subscriber-facing limiters to 300/hour. Throttling work orders from 45 a minute to
+5 -- a cap somebody meets during an ordinary afternoon -- lands on exactly 300/hour, and
+the comparison was `perHour < floor`, so the break passed. Not an undetected break: a
+*detected-as-fine* break, which is worse, because the number had been chosen to look
+reasonable rather than against anything. It is 600/hour now, five a minute fails by
+name, and the two limiters underneath it carry their own figure in `RATE_EXCEPTIONS`
+with the reason measured -- an exception with a number somebody has to look at is
+harder to erode than a floor quietly lowered to fit.
+
+**An escape hatch found by trying to use it.** Reclassifying every `abuse_ceiling` as
+an `anonymous_surface` leaves the floor applied to nothing and the gate green. It fails
+now: *"no limiter is registered as an abuse_ceiling, so the floor below was applied to
+nothing"*. This is shape 1 arriving through a category rather than through an empty
+list, and it is the shape to expect of any check that classifies before it measures.
+
+The registration is two-sided as usual: an unregistered limiter fails, a registration
+for a limiter that no longer exists fails, and an exception recorded for a limiter that
+has risen above the floor fails naming the figure.
+
+### Falsified, not assumed
+
+| break | result |
+|---|---|
+| work orders throttled to 5/minute | **green first time** -- 300/hour sat exactly on the floor; after the fix, red naming the figure |
+| work orders throttled to 2/minute | red, *120 per hour ... below the 600/hour* |
+| a limiter nobody registered | red, *this check does not know why it exists* |
+| a quote in customer copy | red, naming the file and quoting the string |
+| an exception for a limiter now above the floor | red, *has an exception recorded for being below* |
+| a registration for a limiter that no longer exists | red, naming it |
+| every ceiling reclassified as an anonymous surface | red, *the floor below was applied to nothing* |
+| the floor dropped back to 300 | its test red, *five writes a minute sits exactly on* |
+| the gate stops disclaiming what it does not check | its test red |
+| the detector stops looking for a quote | 4 red, including the gate's own fixture self-test |
+
+`pnpm test` 5763 passing, `verify:gates` 0 across 63 commands -- every exit code read
+from its own file.
+
+
 ### 2026-10-03 - A bucket that existed without a feature, and a permission with two states
 
 The owner's brief asks for profiles with pictures and settings, and for camera,
