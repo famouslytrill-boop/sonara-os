@@ -223,3 +223,56 @@ describe("Creator Project Graph", () => {
     assert.equal(protectedRoute.body.ok, false);
   });
 });
+
+describe("Creator timeline workflows", () => {
+  const { summarizeTimeline } = require("../public/creator-project-graph-core.js");
+  function timeline() {
+    let graph = applyCommand(empty(), { action: "add_source", assetId: id(20), durationMs: 10000 }, id(30));
+    graph = applyCommand(graph, { action: "add_clip", sourceId: id(30), inMs: 1000, outMs: 5000, startMs: 2000, muted: true }, id(31));
+    return applyCommand(graph, { action: "add_caption", startMs: 1000, endMs: 7000, text: "Caption" }, id(32));
+  }
+  it("splits a trimmed clip at its timeline position without losing media or mute state", () => {
+    const original = timeline(), before = clone(original);
+    const split = applyCommand(original, { action: "split_clip", nodeId: id(31), atMs: "3500" }, id(33));
+    assert.deepEqual(split.nodes.find((node) => node.id === id(31)), { id: id(31), kind: "clip", sourceId: id(30), inMs: 1000, outMs: 2500, startMs: 2000, muted: true });
+    assert.deepEqual(split.nodes.find((node) => node.id === id(33)), { id: id(33), kind: "clip", sourceId: id(30), inMs: 2500, outMs: 5000, startMs: 3500, muted: true });
+    assert.equal(split.edges.length, 2);
+    assert.deepEqual(original, before);
+    for (const atMs of [2000, 6000, 3500.5, true, ""]) assert.throws(() => applyCommand(original, { action: "split_clip", nodeId: id(31), atMs }, id(33)));
+    assert.throws(() => applyCommand(original, { action: "split_clip", nodeId: id(32), atMs: 3500 }, id(33)), /Choose a clip/);
+    assert.throws(() => applyCommand(original, { action: "split_clip", nodeId: id(31), atMs: 3500 }, id(31)), /unique/);
+  });
+  it("shifts all captions atomically, preserving clips, and refuses partial or coerced updates", () => {
+    const original = applyCommand(timeline(), { action: "add_caption", startMs: 8000, endMs: 9000, text: "Later" }, id(34));
+    const before = clone(original);
+    const shifted = applyCommand(original, { action: "shift_captions", offsetMs: "-1000" });
+    assert.deepEqual(shifted.nodes.filter((n) => n.kind === "caption").map((n) => [n.startMs, n.endMs]), [[0, 6000], [7000, 8000]]);
+    assert.deepEqual(shifted.nodes.filter((n) => n.kind !== "caption"), original.nodes.filter((n) => n.kind !== "caption"));
+    for (const offsetMs of [-1001, 86400000, 0, 0.5, true, null, "", "1e3"]) assert.throws(() => applyCommand(original, { action: "shift_captions", offsetMs }));
+    assert.throws(() => applyCommand(empty(), { action: "shift_captions", offsetMs: 1 }), /Add captions/);
+    assert.deepEqual(original, before);
+    assert.deepEqual(applyCommand(shifted, { action: "shift_captions", offsetMs: 1000 }), original);
+  });
+  it("measures union gaps and overlaps rather than summing overlapping clips repeatedly", () => {
+    let graph = timeline();
+    for (const [n, startMs, outMs] of [[33, 3000, 3000], [34, 4000, 1000]]) graph = applyCommand(graph, { action: "add_clip", sourceId: id(30), inMs: 0, outMs, startMs }, id(n));
+    graph = applyCommand(graph, { action: "add_source", assetId: id(21), durationMs: 1000 }, id(35));
+    const expected = { durationMs: 7000, clipCount: 3, captionCount: 1, sourceCount: 2, unusedSourceCount: 1, mutedClipCount: 1, gapMs: 3000, overlapMs: 3000 };
+    assert.deepEqual(summarizeTimeline(graph), expected);
+    assert.deepEqual(summarizeTimeline({ ...graph, nodes: [...graph.nodes].reverse() }), expected);
+    assert.equal(summarizeTimeline(empty()).durationMs, 0);
+    const split = applyCommand(timeline(), { action: "split_clip", nodeId: id(31), atMs: 3500 }, id(33));
+    assert.equal(summarizeTimeline(split).overlapMs, 0);
+    assert.equal(summarizeTimeline(split).gapMs, 3000);
+  });
+  it("retains revision conflicts and source authorization for new graph commands", async () => {
+    const db = database(); await db.store.create(req, { title: "Timeline", medium: "video" });
+    db.projects[0].graph = timeline();
+    const split = await db.store.command(req, id(10), { action: "split_clip", nodeId: id(31), atMs: 3500, revision: 1 });
+    assert.equal(split.project.revision, 2);
+    assert.equal((await db.store.command(req, id(10), { action: "shift_captions", offsetMs: 100, revision: 1 })).code, "revision_conflict");
+    db.assets[0].status = "archived";
+    assert.equal((await db.store.command(req, id(10), { action: "shift_captions", offsetMs: 100, revision: 2 })).code, "source_unavailable");
+    assert.equal(db.projects[0].revision, 2);
+  });
+});

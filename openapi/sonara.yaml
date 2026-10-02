@@ -3360,7 +3360,7 @@ paths:
               type: object
               required: [action, revision]
               properties:
-                action: {type: string, enum: [add_source, add_clip, add_caption, update_source, update_clip, update_caption, remove, archive, restore, restore_snapshot]}
+                action: {type: string, enum: [add_source, add_clip, add_caption, update_source, update_clip, update_caption, split_clip, shift_captions, remove, archive, restore, restore_snapshot]}
                 revision: {type: integer, minimum: 1}
                 deviceScope:
                   type: string
@@ -3381,6 +3381,16 @@ paths:
                 origin: {type: string, enum: [library, generation]}
                 sourceId: {type: string, format: uuid}
                 nodeId: {type: string, format: uuid}
+                atMs:
+                  type: integer
+                  minimum: 0
+                  maximum: 86400000
+                  description: Absolute timeline split position, strictly inside the selected clip. Both pieces retain source identity and mute state.
+                offsetMs:
+                  type: integer
+                  minimum: -86400000
+                  maximum: 86400000
+                  description: Nonzero signed shift for all captions. The whole command is refused if any cue leaves the timeline.
                 durationMs: {type: integer, minimum: 1, maximum: 86400000}
                 inMs: {type: integer, minimum: 0, maximum: 86400000}
                 outMs: {type: integer, minimum: 1, maximum: 86400000}

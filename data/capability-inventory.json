@@ -16379,7 +16379,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 82
+        "line": 88
       },
       "contractCompleteness": {
         "route": true,
@@ -16471,7 +16471,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 87
+        "line": 93
       },
       "contractCompleteness": {
         "route": true,
@@ -16565,7 +16565,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 92
+        "line": 98
       },
       "contractCompleteness": {
         "route": true,
@@ -70191,7 +70191,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 40
+        "line": 41
       },
       "contractCompleteness": {
         "route": true,
@@ -70267,7 +70267,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 50
+        "line": 51
       },
       "contractCompleteness": {
         "route": true,
@@ -124024,7 +124024,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 86
+        "line": 92
       },
       "contractCompleteness": {
         "route": true,
@@ -124118,7 +124118,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 91
+        "line": 97
       },
       "contractCompleteness": {
         "route": true,
@@ -260950,7 +260950,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 82
+        "line": 88
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -260978,7 +260978,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 87
+        "line": 93
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
@@ -261008,7 +261008,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 92
+        "line": 98
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
@@ -265212,7 +265212,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 40
+        "line": 41
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -269070,7 +269070,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 86
+        "line": 92
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -269100,7 +269100,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 91
+        "line": 97
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
