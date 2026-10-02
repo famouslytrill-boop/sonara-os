@@ -6,17 +6,19 @@ const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/creator-generation-routes.cjs");
+const { createRateLimiter, __resetInMemoryBucketsForTests } = require("../lib/sonara-rate-limit.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 const JOB_ID = "33333333-3333-4333-8333-333333333333";
 const ASSET_ID = "44444444-4444-4444-8444-444444444444";
 
-function buildApp({ paid = true, configOk = true, activityEvents = null } = {}) {
+function buildApp({ paid = true, configOk = true, activityEvents = null, generationAllowance = null } = {}) {
   const app = express();
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
   registerRoutes(app, {
+    createRateLimiter: (options) => createRateLimiter({ ...options, getSupabaseServerConfig: () => ({ ok: false }) }),
     layout: ({ title, heading, body, sections = [] }) => `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p>${sections.join("")}</html>`,
     brandCard: (title, body) => `<article><h2>${title}</h2><p>${body}</p></article>`,
     linkAction: (href, label) => `<a href="${href}">${label}</a>`,
@@ -26,6 +28,7 @@ function buildApp({ paid = true, configOk = true, activityEvents = null } = {}) 
       req.sonaraUser = { id: USER_ID, email: "creator@example.com" };
       return next();
     },
+    generationAllowance: generationAllowance || (async ({ action }) => action === "settle" ? { ok: true, legacy: true } : { ok: true, allowanceMinor: 500, remainingMinor: 500, reservedMinor: 0, periodEnd: "2026-11-02T00:00:00.000Z" }),
     getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
     getSupabaseServerConfig: () => configOk
       ? ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
@@ -71,6 +74,7 @@ describe("Creator Studio generation platform", () => {
   let originalEnv;
 
   beforeEach(() => {
+    __resetInMemoryBucketsForTests();
     originalFetch = global.fetch;
     originalEnv = { ...process.env };
   });
@@ -93,10 +97,58 @@ describe("Creator Studio generation platform", () => {
     assert.doesNotMatch(JSON.stringify(result.body), /top-secret-key/);
   });
 
+  it("bounds generation submission bursts before database or provider work", async () => {
+    const app = buildApp({ configOk: false }); let calls = 0;
+    global.fetch = async () => { calls++; throw new Error("must not dispatch"); };
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const result = await request(app).post("/api/creator/generation/jobs").send({});
+      assert.equal(result.status, 503);
+    }
+    const refused = await request(app).post("/api/creator/generation/jobs").send({});
+    assert.equal(refused.status, 429); assert.equal(refused.body.code, "rate_limited");
+    assert.ok(Number(refused.headers["retry-after"]) > 0); assert.equal(calls, 0);
+  });
+
   it("requires paid Creator Studio access", async () => {
     const result = await request(buildApp({ paid: false })).get("/api/creator/generation/jobs");
     assert.equal(result.status, 402);
     assert.equal(result.body.code, "upgrade_required");
+  });
+  it("validates project links before reserving usage, writing jobs or calling providers", async () => {
+    const PROJECT_ID = "55555555-5555-4555-8555-555555555555";
+    for (const [body, response, status, code] of [
+      [{ project_id: "bad-id" }, null, 400, "invalid_project_id"],
+      [{ project_id: PROJECT_ID }, [], 404, "project_not_found"],
+      [{ project_id: PROJECT_ID }, [{ id: PROJECT_ID, archived_at: "2026-10-02" }], 409, "project_archived"],
+      [{ project_id: PROJECT_ID }, "offline", 503, "project_storage_unavailable"]
+    ]) {
+      let reservations = 0; const calls = [];
+      global.fetch = async (url) => {
+        calls.push(String(url));
+        assert.match(String(url), /creator_projects/);
+        assert.equal(new URL(url).searchParams.get("organization_id"), `eq.${ORGANIZATION_ID}`);
+        return response === "offline" ? jsonResponse(503, {}) : jsonResponse(200, response);
+      };
+      const result = await request(buildApp({ generationAllowance: async () => { reservations++; return { ok: true }; } }))
+        .post("/api/creator/generation/jobs").send({ capability: "sound_effects", provider_key: "elevenlabs", prompt: "An original sound", rights_attested: true, ...body });
+      assert.equal(result.status, status); assert.equal(result.body.code, code); assert.equal(reservations, 0);
+      assert.equal(calls.length, response === null ? 0 : 1);
+    }
+  });
+  it("keeps the verified project link in the generation form and saved job", async () => {
+    const PROJECT_ID = "55555555-5555-4555-8555-555555555555"; let saved;
+    process.env.ELEVENLABS_ENABLED = "false";
+    global.fetch = async (url, options = {}) => {
+      if (String(url).includes("creator_projects")) return jsonResponse(200, [{ id: PROJECT_ID, title: "Owned film", archived_at: null }]);
+      if (String(url).includes("creator_generation_jobs") && options.method === "POST") {
+        saved = JSON.parse(options.body); return jsonResponse(201, [jobRecord({ ...saved })]);
+      }
+      return jsonResponse(200, []);
+    };
+    const page = await request(buildApp()).get(`/creator-studio/generation?project=${PROJECT_ID}`);
+    assert.equal(page.status, 200); assert.match(page.text, new RegExp(`name="project_id" value="${PROJECT_ID}"`));
+    const result = await request(buildApp()).post("/api/creator/generation/jobs").send({ projectId: PROJECT_ID, capability: "sound_effects", provider_key: "elevenlabs", prompt: "Original sound", rights_attested: true });
+    assert.equal(result.status, 201); assert.equal(saved.project_id, PROJECT_ID);
   });
 
   it("renders a shared customer-safe page for HTML generation failures", async () => {
@@ -645,5 +697,32 @@ describe("Creator Studio generation platform", () => {
     assert.match(migration, /sonara_is_org_member/);
     assert.match(migration, /service role manages/);
     assert.doesNotMatch(migration, /api_key\s+text|secret_key\s+text|access_token\s+text/i);
+  });
+});
+
+
+describe("generation budget reservations at the HTTP boundary", () => {
+  let previousFetch, previousKey, previousEnabled;
+  beforeEach(() => { previousFetch = global.fetch; previousKey = process.env.ELEVENLABS_API_KEY; previousEnabled = process.env.ELEVENLABS_ENABLED; process.env.ELEVENLABS_ENABLED = "true"; process.env.ELEVENLABS_API_KEY = "test-only"; });
+  afterEach(() => { global.fetch = previousFetch; if (previousKey === undefined) delete process.env.ELEVENLABS_API_KEY; else process.env.ELEVENLABS_API_KEY = previousKey; if (previousEnabled === undefined) delete process.env.ELEVENLABS_ENABLED; else process.env.ELEVENLABS_ENABLED = previousEnabled; });
+  it("refuses exhausted included usage before writing a job or contacting a provider", async () => {
+    const calls = [];
+    global.fetch = async (url) => { calls.push(String(url)); return jsonResponse(200, []); };
+    const app = buildApp({ generationAllowance: async (request) => {
+      assert.equal(request.action, "reserve"); assert.equal(request.organizationId, ORGANIZATION_ID);
+      assert.match(request.jobId, /^[a-f0-9-]{36}$/); assert.ok(request.amountMinor > 0);
+      return { ok: false, code: "included_generation_exhausted" };
+    } });
+    const response = await request(app).post("/api/creator/generation/jobs").send({ capability: "sound_effects", provider_key: "elevenlabs", prompt: "Rain falling", rights_attested: true });
+    assert.equal(response.status, 429);
+    assert.equal(response.body.code, "included_generation_exhausted");
+    assert.ok(!calls.some((url) => url.includes("creator_generation_jobs") || url.includes("elevenlabs")));
+  });
+  it("reports a verification outage as a temporary failure, without asking for payment", async () => {
+    global.fetch = async () => jsonResponse(200, []);
+    const app = buildApp({ generationAllowance: async () => ({ ok: false, code: "subscription_period_unavailable" }) });
+    const response = await request(app).post("/api/creator/generation/jobs").send({ capability: "sound_effects", provider_key: "elevenlabs", prompt: "Rain falling", rights_attested: true });
+    assert.equal(response.status, 503);
+    assert.equal(response.body.code, "subscription_period_unavailable");
   });
 });

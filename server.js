@@ -351,7 +351,7 @@ app.use((req, res, next) => {
   res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self)"); // microphone and geolocation are asked for on a click; see SECURITY_NOTES.md
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
   next();
 });
 
@@ -619,6 +619,7 @@ registerCreatorMusicSystemReadOnlyRoutes(app, {
 });
 
 registerCreatorGenerationRoutes(app, {
+  requirePaidOrOwnerAccess,
   layout,
   brandCard,
   linkAction,
@@ -2798,11 +2799,10 @@ function wantsJson(req) {
 async function handleCheckoutSessionRequest(req, res) {
   const plan = normalizeCheckoutPlan(req.body);
   if (!isValidPlan(plan)) return res.status(400).json({ ok: false, code: "invalid_plan" });
-  // Quoted work never reaches Stripe. Send somebody who asked for it to the
-  // place where they can actually ask, rather than refusing with a code.
+  // Historical entitlement keys remain readable, but cannot be sold again.
   if (isQuotedPlan(plan)) {
-    if (wantsJson(req)) return res.status(400).json({ ok: false, code: "quoted_plan", message: "This package is quoted. Tell us what you need and we will price it." });
-    return res.redirect(303, "/contact?about=business-builder-setup");
+    if (wantsJson(req)) return res.status(410).json({ ok: false, code: "retired_plan", message: "This package is no longer sold. Choose a workspace subscription." });
+    return res.redirect(303, "/pricing");
   }
   if (plan === "free") {
     if (wantsJson(req)) return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/dashboard" });

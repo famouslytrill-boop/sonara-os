@@ -348,7 +348,17 @@ describe("signed-in workspaces speak plainly", () => {
   // tests/a-profile-a-person-can-actually-set.test.js, which drives both branches
   // with the read stubbed. /account/profile and /account/permissions are in this
   // crawl and their copy is read here.
-  const SIGNED_IN_SKIPPED = 114;
+  // +4 on 2 October 2026, from #417: generation pages now enforce paid Creator
+  // access. The outage stub cannot verify billing; focused route tests exercise
+  // their copy.
+  // 118, merged 3 October 2026. Both branches arrived at "114" from a common base
+  // of 110 -- this one by adding the four pages above, #417 by adding four
+  // generation pages -- and git merged the two identical lines cleanly into one
+  // number that was wrong for both. Nothing conflicted, because nothing differed.
+  // The crawl is what noticed. A count two branches each increment is a count a
+  // clean merge can silently halve, so this was measured on the merged tree rather
+  // than taken from either side.
+  const SIGNED_IN_SKIPPED = 118;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
@@ -417,12 +427,10 @@ describe("catalog cards do not say the same thing twice", () => {
     assert.deepEqual(repeated.map((card) => card.name), [], "these cards explain the paid-access test twice");
   });
 
-  it("still tells a done-for-you service what it costs", () => {
-    // The fix was to drop the price note only where the card already says it.
-    // Services with no plan floor have nowhere else to state pricing, so
-    // theirs must survive.
-    const quoted = cards.filter((card) => /We quote you after we have read your brief|Free to use\./.test(card.body));
-    assert.ok(quoted.length > 0, "the done-for-you services must still state their pricing");
+  it("offers subscription workspaces without quotes or service intake", () => {
+    assert.ok(cards.length > 0, "the catalog must be populated");
+    const quoted = cards.filter((card) => /We quote you|Scoped after intake|read your brief|Request this service/.test(card.body));
+    assert.deepEqual(quoted, []);
   });
 });
 

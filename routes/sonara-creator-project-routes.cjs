@@ -3,6 +3,18 @@
 "use strict";
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const { exportProject } = require("../lib/sonara-creator-project-graph.cjs");
+function offlineDraftForm(project, scope, esc) {
+  if (project.archived_at) return "";
+  const snapshot = { version: 1, projectId: project.id, title: project.title, medium: project.medium, revision: project.revision, graph: project.graph };
+  return `<section class="card" data-project-draft data-project-id="${esc(project.id)}" data-device-scope="${esc(scope)}" data-snapshot="${esc(JSON.stringify(snapshot))}"><h2>Edit a local draft</h2><p>Edit captions, clip timing and mute settings in this open page, even when disconnected. Device saves store this project's text and asset references for this account and workspace in this browser. Source media is not copied. Saved copies remain until you forget them or the browser clears storage; download a backup for work you need to keep. Workspace and provider actions check your subscription when you reconnect.</p><p data-draft-revision></p><div class="card-actions"><button type="button" data-draft-action="save">Save draft on this device</button><button type="button" data-draft-action="open">Open saved draft</button><button type="button" data-draft-action="forget">Forget saved draft</button><button type="button" data-draft-action="sync">Save draft to workspace</button><a data-draft-download hidden>Download local draft</a></div><label>Open project JSON (up to 2 MB)<input type="file" accept="application/json,.json" data-draft-import></label><p role="status" aria-live="polite" data-draft-status>No device copy is written until you choose Save draft on this device. Local edits stay separate from the workspace until you save them there.</p><form data-draft-caption><h3>Add a local caption</h3><label>Caption start (ms)<input name="startMs" type="number" min="0" max="86400000" step="1" required></label><label>Caption end (ms)<input name="endMs" type="number" min="1" max="86400000" step="1" required></label><label>New caption text<textarea name="text" maxlength="2000" required></textarea></label><button type="submit">Add to local draft</button></form><div data-draft-entries></div><noscript>Enable JavaScript to edit local drafts. The workspace forms and server downloads still work.</noscript></section><script src="/creator-project-graph-core.js" defer></script><script src="/creator-project-device-store.js" defer></script><script src="/creator-project-draft.js" defer></script>`;
+}
+function audioRenderForm(project, esc) {
+  const clips = project.graph.nodes.filter((node) => node.kind === "clip");
+  if (!clips.length || project.archived_at) return "";
+  const active = new Set(clips.filter((clip) => !clip.muted).map((clip) => clip.sourceId));
+  const sources = project.graph.nodes.filter((node) => node.kind === "source" && active.has(node.id));
+  return `<section class="card"><h2>Render project audio on your device</h2><p>Choose your local audio copies for the sources below. Clip trims, timing and mute settings produce a 44.1 kHz stereo WAV. These selected files are not automatically matched to stored assets. Use PCM 16-bit WAV sources up to three minutes and 20 MB each, 64 MB total, a timeline up to three minutes, and ten minutes total unmuted clip time. Processing stays on this device; playback starts only when you press play.</p><form data-project-audio data-project-id="${esc(project.id)}" data-audio-graph="${esc(JSON.stringify(project.graph))}">${sources.map((source, i) => `<label>Source ${i + 1} · ${esc(source.assetId)}<input type="file" accept="audio/wav,.wav" data-source-id="${esc(source.id)}" required></label>`).join("")}<button type="submit">Render WAV</button><p role="status" aria-live="polite">Choose your recordings, then render. Muted clips become silence.</p><audio controls hidden></audio><a data-audio-download hidden>Download WAV</a></form></section><script src="/creator-project-audio.js" defer></script>`;
+}
 module.exports = function registerCreatorProjectRoutes(app, deps) {
   const { layout, brandCard, linkAction, escapeHtml: esc, requirePaidOrOwnerAccess, wantsJson } = deps;
   const store = deps.projectStore || createCreatorProjectStore(deps);
@@ -12,6 +24,7 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
   const field = (name, label, type = "text", attrs = "") => `<label>${esc(label)}<input name="${name}" type="${type}" ${attrs} required></label>`;
   const hidden = (name, value) => `<input type="hidden" name="${name}" value="${esc(value)}">`;
   const number = (name, label, min = 0) => field(name, label, "number", `min="${min}" max="86400000" step="1"`);
+  const editNumber = (name, label, value, min = 0) => field(name, label, "number", `min="${min}" max="86400000" step="1" value="${esc(value)}"`);
   function page(res, heading, sections, status = 200) {
     return res.status(status).type("html").send(layout({ title: heading, eyebrow: "Creator Studio", heading,
       body: "Connect your assets, arrange clips, and write timed captions. Download your work without a connected provider.",
@@ -42,19 +55,28 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     const form = (action, content, label) => `<form method="post" action="${destination}">${hidden("revision", project.revision)}${hidden("action", action)}${content}<button type="submit">${label}</button></form>`;
     const nodes = project.graph.nodes;
     const sections = [brandCard("Your project", `Revision ${project.revision}. ${nodes.length} entries. Source durations are supplied by you; exports describe edits and do not render a film or verify rights.`),
-      `<div class="card-actions"><a class="action" href="${api}/${project.id}/export/json">Download project JSON</a><a class="action" href="${api}/${project.id}/export/vtt">Download captions</a><a class="action" href="${api}/${project.id}/export/csv">Download edit list</a></div>`];
+      `<p><a href="/creator-studio/generation?project=${project.id}">Generate media for this project</a></p>`,
+      `<div class="card-actions"><a class="action" href="${api}/${project.id}/export/json">Download project JSON</a><a class="action" href="${api}/${project.id}/export/vtt">Download captions</a><a class="action" href="${api}/${project.id}/export/srt">Download SRT captions</a><a class="action" href="${api}/${project.id}/export/csv">Download edit list</a></div>`];
     if (!project.archived_at) {
       const assets = await store.assets(req);
       if (assets.ok) sections.push(`<section class="card"><h2>Add a source</h2>${assets.rows.length
-        ? form("add_source", `<label>Asset (latest 100)<select name="assetId">${assets.rows.map((asset) => `<option value="${esc(asset.id)}">${esc(asset.title)}</option>`).join("")}</select></label>${number("durationMs", "Source duration in milliseconds", 1)}`, "Add source")
+        ? form("add_source", `<p>Your library assets and your completed generated media. Private generated media remains accessible only to its creator.</p><label>Asset (latest 100 per library)<select name="assetRef">${assets.rows.map((asset) => `<option value="${esc(asset.origin || "library")}:${esc(asset.id)}">${esc(asset.title)}</option>`).join("")}</select></label>${number("durationMs", "Source duration in milliseconds", 1)}`, "Add source")
         : '<p>Add a real asset to your <a href="/creator-studio/assets">asset library</a> first.</p>'}</section>`);
       else sections.push(brandCard("Asset library unavailable", assets.message));
       const sources = nodes.filter((node) => node.kind === "source");
       if (sources.length) sections.push(`<section class="card"><h2>Arrange a clip</h2>${form("add_clip", `<label>Source<select name="sourceId">${sources.map((source, i) => `<option value="${source.id}">Source ${i + 1} · ${source.durationMs} ms</option>`).join("")}</select></label>${number("inMs", "Source in (ms)")}${number("outMs", "Source out (ms)", 1)}${number("startMs", "Timeline start (ms)")}<label><input type="checkbox" name="muted" value="true">Mute this clip</label>`, "Add clip")}</section>`);
       sections.push(`<section class="card"><h2>Add a caption</h2>${form("add_caption", `${number("startMs", "Caption start (ms)")}${number("endMs", "Caption end (ms)", 1)}<label>Caption text<textarea name="text" maxlength="2000" required></textarea></label>`, "Add caption")}</section>`);
     }
-    sections.push(`<section class="card"><h2>Project entries</h2>${nodes.length ? nodes.map((node) => `<article><h3>${esc(node.kind)}</h3><p>${esc(node.kind === "caption" ? node.text : node.kind === "source" ? `${node.assetId} · ${node.durationMs} ms` : `${node.inMs}–${node.outMs} ms at ${node.startMs} ms${node.muted ? " · Muted" : ""}`)}</p>${!project.archived_at ? form("remove", hidden("nodeId", node.id), "Remove entry") : ""}</article>`).join("") : "<p>No entries yet.</p>"}</section>`);
+    const editor = (node) => {
+      const fields = node.kind === "source" ? editNumber("durationMs", "Source duration (ms)", node.durationMs, 1)
+        : node.kind === "caption" ? `${editNumber("startMs", "Caption start (ms)", node.startMs)}${editNumber("endMs", "Caption end (ms)", node.endMs, 1)}<label>Caption text<textarea name="text" maxlength="2000" required>${esc(node.text)}</textarea></label>`
+          : `${editNumber("inMs", "Source in (ms)", node.inMs)}${editNumber("outMs", "Source out (ms)", node.outMs, 1)}${editNumber("startMs", "Timeline start (ms)", node.startMs)}<label>Clip sound<select name="muted"><option value="false"${!node.muted ? " selected" : ""}>Sound on</option><option value="true"${node.muted ? " selected" : ""}>Muted</option></select></label>`;
+      return form(`update_${node.kind}`, `${hidden("nodeId", node.id)}${fields}`, "Save entry");
+    };
+    sections.push(`<section class="card"><h2>Project entries</h2>${nodes.length ? nodes.map((node) => `<article><h3>${esc(node.kind)}</h3><p>${esc(node.kind === "caption" ? node.text : node.kind === "source" ? `${node.origin || "library"} · ${node.assetId} · ${node.durationMs} ms` : `${node.inMs}–${node.outMs} ms at ${node.startMs} ms${node.muted ? " · Muted" : ""}`)}</p>${!project.archived_at ? editor(node) + form("remove", hidden("nodeId", node.id), "Remove entry") : ""}</article>`).join("") : "<p>No entries yet.</p>"}</section>`);
     sections.push(`<section class="card"><h2>${project.archived_at ? "Restore" : "Archive"} project</h2>${form(project.archived_at ? "restore" : "archive", "", project.archived_at ? "Restore project" : "Archive project")}</section>`);
+    sections.push(audioRenderForm(project, esc));
+    if (result.ctx?.user?.id && result.ctx.organizationId) sections.push(offlineDraftForm(project, `${result.ctx.user.id}:${result.ctx.organizationId}`, esc));
     return page(res, project.title, sections);
   });
   app.get(api, guard, async (req, res) => {
@@ -77,3 +99,5 @@ module.exports = function registerCreatorProjectRoutes(app, deps) {
     } catch (e) { return answer(req, res, { ok: false, status: 400, code: "invalid_export", message: e.message }, `${base}/${req.params.id}`); }
   });
 };
+module.exports.audioRenderForm = audioRenderForm;
+module.exports.offlineDraftForm = offlineDraftForm;

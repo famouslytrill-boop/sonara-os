@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const express = require("express");
 const request = require("supertest");
 const { createHash } = require("node:crypto");
-const { validateGraph, applyCommand, exportProject } = require("../lib/sonara-creator-project-graph.cjs");
+const { validateGraph, applyCommand, validateSnapshot, exportProject } = require("../lib/sonara-creator-project-graph.cjs");
 const { createCreatorProjectStore } = require("../lib/sonara-creator-project-store.cjs");
 const register = require("../routes/sonara-creator-project-routes.cjs");
 const { FREE_TOOL_PATHS } = require("../lib/sonara-tool-access.cjs");
@@ -15,6 +15,10 @@ const empty = () => ({ version: 1, nodes: [] });
 function database() {
   const projects = [];
   const assets = [{ id: id(20), organization_id: id(1), title: "Owned recording", status: "ready" }, { id: id(21), organization_id: id(2), title: "Another workspace", status: "ready" }];
+  const generated = [{ id: id(22), organization_id: id(1), user_id: id(3), job_id: id(40), asset_role: "output", media_type: "audio" },
+    { id: id(23), organization_id: id(2), user_id: id(4), job_id: id(41), asset_role: "output", media_type: "video" }];
+  const jobs = [{ id: id(40), organization_id: id(1), user_id: id(3), title: "Original audio", status: "completed" },
+    { id: id(41), organization_id: id(2), user_id: id(4), title: "Private film", status: "completed" }];
   const calls = [];
   let offline = false;
   let loseRace = false;
@@ -24,7 +28,9 @@ function database() {
     if (offline) return { ok: false };
     const org = query.get("organization_id").slice(3);
     assert.ok(org, "every store query must be tenant scoped");
-    const table = parsed.pathname.endsWith("creator_assets") ? assets : projects;
+    const tables = { creator_assets: assets, creator_projects: projects, creator_generation_assets: generated, creator_generation_jobs: jobs };
+    const table = tables[parsed.pathname.split("/").at(-1)];
+    assert.ok(table, "the client cannot choose an arbitrary table");
     if (options.method === "POST") {
       const body = JSON.parse(options.body);
       assert.equal(body.organization_id, org);
@@ -32,10 +38,14 @@ function database() {
       return { ok: true, json: async () => clone([table.at(-1)]) };
     }
     let found = table.filter((row) => row.organization_id === org);
+    if (query.has("user_id")) found = found.filter((row) => row.user_id === query.get("user_id").slice(3));
     const filter = query.get("id");
     if (filter?.startsWith("eq.")) found = found.filter((row) => row.id === filter.slice(3));
     if (filter?.startsWith("in.(")) found = found.filter((row) => filter.slice(4, -1).split(",").includes(row.id));
     if (query.get("status") === "neq.archived") found = found.filter((row) => row.status !== "archived");
+    if (query.get("status") === "eq.completed") found = found.filter((row) => row.status === "completed");
+    if (query.has("asset_role")) found = found.filter((row) => ["output", "stem"].includes(row.asset_role));
+    if (query.has("media_type")) found = found.filter((row) => ["audio", "music", "voice", "video", "image"].includes(row.media_type));
     if (options.method === "PATCH") {
       if (loseRace) { found[0].revision += 1; loseRace = false; }
       found = found.filter((row) => row.revision === Number(query.get("revision").slice(3)));
@@ -45,10 +55,60 @@ function database() {
   }
   const store = createCreatorProjectStore({ getSupabaseServerConfig: () => ({ ok: true, url: "https://database.test", serviceKey: "NEVER_RENDER_THIS" }),
     supabaseHeaders: () => ({}), getCustomerPrimaryOrganization: async (user) => ({ ok: true, organizationId: user.id === id(4) ? id(2) : id(1) }), fetch });
-  return { store, projects, assets, calls, setOffline: () => { offline = true; }, loseRace: () => { loseRace = true; } };
+  return { store, projects, assets, generated, jobs, calls, setOffline: () => { offline = true; }, loseRace: () => { loseRace = true; } };
 }
 const req = { sonaraAccess: { user: { id: id(3) } } };
 describe("Creator Project Graph", () => {
+  it("uses one graph interface for server and browser drafts and excludes untrusted metadata", () => {
+    const browser = {};
+    require("node:vm").runInNewContext(require("node:fs").readFileSync(require.resolve("../public/creator-project-graph-core.js"), "utf8"), { globalThis: browser, TextEncoder: globalThis.TextEncoder });
+    const graph = applyCommand(empty(), { action: "add_caption", startMs: 0, endMs: 1000, text: "Original caption" }, id(31));
+    const input = { version: 1, projectId: id(10), title: "Draft", medium: "video", revision: 1, graph: { ...graph, edges: [{ from: "fake", to: "fake" }] }, serviceKey: "discard", organization_id: id(99), signedUrl: "discard" };
+    assert.deepEqual(JSON.parse(JSON.stringify(browser.SonaraCreatorGraph.validateSnapshot(input, id(10)))), validateSnapshot(input, id(10)));
+    assert.deepEqual(Object.keys(validateSnapshot(input, id(10))), ["version", "projectId", "title", "medium", "revision", "graph"]);
+    assert.equal(validateSnapshot(input).graph.edges.length, 0);
+    for (const changed of [{ projectId: id(11) }, { revision: 0 }, { revision: 1.5 }, { medium: "provider_code" }, { title: "" }, { graph: { version: 1, nodes: Array(501).fill({}) } }]) assert.throws(() => validateSnapshot({ ...input, ...changed }, id(10)));
+  });
+  it("exports stable SRT timing and escapes caption markup without execution", () => {
+    let graph = applyCommand(empty(), { action: "add_caption", startMs: 1500, endMs: 3000, text: "<b>Owned</b>\nsecond line" }, id(31));
+    graph = applyCommand(graph, { action: "add_caption", startMs: 10, endMs: 1000, text: "First" }, id(32));
+    const output = exportProject({ id: id(10), title: "Film", medium: "video", revision: 1, graph }, "srt");
+    assert.equal(output.extension, "srt");
+    assert.equal(output.data, "1\n00:00:00,010 --> 00:00:01,000\nFirst\n\n2\n00:00:01,500 --> 00:00:03,000\n&lt;b&gt;Owned&lt;/b&gt; second line\n");
+    assert.equal(exportProject({ graph: { ...graph, nodes: [...graph.nodes].reverse() } }, "srt").data, output.data);
+  });
+  it("restores a device snapshot through source authorization, revision CAS and captured identity", async () => {
+    const db = database(); const made = await db.store.create(req, { title: "Film", medium: "video" });
+    const graph = applyCommand(empty(), { action: "add_source", assetId: id(20), durationMs: 2000 }, id(30));
+    const snapshot = { version: 1, projectId: id(10), title: "Local name", medium: "video", revision: 1, graph };
+    const command = { action: "restore_snapshot", revision: 1, deviceScope: `${id(3)}:${id(1)}`, snapshot };
+    assert.equal(made.ok, true);
+    assert.equal((await db.store.command(req, id(10), { ...command, deviceScope: `${id(5)}:${id(1)}` })).code, "workspace_changed");
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, projectId: id(11) } })).code, "invalid_graph");
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, revision: 2 } })).code, "revision_conflict");
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, medium: "audio" } })).code, "invalid_graph");
+    const foreign = applyCommand(empty(), { action: "add_source", assetId: id(21), durationMs: 2000 }, id(30));
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, graph: foreign } })).code, "source_unavailable");
+    const generated = applyCommand(empty(), { action: "add_source", assetId: id(22), origin: "generation", durationMs: 2000 }, id(30));
+    db.generated[0].user_id = id(5);
+    assert.equal((await db.store.command(req, id(10), { ...command, snapshot: { ...snapshot, graph: generated } })).code, "source_unavailable");
+    const restored = await db.store.command(req, id(10), command);
+    assert.equal(restored.project.revision, 2); assert.equal(restored.project.title, "Film"); assert.deepEqual(restored.project.graph, graph);
+    assert.equal((await db.store.command(req, id(10), command)).code, "revision_conflict");
+    const changedIdentity = { sonaraAccess: { user: { id: id(5) } } };
+    assert.equal((await db.store.command(changedIdentity, id(10), { ...command, revision: 2, snapshot: { ...snapshot, revision: 2 } })).code, "workspace_changed");
+    await db.store.command(req, id(10), { action: "archive", revision: 2 });
+    assert.equal((await db.store.command(req, id(10), { ...command, revision: 3, snapshot: { ...snapshot, revision: 3 } })).code, "project_archived");
+  });
+  it("does not overwrite a cloud race or claim success when snapshot storage fails", async () => {
+    const db = database(); await db.store.create(req, { title: "Film", medium: "video" });
+    const snapshot = { version: 1, projectId: id(10), title: "Film", medium: "video", revision: 1, graph: applyCommand(empty(), { action: "add_caption", startMs: 0, endMs: 1000, text: "Kept" }, id(31)) };
+    const command = { action: "restore_snapshot", revision: 1, deviceScope: `${id(3)}:${id(1)}`, snapshot };
+    db.loseRace();
+    assert.equal((await db.store.command(req, id(10), command)).code, "revision_conflict");
+    assert.equal(db.projects[0].graph.nodes.length, 0);
+    db.setOffline(); assert.equal((await db.store.command(req, id(10), command)).status, 503);
+  });
   it("derives source-to-clip edges and preserves mute intent", () => {
     const source = applyCommand(empty(), { action: "add_source", assetId: id(20), durationMs: 3000 }, id(30));
     const graph = applyCommand(source, { action: "add_clip", sourceId: id(30), inMs: 500, outMs: 2500, startMs: 1000, muted: "true" }, id(31));
@@ -62,6 +122,37 @@ describe("Creator Project Graph", () => {
     for (const nodes of [[{ id: id(31), kind: "clip", sourceId: id(30), inMs: 0, outMs: 1000, startMs: 0 }], [{ ...source, durationMs: Infinity }], [{ ...source, kind: "execute_code" }]]) assert.throws(() => validateGraph({ version: 1, nodes }));
     assert.throws(() => applyCommand({ version: 1, nodes: [source] }, { action: "add_clip", sourceId: id(30), inMs: 0, outMs: 3000, startMs: 0 }, id(31)), /exceeds/);
     assert.throws(() => applyCommand(empty(), { action: "add_caption", startMs: 2, endMs: 1, text: "caption" }, id(31)), /after/);
+  });
+  it("edits timing, captions and mute without replacing source identity or accepting invalid trims", () => {
+    let graph = applyCommand(empty(), { action: "add_source", assetId: id(20), durationMs: 3000 }, id(30));
+    graph = applyCommand(graph, { action: "add_clip", sourceId: id(30), inMs: 0, outMs: 2000, startMs: 0 }, id(31));
+    graph = applyCommand(graph, { action: "update_clip", nodeId: id(31), startMs: 1000, muted: "true", sourceId: id(99), id: id(99) });
+    assert.equal(graph.nodes[1].sourceId, id(30)); assert.equal(graph.nodes[1].id, id(31));
+    assert.equal(graph.nodes[1].muted, true); assert.equal(graph.nodes[1].startMs, 1000);
+    graph = applyCommand(graph, { action: "update_clip", nodeId: id(31), muted: "false" });
+    assert.equal(graph.nodes[1].muted, false);
+    assert.throws(() => applyCommand(graph, { action: "update_source", nodeId: id(30), durationMs: 1000 }), /exceeds/);
+    assert.throws(() => applyCommand(graph, { action: "update_clip", nodeId: id(31), inMs: 2000 }), /duration/);
+    assert.throws(() => applyCommand(graph, { action: "update_caption", nodeId: id(31), text: "wrong kind" }), /not in/);
+    graph = applyCommand(graph, { action: "add_caption", startMs: 0, endMs: 1000, text: "Draft" }, id(32));
+    graph = applyCommand(graph, { action: "update_caption", nodeId: id(32), text: "Final", endMs: 2000 });
+    assert.match(exportProject({ id: id(10), title: "Film", revision: 1, graph }, "vtt").data, /Final/);
+  });
+  it("uses completed generated output without leaking private files or widening access", async () => {
+    const db = database(); await db.store.create(req, { title: "Film", medium: "audio" });
+    const picker = await db.store.assets(req);
+    assert.equal(picker.rows.some((asset) => asset.id === id(22) && asset.origin === "generation"), true);
+    assert.equal(picker.rows.some((asset) => asset.id === id(23)), false);
+    assert.equal((await db.store.command(req, id(10), { action: "add_source", assetRef: `generation:${id(23)}`, durationMs: 2000, revision: 1 })).code, "source_unavailable");
+    const saved = await db.store.command(req, id(10), { action: "add_source", assetRef: `generation:${id(22)}`, durationMs: 2000, revision: 1 });
+    assert.equal(saved.ok, true); assert.equal(saved.project.graph.nodes[0].origin, "generation");
+    db.generated[0].user_id = id(5);
+    assert.equal((await db.store.readForExport(req, id(10))).code, "source_unavailable");
+    db.generated[0].user_id = id(3); db.jobs[0].status = "running";
+    assert.equal((await db.store.readForExport(req, id(10))).code, "source_unavailable");
+    db.jobs[0].status = "completed"; db.generated[0].asset_role = "reference";
+    assert.equal((await db.store.readForExport(req, id(10))).code, "source_unavailable");
+    assert.throws(() => applyCommand(empty(), { action: "add_source", assetId: id(22), origin: "billing_subscriptions", durationMs: 1000 }, id(30)), /supported/);
   });
   it("makes stable exports and safe multi-cue WebVTT from user text", () => {
     const graph = applyCommand(empty(), { action: "add_caption", startMs: 1500, endMs: 3000, text: "<script>& -->\ntext" }, id(31));

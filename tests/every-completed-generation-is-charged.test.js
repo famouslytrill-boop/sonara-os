@@ -116,13 +116,13 @@ describe("every completed generation is charged", () => {
     // refusals, for work nobody was going to do.
     assert.match(
       ROUTE,
-      /if \(initialStatus === "queued"\) \{\s*\n\s*const authorised = await authoriseGenerationCredit/,
+      /if \(initialStatus === "queued"\) \{\s*\n\s*const reservation = await reserveIncludedGeneration/,
       "the credit check must be conditional on the job being queued"
     );
   });
 
   it("refuses before the job row is written", () => {
-    const gate = ROUTE.indexOf("const authorised = await authoriseGenerationCredit");
+    const gate = ROUTE.indexOf("const reservation = await reserveIncludedGeneration");
     const insertJob = ROUTE.indexOf("const created = await insert(config, JOB_TABLE,");
     assert.ok(gate > 0 && insertJob > 0, "one of the two is missing");
     assert.ok(
@@ -134,8 +134,8 @@ describe("every completed generation is charged", () => {
   it("tells no credit apart from a failed check, because they need different actions", () => {
     assert.match(
       ROUTE,
-      /decision\.code === "insufficient_credit" \? 402 : 503/,
-      "402 for no credit and 503 for an unreadable ledger -- a blanket 402 would have somebody buy credit to fix a database blip"
+      /httpStatus: exhausted \? 429 : 503/,
+      "429 for an exhausted included allowance and 503 for an unreadable subscription -- no extra purchase fixes either"
     );
   });
 

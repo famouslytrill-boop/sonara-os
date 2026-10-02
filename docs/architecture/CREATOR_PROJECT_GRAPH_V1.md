@@ -45,7 +45,7 @@ Both new catalog migrations are additive. The old September catalog migrations a
 
 Studio computation and results are anonymous; account saving remains optional. The parent tools at `/tools` process input on the device, perform no upload, expose the result immediately and offer a JSON download. Input edits clear stale results/downloads. JSON numbers outside safe precision are refused. Parent tools do not persist private text in browser storage. Remaining studio tools keep subscription checks. These are the public tool catalogs; account-only record editors and provider workflows are separate workspace capabilities.
 
-The graph has no sales quote, special intake gate, provider dependency or extra purchase. Existing optional provider generation remains governed by its configuration, consent, approval and usage ledger. Its current starting allowance is not yet a recurring per-subscription allowance; subscription-only access to all metered provider features still needs that commercial implementation. This change does not claim to have removed that remaining gap.
+The graph has no sales quote, special intake gate, provider dependency or extra purchase. Existing optional provider generation remains governed by its configuration, consent, approval and usage ledger. The follow-up in `INCLUDED_GENERATION_AND_LOCAL_PROCESSING.md` renews the existing generation allowance with verified subscription periods and reserves concurrent jobs atomically. Other metered services and large marketplace/broadcasting execution still need their own operational integrations.
 
 ## Research converted into implementation
 

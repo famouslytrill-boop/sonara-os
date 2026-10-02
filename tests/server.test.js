@@ -1560,7 +1560,7 @@ describe("pricing and checkout", () => {
     assert.match(res.text, /One workspace - \$29\/mo/);
     assert.match(res.text, /All three - \$59\/mo/);
     assert.match(res.text, /Team - \$109\/mo/);
-    assert.match(res.text, /Business Builder setup/);
+    assert.doesNotMatch(res.text, /Business Builder setup|We quote you/);
   });
 
   it("GET /pricing does not globally disable checkout when optional plan prices are missing", async function() {

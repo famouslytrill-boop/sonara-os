@@ -3,6 +3,7 @@
 "use strict";
 
 const { createHash, randomUUID } = require("node:crypto");
+const { createRateLimiter } = require("../lib/sonara-rate-limit.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getProvider,
@@ -22,6 +23,8 @@ const {
   voiceEvidenceLabel
 } = require("../lib/sonara-plain-language.cjs");
 
+const LOCAL_IMAGE_FORM = `<section class="card"><h2>Process an image on your device</h2><p>Adjust image brightness with your GPU when available, or your CPU. PNG, JPEG and WebP up to 20 MB and 4 megapixels. Your image stays on your device.</p><form data-local-image><label>Image<input type="file" accept="image/png,image/jpeg,image/webp" required></label><label>Brightness (%)<input type="number" name="local_gain" min="0" max="200" step="1" value="100" required></label><button type="submit" disabled>Process image</button><p role="status" aria-live="polite">Choose an image to begin.</p><canvas style="max-width:100%;height:auto" aria-label="Processed image preview"></canvas><a data-local-download hidden>Download PNG</a></form></section><script src="/creator-local-image.js" defer></script>`;
+
 const JOB_TABLE = "creator_generation_jobs";
 const ASSET_TABLE = "creator_generation_assets";
 const provenanceOf = require("../lib/sonara-generation-provenance.cjs");
@@ -31,12 +34,11 @@ const {
   BILLED_CAPABILITY: BILLED_GENERATION_CAPABILITY
 } = require("../lib/creator-generation-billing.cjs");
 const {
-  authoriseUsage,
   drawEntry,
-  createBalanceReader,
-  createLedgerAppender,
-  DEFAULT_STARTING_ALLOWANCE_MINOR
+  createLedgerAppender
 } = require("../lib/sonara-usage-meter.cjs");
+const { quote } = require("../lib/sonara-paid-capabilities.cjs");
+const { generationAllowance } = require("../lib/sonara-generation-allowance.cjs");
 const { redactSensitiveText } = require("../lib/sonara-redaction.cjs");
 const studioPlatform = require("../data/sonara-studio-platform-2026-09-22.json");
 const {
@@ -128,8 +130,14 @@ const IMITATION_PATTERNS = [
 
 module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
-  const access = requireWorkspaceAccess("creator_studio");
+  const access = (deps.requirePaidOrOwnerAccess || requireWorkspaceAccess)("creator_studio");
   const ui = buildUi(deps);
+  // Transport abuse protection, separate from subscription usage and provider quotas.
+  const submissionLimiter = (deps.createRateLimiter || createRateLimiter)({
+    name: "creator.generation.submit", windowSeconds: 60, maxAttempts: 120,
+    scopes: ["ip", "subject"], subjectFrom: (req) => req.sonaraUser?.id,
+    getSupabaseServerConfig: deps.getSupabaseServerConfig
+  });
 
   app.get("/api/creator/studio/capabilities", access, (req, res) => {
     return res.status(200).json({
@@ -239,7 +247,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     return res.status(200).json({ ok: true, job: job.job, assets: assets.rows });
   });
 
-  app.post("/api/creator/generation/jobs", access, async (req, res) => {
+  app.post("/api/creator/generation/jobs", access, submissionLimiter, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return send(req, res, context, "/creator-studio/generation", ui);
     const config = getConfig(deps);
@@ -253,6 +261,13 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const rightsAttested = truthy(req.body.rights_attested || req.body.rightsAttested);
     const consentAttested = truthy(req.body.consent_attested || req.body.consentAttested);
     const voiceConsentId = clean(req.body.voice_consent_id || req.body.voiceConsentId, 80) || null;
+    const requestedProject = req.body.project_id ?? req.body.projectId;
+    let projectId = null;
+    if (requestedProject !== undefined && requestedProject !== null && requestedProject !== "") {
+      const linked = await loadActiveProject(config, context, requestedProject);
+      if (!linked.ok) return send(req, res, linked, "/creator-studio/projects", ui);
+      projectId = linked.project.id;
+    }
 
     const policy = await evaluatePolicy({
       config,
@@ -290,22 +305,24 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     // Refused BEFORE the row is written, not after. A job row that exists in
     // `insufficient_credit` is a customer looking at a failure they cannot
     // clear, and the `/creator-studio/generation` list would fill with them.
+    const jobId = randomUUID();
     if (initialStatus === "queued") {
-      const authorised = await authoriseGenerationCredit({ config, context, capability, parameters, deps });
-      if (!authorised.allowed) {
+      const reservation = await reserveIncludedGeneration({ config, context, capability, parameters, jobId, deps });
+      if (!reservation.allowed) {
         return send(req, res, {
           ok: false,
-          status: authorised.httpStatus,
-          code: authorised.code,
-          reasons: [authorised.reason]
+          status: reservation.httpStatus,
+          code: reservation.code,
+          reasons: [reservation.reason]
         }, "/creator-studio/generation", ui);
       }
     }
 
     const created = await insert(config, JOB_TABLE, {
+      id: jobId,
       organization_id: context.organizationId,
       user_id: context.userId,
-      project_id: validUuid(req.body.project_id || req.body.projectId) ? String(req.body.project_id || req.body.projectId) : null,
+      project_id: projectId,
       capability,
       provider_key: selected.provider.key,
       title: nullable(req.body.title, 200),
@@ -321,7 +338,10 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       policy_reasons: policy.reasons,
       provider_response: initialStatus === "manual_required" ? { connector: "external_mcp", endpoint: selected.provider.integrationEndpoint || null } : {}
     });
-    if (!created.ok) return send(req, res, { ok: false, status: 502, code: created.code }, "/creator-studio/generation", ui);
+    if (!created.ok) {
+      if (initialStatus === "queued" && created.status >= 400 && created.status < 500) await usageFor(deps)({ config, organizationId: context.organizationId, action: "release", jobId });
+      return send(req, res, { ok: false, status: 502, code: created.code }, "/creator-studio/generation", ui);
+    }
 
     let job = created.rows[0];
     await event(config, context, job.id, "generation.job_created", "recorded", { capability, provider_key: selected.provider.key, policy_status: policy.status });
@@ -517,19 +537,29 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   app.get("/creator-studio/generation", access, async (req, res) => {
     const context = await resolveContext(req, deps);
     const config = getConfig(deps);
+    let project = null;
+    if (req.query.project !== undefined) {
+      if (!context.ok || !config.ok) return send(req, res, { ok: false, status: 503, code: "project_storage_unavailable" }, "/creator-studio/projects", ui);
+      const linked = await loadActiveProject(config, context, req.query.project);
+      if (!linked.ok) return send(req, res, linked, "/creator-studio/projects", ui);
+      project = linked.project;
+    }
     let jobs = [];
     let consents = [];
+    let allowance = { ok: false };
     if (context.ok && config.ok) {
       // Both reads at once. Written sequentially first, under a comment
       // claiming they were not -- which is the defect this branch keeps
       // finding, committed by me, in a comment about avoiding it.
-      const [listed, permissions] = await Promise.all([
+      const [listed, permissions, included] = await Promise.all([
         rest(config, JOB_TABLE, `select=id,title,capability,provider_key,status,progress_percent,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=20`),
-        rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`)
+        rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`),
+        usageFor(deps)({ config, organizationId: context.organizationId }).catch(() => ({ ok: false }))
       ]);
       // An unreadable permission list becomes an empty picker, which the form
       // renders as "record one first" -- wrong, but it fails towards asking
       // rather than towards running voice work without a live permission.
+      allowance = included;
       consents = permissions.ok ? permissions.rows : [];
       // null, not []. The empty state below reads "Nothing yet. Use the form
       // above to make your first one" -- so a read that failed told a creator
@@ -538,7 +568,12 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     }
     const providers = getCreatorGenerationCatalog();
     const sections = [
-      generationForm(providers, ui.escape, consents),
+      ui.card("Included generation", allowance.ok
+        ? `$${(Number(allowance.allowanceMinor) / 100).toFixed(2)} included this billing period. $${(Number(allowance.remainingMinor) / 100).toFixed(2)} available, $${(Number(allowance.reservedMinor) / 100).toFixed(2)} reserved for current jobs. Renews ${ui.escape(String(allowance.periodEnd))}. Shared across your organization. Provider limits still apply. No extra purchase required.`
+        : "Your subscription allowance could not be verified. Your saved outputs remain available. Try again later."),
+      LOCAL_IMAGE_FORM,
+      ...(project ? [ui.card("Project", `This generation will be linked to ${ui.escape(project.title)}. Once it finishes, add its output from the project's source picker.`)] : []),
+      generationForm(providers, ui.escape, consents, project?.id),
       ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent record. Direct celebrity, artist, or identity imitation is held for review."),
       ui.card("Provider execution", "ElevenLabs and Google Veo use server-side adapters when configured. Suno requires the exact account API contract. Higgsfield uses its official external MCP connector. Open-source models run only on an isolated GPU worker."),
       jobTable(jobs, ui.escape),
@@ -898,47 +933,22 @@ async function completeFromProviderPayload(config, context, job, payload, provid
   return { ok: true, job: updated.rows[0] };
 }
 
-// Is there credit to run this, and what would it cost?
-//
-// Wired through `deps` so a test can inject a ledger rather than reach for a
-// database, and so this file keeps no opinion about pricing --
-// lib/creator-generation-billing.cjs decides the units and
-// lib/sonara-usage-meter.cjs decides whether they are affordable.
-async function authoriseGenerationCredit({ config, context, capability, parameters, deps }) {
+function usageFor(deps) {
+  return typeof deps.generationAllowance === "function" ? deps.generationAllowance : generationAllowance;
+}
+
+async function reserveIncludedGeneration({ config, context, capability, parameters, jobId, deps }) {
   const basis = generationPreflight({ capability, parameters });
-  if (!basis.ok) {
-    // A capability with no cost estimate is refused rather than run free. This
-    // is reachable only by adding a capability and not costing it, which is
-    // exactly when a default of "free" would be silently expensive.
-    return { allowed: false, httpStatus: 500, code: basis.code, reason: basis.detail };
-  }
-
-  const readLedger = typeof deps.readUsageLedger === "function"
-    ? deps.readUsageLedger
-    : createBalanceReader({ organizationId: context.organizationId, getSupabaseServerConfig: () => config });
-
-  const history = await readLedger({ organizationId: context.organizationId }).catch((error) => ({
-    ok: false,
-    rows: [],
-    reason: String(error?.message || error)
-  }));
-
-  // The starting allowance keeps generation working for an organization that has
-  // never bought credit, which is every organization on the day this deploys.
-  // It exhausts as draws accumulate, so it is a free tier rather than a bypass.
-  // Overridable through deps so a test can set it to zero and see the refusal.
-  const allowanceMinor = typeof deps.generationStartingAllowanceMinor === "number"
-    ? deps.generationStartingAllowanceMinor
-    : DEFAULT_STARTING_ALLOWANCE_MINOR;
-
-  const decision = authoriseUsage({ capability: basis.capability, units: basis.units, history, allowanceMinor });
-  if (decision.allowed) return { allowed: true, decision, basis };
-
-  // 402 for "no credit" and 503 for "we could not check" -- different things,
-  // and a customer does something different about each. A blanket 402 would
-  // have somebody buy credit to fix a database blip.
-  const httpStatus = decision.code === "insufficient_credit" ? 402 : 503;
-  return { allowed: false, httpStatus, code: decision.code, reason: decision.reason, decision, basis };
+  if (!basis.ok) return { allowed: false, httpStatus: 500, code: basis.code, reason: basis.detail };
+  const estimate = quote(basis.capability, basis.units);
+  if (!estimate.ok) return { allowed: false, httpStatus: 500, code: estimate.code, reason: "This work could not be estimated." };
+  const decision = await usageFor(deps)({ config, organizationId: context.organizationId, action: "reserve", jobId, amountMinor: estimate.chargeMinor })
+    .catch(() => ({ ok: false, code: "generation_allowance_unavailable" }));
+  if (decision.ok) return { allowed: true, decision, basis };
+  const exhausted = decision.code === "included_generation_exhausted";
+  return { allowed: false, httpStatus: exhausted ? 429 : 503, code: decision.code,
+    reason: exhausted ? "Your included generation allowance is in use or used up. It renews with your subscription. No extra purchase is required."
+      : "We could not verify your included generation allowance. Please try again later.", decision, basis };
 }
 
 // Charge for the work, once it has actually produced something.
@@ -985,10 +995,17 @@ async function chargeCompletedGeneration({ config, context, job, payload, deps }
   // seconds" means two different things depending on whether that was measured
   // or estimated, and revenue cannot be reconciled against cost without knowing
   // which.
-  const written = await append({
+  const row = {
     ...entry.row,
     metadata: { usage_basis: cost.basis, usage_detail: cost.detail, job_id: job.id, capability: job.capability }
-  }).catch((error) => ({ ok: false, code: "ledger_write_threw", detail: String(error?.message || error) }));
+  };
+  const settled = await usageFor(deps)({ config, organizationId: context.organizationId, action: "settle", jobId: job.id, amountMinor: row.amount_minor, entry: row })
+    .catch(() => ({ ok: false, code: "generation_allowance_unavailable" }));
+  // Only pre-migration jobs use the append-only legacy path. A failed atomic
+  // settlement retains its reservation and reports a gap; it never grants credit.
+  const written = settled.ok && settled.legacy
+    ? await append(row).catch(() => ({ ok: false, code: "ledger_write_threw" }))
+    : settled;
 
   if (!written.ok) {
     (deps.reportBillingGap || defaultBillingGapReport)({ jobId: job.id, code: written.code, detail: `charge of ${entry.row.amount_minor} was not recorded` });
@@ -1073,6 +1090,15 @@ async function storeOutput(config, context, job, bytes, mime, providerKey) {
   return { ok: true, asset: inserted.rows[0] };
 }
 
+async function loadActiveProject(config, context, projectId) {
+  if (typeof projectId !== "string" || !validUuid(projectId)) return { ok: false, status: 400, code: "invalid_project_id", message: "Choose a valid project." };
+  const result = await rest(config, "creator_projects", `select=id,title,archived_at&id=eq.${encodeURIComponent(projectId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`);
+  if (!result.ok) return { ok: false, status: 503, code: "project_storage_unavailable", message: "Your project could not be checked. Try again shortly." };
+  if (!result.rows[0]) return { ok: false, status: 404, code: "project_not_found", message: "That project is not in your workspace." };
+  if (result.rows[0].archived_at) return { ok: false, status: 409, code: "project_archived", message: "Restore the project before generating media for it." };
+  return { ok: true, project: result.rows[0] };
+}
+
 async function loadJob(config, context, jobId) {
   if (!validUuid(jobId)) return { ok: false, status: 400, code: "invalid_job_id" };
   // Named rather than `select=*`. The list is every field the job page and the
@@ -1120,7 +1146,14 @@ async function rest(config, table, query = "", options = {}) {
 }
 
 function insert(config, table, body) { return rest(config, table, "", { method: "POST", prefer: "return=representation", body }); }
-function updateJob(config, context, jobId, patch) { return rest(config, JOB_TABLE, `id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}`, { method: "PATCH", prefer: "return=representation", body: patch }); }
+async function updateJob(config, context, jobId, patch) {
+  const result = await rest(config, JOB_TABLE, `id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}`, { method: "PATCH", prefer: "return=representation", body: patch });
+  if (result.ok && result.rows.length && ["failed", "cancelled"].includes(patch.status)) {
+    const released = await generationAllowance({ config, organizationId: context.organizationId, action: "release", jobId });
+    if (!released.ok) defaultBillingGapReport({ jobId, code: released.code });
+  }
+  return result;
+}
 async function event(config, context, jobId, type, status, details) { return insert(config, EVENT_TABLE, { organization_id: context.organizationId, user_id: context.userId, job_id: jobId, event_type: type, event_status: status, details }); }
 
 async function failedValidation(config, context, job, code) { return failJobResult(config, context, job, code, code.replaceAll("_", " ")); }
@@ -1159,7 +1192,7 @@ function findOutputUrl(payload) {
   return candidates.find((value) => /^https:\/\//i.test(String(value || ""))) || null;
 }
 
-function generationForm(providers, escape, consents = []) {
+function generationForm(providers, escape, consents = [], projectId = null) {
   const options = providers.filter((item) => item.adapterMode !== "reference_only").map((item) => `<option value="${escape(item.key)}">${escape(item.label)} · ${escape(generationAvailabilityLabel(item.readiness.status))}</option>`).join("");
 
   // The five voice capabilities were missing from this list entirely, so the
@@ -1182,7 +1215,7 @@ function generationForm(providers, escape, consents = []) {
     .map((capability) => `<option value="${escape(capability)}">${escape(generationCapabilityLabel(capability))}${VOICE_CAPABILITIES.has(capability) ? " (needs permission)" : ""}</option>`)
     .join("");
 
-  return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs"><label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability">${capabilityOptions}</select></label>${voiceBlock}<label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
+  return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs">${projectId ? `<input type="hidden" name="project_id" value="${escape(projectId)}">` : ""}<label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability">${capabilityOptions}</select></label>${voiceBlock}<label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
 }
 
 function jobPath(jobId) { return `/creator-studio/generation/jobs/${encodeURIComponent(jobId)}`; }
@@ -1384,6 +1417,9 @@ function generationFailureFor(code) {
   const state = setupStateFor({ code });
   if (state) return { state, heading: state.heading, message: state.body, retryable: state.key === "TEMPORARY_PROVIDER_FAILURE" };
   const messages = {
+    included_generation_exhausted: "Your included generation allowance is in use or used up. It renews with your subscription. No extra purchase is required.",
+    subscription_period_unavailable: "We could not verify your included generation allowance. Please try again later.",
+    generation_allowance_unavailable: "We could not verify your included generation allowance. Please try again later.",
     rights_attestation_required: "Confirm that you have the right to use the material before starting.",
     active_voice_consent_required: "A current voice permission is required before this can run.",
     voice_consent_scope_mismatch: "The permission on file does not cover this kind of voice work.",
@@ -1499,3 +1535,5 @@ module.exports.CONSENT_SCOPE_FOR_CAPABILITY = CONSENT_SCOPE_FOR_CAPABILITY;
 module.exports.BLANKET_CONSENT_SCOPE = BLANKET_CONSENT_SCOPE;
 module.exports.FORM_CAPABILITY_ORDER = FORM_CAPABILITY_ORDER;
 module.exports.offeredCapabilities = offeredCapabilities;
+
+module.exports.LOCAL_IMAGE_FORM = LOCAL_IMAGE_FORM;

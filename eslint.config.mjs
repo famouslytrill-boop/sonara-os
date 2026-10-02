@@ -31,6 +31,12 @@ const browserGlobals = {
   // MediaRecorder and URL round-trip the video. `module` and `self` are there
   // because sonara-zip-core.js and sonara-frame-plan.js are loaded by both the
   // browser and lib/ -- one implementation of a binary format rather than two.
+  createImageBitmap: "readonly",
+  ImageData: "readonly",
+  Uint32Array: "readonly",
+  Uint8ClampedArray: "readonly",
+  GPUBufferUsage: "readonly",
+  GPUMapMode: "readonly",
   TextEncoder: "readonly",
   TextDecoder: "readonly",
   Blob: "readonly",

@@ -88,10 +88,10 @@ describe("SONARA recommended product catalog", () => {
     const routes = fs.readFileSync(path.join(root, "routes", "sonara-service-lifecycle-routes.cjs"), "utf8");
     const manifest = fs.readFileSync(path.join(root, "lib", "sonara-ecosystem-manifest.cjs"), "utf8");
     assert.match(routes, /getRecommendedProductCatalog/);
-    assert.match(routes, /LEGACY_DEFAULT_SERVICE_CATALOG/);
+    assert.doesNotMatch(routes, /LEGACY_DEFAULT_SERVICE_CATALOG/);
     assert.match(routes, /mergedCatalog/);
     assert.match(routes, /Availability:/);
-    assert.match(routes, /Request this service/);
+    assert.match(routes, /No service quote or intake request is required/);
     assert.doesNotMatch(routes, /slug: "products", productKey: "sonara_industries"/);
     assert.match(manifest, /recommendedProductCatalog: getRecommendedProductCatalog\(\)/);
   });

@@ -302,6 +302,32 @@ function main() {
       }
     }
 
+    behaves(psql, "included generation reserves, settles and isolates tenants",
+      fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
+      ["generation_reserves_settles_and_isolates"]);
+
+    // Two independent PostgreSQL sessions must not reserve the same pool.
+    const concurrentOrg = "10000000-0000-4000-8000-000000000006";
+    behaves(psql, "concurrent generation fixture", `
+      insert into public.organizations(id, name) values ('${concurrentOrg}', 'Concurrency probe');
+      insert into public.billing_subscriptions(organization_id, provider, provider_subscription_ref, plan_slug, status, current_period_end, metadata)
+      values ('${concurrentOrg}', 'stripe', 'sub_generation_concurrency', 'all_three_monthly', 'active', now() + interval '10 days',
+        jsonb_build_object('source', 'stripe_webhook', 'current_period_start', now() - interval '20 days'));
+      select 'generation_concurrency_ready';`, ["generation_concurrency_ready"]);
+    const concurrencyCommands = ["7", "8"].map((digit) => {
+      const file = path.join(socketDir, `generation-session-${digit}.sql`);
+      fs.writeFileSync(file, `begin; select public.generation_usage('${concurrentOrg}', 'reserve', '10000000-0000-4000-8000-00000000000${digit}', 300); select pg_sleep(0.2); commit;`);
+      if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, file]);
+      return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+    });
+    const concurrent = shell(`${concurrencyCommands[0]} & ${concurrencyCommands[1]} & wait`);
+    if (concurrent.status !== 0 || !(concurrent.stdout || "").includes("included_generation_exhausted")) {
+      stop(`Concurrent generation reservations failed: ${concurrent.stderr || concurrent.stdout}`);
+    }
+    behaves(psql, "concurrent generation cannot overspend", `
+      select 'generation_concurrent_holds_' || count(*) from public.generation_usage_reservations where organization_id = '${concurrentOrg}';
+      delete from public.organizations where id = '${concurrentOrg}';`, ["generation_concurrent_holds_1"]);
+
     // Proof the replay built something, rather than passing on a cluster where
     // every statement quietly did nothing.
     const missing = [];
@@ -578,7 +604,7 @@ function main() {
           and not exists (
             select 1 from pg_policies p
             where p.schemaname = 'public' and p.tablename = c.relname);
-    `, ["closed_count_43", "closed_set_agent_evaluation_runs,agent_tool_permissions,audit_log,business_management_credentials,business_payment_accounts,business_recurring_tasks,call_sessions,call_signals,consent_records,creator_asset_approvals,creator_asset_versions,creator_briefs,db_health_snapshots,event_delivery_attempts,event_outbox,growth_campaign_sends,growth_event_rsvps,growth_events,growth_venues,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,llm_observations,merchant_order_lines,merchant_orders,merchant_storefronts,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
+    `, ["closed_count_44", "closed_set_agent_evaluation_runs,agent_tool_permissions,audit_log,business_management_credentials,business_payment_accounts,business_recurring_tasks,call_sessions,call_signals,consent_records,creator_asset_approvals,creator_asset_versions,creator_briefs,db_health_snapshots,event_delivery_attempts,event_outbox,generation_usage_reservations,growth_campaign_sends,growth_event_rsvps,growth_events,growth_venues,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,llm_observations,merchant_order_lines,merchant_orders,merchant_storefronts,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,usage_credit_ledger,user_auth_factors,user_recovery_codes"]);
 
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text

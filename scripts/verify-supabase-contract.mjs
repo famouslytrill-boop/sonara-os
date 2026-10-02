@@ -33,8 +33,8 @@ const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
   "20260723060500_business_integration_connections.sql"
 ];
-const creatorProjectMigrationNames = ["20261002090000_creator_project_graph.sql"];
-const CREATOR_PROJECT_TABLES = Object.freeze(["creator_projects"]);
+const creatorProjectMigrationNames = ["20261002090000_creator_project_graph.sql", "20261002075825_included_generation_periods.sql"];
+const CREATOR_PROJECT_TABLES = Object.freeze(["creator_projects", "generation_usage_reservations"]);
 const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
 ];
@@ -558,6 +558,9 @@ for (const required of [
 verifyExtension(CREATOR_PROJECT_TABLES, creatorProjectSql, "Creator Project Graph");
 for (const required of ["revoke all on public.creator_projects from public, anon, authenticated", "grant select on public.creator_projects to authenticated", "grant all on public.creator_projects to service_role", "public.sonara_is_org_member(organization_id)", "revision integer not null", "graph jsonb not null"]) {
   if (!creatorProjectSql.includes(required)) fail(`Creator Project Graph extension is missing: ${required}`);
+}
+for (const required of ["security invoker", "pg_advisory_xact_lock", "grant select, insert, update on public.generation_usage_reservations to service_role", "revoke all on function public.generation_usage(uuid, text, uuid, numeric, jsonb) from public, anon, authenticated"]) {
+  if (!creatorProjectSql.includes(required)) fail(`Included generation contract is missing: ${required}`);
 }
 verifyExtension(CREATOR_GENERATION_TABLES, creatorGenerationSql, "Creator Studio generation");
 verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator Studio artist system");
