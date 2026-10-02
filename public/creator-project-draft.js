@@ -32,6 +32,9 @@
   }
   function render() {
     root.querySelector("[data-draft-revision]").textContent = `Draft based on workspace revision ${snapshot.revision}. ${snapshot.graph.nodes.length} entries.`;
+    const timeline = core.summarizeTimeline(snapshot.graph);
+    const summary = root.querySelector("[data-draft-timeline]");
+    if (summary) summary.textContent = `${timeline.durationMs} ms total · ${timeline.clipCount} clips · ${timeline.captionCount} captions · ${timeline.unusedSourceCount} unused sources. ${timeline.gapMs} ms without clips; ${timeline.overlapMs} ms with overlapping clips. Placement does not measure audio silence.`;
     entries.replaceChildren();
     for (const node of snapshot.graph.nodes) {
       const form = document.createElement("form"); form.dataset.draftNode = node.id; form.dataset.draftKind = node.kind;
@@ -49,6 +52,12 @@
         }
       }
       button(form, "update", "Apply to local draft"); button(form, "remove", "Remove from local draft"); entries.append(form);
+      if (node.kind === "clip" && node.outMs - node.inMs > 1) {
+        const split = document.createElement("form"); split.dataset.draftNode = node.id; split.dataset.draftCommand = "split_clip";
+        field(split, "atMs", "Split local clip at timeline position (ms)", node.startMs + Math.floor((node.outMs - node.inMs) / 2));
+        const input = split.querySelector("input"); input.min = String(node.startMs + 1); input.max = String(node.startMs + node.outMs - node.inMs - 1);
+        button(split, "split", "Split local clip"); entries.append(split);
+      }
     }
     renewDownload();
   }
@@ -60,12 +69,17 @@
     event.preventDefault(); const form = event.target;
     try {
       const command = Object.fromEntries(new FormData(form));
-      edit({ ...command, nodeId: form.dataset.draftNode, action: event.submitter?.value === "remove" ? "remove" : `update_${form.dataset.draftKind}` });
+      edit({ ...command, nodeId: form.dataset.draftNode, action: form.dataset.draftCommand || (event.submitter?.value === "remove" ? "remove" : `update_${form.dataset.draftKind}`) });
     } catch (error) { say(error.message); }
   });
   root.querySelector("[data-draft-caption]").addEventListener("submit", (event) => {
     event.preventDefault();
     try { edit({ ...Object.fromEntries(new FormData(event.target)), action: "add_caption" }); event.target.reset(); }
+    catch (error) { say(error.message); }
+  });
+  root.querySelector("[data-draft-shift]")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    try { edit({ ...Object.fromEntries(new FormData(event.target)), action: "shift_captions" }); }
     catch (error) { say(error.message); }
   });
   const importFile = root.querySelector("[data-draft-import]");

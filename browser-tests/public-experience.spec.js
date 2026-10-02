@@ -39,6 +39,34 @@ async function readDraft(page, scope = `${projectId(101)}:${projectId(102)}`) {
 }
 
 test.describe("public experience browser contract", () => {
+  test("Creator split and caption shift work offline and refuse invalid changes without losing the draft", async ({ page, context }) => {
+    const core = require("../public/creator-project-graph-core.js");
+    const project = draftProject();
+    project.graph = core.applyCommand(project.graph, { action: "add_source", assetId: projectId(200), durationMs: 10000 }, projectId(201));
+    project.graph = core.applyCommand(project.graph, { action: "add_clip", sourceId: projectId(201), inMs: 1000, outMs: 5000, startMs: 2000, muted: true }, projectId(202));
+    project.graph = core.applyCommand(project.graph, { action: "add_caption", startMs: 1000, endMs: 6000, text: "Keep this caption" }, projectId(203));
+    await mountDraft(page, project);
+    await context.setOffline(true);
+    const split = page.locator('[data-draft-command="split_clip"]');
+    await split.getByLabel("Split local clip at timeline position (ms)").fill("3500");
+    await split.getByRole("button", { name: "Split local clip", exact: true }).click();
+    await expect(page.locator('[data-draft-kind="clip"]')).toHaveCount(2);
+    await expect(page.locator("[data-draft-timeline]")).toContainText("2 clips");
+    const shift = page.locator("[data-draft-shift]");
+    await shift.locator("input").fill("-1001");
+    await shift.getByRole("button").click();
+    await expect(page.locator("[data-draft-status]")).toContainText("Caption start");
+    await expect(page.locator('[data-draft-kind="caption"] input[name="startMs"]')).toHaveValue("1000");
+    await shift.locator("input").fill("-1000"); await shift.getByRole("button").click();
+    await expect(page.locator('[data-draft-kind="caption"] input[name="startMs"]')).toHaveValue("0");
+    await page.getByRole("button", { name: "Save draft on this device", exact: true }).click();
+    await expect(page.locator("[data-draft-status]")).toContainText("Draft saved on this device");
+    const saved = await readDraft(page);
+    expect(saved.snapshot.graph.nodes.filter((n) => n.kind === "clip")).toHaveLength(2);
+    expect(saved.snapshot.graph.nodes.find((n) => n.kind === "caption").text).toBe("Keep this caption");
+    expect(saved.snapshot.revision).toBe(1);
+  });
+
   test("Creator drafts persist only by choice, work disconnected and stay scoped to the account", async ({ page, context }) => {
     const errors = [], uploads = [];
     page.on("pageerror", (error) => errors.push(error.message));

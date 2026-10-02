@@ -60,6 +60,28 @@ function validateGraph(input) {
 function applyCommand(graph, command, id) {
   const current = validateGraph(graph);
   if (!command || typeof command !== "object") fail("Choose a project action.");
+  if (command.action === "split_clip") {
+    const clip = current.nodes.find((node) => node.id === command.nodeId && node.kind === "clip");
+    if (!clip) fail("Choose a clip in this project.");
+    const atMs = milliseconds(command.atMs, "Split position");
+    const offset = atMs - clip.startMs;
+    if (offset <= 0 || offset >= clip.outMs - clip.inMs) fail("Split inside the clip's timeline, not at its edges.");
+    return validateGraph({ version: 1, nodes: [
+      ...current.nodes.map((node) => node.id === clip.id ? { ...clip, outMs: clip.inMs + offset } : node),
+      { ...clip, id, inMs: clip.inMs + offset, startMs: atMs }
+    ] });
+  }
+  if (command.action === "shift_captions") {
+    const value = command.offsetMs;
+    if ((typeof value !== "number" && typeof value !== "string") || (typeof value === "string" && !/^-?\d+$/.test(value))) fail("Caption shift must be signed whole milliseconds.");
+    const offset = Number(value);
+    if (!Number.isSafeInteger(offset) || !offset || Math.abs(offset) > MAX_MS) fail("Choose a nonzero caption shift within 24 hours.");
+    if (!current.nodes.some((node) => node.kind === "caption")) fail("Add captions before shifting them.");
+    // Validate the complete result before returning it: one invalid cue prevents
+    // the entire operation, preserving both server and device draft snapshots.
+    return validateGraph({ version: 1, nodes: current.nodes.map((node) => node.kind === "caption"
+      ? { ...node, startMs: node.startMs + offset, endMs: node.endMs + offset } : node) });
+  }
   const updates = { update_source: ["durationMs"], update_clip: ["inMs", "outMs", "startMs", "muted"], update_caption: ["startMs", "endMs", "text"] };
   if (Object.hasOwn(updates, command.action)) {
     const kind = command.action.slice(7);
@@ -94,7 +116,30 @@ function validateSnapshot(input, projectId) {
   if (new TextEncoder().encode(JSON.stringify(snapshot)).byteLength > MAX_SNAPSHOT_BYTES) fail("Use a project draft up to 2 MB.");
   return snapshot;
 }
-const core = { UUID, MAX_NODES, MAX_SNAPSHOT_BYTES, validateGraph, applyCommand, validateSnapshot };
+function summarizeTimeline(input) {
+  const graph = validateGraph(input);
+  const clips = graph.nodes.filter((node) => node.kind === "clip");
+  const captions = graph.nodes.filter((node) => node.kind === "caption");
+  const sources = graph.nodes.filter((node) => node.kind === "source");
+  const used = new Set(clips.map((node) => node.sourceId));
+  const durationMs = Math.max(0, ...clips.map((node) => node.startMs + node.outMs - node.inMs), ...captions.map((node) => node.endMs));
+  const events = new Map([[0, 0], [durationMs, 0]]);
+  for (const clip of clips) {
+    const end = clip.startMs + clip.outMs - clip.inMs;
+    events.set(clip.startMs, (events.get(clip.startMs) || 0) + 1);
+    events.set(end, (events.get(end) || 0) - 1);
+  }
+  let previous = 0, active = 0, gapMs = 0, overlapMs = 0;
+  for (const [at, delta] of [...events].sort((a, b) => a[0] - b[0])) {
+    if (active === 0) gapMs += at - previous;
+    if (active > 1) overlapMs += at - previous;
+    active += delta; previous = at;
+  }
+  return { durationMs, clipCount: clips.length, captionCount: captions.length, sourceCount: sources.length,
+    unusedSourceCount: sources.filter((node) => !used.has(node.id)).length,
+    mutedClipCount: clips.filter((node) => node.muted).length, gapMs, overlapMs };
+}
+const core = { UUID, MAX_NODES, MAX_SNAPSHOT_BYTES, validateGraph, applyCommand, validateSnapshot, summarizeTimeline };
 if (typeof module !== "undefined" && module.exports) module.exports = core;
 else globalThis.SonaraCreatorGraph = core;
 })();
