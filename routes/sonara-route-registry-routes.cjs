@@ -12,6 +12,11 @@ const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { getGuide } = require("../lib/sonara-guides.cjs");
 const { UI_LOCALES, SUPPORTED_LOCALE_CODES, normalizeLocale } = require("../lib/sonara-locale-contract.cjs");
 const { renderWorkspaceDirectory } = require("../lib/sonara-workspace-directory.cjs");
+// The free-tool count and its one sentence. Read rather than restated: the
+// /free-tools page below carried its own copy of "Six tools ... two in each
+// studio" and three per-studio cards each naming their two by hand, and every
+// one of those went stale the day the free set changed.
+const { FREE_TOOL_COUNT, freeToolSentence, freeToolCountByCompany } = require("../lib/sonara-tool-access.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -128,18 +133,44 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/dashboard", "All workspaces")]
   }));
 
-  app.get("/free-tools", (req, res) => sendMarketingPage(res, {
-    title: "Free tools",
-    eyebrow: "Six free, and the rest on a plan",
-    heading: "Get a real result in your first few minutes.",
-    body: "Six tools are free with no account and no card, two in each studio, and they give a real answer in a couple of minutes. The other thirty-four open on a plan that covers that studio. Every directory below labels each tool before you press anything, so no tool is advertised as free and then refused.",
-    sections: [
-      actionCard("Business Builder tools", "Free with no account: break-even and runway, and the stock reorder planner. Thirteen more open on a plan that covers Business Builder, and the directory says which is which.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
-      actionCard("Creator Studio tools", "Free with no account: the rate card builder, and the split sheet whose shares are checked to add up to a hundred. Eleven more open on a plan that covers Creator Studio.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
-      actionCard("Growth Studio tools", "Free with no account: the campaign budget split against a target cost per lead, and the referral reward planner. Ten more open on a plan that covers Growth Studio.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
-    ],
-    actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
-  }));
+  // Named counts, no named tools.
+  //
+  // Each card used to name its studio's free tools in prose -- "break-even and
+  // runway, and the stock reorder planner" -- and said how many more were
+  // locked. Both halves went stale on 2 October 2026 when the free set changed,
+  // and the stale half is the dangerous one: naming a tool as free that a gate
+  // then refuses is the advertise-then-refuse funnel
+  // routes/sonara-service-lifecycle-routes.cjs exists to prevent.
+  //
+  // So this page counts and links, and the directory it links to is the page
+  // that names them -- built from the same list the gate reads.
+  app.get("/free-tools", (req, res) => {
+    const counts = freeToolCountByCompany();
+    const studios = [
+      ["Business Builder", "business_builder", "/business-builder/tools"],
+      ["Creator Studio", "creator_studio", "/creator-studio/tools"],
+      ["Growth Studio", "growth_studio", "/growth-studio/tools"]
+    ];
+    return sendMarketingPage(res, {
+      title: "Free tools",
+      eyebrow: `${FREE_TOOL_COUNT} free, and the rest on a plan`,
+      heading: "Get a real result in your first few minutes.",
+      body: `${freeToolSentence()} They give a real answer in a couple of minutes, and nothing is saved unless you ask. Every directory below labels each tool as free or on a plan before you press anything, so no tool is advertised as free and then refused.`,
+      sections: [
+        actionCard(
+          "SONARA Industries tools",
+          `${counts.sonara_industries} free with no account, and they are the ones no single studio could answer: which studio fits your work, what re-typing the same record costs you, and how many products hold your customer list.`,
+          [linkAction("/tools", "Open SONARA Industries tools")]
+        ),
+        ...studios.map(([name, key, directory]) => actionCard(
+          `${name} tools`,
+          `${counts[key]} free with no account and no card. The rest open on a plan that covers ${name}, and the directory names every one of them either way.`,
+          [linkAction(directory, `Open ${name} tools`)]
+        ))
+      ],
+      actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
+    });
+  });
 
   app.get("/how-it-works", (req, res) => sendMarketingPage(res, {
     title: "How SONARA works",

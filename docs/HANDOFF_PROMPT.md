@@ -27,8 +27,8 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 141 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 418 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
+- 419 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,92 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 420 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 21 most recent entries of 421 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - The parent company gets a front door, and five pages stop holding the same number
+
+The owner's decision: four free tools in each studio rather than two, and three
+at the parent company. Six became fifteen.
+
+**SONARA Industries had no public tool of its own.** All forty sat under
+`/business-builder/`, `/creator-studio/` or `/growth-studio/`, so a visitor who
+had not chosen a studio had nothing to open -- and the question they actually had,
+"which of these is for me?", is the one question no studio can answer without
+recommending itself. `lib/sonara-industries-tools.cjs` answers it, plus what
+re-typing the same record between products costs in a year, and how many products
+hold a copy of the same customer list. `/tools` is their directory.
+
+The test each had to pass to be there: a tool that would be just as correct inside
+one studio belongs in that studio. The two that look closest to a studio tool are
+distinguished by their **inputs**, not by their titles --
+`/business-builder/tools/software-spend` prices seats on one product
+(`activeSeats`), `/tools/subscription-count` prices duplication across a stack
+(`productsHoldingCustomers`) -- and
+`tests/the-parent-company-has-its-own-front-door.test.js` asserts the two share no
+required field, because two tools taking the same inputs are the same question.
+
+**No price of ours is written into any of them.** CLAUDE.md records three stale
+comparisons this repository has already shipped. A calculator with a baked-in
+price is a figure that goes out of date inside the product, where nobody looks. A
+test asserts the module contains no monthly price and does link `/pricing`, which
+is generated from the plans.
+
+**Five surfaces each held their own copy of the count.** The free plan's
+description, two cards in the lifecycle routes, the marketing page, and the home
+page all said "six", four of them also naming which tools were free in prose.
+Every one was correct when written and wrong the same afternoon -- and the prose
+half is the dangerous one, because naming a tool as free that the gate then
+refuses is the advertise-then-refuse funnel
+`routes/sonara-service-lifecycle-routes.cjs` has a long comment about, arriving by
+a different door. They read `freeToolSentence()` and `freeToolCountByCompany()`
+now. The sentence branches: "4 in each studio" while the three are equal, all
+three spelled out when they are not, and both branches were checked by running
+them.
+
+**`scripts/verify-free-tool-count.mjs`, and the guard that was wrong first.** The
+first draft demanded at least one stated count as its blindness guard -- and once
+every page was derived there were none, so the guard refused the state the change
+was for. Zero findings is the goal here, which makes "found nothing" and "can no
+longer see" identical. It tests the detector against three stale sentences it must
+catch and the derived form it must not, then reports zero meaning zero.
+
+**Three checks caught me rather than my reading it.**
+
+  * The gate itself refused a sentence I had written minutes earlier:
+    `"Twelve tools across the three studios are free"`, hardcoded inside the new
+    parent module while the free set was fifteen.
+  * `tests/a-line-comment-cannot-open-a-block-comment.test.js` refused my own
+    comment stripper by name -- "that is how the same bug shipped three times".
+    It uses `lib/sonara-comment-stripping.cjs` now, which is a scanner rather
+    than a regex and copies string contents through.
+  * `tests/no-dead-links.test.js` found `/null/tools` linked from all three new
+    tool pages. Four places built `/${tool.slug}/tools` and
+    `/${tool.slug}/dashboard`; I had fixed one of them by reading. One
+    `toolDirectory` / `toolDashboardLinks` pair replaced all four, and a
+    parent-company tool returns no dashboard link rather than one to nowhere.
+
+**Two tests were asserting prose that had stopped being true.** `server.test.js`
+required the pricing page to say "six free tools across the three studios", and
+`a-locked-tool-is-never-advertised-as-free.test.js` required the free plan to
+match `/six free tools/i`. Both passed while the pages they guard had gone wrong.
+Both derive the figure now.
+
+Also: `/tools` is on the marketing surface and its three calculators are not,
+which is AGENTS.md's own line between a public overview screen and a work screen;
+`"tools"` joined `RESERVED_HANDLES` because a test asserts that list covers every
+top-level served route, and it was right to.
+
+Suite 5541 passing. `verify:gates` includes `verify:free-tool-count`, falsified
+four ways: a stale literal in a page (fails by file and sentence), a parent tool
+leaving the free set (fails naming why no plan covers it), the detector losing a
+pattern (fails naming the fixture), and the studios going unequal -- which
+correctly passed, because the sentence adapts.
+
+
 
 ### 2026-10-02 - The Creator Project Graph, and the question nobody answered
 
@@ -2137,70 +2218,3 @@ that no `package.json` script, workflow or test invokes, including
 repository no longer has. `report-unreferenced-modules.mjs` covers `lib/` and
 `routes/` by design and says so; `scripts/` has no such check. That is the next
 piece of work, not a gap in this one.
-
-
-
-### 2026-09-30 - Three security gates that read "the runtime" one directory deep
-
-`lib/catalog/` holds four product-catalogue modules. Three release gates could not
-see it, because each built its own file list with a flat `readdirSync` over `lib/`
-and `routes/` and never descended:
-
-| Gate | Reported | Actually |
-| --- | --- | --- |
-| `verify:request-tenant-ids` | 304 runtime files | 309 |
-| `verify:filter-encoding` | 303 runtime files | 308 |
-| `verify:supabase-contract` | (.cjs only) | 307 |
-
-Meanwhile `verify:tenant-queries` and `typecheck`, which do walk recursively, said
-307. **Three numbers for one population, each printed as fact.**
-
-**Proven, not reasoned.** A file placed in `lib/catalog/` reading
-`req.body.organizationId` -- an unregistered request-supplied tenant id, the single
-thing `verify:request-tenant-ids` exists to catch -- left that gate exiting **0 with
-byte-identical output**: still "11 reads across 4 files, out of 304 runtime files
-scanned". It never saw the file. After the fix the same probe fails by name:
-"lib/catalog/_probe-tenant.cjs reads a tenant id from the request 1 time(s) and is
-not registered."
-
-**The sharpest part is the comment already in the repository.** Directly above the
-flat walk in `verify-supabase-contract.mjs` stands the lesson from the last time
-this happened:
-
-> A scan that names two of the three runtime directories is a scan measuring a
-> different population from the one it claims.
-
-The walk one line beneath it read two directories to a depth of one. Breadth had
-been fixed; depth had not. And
-`verify-customer-ready-production-experience.mjs` records this as "the fourth time
-a check scoped to server.js went partially blind because code moved one directory
-over" -- which is why that gate walks recursively and these three did not.
-
-**One walk now.** `lib/sonara-runtime-source-files.cjs` is the single definition,
-recursive, taking the directories and extensions each caller genuinely needs --
-`verify:request-tenant-ids` reads `api/` because a handler could live there,
-`verify:filter-encoding` does not because `api/index.js` is a five-line re-export
-that interpolates nothing, `verify:supabase-contract` reads `.cjs` alone because
-that is what the runtime modules are. What must not differ is whether a
-subdirectory is seen.
-
-Its floor replaced two that were set low enough never to fire: 40 files in
-`verify:request-tenant-ids` and 100 in `verify:filter-encoding`, both satisfiable
-by a walk that found a single directory, which is precisely the failure they were
-written to guard against.
-
-`tests/every-runtime-gate-reads-the-whole-runtime.test.js` holds the two properties
-the module cannot hold for itself: that the walk descends -- asserted against every
-nested file on disk, not just a count -- and that no converted gate has gone back to
-building its own. Falsified three ways: stopping the descent fails with "a recursive
-walk that finds none of them has stopped descending"; raising the floor above the
-real population fails as blindness; and putting a flat `readdirSync` back into a
-converted gate fails naming that gate. Every edited file restored byte-identical.
-
-**Also**: `tests/tenant-query-exemptions.test.js`, which arrived in #392 and
-independently mutation-tests the tenant exemptions from #391, carried two
-`assert.ifError(result.error)` calls reading a property `audit()` never sets. The
-function rethrows anything that is not its own stop sentinel, so unexpected throws
-already fail loudly; those two lines could not fail and read as an error channel
-being checked. Removed. The four mutation tests around them are good work and are
-untouched.

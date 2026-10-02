@@ -2,6 +2,85 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - The parent company gets a front door, and five pages stop holding the same number
+
+The owner's decision: four free tools in each studio rather than two, and three
+at the parent company. Six became fifteen.
+
+**SONARA Industries had no public tool of its own.** All forty sat under
+`/business-builder/`, `/creator-studio/` or `/growth-studio/`, so a visitor who
+had not chosen a studio had nothing to open -- and the question they actually had,
+"which of these is for me?", is the one question no studio can answer without
+recommending itself. `lib/sonara-industries-tools.cjs` answers it, plus what
+re-typing the same record between products costs in a year, and how many products
+hold a copy of the same customer list. `/tools` is their directory.
+
+The test each had to pass to be there: a tool that would be just as correct inside
+one studio belongs in that studio. The two that look closest to a studio tool are
+distinguished by their **inputs**, not by their titles --
+`/business-builder/tools/software-spend` prices seats on one product
+(`activeSeats`), `/tools/subscription-count` prices duplication across a stack
+(`productsHoldingCustomers`) -- and
+`tests/the-parent-company-has-its-own-front-door.test.js` asserts the two share no
+required field, because two tools taking the same inputs are the same question.
+
+**No price of ours is written into any of them.** CLAUDE.md records three stale
+comparisons this repository has already shipped. A calculator with a baked-in
+price is a figure that goes out of date inside the product, where nobody looks. A
+test asserts the module contains no monthly price and does link `/pricing`, which
+is generated from the plans.
+
+**Five surfaces each held their own copy of the count.** The free plan's
+description, two cards in the lifecycle routes, the marketing page, and the home
+page all said "six", four of them also naming which tools were free in prose.
+Every one was correct when written and wrong the same afternoon -- and the prose
+half is the dangerous one, because naming a tool as free that the gate then
+refuses is the advertise-then-refuse funnel
+`routes/sonara-service-lifecycle-routes.cjs` has a long comment about, arriving by
+a different door. They read `freeToolSentence()` and `freeToolCountByCompany()`
+now. The sentence branches: "4 in each studio" while the three are equal, all
+three spelled out when they are not, and both branches were checked by running
+them.
+
+**`scripts/verify-free-tool-count.mjs`, and the guard that was wrong first.** The
+first draft demanded at least one stated count as its blindness guard -- and once
+every page was derived there were none, so the guard refused the state the change
+was for. Zero findings is the goal here, which makes "found nothing" and "can no
+longer see" identical. It tests the detector against three stale sentences it must
+catch and the derived form it must not, then reports zero meaning zero.
+
+**Three checks caught me rather than my reading it.**
+
+  * The gate itself refused a sentence I had written minutes earlier:
+    `"Twelve tools across the three studios are free"`, hardcoded inside the new
+    parent module while the free set was fifteen.
+  * `tests/a-line-comment-cannot-open-a-block-comment.test.js` refused my own
+    comment stripper by name -- "that is how the same bug shipped three times".
+    It uses `lib/sonara-comment-stripping.cjs` now, which is a scanner rather
+    than a regex and copies string contents through.
+  * `tests/no-dead-links.test.js` found `/null/tools` linked from all three new
+    tool pages. Four places built `/${tool.slug}/tools` and
+    `/${tool.slug}/dashboard`; I had fixed one of them by reading. One
+    `toolDirectory` / `toolDashboardLinks` pair replaced all four, and a
+    parent-company tool returns no dashboard link rather than one to nowhere.
+
+**Two tests were asserting prose that had stopped being true.** `server.test.js`
+required the pricing page to say "six free tools across the three studios", and
+`a-locked-tool-is-never-advertised-as-free.test.js` required the free plan to
+match `/six free tools/i`. Both passed while the pages they guard had gone wrong.
+Both derive the figure now.
+
+Also: `/tools` is on the marketing surface and its three calculators are not,
+which is AGENTS.md's own line between a public overview screen and a work screen;
+`"tools"` joined `RESERVED_HANDLES` because a test asserts that list covers every
+top-level served route, and it was right to.
+
+Suite 5541 passing. `verify:gates` includes `verify:free-tool-count`, falsified
+four ways: a stale literal in a page (fails by file and sentence), a parent tool
+leaving the free set (fails naming why no plan covers it), the detector losing a
+pattern (fails naming the fixture), and the studios going unequal -- which
+correctly passed, because the sentence adapts.
+
 ### 2026-10-02 - The Creator Project Graph, and the question nobody answered
 
 Creator Studio could hold an asset and could hold a file. It could not say which

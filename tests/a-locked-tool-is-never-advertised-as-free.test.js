@@ -1,7 +1,10 @@
 "use strict";
 
-// Thirty-four of the forty tools now need a plan. The pricing decision is the
-// owner's. The failure mode is not, and it is a specific one with a history in
+// Twenty-eight of the forty-three tools need a plan. The pricing decision is the
+// owner's, and it moved on 2 October 2026: four free in each studio rather than
+// two, plus three at the parent company. The counts are derived here rather than
+// restated, because this file asserting "six" is how a test starts guarding a
+// figure that has changed. The failure mode is not, and it is a specific one with a history in
 // this repository: until 19 August 2026 every tool was behind a login while
 // /business-builder/tools listed ten of them by name, so the funnel advertised
 // and then refused. The comment in routes/sonara-service-lifecycle-routes.cjs
@@ -31,7 +34,7 @@ describe("a locked tool is never advertised as free", () => {
     // Both directions matter and an empty set would satisfy neither.
     it("frees some tools but not all of them", () => {
       const { free, locked } = access.partitionTools(tools);
-      assert.ok(free.length > 0, "no tool is free; the home page promises six");
+      assert.ok(free.length > 0, `no tool is free; the home page promises ${access.FREE_TOOL_COUNT}`);
       assert.ok(locked.length > 0, "every tool is free; nothing is behind the paywall");
       assert.equal(free.length + locked.length, tools.length);
       assert.equal(free.length, access.FREE_TOOL_PATHS.length);
@@ -163,7 +166,13 @@ describe("a locked tool is never advertised as free", () => {
         /the free tools in all three studios/,
         "the free plan still advertises the tools in all three studios"
       );
-      assert.match(description, /six free tools/i, "the free plan no longer says how many tools are free");
+      // Was /six free tools/i until 2 October 2026 — a test asserting the stale
+      // sentence, which passed while the page it guards had gone wrong. Derived
+      // now from the same list the gate reads.
+      assert.ok(
+        description.includes(String(access.FREE_TOOL_COUNT)),
+        `the free plan says "${description}" and ${access.FREE_TOOL_COUNT} tools are free`
+      );
     });
 
     // The marketing page named individual tools that are now behind the plan.
