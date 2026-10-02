@@ -2,6 +2,72 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - A check that saw two thirds of its tables, and read the rest by their spelling
+
+`tests/member-read-policies.test.js` holds that every organization-scoped table the
+application reads has a policy a signed-in member can read through, or a recorded
+reason it is service-role only. It has been widened once before, when seven tables
+read through `supabaseList` turned out to be invisible to it. It had two more holes,
+and closing the first exposed the second.
+
+**It could not see a third of its population.** It found tables by a literal
+`/rest/v1/<name>` or by a helper called with a string. Thirty tables are read
+through a constant -- `const VERSION_TABLE = "creator_asset_versions"`, then
+`/rest/v1/${VERSION_TABLE}` -- and neither pattern can follow a variable. 57 tables
+seen, 30 not, and the check reported every one covered. Shape 2: a scan naming a
+smaller population than it claims. It reads `*_TABLE` constants now, in files that
+issue REST calls, with a floor of 80 tables and `creator_asset_versions` as a fixture
+that is only ever named through a constant.
+
+**And it judged a policy by how it was spelled.** Twenty-six of the thirty then
+reported no member read path. Three of those were wrong:
+`creator_generation_assets`, `creator_generation_events` and
+`creator_reference_analyses` get `for select to authenticated` policies inside a
+`foreach ... execute format(...)` loop in 20260723080000, and a search for the text
+`create policy ... on public.<table>` never finds a table named only in an array.
+Filing them as "service-role only" to quiet the check would have written a false
+reason into the register -- worse than no entry. The check now **replays** every
+`create policy` and `drop policy`, literal and loop, in migration order, and asks
+what is left. A fixture holds the loop shape, a later drop, and a literal policy; on
+the real migrations it confirms the three loop-made policies exist and that
+`creator_voice_consents`' loop-made one is gone, dropped by name and replaced.
+
+The simulator also corrected me twice, which is the point of reading what the
+migrations do: I expected `creator_voice_consents` to end with one select policy and
+it ends with two (a later migration adds `creator_voice_consents_select_member`), and
+it found a **false entry already in the register**. `user_roles` was recorded as
+service-role only -- "who may read the privilege table is a decision" -- but
+`"users can read own roles"`, `for select to authenticated using (user_id =
+auth.uid())`, has existed since 20260714120000. A person can read their own roles,
+which is normal and safe. The text search missed it because the statement spans five
+lines. The entry is removed; `user_roles` has no `organization_id`, so the check skips
+it by its own rule anyway.
+
+**The twenty-three that are genuinely unreadable by a member**: nineteen are in
+`verify-migration-replay`'s closed set -- RLS on and no policy at all -- which that
+script asserts against a real PostgreSQL on every release. The check now reads that
+set from there rather than copying nineteen reasons by hand, nineteen chances to write
+one wrong. The other four have only a service-role policy (`creator_assets`,
+`creator_artist_profiles`, `merchant_products`, `merchant_product_variants`) and get an
+entry each, naming the policy.
+
+A two-sided check replaces one I first wrote wrong. My first draft refused any entry
+also in the closed set as "one reason in two places", and it would have deleted
+`business_payment_accounts`' reason -- where the business's money settles -- which says
+*why* a table is closed where the replay only records *that* it is. Removed rather
+than given an exception list. What replaced it is the check that means something: an
+entry claiming service-role only for a table a member can in fact read fails, which is
+how the `user_roles` entry was found.
+
+| break | result |
+|---|---|
+| the constant pattern removed | red, *the constant-named reads have dropped out of view again* |
+| the simulator stops reading loops | 2 red, the loop fixture and three tables reported unreadable |
+| the simulator stops honouring drops | red, *a policy the migrations dropped is still counted* |
+| the false `user_roles` entry restored | red, *recorded as service-role only, and a member can read them* |
+| the closed set cannot be read from the replay | red, *this check has gone blind* |
+
+
 ### 2026-10-03 - Three CodeQL alerts on the multipart parser, measured before fixed
 
 PR #415 merged with CodeQL red on its last two heads: three high-severity alerts,

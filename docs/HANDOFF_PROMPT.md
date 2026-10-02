@@ -103,11 +103,79 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 25 most recent entries of 433 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 25 most recent entries of 434 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-03 - A check that saw two thirds of its tables, and read the rest by their spelling
+
+`tests/member-read-policies.test.js` holds that every organization-scoped table the
+application reads has a policy a signed-in member can read through, or a recorded
+reason it is service-role only. It has been widened once before, when seven tables
+read through `supabaseList` turned out to be invisible to it. It had two more holes,
+and closing the first exposed the second.
+
+**It could not see a third of its population.** It found tables by a literal
+`/rest/v1/<name>` or by a helper called with a string. Thirty tables are read
+through a constant -- `const VERSION_TABLE = "creator_asset_versions"`, then
+`/rest/v1/${VERSION_TABLE}` -- and neither pattern can follow a variable. 57 tables
+seen, 30 not, and the check reported every one covered. Shape 2: a scan naming a
+smaller population than it claims. It reads `*_TABLE` constants now, in files that
+issue REST calls, with a floor of 80 tables and `creator_asset_versions` as a fixture
+that is only ever named through a constant.
+
+**And it judged a policy by how it was spelled.** Twenty-six of the thirty then
+reported no member read path. Three of those were wrong:
+`creator_generation_assets`, `creator_generation_events` and
+`creator_reference_analyses` get `for select to authenticated` policies inside a
+`foreach ... execute format(...)` loop in 20260723080000, and a search for the text
+`create policy ... on public.<table>` never finds a table named only in an array.
+Filing them as "service-role only" to quiet the check would have written a false
+reason into the register -- worse than no entry. The check now **replays** every
+`create policy` and `drop policy`, literal and loop, in migration order, and asks
+what is left. A fixture holds the loop shape, a later drop, and a literal policy; on
+the real migrations it confirms the three loop-made policies exist and that
+`creator_voice_consents`' loop-made one is gone, dropped by name and replaced.
+
+The simulator also corrected me twice, which is the point of reading what the
+migrations do: I expected `creator_voice_consents` to end with one select policy and
+it ends with two (a later migration adds `creator_voice_consents_select_member`), and
+it found a **false entry already in the register**. `user_roles` was recorded as
+service-role only -- "who may read the privilege table is a decision" -- but
+`"users can read own roles"`, `for select to authenticated using (user_id =
+auth.uid())`, has existed since 20260714120000. A person can read their own roles,
+which is normal and safe. The text search missed it because the statement spans five
+lines. The entry is removed; `user_roles` has no `organization_id`, so the check skips
+it by its own rule anyway.
+
+**The twenty-three that are genuinely unreadable by a member**: nineteen are in
+`verify-migration-replay`'s closed set -- RLS on and no policy at all -- which that
+script asserts against a real PostgreSQL on every release. The check now reads that
+set from there rather than copying nineteen reasons by hand, nineteen chances to write
+one wrong. The other four have only a service-role policy (`creator_assets`,
+`creator_artist_profiles`, `merchant_products`, `merchant_product_variants`) and get an
+entry each, naming the policy.
+
+A two-sided check replaces one I first wrote wrong. My first draft refused any entry
+also in the closed set as "one reason in two places", and it would have deleted
+`business_payment_accounts`' reason -- where the business's money settles -- which says
+*why* a table is closed where the replay only records *that* it is. Removed rather
+than given an exception list. What replaced it is the check that means something: an
+entry claiming service-role only for a table a member can in fact read fails, which is
+how the `user_roles` entry was found.
+
+| break | result |
+|---|---|
+| the constant pattern removed | red, *the constant-named reads have dropped out of view again* |
+| the simulator stops reading loops | 2 red, the loop fixture and three tables reported unreadable |
+| the simulator stops honouring drops | red, *a policy the migrations dropped is still counted* |
+| the false `user_roles` entry restored | red, *recorded as service-role only, and a member can read them* |
+| the closed set cannot be read from the replay | red, *this check has gone blind* |
+
+
+
 
 ### 2026-10-03 - Three CodeQL alerts on the multipart parser, measured before fixed
 
@@ -2106,103 +2174,3 @@ The first of those is worth a note: freeing everything leaves the
 "answers a locked tool" case green, because an empty locked set iterates zero
 times. It is caught by the population guard beside it, which is why that guard
 is there.
-
-
-### 2026-10-01 - A comment should not change what a report measures
-
-Found while adding a JSDoc block to `server.js` for an unrelated feature: the
-block moved `data/capability-inventory.json` from 50 recorded UI form links to
-42. A comment, changing what a release-chain report measures.
-
-Two bugs in `lib/sonara-comment-stripping.cjs`, then a third in the generator
-that the first two had been masking.
-
-### A `/*` inside a string opened a comment
-
-`server.js` sets a Content-Security-Policy containing
-`connect-src 'self' https://*.supabase.co`. That is `/` and `*` adjacent, inside
-a double-quoted string. The single regex has no idea where strings are, so its
-block branch read them as an opener and swallowed everything to the next `*/`
-anywhere in the file -- measured, the two lines after that header, `next();` and
-its closing `});`, vanished from every report that strips `server.js`.
-
-The `[^:]` guard in that regex was written for the `https://` half of exactly
-this hazard. It is no help: the guard is on the line branch and the damage came
-from the block branch, one character later.
-
-### Collapsing a comment renumbered the file
-
-The replacement was a single space, so a multi-line comment made the stripped
-text shorter than the file and moved every line after it up. Harmless for a
-consumer that asks what the text contains; wrong for one that takes a line
-number from the real file and indexes into the stripped text -- and
-`sourceBlockForRoute` in `scripts/generate-capability-inventory.cjs` does exactly
-that, with a line number out of a V8 stack trace.
-
-`withoutComments` is now a left-to-right scanner that copies string and template
-literals through untouched, follows `${ ... }` back into code, treats a
-backslash pair opaquely so `/https?:\/\//g` is not read as a line comment, and
-emits one newline for every newline it consumes. `withoutSqlComments` and
-`withoutCssComments` preserve newlines too; the note on the CSS one saying a
-line-reporting caller "cannot use this" is now wrong and is corrected rather
-than deleted, because it described the JavaScript stripper just as accurately
-and nobody had written that down.
-
-Measured across **831 JavaScript files**: zero line drift, zero lines of code
-swallowed, asserted in the test rather than claimed here.
-
-One limit stated rather than implied: this is a scanner, not a parser, so a regex
-literal holding an unescaped `/*` -- `/[/*]/` -- would still be read as an
-opener. A first attempt to assert no file contains one failed, on this module,
-matching the example inside the comment that documents the limit. Pattern
-matching prose as code, in the file about not doing that. Replaced with a case
-that exercises the limit directly, where it cannot false-positive.
-
-### The third bug, which the first two were hiding
-
-With strings no longer swallowed, three form links swapped rather than three
-appearing: the billing checkout, the billing portal and the employee invite
-dropped out. Not a stripper problem -- `localFunctionsFor` finds
-`billingPanel` and its body does contain the form.
-
-`formActionsForPage` has a budget of resolved function bodies per page, and it
-was **40**. The walk now sees more resolvable names, so it spent its forty on
-other branches first. Raising it to 120 brings all three back and takes the
-total to 53; at 400 it is still 53, and the generator takes the same twenty
-seconds at 40 as at 400. So the old number was never a performance decision.
-
-With the budget put back to 40 and the new reporting in place, the walk runs out
-on **41 of the 286 declared pages**. The figure read as a census of the
-application's forms while being an incomplete one, and which forms were missing
-depended on which names the scanner resolved first -- so it moved on edits that
-had nothing to do with forms.
-
-The bound stays, because an unbounded walk over a call graph is slow on a bad
-day. What changed is that binding it is visible:
-`pagesTruncatedByFormWalkBudget` is in the summary and
-`tests/the-form-walk-says-when-it-gave-up.test.js` fails if it is not empty, if
-the budget drops below the measured threshold, or -- the shape that would pass
-every other assertion -- if the walk finds almost no forms at all.
-
-### Verified
-
-`verify:gates`, 5,220 tests, lint, typecheck, build, `smoke:routes`,
-`verify:db`, `test:docs`, `scan:client-secrets`. Seven breaks, each watched fail
-by name:
-
-| Broken                                           | Test that went red                                        |
-| ------------------------------------------------ | --------------------------------------------------------- |
-| Restored the single regex                         | 5 cases including renumbers none of them                  |
-| Stopped emitting newlines for a block comment     | keeps the line count unchanged, +2                        |
-| Stopped copying strings through                   | does not treat the slashes in an https URL as a comment, +3 |
-| Dropped the backslash-pair rule                   | does not read a regular expression's escaped slashes as a comment |
-| Stopped following template interpolations         | removes a comment that is inside a template interpolation, +1 |
-| Put the form-walk budget back to 40               | truncated no page, +2                                     |
-| Stopped recording truncation at all               | records the budget it ran under, +1                        |
-
-The fifth of those was caught only after the first version of its test passed
-without the branch: copying a template verbatim keeps the code inside `${ }`
-too, so the case had to be rewritten to assert what the branch is actually for
--- that a comment inside an interpolation is removed.
-
-Files restored by copy-aside and `md5sum -c` throughout.
