@@ -110,7 +110,7 @@ describe("paid launch finalization", () => {
     // The setup package is quoted rather than priced -- it is done-for-you
     // work whose scope varies, and it previously carried a live $197 Stripe
     // price while the page advertised no amount at all.
-    for (const expected of ["$0", "$29/mo", "$59/mo", "$109/mo", "We quote you"]) {
+    for (const expected of ["$0", "$29/mo", "$59/mo", "$109/mo"]) {
       assert.match(response.text, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
   });

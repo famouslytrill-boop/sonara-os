@@ -59,12 +59,12 @@ describe("quoted work is not sold through checkout", () => {
       .post("/api/checkout/session")
       .set("accept", "application/json")
       .send({ plan: QUOTED });
-    assert.equal(json.status, 400);
-    assert.equal(json.body.code, "quoted_plan");
+    assert.equal(json.status, 410);
+    assert.equal(json.body.code, "retired_plan");
     assert.doesNotMatch(JSON.stringify(json.body), /price_|sk_/, "no Stripe identifier may appear in the refusal");
   });
 
-  it("sends a browser somewhere it can actually ask", async () => {
+  it("sends a browser to current subscription choices", async () => {
     // Refusing with a code is correct for an API client and useless to a person
     // who just clicked a button.
     const form = await request(app)
@@ -73,13 +73,13 @@ describe("quoted work is not sold through checkout", () => {
       .type("form")
       .send("plan=business_builder_one_time");
     assert.equal(form.status, 303);
-    assert.match(form.headers.location, /^\/contact/);
+    assert.equal(form.headers.location, "/pricing");
   });
 
-  it("offers a quote on the pricing page, not a charge", async () => {
+  it("removes quoted work from the pricing page", async () => {
     const response = await request(app).get("/pricing").set("accept", "text/html");
     assert.equal(response.status, 200);
-    assert.match(response.text, /Ask for a quote/);
+    assert.doesNotMatch(response.text, /Ask for a quote|We quote you|Business Builder setup/);
     assert.doesNotMatch(
       response.text,
       new RegExp(`value="${QUOTED}"`),

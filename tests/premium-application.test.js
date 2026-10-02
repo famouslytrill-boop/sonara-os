@@ -137,15 +137,13 @@ describe("premium application rebuild", () => {
   });
 
   describe("service catalog v2 and lifecycle", () => {
-    it("catalog items carry inputs, turnaround, deliverable type, and access tier", async function() {
+    it("catalog offers working tools and subscriptions without quoted services", async function() {
       const res = await request(app).get("/service-catalog").set("Accept", "text/html");
       assert.equal(res.status, 200);
-      assert.match(res.text, /Launch Offer, Built For You/);
-      assert.match(res.text, /Safe Outreach Checklist/);
-      assert.match(res.text, /What we need from you:/);
-      assert.match(res.text, /Turnaround:/);
+      assert.match(res.text, /Open workspace|Open tool/);
+      assert.match(res.text, /Included/);
       assert.match(res.text, /You receive:/);
-      assert.match(res.text, /Access: (Free tool|Paid service)/);
+      assert.doesNotMatch(res.text, /Launch Offer, Built For You|We quote you|Request this service/);
     });
 
     it("requests page shows the canonical ten-state lifecycle", async function() {

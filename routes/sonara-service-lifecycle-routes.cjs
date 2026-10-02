@@ -41,19 +41,9 @@ const SERVICE_LIFECYCLE_STATUSES = [
 const SERVICE_REQUEST_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 const DELIVERABLE_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 
-const LEGACY_DEFAULT_SERVICE_CATALOG = [
-  { slug: "launch-offer-builder", productKey: "business_builder", name: "Launch Offer, Built For You", summary: "We write your launch offer for you: how you are positioned, what is in the package, and what to charge, all from your real numbers.", tier: "paid", inputs: "Service type, audience, price idea, proof points", turnaround: "3-5 business days", deliverableType: "A written offer, saved into your workspace", priceNote: "We quote you after we have read your brief." },
-  { slug: "customer-intake-setup", productKey: "business_builder", name: "Customer Enquiry Setup", summary: "A working way for customers to reach you: the enquiry form, saved records, a confirmation email, and a list for you to work through.", tier: "paid", inputs: "Business profile, services offered, contact address", turnaround: "3-5 business days", deliverableType: "A working enquiry form, set up for you", priceNote: "Your records need to be set up first." },
-  { slug: "payment-readiness-review", productKey: "business_builder", name: "Payment Setup Review", summary: "We check your whole payment path end to end, from checkout to the confirmation coming back, and hand you a list of what to fix.", tier: "paid", inputs: "Stripe account state, plan structure", turnaround: "2-3 business days", deliverableType: "A written review with a fix list", priceNote: "We quote you after we have read your brief." },
-  { slug: "creator-offer-builder", productKey: "creator_studio", name: "Creator Offer, Built For You", summary: "Your creator offer: what is in it, what to charge, and how to describe it without overclaiming rights you do not have.", tier: "paid", inputs: "Offer type, audience, deliverables, price idea", turnaround: "3-5 business days", deliverableType: "A written offer, saved into your catalog", priceNote: "We quote you after we have read your brief." },
-  { slug: "release-readiness-checklist", productKey: "creator_studio", name: "Release Checklist", summary: "A checklist for your specific release, with dates, what each platform needs, and what is still outstanding.", tier: "free", inputs: "Release title, type, date, platforms", turnaround: "Immediate output; review in 2 days", deliverableType: "A release checklist you can tick off", priceNote: "Free to use. Having our team review it is paid." },
-  { slug: "music-system-blueprint", productKey: "creator_studio", name: "Song Plan", summary: "A plan for the song: how it is structured, production notes, ideas to work from, and what to check before you call it finished.", tier: "free", inputs: "Working title, genre, mood, references", turnaround: "Immediate output; setup in 3 days", deliverableType: "A song plan, saved to your workspace", priceNote: "Free to use. Having us set the rest up is paid." },
-  { slug: "campaign-setup", productKey: "growth_studio", name: "Campaign Setup", summary: "A campaign you are allowed to send, with the plan, the angles to try, the follow-up wording, and a sheet to track how it goes.", tier: "paid", inputs: "Goal, audience, offer, channel, timeline, consent posture", turnaround: "3-5 business days", deliverableType: "A complete campaign, ready to run", priceNote: "We quote you after we have read your brief." },
-  { slug: "lead-followup-plan", productKey: "growth_studio", name: "Lead Follow-Up Plan", summary: "A three-step follow-up you can repeat, with clear rules about who you are allowed to contact, and a record of every lead.", tier: "paid", inputs: "Lead list state, service, consent status", turnaround: "2-4 business days", deliverableType: "Follow-up wording plus your lead list", priceNote: "Your records need to be set up first." },
-  { slug: "consent-safe-outreach-checklist", productKey: "growth_studio", name: "Safe Outreach Checklist", summary: "Your outreach checked against the rules: do you have permission, is the sender honest, and can people opt out easily.", tier: "free", inputs: "Audience source, message drafts", turnaround: "Immediate output; review in 2 days", deliverableType: "A checked-over outreach list", priceNote: "Free to use. Having our team review it is paid." }
-];
-
-const DEFAULT_SERVICE_CATALOG = [...getRecommendedProductCatalog(), ...LEGACY_DEFAULT_SERVICE_CATALOG];
+// Subscription workspaces are self-serve. Historical operator requests remain
+// readable, but quoted services are no longer sold in the public catalog.
+const DEFAULT_SERVICE_CATALOG = getRecommendedProductCatalog();
 
 // Why a catalog entry is or is not open to this customer. Both the card body
 // and the card buttons used to work this out separately from the same four
@@ -74,7 +64,7 @@ function catalogAccessReason(item) {
 // on this wording went vacuous. It is a pure function of the reason, so it can
 // live here and be asked directly.
 function isSelfServeCatalogItem(item) {
-  return item?.productType === "software_product" || Boolean(item?.serviceKey && item?.planFloor);
+  return item?.productType === "software_product" || (!item?.productType && Boolean(item?.serviceKey && item?.planFloor));
 }
 
 function catalogRequestLabel(reason, item = null) {
@@ -159,7 +149,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     if (selfServe && reason === "awaiting_paid_access") {
       actions.push(linkAction("/pricing", catalogRequestLabel(reason, item)));
     } else {
-      actions.push(linkAction("/requests", catalogRequestLabel(reason, item)));
+      actions.push(linkAction("/readiness", "View availability"));
     }
 
     if (!selfServe && canOpen) {
@@ -1057,23 +1047,20 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         title: "Start",
         eyebrow: "Get started",
         heading: "Start with SONARA",
-        body: "Use the tools yourself for free, and request done-for-you help whenever you want a hand. Here is the path from account to first result.",
+        body: "Try the public tools without an account. Subscribe to open your chosen workspace, save your work, and use its included tools.",
         sections: [
           checklistCard("Your path", [
-            "Create a free account",
-            "Pick a product workspace",
-            "Create or attach your organization",
-            "Use the free tools",
-            "Request services from the catalog",
-            "Upgrade when paid records are needed"
+            "Try the public tools without signup",
+            "Choose Business Builder, Creator Studio, or Growth Studio",
+            "Subscribe and sign in",
+            "Open your workspace and use its tools"
           ]),
-          actionCard("1. Create your account", "Free accounts unlock the free planning tools in every product workspace.", [linkAction("/signup", "Create account"), linkAction("/login", "Login")]),
-          actionCard("2. Pick a product", "Business Builder for service businesses, Creator Studio for creators, Growth Studio for campaigns.", [linkAction("/business-builder/start", "Business Builder"), linkAction("/creator-studio/start", "Creator Studio"), linkAction("/growth-studio/start", "Growth Studio")]),
-          actionCard("3. Set up your workspace", "Create or attach your organization so your records have a home as you work.", [linkAction("/account/setup", "Account setup")]),
-          actionCard("4. Request services", "Browse the service catalog and submit a request. Every accepted request gets a reference ID and status tracking.", [linkAction("/service-catalog", "Service catalog"), linkAction("/requests", "My requests")]),
-          actionCard("5. Track everything", "Requests, deliverables, billing, and support all have their own tracking pages.", [linkAction("/deliverables", "Deliverables"), linkAction("/support", "Support"), linkAction("/pricing", "Pricing")])
+          actionCard("1. Try a free tool", "Get results immediately without creating an account.", [linkAction("/tools", "Parent tools"), linkAction("/business-builder/tools", "Business tools"), linkAction("/creator-studio/tools", "Creator tools"), linkAction("/growth-studio/tools", "Growth tools")]),
+          actionCard("2. Choose your workspace", "Build and run a business, create media, or connect with customers.", [linkAction("/business-builder", "Business Builder"), linkAction("/creator-studio", "Creator Studio"), linkAction("/growth-studio", "Growth Studio")]),
+          actionCard("3. Subscribe and use", "Your plan opens its included workspace tools for your subscription period. Provider limits and configured service availability still apply.", [linkAction("/pricing", "Choose a subscription"), linkAction("/login", "Sign in")]),
+          actionCard("4. Keep working", "Open your workspace to manage records, projects, settings, and exports. Support is available when you need it.", [linkAction("/dashboard", "Your workspaces"), linkAction("/account/profile", "Your profile"), linkAction("/support", "Support")])
         ],
-        actions: [linkAction("/signup", "Start Free"), linkAction("/service-catalog", "Service catalog"), linkAction("/dashboard", "Dashboard")]
+        actions: [linkAction("/tools", "Try free tools"), linkAction("/pricing", "Choose a subscription"), linkAction("/dashboard", "Your workspaces")]
       })
     );
   });
@@ -1100,7 +1087,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             entitlementIntegrationVerified: row.entitlement_integration_verified === true,
             executionEnabled: row.execution_enabled === true,
             deliverableType: row.product_type === "software_product" ? "A tool you use yourself, with clear steps built in" : "Work our team does for you",
-            priceNote: row.price_note || "Scoped after intake review.",
+            priceNote: row.price_note || "Included with the listed subscription.",
             sortOrder: Number(row.sort_order || 100)
           };
         })
@@ -1109,7 +1096,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     for (const item of DEFAULT_SERVICE_CATALOG) {
       mergedCatalog.set(`${item.productKey}:${String(item.serviceKey || item.name).toLowerCase()}`, item);
     }
-    for (const item of databaseItems) {
+    for (const item of databaseItems.filter(isSelfServeCatalogItem)) {
       const key = `${item.productKey}:${String(item.serviceKey || item.name).toLowerCase()}`;
       mergedCatalog.set(key, { ...(mergedCatalog.get(key) || {}), ...item });
     }
@@ -1119,7 +1106,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       sections.push(
         rows.ok
           ? brandCard("What you are seeing", "This is the standard SONARA catalog. Nothing custom has been published for your account yet.")
-          : brandCard("What you are seeing", "This is the standard SONARA catalog — your account's own catalog isn't connected yet. You can still send a request, and you will get a reference number back either way.")
+          : brandCard("What you are seeing", "This is the standard SONARA catalog. Account-specific availability could not be loaded; open your workspace to check access.")
       );
     }
     res.status(200).type("html").send(
@@ -1128,9 +1115,9 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         title: "Product and service catalog",
         eyebrow: "Software-in-a-Service",
         heading: "Product and service catalog",
-        body: "Everything SONARA offers across Business Builder, Creator Studio, and Growth Studio — the things you can use yourself, and the work our team can do for you. Each card says plainly whether it is ready to use today, needs a little setup first, or is still on the way.",
+        body: "Self-serve tools and subscription workspaces across Business Builder, Creator Studio, and Growth Studio. No service quote or intake request is required to use included tools. Each entry shows its current availability.",
         sections,
-        actions: [linkAction("/requests", "My requests"), linkAction("/start", "How it works"), linkAction("/pricing", "Pricing"), linkAction("/contact", "Contact")]
+        actions: [linkAction("/dashboard", "Your workspaces"), linkAction("/start", "How it works"), linkAction("/pricing", "Pricing"), linkAction("/support", "Support")]
       })
     );
   });
@@ -1751,9 +1738,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
               entitlementIntegrationVerified: row.entitlement_integration_verified === true,
               executionEnabled: row.execution_enabled === true,
               deliverableType: row.product_type === "software_product" ? "A tool you use yourself, with clear steps built in" : "Work our team does for you",
-              priceNote: row.price_note || "Scoped after intake review.",
+              priceNote: row.price_note || "Included with the listed subscription.",
               sortOrder: Number(row.sort_order || 100)
             };
+            if (!isSelfServeCatalogItem(item)) continue;
             const key = String(item.serviceKey || item.name).toLowerCase();
             productCatalogItems.set(key, { ...(productCatalogItems.get(key) || {}), ...item });
           }
@@ -1770,7 +1758,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             heading: `${product.name} catalog`,
             body: `Everything ${product.name} offers. Each card says whether it is ready to use today, needs setup first, or is still on the way.`, 
             sections,
-            actions: [linkAction("/service-catalog", "Full catalog"), linkAction("/requests", "My requests"), linkAction(`/${product.slug}`, product.name)]
+            actions: [linkAction("/service-catalog", "Full catalog"), linkAction(`/${product.slug}/dashboard`, "Your workspace"), linkAction(`/${product.slug}`, product.name)]
           })
         );
       });

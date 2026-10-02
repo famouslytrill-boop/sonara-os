@@ -114,12 +114,12 @@ function pathLiterals(source) {
 // So loadedness is a fact about a response, not about a file. Matching text
 // found a tag that does not exist at runtime, exactly as matching the route
 // table once reported nine static assets as dead links that all answer 200.
-async function loadedClientFiles(pages) {
+async function loadedClientFiles(pages, target = app) {
   const loaded = new Set();
   for (const page of pages) {
     let res;
     try {
-      res = await request(app).get(page).set("Accept", "text/html");
+      res = await request(target).get(page).set("Accept", "text/html");
     } catch {
       continue;
     }
@@ -149,6 +149,22 @@ describe("every path a button calls through JavaScript exists", () => {
   before(async function () {
     this.timeout(180000);
     loaded = await loadedClientFiles(crawlablePages(routes));
+    // The project renderer exists only on a signed-in, parameterized page
+    // with real timeline entries. Exercise the shipped route registrar with
+    // injected storage rather than classifying its bundle as dead because
+    // the anonymous empty-state crawl deliberately cannot reach it.
+    const fixture = require("express")();
+    const id = "00000000-0000-4000-8000-000000000001";
+    const project = { id, title: "Recording", revision: 1, medium: "audio", graph: { version: 1, nodes: [
+      { id, kind: "source", assetId: id, durationMs: 1000 },
+      { id: "00000000-0000-4000-8000-000000000002", kind: "clip", sourceId: id, inMs: 0, outMs: 1000, startMs: 0, muted: false }
+    ] } };
+    require("../routes/sonara-creator-project-routes.cjs")(fixture, {
+      projectStore: { get: async () => ({ ok: true, project }), assets: async () => ({ ok: true, rows: [] }) },
+      requirePaidOrOwnerAccess: () => (_req, _res, next) => next(),
+      layout: ({ sections }) => sections.join(""), brandCard: () => "", linkAction: () => "", escapeHtml: (text) => String(text).replace(/"/g, "&quot;")
+    });
+    for (const bundle of await loadedClientFiles([`/creator-studio/projects/${id}`], fixture)) loaded.add(bundle);
   });
 
   it("reads the bundles and the route table, so it is not passing on nothing", () => {

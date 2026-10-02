@@ -123,7 +123,7 @@ describe("member read policies cover what the application actually reads", () =>
       const definition = new RegExp(`create table if not exists public\\.${table}\\s*\\(([\\s\\S]*?)\\n\\);`).exec(sql);
       if (!definition || !/organization_id/.test(definition[1])) continue;
       const readable = new RegExp(
-        `create policy "[^"]*" on public\\.${table} for select to authenticated`
+        `create policy (?:"[^"]*"|[a-z_][a-z0-9_]*) on public\\.${table} for select to authenticated`
       ).test(sql);
       if (!readable) missing.push(table);
     }

@@ -188,14 +188,37 @@ describe("software-in-a-service platform upgrade", () => {
       try {
         const res = await request(app).get("/service-catalog").set("Accept", "text/html");
         assert.equal(res.status, 200);
-        assert.match(res.text, /Request this service/);
+        assert.doesNotMatch(res.text, /Request this service|Scoped after intake/);
         // The customer is told the catalog is the standard one, without being
         // shown the name of the table that failed to load.
-        assert.match(res.text, /account&#39;s own catalog isn&#39;t connected yet/);
+        assert.match(res.text, /Account-specific availability could not be loaded/);
         assert.doesNotMatch(res.text, /service_catalog_items/);
       } finally {
         restoreEnv(snapshot);
       }
+    });
+
+    it("persisted operator offers cannot reintroduce quotes into any public software catalog", async function() {
+      const snapshot = snapshotEnv([...SUPABASE_KEYS, "NODE_ENV"]), previous = global.fetch;
+      setSupabaseEnv();
+      // The general runtime intentionally bypasses database catalog reads in
+      // test mode. This case must exercise the real read and merge path.
+      process.env.NODE_ENV = "development";
+      global.fetch = customerFetchMock({ "/rest/v1/service_catalog_items": () => ({ ok: true, json: async () => [
+        { service_key: "old_operator_offer", product_key: "business_builder", product_type: "managed_service", plan_floor: "starter", name: "Legacy quoted operator offer", price_note: "We quote you after intake", status: "active" },
+        { service_key: "test_self_serve", product_key: "business_builder", product_type: "software_product", name: "Included working tool", plan_floor: "starter", lifecycle_status: "active", route_path: "/business-builder/dashboard", entitlement_integration_verified: true, execution_enabled: true }
+      ] }) });
+      try {
+        for (const route of ["/service-catalog", "/business-builder/catalog", "/growth-studio/catalog"]) {
+          const result = await request(app).get(route).set("Accept", "text/html");
+          assert.equal(result.status, 200);
+          assert.match(result.text, /Included working tool/);
+          assert.doesNotMatch(result.text, /Legacy quoted operator offer|We quote you after intake/);
+        }
+        const start = await request(app).get("/start");
+        assert.match(start.text, /without an account/);
+        assert.doesNotMatch(start.text, /Request services|done-for-you/);
+      } finally { global.fetch = previous; restoreEnv(snapshot); }
     });
 
     it("product tools directories list the free tools", async function() {

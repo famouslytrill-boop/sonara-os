@@ -257,7 +257,12 @@ describe("a signed-in customer opening every workspace", () => {
     try {
       const stillLocked = [];
       for (const page of gated) {
-        const res = await asCustomer(page);
+        let res = await asCustomer(page);
+        // Generation aliases keep their real redirect after paid access opens.
+        if (res.status === 302 && /^\/creator-studio\/generation\/(voice|music|audio|video|reference-analysis)$/.test(page)
+            && String(res.headers.location).startsWith("/creator-studio/generation?capability=")) {
+          res = await asCustomer(res.headers.location);
+        }
         if (res.status !== 200) stillLocked.push(`${res.status}  ${page}`);
       }
       assert.deepEqual(stillLocked, [], `these pages stay locked for a customer holding the entitlement they ask for:\n  ${stillLocked.join("\n  ")}`);
