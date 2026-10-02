@@ -339,7 +339,16 @@ describe("signed-in workspaces speak plainly", () => {
   // shows about not taking payment and the reason it gives for each thing that is
   // not on sale. The public half, /store/:slug, is parameterised and was never in
   // this crawl; the same file asserts its wording.
-  const SIGNED_IN_SKIPPED = 113;
+  // 113 -> 114 on 3 October 2026: /account/profile/picture answers 503 to the
+  // crawl, which signs in with no connected database. The route reads the profile
+  // row to find the stored path and refuses rather than redirecting when it cannot
+  // -- a redirect to the profile would be indistinguishable from "you have no
+  // picture", which is a definite statement about somebody's own data made on the
+  // strength of a request that did not happen. Its copy is read instead by
+  // tests/a-profile-a-person-can-actually-set.test.js, which drives both branches
+  // with the read stubbed. /account/profile and /account/permissions are in this
+  // crawl and their copy is read here.
+  const SIGNED_IN_SKIPPED = 114;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

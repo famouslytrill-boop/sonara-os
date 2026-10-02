@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3052 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3055 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 146 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 147 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 423 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 425 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,157 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 23 most recent entries of 428 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 23 most recent entries of 429 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-03 - A bucket that existed without a feature, and a permission with two states
+
+The owner's brief asks for profiles with pictures and settings, and for camera,
+microphone and contacts permissions. The first thing to establish was what was
+already here, and the first answer was wrong.
+
+**A false finding of my own, corrected before it went anywhere.** I grepped for
+served profile routes with `grep -hoE 'app\.(get|post)\("/[^"]*(profile|account)[^"]*"'
+| sed 's/.*"//'`, and `sed` stripped to the *last* quote on each line, leaving empty
+output. I read that as "no profile route exists". `/account/profile`,
+`/account/preferences`, `/account/settings`, `/settings` and `/account/data` all
+exist and have for months. The lesson is the ordinary one and worth writing down
+anyway: an empty grep result and a grep that produced empty strings look identical,
+and the pipeline was mine.
+
+**What is actually true is narrower and more interesting.**
+
+`/account/profile` was served, signed in, and had **no form on it**. It printed the
+account's email beside a card reading *"This feature works, but saving needs your
+records connected by an administrator first."* `public.profiles.full_name` has
+existed since migration 011 and **no route in this repository has ever written it**
+-- the `full_name` hits in `routes/` are all `business_employees`, a different table
+about a different person. The sentence read as "come back later" on a page where
+nothing was coming.
+
+And the storage side, which is this repository's recurring defect in its most
+convincing form:
+
+- `lib/sonara-ecosystem-manifest.cjs` declares an `avatars` bucket.
+- `20260716130000_launch_storage_buckets.sql` creates it, private.
+- `scripts/verify-production-schema.mjs` asserts it is present, and passes.
+- **Nothing had ever written a byte to it.**
+
+The gate was not broken and its statement was not false. *"The avatars bucket
+exists"* was true every release. It simply was not evidence for the thing a reader
+takes it as evidence for, and there was no check for the other half. That is the
+whole shape: not a lie, a true statement standing where a different one is needed.
+
+`scripts/verify-declared-buckets.mjs` is the other half, and writing it found four
+more: `business-assets`, `support-attachments`, `release-packages` and `exports` are
+all declared, all provisioned, and written by nothing. Each is now recorded with a
+reason I opened a file to confirm rather than one I reasoned to -- `business_assets`
+has no `storage_path`, `object_path` or `bucket_id` column; there is no attachment
+table at all; `creator_release_packages` is a plan (tracklist, checklist, status) with
+nowhere to record an archive; and every export here sets `Content-Disposition` and
+streams, so there is nothing to store.
+
+**My first draft of that gate had three guessed reasons and one was flatly wrong.**
+It said `music-stems` was written by an edge worker. `routes/creator-generation-routes.cjs`
+writes it from this process, picking between `music-stems` and `creator-assets` with a
+ternary and POSTing to `/storage/v1/object/` directly. The detector only knew the
+`bucket:` option shape, so it reported the bucket unwritten, my wrong reason matched,
+and the check passed. The two-sided design caught it the moment the detector widened --
+an entry claiming no writer for a bucket that has one now fails by name.
+
+**And then the gate failed its own falsification.** Deleting `{ bucket: AVATAR_BUCKET }`
+from the upload -- the original bug, reintroduced exactly -- left it green. It was
+asking two questions separately: does this file name the bucket, and does this file
+upload anything. A file naming the bucket in an unused constant answers yes to both.
+It now traces the name to the call, through the variable it was assigned to, so the
+ternary case works and the disconnected case fails.
+
+### Permissions: three states, and why not a boolean
+
+`public.device_capability_profiles` (migration 015) holds `supports_audio boolean
+default false` and five more of that shape, and nothing has ever read or written it
+from a route -- lucky, because the shape cannot express what it is about:
+
+    the person said no   ->  false
+    nobody ever asked    ->  false
+
+Different facts, opposite behaviour. "Never asked" is a prompt to show once; "said
+no" is a prompt never to show again, and showing it again is what makes somebody
+uninstall an application. It also has no camera, microphone or contacts column --
+three the owner named.
+
+`device_permission_grants` makes a decision a **row**, constrained to `granted` or
+`denied`, with **no default**. No row means nobody has been asked. That is the one
+encoding of three states that cannot decay into two when somebody later adds a
+column with a default, because there is no column and no default to add to. The
+table carries no `organization_id`: a person's microphone is not their employer's to
+decide, and the read policy is `user_id = auth.uid()` with no update or delete, so a
+change of mind is a new row and the history of consent survives.
+
+`mayAsk` is the deliberate name. A granted row means this person wants the feature;
+the browser still runs its own prompt. Anything called `mayUse` would be claiming
+something this cannot know.
+
+**A gate caught a real production bug.** `device_permission_grants` had no
+`service_role` grant, so after the July Data API hardening the server could not have
+read it at all -- every permission would have read as `not_recorded`, which is the
+absent-read-as-a-value defect arriving through the grant table instead of the column.
+`tests/a-table-created-after-the-data-api-hardening-declares-its-surface.test.js`
+named it.
+
+**A 404 on your own account page.** `/account/profile/picture` first answered 404 when
+you had no picture. Correct about the resource, a dead end for the person, and it made
+this the one route in the signed-in crawl that did not resolve. It redirects to the
+profile now, where the page says there is no picture yet and offers the form -- while
+an *unreadable* profile still answers 503 saying "this is not the same as having no
+picture", because a redirect there would be a definite statement about somebody's data
+on the strength of a request that did not happen.
+
+A profile picture is also stored against the person, not a workspace:
+`lib/sonara-file-storage.cjs` grew `personalPathFor` and an `ownerPrefix` that refuses
+a call naming both an organization and a user. Filing a face under an organization's
+folder would mean somebody leaving a workspace either takes it with them or loses it.
+Both ids are uuids, so the `person/` segment is what stops one addressing the other's
+folder.
+
+The avatar check delegates to `multipart.sniff` rather than the signature table I
+first wrote, which missed `GIF87a` and had no minimum-length guard. GIF87a is in the
+accepted set, so reintroducing a private table fails two assertions at once.
+
+### Falsified, not assumed
+
+Each failing by name, restored by copy-aside and `md5sum -c`.
+
+| break | result |
+|---|---|
+| a profile column becomes `not null default ''` | replay red: *profiles gained a non-nullable profile column (3 of 4 nullable)* |
+| `state` gets a default | replay red: *has default 'granted'::text. A grant with a default is a decision nobody made* |
+| an `organization_id` appears on the grants table | replay red: *a person's microphone is not their employer's to decide* |
+| the check admits `not_recorded` | replay red: *two encodings of the same fact and a reader that has to guess* |
+| the state check is removed | replay red: *no state check constraint, so state accepts anything* |
+| `not_recorded` collapses into `denied` | 5 red |
+| an unreadable read reported as never asked | 2 red |
+| a missing form field read as a no | 1 red |
+| the avatar check trusts the declared content type | 4 red |
+| an emptied box keeps the old value | 1 red |
+| a failed read draws the empty form | 1 red, *draws no empty form over a profile it could not read* |
+| a private signature table comes back | 2 red, including the GIF87a case |
+| the avatar writer disconnected from its bucket | **green first time** -- the gate was rewritten, then 1 red |
+| the creator bucket stops reaching its upload | 2 red, naming both buckets |
+| a new bucket declared with no writer | 1 red |
+| the manifest stops declaring buckets | 1 red, *this check cannot see it* |
+| the manifest trimmed to two buckets | 1 red, *this check has gone blind* |
+| an expired reason (a bucket recorded unwritten that has a writer) | 1 red, naming the file that writes it |
+
+`pnpm test` 5747 passing. `verify:gates` 0 across 62 commands, `verify:db` 0,
+`verify:migration-replay` 147 migrations, lint, typecheck, build, smoke:routes and
+`audit --audit-level moderate` 0 -- every exit code read from its own file.
+
+
+
 
 ### 2026-10-02 - Two branches built the same two features, and one filename held both
 
@@ -2043,139 +2189,3 @@ rather than exempted. `plain-language` recorded one more skipped route.
 
 Verified: typecheck, lint, **5202 tests**, `verify:gates`, `build`, migration
 replay, and the derived artefacts regenerated.
-
-
-
-### 2026-10-01 - The operator console is gone, and it was holding a door open
-
-The owner asked for the administration part of the application to be removed and
-for business owners to get basic controls over their own sub-applications and
-operations instead. Both are done.
-
-**Removed: 58 registered routes** -- 43 pages under `/admin` and 15 JSON
-endpoints under `/api/admin` -- the admin login, the admin session cookie, the
-rate limiter in front of it, `requireAdmin`, `verifyAdminRequest`,
-`isSupabaseAdminUser`, the page frame's admin navigation and login form, and five
-route modules left with no routes at all. Every former path answers 404, and
-`tests/the-operator-console-is-gone-and-so-is-its-bypass.test.js` keeps it so.
-
-**Added: `/owner/administration`.** Organization-scoped controls where an owner
-sees which parts of their business are running and pauses or restarts one.
-`business_sub_app_modules` existed since migration 20260530120000 and **had no
-reader at all** -- registered in two libraries and never queried -- which is the
-"table with no way in" the record-page skill opens with. This is the way in.
-
-### The part that was not a deletion
-
-`verifyAdminRequest` did not only guard those pages. `resolveWorkspaceAccess`
-called it **first**, ahead of resolving any customer session, and on success
-returned `ownerOverride: true` for whichever organization was being addressed.
-`requireBusinessManager` did the same and additionally set
-`req.sonaraBusinessMembership = {}` -- a membership record nobody is a member of.
-A staff cookie was therefore an owner of every business on the platform, and the
-cookies it accepted included the ordinary customer one.
-
-That is defensible for an operator console. With the console gone the door had
-nothing behind it, so both branches are gone and membership is required with no
-exception.
-
-### Three findings the removal surfaced, none of which it caused
-
-**An unauthenticated write endpoint to 38 tables.**
-`routes/sonara-subsystem-routes.cjs` read its gate as a dependency with a
-fallback that called `next()`, and `server.js` never passed one. Measured by
-restoring the fallback and probing: a signed-out `GET /research-lab/subsystems`
-answered **200**, and a signed-out POST to the write endpoint answered 303 with
-`problem=missing_required` -- the body check, not a refusal. Its own comment
-said the table allow-list was all that stood between a path parameter and "a way
-to write to any table in the database"; that was true, and the allow-list was
-the only check there was. `lib/sonara-route-surface.cjs` recorded that these
-pages "redirect a signed-out visitor to /admin/login", **measured 16 September**.
-They did not. The module now fails closed on a missing gate, `server.js` passes
-`requireCustomer`, and re-probing gives 303 to `/login` for both.
-
-**Then those pages leaked across tenants.** Fixing the gate made them reachable
-by a signed-in customer for the first time, and `cross-tenant-isolation` reported
-**sixteen unscoped reads** -- `agent_action_logs`, `media_capture_records`,
-`phone_number_records`, `user_device_permissions`, `route_tracking_points`,
-`voice_command_logs` and more, one business's rows on another's screen. `tableCard`
-now filters to the caller's organization, refuses to read a table that carries no
-`organization_id` at all, and refuses when the caller's organization is unknown
-rather than treating absent as "show everything". Falsified against the full
-suite: with the filter removed, **120 findings**; with it, zero. The test does not
-catch it in isolation, which is worth knowing about that test.
-
-**A module that resolved the wrong user.** The same module took its user id from
-`req.sonaraAdmin?.user?.id`, which only the removed staff middleware ever set, so
-under `requireCustomer` every table with a required `organization_id` answered
-`no_organization_for_this_account`. Its own test -- "takes the organization from
-the signed-in user, not from the body" -- is what found it.
-
-### Checks that were measuring the wrong thing
-
-* `verify:customer-ready` asserted `/customer_cookie/` against the runtime. That
-  matched a **string label** in `verifyAdminRequest`'s list of auth methods, not
-  any property, and went red when the function went. Re-anchored on the call that
-  reads the cookie.
-* `tests/plain-language.test.js` reported `/admin` in `TECHNICAL_ROUTE_PREFIXES`
-  as a prefix matching no served route -- the two-sided half working, arriving the
-  other way round from the three prefixes it caught before: the pages went rather
-  than never existing.
-* `verify:request-supplied-tenant-ids` reported its own entry for
-  `sonara-service-lifecycle-routes.cjs` as describing nothing.
-* `report-unreferenced-modules` reported four libraries as reached only by their
-  tests. All four had the console as their single consumer; each is registered
-  with what would wire it back, and `sonara-platform-completeness.cjs` is the one
-  with an obvious home on the new page.
-* `every-page-is-reachable` reported three registered pages nothing links to --
-  including both owner pages and the new one. They are on the dashboard now.
-* `report-unused-selected-columns` caught the new module selecting `slug` and
-  never using it. Shape 3, in code written the same hour as this entry.
-
-### The twelfth shape, three times in one change
-
-A note that names what it excuses, inside another check's population:
-
-1. `docs/owner/WHAT-IS-LEFT.md` prose quoting the stale record-check figure.
-2. A comment in the new module spelling the rejected `rest()` call shape -- the
-   tenant auditor counts a bare `rest(` anywhere in a runtime file, skips the
-   helper's own declaration, and does not skip a comment, so the sentence
-   describing the blind spot became the 41st entry in it.
-3. The new regression test matching `requireAdmin` inside a register `reason`
-   string in `lib/sonara-route-surface.cjs`. That test now strips comments **and**
-   string contents before matching, and asserts the stripper left real code
-   behind.
-
-### Two self-inflicted errors, recorded because both looked fine
-
-The function-removal tool found the body brace by taking the first `{` after the
-name. For `function adminPage(title, body, readiness, metrics = {})` that is the
-empty object in a default value: it cut to the end of `{}` and left `) {`
-dangling. `node --check` caught it; the fix walks the parameter list to its
-closing paren first.
-
-Worse, the unused-binding cleanup edited every eslint finding in one pass with a
-line-based regex. `const x = typeof deps.x === "function"` spans three lines, so
-it cut the first and left the ternary behind. A second regex written to clean
-**that** up then deleted the same three-line shape from two modules that were
-never part of this change; both were restored from git, and the rewritten tool
-does one name at a time and reverts any edit that stops the file parsing.
-
-### What the owner should know went with it
-
-`/admin/ai-integrations/business-draft` -- the page where ChatGPT or Claude
-produced a labelled draft for review -- was an `/admin` page and is gone. The
-provider router and both adapters survive and are still tested, now driven
-directly rather than through a route, which is stronger: the route test asserted
-that a page said "Nothing has been sent", and the replacement asserts the router
-refuses before any network call and will not attribute deterministic output to a
-model. Rebuilding that page on the owner plane is a product decision, not part of
-this change. `/admin/env-readiness`, `/admin/database` and `/admin/storage` were
-also the only in-app views of deployment readiness; the CLI release scripts
-remain.
-
-Verified: typecheck, lint, **5174 tests**, `verify:gates`, `build`, and the
-derived artefacts regenerated. 77 documents mention `/admin`; the three in
-`docs/admin/` are moved to `docs/archive/` with a retirement header, the route map
-and the go-live checklist are rewritten, and the rest are dated research records
-that describe what was true when they were written.

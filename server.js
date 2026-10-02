@@ -32,6 +32,7 @@ const registerRecurringInvoiceRoutes = require("./routes/sonara-recurring-invoic
 const registerRecurringTaskRoutes = require("./routes/sonara-recurring-task-routes.cjs");
 const registerRotaRoutes = require("./routes/sonara-rota-routes.cjs");
 const registerCreatorApprovalGraphRoutes = require("./routes/sonara-creator-approval-graph-routes.cjs");
+const registerAccountProfileRoutes = require("./routes/sonara-account-profile-routes.cjs");
 const { freeToolSentence } = require("./lib/sonara-tool-access.cjs");
 const registerGrowthEventRoutes = require("./routes/sonara-growth-event-routes.cjs");
 const registerMerchantStoreRoutes = require("./routes/sonara-merchant-store-routes.cjs");
@@ -737,6 +738,8 @@ registerRecurringInvoiceRoutes(app, { layout, brandCard, linkAction, escapeHtml,
 
 registerRecurringTaskRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 registerCreatorApprovalGraphRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+
+registerAccountProfileRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 

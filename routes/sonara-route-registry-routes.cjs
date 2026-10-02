@@ -316,14 +316,13 @@ function registerRouteRegistryRoutes(app, deps) {
     return res.status(200).type("html").send(responsePage("Password updated", "Your password has been changed. Sign in with the new password.", [linkAction("/login", "Sign in")]));
   });
 
-  app.get("/account/profile", requireCustomer, (req, res) => sendPage(res, {
-    title: "Profile",
-    eyebrow: "Your account",
-    heading: "Profile",
-    body: "Review the identity attached to this signed-in account.",
-    sections: [accountNoticeCard(req), brandCard("Email address", req.sonaraUser?.email || "Email address not returned."), brandCard("Profile editing", setupMessage)],
-    actions: [linkAction("/account", "Account"), linkAction("/account/security", "Security"), logoutAction()]
-  }));
+  // /account/profile moved to routes/sonara-account-profile-routes.cjs on
+  // 3 October 2026. What was here showed the account's email beside a card
+  // reading "This feature works, but saving needs your records connected by an
+  // administrator first" -- on a page with no form, for a column
+  // (profiles.full_name) that no route in this repository had ever written. The
+  // sentence read as "come back later" and nothing was coming. The replacement
+  // saves a name, a headline, a description and a picture.
 
   app.get("/account/security", requireCustomer, (req, res) => sendPage(res, {
     title: "Account security",

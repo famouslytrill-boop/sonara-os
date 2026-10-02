@@ -2,6 +2,150 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - A bucket that existed without a feature, and a permission with two states
+
+The owner's brief asks for profiles with pictures and settings, and for camera,
+microphone and contacts permissions. The first thing to establish was what was
+already here, and the first answer was wrong.
+
+**A false finding of my own, corrected before it went anywhere.** I grepped for
+served profile routes with `grep -hoE 'app\.(get|post)\("/[^"]*(profile|account)[^"]*"'
+| sed 's/.*"//'`, and `sed` stripped to the *last* quote on each line, leaving empty
+output. I read that as "no profile route exists". `/account/profile`,
+`/account/preferences`, `/account/settings`, `/settings` and `/account/data` all
+exist and have for months. The lesson is the ordinary one and worth writing down
+anyway: an empty grep result and a grep that produced empty strings look identical,
+and the pipeline was mine.
+
+**What is actually true is narrower and more interesting.**
+
+`/account/profile` was served, signed in, and had **no form on it**. It printed the
+account's email beside a card reading *"This feature works, but saving needs your
+records connected by an administrator first."* `public.profiles.full_name` has
+existed since migration 011 and **no route in this repository has ever written it**
+-- the `full_name` hits in `routes/` are all `business_employees`, a different table
+about a different person. The sentence read as "come back later" on a page where
+nothing was coming.
+
+And the storage side, which is this repository's recurring defect in its most
+convincing form:
+
+- `lib/sonara-ecosystem-manifest.cjs` declares an `avatars` bucket.
+- `20260716130000_launch_storage_buckets.sql` creates it, private.
+- `scripts/verify-production-schema.mjs` asserts it is present, and passes.
+- **Nothing had ever written a byte to it.**
+
+The gate was not broken and its statement was not false. *"The avatars bucket
+exists"* was true every release. It simply was not evidence for the thing a reader
+takes it as evidence for, and there was no check for the other half. That is the
+whole shape: not a lie, a true statement standing where a different one is needed.
+
+`scripts/verify-declared-buckets.mjs` is the other half, and writing it found four
+more: `business-assets`, `support-attachments`, `release-packages` and `exports` are
+all declared, all provisioned, and written by nothing. Each is now recorded with a
+reason I opened a file to confirm rather than one I reasoned to -- `business_assets`
+has no `storage_path`, `object_path` or `bucket_id` column; there is no attachment
+table at all; `creator_release_packages` is a plan (tracklist, checklist, status) with
+nowhere to record an archive; and every export here sets `Content-Disposition` and
+streams, so there is nothing to store.
+
+**My first draft of that gate had three guessed reasons and one was flatly wrong.**
+It said `music-stems` was written by an edge worker. `routes/creator-generation-routes.cjs`
+writes it from this process, picking between `music-stems` and `creator-assets` with a
+ternary and POSTing to `/storage/v1/object/` directly. The detector only knew the
+`bucket:` option shape, so it reported the bucket unwritten, my wrong reason matched,
+and the check passed. The two-sided design caught it the moment the detector widened --
+an entry claiming no writer for a bucket that has one now fails by name.
+
+**And then the gate failed its own falsification.** Deleting `{ bucket: AVATAR_BUCKET }`
+from the upload -- the original bug, reintroduced exactly -- left it green. It was
+asking two questions separately: does this file name the bucket, and does this file
+upload anything. A file naming the bucket in an unused constant answers yes to both.
+It now traces the name to the call, through the variable it was assigned to, so the
+ternary case works and the disconnected case fails.
+
+### Permissions: three states, and why not a boolean
+
+`public.device_capability_profiles` (migration 015) holds `supports_audio boolean
+default false` and five more of that shape, and nothing has ever read or written it
+from a route -- lucky, because the shape cannot express what it is about:
+
+    the person said no   ->  false
+    nobody ever asked    ->  false
+
+Different facts, opposite behaviour. "Never asked" is a prompt to show once; "said
+no" is a prompt never to show again, and showing it again is what makes somebody
+uninstall an application. It also has no camera, microphone or contacts column --
+three the owner named.
+
+`device_permission_grants` makes a decision a **row**, constrained to `granted` or
+`denied`, with **no default**. No row means nobody has been asked. That is the one
+encoding of three states that cannot decay into two when somebody later adds a
+column with a default, because there is no column and no default to add to. The
+table carries no `organization_id`: a person's microphone is not their employer's to
+decide, and the read policy is `user_id = auth.uid()` with no update or delete, so a
+change of mind is a new row and the history of consent survives.
+
+`mayAsk` is the deliberate name. A granted row means this person wants the feature;
+the browser still runs its own prompt. Anything called `mayUse` would be claiming
+something this cannot know.
+
+**A gate caught a real production bug.** `device_permission_grants` had no
+`service_role` grant, so after the July Data API hardening the server could not have
+read it at all -- every permission would have read as `not_recorded`, which is the
+absent-read-as-a-value defect arriving through the grant table instead of the column.
+`tests/a-table-created-after-the-data-api-hardening-declares-its-surface.test.js`
+named it.
+
+**A 404 on your own account page.** `/account/profile/picture` first answered 404 when
+you had no picture. Correct about the resource, a dead end for the person, and it made
+this the one route in the signed-in crawl that did not resolve. It redirects to the
+profile now, where the page says there is no picture yet and offers the form -- while
+an *unreadable* profile still answers 503 saying "this is not the same as having no
+picture", because a redirect there would be a definite statement about somebody's data
+on the strength of a request that did not happen.
+
+A profile picture is also stored against the person, not a workspace:
+`lib/sonara-file-storage.cjs` grew `personalPathFor` and an `ownerPrefix` that refuses
+a call naming both an organization and a user. Filing a face under an organization's
+folder would mean somebody leaving a workspace either takes it with them or loses it.
+Both ids are uuids, so the `person/` segment is what stops one addressing the other's
+folder.
+
+The avatar check delegates to `multipart.sniff` rather than the signature table I
+first wrote, which missed `GIF87a` and had no minimum-length guard. GIF87a is in the
+accepted set, so reintroducing a private table fails two assertions at once.
+
+### Falsified, not assumed
+
+Each failing by name, restored by copy-aside and `md5sum -c`.
+
+| break | result |
+|---|---|
+| a profile column becomes `not null default ''` | replay red: *profiles gained a non-nullable profile column (3 of 4 nullable)* |
+| `state` gets a default | replay red: *has default 'granted'::text. A grant with a default is a decision nobody made* |
+| an `organization_id` appears on the grants table | replay red: *a person's microphone is not their employer's to decide* |
+| the check admits `not_recorded` | replay red: *two encodings of the same fact and a reader that has to guess* |
+| the state check is removed | replay red: *no state check constraint, so state accepts anything* |
+| `not_recorded` collapses into `denied` | 5 red |
+| an unreadable read reported as never asked | 2 red |
+| a missing form field read as a no | 1 red |
+| the avatar check trusts the declared content type | 4 red |
+| an emptied box keeps the old value | 1 red |
+| a failed read draws the empty form | 1 red, *draws no empty form over a profile it could not read* |
+| a private signature table comes back | 2 red, including the GIF87a case |
+| the avatar writer disconnected from its bucket | **green first time** -- the gate was rewritten, then 1 red |
+| the creator bucket stops reaching its upload | 2 red, naming both buckets |
+| a new bucket declared with no writer | 1 red |
+| the manifest stops declaring buckets | 1 red, *this check cannot see it* |
+| the manifest trimmed to two buckets | 1 red, *this check has gone blind* |
+| an expired reason (a bucket recorded unwritten that has a writer) | 1 red, naming the file that writes it |
+
+`pnpm test` 5747 passing. `verify:gates` 0 across 62 commands, `verify:db` 0,
+`verify:migration-replay` 147 migrations, lint, typecheck, build, smoke:routes and
+`audit --audit-level moderate` 0 -- every exit code read from its own file.
+
+
 ### 2026-10-02 - Two branches built the same two features, and one filename held both
 
 `main` moved to 48934ac8 while PR #415 was open. #416 had built the Creator Project
