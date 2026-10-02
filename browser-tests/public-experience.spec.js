@@ -55,6 +55,15 @@ test.describe("public experience browser contract", () => {
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByText("Download local draft", { exact: true }).click()]);
     const data = JSON.parse(require("node:fs").readFileSync(await download.path(), "utf8"));
     expect(data.graph.nodes[0].text).toContain("My owned caption");
+    const originalUrl = await page.locator("[data-draft-download]").getAttribute("href");
+    await page.evaluate(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }));
+      await Promise.resolve();
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+    expect(await page.locator("[data-draft-download]").getAttribute("href")).not.toBe(originalUrl);
+    const [resumedDownload] = await Promise.all([page.waitForEvent("download"), page.getByText("Download local draft", { exact: true }).click()]);
+    expect(JSON.parse(require("node:fs").readFileSync(await resumedDownload.path(), "utf8"))).toEqual(data);
     expect(await readDraft(page, `${projectId(103)}:${projectId(102)}`)).toBeNull();
     expect(await readDraft(page, `${projectId(101)}:${projectId(104)}`)).toBeNull();
     expect(await page.locator("[data-draft-entries] img").count()).toBe(0);

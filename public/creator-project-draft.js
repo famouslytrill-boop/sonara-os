@@ -118,6 +118,7 @@
     finally { busy = false; controls.forEach((control) => { control.disabled = false; }); }
   });
   window.addEventListener("pagehide", () => { if (url) URL.revokeObjectURL(url); void store.close(); });
+  window.addEventListener("pageshow", (event) => { if (event.persisted) renewDownload(); });
   window.addEventListener("offline", () => say("Disconnected. Local editing, device saves and draft downloads still work in this open page."));
   window.addEventListener("online", () => say("Connection available. Save to the workspace when you are ready; nothing syncs automatically."));
   render();
