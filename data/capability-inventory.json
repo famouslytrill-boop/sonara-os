@@ -11,64 +11,64 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 864,
+    "routeOperationCount": 875,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 533,
+      "GET": 542,
       "PATCH": 10,
-      "POST": 318
+      "POST": 320
     },
     "workspaceCount": 12,
-    "declaredPageCount": 287,
+    "declaredPageCount": 292,
     "workspaceRouteCounts": {
       "business_builder": 331,
       "business_builder_agent_ops": 7,
-      "creator_studio": 119,
+      "creator_studio": 126,
       "cross_workspace_formulas": 5,
       "growth_studio": 116,
       "research_catalog": 12,
       "research_lab": 15,
       "shared_account": 21,
       "shared_infrastructure": 3,
-      "sonara_shared": 126,
+      "sonara_shared": 130,
       "sonara_shared_api": 109
     },
     "actionDestinationCounts": {
-      "exact": 329,
+      "exact": 335,
       "form_reference": 296,
       "machine_ingress": 2,
-      "parent_route": 57,
-      "route_pair": 96,
+      "parent_route": 59,
+      "route_pair": 99,
       "workspace_fallback": 84
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
-      "explicit_no_persistent_table_expected": 137,
+      "explicit_no_persistent_table_expected": 142,
       "explicit_resource_registry": 259,
       "handler_source_table_reference": 184,
-      "needs_explicit_data_contract": 280
+      "needs_explicit_data_contract": 286
     },
     "routesUsingWorkspaceHomeFallback": 84,
-    "formActionLinkCount": 57,
+    "formActionLinkCount": 58,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 307,
-    "databaseTableCount": 335,
+    "openApiApiOperationCount": 312,
+    "databaseTableCount": 336,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 295,
+    "queriedTableCount": 296,
     "neverQueriedTableCount": 40,
-    "migrationCount": 140,
+    "migrationCount": 143,
     "databaseFunctionCount": 32,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 22,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 280,
+    "routeDataContractsNeedingExplicitReview": 286,
     "routeDataReviewByMethod": {
-      "GET": 195,
-      "POST": 85
+      "GET": 199,
+      "POST": 87
     },
     "routeDestinationReviewByWorkspace": {
       "business_builder": 14,
@@ -423,8 +423,8 @@
         "/api/creator-studio",
         "/api/creator"
       ],
-      "routeCount": 119,
-      "registeredPageCount": 65,
+      "routeCount": 126,
+      "registeredPageCount": 66,
       "registeredPageRoutes": [
         "/creator-studio/album-cycles",
         "/creator-studio/album-cycles/:recordId/edit",
@@ -466,6 +466,8 @@
         "/creator-studio/offers",
         "/creator-studio/offers/free",
         "/creator-studio/product-lifecycle",
+        "/creator-studio/projects",
+        "/creator-studio/projects/:id",
         "/creator-studio/prompt-blueprints",
         "/creator-studio/prompt-blueprints/:recordId/edit",
         "/creator-studio/prompts",
@@ -542,6 +544,7 @@
             "/creator-studio/offers",
             "/creator-studio/offers/free",
             "/creator-studio/product-lifecycle",
+            "/creator-studio/projects",
             "/creator-studio/prompt-blueprints",
             "/creator-studio/prompts",
             "/creator-studio/records",
@@ -885,8 +888,8 @@
       "routePrefixes": [
         "/"
       ],
-      "routeCount": 126,
-      "registeredPageCount": 111,
+      "routeCount": 130,
+      "registeredPageCount": 115,
       "registeredPageRoutes": [
         "/",
         "/about",
@@ -992,6 +995,10 @@
         "/support",
         "/technology-radar",
         "/terms",
+        "/tools",
+        "/tools/data-formatter",
+        "/tools/storage-budget",
+        "/tools/text-fingerprint",
         "/trust",
         "/tutorials",
         "/tutorials/business-builder",
@@ -1857,7 +1864,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1447
+        "line": 1449
       },
       "contractCompleteness": {
         "route": true,
@@ -1963,7 +1970,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 815
+        "line": 817
       },
       "contractCompleteness": {
         "route": true,
@@ -2069,7 +2076,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 972
+        "line": 974
       },
       "contractCompleteness": {
         "route": true,
@@ -2173,7 +2180,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -2277,7 +2284,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -2389,7 +2396,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1162
+        "line": 1164
       },
       "contractCompleteness": {
         "route": true,
@@ -2891,6 +2898,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -2901,13 +2909,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 354
+        "line": 355
       },
       "contractCompleteness": {
         "route": true,
@@ -3061,6 +3069,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -3071,13 +3080,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 306
+        "line": 307
       },
       "contractCompleteness": {
         "route": true,
@@ -3154,6 +3163,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -3164,13 +3174,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 288
+        "line": 289
       },
       "contractCompleteness": {
         "route": true,
@@ -3247,6 +3257,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -3257,13 +3268,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 297
+        "line": 298
       },
       "contractCompleteness": {
         "route": true,
@@ -3451,7 +3462,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1179
+        "line": 1181
       },
       "contractCompleteness": {
         "route": true,
@@ -3528,6 +3539,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -3538,13 +3550,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 340
+        "line": 341
       },
       "contractCompleteness": {
         "route": true,
@@ -3666,7 +3678,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1296
+        "line": 1298
       },
       "contractCompleteness": {
         "route": true,
@@ -4671,7 +4683,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1436
+        "line": 1438
       },
       "contractCompleteness": {
         "route": true,
@@ -4992,7 +5004,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1435
+        "line": 1437
       },
       "contractCompleteness": {
         "route": true,
@@ -5552,7 +5564,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1434
+        "line": 1436
       },
       "contractCompleteness": {
         "route": true,
@@ -15742,7 +15754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1261
       },
       "contractCompleteness": {
         "route": true,
@@ -16119,6 +16131,274 @@
       "action": false
     },
     {
+      "id": "GET /api/creator-studio/projects",
+      "method": "GET",
+      "route": "/api/creator-studio/projects",
+      "kind": "api",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "listCreatorProjects",
+        "summary": "List the latest 100 projects in the subscribed creator workspace",
+        "tags": [],
+        "requestBodyRef": null,
+        "requestBodyDeclared": false,
+        "responseStatusCodes": [
+          200,
+          503
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": null
+      },
+      "response": {
+        "kinds": [
+          "json"
+        ],
+        "statusCodes": [
+          200,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "read_or_provider_status_needs_handler_review"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 60
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": true,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /api/creator-studio/projects/:id",
+      "method": "GET",
+      "route": "/api/creator-studio/projects/:id",
+      "kind": "api",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "getCreatorProject",
+        "summary": "Read a project belonging to the subscribed workspace",
+        "tags": [],
+        "requestBodyRef": null,
+        "requestBodyDeclared": false,
+        "responseStatusCodes": [
+          200,
+          404
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": null
+      },
+      "response": {
+        "kinds": [
+          "json"
+        ],
+        "statusCodes": [
+          200,
+          404
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "read_or_provider_status_needs_handler_review"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 65
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": true,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /api/creator-studio/projects/:id/export/:format",
+      "method": "GET",
+      "route": "/api/creator-studio/projects/:id/export/:format",
+      "kind": "api",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "exportCreatorProject",
+        "summary": "Download a deterministic manifest, caption track or edit list after checking source access",
+        "tags": [],
+        "requestBodyRef": null,
+        "requestBodyDeclared": false,
+        "responseStatusCodes": [
+          200,
+          409
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [
+          "id",
+          "format"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "format",
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": null
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          409
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "read_or_provider_status_needs_handler_review"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 70
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": true,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /api/creator-studio/readiness",
       "method": "GET",
       "route": "/api/creator-studio/readiness",
@@ -16220,7 +16500,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1480
       },
       "contractCompleteness": {
         "route": true,
@@ -16780,7 +17060,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1477
+        "line": 1479
       },
       "contractCompleteness": {
         "route": true,
@@ -22463,7 +22743,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1502
+        "line": 1504
       },
       "contractCompleteness": {
         "route": true,
@@ -23023,7 +23303,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1501
+        "line": 1503
       },
       "contractCompleteness": {
         "route": true,
@@ -26178,7 +26458,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1524
+        "line": 1528
       },
       "contractCompleteness": {
         "route": true,
@@ -30777,7 +31057,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1532
+        "line": 1536
       },
       "contractCompleteness": {
         "route": true,
@@ -30867,6 +31147,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -30877,7 +31158,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
@@ -31742,7 +32023,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 924
+        "line": 926
       },
       "contractCompleteness": {
         "route": true,
@@ -31857,7 +32138,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1245
+        "line": 1247
       },
       "contractCompleteness": {
         "route": true,
@@ -31971,7 +32252,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1132
+        "line": 1134
       },
       "contractCompleteness": {
         "route": true,
@@ -32077,7 +32358,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1106
+        "line": 1108
       },
       "contractCompleteness": {
         "route": true,
@@ -32183,7 +32464,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1092
+        "line": 1094
       },
       "contractCompleteness": {
         "route": true,
@@ -32293,7 +32574,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1326
+        "line": 1328
       },
       "contractCompleteness": {
         "route": true,
@@ -32681,7 +32962,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1670
+        "line": 1674
       },
       "contractCompleteness": {
         "route": true,
@@ -32787,7 +33068,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -33172,7 +33453,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1328
+        "line": 1330
       },
       "contractCompleteness": {
         "route": true,
@@ -33882,7 +34163,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -34166,7 +34447,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -34272,7 +34553,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1688
       },
       "contractCompleteness": {
         "route": true,
@@ -34368,7 +34649,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1802
+        "line": 1779
       },
       "contractCompleteness": {
         "route": true,
@@ -34639,7 +34920,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1367
+        "line": 1369
       },
       "contractCompleteness": {
         "route": true,
@@ -34745,7 +35026,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -34839,7 +35120,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1905
+        "line": 1883
       },
       "contractCompleteness": {
         "route": true,
@@ -34945,7 +35226,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1397
+        "line": 1399
       },
       "contractCompleteness": {
         "route": true,
@@ -35051,7 +35332,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -35157,7 +35438,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1702
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -35251,7 +35532,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1905
+        "line": 1883
       },
       "contractCompleteness": {
         "route": true,
@@ -35357,7 +35638,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1350
+        "line": 1352
       },
       "contractCompleteness": {
         "route": true,
@@ -35553,7 +35834,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -35659,7 +35940,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -35765,7 +36046,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -59814,7 +60095,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -59891,6 +60172,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -59901,13 +60183,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 374
+        "line": 375
       },
       "contractCompleteness": {
         "route": true,
@@ -60262,7 +60544,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -60368,7 +60650,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -60474,7 +60756,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -60570,7 +60852,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1833
+        "line": 1810
       },
       "contractCompleteness": {
         "route": true,
@@ -60647,6 +60929,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -60657,13 +60940,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 400
+        "line": 401
       },
       "contractCompleteness": {
         "route": true,
@@ -60759,7 +61042,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1677
+        "line": 1654
       },
       "contractCompleteness": {
         "route": true,
@@ -60855,7 +61138,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1817
+        "line": 1794
       },
       "contractCompleteness": {
         "route": true,
@@ -61206,7 +61489,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1709
+        "line": 1686
       },
       "contractCompleteness": {
         "route": true,
@@ -61309,7 +61592,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -61412,7 +61695,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -61515,7 +61798,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -61618,7 +61901,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -61721,7 +62004,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -61824,7 +62107,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -61927,7 +62210,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62030,7 +62313,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62133,7 +62416,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62236,7 +62519,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62339,7 +62622,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62442,7 +62725,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62545,7 +62828,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62648,7 +62931,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62751,7 +63034,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -62828,6 +63111,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -62838,13 +63122,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 185
+        "line": 186
       },
       "contractCompleteness": {
         "route": true,
@@ -62921,6 +63205,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -62931,13 +63216,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 390
+        "line": 391
       },
       "contractCompleteness": {
         "route": true,
@@ -63031,7 +63316,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1905
+        "line": 1883
       },
       "contractCompleteness": {
         "route": true,
@@ -63340,7 +63625,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 879
+        "line": 881
       },
       "contractCompleteness": {
         "route": true,
@@ -63444,7 +63729,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -63550,7 +63835,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1670
+        "line": 1674
       },
       "contractCompleteness": {
         "route": true,
@@ -64735,7 +65020,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -65131,7 +65416,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -65208,6 +65493,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -65218,13 +65504,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 375
+        "line": 376
       },
       "contractCompleteness": {
         "route": true,
@@ -65299,6 +65585,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -65309,13 +65596,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 443
+        "line": 444
       },
       "contractCompleteness": {
         "route": true,
@@ -65421,7 +65708,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -65527,7 +65814,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -65623,7 +65910,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1876
+        "line": 1854
       },
       "contractCompleteness": {
         "route": true,
@@ -65729,7 +66016,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1688
       },
       "contractCompleteness": {
         "route": true,
@@ -65825,7 +66112,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1802
+        "line": 1779
       },
       "contractCompleteness": {
         "route": true,
@@ -67631,7 +67918,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -67737,7 +68024,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1702
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -67933,7 +68220,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -68039,7 +68326,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -69086,7 +69373,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -69192,7 +69479,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -69363,6 +69650,159 @@
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "route-convention",
         "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /creator-studio/projects",
+      "method": "GET",
+      "route": "/creator-studio/projects",
+      "kind": "page_or_download",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Projects",
+        "productOwner": "creator_studio",
+        "visibility": "product",
+        "requiredRole": "customer",
+        "requiredPlan": "paid",
+        "requiredProvider": "supabase",
+        "readiness": "needs_payment",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "read_or_provider_status_needs_handler_review"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 27
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /creator-studio/projects/:id",
+      "method": "GET",
+      "route": "/creator-studio/projects/:id",
+      "kind": "page_or_download",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 37
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -70067,7 +70507,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -70173,7 +70613,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -70279,7 +70719,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -70375,7 +70815,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1833
+        "line": 1810
       },
       "contractCompleteness": {
         "route": true,
@@ -70450,6 +70890,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -70460,13 +70901,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 402
+        "line": 403
       },
       "contractCompleteness": {
         "route": true,
@@ -71184,7 +71625,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -71840,7 +72281,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1677
+        "line": 1654
       },
       "contractCompleteness": {
         "route": true,
@@ -72025,7 +72466,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1817
+        "line": 1794
       },
       "contractCompleteness": {
         "route": true,
@@ -72208,7 +72649,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1709
+        "line": 1686
       },
       "contractCompleteness": {
         "route": true,
@@ -72311,7 +72752,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -72414,7 +72855,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -72517,7 +72958,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -72620,7 +73061,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -72723,7 +73164,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -72826,7 +73267,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -72929,7 +73370,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73032,7 +73473,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73135,7 +73576,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73238,7 +73679,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73341,7 +73782,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73444,7 +73885,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73547,7 +73988,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -73624,6 +74065,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -73634,13 +74076,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 186
+        "line": 187
       },
       "contractCompleteness": {
         "route": true,
@@ -74844,7 +75286,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1204
+        "line": 1206
       },
       "contractCompleteness": {
         "route": true,
@@ -74942,7 +75384,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1544
+        "line": 1521
       },
       "contractCompleteness": {
         "route": true,
@@ -75039,7 +75481,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1027
+        "line": 1029
       },
       "contractCompleteness": {
         "route": true,
@@ -75143,7 +75585,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -75312,7 +75754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -75387,6 +75829,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -75397,13 +75840,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 189
+        "line": 190
       },
       "contractCompleteness": {
         "route": true,
@@ -75636,6 +76079,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -75646,7 +76090,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -75758,7 +76202,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1670
+        "line": 1674
       },
       "contractCompleteness": {
         "route": true,
@@ -75864,7 +76308,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -76207,6 +76651,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -76217,13 +76662,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 376
+        "line": 377
       },
       "contractCompleteness": {
         "route": true,
@@ -76447,7 +76892,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -76649,7 +77094,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -76833,7 +77278,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1876
+        "line": 1854
       },
       "contractCompleteness": {
         "route": true,
@@ -77467,7 +77912,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1688
       },
       "contractCompleteness": {
         "route": true,
@@ -77563,7 +78008,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1802
+        "line": 1779
       },
       "contractCompleteness": {
         "route": true,
@@ -77845,7 +78290,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -77951,7 +78396,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -78147,7 +78592,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1702
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -78379,7 +78824,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -78575,7 +79020,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -78681,7 +79126,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -79895,7 +80340,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -80001,7 +80446,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "contractCompleteness": {
         "route": true,
@@ -80097,7 +80542,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1833
+        "line": 1810
       },
       "contractCompleteness": {
         "route": true,
@@ -80291,7 +80736,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "contractCompleteness": {
         "route": true,
@@ -80387,7 +80832,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1677
+        "line": 1654
       },
       "contractCompleteness": {
         "route": true,
@@ -80483,7 +80928,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1817
+        "line": 1794
       },
       "contractCompleteness": {
         "route": true,
@@ -80666,7 +81111,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1709
+        "line": 1686
       },
       "contractCompleteness": {
         "route": true,
@@ -80769,7 +81214,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -80872,7 +81317,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -80975,7 +81420,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81078,7 +81523,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81181,7 +81626,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81284,7 +81729,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81387,7 +81832,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81490,7 +81935,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81593,7 +82038,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81696,7 +82141,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81799,7 +82244,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -81902,7 +82347,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "contractCompleteness": {
         "route": true,
@@ -82067,6 +82512,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -82077,13 +82523,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 187
+        "line": 188
       },
       "contractCompleteness": {
         "route": true,
@@ -82356,7 +82802,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1009
+        "line": 1011
       },
       "contractCompleteness": {
         "route": true,
@@ -82431,6 +82877,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -82441,13 +82888,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 144
+        "line": 145
       },
       "contractCompleteness": {
         "route": true,
@@ -82700,7 +83147,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1179
+        "line": 1156
       },
       "contractCompleteness": {
         "route": true,
@@ -82795,7 +83242,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -82890,7 +83337,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -82985,7 +83432,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83080,7 +83527,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83175,7 +83622,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83270,7 +83717,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83365,7 +83812,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83460,7 +83907,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83555,7 +84002,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83650,7 +84097,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83745,7 +84192,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83840,7 +84287,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -83935,7 +84382,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -84030,7 +84477,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -84138,7 +84585,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1078
+        "line": 1080
       },
       "contractCompleteness": {
         "route": true,
@@ -84318,7 +84765,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1141
+        "line": 1143
       },
       "contractCompleteness": {
         "route": true,
@@ -84415,7 +84862,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1545
+        "line": 1549
       },
       "contractCompleteness": {
         "route": true,
@@ -84667,6 +85114,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -84677,13 +85125,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 366
+        "line": 367
       },
       "contractCompleteness": {
         "route": true,
@@ -84780,7 +85228,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1558
+        "line": 1562
       },
       "contractCompleteness": {
         "route": true,
@@ -84875,7 +85323,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -85298,7 +85746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 934
+        "line": 936
       },
       "contractCompleteness": {
         "route": true,
@@ -85402,7 +85850,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -85887,6 +86335,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -85897,7 +86346,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -86172,7 +86621,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1161
+        "line": 1138
       },
       "contractCompleteness": {
         "route": true,
@@ -86276,7 +86725,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -86374,7 +86823,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1301
+        "line": 1278
       },
       "contractCompleteness": {
         "route": true,
@@ -86469,7 +86918,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1380
+        "line": 1357
       },
       "contractCompleteness": {
         "route": true,
@@ -86564,7 +87013,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -87701,6 +88150,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -87711,13 +88161,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 230
+        "line": 231
       },
       "contractCompleteness": {
         "route": true,
@@ -87794,6 +88244,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -87804,7 +88255,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -88116,7 +88567,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 991
+        "line": 993
       },
       "contractCompleteness": {
         "route": true,
@@ -88315,7 +88766,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1307
+        "line": 1309
       },
       "contractCompleteness": {
         "route": true,
@@ -88804,7 +89255,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1082
+        "line": 1084
       },
       "contractCompleteness": {
         "route": true,
@@ -88881,6 +89332,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -88891,7 +89343,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -89773,7 +90225,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1076
+        "line": 1053
       },
       "contractCompleteness": {
         "route": true,
@@ -89868,7 +90320,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -90004,7 +90456,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1630
+        "line": 1607
       },
       "contractCompleteness": {
         "route": true,
@@ -90193,7 +90645,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1584
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -90201,6 +90653,330 @@
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "route-convention",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /tools",
+      "method": "GET",
+      "route": "/tools",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/tools",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Tools",
+        "productOwner": "sonara_industries",
+        "visibility": "public",
+        "requiredRole": null,
+        "requiredPlan": "free",
+        "requiredProvider": null,
+        "readiness": "ready",
+        "navigationPlacement": "primary"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "files"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-parent-tool-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-parent-tool-routes.cjs",
+        "line": 11
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /tools/data-formatter",
+      "method": "GET",
+      "route": "/tools/data-formatter",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/tools/data-formatter",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Data Formatter",
+        "productOwner": "sonara_industries",
+        "visibility": "public",
+        "requiredRole": null,
+        "requiredPlan": "free",
+        "requiredProvider": null,
+        "readiness": "ready",
+        "navigationPlacement": "primary"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "files"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-parent-tool-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-parent-tool-routes.cjs",
+        "line": 14
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /tools/storage-budget",
+      "method": "GET",
+      "route": "/tools/storage-budget",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/tools/storage-budget",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Storage Budget",
+        "productOwner": "sonara_industries",
+        "visibility": "public",
+        "requiredRole": null,
+        "requiredPlan": "free",
+        "requiredProvider": "supabase_storage",
+        "readiness": "needs_provider",
+        "navigationPlacement": "primary"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "files"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-parent-tool-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-parent-tool-routes.cjs",
+        "line": 14
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /tools/text-fingerprint",
+      "method": "GET",
+      "route": "/tools/text-fingerprint",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/tools/text-fingerprint",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Text Fingerprint",
+        "productOwner": "sonara_industries",
+        "visibility": "public",
+        "requiredRole": null,
+        "requiredPlan": "free",
+        "requiredProvider": null,
+        "readiness": "ready",
+        "navigationPlacement": "primary"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "files"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-parent-tool-routes.cjs",
+        "moduleTableCandidateCount": 1,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-parent-tool-routes.cjs",
+        "line": 14
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -90288,7 +91064,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1542
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -90363,6 +91139,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -90373,13 +91150,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 159
+        "line": 160
       },
       "contractCompleteness": {
         "route": true,
@@ -90454,6 +91231,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -90464,13 +91242,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 169
+        "line": 170
       },
       "contractCompleteness": {
         "route": true,
@@ -90545,6 +91323,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -90555,13 +91334,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 169
+        "line": 170
       },
       "contractCompleteness": {
         "route": true,
@@ -90636,6 +91415,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -90646,13 +91426,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 169
+        "line": 170
       },
       "contractCompleteness": {
         "route": true,
@@ -90727,6 +91507,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -90737,13 +91518,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 169
+        "line": 170
       },
       "contractCompleteness": {
         "route": true,
@@ -90820,6 +91601,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -90830,7 +91612,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
@@ -91707,7 +92489,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1442
+        "line": 1444
       },
       "contractCompleteness": {
         "route": true,
@@ -93698,6 +94480,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -93770,7 +94553,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [
           "supabase/migrations/20260603103000_user_preferences_language_units.sql",
           "supabase/migrations/20260715120000_user_preferences_appearance_notifications.sql",
@@ -93787,7 +94570,7 @@
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 320
+        "line": 321
       },
       "contractCompleteness": {
         "route": true,
@@ -94344,7 +95127,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1192
+        "line": 1194
       },
       "contractCompleteness": {
         "route": true,
@@ -96138,7 +96921,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1264
+        "line": 1266
       },
       "contractCompleteness": {
         "route": true,
@@ -96491,7 +97274,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1266
+        "line": 1268
       },
       "contractCompleteness": {
         "route": true,
@@ -98976,7 +99759,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1437
+        "line": 1439
       },
       "contractCompleteness": {
         "route": true,
@@ -99252,7 +100035,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1386
+        "line": 1388
       },
       "contractCompleteness": {
         "route": true,
@@ -99787,7 +100570,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1421
+        "line": 1423
       },
       "contractCompleteness": {
         "route": true,
@@ -119164,7 +119947,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1263
+        "line": 1265
       },
       "contractCompleteness": {
         "route": true,
@@ -120384,7 +121167,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1453
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -121484,7 +122267,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1466
+        "line": 1468
       },
       "contractCompleteness": {
         "route": true,
@@ -121493,6 +122276,189 @@
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "route-convention",
         "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "generic_openapi_body_contract"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator-studio/projects",
+      "method": "POST",
+      "route": "/api/creator-studio/projects",
+      "kind": "api",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "createCreatorProject",
+        "summary": "Create a private creative project with an empty graph",
+        "tags": [],
+        "requestBodyRef": null,
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          200,
+          400
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "medium"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "medium"
+        ],
+        "openApiBody": "declared_without_single_line_ref"
+      },
+      "response": {
+        "kinds": [
+          "json-or-delegated"
+        ],
+        "statusCodes": [
+          200,
+          400
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "write_needs_table_or_explicit_no_persistence_reason"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 64
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": true,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/creator-studio/projects/:id/commands",
+      "method": "POST",
+      "route": "/api/creator-studio/projects/:id/commands",
+      "kind": "api",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "editCreatorProjectGraph",
+        "summary": "Add sources, clips or captions, remove entries, archive or restore using an expected revision",
+        "tags": [],
+        "requestBodyRef": null,
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          200,
+          400,
+          409
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "declared_without_single_line_ref"
+      },
+      "response": {
+        "kinds": [
+          "json-or-delegated"
+        ],
+        "statusCodes": [
+          200,
+          400,
+          409
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-creator-project-routes.cjs",
+        "moduleTableCandidateCount": 0,
+        "schemaMigrations": [],
+        "persistenceMode": "write_needs_table_or_explicit_no_persistence_reason"
+      },
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 69
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
         "openApi": true,
         "requestFieldSource": "generic_openapi_body_contract"
       },
@@ -127192,7 +128158,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1480
+        "line": 1482
       },
       "contractCompleteness": {
         "route": true,
@@ -128583,7 +129549,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1489
+        "line": 1491
       },
       "contractCompleteness": {
         "route": true,
@@ -139894,7 +140860,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1477
+        "line": 1454
       },
       "contractCompleteness": {
         "route": true,
@@ -140476,7 +141442,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 336
+        "line": 338
       },
       "contractCompleteness": {
         "route": true,
@@ -140806,7 +141772,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 335
+        "line": 337
       },
       "contractCompleteness": {
         "route": true,
@@ -140884,6 +141850,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -140894,13 +141861,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 198
+        "line": 199
       },
       "contractCompleteness": {
         "route": true,
@@ -141001,7 +141968,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1122
       },
       "contractCompleteness": {
         "route": true,
@@ -141101,7 +142068,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1156
+        "line": 1158
       },
       "contractCompleteness": {
         "route": true,
@@ -141180,6 +142147,7 @@
           "organizations",
           "payments",
           "products",
+          "subscriptions",
           "user_notifications",
           "user_preferences"
         ],
@@ -141190,13 +142158,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-route-registry-routes.cjs",
-        "moduleTableCandidateCount": 11,
+        "moduleTableCandidateCount": 12,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 257
+        "line": 258
       },
       "contractCompleteness": {
         "route": true,
@@ -141295,7 +142263,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1086
+        "line": 1088
       },
       "contractCompleteness": {
         "route": true,
@@ -141784,7 +142752,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1410
+        "line": 1412
       },
       "contractCompleteness": {
         "route": true,
@@ -159376,7 +160344,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -159469,7 +160437,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -159562,7 +160530,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -159655,7 +160623,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -159748,7 +160716,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -159841,7 +160809,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -159934,7 +160902,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160027,7 +160995,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160120,7 +161088,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160213,7 +161181,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160306,7 +161274,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160399,7 +161367,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160492,7 +161460,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160585,7 +161553,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -160678,7 +161646,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -161166,7 +162134,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 893
+        "line": 895
       },
       "contractCompleteness": {
         "route": true,
@@ -164820,7 +165788,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -164913,7 +165881,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165006,7 +165974,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165099,7 +166067,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165192,7 +166160,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165285,7 +166253,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165378,7 +166346,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165471,7 +166439,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165564,7 +166532,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165657,7 +166625,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165750,7 +166718,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165843,7 +166811,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -165936,7 +166904,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -166571,7 +167539,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -166664,7 +167632,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -166757,7 +167725,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -166850,7 +167818,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -166943,7 +167911,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167036,7 +168004,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167129,7 +168097,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167222,7 +168190,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167315,7 +168283,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167408,7 +168376,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167501,7 +168469,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167594,7 +168562,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "contractCompleteness": {
         "route": true,
@@ -167857,7 +168825,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1150
+        "line": 1152
       },
       "contractCompleteness": {
         "route": true,
@@ -169000,7 +169968,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1215
+        "line": 1192
       },
       "contractCompleteness": {
         "route": true,
@@ -169103,7 +170071,7 @@
       },
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1652
+        "line": 1629
       },
       "contractCompleteness": {
         "route": true,
@@ -169443,6 +170411,16 @@
       ],
       "formFieldNamesObserved": [
         "plan"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/creator-studio/projects",
+      "pages": [
+        "/creator-studio/projects"
+      ],
+      "formFieldNamesObserved": [
+        "medium"
       ]
     },
     {
@@ -170462,6 +171440,12 @@
       ]
     },
     {
+      "id": "module:routes/sonara-creator-project-routes.cjs",
+      "source": "routes/sonara-creator-project-routes.cjs",
+      "tableCount": 0,
+      "tables": []
+    },
+    {
       "id": "module:routes/sonara-ecosystem-routes.cjs",
       "source": "routes/sonara-ecosystem-routes.cjs",
       "tableCount": 1,
@@ -171147,6 +172131,20 @@
       ]
     },
     {
+      "id": "module:routes/sonara-parent-tool-routes.cjs",
+      "source": "routes/sonara-parent-tool-routes.cjs",
+      "tableCount": 1,
+      "tables": [
+        {
+          "table": "files",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql",
+            "supabase/migrations/20260923015900_restore_files_replay_precondition.sql"
+          ]
+        }
+      ]
+    },
+    {
       "id": "module:routes/sonara-pay-period-routes.cjs",
       "source": "routes/sonara-pay-period-routes.cjs",
       "tableCount": 5,
@@ -171393,7 +172391,7 @@
     {
       "id": "module:routes/sonara-route-registry-routes.cjs",
       "source": "routes/sonara-route-registry-routes.cjs",
-      "tableCount": 11,
+      "tableCount": 12,
       "tables": [
         {
           "table": "bookings",
@@ -171452,6 +172450,13 @@
           "table": "products",
           "migrations": [
             "supabase/migrations/010_sonara_platform_current_schema.sql"
+          ]
+        },
+        {
+          "table": "subscriptions",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql",
+            "supabase/migrations/011_sonara_saas_launch_system.sql"
           ]
         },
         {
@@ -180875,6 +181880,129 @@
           "supabase/migrations/010_sonara_platform_current_schema.sql"
         ],
         "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_projects",
+      "schema": "public",
+      "name": "creator_projects",
+      "columnCount": 11,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "medium",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [
+            "audio",
+            "video",
+            "image",
+            "mixed"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "revision",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "graph",
+          "type": "json",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "{\"version\":1,\"nodes\":[],\"edges\":[]}"
+        },
+        {
+          "name": "and",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261002090000_creator_project_graph.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261002090000_creator_project_graph.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261002090000_creator_project_graph.sql"
+        ],
+        "policyEvidence": [
+          {
+            "name": "creator_projects_member_read",
+            "file": "supabase/migrations/20261002090000_creator_project_graph.sql"
+          }
+        ]
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
@@ -220691,6 +221819,41 @@
         "agent_tool_permissions"
       ],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261002090000_creator_project_graph.sql",
+      "creates": [
+        "creator_projects"
+      ],
+      "alters": [
+        "creator_projects"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "creator_projects"
+      ],
+      "policies": [
+        {
+          "name": "creator_projects_member_read",
+          "table": "creator_projects"
+        }
+      ]
+    },
+    {
+      "file": "supabase/migrations/20261002100000_sync_creator_project_catalog.sql",
+      "creates": [],
+      "alters": [],
+      "drops": [],
+      "rlsEnabled": [],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261002110000_creator_project_catalog_is_complete.sql",
+      "creates": [],
+      "alters": [],
+      "drops": [],
+      "rlsEnabled": [],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -253457,7 +254620,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1162
+        "line": 1164
       },
       "destination": {
         "route": "/account",
@@ -253598,7 +254761,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 354
+        "line": 355
       },
       "destination": {
         "route": "/account/integrations",
@@ -253617,6 +254780,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -253636,7 +254800,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 306
+        "line": 307
       },
       "destination": {
         "route": "/account/preferences",
@@ -253655,6 +254819,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -253674,7 +254839,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 288
+        "line": 289
       },
       "destination": {
         "route": "/account/profile",
@@ -253693,6 +254858,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -253712,7 +254878,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 297
+        "line": 298
       },
       "destination": {
         "route": "/account/security",
@@ -253731,6 +254897,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -253750,7 +254917,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1179
+        "line": 1181
       },
       "destination": {
         "route": "/account/setup",
@@ -253805,7 +254972,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 340
+        "line": 341
       },
       "destination": {
         "route": "/account/workspaces",
@@ -253824,6 +254991,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -253843,7 +255011,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1296
+        "line": 1298
       },
       "destination": {
         "route": "/dashboard",
@@ -253963,7 +255131,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1261
       },
       "destination": {
         "route": "/dashboard",
@@ -254005,6 +255173,89 @@
       },
       "responseKindsObserved": [
         "json"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /api/creator-studio/projects",
+      "workspace": "creator_studio",
+      "kind": "api",
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 60
+      },
+      "destination": {
+        "route": "/creator-studio/projects",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "method": "GET",
+      "reason": "read_or_provider_status_needs_handler_review",
+      "moduleCandidateTables": [],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "json"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /api/creator-studio/projects/:id",
+      "workspace": "creator_studio",
+      "kind": "api",
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 65
+      },
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "method": "GET",
+      "reason": "read_or_provider_status_needs_handler_review",
+      "moduleCandidateTables": [],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "id"
+        ]
+      },
+      "responseKindsObserved": [
+        "json"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /api/creator-studio/projects/:id/export/:format",
+      "workspace": "creator_studio",
+      "kind": "api",
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 70
+      },
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "method": "GET",
+      "reason": "read_or_provider_status_needs_handler_review",
+      "moduleCandidateTables": [],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "id",
+          "format"
+        ]
+      },
+      "responseKindsObserved": [
+        "send"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
@@ -254586,6 +255837,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -254605,7 +255857,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 924
+        "line": 926
       },
       "destination": {
         "route": "/dashboard",
@@ -254656,7 +255908,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -254797,7 +256049,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -254848,7 +256100,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -254899,7 +256151,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1688
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -254950,7 +256202,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1802
+        "line": 1779
       },
       "destination": {
         "route": "/business-builder/deliverables",
@@ -254991,7 +256243,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/help",
@@ -255042,7 +256294,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1905
+        "line": 1883
       },
       "destination": {
         "route": "/business-builder/inventory",
@@ -255083,7 +256335,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1397
+        "line": 1399
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -255134,7 +256386,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -255185,7 +256437,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1905
+        "line": 1883
       },
       "destination": {
         "route": "/business-builder/locations",
@@ -255226,7 +256478,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1350
+        "line": 1352
       },
       "destination": {
         "route": "/business-builder/login",
@@ -255312,7 +256564,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -255363,7 +256615,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -255414,7 +256666,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -255981,7 +257233,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -256064,7 +257316,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -256115,7 +257367,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/business-builder/records",
@@ -256166,7 +257418,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -256217,7 +257469,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1833
+        "line": 1810
       },
       "destination": {
         "route": "/business-builder/requests",
@@ -256258,7 +257510,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 400
+        "line": 401
       },
       "destination": {
         "route": "/business-builder/routes",
@@ -256277,6 +257529,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -256296,7 +257549,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1677
+        "line": 1654
       },
       "destination": {
         "route": "/business-builder/start",
@@ -256337,7 +257590,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1817
+        "line": 1794
       },
       "destination": {
         "route": "/business-builder/support",
@@ -256408,7 +257661,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1709
+        "line": 1686
       },
       "destination": {
         "route": "/business-builder/tools",
@@ -256449,7 +257702,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/break-even",
@@ -256493,7 +257746,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/customer-record",
@@ -256537,7 +257790,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/demand-forecast",
@@ -256581,7 +257834,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/duplicate-customers",
@@ -256625,7 +257878,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/offer",
@@ -256669,7 +257922,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/package",
@@ -256713,7 +257966,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/payment-plan",
@@ -256757,7 +258010,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/price-rise",
@@ -256801,7 +258054,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/quiet-months",
@@ -256845,7 +258098,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/readiness",
@@ -256889,7 +258142,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/reorder-point",
@@ -256933,7 +258186,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/rota",
@@ -256977,7 +258230,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/software-spend",
@@ -257021,7 +258274,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/business-builder/tools/stop-order",
@@ -257065,7 +258318,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 185
+        "line": 186
       },
       "destination": {
         "route": "/business-builder/tutorial",
@@ -257084,6 +258337,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -257103,7 +258357,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 390
+        "line": 391
       },
       "destination": {
         "route": "/business-builder/vehicles",
@@ -257122,6 +258376,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -257141,7 +258396,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1905
+        "line": 1883
       },
       "destination": {
         "route": "/business-builder/vendors",
@@ -257217,7 +258472,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -257268,7 +258523,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 443
+        "line": 444
       },
       "destination": {
         "route": "/creator-studio/calendar",
@@ -257287,6 +258542,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -257306,7 +258562,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -257357,7 +258613,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -257408,7 +258664,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1876
+        "line": 1854
       },
       "destination": {
         "route": "/creator-studio/content",
@@ -257449,7 +258705,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1688
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -257500,7 +258756,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1802
+        "line": 1779
       },
       "destination": {
         "route": "/creator-studio/deliverables",
@@ -257711,7 +258967,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -257797,7 +259053,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -257848,7 +259104,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -258003,7 +259259,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -258054,7 +259310,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -258100,6 +259356,32 @@
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
     {
+      "id": "GET /creator-studio/projects",
+      "workspace": "creator_studio",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 27
+      },
+      "destination": {
+        "route": "/creator-studio/projects",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "read_or_provider_status_needs_handler_review",
+      "moduleCandidateTables": [],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
       "id": "GET /creator-studio/prompts",
       "workspace": "creator_studio",
       "kind": "page_or_download",
@@ -258137,7 +259419,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -258188,7 +259470,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -258239,7 +259521,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -258290,7 +259572,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1833
+        "line": 1810
       },
       "destination": {
         "route": "/creator-studio/requests",
@@ -258331,7 +259613,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 402
+        "line": 403
       },
       "destination": {
         "route": "/creator-studio/rights",
@@ -258350,6 +259632,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -258398,7 +259681,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -258449,7 +259732,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1677
+        "line": 1654
       },
       "destination": {
         "route": "/creator-studio/start",
@@ -258524,7 +259807,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1817
+        "line": 1794
       },
       "destination": {
         "route": "/creator-studio/support",
@@ -258595,7 +259878,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1709
+        "line": 1686
       },
       "destination": {
         "route": "/creator-studio/tools",
@@ -258636,7 +259919,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/brief",
@@ -258680,7 +259963,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/content-plan",
@@ -258724,7 +260007,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/deal-memo",
@@ -258768,7 +260051,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/late-payment",
@@ -258812,7 +260095,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/media-placements",
@@ -258856,7 +260139,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/music-blueprint",
@@ -258900,7 +260183,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/profile",
@@ -258944,7 +260227,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/rate-card",
@@ -258988,7 +260271,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/release-checklist",
@@ -259032,7 +260315,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/repurpose",
@@ -259076,7 +260359,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/rights-expiry",
@@ -259120,7 +260403,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/split-sheet",
@@ -259164,7 +260447,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/creator-studio/tools/storyboard",
@@ -259208,7 +260491,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 186
+        "line": 187
       },
       "destination": {
         "route": "/creator-studio/tutorial",
@@ -259227,6 +260510,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -259272,7 +260556,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1544
+        "line": 1521
       },
       "destination": {
         "route": "/deliverables",
@@ -259313,7 +260597,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 189
+        "line": 190
       },
       "destination": {
         "route": "/forgot-password",
@@ -259332,6 +260616,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -259351,7 +260636,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -259544,7 +260829,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -259628,7 +260913,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1876
+        "line": 1854
       },
       "destination": {
         "route": "/growth-studio/content",
@@ -259735,7 +261020,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1684
+        "line": 1688
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -259786,7 +261071,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1802
+        "line": 1779
       },
       "destination": {
         "route": "/growth-studio/deliverables",
@@ -259893,7 +261178,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -259944,7 +261229,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -260065,7 +261350,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -260116,7 +261401,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -260265,7 +261550,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -260316,7 +261601,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1728
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -260367,7 +261652,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1833
+        "line": 1810
       },
       "destination": {
         "route": "/growth-studio/requests",
@@ -260441,7 +261726,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1731
+        "line": 1735
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -260492,7 +261777,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1677
+        "line": 1654
       },
       "destination": {
         "route": "/growth-studio/start",
@@ -260533,7 +261818,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1817
+        "line": 1794
       },
       "destination": {
         "route": "/growth-studio/support",
@@ -260604,7 +261889,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1709
+        "line": 1686
       },
       "destination": {
         "route": "/growth-studio/tools",
@@ -260645,7 +261930,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/budget-split",
@@ -260689,7 +261974,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/campaign",
@@ -260733,7 +262018,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/follow-up-schedule",
@@ -260777,7 +262062,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/goal-tracker",
@@ -260821,7 +262106,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/kpi",
@@ -260865,7 +262150,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/lead-followup",
@@ -260909,7 +262194,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/offer-angles",
@@ -260953,7 +262238,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/readiness",
@@ -260997,7 +262282,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/referral",
@@ -261041,7 +262326,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/referral-source",
@@ -261085,7 +262370,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/response-time",
@@ -261129,7 +262414,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 955
+        "line": 932
       },
       "destination": {
         "route": "/growth-studio/tools/review-recency",
@@ -261206,7 +262491,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 187
+        "line": 188
       },
       "destination": {
         "route": "/growth-studio/tutorial",
@@ -261225,6 +262510,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -261277,7 +262563,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1078
+        "line": 1080
       },
       "destination": {
         "route": "/login",
@@ -261330,7 +262616,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 366
+        "line": 367
       },
       "destination": {
         "route": "/notifications",
@@ -261349,6 +262635,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -261397,7 +262684,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1301
+        "line": 1278
       },
       "destination": {
         "route": "/requests",
@@ -261438,7 +262725,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 230
+        "line": 231
       },
       "destination": {
         "route": "/reset-password",
@@ -261457,6 +262744,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -261476,7 +262764,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1082
+        "line": 1084
       },
       "destination": {
         "route": "/signup",
@@ -261807,6 +263095,62 @@
       },
       "responseKindsObserved": [
         "json"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /api/creator-studio/projects",
+      "workspace": "creator_studio",
+      "kind": "api",
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 64
+      },
+      "destination": {
+        "route": "/creator-studio/projects",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "method": "POST",
+      "reason": "write_needs_table_or_explicit_no_persistence_reason",
+      "moduleCandidateTables": [],
+      "requestFieldsObserved": {
+        "body": [
+          "medium"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "json-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /api/creator-studio/projects/:id/commands",
+      "workspace": "creator_studio",
+      "kind": "api",
+      "source": {
+        "file": "routes/sonara-creator-project-routes.cjs",
+        "line": 69
+      },
+      "destination": {
+        "route": "/creator-studio/projects/:id",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_product_workspace_page"
+      },
+      "method": "POST",
+      "reason": "write_needs_table_or_explicit_no_persistence_reason",
+      "moduleCandidateTables": [],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "id"
+        ]
+      },
+      "responseKindsObserved": [
+        "json-or-delegated"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -262353,7 +263697,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 198
+        "line": 199
       },
       "destination": {
         "route": "/forgot-password",
@@ -262372,6 +263716,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -262394,7 +263739,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1122
       },
       "destination": {
         "route": "/auth/login",
@@ -262449,7 +263794,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1156
+        "line": 1158
       },
       "destination": {
         "route": "/logout",
@@ -262500,7 +263845,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-route-registry-routes.cjs",
-        "line": 257
+        "line": 258
       },
       "destination": {
         "route": "/reset-password",
@@ -262519,6 +263864,7 @@
         "organizations",
         "payments",
         "products",
+        "subscriptions",
         "user_notifications",
         "user_preferences"
       ],
@@ -262541,7 +263887,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1086
+        "line": 1088
       },
       "destination": {
         "route": "/auth/signup",
@@ -262815,7 +264161,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/break-even",
@@ -262857,7 +264203,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/customer-record",
@@ -262899,7 +264245,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/demand-forecast",
@@ -262941,7 +264287,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/duplicate-customers",
@@ -262983,7 +264329,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/offer",
@@ -263025,7 +264371,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/package",
@@ -263067,7 +264413,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/payment-plan",
@@ -263109,7 +264455,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/price-rise",
@@ -263151,7 +264497,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/pricing",
@@ -263193,7 +264539,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/quiet-months",
@@ -263235,7 +264581,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/reorder-point",
@@ -263277,7 +264623,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/rota",
@@ -263319,7 +264665,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/software-spend",
@@ -263361,7 +264707,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/business-builder/tools/stop-order",
@@ -263403,7 +264749,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/brief",
@@ -263445,7 +264791,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/content-plan",
@@ -263487,7 +264833,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/deal-memo",
@@ -263529,7 +264875,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/late-payment",
@@ -263571,7 +264917,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/media-placements",
@@ -263613,7 +264959,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/music-blueprint",
@@ -263655,7 +265001,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/profile",
@@ -263697,7 +265043,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/rate-card",
@@ -263739,7 +265085,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/release-checklist",
@@ -263781,7 +265127,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/repurpose",
@@ -263823,7 +265169,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/rights-expiry",
@@ -263865,7 +265211,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/split-sheet",
@@ -263907,7 +265253,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/creator-studio/tools/storyboard",
@@ -263949,7 +265295,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/budget-split",
@@ -263991,7 +265337,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/campaign",
@@ -264033,7 +265379,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/follow-up-schedule",
@@ -264075,7 +265421,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/goal-tracker",
@@ -264117,7 +265463,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/kpi",
@@ -264159,7 +265505,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/lead-followup",
@@ -264201,7 +265547,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/offer-angles",
@@ -264243,7 +265589,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/referral",
@@ -264285,7 +265631,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/referral-source",
@@ -264327,7 +265673,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/response-time",
@@ -264369,7 +265715,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1033
+        "line": 1010
       },
       "destination": {
         "route": "/growth-studio/tools/review-recency",
@@ -264474,7 +265820,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1150
+        "line": 1152
       },
       "destination": {
         "route": "/logout",
@@ -264834,7 +266180,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1652
+        "line": 1629
       },
       "destination": {
         "route": "/support",
@@ -264884,7 +266230,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1296
+        "line": 1298
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264954,7 +266300,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1259
+        "line": 1261
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264964,7 +266310,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1478
+        "line": 1480
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -264974,7 +266320,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1502
+        "line": 1504
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265014,7 +266360,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1524
+        "line": 1528
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265224,7 +266570,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 924
+        "line": 926
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -265694,7 +267040,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-service-lifecycle-routes.cjs",
-        "line": 1477
+        "line": 1454
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

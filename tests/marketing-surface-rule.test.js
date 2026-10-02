@@ -27,7 +27,7 @@ const { PUBLIC_ROUTES, CUSTOMER_ROUTES } = require("../lib/sonara-route-registry
 
 // Public pages that exist to attract and orient someone who has not signed up.
 const CINEMATIC = new Set([
-  "/", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/free-launch-stack", "/pricing",
+  "/", "/tools", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/free-launch-stack", "/pricing",
   "/how-it-works", "/tutorials", "/tutorials/getting-started", "/tutorials/business-builder",
   "/tutorials/creator-studio", "/tutorials/growth-studio", "/contact", "/security",
   "/business-builder", "/creator-studio", "/growth-studio", "/help", "/prompt-library",
@@ -42,6 +42,9 @@ const CINEMATIC = new Set([
 // someone opens a readiness checklist to see what is not set up yet, and
 // neither is improved by parallax.
 const CALM = new Map([
+  ["/tools/data-formatter", "a local working form"],
+  ["/tools/text-fingerprint", "a local working form"],
+  ["/tools/storage-budget", "a local working form"],
   // Not calm because it is a document -- it is a full marketing page. It is on
   // this side because it renders its own <html> outside the SONARA shell, so
   // the stage and the depth script are not its to carry. The rule being checked

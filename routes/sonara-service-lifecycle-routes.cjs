@@ -861,31 +861,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   // Free tool pages and POST actions
   // ---------------------------------------------------------------------------
 
-  // Six of the forty tools compute for anybody. The other thirty-four need a
-  // plan. lib/sonara-tool-access.cjs holds which and why.
-  //
-  // The comment that used to stand here is worth keeping, because the thing it
-  // warned about is still the thing to get wrong. Until 19 August 2026 every
-  // tool was behind a login, and the effect was a funnel that advertised and
-  // then refused: /business-builder/tools listed ten tools by name and
-  // description, and every one of them answered a visitor who clicked it with a
-  // redirect to /login. Gating the *computation* did not drive a signup, it
-  // drove a bounce.
-  //
-  // The owner's decision on 1 October 2026 reduces the free set and puts the
-  // rest behind the paywall. That is a pricing decision. The funnel failure is
-  // not, so it is held here instead:
-  //
-  //   * a locked tool still answers 200 with a page naming it, what it works
-  //     out, and what opens it -- never a redirect, never a 404;
-  //   * the directory labels every entry, so a locked tool is never presented as
-  //     free before it refuses;
-  //   * the six that remain free are exactly the six the public home page names
-  //     under "Free, and no account needed", and a test reads server.js to check
-  //     that rather than trusting the list.
-  //
-  // Saving is unchanged: it still requires an account, for free and locked tools
-  // alike.
+  // Twelve studio tools compute anonymously, four per product. Paid tools
+  // still render a clearly labelled page; saving results requires an account.
 
   // What this request may do with this tool.
   //
@@ -944,7 +921,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         brandCard("What opens this", reason),
         brandCard(
           "What stays free",
-          "Six tools are free with no account and no card: break-even and runway, stock reorder, rate card, split sheet, campaign budget split, and referral reward. They are linked from the home page and from every tool directory."
+          "Four tools per studio are free with no account or card, plus three SONARA tools. See the free-tools directory for the complete list."
         )
       ],
       actions
@@ -1742,7 +1719,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           title: `${product.name} Tools`,
           eyebrow: "Tool directory",
           heading: `${product.name} tools`,
-          body: `Six tools across the three studios are free with no account and no card. The rest open on a plan that covers ${product.name}. Every tool below says which it is before you press anything.`,
+          body: `Four tools in each studio and three SONARA tools are free with no account and no card. The rest open on a plan that covers ${product.name}. Every tool below says which it is before you press anything.`,
           sections,
           actions: [linkAction(`/${product.slug}/start`, "Start guide"), linkAction(`/${product.slug}/technology`, "Technology references"), linkAction(`/${product.slug}`, product.name), linkAction("/login", "Login"), linkAction("/signup", "Create account")]
         })
@@ -1865,6 +1842,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       const contentCards = product.slug === "creator-studio"
         ? [
             actionCard("Basic Content Plan", "Two weeks of content planned from your niche, cadence, platforms, and pillars.", [linkAction("/creator-studio/tools/content-plan", "Open tool")]),
+            actionCard("Creative projects", "Connect assets, arrange clips, write captions, and download your project.", [linkAction("/creator-studio/projects", "Open projects")]),
             actionCard("Prompt and Brief Builder", "Structured creative briefs for every piece of content.", [linkAction("/creator-studio/tools/brief", "Open tool")]),
             actionCard("Releases", "Release checklists and packaging for launches.", [linkAction("/creator-studio/releases", "Open releases"), linkAction("/creator-studio/tools/release-checklist", "Checklist builder")])
           ]

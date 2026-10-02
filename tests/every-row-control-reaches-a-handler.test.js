@@ -81,7 +81,10 @@ const SEEDED_ROW = Object.freeze({
   price_cents: 1000,
   quantity: 1,
   email: "seeded@example.com",
-  archived_at: null
+  archived_at: null,
+  medium: "mixed",
+  revision: 1,
+  graph: { version: 1, nodes: [], edges: [] }
 });
 
 function stubFetch({ seeded }) {

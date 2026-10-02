@@ -6,6 +6,44 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
 test.describe("public experience browser contract", () => {
+  test("parent tools compute locally and expose results without signup", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    const uploads = [];
+    page.on("request", (req) => { if (req.method() === "POST") uploads.push(req.url()); });
+    await page.goto(`${BASE_URL}/tools/text-fingerprint`);
+    await page.getByLabel("Your text", { exact: true }).fill("abc");
+    await page.getByRole("button", { name: "Calculate result" }).click();
+    await expect(page.locator("[data-tool-result]")).toContainText("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    await expect(page.locator("[data-tool-download]")).toBeVisible();
+    await page.getByLabel("Your text", { exact: true }).fill("changed");
+    await expect(page.locator("[data-tool-download]")).toBeHidden();
+    await page.goto(`${BASE_URL}/tools/data-formatter`);
+    await page.getByLabel("Your JSON", { exact: true }).fill('{"owned":true}');
+    await page.getByRole("button", { name: "Calculate result" }).click();
+    await expect(page.locator("[data-tool-result]")).toContainText("owned");
+    await page.getByLabel("Your JSON", { exact: true }).fill('{"unsafe":9007199254740993}');
+    await page.getByRole("button", { name: "Calculate result" }).click();
+    await expect(page.locator("[data-tool-status]")).toContainText("too large");
+    await expect(page.locator("[data-tool-download]")).toBeHidden();
+    await page.goto(`${BASE_URL}/tools/storage-budget`);
+    await page.getByLabel("Number of files").fill("10");
+    await page.getByLabel("Average file size").fill("1");
+    await page.getByLabel("Total copies").fill("2");
+    await page.getByRole("button", { name: "Calculate result" }).click();
+    await expect(page.locator("[data-tool-result]")).toContainText("20971520");
+    expect(errors).toEqual([]);
+    expect(uploads).toEqual([]);
+  });
+
+  test("public tool forms fit on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`${BASE_URL}/tools/data-formatter`);
+    await expect(page.locator("[data-parent-tool]")).toBeVisible();
+    const width = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
+    expect(width.scroll).toBeLessThanOrEqual(width.client + 1);
+  });
+
   for (const route of PUBLIC_ROUTES) {
     test(`${route} loads without a server error`, async ({ page }) => {
       const response = await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });

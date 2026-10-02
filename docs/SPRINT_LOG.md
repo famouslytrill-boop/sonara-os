@@ -2,6 +2,29 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - Creator Project Graph and fifteen anonymous tools
+
+Built on Claude's main baseline a9aa277. Added private creative projects with
+owned source references, clip placement/mute, timed captions, optimistic
+revision updates, archive/restore, and real JSON/WebVTT/CSV downloads. Reused
+the existing asset library and storage. Updated the Creator dashboard/catalog,
+route/OpenAPI/schema contracts, migration checksums and capability inventory.
+Exactly four studio tools per child are public, plus three local SONARA tools.
+Their results need no signup. The graph itself opens through the existing
+Creator subscription guard, without an intake/quote or provider requirement.
+
+The full suite passed: 5,459 tests, six existing pending. Dependency audit,
+parse/type/lint/build and API/route/schema checks passed. Isolated PostgreSQL/WASM
+execution validated the graph migration and privileges; native full-history
+replay and rendered browser checks could not run locally. Browser downloads
+were truncated; this container cannot switch to an unprivileged user for
+PostgreSQL initdb. CI must supply that evidence before merge/activation.
+
+`docs/architecture/CREATOR_PROJECT_GRAPH_V1.md` records implemented behavior
+and the larger marketplace/community/device/worker/subscription-allowance
+roadmap. Research entries are not silently installed or enabled. Production
+migration application and deployment are still outstanding.
+
 ### 2026-10-02 - A test that was only true on the day it was written
 
 `main` went red overnight with nothing pushed to it. Two tests in
