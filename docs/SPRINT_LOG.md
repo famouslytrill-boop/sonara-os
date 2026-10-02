@@ -2,6 +2,99 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-02 - A confirmed seat is a seat
+
+Growth Studio could plan a campaign and capture a lead. It could not hold a date,
+a place, and the people who said they would be there -- which is what a lot of
+small businesses and most creators actually run on.
+
+**The defect this was built to refuse.** An RSVP system that silently accepts more
+people than the room holds hands somebody a confirmation that is not true, and
+they find out at the door. That is this repository's recurring defect -- a signal
+that reports success without being true -- in its most expensive form, because the
+person who believed it travelled.
+
+**Capacity is three-state, and that is the whole feature.** A number, or nobody has
+recorded one. Absent read as unlimited silently oversells a real room; absent read
+as zero refuses every event whose owner left the box empty. So the third answer is
+the honest one: `admit` returns `capacity_not_recorded`, a distinct outcome from
+`confirmed`, and the page says in words that no capacity is recorded so this is a
+registration of interest rather than a confirmed seat. `capacity integer` is
+nullable on both tables, the migration's `do $$` block asserts it against the live
+catalogue, and `scripts/verify-supabase-contract.mjs` asserts the declaration that
+produces it.
+
+**Seats, not rows.** One row for a family of four takes four. A party that does not
+fit whole is waitlisted whole -- confirming two of four and saying "confirmed" is
+the lie, and splitting the row silently decides which two of somebody's family are
+coming. A waitlisted or withdrawn row counts for nothing, or an owner turns people
+away from a room with space in it.
+
+**An unreadable count is not an empty one.** `seatsTaken` carries `{ ok }`, and
+`admit` refuses rather than confirming when it could not read who is already
+coming. Confirming against a count you do not have is how a room gets oversold by
+a page that looked like it checked.
+
+**A cancelled event stays readable.** `status` is draft / published / cancelled and
+cancelled is not a soft delete: somebody holding an RSVP opens the page they were
+given and is told, where a 404 tells them nothing. Cancellation keeps the slug, and
+a test asserts the cancel handler does not clear it.
+
+**What it deliberately does not do.** It sends nothing -- AGENTS.md puts alerts off
+or user-controlled by default, so an RSVP is recorded and nobody is messaged, and a
+test greps both files for every send path. It takes no money: an RSVP is not a
+ticket, and the migration asserts against the live catalogue that no column here
+holds a price, an amount or a card. And the public page shows counts, never people:
+`publicSummary` has no name or email field by construction, and the public read
+selects `party_size,state` and nothing else, because the cheapest way never to leak
+a field is never to fetch it.
+
+**Two cross-tenant reads I had left open.** `report-tenant-scoped-queries.mjs`
+named four unfiltered reads. Two are global by design and are recorded with their
+standing-in filter: the public page finds an event by a globally unique slug, and
+the publish handler has to look across organizations to answer "that address is
+taken". **The other two were laziness** -- the venue read and the public RSVP count
+both had the event's organization in hand and did not use it, and the venue one
+would have rendered another tenant's name and address on a public page if
+`venue_id` ever crossed the boundary. Both carry `organization_id=eq.` now.
+
+**A gate too narrow for a safe shape.** `tests/every-write-names-a-business.test.js`
+accepted `organization_id: page.organization_id` -- one dot -- and reported
+`POST /events/:slug` as writing with the service key and never establishing whose
+data it is, because mine reads `found.event.organization_id`. Widened to any dotted
+path, with the request excluded at every depth, and a new test feeds
+`req.body.organization_id`, `request.body.organization_id` and
+`outer.req.body.organization_id` straight in to prove the widening did not let the
+bug through.
+
+**Two false positives in a contract check I had just written**, both shape 7 --
+pattern matching prose as code. The money check scanned the whole migration and
+failed on the do-block that names `'%price%'` and `'%card%'` in order to assert no
+such column exists; narrowed to the schema half, it still failed on the header
+comment saying AGENTS.md "forbids storing raw card data or CVV". It splits at
+`do $$` and strips SQL comments with `lib/sonara-comment-stripping.cjs` now, and
+fails loudly if the split ever stops working.
+
+Six contract assertions falsified, each failing by name and restored with
+`md5sum -c`: capacity made `not null default 0`, `attending` made
+`not null default false`, the one-person-per-event unique index removed, a price
+column added, the published-needs-slug constraint removed, a delete grant added.
+Seven against the code: unrecorded capacity treated as room (1 red), partial
+admission allowed (3 red), an unreadable list counted as zero (5 red), waitlisted
+rows counted against the room (1 red), an unanswered answer written as false (2
+red), the public read selecting names and emails (1 red), and cancel clearing the
+slug (1 red).
+
+`verify:migration-replay` applies 142 migrations in order to an empty PostgreSQL
+with every `do $$` assertion executing. Suite 5599 passing, and the tenant-query
+audit reports 0 unfiltered.
+
+**Not built, and worth saying plainly.** The owner's brief for Growth Studio also
+named public access channels, radio creation, streaming, and text and video chat.
+None of that is here. This is the date-place-people core, which is the part that
+stands alone and had a schema worth getting right; a broadcast channel is its own
+change with its own consent and moderation questions.
+
 ### 2026-10-02 - The parent company gets a front door, and five pages stop holding the same number
 
 The owner's decision: four free tools in each studio rather than two, and three

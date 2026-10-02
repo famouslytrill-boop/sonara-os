@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3041 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3044 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 141 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 142 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 419 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 420 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,106 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 421 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 20 most recent entries of 422 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - A confirmed seat is a seat
+
+Growth Studio could plan a campaign and capture a lead. It could not hold a date,
+a place, and the people who said they would be there -- which is what a lot of
+small businesses and most creators actually run on.
+
+**The defect this was built to refuse.** An RSVP system that silently accepts more
+people than the room holds hands somebody a confirmation that is not true, and
+they find out at the door. That is this repository's recurring defect -- a signal
+that reports success without being true -- in its most expensive form, because the
+person who believed it travelled.
+
+**Capacity is three-state, and that is the whole feature.** A number, or nobody has
+recorded one. Absent read as unlimited silently oversells a real room; absent read
+as zero refuses every event whose owner left the box empty. So the third answer is
+the honest one: `admit` returns `capacity_not_recorded`, a distinct outcome from
+`confirmed`, and the page says in words that no capacity is recorded so this is a
+registration of interest rather than a confirmed seat. `capacity integer` is
+nullable on both tables, the migration's `do $$` block asserts it against the live
+catalogue, and `scripts/verify-supabase-contract.mjs` asserts the declaration that
+produces it.
+
+**Seats, not rows.** One row for a family of four takes four. A party that does not
+fit whole is waitlisted whole -- confirming two of four and saying "confirmed" is
+the lie, and splitting the row silently decides which two of somebody's family are
+coming. A waitlisted or withdrawn row counts for nothing, or an owner turns people
+away from a room with space in it.
+
+**An unreadable count is not an empty one.** `seatsTaken` carries `{ ok }`, and
+`admit` refuses rather than confirming when it could not read who is already
+coming. Confirming against a count you do not have is how a room gets oversold by
+a page that looked like it checked.
+
+**A cancelled event stays readable.** `status` is draft / published / cancelled and
+cancelled is not a soft delete: somebody holding an RSVP opens the page they were
+given and is told, where a 404 tells them nothing. Cancellation keeps the slug, and
+a test asserts the cancel handler does not clear it.
+
+**What it deliberately does not do.** It sends nothing -- AGENTS.md puts alerts off
+or user-controlled by default, so an RSVP is recorded and nobody is messaged, and a
+test greps both files for every send path. It takes no money: an RSVP is not a
+ticket, and the migration asserts against the live catalogue that no column here
+holds a price, an amount or a card. And the public page shows counts, never people:
+`publicSummary` has no name or email field by construction, and the public read
+selects `party_size,state` and nothing else, because the cheapest way never to leak
+a field is never to fetch it.
+
+**Two cross-tenant reads I had left open.** `report-tenant-scoped-queries.mjs`
+named four unfiltered reads. Two are global by design and are recorded with their
+standing-in filter: the public page finds an event by a globally unique slug, and
+the publish handler has to look across organizations to answer "that address is
+taken". **The other two were laziness** -- the venue read and the public RSVP count
+both had the event's organization in hand and did not use it, and the venue one
+would have rendered another tenant's name and address on a public page if
+`venue_id` ever crossed the boundary. Both carry `organization_id=eq.` now.
+
+**A gate too narrow for a safe shape.** `tests/every-write-names-a-business.test.js`
+accepted `organization_id: page.organization_id` -- one dot -- and reported
+`POST /events/:slug` as writing with the service key and never establishing whose
+data it is, because mine reads `found.event.organization_id`. Widened to any dotted
+path, with the request excluded at every depth, and a new test feeds
+`req.body.organization_id`, `request.body.organization_id` and
+`outer.req.body.organization_id` straight in to prove the widening did not let the
+bug through.
+
+**Two false positives in a contract check I had just written**, both shape 7 --
+pattern matching prose as code. The money check scanned the whole migration and
+failed on the do-block that names `'%price%'` and `'%card%'` in order to assert no
+such column exists; narrowed to the schema half, it still failed on the header
+comment saying AGENTS.md "forbids storing raw card data or CVV". It splits at
+`do $$` and strips SQL comments with `lib/sonara-comment-stripping.cjs` now, and
+fails loudly if the split ever stops working.
+
+Six contract assertions falsified, each failing by name and restored with
+`md5sum -c`: capacity made `not null default 0`, `attending` made
+`not null default false`, the one-person-per-event unique index removed, a price
+column added, the published-needs-slug constraint removed, a delete grant added.
+Seven against the code: unrecorded capacity treated as room (1 red), partial
+admission allowed (3 red), an unreadable list counted as zero (5 red), waitlisted
+rows counted against the room (1 red), an unanswered answer written as false (2
+red), the public read selecting names and emails (1 red), and cancel clearing the
+slug (1 red).
+
+`verify:migration-replay` applies 142 migrations in order to an empty PostgreSQL
+with every `do $$` assertion executing. Suite 5599 passing, and the tenant-query
+audit reports 0 unfiltered.
+
+**Not built, and worth saying plainly.** The owner's brief for Growth Studio also
+named public access channels, radio creation, streaming, and text and video chat.
+None of that is here. This is the date-place-people core, which is the part that
+stands alone and had a schema worth getting right; a broadcast channel is its own
+change with its own consent and moderation questions.
+
+
 
 ### 2026-10-02 - The parent company gets a front door, and five pages stop holding the same number
 
@@ -2069,152 +2164,3 @@ properties on live files that nothing checks -- `check-provider-registry.mjs` re
 asserts `serverOnlyEnv` is declared and that session replay is not on by default.
 `report-unreferenced-modules.mjs` covers `lib/` and `routes/` by design and says so;
 `scripts/` has no equivalent, and that gate is the next piece of work.
-
-
-
-### 2026-09-30 - A radar record could waive its own review, and the check for it passed
-
-`data/github-radar-repos.ts` holds 15 external repositories under review. Each record
-carries four review flags -- owner, legal, security, privacy -- plus `autoInstall`.
-`AGENTS.md` is why they exist: radar and screenshot-sourced records stay non-executing
-until a separate implementation review promotes them, and outside package managers and
-agent frameworks do not replace SONARA's contracts without an explicit architecture
-decision.
-
-Four scripts read that file. **Nothing ran any of them** -- no `package.json` script,
-no workflow, no test. The only caller was `scripts/verify-all.mjs`, which nothing runs
-either. Two more, `check-auto-install-disabled.mjs` and `check-github-radar-secrets.mjs`,
-read `lib/github-radar/*.ts`, a directory this repository does not have, and exited with
-`ENOENT`.
-
-And the one that guarded `autoInstall` asked whether the **file** contained the string,
-once:
-
-    for (const required of ["autoInstall: false", "ownerReviewRequired", ...])
-      if (!text.includes(required)) findings.push(...);
-
-Fourteen of the fifteen records could have carried `autoInstall: true` and it would have
-passed, because the fifteenth still said false. `ownerReviewRequired` was matched as a
-bare substring -- the field **name** -- so every record could have set it to `false` and
-the check would have found the name and been satisfied. Shape 6: too weak for the bug it
-was written for.
-
-**The hole that was genuinely open.** `verify:ts-contracts` does type-check this file, and
-the type declares `autoInstall: false` as a *literal*, so TypeScript already refuses
-`true`. That one field was protected. The four review flags are declared `boolean`, so
-`ownerReviewRequired: false` compiles, passes every gate in the release chain, and was
-checked by nothing. All fifteen records set all four to true today **by convention**.
-
-**Proven, not argued.** With `ownerReviewRequired: false` planted in the first record,
-`node scripts/check-github-radar.mjs` printed "GitHub Radar check passed." and exited 0,
-and `pnpm run verify:ts-contracts` was clean as well.
-
-`scripts/verify-github-radar-review-flags.mjs` replaces all four, wired into
-`verify:gates` as `verify:radar-review-flags` (chain 65 -> 66). It asserts per record:
-four flags literally `true`, `autoInstall` literally `false`, a blocked record carrying a
-`blockedReason` and a matching integration status and no recommendation to adopt it, a
-score inside 0-100, and a licence needing legal review not recorded as `allowed` without
-one. It also asserts the **type** still declares `autoInstall` as a literal, because
-widening it to `boolean` would delete the only check that field had while breaking
-nothing visible.
-
-One deliberate difference from the script it replaces: the licence test reads the declared
-`license` field rather than matching the whole record. The old version matched
-`recommendedAction` prose, and "Review as GPL-licensed reference" is a sentence about a
-licence, not a licence.
-
-**Six scripts deleted:** the four radar checks and the two that could not run.
-`verify:doc-script-paths` -- now scanning `.claude/` -- caught the marketing-copy skill
-still naming one of them, and the correction found a second error in that sentence: the
-skill said it read `data/open-source-tools.ts` and failed on public copy, when it read
-`data/github-radar-repos.ts` and checked the register's own `recommendedAction`. The
-competitor-comparison skill carried the same wrong sentence. Both now name the gates that
-run, and say what the old line got wrong.
-
-**Falsified before being trusted**, each restored by copy-aside and `md5sum -c`:
-
-- `ownerReviewRequired: false` -> named by record and field; the old check passed
-- the `autoInstall` literal widened to `boolean` -> "removes the guarantee without
-  breaking anything visible"
-- a blocked record left at `review_queue` -> "read as queued by whatever looks at the
-  status"
-- `verify:radar-review-flags` removed from the chain -> the test fails with "is not
-  reachable from verify:launch"
-
-
-
-### 2026-09-30 - A rule three documents said was enforced, by a scanner nothing ran
-
-`AGENTS.md` states it plainly: retired public names must not appear in active UI,
-navigation, metadata, manifests, tests or launch docs. The enforcement was
-`scripts/check-no-legacy-public-copy.mjs`, and three documents said so --
-`.claude/skills/writing-sonara-marketing-copy/SKILL.md` said it "fails the release
-if one comes back", the social-post skill said it "fails the build", an audit record
-described its patterns.
-
-It was false in two independent ways, both measured:
-
-1. **Nothing ran it.** No `package.json` script, no workflow, no test named it.
-   `scripts/verify-all.mjs` did -- and nothing runs that either, while **24 of the
-   34** pnpm scripts it lists no longer exist, so it dies on its second command.
-   `pnpm run verify:all` maps to `verify:launch`, which never included it, so the
-   obvious command silently ran something else.
-2. **It could not run.** Its first scan root was `app/`, a Next.js directory this
-   Express repository does not have, so it exited with `ENOENT` before reading one
-   file. Its root list also omitted `routes/` and `server.js`, so even repaired it
-   would never have scanned the runtime it was said to protect.
-
-That is the recurring defect in its worst form. Not a check reporting a false pass
--- a sentence in a skill that somebody writing customer copy reads and believes,
-standing in for a check that cannot execute.
-
-**`scripts/verify-retired-public-names.mjs` replaces it**, wired into `verify:gates`
-as `verify:retired-names` (chain 64 -> 65 commands). It reads the names from a
-delimited ledger in `docs/archive/legacy-names.md` rather than holding a copy, which
-buys two things: a name added to the archive is enforced without anybody remembering
-there is a scanner, and the gate spells none of the names it blocks, so it needs no
-exemption from its own rule -- it sits inside the population it scans.
-
-The old hard-coded list had already drifted. It blocked a string the archive does not
-retire, one that appears in a `Dockerfile` header, a brand-asset filename, three
-claim-boundary sentences in `lib/` and the names of three archived billing plans.
-Enforcing it would have produced five findings that are not violations, which is how
-a check gets switched off.
-
-**Today the guarantee holds:** 6 ledger entries searched across 1,283 files (308
-runtime, 88 under `public/`, 2 Android manifests, 14 data files, 413 tests, 458
-documents). Five files contain a retired name and all five are dated audit records
-registered with a reason checked against the file -- two-sided, so an entry whose
-document stops containing one fails too.
-
-**`verify:doc-script-paths` now scans `.claude/` as well as `docs/`.** A skill is a
-stronger claim than a report: it is read as an instruction for work happening now.
-Adding the 12 skill documents immediately caught the deleted scanner still named in
-the marketing-copy skill, which the old scope would have missed entirely. 89 distinct
-script paths across 468 documents, 69 present, 20 registered as history.
-
-**Falsified before being trusted**, each break watched fail by name and each file
-restored by copy-aside and `md5sum -c`:
-
-- a retired name appended to `lib/sonara-runtime-source-files.cjs` -> named as an
-  unregistered runtime file
-- the same appended to an existing file under `public/` -> named, proving that group
-  is really read
-- the ledger's opening marker misspelled -> "has no RETIRED_PUBLIC_NAMES block ...
-  every file reads clean and the pass means nothing"
-- the ledger trimmed to two entries -> "the ledger parse has gone blind"
-- a `RECORDED_HISTORY` entry pointed at a document holding no retired name -> "the
-  reason now describes nothing"
-- `verify:retired-names` removed from the chain -> the test fails with "is not
-  reachable from verify:launch"
-- a blocked name hard-coded into the gate -> "spells 1 of the names it blocks, so it
-  has to be exempted from its own rule"
-- the `public/` group pointed at a directory that is not there -> "scanned 0 public
-  file(s) ... that group has gone blind"
-
-**Still open, and deliberately not touched here:** 24 further files in `scripts/`
-that no `package.json` script, workflow or test invokes, including
-`scripts/verify-all.mjs` itself and three more that crash on directories this
-repository no longer has. `report-unreferenced-modules.mjs` covers `lib/` and
-`routes/` by design and says so; `scripts/` has no such check. That is the next
-piece of work, not a gap in this one.

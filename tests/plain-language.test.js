@@ -322,7 +322,13 @@ describe("signed-in workspaces speak plainly", () => {
   // instead by tests/an-unanswered-disclosure-is-not-a-no.test.js, which drives the
   // route with the guard stubbed and asserts both the sentence it shows when a
   // version is cleared and the one it shows when a disclosure is unanswered.
-  const SIGNED_IN_SKIPPED = 110;
+  // 110 -> 111 on 2 October 2026: /growth-studio/owner/events is behind
+  // requireWorkspaceAccess("growth_studio") and needs a resolved organization, so
+  // a signed-out crawl gets a 503 and never reads its copy. Its copy is read
+  // instead by tests/a-confirmed-seat-is-a-seat.test.js, which drives the route
+  // with the guard stubbed. The public half, /events/:slug, is parameterised and
+  // was never in this crawl -- that page's wording is asserted in the same file.
+  const SIGNED_IN_SKIPPED = 111;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

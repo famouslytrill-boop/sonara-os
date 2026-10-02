@@ -169,6 +169,33 @@ const READ_WITHOUT_ORGANIZATION = [
       "somebody else' rather than handing the owner a constraint violation -- the " +
       "comment above it says so. organization_id is the only column selected, and " +
       "it is compared against the caller's own."
+  },
+  {
+    file: "routes/sonara-growth-event-routes.cjs",
+    table: "growth_events",
+    requires: ["status=neq.draft"],
+    reason:
+      "GET and POST /events/:slug, registered with no guard -- a published event's " +
+      "public page. The slug IS the scope: growth_events_slug_key makes it unique " +
+      "across the table, so one slug names one event, and status=neq.draft means an " +
+      "unpublished one cannot be reached by guessing addresses. A stranger has no " +
+      "organization to be filtered to. The same shape as /book/:slug. Two reads " +
+      "that could have been scoped and were not -- the venue by id and the RSVP " +
+      "count -- were tightened rather than exempted when this check named them; " +
+      "they carry organization_id=eq. from the event now."
+  },
+  {
+    file: "routes/sonara-growth-event-routes.cjs",
+    table: "growth_events",
+    requires: ["select=id&slug=eq."],
+    reason:
+      "The slug-uniqueness check inside POST /api/growth/events/publish, which does " +
+      "require growth_studio workspace access. It has to look across organizations " +
+      "to answer 'taken by somebody else' rather than handing the owner a " +
+      "constraint violation with no explanation. `id` is the only column selected " +
+      "and it is compared against the caller's own event id, so nothing from " +
+      "another organization reaches the page. Same reasoning as the " +
+      "lead_capture_pages entry above."
   }
 ];
 
