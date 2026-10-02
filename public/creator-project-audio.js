@@ -79,6 +79,8 @@
   if (typeof module !== "undefined" && module.exports) { module.exports = { readWav, render }; return; }
   if (typeof document === "undefined") {
     self.onmessage = (event) => {
+      // Dedicated-worker messages have an empty origin; reject window-style messages.
+      if (event.origin !== "") return;
       try { const result = render(event.data.graph, event.data.files); self.postMessage(result, [result.bytes]); }
       catch (error) { self.postMessage({ error: error.message }); }
     };
@@ -111,6 +113,7 @@
       }
       worker = new window.Worker("/creator-project-audio.js");
       worker.onmessage = (message) => {
+        if (message.origin !== "") return;
         if (current !== revision) return;
         worker.terminate(); worker = null; run.disabled = false;
         if (message.data.error) { status.textContent = message.data.error; return; }

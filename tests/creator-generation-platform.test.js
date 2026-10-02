@@ -6,6 +6,7 @@ const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/creator-generation-routes.cjs");
+const { createRateLimiter, __resetInMemoryBucketsForTests } = require("../lib/sonara-rate-limit.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
@@ -17,6 +18,7 @@ function buildApp({ paid = true, configOk = true, activityEvents = null, generat
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
   registerRoutes(app, {
+    createRateLimiter: (options) => createRateLimiter({ ...options, getSupabaseServerConfig: () => ({ ok: false }) }),
     layout: ({ title, heading, body, sections = [] }) => `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p>${sections.join("")}</html>`,
     brandCard: (title, body) => `<article><h2>${title}</h2><p>${body}</p></article>`,
     linkAction: (href, label) => `<a href="${href}">${label}</a>`,
@@ -72,6 +74,7 @@ describe("Creator Studio generation platform", () => {
   let originalEnv;
 
   beforeEach(() => {
+    __resetInMemoryBucketsForTests();
     originalFetch = global.fetch;
     originalEnv = { ...process.env };
   });
@@ -92,6 +95,18 @@ describe("Creator Studio generation platform", () => {
     assert.ok(result.body.providers.some((item) => item.key === "higgsfield"));
     assert.ok(result.body.providers.some((item) => item.key === "openvoice"));
     assert.doesNotMatch(JSON.stringify(result.body), /top-secret-key/);
+  });
+
+  it("bounds generation submission bursts before database or provider work", async () => {
+    const app = buildApp({ configOk: false }); let calls = 0;
+    global.fetch = async () => { calls++; throw new Error("must not dispatch"); };
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const result = await request(app).post("/api/creator/generation/jobs").send({});
+      assert.equal(result.status, 503);
+    }
+    const refused = await request(app).post("/api/creator/generation/jobs").send({});
+    assert.equal(refused.status, 429); assert.equal(refused.body.code, "rate_limited");
+    assert.ok(Number(refused.headers["retry-after"]) > 0); assert.equal(calls, 0);
   });
 
   it("requires paid Creator Studio access", async () => {

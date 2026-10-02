@@ -3,6 +3,7 @@
 "use strict";
 
 const { createHash, randomUUID } = require("node:crypto");
+const { createRateLimiter } = require("../lib/sonara-rate-limit.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getProvider,
@@ -131,6 +132,12 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
   const access = (deps.requirePaidOrOwnerAccess || requireWorkspaceAccess)("creator_studio");
   const ui = buildUi(deps);
+  // Transport abuse protection, separate from subscription usage and provider quotas.
+  const submissionLimiter = (deps.createRateLimiter || createRateLimiter)({
+    name: "creator.generation.submit", windowSeconds: 60, maxAttempts: 120,
+    scopes: ["ip", "subject"], subjectFrom: (req) => req.sonaraUser?.id,
+    getSupabaseServerConfig: deps.getSupabaseServerConfig
+  });
 
   app.get("/api/creator/studio/capabilities", access, (req, res) => {
     return res.status(200).json({
@@ -240,7 +247,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     return res.status(200).json({ ok: true, job: job.job, assets: assets.rows });
   });
 
-  app.post("/api/creator/generation/jobs", access, async (req, res) => {
+  app.post("/api/creator/generation/jobs", access, submissionLimiter, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return send(req, res, context, "/creator-studio/generation", ui);
     const config = getConfig(deps);
@@ -300,13 +307,13 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     // clear, and the `/creator-studio/generation` list would fill with them.
     const jobId = randomUUID();
     if (initialStatus === "queued") {
-      const authorised = await authoriseGenerationCredit({ config, context, capability, parameters, jobId, deps });
-      if (!authorised.allowed) {
+      const reservation = await reserveIncludedGeneration({ config, context, capability, parameters, jobId, deps });
+      if (!reservation.allowed) {
         return send(req, res, {
           ok: false,
-          status: authorised.httpStatus,
-          code: authorised.code,
-          reasons: [authorised.reason]
+          status: reservation.httpStatus,
+          code: reservation.code,
+          reasons: [reservation.reason]
         }, "/creator-studio/generation", ui);
       }
     }
@@ -930,7 +937,7 @@ function usageFor(deps) {
   return typeof deps.generationAllowance === "function" ? deps.generationAllowance : generationAllowance;
 }
 
-async function authoriseGenerationCredit({ config, context, capability, parameters, jobId, deps }) {
+async function reserveIncludedGeneration({ config, context, capability, parameters, jobId, deps }) {
   const basis = generationPreflight({ capability, parameters });
   if (!basis.ok) return { allowed: false, httpStatus: 500, code: basis.code, reason: basis.detail };
   const estimate = quote(basis.capability, basis.units);

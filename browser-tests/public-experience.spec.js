@@ -5,6 +5,16 @@ const { test, expect } = require("@playwright/test");
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const PUBLIC_ROUTES = ["/", "/pricing", "/products"];
 
+async function mountLocalComponent(page, markup, scriptPath) {
+  const inertMarkup = await page.evaluate((html) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    for (const script of doc.querySelectorAll("script")) script.remove();
+    return doc.body.innerHTML;
+  }, markup);
+  await page.setContent(inertMarkup);
+  await page.addScriptTag({ url: `${BASE_URL}${scriptPath}` });
+}
+
 test.describe("public experience browser contract", () => {
   test("project audio renders a real WAV locally and clears stale outputs", async ({ page }) => {
     const errors = [], uploads = [];
@@ -19,8 +29,7 @@ test.describe("public experience browser contract", () => {
     const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
     await page.goto(`${BASE_URL}/tools`);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.setContent(audioRenderForm(project, esc).replace(/<script[\s\S]*?<\/script>/, ""));
-    await page.addScriptTag({ url: `${BASE_URL}/creator-project-audio.js` });
+    await mountLocalComponent(page, audioRenderForm(project, esc), "/creator-project-audio.js");
     const wav = Buffer.alloc(204);
     wav.write("RIFF", 0); wav.writeUInt32LE(196, 4); wav.write("WAVEfmt ", 8); wav.writeUInt32LE(16, 16);
     wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
@@ -51,8 +60,7 @@ test.describe("public experience browser contract", () => {
     await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true }));
     await page.goto(`${BASE_URL}/tools`);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.setContent(LOCAL_IMAGE_FORM.replace(/<script[\s\S]*?<\/script>/, ""));
-    await page.addScriptTag({ url: `${BASE_URL}/creator-local-image.js` });
+    await mountLocalComponent(page, LOCAL_IMAGE_FORM, "/creator-local-image.js");
     const pixels = await page.evaluate(async () => {
       const canvas = document.createElement("canvas"); canvas.width = 2; canvas.height = 1;
       canvas.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray([100, 50, 20, 255, 0, 255, 10, 255]), 2, 1), 0, 0);

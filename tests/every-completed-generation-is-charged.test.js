@@ -116,13 +116,13 @@ describe("every completed generation is charged", () => {
     // refusals, for work nobody was going to do.
     assert.match(
       ROUTE,
-      /if \(initialStatus === "queued"\) \{\s*\n\s*const authorised = await authoriseGenerationCredit/,
+      /if \(initialStatus === "queued"\) \{\s*\n\s*const reservation = await reserveIncludedGeneration/,
       "the credit check must be conditional on the job being queued"
     );
   });
 
   it("refuses before the job row is written", () => {
-    const gate = ROUTE.indexOf("const authorised = await authoriseGenerationCredit");
+    const gate = ROUTE.indexOf("const reservation = await reserveIncludedGeneration");
     const insertJob = ROUTE.indexOf("const created = await insert(config, JOB_TABLE,");
     assert.ok(gate > 0 && insertJob > 0, "one of the two is missing");
     assert.ok(
