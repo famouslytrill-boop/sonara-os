@@ -135,5 +135,8 @@
   "20261001120000_payroll_keys_on_the_employee_table_with_a_product.sql": "2524d65ff925c7a99eab49442ac506624a0e1d205dbbde545a4eb38d0d6b0f8e",
   "20261001150000_a_business_owner_gets_a_second_thing_to_know.sql": "bdeaec272f57eba6d2567b871dc688a6cc2b526cb6e13488840be75c26679b8c",
   "20261001160000_work_that_comes_round_again.sql": "335f2651a43c880255627127d62899c96dc3292d91b36a1ab91df1b3e39546bd",
-  "20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql": "0af2d7675daeee42d35f0a992decae13b84447fb2e909eae9407714cc9c2b287"
+  "20261001190000_tool_permissions_on_the_tenant_that_runs_them.sql": "0af2d7675daeee42d35f0a992decae13b84447fb2e909eae9407714cc9c2b287",
+  "20260905190000_sync_catalog_plan_floors.sql": "31b42da3dd536235755970216665f78de398dc8bf04980ba803a1ac2f176199d",
+  "20260905193000_published_catalog_is_complete.sql": "78f762b6751b29c8c74db218b7d7c09b71f98090e389c6648a148c23b577d8a7",
+  "20261002090000_creator_project_graph.sql": "524b5f605422054d7abb6565284e4565caef45ae997d9df69ba709484207e731"
 }

@@ -171,7 +171,8 @@ function entitledFetch() {
     if (table === "organizations") return ok([{ id: ORGANIZATION_ID, name: "Plain Language Ltd" }]);
     if (table === "billing_entitlements") {
       const asked = decodeURIComponent((target.match(/entitlement_key=in\.\(([^)]*)\)/) || ["", ""])[1]).split(",").filter(Boolean);
-      return ok(asked[0] ? [{ entitlement_key: asked[0], status: "active" }] : []);
+      const granted = asked.includes("all_three_monthly") ? "all_three_monthly" : asked[0];
+      return ok(granted ? [{ entitlement_key: granted, status: "active" }] : []);
     }
     // Every other read succeeds and returns nothing, so a page renders its
     // empty state rather than its outage state.
@@ -316,7 +317,10 @@ describe("signed-in workspaces speak plainly", () => {
   // signed-out crawl. Its copy is read by
   // tests/work-that-comes-round-again-comes-round-once.test.js instead, which
   // drives the route with the guard stubbed.
-  const SIGNED_IN_SKIPPED = 109;
+  // 109 -> 110 on 2 October: the new subscribed Creator projects page also
+  // refuses the outage stub's unreadable entitlement. The entitled pass above
+  // reads its actual empty state; creator-project-graph.test.js exercises edits.
+  const SIGNED_IN_SKIPPED = 110;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

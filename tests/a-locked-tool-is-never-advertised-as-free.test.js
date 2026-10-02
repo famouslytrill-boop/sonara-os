@@ -163,7 +163,7 @@ describe("a locked tool is never advertised as free", () => {
         /the free tools in all three studios/,
         "the free plan still advertises the tools in all three studios"
       );
-      assert.match(description, /six free tools/i, "the free plan no longer says how many tools are free");
+      assert.match(description, /twelve free studio tools and three SONARA tools/i, "the free plan no longer says how many tools are free");
     });
 
     // The marketing page named individual tools that are now behind the plan.

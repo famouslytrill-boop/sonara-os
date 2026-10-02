@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3039 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3043 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 140 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 39 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 417 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- Supabase over PostgREST for data. 143 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- 43 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
+- 418 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,36 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 21 most recent entries of 419 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 22 most recent entries of 420 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-02 - Creator Project Graph and fifteen anonymous tools
+
+Built on Claude's main baseline a9aa277. Added private creative projects with
+owned source references, clip placement/mute, timed captions, optimistic
+revision updates, archive/restore, and real JSON/WebVTT/CSV downloads. Reused
+the existing asset library and storage. Updated the Creator dashboard/catalog,
+route/OpenAPI/schema contracts, migration checksums and capability inventory.
+Exactly four studio tools per child are public, plus three local SONARA tools.
+Their results need no signup. The graph itself opens through the existing
+Creator subscription guard, without an intake/quote or provider requirement.
+
+The full suite passed: 5,459 tests, six existing pending. Dependency audit,
+parse/type/lint/build and API/route/schema checks passed. Isolated PostgreSQL/WASM
+execution validated the graph migration and privileges; native full-history
+replay and rendered browser checks could not run locally. Browser downloads
+were truncated; this container cannot switch to an unprivileged user for
+PostgreSQL initdb. CI must supply that evidence before merge/activation.
+
+`docs/architecture/CREATOR_PROJECT_GRAPH_V1.md` records implemented behavior
+and the larger marketplace/community/device/worker/subscription-allowance
+roadmap. Research entries are not silently installed or enabled. Production
+migration application and deployment are still outstanding.
+
+
 
 ### 2026-10-02 - A test that was only true on the day it was written
 

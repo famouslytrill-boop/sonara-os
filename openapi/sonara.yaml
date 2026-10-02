@@ -3146,6 +3146,113 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+
+  /api/creator-studio/projects:
+    get:
+      operationId: listCreatorProjects
+      summary: List the latest 100 projects in the subscribed creator workspace
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tenant-scoped projects and a truncation indicator
+        '503':
+          description: Workspace or project storage unavailable
+    post:
+      operationId: createCreatorProject
+      summary: Create a private creative project with an empty graph
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, medium]
+              properties:
+                title: {type: string, minLength: 1, maxLength: 180}
+                medium: {type: string, enum: [audio, video, image, mixed]}
+      responses:
+        '200':
+          description: Saved project
+        '400':
+          description: Invalid title or medium
+  /api/creator-studio/projects/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      operationId: getCreatorProject
+      summary: Read a project belonging to the subscribed workspace
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Project and graph without server credentials
+        '404':
+          description: Project not found in this workspace
+  /api/creator-studio/projects/{id}/commands:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    post:
+      operationId: editCreatorProjectGraph
+      summary: Add sources, clips or captions, remove entries, archive or restore using an expected revision
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, revision]
+              properties:
+                action: {type: string, enum: [add_source, add_clip, add_caption, remove, archive, restore]}
+                revision: {type: integer, minimum: 1}
+                assetId: {type: string, format: uuid}
+                sourceId: {type: string, format: uuid}
+                nodeId: {type: string, format: uuid}
+                durationMs: {type: integer, minimum: 1, maximum: 86400000}
+                inMs: {type: integer, minimum: 0, maximum: 86400000}
+                outMs: {type: integer, minimum: 1, maximum: 86400000}
+                startMs: {type: integer, minimum: 0, maximum: 86400000}
+                endMs: {type: integer, minimum: 1, maximum: 86400000}
+                text: {type: string, minLength: 1, maxLength: 2000}
+                muted: {type: boolean}
+      responses:
+        '200':
+          description: New project revision
+        '400':
+          description: Invalid project graph or command
+        '409':
+          description: Stale revision, unavailable source or archived project
+  /api/creator-studio/projects/{id}/export/{format}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+      - name: format
+        in: path
+        required: true
+        schema: {type: string, enum: [json, vtt, csv]}
+    get:
+      operationId: exportCreatorProject
+      summary: Download a deterministic manifest, caption track or edit list after checking source access
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Downloadable UTF-8 file; no media rendering or publishing occurs
+        '409':
+          description: A source is unavailable or archived
+
 components:
   securitySchemes:
     bearerAuth:

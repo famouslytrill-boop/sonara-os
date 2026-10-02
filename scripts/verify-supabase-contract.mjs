@@ -33,6 +33,8 @@ const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
   "20260723060500_business_integration_connections.sql"
 ];
+const creatorProjectMigrationNames = ["20261002090000_creator_project_graph.sql"];
+const CREATOR_PROJECT_TABLES = Object.freeze(["creator_projects"]);
 const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
 ];
@@ -420,6 +422,7 @@ const contractSql = [contractMigrationPath, referenceContractExtensionPath, prod
   .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
+const creatorProjectSql = readExtension(creatorProjectMigrationNames, "Creator Project Graph");
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
 const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, "Creator Studio artist system");
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
@@ -483,6 +486,10 @@ for (const required of [
   if (!businessControlSql.includes(required)) fail(`Business Builder control-plane extension is missing: ${required}`);
 }
 
+verifyExtension(CREATOR_PROJECT_TABLES, creatorProjectSql, "Creator Project Graph");
+for (const required of ["revoke all on public.creator_projects from public, anon, authenticated", "grant select on public.creator_projects to authenticated", "grant all on public.creator_projects to service_role", "public.sonara_is_org_member(organization_id)", "revision integer not null", "graph jsonb not null"]) {
+  if (!creatorProjectSql.includes(required)) fail(`Creator Project Graph extension is missing: ${required}`);
+}
 verifyExtension(CREATOR_GENERATION_TABLES, creatorGenerationSql, "Creator Studio generation");
 verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator Studio artist system");
 // BUSINESS_OPERATIONS_TABLES was only ever used to stop the runtime scan
@@ -774,7 +781,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {

@@ -130,15 +130,16 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/free-tools", (req, res) => sendMarketingPage(res, {
     title: "Free tools",
-    eyebrow: "Six free, and the rest on a plan",
-    heading: "Get a real result in your first few minutes.",
-    body: "Six tools are free with no account and no card, two in each studio, and they give a real answer in a couple of minutes. The other thirty-four open on a plan that covers that studio. Every directory below labels each tool before you press anything, so no tool is advertised as free and then refused.",
+    eyebrow: "Fifteen free tools · No signup",
+    heading: "Get a real result before you subscribe.",
+    body: "Four tools in each studio and three SONARA tools are free. Open them and get your results without signing up or entering a card. The remaining studio tools open with the subscription that covers that workspace.",
     sections: [
-      actionCard("Business Builder tools", "Free with no account: break-even and runway, and the stock reorder planner. Thirteen more open on a plan that covers Business Builder, and the directory says which is which.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
-      actionCard("Creator Studio tools", "Free with no account: the rate card builder, and the split sheet whose shares are checked to add up to a hundred. Eleven more open on a plan that covers Creator Studio.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
-      actionCard("Growth Studio tools", "Free with no account: the campaign budget split against a target cost per lead, and the referral reward planner. Ten more open on a plan that covers Growth Studio.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
+      actionCard("SONARA tools", "Format JSON, fingerprint text, and estimate storage. Process your input locally and download the result.", [linkAction("/tools", "Open SONARA tools")]),
+      actionCard("Business Builder tools", "Free: break-even and runway, stock reorder, offer builder, and pricing calculator.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
+      actionCard("Creator Studio tools", "Free: rate card, split sheet, creative brief, and release checklist.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
+      actionCard("Growth Studio tools", "Free: campaign budget, referral reward, campaign outline, and KPI calculator.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
     ],
-    actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
+    actions: [linkAction("/pricing", "Compare subscriptions"), linkAction("/tutorials", "Tutorials")]
   }));
 
   app.get("/how-it-works", (req, res) => sendMarketingPage(res, {
