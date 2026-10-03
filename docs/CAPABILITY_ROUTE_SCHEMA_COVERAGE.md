@@ -1510,6 +1510,7 @@ The following source registries are maintained separately. Inspect each record's
 - `lib/sonara-screenshot-tool-radar-batch20.cjs`
 - `lib/sonara-screenshot-tool-radar-batch21.cjs`
 - `lib/sonara-screenshot-tool-radar-batch22.cjs`
+- `lib/sonara-screenshot-tool-radar-batch23.cjs`
 - `lib/sonara-screenshot-tool-radar-batch3.cjs`
 - `lib/sonara-screenshot-tool-radar-batch4.cjs`
 - `lib/sonara-screenshot-tool-radar-batch5.cjs`

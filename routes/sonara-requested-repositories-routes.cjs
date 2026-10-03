@@ -112,6 +112,13 @@ const {
   getArchitectureExtensionsBatch22
 } = require("../lib/sonara-screenshot-tool-radar-batch22.cjs");
 const {
+  getPublicScreenshotToolCatalogBatch23,
+  getScreenshotToolReadinessBatch23,
+  getNonRepositoryReferencesBatch23,
+  getConfirmedExistingRecordsBatch23,
+  getArchitectureExtensionsBatch23
+} = require("../lib/sonara-screenshot-tool-radar-batch23.cjs");
+const {
   getCapabilityDesignReadiness
 } = require("../lib/sonara-capability-design-batches.cjs");
 const {
@@ -162,7 +169,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       brandCard("Screenshot research", `${screenshotResearchCount} additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools supplied as screenshots are cataloged as non-executing research records; verification state remains explicit per record.`),
       brandCard("Capability convergence — Batch 8", `${convergence.batch8Count} truth records describe actual SONARA One, Business Builder, Creator Studio, Growth Studio, Claude, ChatGPT/Codex, and cross-agent delivery capability without enabling anything from the research surface.`),
       brandCard("Design and correctness — Batch 9", `${convergence.batch9Count} current design/correctness records preserve the v3 SONARA One identity, Balanced Precision interaction system, truthful loading/state language, cross-agent authority, and named repair/review work.`),
-      brandCard("Latest screenshot intake", "Batch 22 reviews local inference, data visualization, agent operations, branding, media and workflow references from the latest upload. Candidates remain disabled and approval boundaries stay in force."),
+      brandCard("Latest screenshot intake", "Batch 23 reviews agent testing and harnesses, mobile-device automation, memory, privileged remote operations, deterministic media, model-hub research, restaurant/law vertical patterns and design references from the latest upload. Candidates remain disabled and approval boundaries stay in force."),
       brandCard("Hosted/service references", `${nonRepositoryReferences.length} screenshot items are kept as hosted services, learning references, or unresolved non-repository leads outside the executable repository catalog.`),
       brandCard("Unresolved visual leads", `${unresolvedVisualLeads.length} screenshot concepts remain intentionally unlinked until the exact upstream repository and license can be verified.`),
       brandCard("Rejected sources", `${blocked} supplied links remain blocked because the repository or claimed project could not be verified.`),
@@ -183,7 +190,11 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
         ...getArchitectureExtensionsBatch16(),
         ...getArchitectureExtensionsBatch17(),
         ...getArchitectureExtensionsBatch18(),
-        ...getArchitectureExtensionsBatch19()
+        ...getArchitectureExtensionsBatch19(),
+        ...getArchitectureExtensionsBatch20(),
+        ...getArchitectureExtensionsBatch21(),
+        ...getArchitectureExtensionsBatch22(),
+        ...getArchitectureExtensionsBatch23()
       ].map((item) => brandCard(
         `${item.title}: Screenshot architecture`,
         `${item.principle} SONARA implementation: ${item.implementation}`
@@ -219,13 +230,13 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const latest = getLatestScreenshotIntake();
     const convergence = getCapabilityDesignReadiness();
     const sections = [
-      brandCard("Repository records", `${latest.repositories.length} current screenshot-research repositories, including Batch 22, are classified for product fit, verification state, license risk, runtime boundary, and staged next action.`),
+      brandCard("Repository records", `${latest.repositories.length} current screenshot-research repositories, including Batch 23, are classified for product fit, verification state, license risk, runtime boundary, and staged next action.`),
       brandCard("Batch 8 capability truth", `${convergence.batch8Count} internal records separate available, setup-gated, development-compatible, and research-ready capability states across SONARA and its agent workflows.`),
       brandCard("Batch 9 design/correctness", `${convergence.batch9Count} records define the current v3 design authority and the repair/review items that must not be marketed as complete.`),
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were repeated in earlier batches or uploads and were not duplicated.`),
       brandCard("Earlier confirmations", `${latest.confirmedExistingRecords.length} submitted projects were already covered by governed records and were re-confirmed instead of duplicated.`),
-      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} repository-owned architecture decisions convert the latest research into bounded tool-gateway, developer-agent, design-authority, financial-truth, memory-versioning, browser-verification, skill-supply-chain, deterministic-decision, code-sandbox, media-ownership and public-data provenance rules.`),
+      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} repository-owned architecture decisions convert screenshot research into bounded provenance, execution, device, media, memory, model-promotion, approval, security and design-truth rules.`),
       brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging and capability/design documentation are not installation, deployment, or permission to send customer data."),
       ...convergence.capabilities.map((item) => brandCard(
         `${item.label}: ${display(item.capabilityStatus)}`,
@@ -253,7 +264,7 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
       title: "Latest screenshot research",
       eyebrow: "Research Lab",
       heading: "Governed screenshot intake and convergence",
-      body: "The Research Lab preserves verified external leads through Batch 22, internal capability/design authority, and explicit adoption boundaries. None of these records widens runtime authority by itself.",
+      body: "The Research Lab preserves verified external leads through Batch 23, internal capability/design authority, and explicit adoption boundaries. None of these records widens runtime authority by itself.",
       sections,
       actions: [
         linkAction("/research-lab/requested-repositories", "Repository intake"),
@@ -294,7 +305,8 @@ function getLatestScreenshotIntake() {
       ...batch19.repositories,
       ...batch20.repositories,
       ...batch21.repositories,
-      ...getScreenshotToolReadinessBatch22().repositories
+      ...getScreenshotToolReadinessBatch22().repositories,
+      ...getScreenshotToolReadinessBatch23().repositories
     ],
     nonRepositoryReferences: [
       ...(batch5.nonRepositoryReferences || []),
@@ -310,7 +322,8 @@ function getLatestScreenshotIntake() {
       ...getNonRepositoryReferencesBatch19(),
       ...getNonRepositoryReferencesBatch20(),
       ...getNonRepositoryReferencesBatch21(),
-      ...getNonRepositoryReferencesBatch22()
+      ...getNonRepositoryReferencesBatch22(),
+      ...getNonRepositoryReferencesBatch23()
     ].filter((item) => item.key !== "searchphone"),
     deduplicatedReferences: [
       ...(batch5.deduplicatedReferences || []),
@@ -328,7 +341,8 @@ function getLatestScreenshotIntake() {
       ...getArchitectureExtensionsBatch19(),
       ...getArchitectureExtensionsBatch20(),
       ...getArchitectureExtensionsBatch21(),
-      ...getArchitectureExtensionsBatch22()
+      ...getArchitectureExtensionsBatch22(),
+      ...getArchitectureExtensionsBatch23()
     ]
   };
 }
@@ -353,7 +367,8 @@ function getCombinedPublicCatalog() {
     ...getPublicScreenshotToolCatalogBatch19(),
     ...getPublicScreenshotToolCatalogBatch20(),
     ...getPublicScreenshotToolCatalogBatch21(),
-    ...getPublicScreenshotToolCatalogBatch22()
+    ...getPublicScreenshotToolCatalogBatch22(),
+    ...getPublicScreenshotToolCatalogBatch23()
   ];
 }
 
@@ -375,7 +390,8 @@ function getScreenshotResearchCount() {
     + getPublicScreenshotToolCatalogBatch19().length
     + getPublicScreenshotToolCatalogBatch20().length
     + getPublicScreenshotToolCatalogBatch21().length
-    + getPublicScreenshotToolCatalogBatch22().length;
+    + getPublicScreenshotToolCatalogBatch22().length
+    + getPublicScreenshotToolCatalogBatch23().length;
 }
 
 function getAllNonRepositoryReferences() {
@@ -395,7 +411,8 @@ function getAllNonRepositoryReferences() {
     ...getNonRepositoryReferencesBatch19(),
     ...getNonRepositoryReferencesBatch20(),
     ...getNonRepositoryReferencesBatch21(),
-    ...getNonRepositoryReferencesBatch22()
+    ...getNonRepositoryReferencesBatch22(),
+    ...getNonRepositoryReferencesBatch23()
   ].filter((item) => item.key !== "searchphone");
 }
 
@@ -408,7 +425,8 @@ function getAllConfirmedExistingRecords() {
     ...getConfirmedExistingRecordsBatch18(),
     ...getConfirmedExistingRecordsBatch19(),
     ...getConfirmedExistingRecordsBatch20(),
-    ...getConfirmedExistingRecordsBatch21()
+    ...getConfirmedExistingRecordsBatch21(),
+    ...getConfirmedExistingRecordsBatch23()
   ];
 }
 
