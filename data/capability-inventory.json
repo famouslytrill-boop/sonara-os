@@ -267,9 +267,15 @@
       ],
       "categories": [
         {
-          "name": "Delivery and support",
+          "name": "Automation and intelligence",
           "routes": [
             "/business-builder/automations",
+            "/business-builder/owner/assistant"
+          ]
+        },
+        {
+          "name": "Delivery and support",
+          "routes": [
             "/business-builder/billing",
             "/business-builder/deliverables",
             "/business-builder/requests",
@@ -277,18 +283,16 @@
           ]
         },
         {
-          "name": "More workspace tools",
+          "name": "Customers and sales",
           "routes": [
             "/business-builder/businesses",
-            "/business-builder/control-center",
-            "/business-builder/launch-plan",
-            "/business-builder/offers",
-            "/business-builder/offers/free",
-            "/business-builder/owner",
-            "/business-builder/pricing",
-            "/business-builder/readiness",
-            "/business-builder/technology",
-            "/business-builder/templates"
+            "/business-builder/customers",
+            "/business-builder/owner/booking-page",
+            "/business-builder/owner/bookings",
+            "/business-builder/owner/bookings/calendar",
+            "/business-builder/owner/customers",
+            "/business-builder/owner/customers/contacts",
+            "/business-builder/owner/customers/import"
           ]
         },
         {
@@ -300,23 +304,20 @@
             "/business-builder/market-intelligence",
             "/business-builder/product-lifecycle",
             "/business-builder/prompts",
+            "/business-builder/technology",
             "/business-builder/tutorial"
           ]
         },
         {
-          "name": "Business operations",
+          "name": "More workspace tools",
           "routes": [
-            "/business-builder/customers",
-            "/business-builder/employees",
-            "/business-builder/inventory",
-            "/business-builder/locations",
-            "/business-builder/orders",
-            "/business-builder/payments",
+            "/business-builder/control-center",
+            "/business-builder/launch-plan",
+            "/business-builder/owner",
+            "/business-builder/readiness",
             "/business-builder/records",
             "/business-builder/records/free",
-            "/business-builder/routes",
-            "/business-builder/vehicles",
-            "/business-builder/vendors"
+            "/business-builder/templates"
           ]
         },
         {
@@ -327,52 +328,71 @@
           ]
         },
         {
-          "name": "Owner operations",
+          "name": "People and schedules",
           "routes": [
-            "/business-builder/owner/accounting-exports",
+            "/business-builder/employees",
+            "/business-builder/owner/pay-periods",
+            "/business-builder/owner/schedules",
+            "/business-builder/owner/schedules/week",
+            "/business-builder/owner/staff",
+            "/business-builder/owner/time"
+          ]
+        },
+        {
+          "name": "Operations and fulfillment",
+          "routes": [
+            "/business-builder/inventory",
+            "/business-builder/locations",
             "/business-builder/owner/areas",
-            "/business-builder/owner/assistant",
-            "/business-builder/owner/booking-page",
-            "/business-builder/owner/bookings",
-            "/business-builder/owner/bookings/calendar",
-            "/business-builder/owner/chase-drafts",
-            "/business-builder/owner/costs",
-            "/business-builder/owner/customers",
-            "/business-builder/owner/customers/contacts",
-            "/business-builder/owner/customers/import",
             "/business-builder/owner/inventory",
-            "/business-builder/owner/invoices",
-            "/business-builder/owner/local-model",
             "/business-builder/owner/locations",
             "/business-builder/owner/maintenance",
+            "/business-builder/owner/recipes",
+            "/business-builder/owner/sales",
+            "/business-builder/owner/stock-counts",
+            "/business-builder/owner/transfers",
+            "/business-builder/owner/vehicles",
+            "/business-builder/owner/vendors",
+            "/business-builder/owner/waste",
+            "/business-builder/routes",
+            "/business-builder/vehicles",
+            "/business-builder/vendors"
+          ]
+        },
+        {
+          "name": "Commerce and money",
+          "routes": [
+            "/business-builder/offers",
+            "/business-builder/offers/free",
+            "/business-builder/orders",
+            "/business-builder/owner/chase-drafts",
+            "/business-builder/owner/invoices",
             "/business-builder/owner/menu",
             "/business-builder/owner/money-due",
-            "/business-builder/owner/pay-periods",
             "/business-builder/owner/payments",
             "/business-builder/owner/payments-made",
             "/business-builder/owner/products",
             "/business-builder/owner/purchase-orders",
             "/business-builder/owner/quotes",
             "/business-builder/owner/receivables",
-            "/business-builder/owner/recipes",
             "/business-builder/owner/recurring",
             "/business-builder/owner/recurring-work",
-            "/business-builder/owner/research-sources",
-            "/business-builder/owner/sales",
-            "/business-builder/owner/schedules",
-            "/business-builder/owner/schedules/week",
-            "/business-builder/owner/security",
             "/business-builder/owner/services",
-            "/business-builder/owner/staff",
-            "/business-builder/owner/stock-counts",
             "/business-builder/owner/store",
-            "/business-builder/owner/sub-apps",
-            "/business-builder/owner/time",
-            "/business-builder/owner/transfers",
-            "/business-builder/owner/vehicles",
-            "/business-builder/owner/vendors",
-            "/business-builder/owner/waste",
-            "/business-builder/owner/work-orders"
+            "/business-builder/owner/work-orders",
+            "/business-builder/payments",
+            "/business-builder/pricing"
+          ]
+        },
+        {
+          "name": "Owner operations",
+          "routes": [
+            "/business-builder/owner/accounting-exports",
+            "/business-builder/owner/costs",
+            "/business-builder/owner/local-model",
+            "/business-builder/owner/research-sources",
+            "/business-builder/owner/security",
+            "/business-builder/owner/sub-apps"
           ]
         },
         {
@@ -515,58 +535,64 @@
       ],
       "categories": [
         {
-          "name": "Create and protect",
+          "name": "Create and produce",
           "routes": [
             "/creator-studio/album-cycles",
             "/creator-studio/artists",
             "/creator-studio/assets",
-            "/creator-studio/assistant",
-            "/creator-studio/automations",
-            "/creator-studio/billing",
-            "/creator-studio/calendar",
-            "/creator-studio/catalog",
-            "/creator-studio/checklist",
             "/creator-studio/content",
-            "/creator-studio/deliverables",
-            "/creator-studio/device-cues",
-            "/creator-studio/generation",
             "/creator-studio/generation/audio",
-            "/creator-studio/generation/jobs",
             "/creator-studio/generation/music",
-            "/creator-studio/generation/reference-analysis",
             "/creator-studio/generation/video",
             "/creator-studio/generation/voice",
-            "/creator-studio/help",
-            "/creator-studio/market-intelligence",
             "/creator-studio/media-kit",
-            "/creator-studio/monetization",
-            "/creator-studio/music-projects",
             "/creator-studio/music-system",
             "/creator-studio/music-system/new",
-            "/creator-studio/music-system/prompts",
             "/creator-studio/music-system/song",
-            "/creator-studio/offers",
-            "/creator-studio/offers/free",
-            "/creator-studio/product-lifecycle",
-            "/creator-studio/projects",
-            "/creator-studio/prompt-blueprints",
-            "/creator-studio/prompts",
-            "/creator-studio/records",
-            "/creator-studio/records/free",
-            "/creator-studio/releases",
-            "/creator-studio/requests",
-            "/creator-studio/rights",
-            "/creator-studio/scroll",
-            "/creator-studio/scroll/new",
-            "/creator-studio/settings",
             "/creator-studio/sound-identity",
-            "/creator-studio/studio",
-            "/creator-studio/support",
-            "/creator-studio/technology",
-            "/creator-studio/tutorial",
-            "/creator-studio/video-treatments",
             "/creator-studio/voice-permissions",
             "/creator-studio/voice-studio"
+          ]
+        },
+        {
+          "name": "Automation and intelligence",
+          "routes": [
+            "/creator-studio/assistant",
+            "/creator-studio/automations"
+          ]
+        },
+        {
+          "name": "Delivery and support",
+          "routes": [
+            "/creator-studio/billing",
+            "/creator-studio/deliverables",
+            "/creator-studio/requests",
+            "/creator-studio/support"
+          ]
+        },
+        {
+          "name": "More workspace tools",
+          "routes": [
+            "/creator-studio/calendar",
+            "/creator-studio/owner/approval-graph",
+            "/creator-studio/records",
+            "/creator-studio/records/free",
+            "/creator-studio/settings"
+          ]
+        },
+        {
+          "name": "Plan and learn",
+          "routes": [
+            "/creator-studio/catalog",
+            "/creator-studio/checklist",
+            "/creator-studio/help",
+            "/creator-studio/market-intelligence",
+            "/creator-studio/music-system/prompts",
+            "/creator-studio/product-lifecycle",
+            "/creator-studio/prompt-blueprints",
+            "/creator-studio/prompts",
+            "/creator-studio/technology",
+            "/creator-studio/tutorial"
           ]
         },
         {
@@ -577,10 +603,39 @@
           ]
         },
         {
-          "name": "Owner operations",
+          "name": "Generation and devices",
           "routes": [
-            "/creator-studio/owner/approval-graph",
+            "/creator-studio/device-cues",
+            "/creator-studio/generation",
+            "/creator-studio/generation/jobs",
+            "/creator-studio/generation/reference-analysis"
+          ]
+        },
+        {
+          "name": "Marketplace and monetization",
+          "routes": [
+            "/creator-studio/monetization",
+            "/creator-studio/offers",
+            "/creator-studio/offers/free",
             "/creator-studio/owner/marketplace"
+          ]
+        },
+        {
+          "name": "Projects and planning",
+          "routes": [
+            "/creator-studio/music-projects",
+            "/creator-studio/projects",
+            "/creator-studio/scroll",
+            "/creator-studio/scroll/new",
+            "/creator-studio/studio",
+            "/creator-studio/video-treatments"
+          ]
+        },
+        {
+          "name": "Rights and release",
+          "routes": [
+            "/creator-studio/releases",
+            "/creator-studio/rights"
           ]
         },
         {
@@ -678,49 +733,41 @@
       ],
       "categories": [
         {
-          "name": "Campaigns and customers",
+          "name": "Analytics and experiments",
           "routes": [
             "/growth-studio/analytics",
             "/growth-studio/attribution",
-            "/growth-studio/campaigns",
-            "/growth-studio/content",
-            "/growth-studio/content-plan",
             "/growth-studio/conversions",
-            "/growth-studio/followups",
-            "/growth-studio/leads",
-            "/growth-studio/pipeline",
-            "/growth-studio/touchpoints",
-            "/growth-studio/your-campaigns"
+            "/growth-studio/experiments",
+            "/growth-studio/touchpoints"
           ]
         },
         {
-          "name": "More workspace tools",
+          "name": "Automation and intelligence",
           "routes": [
             "/growth-studio/assistant",
-            "/growth-studio/consent",
-            "/growth-studio/control-center",
-            "/growth-studio/enquiries",
-            "/growth-studio/experiments",
-            "/growth-studio/journey",
-            "/growth-studio/offers",
-            "/growth-studio/offers/free",
-            "/growth-studio/provider-jobs",
-            "/growth-studio/providers",
-            "/growth-studio/records",
-            "/growth-studio/records/free",
-            "/growth-studio/segments",
-            "/growth-studio/settings",
-            "/growth-studio/technology"
+            "/growth-studio/automations"
           ]
         },
         {
           "name": "Delivery and support",
           "routes": [
-            "/growth-studio/automations",
             "/growth-studio/billing",
             "/growth-studio/deliverables",
             "/growth-studio/requests",
             "/growth-studio/support"
+          ]
+        },
+        {
+          "name": "Campaigns and content",
+          "routes": [
+            "/growth-studio/campaigns",
+            "/growth-studio/content",
+            "/growth-studio/content-plan",
+            "/growth-studio/journey",
+            "/growth-studio/offers",
+            "/growth-studio/offers/free",
+            "/growth-studio/your-campaigns"
           ]
         },
         {
@@ -732,7 +779,27 @@
             "/growth-studio/market-intelligence",
             "/growth-studio/product-lifecycle",
             "/growth-studio/prompts",
+            "/growth-studio/technology",
             "/growth-studio/tutorial"
+          ]
+        },
+        {
+          "name": "Consent and providers",
+          "routes": [
+            "/growth-studio/consent",
+            "/growth-studio/provider-jobs",
+            "/growth-studio/providers"
+          ]
+        },
+        {
+          "name": "More workspace tools",
+          "routes": [
+            "/growth-studio/control-center",
+            "/growth-studio/owner/channels",
+            "/growth-studio/records",
+            "/growth-studio/records/free",
+            "/growth-studio/segments",
+            "/growth-studio/settings"
           ]
         },
         {
@@ -743,13 +810,21 @@
           ]
         },
         {
-          "name": "Owner operations",
+          "name": "Leads and pipeline",
           "routes": [
-            "/growth-studio/owner/channels",
+            "/growth-studio/enquiries",
+            "/growth-studio/followups",
+            "/growth-studio/leads",
             "/growth-studio/owner/chat-widget",
-            "/growth-studio/owner/events",
             "/growth-studio/owner/ideal-customer",
-            "/growth-studio/owner/lead-routing"
+            "/growth-studio/owner/lead-routing",
+            "/growth-studio/pipeline"
+          ]
+        },
+        {
+          "name": "Events and venues",
+          "routes": [
+            "/growth-studio/owner/events"
           ]
         },
         {
@@ -16384,7 +16459,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 88
+        "line": 89
       },
       "contractCompleteness": {
         "route": true,
@@ -16476,7 +16551,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 93
+        "line": 94
       },
       "contractCompleteness": {
         "route": true,
@@ -16570,7 +16645,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 98
+        "line": 99
       },
       "contractCompleteness": {
         "route": true,
@@ -124498,7 +124573,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 92
+        "line": 93
       },
       "contractCompleteness": {
         "route": true,
@@ -124592,7 +124667,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 97
+        "line": 98
       },
       "contractCompleteness": {
         "route": true,
@@ -262946,7 +263021,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 88
+        "line": 89
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -262974,7 +263049,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 93
+        "line": 94
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
@@ -263004,7 +263079,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 98
+        "line": 99
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
@@ -271098,7 +271173,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 92
+        "line": 93
       },
       "destination": {
         "route": "/creator-studio/projects",
@@ -271128,7 +271203,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-creator-project-routes.cjs",
-        "line": 97
+        "line": 98
       },
       "destination": {
         "route": "/creator-studio/projects/:id",
