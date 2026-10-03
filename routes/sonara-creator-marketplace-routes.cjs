@@ -266,7 +266,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       `creator_asset_versions?select=id,version_number,source&organization_id=eq.${enc(organizationId)}&order=created_at.desc&limit=100`
     );
 
-    const sections = [];
+    const sections = [brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure)];
     if (!listings.ok) {
       sections.push(brandCard(
         "We could not read your listings just now",
@@ -402,8 +402,8 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     const rawPrice = String(req.body?.priceCents ?? "").trim();
     let priceCents = null;
     if (rawPrice !== "") {
-      const parsed = Number(rawPrice);
-      if (!Number.isInteger(parsed) || parsed < 0) return refuse(res, "A price has to be a whole number of pence or cents, or empty if you have not decided.");
+      const parsed = market.integerCents(rawPrice);
+      if (parsed === null) return refuse(res, "A price has to be a whole number of pence or cents, or empty if you have not decided.");
       priceCents = parsed;
     }
     const licence = String(req.body?.licence || "");
@@ -534,7 +534,10 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     const entries = await read(
       "creator_marketplace_entries?select=listing_id,title,medium,price_cents,currency,licence,made_by_machine,ai_disclosed,listed_at&order=listed_at.desc&limit=100"
     );
-    const sections = [];
+    const sections = [
+      brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure),
+      brandCard("What you can do today", market.MARKETPLACE_FEES.availability)
+    ];
     if (!entries.ok) {
       sections.push(brandCard(
         "We could not read the marketplace just now",
@@ -603,6 +606,8 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       body: `${money(entry.price_cents, entry.currency)}${licence ? ` — ${licence.label}` : ""}`,
       surface: "marketing",
       sections: [
+        brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure),
+        brandCard("What you can do today", market.MARKETPLACE_FEES.availability),
         licence ? brandCard("What you may do with it", licence.means) : brandCard("Licence", "This listing does not say what you may do with it."),
         brandCard("How it was made", madeText(entry)),
         brandCard(

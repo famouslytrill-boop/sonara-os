@@ -181,6 +181,18 @@ describe("a listing on sale is a listing still cleared", () => {
   });
 
   describe("the public pages read the catalogue and nothing else", () => {
+    it("explains zero platform fees without claiming checkout or trading is live", async () => {
+      const { app, restore } = harness();
+      try {
+        const response = await request(app).get("/marketplace");
+        assert.equal(response.status, 200);
+        assert.match(response.text, /no listing fee, buyer fee, seller commission or trade fee/);
+        assert.match(response.text, /external payment-processing charges are separate/);
+        assert.match(response.text, /Checkout, digital delivery and trading are not available yet/);
+      } finally {
+        restore();
+      }
+    });
     it("lists from creator_marketplace_entries alone", async () => {
       const { app, calls, restore } = harness({
         entryRows: [{ listing_id: LISTING, title: "A track", medium: "audio", price_cents: 2500, currency: "usd", licence: "commercial_single", made_by_machine: false, ai_disclosed: null, listed_at: "2026-10-03T00:00:00Z" }]
@@ -310,6 +322,19 @@ describe("a listing on sale is a listing still cleared", () => {
   });
 
   describe("an edit to something on sale keeps the public snapshot true", () => {
+    it("rejects unsafe or non-decimal prices before making any write", async () => {
+      const { app, calls, restore } = harness({ listing: CLEARED_LISTING });
+      try {
+        for (const priceCents of ["9007199254740993", "2147483648", "0x64", "1e2"]) {
+          const response = await request(app).post(`/creator-studio/owner/marketplace/${LISTING}`)
+            .type("form").send({ title: "A track", priceCents });
+          assert.equal(response.status, 400);
+        }
+        assert.ok(!calls.some((call) => call.method !== "GET"));
+      } finally {
+        restore();
+      }
+    });
     const form = { title: "A track", priceCents: "3000", currency: "usd", licence: "commercial_single", rightsAttested: "yes", consentAttested: "unanswered" };
 
     it("refreshes the public price when the work is still cleared", async () => {

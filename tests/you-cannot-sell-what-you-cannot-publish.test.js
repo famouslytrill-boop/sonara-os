@@ -175,6 +175,16 @@ describe("you cannot sell what you cannot publish", () => {
   });
 
   describe("consent, which is a different question from rights", () => {
+    it("keeps malformed person declarations unanswered instead of bypassing consent", () => {
+      for (const value of [null, undefined, "", "unknown", 0, 1, [], {}, "FALSE"]) {
+        const result = readiness({ version: humanVersion({ provenance: { involves_person: value } }) });
+        assert.equal(result.involvesAPerson, null);
+        assert.equal(result.consentNeeded, true);
+        assert.ok(blockerIds(result).includes("consent_not_recorded"));
+        assert.equal(result.ok, false);
+      }
+      assert.equal(readiness({ version: humanVersion({ provenance: { involves_person: "false" } }) }).ok, true);
+    });
     it("does not ask for consent when no person is in the work", () => {
       const result = readiness({ version: humanVersion({ provenance: { involves_person: false } }) });
       assert.equal(result.consentNeeded, false);
@@ -221,6 +231,13 @@ describe("you cannot sell what you cannot publish", () => {
   });
 
   describe("a price nobody set is not free", () => {
+    it("rejects coercible non-prices and amounts that cannot be represented exactly", () => {
+      for (const value of [true, false, [], [100], {}, " ", "0x64", "1e2", 2147483648, Number.MAX_SAFE_INTEGER + 1, "9007199254740993"]) {
+        assert.ok(blockerIds(readiness({ listing: { price_cents: value } })).includes("price_unreadable"));
+      }
+      assert.equal(readiness({ listing: { price_cents: "2500" } }).priceCents, 2500);
+      assert.equal(readiness({ listing: { price_cents: 2147483647 } }).ok, true);
+    });
     it("refuses a price of zero with its own reason", () => {
       assert.ok(blockerIds(readiness({ listing: { price_cents: 0 } })).includes("price_not_set"));
     });
