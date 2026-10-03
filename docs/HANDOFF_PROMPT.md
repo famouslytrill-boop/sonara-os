@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 150 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 433 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 434 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,35 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 25 most recent entries of 437 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 25 most recent entries of 438 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-03 - Import existing subtitles into the Creator Project Graph
+
+Added plain-text SRT import to the existing project command endpoint and project
+page. No new provider, database table, dependency, or parallel editor. Imports
+append captions only after the complete input passes validation. Existing workspace
+membership, source access checks, archive restrictions and revision compare-and-swap
+remain authoritative. Limits: 64 KB UTF-8, 500 total graph nodes, 24-hour timeline,
+2,000 characters per cue. Markup is literal text, escaped by existing output paths.
+
+Focused tests cover malformed batches with no partial writes, invalid timestamps,
+UTF-8 and graph capacity, cross-tenant refusal, stale revisions, races, route form
+submission and export. The first full suite found an existing generated handoff
+count mismatch (433 stated versus 434 test files); regenerate the handoff rather
+than relaxing its test.
+
+Expansion assessment and primary-source research are recorded in
+`docs/research/EXPANSION_EXECUTION_2026-10-03.md`. This change does not complete
+marketplace checkout/delivery, live social streaming, external channel integrations,
+or production migration/deployment verification. Keep those distinct from source
+routes already present. The free-tool count and subscription completeness checks
+pass; the latter explicitly does not prove all provider costs are included.
+
+
 
 ### 2026-10-03 - Follow a channel without being sent anything: an Atom feed, and a dependency that kept bringing advisories
 
@@ -1987,173 +2011,3 @@ routes** run organization-scoped unattended actions with no recorder and no read
 so they have no history to read and are now loud about it rather than silent; wiring
 them needs a decision about what `agent_key` those runs carry, which decides the
 breaker's population, and that is its own change rather than a rider on this one.
-
-
-### 2026-10-01 - Work that comes round again, and a table queried for weeks with nothing checking it
-
-A business runs on recurring work: open, close, the weekly deep clean, the monthly
-stock count. None of it could be expressed. `employee_tasks` has existed since
-migration 013 and holds one-off work only, and on the morning of 1 October exactly
-one route wrote to it -- `routes/sonara-last9-routes.cjs`, one task at a time,
-by hand.
-
-`supabase/migrations/20261001160000_work_that_comes_round_again.sql` adds **one**
-table, `business_recurring_tasks`, the template. The occurrences it produces are
-rows in `employee_tasks`, which `/staff/tasks` already serves, so an employee sees
-recurring work on the page they already use. That mirrors `recurring_invoices` ->
-`customer_invoices` deliberately: a template table plus the product's own record
-table, rather than a parallel record table half the application does not know
-about. 138 migrations replay in order against an empty PostgreSQL 16.
-
-`lib/sonara-recurring-tasks.cjs` is the engine, pure, and imports `dateInMonth`,
-`parseDay` and `toIsoDay` from `lib/sonara-recurring-invoices.cjs` rather than
-restating them. The month-anchor trap -- "the 31st" clamping to the 28th in
-February and then walking three days earlier for ever if you step from the clamped
-result -- is solved once there and reused. What is *not* shared is the cadence set:
-this one has `daily`, and adding that to the invoice engine would widen the money
-path to serve a cleaning rota.
-
-### Copying the invoice rule to tasks was a bug, and a probe found it
-
-The invoice engine refuses to catch up: one run, one period, dated the day it was
-due. Written literally into tasks that is worse than catching up. A daily checklist
-three weeks behind then needs **twenty-one presses**, each producing a task for a
-day that has gone -- catch-up by repetition, which is the thing the invoice engine
-refuses in one place and would have reintroduced in another.
-
-So `latestDue` fast-forwards: one press, one task, for the most recent occurrence
-that has actually fallen due, with the number skipped **reported** rather than
-swallowed ("20 earlier occurrences were passed over rather than queued up"). It
-fast-forwards through real occurrences rather than jumping to today, so a weekly job
-stays on its weekday and a monthly one stays on its anchor. Past
-`FAST_FORWARD_LIMIT` (4,000 occurrences, about eleven years of daily work) it
-refuses with a reason instead of returning a date that is not actually the latest.
-
-**The first version of the test for this could not fail on the bug it named.**
-"creates one task, not one per day missed" asserted the count, and one press writes
-one task whether the engine fast-forwards or steps a single occurrence. Found by
-breaking the engine and watching the test stay green; it now asserts the day on the
-task as well.
-
-Broken to prove the rest: moving `last_issued_on` before the task write (1 test
-red), stepping one occurrence instead of fast-forwarding (7 red), dropping the
-`organization_id` filter from the switch-off PATCH (2 red), and rendering the empty
-state on a failed read (1 red). The migration's own assertions were proven against
-real PostgreSQL by removing the `select` grant ("service_role cannot read ...") and
-by adding a `delete` grant ("service_role can delete ... no delete path was meant
-to exist").
-
-### employee_tasks had been queried in production with nothing checking it
-
-Adding the feature surfaced this, and it is the recurring defect again.
-`scripts/verify-supabase-contract.mjs` scans the runtime for table references with
-five patterns: a table named at the point of use, or through a `*_TABLE` constant.
-`routes/sonara-last9-routes.cjs` reads `supabaseList(config, "employee_tasks", ...)`
--- the table as a helper's **second argument**, which none of the five match. So
-`employee_tasks` was queried by live code and checked against no contract at all,
-and what surfaced it was an unrelated new module happening to declare the name as a
-constant.
-
-`employee_tasks` is now in `BUSINESS_OPERATIONS_TABLES`, whose migration set already
-names the migration that creates it. **Four more tables are in the same state right
-now** -- `business_vertical_templates`, `employee_announcements`, `location_events`
-and `motion_sensor_events` -- measured by adding the missing pattern and reading
-what failed. They are not fixed here because each belongs to a different extension
-set and needs its creating migration named, which is its own change rather than a
-rider on a product feature. The missing pattern is one regex; the contracting is the
-work.
-
-### A validation sentence crossing a redirect is a page an attacker can write
-
-Found by reading the diff rather than by a check. The first version put the joined
-validation sentences into the query string -- `?problem=invalid:Give+this+a+name`
--- and the page printed them. `brandCard` escapes, so it was never script. It was
-worse-shaped than script: a crafted link would have put **plausible text in the
-application's own voice, inside a card, on the real page, at the real address**,
-read by the signed-in owner. "Your account is suspended, ring 0800 123 4567" would
-have looked exactly like a product message.
-
-So the wire carries short codes, `PROBLEMS` in `lib/sonara-recurring-tasks.cjs`
-holds the sentences, and `problemSentences` drops any code it did not write. One
-sentence that interpolated the submitted cadence was reworded so it interpolates
-nothing. Proven by replacing the lookup with an echo of the parameter: two tests
-red, including the one that sends `?why=Your+account+is+suspended...` and asserts
-the page does not contain it.
-
-### Three outcomes on the run button, not two
-
-Also found by reading the diff. A task written whose template could not be advanced
-was counted as a refusal, so the page could report **"0 tasks created" while a task
-sat on somebody's list** -- wrong in the direction that makes a business press the
-button again and get it twice. It is now counted and reported on its own
-(`problem=unrecorded`), with a card that says pressing again would create it a
-second time. Proven by folding it back into the refusal count: one test red.
-
-Two more small findings from the same read. A day of the month typed as `01` was
-stored verbatim and refused by the column's check constraint -- a save that failed
-in the database, so no validation code was ever produced and the page said "that did
-not save" with nothing to read; the validator now canonicalises through `Number()`
-and a test walks all 31 days in both spellings against the column's own pattern. And
-that constraint was written as a regex **and** a cast to integer joined by `and`;
-PostgreSQL does not promise which arm it evaluates first, so a non-numeric value
-could raise `invalid input syntax for type integer` from a different layer instead of
-a constraint violation. It is one regex now.
-
-### Two caps that would have been silent, and a notice that was already false
-
-The page read 200 templates and the run button read 200 templates, and neither said
-when there were more. Both now read one past the cap, which is the only thing that
-makes a cap detectable, and the run reports `unseen=1` rather than returning a
-confident count of what it created.
-
-The page's truncation notice was already wrong before anybody hit it: it said the
-rest "still run and are still counted when you press the button". The button reads
-the newest first under the same cap, so they do not. A notice that is wrong is worse
-than no notice -- it is what the next person reads instead of checking. It now says
-the ones not shown are also not issued, and that pressing again reads the same ones
-so switching some off is what brings the rest into view.
-
-The employee cap was the one with teeth. `employeeName` answers "somebody no longer
-on file" for an id it cannot find, and past 500 employees that sentence would have
-been printed **about people who are still employed**, on the strength of a read that
-was cut short -- a definite statement about a business's own staff. Truncation now
-changes what that fallback says rather than only adding a notice somebody might not
-connect to the names above it. Both proven by breaking them: one test red each.
-
-One of the assertions written for this was a tautology that could never fail, caught
-while re-reading. It is gone.
-
-### A comment where a table name goes removes the query from the tenant audit
-
-Caught by the release chain, and worth writing down because it is invisible on
-review. `scripts/report-tenant-scoped-queries.mjs` works out which table a `rest()`
-call touches by reading the argument after `rest(config,`. A comment placed in that
-position -- between the arguments, which reads perfectly well -- **is** what the
-reader finds, so the call joined its blind spot and the recorded count of
-unresolvable calls went from 40 to 41. The audit said so by name and refused.
-
-The query was still correctly scoped; what stopped was anything checking that. The
-comment is above the call now. A comment is not a table name, and putting it where a
-table name goes is how a query quietly stops being read.
-
-### What this deliberately does not do
-
-**It is not on a timer.** `POST /api/agents/schedule/tick` exists and its menu is
-restricted to the self-serve actions -- the ones that read and report. Creating work
-against somebody's day is a change, so the page shows what is due and the business
-presses the button, which is the same answer
-`routes/sonara-recurring-invoice-routes.cjs` gives about its own. The arithmetic does
-not care who calls it, so putting it on a timer later is a registration and not a
-rewrite.
-
-**There is no delete.** Switching a template off is an update, and the migration
-asserts that `service_role` has no `DELETE` privilege so the claim cannot quietly
-stop being true.
-
-**The due date is midday UTC, and the day is also written on the task in words.**
-`employee_tasks.due_at` is `timestamptz` and an occurrence is a calendar day.
-Midnight UTC is the wrong day across the whole western hemisphere; midday is right
-from UTC-12 through UTC+11 and a day late in UTC+12 and east, which is New Zealand,
-Fiji and Kiribati. No hour covers all of them -- the inhabited offsets span
-twenty-six hours and a day has twenty-four -- so `buildTask` writes "Scheduled for
-2026-10-05." into the description, which is right everywhere.

@@ -59,6 +59,36 @@ function database() {
 }
 const req = { sonaraAccess: { user: { id: id(3) } } };
 describe("Creator Project Graph", () => {
+  it("imports complete SRT batches and rejects malformed input without partial writes", async () => {
+    const db = database();
+    await db.store.create(req, { title: "Captioned film", medium: "video" });
+    const subtitles = "\uFEFF1\r\n00:00:00,500 --> 00:00:02,000\r\nFirst line\r\nSecond line\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\n<script>literal</script>";
+    const result = await db.store.command(req, id(10), { action: "import_subtitles", revision: 1, subtitles });
+    assert.equal(result.ok, true);
+    assert.equal(result.project.revision, 2);
+    assert.equal(result.project.graph.nodes.length, 2);
+    assert.ok(result.project.graph.nodes.some((node) => node.text === "First line\nSecond line"));
+    assert.ok(exportProject(result.project, "vtt").data.includes("&lt;script&gt;literal&lt;/script&gt;"));
+    const saved = clone(db.projects);
+    for (const bad of ["", null, "x".repeat(65537), "1\n00:61:00,000 --> 00:62:00,000\nBad", "1\n00:00:02,000 --> 00:00:01,000\nBackwards", "1\n24:00:00,000 --> 24:00:01,000\nToo late", subtitles + "\n\n3\ninvalid\nBad"]) {
+      const rejected = await db.store.command(req, id(10), { action: "import_subtitles", revision: 2, subtitles: bad });
+      assert.equal(rejected.code, "invalid_graph");
+      assert.deepEqual(db.projects, saved);
+    }
+    assert.equal((await db.store.command(req, id(10), { action: "import_subtitles", revision: 1, subtitles })).code, "revision_conflict");
+    assert.equal((await db.store.command({ sonaraAccess: { user: { id: id(4) } } }, id(10), { action: "import_subtitles", revision: 2, subtitles })).code, "project_not_found");
+    db.loseRace();
+    assert.equal((await db.store.command(req, id(10), { action: "import_subtitles", revision: 2, subtitles })).code, "revision_conflict");
+    assert.equal(db.projects[0].graph.nodes.length, 2);
+  });
+  it("limits imported captions by total graph capacity and UTF-8 bytes", () => {
+    const { importSubtitles } = require("../lib/sonara-creator-project-graph.cjs");
+    let next = 1000;
+    const cue = "1\n00:00:00,000 --> 00:00:01,000\nCaption";
+    const full = { version: 1, nodes: Array.from({ length: 500 }, (_, i) => ({ id: id(i), kind: "caption", startMs: 0, endMs: 1, text: "Existing" })) };
+    assert.throws(() => importSubtitles(full, cue, () => id(next++)), /capacity/);
+    assert.throws(() => importSubtitles(empty(), "é".repeat(32769), () => id(next++)), /64 KB/);
+  });
   it("uses one graph interface for server and browser drafts and excludes untrusted metadata", () => {
     const browser = {};
     require("node:vm").runInNewContext(require("node:fs").readFileSync(require.resolve("../public/creator-project-graph-core.js"), "utf8"), { globalThis: browser, TextEncoder: globalThis.TextEncoder });
@@ -207,8 +237,12 @@ describe("Creator Project Graph", () => {
     const edit = await request(app).post(`/api/creator-studio/projects/${id(10)}/commands`).type("form").send({ action: "add_caption", revision: 1, text: "Hello", startMs: 0, endMs: 2000 });
     assert.equal(edit.status, 303);
     const detail = await request(app).get(`/creator-studio/projects/${id(10)}`); assert.match(detail.text, /Hello/);
+    assert.match(detail.text, /name="subtitles"/);
+    const imported = await request(app).post(`/api/creator-studio/projects/${id(10)}/commands`).type("form").send({ action: "import_subtitles", revision: 2, subtitles: "1\n00:00:03,000 --> 00:00:04,000\nImported cue" });
+    assert.equal(imported.status, 303);
     const json = await request(app).get(`/api/creator-studio/projects/${id(10)}`); assert.doesNotMatch(json.text, /NEVER_RENDER_THIS|serviceKey|"ctx"/);
     const vtt = await request(app).get(`/api/creator-studio/projects/${id(10)}/export/vtt`); assert.equal(vtt.status, 200); assert.match(vtt.text, /Hello/);
+    assert.match(vtt.text, /Imported cue/);
     assert.match(vtt.headers["content-disposition"], /attachment/);
   });
   it("registers exactly four free tools per child and three local parent tools", async () => {
