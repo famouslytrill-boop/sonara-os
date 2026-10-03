@@ -147,9 +147,22 @@ function createFakeSupabase(options = {}) {
     return tables.get(table);
   }
 
+  // Ours by origin, not by prefix. `startsWith(url)` also matched
+  // https://project.supabase.co.attacker.test -- CodeQL's "incomplete URL
+  // substring sanitization" -- which in a fake means a request to some other
+  // host is answered as Supabase and never reaches the firewall behind it.
+  const origin = new URL(url).origin;
+  function isOurs(requestUrl) {
+    try {
+      return new URL(requestUrl).origin === origin;
+    } catch {
+      return false;
+    }
+  }
+
   async function handle(input, init = {}) {
     const requestUrl = typeof input === "string" ? input : input?.url || String(input);
-    if (!requestUrl.startsWith(url)) return PASSTHROUGH;
+    if (!isOurs(requestUrl)) return PASSTHROUGH;
 
     const parsed = new URL(requestUrl);
     const method = String(init.method || "GET").toUpperCase();
@@ -261,7 +274,7 @@ function createFakeSupabase(options = {}) {
       const inner = previousFetch;
       return async function fakeSupabaseFetch(input, init) {
         const requestUrl = typeof input === "string" ? input : input?.url || String(input);
-        if (requestUrl.startsWith(url) && /\/rest\/v1\//.test(requestUrl)) {
+        if (isOurs(requestUrl) && /\/rest\/v1\//.test(requestUrl)) {
           const verdict = tenantGuard.inspect(init?.method || "GET", requestUrl, init?.body);
           if (!verdict.allowed) throw new tenantGuard.TenantGuardError(verdict.message);
         }

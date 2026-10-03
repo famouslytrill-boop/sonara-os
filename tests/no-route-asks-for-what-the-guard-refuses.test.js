@@ -363,7 +363,13 @@ describe("no route asks for what the tenant guard refuses", () => {
       if (page.token) call = call.set("Authorization", `Bearer ${page.token}`);
       const response = await call;
       // What the page said, so a failure here reads as the page's own sentence.
-      const said = `${response.status}: ${String(response.text || "").replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240)}`;
+      // Read out by matching the heading and the lede rather than by stripping
+      // tags: stripping is what CodeQL calls incomplete sanitization, and this
+      // only needs the two sentences a page leads with.
+      const page_ = String(response.text || "");
+      const heading = (page_.match(/<h1[^>]*>([^<]*)</) || [])[1] || "";
+      const lede = (page_.match(/<p class="lede"[^>]*>([^<]*)</) || [])[1] || "";
+      const said = `${response.status}: ${heading.trim()} | ${lede.trim()}`.slice(0, 240);
 
       assert.deepEqual(refusals, [], `the guard refused part of ${page.path}:\n  ${refusals.join("\n  ")}`);
       assert.ok(

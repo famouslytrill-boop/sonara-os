@@ -300,6 +300,12 @@ and 24 entries.
 - old guard under the static report: 7 failures, one per entry
 - edit-sweep ids back to `e1`: "reached only sign-in lookups"
 
+**CodeQL on the first push of this** found two things in my own test code, both
+fixed: the fake decided a request was Supabase's with `startsWith(url)`, which also
+matches `https://project.supabase.co.attacker.test` -- it now compares origins, so a
+look-alike host falls through to the offline firewall -- and a failure message built
+by stripping tags with a regex is now read by matching the heading and the lede.
+
 **Not done.** The sweeps reach what sample parameters and one form can reach. The
 business PATCH and DELETE routes stop at `business_not_found` because no business is
 seeded, and other routes behind a management unlock are covered only where driven
