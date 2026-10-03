@@ -109,8 +109,14 @@ before(function setUpTenants() {
   });
 
   savedFetch = global.fetch;
-  // Wrapping rather than replacing: the tenant guard installed by server.js
-  // stays in front of this, so a query it would refuse still gets refused.
+  // Wrapping rather than replacing. Whether the tenant guard ends up in front of
+  // the fake depends on load order: if this file is the first to require
+  // server.js, its install() wraps the fake; if an earlier file already did, the
+  // guard is inside savedFetch, behind the fake, and never sees a Supabase URL.
+  // Nothing below depends on it -- these assertions read what the application
+  // ASKED for, which the fake records either way.
+  // tests/no-route-asks-for-what-the-guard-refuses.test.js installs the guard
+  // explicitly when the guard is the thing under test.
   global.fetch = fake.install(savedFetch);
 
   app = require("../server");

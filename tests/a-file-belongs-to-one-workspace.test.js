@@ -38,7 +38,13 @@ describe("a file belongs to one workspace", () => {
     app.use(express.urlencoded({ extended: false }));
     app.use(express.json());
     registerAssetFileRoutes(app, {
-      layout: (title, body) => `<html><title>${title}</title>${body}</html>`,
+      // The real frame's signature: one object, `sections` an array, `body` the
+      // escaped lede. This stub was `(title, body)` -- the shape the route module
+      // called it with, and not the shape lib/sonara-page-frame.cjs accepts -- so
+      // this file passed while every page the module rendered answered 500.
+      // Destructuring the same object the frame does makes that call fail here too.
+      layout: ({ title, heading, body, sections }) =>
+        `<html><title>${title}</title><h1>${heading}</h1><p>${body}</p>${sections.join("")}</html>`,
       brandCard: (t, b, actions = []) => `<article><h2>${t}</h2><div>${b}</div>${actions.join("")}</article>`,
       linkAction: (href, label) => `<a href="${href}">${label}</a>`,
       escapeHtml: (value) => String(value).replace(/[&<>"']/g, (c) =>

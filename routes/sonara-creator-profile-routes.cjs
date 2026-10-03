@@ -223,9 +223,17 @@ function registerCreatorProfileRoutes(app, deps = {}) {
     const ids = follows.rows.map((row) => row.artist_profile_id).filter(Boolean);
     let profiles = { ok: true, rows: [] };
     if (ids.length) {
+      // public_handle=not.is.null and status=eq.active: only profiles anybody could
+      // open come back. The renderer below already dropped a row with no handle,
+      // but by then its draft name had been read; asking only for published rows
+      // is what lets lib/sonara-tenant-guard.cjs permit this read at all.
+      // Quoted and joined first, rather than inside the query, so the query is one
+      // flat literal: scripts/report-tenant-scoped-queries.mjs reads it as text and
+      // cannot follow a template literal nested inside another one.
+      const idList = ids.map((id) => JSON.stringify(String(id))).join(",");
       profiles = await rest(
         config,
-        `${PROFILE_TABLE}?select=${PUBLIC_PROFILE_COLUMNS.join(",")}&id=in.(${enc(ids.map((id) => `"${id}"`).join(","))})`,
+        `${PROFILE_TABLE}?select=${PUBLIC_PROFILE_COLUMNS.join(",")}&id=in.(${enc(idList)})&public_handle=not.is.null&status=eq.active`,
         { headers: supabaseHeaders(config) }
       );
     }

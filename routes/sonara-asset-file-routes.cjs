@@ -130,8 +130,22 @@ module.exports = function registerAssetFileRoutes(app, deps = {}) {
     });
   }
 
-  function page(res, status, title, body) {
-    return res.status(status).type("html").send(layout(title, body));
+  // The frame takes one object and escapes `body` as the plain-text lede, so the
+  // HTML built here goes in `sections`. This used to call layout(title, html):
+  // nothing destructures out of a string, `sections.join` threw, and every page
+  // this module rendered -- the asset's own file page included -- answered 500.
+  // Its test passed a two-argument stub layout, which agreed with this call and
+  // not with the real frame; tests/no-route-asks-for-what-the-guard-refuses.test.js
+  // drives the real one and found it.
+  function page(res, status, title, html) {
+    return res.status(status).type("html").send(layout({
+      title,
+      eyebrow: "Creator Studio",
+      heading: title,
+      body: "",
+      sections: [html],
+      actions: []
+    }));
   }
 
   function problemPage(res, status, title, message) {

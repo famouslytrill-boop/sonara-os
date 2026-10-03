@@ -163,6 +163,12 @@ const HANDOFF_BUDGET_BYTES = 128 * 1024;
 // them would cut entries in half and call the pieces entries.
 const DATED_ENTRY = /^### [0-9]{4}-[0-9]{2}-[0-9]{2}.*$/gm;
 
+function sprintIntro(included, total) {
+  return `The ${included} most recent entries of ${total} are below, newest first. ` +
+    "**The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. " +
+    "This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.";
+}
+
 function recentSprintEntries(log, budgetBytes) {
   const starts = [...log.matchAll(DATED_ENTRY)].map((match) => match.index);
   if (!starts.length) return { text: log, included: 0, total: 0 };
@@ -172,7 +178,11 @@ function recentSprintEntries(log, budgetBytes) {
   const kept = [];
   let used = Buffer.byteLength(preamble, "utf8");
   for (const entry of entries) {
-    const size = Buffer.byteLength(entry, "utf8");
+    // +2 for the "\n\n" each entry is joined with below. Uncounted, the slice
+    // overfilled by two bytes an entry -- harmless until the log sat near the
+    // edge, and then the final size check refused a document this function
+    // could have made fit.
+    const size = Buffer.byteLength(entry, "utf8") + 2;
     if (used + size > budgetBytes) break;
     kept.push(entry);
     used += size;
@@ -285,7 +295,15 @@ lines.push("");
 lines.push("## Sprint log");
 lines.push("");
 if (sprintLog) {
-  const budget = HANDOFF_BUDGET_BYTES - Buffer.byteLength(lines.join("\n"), "utf8");
+  // The sentence below that says how many entries were kept is written after the
+  // slice, so its bytes have to be set aside before it -- at the largest counts it
+  // could carry -- together with the four newlines that join it, the blank line,
+  // the slice and the closing blank line into the document. This subtracted only
+  // what came before the sprint section, so on 2 October 2026 the slice filled the
+  // budget to within a few hundred bytes and the sentence pushed the document
+  // over it.
+  const reserved = Buffer.byteLength(sprintIntro(99999, 99999), "utf8") + 4;
+  const budget = HANDOFF_BUDGET_BYTES - Buffer.byteLength(lines.join("\n"), "utf8") - reserved;
   const recent = recentSprintEntries(sprintLog, budget);
 
   if (recent.total && !recent.included) {
@@ -295,11 +313,7 @@ if (sprintLog) {
     );
   }
 
-  lines.push(
-    `The ${recent.included} most recent entries of ${recent.total} are below, newest first. ` +
-      "**The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. " +
-      "This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into."
-  );
+  lines.push(sprintIntro(recent.included, recent.total));
   lines.push("");
   lines.push(recent.text);
 } else {

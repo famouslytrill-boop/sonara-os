@@ -253,7 +253,14 @@ describe("the table list is derived, not remembered", () => {
 describe("the guard does not break the running application", () => {
   it("serves pages with the guard in the request path", async () => {
     // Every one of these renders while the guard is inspecting whatever they
-    // query. A false positive would surface as a 500 rather than a page.
+    // query. This used to add "a false positive would surface as a 500 rather
+    // than a page", and that was not true: routes reach Postgres through a fetch
+    // wrapper that catches what the guard throws and renders a failed-read page,
+    // and none of these five reads a tenant-scoped table. Five public pages were
+    // refused on every request while this passed. Whether the guard refuses
+    // anything a route asks for is
+    // tests/no-route-asks-for-what-the-guard-refuses.test.js, which drives every
+    // route; this only shows the guard does not break pages that read nothing.
     for (const page of ["/", "/pricing", "/service-catalog", "/readiness", "/support"]) {
       const response = await request(app).get(page).set("accept", "text/html");
       assert.equal(response.status, 200, `${page} must still render with the guard installed`);

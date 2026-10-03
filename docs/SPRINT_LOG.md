@@ -2,7 +2,139 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
-### 2026-10-03 - A check that saw two thirds of its tables, and read the rest by their spelling
+### 2026-10-02 - Six public pages the tenant guard refused on every request, behind tests that never met it
+
+`lib/sonara-tenant-guard.cjs` wraps fetch and throws on a query against a
+tenant-scoped table that names no organization, unless one of its `EXEMPT_PATTERNS`
+admits that exact request. A public page has no organization to filter by, so each
+one does a single deliberate unscoped lookup by its address. Those lookups were
+recorded as deliberate in `scripts/report-tenant-scoped-queries.mjs` -- and not one
+of them was in `EXEMPT_PATTERNS`, the list that runs. Every route reaches Postgres
+through a fetch wrapper that catches what the guard throws and reports a failed
+read, so the refusal never surfaced as an error. It surfaced as the failed-read page.
+
+Measured through the real `server.js`, the guard in front of a fake PostgREST,
+with the code as it stood at `ab3185ac`:
+
+| Request | Answer |
+| --- | --- |
+| `GET /events/:slug` | 503, "We cannot reach this just now" |
+| `GET /store/:slug` | 503, same |
+| `GET /creator/:handle` | 503, "We could not open that profile" |
+| `GET /chat/:slug` | 503, "We could not open that just now" |
+| `GET /s/:slug` | 503 |
+| `GET /shared/:token` | 503 (found second -- see below) |
+| `POST /events/:slug` (an RSVP) | 503 |
+| `POST /api/growth/events/publish` | 303 `problem=save_failed` -- the address check |
+| `POST /api/lead-capture-page` | 303 `problem=not_saved` -- the same check |
+| `POST /api/creator-profiles/:id/follow` | 503, "That did not change" |
+| `GET /account/following` | 200, "We could not load the profiles behind your list" |
+
+The storefront's own address check is refused the same way (measured with
+`inspect()`; the route sits behind a management unlock the sweep cannot pass, so it
+is driven through the real route module in the new test instead).
+
+**Why every test passed.** None of them met the guard. Some build their own app and
+assign `global.fetch` a stub, which removes the guard from the request path. The
+ones on `tests/helpers/fake-supabase.cjs` install the fake and then require
+`server.js` -- which puts the guard in front only if that file is the first to
+require it. In the suite an earlier file always had, so the guard sat behind the
+fake and never saw a Supabase URL. Run alone against the old guard,
+`a-chat-widget-captures-one-business-lead.test.js` failed 12 tests and
+`a-public-profile-publishes-three-things.test.js` failed 1; run after
+`tenant-guard.test.js`, both passed. The verdict depended on file order. And
+`tenant-guard.test.js`'s "does not break the running application" drove five pages
+that read nothing tenant-scoped, under a comment saying a false positive "would
+surface as a 500" -- it surfaces as a 503 page, by design.
+
+**The fix.** Eleven pinned exemptions through one helper, `pinnedLookup`: exactly
+these query keys, these fixed values (the filter keeping drafts out, `limit=1`), an
+address that is `eq.` on one slug, uuid or token -- never `in.`, `like.` or `neq.` --
+and a select drawn only from listed columns, so a public lookup that later grows
+`email` is refused rather than printed. The follower list now asks only for
+published, active profiles (`public_handle=not.is.null&status=eq.active`); before,
+the renderer dropped an unpublished one, but only after its draft name had been read.
+
+**The fake now applies the guard itself**, in front of every Supabase request,
+because in production every request passes it. That is what found `/shared/:token`:
+with the guard inside the fake, `a-shared-link-is-a-link-not-a-leak.test.js` failed
+17 tests, starting with "opens a saved result for somebody with no account at all"
+(503). My route sweep had missed it -- its sample token failed the route's own shape
+check before any query. The sweep now sends a token in the issued shape. The fake
+also learned PostgREST's `not.` (`published_at=not.is.null`), and refuses it on
+`organization_id`, where it would mean every other tenant.
+
+**New: `tests/no-route-asks-for-what-the-guard-refuses.test.js`.** Every GET (552),
+POST (343), PATCH (10) and DELETE (3) route in `server.js`, anonymous and signed in,
+through the real guard installed explicitly over a fake rebuilt before each test.
+It fails on any refusal and on any 500. Eleven requests are then driven one by one
+with seeded rows, and each must read its table past the guard and render what it
+read. Population floors on every sweep, plus a floor on queries actually sent --
+the first edit sweep sent ids that were not uuids, every route refused them before
+querying, and it passed in 38 ms having reached only the sign-in lookups. It now
+sends uuids and must reach four of the routes' own tables.
+
+**What the sweep found that was not the guard.** `routes/sonara-asset-file-routes.cjs`
+called `layout(title, html)`; the frame takes one object. Nothing destructures out
+of a string, `sections.join` threw, and every page that module rendered -- an
+asset's file page included -- answered 500. Its test passed because its stub
+`layout` took `(title, body)`: the call shape the module used, not the one the frame
+accepts. Both fixed; the stub now destructures the frame's object.
+
+**Three corrections to my own harness.** The third was caught by the full suite
+rather than by this file: the POST sweep reaches `/auth/signup` like every other
+route, all from one client address, and used up the signup allowance in the rate
+limiters' shared in-process store -- so `tests/server.test.js`, later in the same
+run, got 429 where it expected 503 (reproduced: 2 failing after the old sweep, 0
+after the new). Every request in the new test now comes from its own address, and
+the store is cleared when the file ends. The first two were caught by checks
+written to catch them.
+The first version required `server.js` after building the recording chain, so the
+first-require `install()` put a second guard outside the recorder and refusals never
+reached it; the harness test ("a refusal by the guard was not recorded") failed.
+And the sweeps share state with the probes: signed in as the owner, the POST sweep
+really cancels the seeded event through `/api/growth/events/cancel`, and the RSVP
+probe after it was refused -- correctly -- as cancelled.
+
+**The static report, two changes.** It now fails when a table in
+`READ_WITHOUT_ORGANIZATION` has no exemption at all in the runtime guard: against
+the old guard it names all seven entries. And `exemptedBy` returned the first
+matching entry; once the follower query carried `status=eq.active`, the public-page
+entry (which requires only that) claimed it, and the follower entry was reported
+stale while its call was right there. The most specific match now wins, which also
+stops the follower query keeping the public entry alive if the public lookup is
+deleted.
+
+**And the handoff generator miscounted its own budget.** This entry pushed
+`docs/HANDOFF_PROMPT.md` over its 128 KB limit, and the generator refused -- rightly,
+since the document was over. But the slice that chooses how many sprint entries fit
+subtracted only what came before the sprint section: not the sentence it writes after
+choosing ("The N most recent entries..."), and not the two-byte separator between
+entries. Near the edge it overfilled and then failed the check it had just made
+impossible to pass. It now sets both aside first; the same log produces 126,738 bytes
+and 24 entries.
+
+**Falsified**, each restored by copy and `md5sum -c`:
+
+- event exemption removed: 5 tests red, naming `/events/:slug`
+- one column added to the public event select: 4 red -- the guard refuses it
+- asset-file call reverted: both sweeps report "crashed (500)", and 10 asset-file tests fail on the corrected stub
+- guard taken out of the harness: "install() did not wrap the fake"
+- follower filters dropped: 2 red; and the static report names the follower entry
+- the fake stops modelling `not.`: `/s/:slug` and `/account/following` red
+- `shared_links` exemption disabled: the sweep names `/shared/:token`
+- chat exemption disabled, chat test run after `tenant-guard.test.js`: 12 red with the guard inside the fake, 45 passing without it -- the order that hid this
+- old guard under the static report: 7 failures, one per entry
+- edit-sweep ids back to `e1`: "reached only sign-in lookups"
+
+**Not done.** The sweeps reach what sample parameters and one form can reach. The
+business PATCH and DELETE routes stop at `business_not_found` because no business is
+seeded, and other routes behind a management unlock are covered only where driven
+one by one. The static report's 40 calls whose table it cannot resolve are still
+unresolved. I measured the code, not the deployment: whether production has been
+serving these 503s depends on what is deployed, which I cannot see from here.
+
+### 2026-10-02 - A check that saw two thirds of its tables, and read the rest by their spelling
 
 `tests/member-read-policies.test.js` holds that every organization-scoped table the
 application reads has a policy a signed-in member can read through, or a recorded
@@ -68,7 +200,7 @@ how the `user_roles` entry was found.
 | the closed set cannot be read from the replay | red, *this check has gone blind* |
 
 
-### 2026-10-03 - Three CodeQL alerts on the multipart parser, measured before fixed
+### 2026-10-02 - Three CodeQL alerts on the multipart parser, measured before fixed
 
 PR #415 merged with CodeQL red on its last two heads: three high-severity alerts,
 all in `lib/sonara-multipart.cjs`, a file that PR never edited. The profile picture
@@ -106,7 +238,7 @@ timing test, which measured **2,688ms** for a 50,000-character header against a
 200ms bound. The existing 35 upload tests and 29 profile tests pass unchanged.
 
 
-### 2026-10-03 - A marketplace, and two bugs the module tests could not see
+### 2026-10-02 - A marketplace, and two bugs the module tests could not see
 
 The owner's brief: "Creator studio comes with a Marketplace. Where users can sell and
 monetize the audio and video creations and generations, pictures and art."
@@ -208,7 +340,7 @@ literally. Recorded here and fixed in the next change, not this one.
 smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file.
 
 
-### 2026-10-03 - My subscription gate could not see the limiter the next merge added
+### 2026-10-02 - My subscription gate could not see the limiter the next merge added
 
 Two things from merging `main` at 090b9904 (#417 and #418), both found because the
 merged tree was measured rather than trusted.
@@ -265,7 +397,7 @@ gate's business is a page offering to sell more, and the copy check would catch 
 file.
 
 
-### 2026-10-03 - A floor that a realistic throttle sat exactly on
+### 2026-10-02 - A floor that a realistic throttle sat exactly on
 
 The owner's instruction, three times over: "there are no rate limits once
 subscribed... Nothing else to buy nothing else to do. You subscribe, you use the
@@ -327,7 +459,7 @@ has risen above the floor fails naming the figure.
 from its own file.
 
 
-### 2026-10-03 - A bucket that existed without a feature, and a permission with two states
+### 2026-10-02 - A bucket that existed without a feature, and a permission with two states
 
 The owner's brief asks for profiles with pictures and settings, and for camera,
 microphone and contacts permissions. The first thing to establish was what was

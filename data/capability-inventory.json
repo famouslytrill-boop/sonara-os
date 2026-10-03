@@ -65384,7 +65384,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 143
+        "line": 157
       },
       "contractCompleteness": {
         "route": true,
@@ -65486,7 +65486,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 252
+        "line": 266
       },
       "contractCompleteness": {
         "route": true,
@@ -121766,7 +121766,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 373
+        "line": 381
       },
       "contractCompleteness": {
         "route": true,
@@ -121929,7 +121929,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 300
+        "line": 308
       },
       "contractCompleteness": {
         "route": true,
@@ -122071,7 +122071,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 391
+        "line": 399
       },
       "contractCompleteness": {
         "route": true,
@@ -122221,7 +122221,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 331
+        "line": 339
       },
       "contractCompleteness": {
         "route": true,
@@ -166536,7 +166536,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 188
+        "line": 202
       },
       "contractCompleteness": {
         "route": true,
@@ -166640,7 +166640,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 269
+        "line": 283
       },
       "contractCompleteness": {
         "route": true,
@@ -272803,7 +272803,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 373
+        "line": 381
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272813,7 +272813,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 300
+        "line": 308
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272823,7 +272823,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 391
+        "line": 399
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272833,7 +272833,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 331
+        "line": 339
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
