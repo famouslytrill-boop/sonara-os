@@ -190,7 +190,11 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
         ...getArchitectureExtensionsBatch16(),
         ...getArchitectureExtensionsBatch17(),
         ...getArchitectureExtensionsBatch18(),
-        ...getArchitectureExtensionsBatch19()
+        ...getArchitectureExtensionsBatch19(),
+        ...getArchitectureExtensionsBatch20(),
+        ...getArchitectureExtensionsBatch21(),
+        ...getArchitectureExtensionsBatch22(),
+        ...getArchitectureExtensionsBatch23()
       ].map((item) => brandCard(
         `${item.title}: Screenshot architecture`,
         `${item.principle} SONARA implementation: ${item.implementation}`
@@ -226,13 +230,13 @@ module.exports = function registerSonaraRequestedRepositoryRoutes(app, deps = {}
     const latest = getLatestScreenshotIntake();
     const convergence = getCapabilityDesignReadiness();
     const sections = [
-      brandCard("Repository records", `${latest.repositories.length} current screenshot-research repositories, including Batch 22, are classified for product fit, verification state, license risk, runtime boundary, and staged next action.`),
+      brandCard("Repository records", `${latest.repositories.length} current screenshot-research repositories, including Batch 23, are classified for product fit, verification state, license risk, runtime boundary, and staged next action.`),
       brandCard("Batch 8 capability truth", `${convergence.batch8Count} internal records separate available, setup-gated, development-compatible, and research-ready capability states across SONARA and its agent workflows.`),
       brandCard("Batch 9 design/correctness", `${convergence.batch9Count} records define the current v3 design authority and the repair/review items that must not be marketed as complete.`),
       brandCard("Hosted/platform references", `${latest.nonRepositoryReferences.length} hosted or platform references remain outside the executable repository catalog.`),
       brandCard("Deduplicated references", `${latest.deduplicatedReferences.length} submitted items were repeated in earlier batches or uploads and were not duplicated.`),
       brandCard("Earlier confirmations", `${latest.confirmedExistingRecords.length} submitted projects were already covered by governed records and were re-confirmed instead of duplicated.`),
-      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} repository-owned architecture decisions convert the latest research into bounded tool-gateway, developer-agent, design-authority, financial-truth, memory-versioning, browser-verification, skill-supply-chain, deterministic-decision, code-sandbox, media-ownership and public-data provenance rules.`),
+      brandCard("Screenshot architecture extensions", `${latest.architectureExtensions.length} repository-owned architecture decisions convert screenshot research into bounded provenance, execution, device, media, memory, model-promotion, approval, security and design-truth rules.`),
       brandCard("Execution state", "0 latest-intake repositories are enabled by this research surface. Cataloging and capability/design documentation are not installation, deployment, or permission to send customer data."),
       ...convergence.capabilities.map((item) => brandCard(
         `${item.label}: ${display(item.capabilityStatus)}`,
