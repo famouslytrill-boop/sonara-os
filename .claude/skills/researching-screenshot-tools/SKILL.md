@@ -215,6 +215,22 @@ The current source record is `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-28_BAT
 
 Batch 20 adds route-to-result, complete UI-state, deterministic-rule, approval/idempotency, asset-provenance, upload/streaming, truthful-metrics and protected-deployment patterns. Formula processing remains paused until the owner explicitly authorizes it. Do not install, copy or execute any project based on the screenshots.
 
+## Current 2026-09-30 Batch 21 decisions
+
+Batch 21 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-30_BATCH21.md` and represented in `lib/sonara-screenshot-tool-radar-batch21.cjs`. It records source-checked business, mobile, finance, memory and workflow references, reconciles repeated prior sources, and keeps all candidates disabled. Promotional figures and mock data never become product truth.
+
+## Current 2026-09-30 Batch 22 decisions
+
+Batch 22 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-30_BATCH22.md` and represented in `lib/sonara-screenshot-tool-radar-batch22.cjs`. Five source-verified repositories remain non-executing. Its provenance, typed-workflow, metric-truth, responsive-route, media-lifecycle and local-agent-privilege contracts are clean-room SONARA architecture, not imported third-party code.
+
+## Current 2026-10-03 Batch 23 decisions
+
+Batch 23 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-10-03_BATCH23.md` and represented in `lib/sonara-screenshot-tool-radar-batch23.cjs`. Seven GitHub repositories were source-checked: TesterArmy e2e, Mobile Next MCP, Learn Harness Engineering, Riso Windowseat, Hindsight, OpenDots and uniTerm. All remain cataloged-disabled and non-executing.
+
+The same intake reconciles existing VoiceStudio, Qwen Image 2.1, Whisper Large v3 Turbo, Kokoro 82M and FLUX.1 Schnell records instead of duplicating them. Hugging Face model/dataset/Space screenshots are discovery records only. Do not bulk-import trending models, LoRAs, datasets or Spaces. Uncensored/abliterated/NSFW/face-swap variants are not runtime targets. A model moves forward only through the exact-revision license/territory, serialization, provenance, compute, safety, offline-eval, worker-isolation and tenant-canary promotion gate.
+
+Batch 23 also adds clean-room contracts for deterministic agent-test proof, mobile device security, procedural deterministic media, memory lifecycle, privileged remote operations, voice consent/provenance, vertical workflow templates and design-reference truth.
+
 ## What not to do
 
 Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure or model-routing recommendations to mutate production automatically, let media-editor bridges perform destructive work without review, treat cookbook licenses as model licenses, mix copyleft source into proprietary production paths without review, process unbounded OCR uploads in the request process, let social automation publish without explicit authority, copy unlicensed repository material into product code, turn lead directories into indiscriminate scraping/outreach, expose local research dashboards publicly without review, make WebGPU mandatory for core workflows, white-label custom-licensed software contrary to its license, let personal-agent memory imply permission to act, or copy another product's visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.
