@@ -358,7 +358,10 @@ describe("signed-in workspaces speak plainly", () => {
   // The crawl is what noticed. A count two branches each increment is a count a
   // clean merge can silently halve, so this was measured on the merged tree rather
   // than taken from either side.
-  const SIGNED_IN_SKIPPED = 118;
+  // 118 -> 119 on 3 October 2026: /growth-studio/owner/channels, which answers 503
+  // here for the same reason /growth-studio/owner/events does -- no workspace in
+  // this crawl, and a page that cannot read says so rather than rendering empty.
+  const SIGNED_IN_SKIPPED = 119;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

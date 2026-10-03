@@ -140,7 +140,6 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@vercel/node": "^5.8.26",
     "eslint": "^10.7.0",
     "mocha": "^11.7.6",
     "supertest": "^7.2.2",

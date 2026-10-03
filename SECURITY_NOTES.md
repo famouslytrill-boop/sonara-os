@@ -131,6 +131,34 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+### 3 October 2026 -- `braces`, with no fixed version, removed by removing what pulled it in
+
+`pnpm audit --audit-level moderate`, the OSV gate and the deploy dry-run's own
+dependency audit all failed on **GHSA-vfj7-8cjw-p6xm** (high): `braces` stack
+exhaustion through deeply nested patterns, `<=3.0.3`. The registry has no release
+past `3.0.3` (May 2024) and the advisory lists no patched version, so the override
+this file has used for every earlier advisory had nothing to point at. Both paths
+ran through one development dependency:
+
+```
+.>@vercel/node>ts-morph>@ts-morph/common>fast-glob>micromatch>braces
+.>@vercel/node>@vercel/static-config>ts-morph>@ts-morph/common>fast-glob>micromatch>braces
+```
+
+**`@vercel/node` was not used.** Nothing in the repository imports it, and the deploy
+workflows run their own pinned `vercel@59.19.1` CLI. Vercel's Node.js runtime
+documentation (checked 3 October 2026) says a function in `/api` needs "no
+additional configuration"; the npm package is what supplies the `VercelRequest` and
+`VercelResponse` types to a TypeScript handler, and `api/index.js` is JavaScript that
+re-exports the Express app. So it was removed with `pnpm remove @vercel/node`, and the
+audit is clean at moderate with no threshold moved and nothing ignored.
+
+It is also the fifth advisory this one package has carried in: `js-yaml` twice,
+`smol-toml`, `fast-uri` and `ajv` all arrived through it. After the removal the
+overrides for `undici`, `smol-toml`, `postcss`, `fast-uri` and `tar` resolve nothing
+in the tree. They are kept: an override that matches nothing does nothing, and if
+one of those packages comes back through another dependency it arrives patched.
+
 ### 9 September 2026 -- `js-yaml` again, and the third stale override
 
 The note above ends by predicting this: *when an audit names a package this file

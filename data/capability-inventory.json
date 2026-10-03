@@ -11,63 +11,63 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 908,
+    "routeOperationCount": 920,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 552,
+      "GET": 556,
       "PATCH": 10,
-      "POST": 343
+      "POST": 351
     },
     "workspaceCount": 12,
-    "declaredPageCount": 297,
+    "declaredPageCount": 299,
     "workspaceRouteCounts": {
       "business_builder": 335,
       "business_builder_agent_ops": 7,
       "creator_studio": 132,
       "cross_workspace_formulas": 5,
-      "growth_studio": 121,
+      "growth_studio": 129,
       "research_catalog": 12,
       "research_lab": 15,
       "shared_account": 27,
       "shared_infrastructure": 3,
-      "sonara_shared": 136,
+      "sonara_shared": 140,
       "sonara_shared_api": 115
     },
     "actionDestinationCounts": {
-      "exact": 345,
-      "form_reference": 296,
+      "exact": 349,
+      "form_reference": 299,
       "machine_ingress": 2,
-      "parent_route": 68,
+      "parent_route": 69,
       "route_pair": 105,
-      "workspace_fallback": 92
+      "workspace_fallback": 96
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 146,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 201,
-      "needs_explicit_data_contract": 298
+      "handler_source_table_reference": 212,
+      "needs_explicit_data_contract": 299
     },
-    "routesUsingWorkspaceHomeFallback": 92,
-    "formActionLinkCount": 58,
+    "routesUsingWorkspaceHomeFallback": 96,
+    "formActionLinkCount": 61,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 325,
-    "databaseTableCount": 349,
+    "openApiApiOperationCount": 332,
+    "databaseTableCount": 353,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 308,
+    "queriedTableCount": 312,
     "neverQueriedTableCount": 41,
-    "migrationCount": 149,
+    "migrationCount": 150,
     "databaseFunctionCount": 33,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 298,
+    "routeDataContractsNeedingExplicitReview": 299,
     "routeDataReviewByMethod": {
-      "GET": 203,
+      "GET": 204,
       "POST": 95
     },
     "routeDestinationReviewByWorkspace": {
@@ -75,7 +75,7 @@
       "business_builder_agent_ops": 1,
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
-      "growth_studio": 9,
+      "growth_studio": 13,
       "research_lab": 1,
       "shared_infrastructure": 1,
       "sonara_shared_api": 61
@@ -614,8 +614,8 @@
         "/api/growth-studio",
         "/api/growth"
       ],
-      "routeCount": 121,
-      "registeredPageCount": 57,
+      "routeCount": 129,
+      "registeredPageCount": 58,
       "registeredPageRoutes": [
         "/growth-studio/analytics",
         "/growth-studio/assistant",
@@ -641,6 +641,7 @@
         "/growth-studio/market-intelligence",
         "/growth-studio/offers",
         "/growth-studio/offers/free",
+        "/growth-studio/owner/channels",
         "/growth-studio/owner/chat-widget",
         "/growth-studio/owner/events",
         "/growth-studio/owner/ideal-customer",
@@ -744,6 +745,7 @@
         {
           "name": "Owner operations",
           "routes": [
+            "/growth-studio/owner/channels",
             "/growth-studio/owner/chat-widget",
             "/growth-studio/owner/events",
             "/growth-studio/owner/ideal-customer",
@@ -903,8 +905,8 @@
       "routePrefixes": [
         "/"
       ],
-      "routeCount": 136,
-      "registeredPageCount": 119,
+      "routeCount": 140,
+      "registeredPageCount": 122,
       "registeredPageRoutes": [
         "/",
         "/about",
@@ -928,6 +930,9 @@
         "/business-builder/launch-readiness",
         "/business-builder/login",
         "/call/:token",
+        "/channels",
+        "/channels/:handle",
+        "/channels/:handle/feed.xml",
         "/chat/:slug",
         "/contact",
         "/cookies",
@@ -1885,7 +1890,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1465
+        "line": 1467
       },
       "contractCompleteness": {
         "route": true,
@@ -1991,7 +1996,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 833
+        "line": 835
       },
       "contractCompleteness": {
         "route": true,
@@ -2097,7 +2102,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 990
+        "line": 992
       },
       "contractCompleteness": {
         "route": true,
@@ -2201,7 +2206,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -2305,7 +2310,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -2417,7 +2422,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1180
+        "line": 1182
       },
       "contractCompleteness": {
         "route": true,
@@ -3629,7 +3634,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1197
+        "line": 1199
       },
       "contractCompleteness": {
         "route": true,
@@ -3845,7 +3850,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1314
+        "line": 1316
       },
       "contractCompleteness": {
         "route": true,
@@ -4852,7 +4857,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1456
       },
       "contractCompleteness": {
         "route": true,
@@ -5173,7 +5178,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1453
+        "line": 1455
       },
       "contractCompleteness": {
         "route": true,
@@ -5735,7 +5740,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1452
+        "line": 1454
       },
       "contractCompleteness": {
         "route": true,
@@ -15925,7 +15930,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1277
+        "line": 1279
       },
       "contractCompleteness": {
         "route": true,
@@ -16681,7 +16686,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1496
+        "line": 1498
       },
       "contractCompleteness": {
         "route": true,
@@ -17243,7 +17248,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1495
+        "line": 1497
       },
       "contractCompleteness": {
         "route": true,
@@ -22932,7 +22937,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1520
+        "line": 1522
       },
       "contractCompleteness": {
         "route": true,
@@ -23494,7 +23499,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1519
+        "line": 1521
       },
       "contractCompleteness": {
         "route": true,
@@ -26649,7 +26654,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1544
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -31248,7 +31253,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1552
+        "line": 1554
       },
       "contractCompleteness": {
         "route": true,
@@ -32214,7 +32219,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 942
+        "line": 944
       },
       "contractCompleteness": {
         "route": true,
@@ -32329,7 +32334,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1263
+        "line": 1265
       },
       "contractCompleteness": {
         "route": true,
@@ -32443,7 +32448,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1150
+        "line": 1152
       },
       "contractCompleteness": {
         "route": true,
@@ -32549,7 +32554,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1124
+        "line": 1126
       },
       "contractCompleteness": {
         "route": true,
@@ -32655,7 +32660,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1110
+        "line": 1112
       },
       "contractCompleteness": {
         "route": true,
@@ -32765,7 +32770,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1344
+        "line": 1346
       },
       "contractCompleteness": {
         "route": true,
@@ -33153,7 +33158,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1690
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -33259,7 +33264,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -33646,7 +33651,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1346
+        "line": 1348
       },
       "contractCompleteness": {
         "route": true,
@@ -34355,7 +34360,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -34639,7 +34644,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -34745,7 +34750,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -35111,7 +35116,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1385
+        "line": 1387
       },
       "contractCompleteness": {
         "route": true,
@@ -35217,7 +35222,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -35416,7 +35421,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1415
+        "line": 1417
       },
       "contractCompleteness": {
         "route": true,
@@ -35522,7 +35527,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -35628,7 +35633,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1722
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -35827,7 +35832,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1368
+        "line": 1370
       },
       "contractCompleteness": {
         "route": true,
@@ -36023,7 +36028,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -36129,7 +36134,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -36235,7 +36240,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -60375,7 +60380,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -60824,7 +60829,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -60930,7 +60935,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -61036,7 +61041,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -63669,6 +63674,388 @@
       "action": false
     },
     {
+      "id": "GET /channels",
+      "method": "GET",
+      "route": "/channels",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/channels",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Channels",
+        "productOwner": "sonara_industries",
+        "visibility": "public",
+        "requiredRole": null,
+        "requiredPlan": "free",
+        "requiredProvider": null,
+        "readiness": "ready",
+        "navigationPlacement": "primary"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_directory"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_directory",
+            "tableId": "table:growth_channel_directory",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 455
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "route-convention",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /channels/:handle",
+      "method": "GET",
+      "route": "/channels/:handle",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/channels/:handle",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "handle"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "handle"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql",
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 537
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /channels/:handle/feed.xml",
+      "method": "GET",
+      "route": "/channels/:handle/feed.xml",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/channels/:handle/feed.xml",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "handle"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "handle"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          404,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql",
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 576
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /chat/:slug",
       "method": "GET",
       "route": "/chat/:slug",
@@ -63885,7 +64272,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 897
+        "line": 899
       },
       "contractCompleteness": {
         "route": true,
@@ -63989,7 +64376,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -64095,7 +64482,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1690
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -65282,7 +65669,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -65384,7 +65771,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 143
+        "line": 157
       },
       "contractCompleteness": {
         "route": true,
@@ -65486,7 +65873,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 252
+        "line": 266
       },
       "contractCompleteness": {
         "route": true,
@@ -65682,7 +66069,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -65974,7 +66361,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -66080,7 +66467,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -66281,7 +66668,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -68216,7 +68603,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -68322,7 +68709,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1722
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -68518,7 +68905,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -68624,7 +69011,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -69671,7 +70058,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -69777,7 +70164,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -70980,7 +71367,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -71086,7 +71473,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -71192,7 +71579,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -72097,7 +72484,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -75746,7 +76133,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1222
+        "line": 1224
       },
       "contractCompleteness": {
         "route": true,
@@ -75940,7 +76327,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1045
+        "line": 1047
       },
       "contractCompleteness": {
         "route": true,
@@ -76044,7 +76431,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -76346,7 +76733,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1564
       },
       "contractCompleteness": {
         "route": true,
@@ -76794,7 +77181,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1690
+        "line": 1692
       },
       "contractCompleteness": {
         "route": true,
@@ -76900,7 +77287,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -77484,7 +77871,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -77685,7 +78072,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -78502,7 +78889,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1706
       },
       "contractCompleteness": {
         "route": true,
@@ -78879,7 +79266,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -78985,7 +79372,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -79181,7 +79568,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1722
+        "line": 1724
       },
       "contractCompleteness": {
         "route": true,
@@ -79413,7 +79800,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -79609,7 +79996,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -79715,7 +80102,94 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /growth-studio/owner/channels",
+      "method": "GET",
+      "route": "/growth-studio/owner/channels",
+      "kind": "page_or_download",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/owner/channels",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Channels",
+        "productOwner": "growth_studio",
+        "visibility": "product",
+        "requiredRole": "customer",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_login",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 131
       },
       "contractCompleteness": {
         "route": true,
@@ -81015,7 +81489,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -81121,7 +81595,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "contractCompleteness": {
         "route": true,
@@ -81410,7 +81884,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "contractCompleteness": {
         "route": true,
@@ -83461,7 +83935,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1027
+        "line": 1029
       },
       "contractCompleteness": {
         "route": true,
@@ -83900,7 +84374,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -83995,7 +84469,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84090,7 +84564,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84185,7 +84659,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84280,7 +84754,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84375,7 +84849,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84470,7 +84944,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84565,7 +85039,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84660,7 +85134,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84755,7 +85229,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84850,7 +85324,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -84945,7 +85419,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -85040,7 +85514,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -85135,7 +85609,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1600
+        "line": 1602
       },
       "contractCompleteness": {
         "route": true,
@@ -85243,7 +85717,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1096
+        "line": 1098
       },
       "contractCompleteness": {
         "route": true,
@@ -85423,7 +85897,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1159
+        "line": 1161
       },
       "contractCompleteness": {
         "route": true,
@@ -85520,7 +85994,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1565
+        "line": 1567
       },
       "contractCompleteness": {
         "route": true,
@@ -86052,7 +86526,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1578
+        "line": 1580
       },
       "contractCompleteness": {
         "route": true,
@@ -86147,7 +86621,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1564
       },
       "contractCompleteness": {
         "route": true,
@@ -86570,7 +87044,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 952
+        "line": 954
       },
       "contractCompleteness": {
         "route": true,
@@ -86674,7 +87148,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -87548,7 +88022,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -87834,7 +88308,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1564
       },
       "contractCompleteness": {
         "route": true,
@@ -89388,7 +89862,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1009
+        "line": 1011
       },
       "contractCompleteness": {
         "route": true,
@@ -89586,7 +90060,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1325
+        "line": 1327
       },
       "contractCompleteness": {
         "route": true,
@@ -90075,7 +90549,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1100
+        "line": 1102
       },
       "contractCompleteness": {
         "route": true,
@@ -91276,7 +91750,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -91600,7 +92074,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1604
+        "line": 1606
       },
       "contractCompleteness": {
         "route": true,
@@ -92019,7 +92493,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1564
       },
       "contractCompleteness": {
         "route": true,
@@ -93446,7 +93920,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1460
+        "line": 1462
       },
       "contractCompleteness": {
         "route": true,
@@ -96407,7 +96881,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1210
+        "line": 1212
       },
       "contractCompleteness": {
         "route": true,
@@ -98204,7 +98678,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1282
+        "line": 1284
       },
       "contractCompleteness": {
         "route": true,
@@ -98559,7 +99033,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1284
+        "line": 1286
       },
       "contractCompleteness": {
         "route": true,
@@ -101046,7 +101520,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1455
+        "line": 1457
       },
       "contractCompleteness": {
         "route": true,
@@ -101322,7 +101796,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1404
+        "line": 1406
       },
       "contractCompleteness": {
         "route": true,
@@ -101859,7 +102333,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1439
+        "line": 1441
       },
       "contractCompleteness": {
         "route": true,
@@ -121599,7 +122073,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1281
+        "line": 1283
       },
       "contractCompleteness": {
         "route": true,
@@ -121766,7 +122240,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 373
+        "line": 381
       },
       "contractCompleteness": {
         "route": true,
@@ -121929,7 +122403,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 300
+        "line": 308
       },
       "contractCompleteness": {
         "route": true,
@@ -122071,7 +122545,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 391
+        "line": 399
       },
       "contractCompleteness": {
         "route": true,
@@ -122221,7 +122695,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 331
+        "line": 339
       },
       "contractCompleteness": {
         "route": true,
@@ -122823,7 +123297,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1471
+        "line": 1473
       },
       "contractCompleteness": {
         "route": true,
@@ -123931,7 +124405,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1484
+        "line": 1486
       },
       "contractCompleteness": {
         "route": true,
@@ -130935,7 +131409,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1498
+        "line": 1500
       },
       "contractCompleteness": {
         "route": true,
@@ -132328,7 +132802,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1507
+        "line": 1509
       },
       "contractCompleteness": {
         "route": true,
@@ -134574,6 +135048,912 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "route-convention",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels",
+      "method": "POST",
+      "route": "/api/growth/channels",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "createGrowthChannel",
+        "summary": "Create a channel, always as a draft.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channels"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 281
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "generic_openapi_body_contract"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels/hide",
+      "method": "POST",
+      "route": "/api/growth/channels/hide",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "hideGrowthChannel",
+        "summary": "Take a channel out of the directory and hide it.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "channel_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_directory",
+          "growth_channels"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_directory",
+            "tableId": "table:growth_channel_directory",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 333
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels/posts",
+      "method": "POST",
+      "route": "/api/growth/channels/posts",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "postToGrowthChannel",
+        "summary": "Post or announce on a channel. Sends nothing to anybody.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "channel_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_events",
+            "tableId": "table:growth_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261002060000_public_events_and_rsvps.sql",
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 352
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels/posts/remove",
+      "method": "POST",
+      "route": "/api/growth/channels/posts/remove",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/owner/channels",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "removeGrowthChannelPost",
+        "summary": "Take a post down. A state, not a delete; its open reports are marked actioned.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "post_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts",
+          "growth_post_reports"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_post_reports",
+            "tableId": "table:growth_post_reports",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 382
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels/posts/restore",
+      "method": "POST",
+      "route": "/api/growth/channels/posts/restore",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/owner/channels",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "restoreGrowthChannelPost",
+        "summary": "Put a removed post back up.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "post_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 402
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels/publish",
+      "method": "POST",
+      "route": "/api/growth/channels/publish",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "publishGrowthChannel",
+        "summary": "Make a channel public and list it in the directory.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "channel_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_directory",
+          "growth_channels"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_directory",
+            "tableId": "table:growth_channel_directory",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 313
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/growth/channels/reports/dismiss",
+      "method": "POST",
+      "route": "/api/growth/channels/reports/dismiss",
+      "kind": "api",
+      "workspace": "growth_studio",
+      "destination": {
+        "route": "/growth-studio/owner/channels",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "dismissGrowthPostReports",
+        "summary": "Dismiss a post's open reports and leave it up.",
+        "tags": [
+          "Growth Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "post_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts",
+          "growth_post_reports"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_post_reports",
+            "tableId": "table:growth_post_reports",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 414
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "handler_or_route_path_observation"
@@ -144694,7 +146074,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 344
+        "line": 345
       },
       "contractCompleteness": {
         "route": true,
@@ -145024,7 +146404,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 343
+        "line": 344
       },
       "contractCompleteness": {
         "route": true,
@@ -145220,7 +146600,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1138
+        "line": 1140
       },
       "contractCompleteness": {
         "route": true,
@@ -145320,7 +146700,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1174
+        "line": 1176
       },
       "contractCompleteness": {
         "route": true,
@@ -145515,7 +146895,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1104
+        "line": 1106
       },
       "contractCompleteness": {
         "route": true,
@@ -146004,7 +147384,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1428
+        "line": 1430
       },
       "contractCompleteness": {
         "route": true,
@@ -164898,6 +166278,143 @@
       "action": true
     },
     {
+      "id": "POST /channels/:handle/report",
+      "method": "POST",
+      "route": "/channels/:handle/report",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/channels/:handle",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "handle"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "handle"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_post_reports"
+        ],
+        "candidateTables": [
+          "growth_channel_directory",
+          "growth_channel_posts",
+          "growth_channels",
+          "growth_events",
+          "growth_post_reports"
+        ],
+        "tableLineage": [
+          {
+            "table": "growth_channel_posts",
+            "tableId": "table:growth_channel_posts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_channels",
+            "tableId": "table:growth_channels",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "growth_post_reports",
+            "tableId": "table:growth_post_reports",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-growth-channel-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 606
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
       "id": "POST /chat/:slug",
       "method": "POST",
       "route": "/chat/:slug",
@@ -165371,7 +166888,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 911
+        "line": 913
       },
       "contractCompleteness": {
         "route": true,
@@ -166536,7 +168053,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 188
+        "line": 202
       },
       "contractCompleteness": {
         "route": true,
@@ -166640,7 +168157,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 269
+        "line": 283
       },
       "contractCompleteness": {
         "route": true,
@@ -172508,7 +174025,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1168
+        "line": 1170
       },
       "contractCompleteness": {
         "route": true,
@@ -174342,6 +175859,30 @@
     },
     {
       "method": "POST",
+      "action": "/api/growth/channels/posts/remove",
+      "pages": [
+        "/growth-studio/owner/channels"
+      ],
+      "formFieldNamesObserved": []
+    },
+    {
+      "method": "POST",
+      "action": "/api/growth/channels/posts/restore",
+      "pages": [
+        "/growth-studio/owner/channels"
+      ],
+      "formFieldNamesObserved": []
+    },
+    {
+      "method": "POST",
+      "action": "/api/growth/channels/reports/dismiss",
+      "pages": [
+        "/growth-studio/owner/channels"
+      ],
+      "formFieldNamesObserved": []
+    },
+    {
+      "method": "POST",
       "action": "/api/lead-capture-page",
       "pages": [
         "/growth-studio/owner/chat-widget"
@@ -175427,6 +176968,43 @@
           "table": "sonara_formula_results",
           "migrations": [
             "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-growth-channel-routes.cjs",
+      "source": "routes/sonara-growth-channel-routes.cjs",
+      "tableCount": 5,
+      "tables": [
+        {
+          "table": "growth_channel_directory",
+          "migrations": [
+            "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+          ]
+        },
+        {
+          "table": "growth_channel_posts",
+          "migrations": [
+            "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+          ]
+        },
+        {
+          "table": "growth_channels",
+          "migrations": [
+            "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+          ]
+        },
+        {
+          "table": "growth_events",
+          "migrations": [
+            "supabase/migrations/20261002060000_public_events_and_rsvps.sql"
+          ]
+        },
+        {
+          "table": "growth_post_reports",
+          "migrations": [
+            "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
           ]
         }
       ]
@@ -197502,6 +199080,299 @@
       "orphanDisposition": null
     },
     {
+      "id": "table:growth_channel_directory",
+      "schema": "public",
+      "name": "growth_channel_directory",
+      "columnCount": 5,
+      "columns": [
+        {
+          "name": "channel_id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "handle",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "about",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "listed_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "global_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:growth_channel_posts",
+      "schema": "public",
+      "name": "growth_channel_posts",
+      "columnCount": 11,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "channel_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "author_user_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "post",
+            "announcement"
+          ],
+          "fallback": "post"
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "published",
+            "removed"
+          ],
+          "fallback": "published"
+        },
+        {
+          "name": "removed_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:growth_channels",
+      "schema": "public",
+      "name": "growth_channels",
+      "columnCount": 10,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "handle",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "about",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "draft",
+            "public",
+            "hidden"
+          ],
+          "fallback": "draft"
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:growth_contact_consents",
       "schema": "public",
       "name": "growth_contact_consents",
@@ -199325,6 +201196,108 @@
             "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
           }
         ]
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:growth_post_reports",
+      "schema": "public",
+      "name": "growth_post_reports",
+      "columnCount": 8,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "post_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [
+            "spam",
+            "harassment",
+            "hate",
+            "violence",
+            "sexual",
+            "illegal",
+            "misleading",
+            "other"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "open",
+            "dismissed",
+            "actioned"
+          ],
+          "fallback": "open"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql"
+        ],
+        "policyEvidence": []
       },
       "databaseContractCore": false,
       "tenancy": "organization_scoped_registry",
@@ -227585,6 +229558,29 @@
       "rlsEnabled": [
         "creator_listings",
         "creator_marketplace_entries"
+      ],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261003120000_channels_a_business_can_speak_from.sql",
+      "creates": [
+        "growth_channel_directory",
+        "growth_channel_posts",
+        "growth_channels",
+        "growth_post_reports"
+      ],
+      "alters": [
+        "growth_channel_directory",
+        "growth_channel_posts",
+        "growth_channels",
+        "growth_post_reports"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "growth_channel_directory",
+        "growth_channel_posts",
+        "growth_channels",
+        "growth_post_reports"
       ],
       "policies": []
     }
@@ -260397,7 +262393,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1180
+        "line": 1182
       },
       "destination": {
         "route": "/account",
@@ -260685,7 +262681,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1197
+        "line": 1199
       },
       "destination": {
         "route": "/account/setup",
@@ -260779,7 +262775,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1314
+        "line": 1316
       },
       "destination": {
         "route": "/dashboard",
@@ -260899,7 +262895,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1277
+        "line": 1279
       },
       "destination": {
         "route": "/dashboard",
@@ -261633,7 +263629,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 942
+        "line": 944
       },
       "destination": {
         "route": "/dashboard",
@@ -261684,7 +263680,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -261824,7 +263820,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -261875,7 +263871,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -261926,7 +263922,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1706
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -262017,7 +264013,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/business-builder/help",
@@ -262108,7 +264104,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1415
+        "line": 1417
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -262159,7 +264155,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -262250,7 +264246,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1368
+        "line": 1370
       },
       "destination": {
         "route": "/business-builder/login",
@@ -262336,7 +264332,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -262387,7 +264383,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -262438,7 +264434,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -263038,7 +265034,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -263121,7 +265117,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -263172,7 +265168,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/business-builder/records",
@@ -263223,7 +265219,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -264258,7 +266254,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -264348,7 +266344,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -264399,7 +266395,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -264490,7 +266486,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1706
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -264756,7 +266752,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -264842,7 +266838,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -264893,7 +266889,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -265048,7 +267044,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -265099,7 +267095,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -265272,7 +267268,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -265323,7 +267319,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -265374,7 +267370,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -265533,7 +267529,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -266472,7 +268468,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -266664,7 +268660,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -266854,7 +268850,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1704
+        "line": 1706
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -267011,7 +269007,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -267062,7 +269058,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -267183,7 +269179,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -267234,7 +269230,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -267268,6 +269264,38 @@
         "support_email_delivery_attempts",
         "support_requests",
         "user_roles"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /growth-studio/owner/channels",
+      "workspace": "growth_studio",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 131
+      },
+      "destination": {
+        "route": "/growth-studio/owner/channels",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "growth_channel_directory",
+        "growth_channel_posts",
+        "growth_channels",
+        "growth_events",
+        "growth_post_reports"
       ],
       "requestFieldsObserved": {
         "body": [],
@@ -267413,7 +269441,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -267464,7 +269492,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1744
+        "line": 1746
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -267588,7 +269616,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1751
+        "line": 1753
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -268410,7 +270438,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1096
+        "line": 1098
       },
       "destination": {
         "route": "/login",
@@ -268610,7 +270638,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1100
+        "line": 1102
       },
       "destination": {
         "route": "/signup",
@@ -269709,7 +271737,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1138
+        "line": 1140
       },
       "destination": {
         "route": "/auth/login",
@@ -269764,7 +271792,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1174
+        "line": 1176
       },
       "destination": {
         "route": "/logout",
@@ -269857,7 +271885,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1104
+        "line": 1106
       },
       "destination": {
         "route": "/auth/signup",
@@ -271894,7 +273922,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1168
+        "line": 1170
       },
       "destination": {
         "route": "/logout",
@@ -272303,7 +274331,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1314
+        "line": 1316
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272373,7 +274401,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1277
+        "line": 1279
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272383,7 +274411,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1496
+        "line": 1498
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272393,7 +274421,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1520
+        "line": 1522
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272433,7 +274461,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1544
+        "line": 1546
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272643,7 +274671,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 942
+        "line": 944
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272803,7 +274831,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 373
+        "line": 381
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272813,7 +274841,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 300
+        "line": 308
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272823,7 +274851,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 391
+        "line": 399
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272833,7 +274861,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-creator-profile-routes.cjs",
-        "line": 331
+        "line": 339
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -272896,6 +274924,46 @@
         "line": 78
       },
       "currentDestination": "/formulas",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/channels",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 281
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/channels/hide",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 333
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/channels/posts",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 352
+      },
+      "currentDestination": "/growth-studio/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
+      "id": "POST /api/growth/channels/publish",
+      "workspace": "growth_studio",
+      "source": {
+        "file": "routes/sonara-growth-channel-routes.cjs",
+        "line": 313
+      },
+      "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {

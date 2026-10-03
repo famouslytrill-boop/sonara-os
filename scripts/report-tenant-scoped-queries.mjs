@@ -31,6 +31,11 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { TENANT_SCOPED_TABLES, GLOBAL_TABLES } = require("../lib/sonara-tenant-scoped-tables.cjs");
+// The list that actually runs. READ_WITHOUT_ORGANIZATION below is this script's
+// record of which unscoped reads are deliberate; EXEMPT_PATTERNS is the runtime
+// guard's, and only the second one decides whether the request leaves the
+// process. See "the two registers" further down.
+const { EXEMPT_PATTERNS } = require("../lib/sonara-tenant-guard.cjs");
 
 const root = process.cwd();
 const SOURCE_DIRS = ["lib", "routes", "api"];
@@ -139,6 +144,24 @@ const MINIMUM_CALLS = 90;
 // moves or gets scoped properly cannot leave a stale reason behind.
 const READ_WITHOUT_ORGANIZATION = [
   {
+    file: "routes/sonara-growth-channel-routes.cjs",
+    table: "growth_channels",
+    requires: ["state=eq.public", "handle=eq."],
+    reason:
+      "GET /channels/:handle and POST /channels/:handle/report, registered with no guard -- a public channel. " +
+      "growth_channels_handle_key makes the handle name one channel and state=eq.public keeps drafts and hidden " +
+      "channels unreachable. Every later read and the report write carry organization_id from this row."
+  },
+  {
+    file: "routes/sonara-growth-channel-routes.cjs",
+    table: "growth_channels",
+    requires: ["select=organization_id&handle=eq."],
+    reason:
+      "The address check inside POST /api/growth/channels, behind growth_studio workspace access. It looks " +
+      "across organizations to answer 'taken' before the unique index does; organization_id is the only column " +
+      "selected and any row means taken."
+  },
+  {
     file: "routes/sonara-creator-profile-routes.cjs",
     table: "creator_artist_profiles",
     requires: ["status=eq.active"],
@@ -151,13 +174,15 @@ const READ_WITHOUT_ORGANIZATION = [
   {
     file: "routes/sonara-creator-profile-routes.cjs",
     table: "creator_artist_profiles",
-    requires: ["id=in.("],
+    requires: ["id=in.(", "public_handle=not.is.null", "status=eq.active"],
     reason:
       "GET /account/following, which does require a customer. The ids come from " +
       "that viewer's own rows in creator_follows, so the id list IS the scope, and " +
-      "the renderer drops any row whose public_handle is null -- which is what " +
-      "POST /api/creator-profiles/:id/unpublish sets. An unpublished profile " +
-      "therefore leaves a follower's list."
+      "public_handle=not.is.null with status=eq.active means only a profile anybody " +
+      "could open comes back -- POST /api/creator-profiles/:id/unpublish nulls the " +
+      "handle, so an unpublished profile leaves a follower's list without its draft " +
+      "name ever being read. The runtime guard's exemption requires the same two " +
+      "filters."
   },
   {
     file: "routes/sonara-lead-capture-routes.cjs",
@@ -246,14 +271,24 @@ const BLIND_QUERY_WITHOUT_ORGANIZATION = [
 ];
 
 // A file can have more than one substitute scope, so every candidate is tried
-// and the exemption holds if any one of them is fully present. Returning only the
-// first match would have failed the follower list, whose scope is the viewer's own
-// id list rather than the public page's status=eq.active.
+// and the exemption holds if any one of them is fully present.
+//
+// When more than one is present, the MOST specific wins -- the entry requiring
+// the most filters. This returned the first match, which was harmless only while
+// no two entries' filters overlapped. On 2 October 2026 the follower list gained
+// status=eq.active (lib/sonara-tenant-guard.cjs requires it), and the public-page
+// entry, which requires only status=eq.active, started claiming the follower
+// query -- so the follower entry matched nothing and this report called it stale
+// while the call it describes was right there. Most-specific is also what keeps
+// the two-sided check honest in the other direction: the follower query cannot
+// keep the public-page entry alive after the public lookup is deleted, because it
+// is credited to its own entry instead.
 function exemptedBy(list, file, table, query) {
-  return list.find((entry) =>
+  const candidates = list.filter((entry) =>
     entry.file === file &&
     (entry.table === undefined || entry.table === table) &&
     entry.requires.every((needle) => query.includes(needle)));
+  return candidates.sort((left, right) => right.requires.length - left.requires.length)[0];
 }
 
 
@@ -755,6 +790,40 @@ for (const entry of BLIND_QUERY_WITHOUT_ORGANIZATION) {
     failures.push(
       `BLIND_QUERY_WITHOUT_ORGANIZATION records ${entry.file} as reading a public row without an organization, and no call ` +
       `in this run matched it while carrying ${entry.requires.join(" and ")}. Its recorded reason: ` + entry.reason
+    );
+  }
+}
+
+// The two registers.
+//
+// An entry in READ_WITHOUT_ORGANIZATION says an unscoped read is deliberate. It
+// does not make the read possible: lib/sonara-tenant-guard.cjs wraps fetch and
+// refuses any query on a tenant-scoped table that names no organization, unless
+// one of its EXEMPT_PATTERNS admits that exact request. Until 2 October 2026 all
+// seven entries here had no exemption there, so this report called those reads
+// deliberate and safe while the guard refused every one of them and the public
+// pages behind them answered 503. Both lists were right about safety; only one
+// of them runs.
+//
+// So every table recorded here must have at least one runtime exemption. That is
+// the table, not the exact query -- the guard pins each lookup's keys, values and
+// columns, and the query here still carries its interpolations. Whether the
+// exact request gets through is what
+// tests/no-route-asks-for-what-the-guard-refuses.test.js answers, by sending it.
+const runtimeExemptTables = new Set(EXEMPT_PATTERNS.map((exemption) => exemption.table));
+if (!runtimeExemptTables.size) {
+  failures.push(
+    "lib/sonara-tenant-guard.cjs exports no EXEMPT_PATTERNS, so the cross-check between the two registers compared " +
+    "against nothing. Either the export moved or the import broke; a pass in this state is the check measuring nothing."
+  );
+}
+for (const entry of READ_WITHOUT_ORGANIZATION) {
+  if (!runtimeExemptTables.has(entry.table)) {
+    failures.push(
+      `READ_WITHOUT_ORGANIZATION records ${entry.table} in ${entry.file} as read without an organization on purpose, ` +
+      `and lib/sonara-tenant-guard.cjs has no exemption for ${entry.table} at all -- so the guard refuses that read in ` +
+      "production and the route reports a failed read. Add a pinned EXEMPT_PATTERNS entry for the exact request, or " +
+      "scope the query."
     );
   }
 }

@@ -30,10 +30,12 @@ compile step, and no framework build. `pnpm run build` is
 `node --check server.js && node -e "require('./server')"` — it parses the
 server and loads it, and that is the whole build.
 
-It has **nine production dependencies.** `express`, plus eight
+It has **nine production dependencies.** `express`, plus seven
 `@opentelemetry/*` packages and `@openfeature/server-sdk` that arrived on
 20 September 2026. Five development dependencies: `@playwright/test`,
-`@vercel/node`, `eslint`, `mocha`, `supertest`.
+`eslint`, `mocha`, `supertest`, `typescript`. (`@vercel/node` was removed on 3 October 2026:
+nothing imported it, and it carried a `braces` advisory with no fixed release --
+see `SECURITY_NOTES.md`.)
 
 That reads like a change to the paragraph above it and is not one. None of the
 eight is a bundler or a compile step. As of 24 September 2026, the running
@@ -178,7 +180,7 @@ supabase migration list
 pnpm run db:push
 ```
 
-Review `migration list` before pushing. This repository holds 149 migrations and
+Review `migration list` before pushing. This repository holds 150 migrations and
 a push applies whatever is not yet applied.
 
 ---

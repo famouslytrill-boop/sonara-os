@@ -14,6 +14,8 @@
 // error. "The application never issued a query that could have returned
 // organization B's data" is the property worth holding.
 
+const tenantGuard = require("../../lib/sonara-tenant-guard.cjs");
+
 const PASSTHROUGH = Symbol("not a supabase request");
 
 const OPERATORS = "eq|in|is|neq|gt|gte|lt|lte";
@@ -42,7 +44,25 @@ function parseFilters(searchParams) {
       continue;
     }
 
-    const match = String(value).match(new RegExp(`^(${OPERATORS})\\.(.*)$`, "s"));
+    // `not.` negates the operator after it: `published_at=not.is.null` is how
+    // PostgREST asks for a published row, and the public scroll page and the
+    // follower list both ask it that way. Refusing it made both unreachable from
+    // any test driving the real routes -- the request failed here, the route
+    // reported a failed read, and that looked exactly like the guard refusing it.
+    //
+    // Never on organization_id. `organization_id=not.eq.<own>` is every OTHER
+    // tenant, and tests/cross-tenant-isolation.test.js reads a filter on that
+    // column as the scope -- it would see the right id and call the query scoped.
+    // The tenant guard refuses that shape too; the fake refuses it louder.
+    let text = String(value);
+    const negate = text.startsWith("not.");
+    if (negate) {
+      if (key === "organization_id") {
+        throw new Error(`fake-supabase refuses ${key}=${value}: a negated organization filter selects every other tenant and is not a scope.`);
+      }
+      text = text.slice("not.".length);
+    }
+    const match = text.match(new RegExp(`^(${OPERATORS})\\.(.*)$`, "s"));
     // Loud rather than skipped.
     //
     // This used to `continue`, so a filter the fake does not model disappeared
@@ -52,13 +72,16 @@ function parseFilters(searchParams) {
     if (!match) {
       throw new Error(`fake-supabase cannot parse the filter ${key}=${value}. Model it rather than letting the query match every row.`);
     }
-    filters.push({ column: key, operator: match[1], value: match[2] });
+    filters.push(negate
+      ? { column: key, operator: match[1], value: match[2], negate: true }
+      : { column: key, operator: match[1], value: match[2] });
   }
   return filters;
 }
 
 function matches(row, filter) {
   if (filter.any) return filter.any.some((condition) => matches(row, condition));
+  if (filter.negate) return !matches(row, { column: filter.column, operator: filter.operator, value: filter.value });
   const actual = row[filter.column];
   switch (filter.operator) {
     case "eq":
@@ -124,9 +147,22 @@ function createFakeSupabase(options = {}) {
     return tables.get(table);
   }
 
+  // Ours by origin, not by prefix. `startsWith(url)` also matched
+  // https://project.supabase.co.attacker.test -- CodeQL's "incomplete URL
+  // substring sanitization" -- which in a fake means a request to some other
+  // host is answered as Supabase and never reaches the firewall behind it.
+  const origin = new URL(url).origin;
+  function isOurs(requestUrl) {
+    try {
+      return new URL(requestUrl).origin === origin;
+    } catch {
+      return false;
+    }
+  }
+
   async function handle(input, init = {}) {
     const requestUrl = typeof input === "string" ? input : input?.url || String(input);
-    if (!requestUrl.startsWith(url)) return PASSTHROUGH;
+    if (!isOurs(requestUrl)) return PASSTHROUGH;
 
     const parsed = new URL(requestUrl);
     const method = String(init.method || "GET").toUpperCase();
@@ -219,12 +255,29 @@ function createFakeSupabase(options = {}) {
     },
     /**
      * Wrap an existing fetch. Anything not addressed to this fake falls
-     * through, so the tenant guard and the suite's offline firewall keep
-     * working around it.
+     * through to it, so the suite's offline firewall keeps working around it.
+     *
+     * The tenant guard is applied HERE, in front of the fake, every time. It
+     * used to be left to wherever server.js happened to install it, which
+     * depended on load order: a file that installed this and then required
+     * server.js for the first time got the guard in front; in the full suite an
+     * earlier file had already required server.js, so the guard sat inside
+     * `previousFetch`, behind the fake, and never saw a Supabase URL. Run alone,
+     * tests/a-chat-widget-captures-one-business-lead.test.js failed 12 tests
+     * against the guard as it stood on 2 October 2026 and
+     * tests/a-public-profile-publishes-three-things.test.js failed one; in the
+     * suite both passed -- while the guard refused /chat/:slug and
+     * /creator/:handle on every production request. In production every request
+     * passes the guard, so every request to this fake does too.
      */
     install(previousFetch) {
       const inner = previousFetch;
       return async function fakeSupabaseFetch(input, init) {
+        const requestUrl = typeof input === "string" ? input : input?.url || String(input);
+        if (isOurs(requestUrl) && /\/rest\/v1\//.test(requestUrl)) {
+          const verdict = tenantGuard.inspect(init?.method || "GET", requestUrl, init?.body);
+          if (!verdict.allowed) throw new tenantGuard.TenantGuardError(verdict.message);
+        }
         const result = await handle(input, init);
         if (result !== PASSTHROUGH) return result;
         return inner ? inner.call(this, input, init) : jsonResponse({}, 404);

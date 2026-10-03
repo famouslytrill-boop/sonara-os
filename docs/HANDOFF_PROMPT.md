@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3058 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3060 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 149 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 44 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 430 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- Supabase over PostgREST for data. 150 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
+- 433 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,13 +103,357 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 24 most recent entries of 432 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 25 most recent entries of 437 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
-### 2026-10-03 - A marketplace, and two bugs the module tests could not see
+### 2026-10-03 - Follow a channel without being sent anything: an Atom feed, and a dependency that kept bringing advisories
+
+**`/channels/:handle/feed.xml`.** A channel can now be followed in any feed reader.
+The reader asks; nothing is sent, and nothing here learns who follows. The feed is
+built by `atomFeed` in `lib/sonara-growth-channels.cjs` from `arrangePublicPosts`'
+output only, so it can carry nothing the page cannot -- no author, no report count,
+nothing removed -- and content is `type="text"`, so a reader makes nothing in a post
+a link, the page's rule. Ids are `tag:sonaraindustries.com,2026:` URIs (the codebase's
+own `PRODUCTION_ORIGIN`) built from row ids, so they survive an address change.
+Links are absolute only when `lib/sonara-site-origin.cjs` knows the origin; with none
+the feed has no links rather than invented ones. A failed post read answers 503 --
+a feed with no entries would tell every reader the channel had gone quiet. Through
+the same pinned guard lookup as the page; two probes in the guard sweep.
+
+Falsified: `&` no longer escaped -- red; the feed built from every row instead of the
+arranged public ones -- red, "TAKEN-DOWN".
+
+**`@vercel/node` removed.** `pnpm audit`, the OSV gate and the deploy dry-run all went
+red on GHSA-vfj7-8cjw-p6xm (`braces`, high) with no fixed release, so no override could
+clear it. Both paths ran through `@vercel/node`, which nothing imports: the deploy
+workflows run their own pinned `vercel` CLI, and Vercel's Node.js runtime documentation
+(read 3 October) needs no package for a JavaScript function in `/api` -- the package
+supplies TypeScript types. It was the fifth advisory that one devDependency had carried
+in. Removed with pnpm; the audit is clean with nothing ignored. I first proposed a
+time-limited waiver on the PR and withdrew it once the dependency turned out to be
+unused -- a waiver is a decision for the owner, and this did not need one.
+`docs/owner/INSTALL.md` listed the dev dependencies without `typescript` and counted
+seven OpenTelemetry packages as eight; both corrected.
+
+
+
+### 2026-10-03 - Growth Studio channels: a business can speak in public, and a stranger can say "not this"
+
+Growth Studio could publish an event and take an RSVP, and had nowhere to say
+anything between events. It now has channels: a public page a business posts updates
+and announcements to, a directory at `/channels` to find them by, and a way for a
+stranger to flag a post without giving a name.
+
+**What shipped.** Migration `20261003120000` (four tables), `lib/sonara-growth-channels.cjs`
+(every decision), `routes/sonara-growth-channel-routes.cjs`: the owner page
+`/growth-studio/owner/channels` (create a draft, make public, hide, post or announce,
+optionally about one of your published events, take a post down or put it back,
+dismiss reports), and three public routes -- `/channels`, `/channels/:handle`,
+`POST /channels/:handle/report`.
+
+**Built on the previous entry's lesson, not around it.** `/channels/:handle` makes one
+unscoped read -- `growth_channels` by its unique handle with `state=eq.public` -- and
+the tenant guard got a pinned exemption for exactly that shape the same day the page
+did, along with the address check on create. `/channels` lists every organization's
+channels at once, so it reads `growth_channel_directory`, which has no
+`organization_id`; the migration asserts its column set is exactly five columns, so a
+column added later fails the migration instead of quietly becoming public. The new
+routes are in the guard sweep with five probes of their own, including a draft
+channel's address answering 404 and a removed post absent from the page.
+
+**The invariants, and where each is held.**
+
+- *Public means published, on a public channel, now.* The route asks only for
+  `state=eq.published`, and `arrangePublicPosts` drops anything else anyway; a channel
+  that is not public shows nothing whatever rows it is handed.
+- *A stranger sees what was said, never who said it.* `publicPost` builds its result by
+  naming five fields; there is no author, organization or report field to forward. No
+  report count is ever shown publicly -- a visible "12 reports" invites a thirteenth.
+- *A report is a signal, not a verdict.* Nothing hides a post because it was reported;
+  the owner decides. A test pins the module's whole function surface so a
+  hide-on-reports helper cannot arrive unnoticed. Reports record nobody -- the
+  migration refuses a reporter, user, email, address or phone column.
+- *Nothing is sent and nothing is deleted.* No follower list, no send path. Removal,
+  dismissal and hiding are states; the migration asserts no DELETE grant on the three
+  record tables. Post bodies are escaped plain text with line breaks kept, and links
+  are shown as text rather than made clickable.
+
+Publishing writes the channel first and the directory second; hiding removes the
+directory row first and the channel second -- so a failure between the two leaves a
+channel that is public but unlisted, never one listed whose page refuses everyone,
+and the owner is told which happened. The report form is rate-limited at 10 an hour per
+address and registered as an `anonymous_surface` in the subscription gate. A business
+can run 20 channels; the cap is counted before insert.
+
+**Falsified**, each restored by copy and `md5sum -c`:
+
+- directory given an `organization_id`: migration replay refuses, naming the columns
+- report table given `reporter_user_id`: refused, "a report is anonymous"
+- the public channel exemption narrowed to `state=eq.never`: 5 red
+- the route reading any non-draft channel (so hidden ones too): 5 red -- the guard refuses that shape
+- the module no longer dropping removed posts: red
+- a public post forwarding its author: red
+- the route's published filter AND the module's both removed: red, "showed TAKEN-DOWN-POST"
+- with only one of them removed it stays green, which is the point of having two
+
+**Not done.** Following a channel, a feed of followed channels, live audio or video,
+and radio-style streams. A channel is read when somebody chooses to; nothing pushes it.
+An Atom feed per channel, the next small step, shipped in the entry above.
+
+
+
+### 2026-10-02 - Six public pages the tenant guard refused on every request, behind tests that never met it
+
+`lib/sonara-tenant-guard.cjs` wraps fetch and throws on a query against a
+tenant-scoped table that names no organization, unless one of its `EXEMPT_PATTERNS`
+admits that exact request. A public page has no organization to filter by, so each
+one does a single deliberate unscoped lookup by its address. Those lookups were
+recorded as deliberate in `scripts/report-tenant-scoped-queries.mjs` -- and not one
+of them was in `EXEMPT_PATTERNS`, the list that runs. Every route reaches Postgres
+through a fetch wrapper that catches what the guard throws and reports a failed
+read, so the refusal never surfaced as an error. It surfaced as the failed-read page.
+
+Measured through the real `server.js`, the guard in front of a fake PostgREST,
+with the code as it stood at `ab3185ac`:
+
+| Request | Answer |
+| --- | --- |
+| `GET /events/:slug` | 503, "We cannot reach this just now" |
+| `GET /store/:slug` | 503, same |
+| `GET /creator/:handle` | 503, "We could not open that profile" |
+| `GET /chat/:slug` | 503, "We could not open that just now" |
+| `GET /s/:slug` | 503 |
+| `GET /shared/:token` | 503 (found second -- see below) |
+| `POST /events/:slug` (an RSVP) | 503 |
+| `POST /api/growth/events/publish` | 303 `problem=save_failed` -- the address check |
+| `POST /api/lead-capture-page` | 303 `problem=not_saved` -- the same check |
+| `POST /api/creator-profiles/:id/follow` | 503, "That did not change" |
+| `GET /account/following` | 200, "We could not load the profiles behind your list" |
+
+The storefront's own address check is refused the same way (measured with
+`inspect()`; the route sits behind a management unlock the sweep cannot pass, so it
+is driven through the real route module in the new test instead).
+
+**Why every test passed.** None of them met the guard. Some build their own app and
+assign `global.fetch` a stub, which removes the guard from the request path. The
+ones on `tests/helpers/fake-supabase.cjs` install the fake and then require
+`server.js` -- which puts the guard in front only if that file is the first to
+require it. In the suite an earlier file always had, so the guard sat behind the
+fake and never saw a Supabase URL. Run alone against the old guard,
+`a-chat-widget-captures-one-business-lead.test.js` failed 12 tests and
+`a-public-profile-publishes-three-things.test.js` failed 1; run after
+`tenant-guard.test.js`, both passed. The verdict depended on file order. And
+`tenant-guard.test.js`'s "does not break the running application" drove five pages
+that read nothing tenant-scoped, under a comment saying a false positive "would
+surface as a 500" -- it surfaces as a 503 page, by design.
+
+**The fix.** Eleven pinned exemptions through one helper, `pinnedLookup`: exactly
+these query keys, these fixed values (the filter keeping drafts out, `limit=1`), an
+address that is `eq.` on one slug, uuid or token -- never `in.`, `like.` or `neq.` --
+and a select drawn only from listed columns, so a public lookup that later grows
+`email` is refused rather than printed. The follower list now asks only for
+published, active profiles (`public_handle=not.is.null&status=eq.active`); before,
+the renderer dropped an unpublished one, but only after its draft name had been read.
+
+**The fake now applies the guard itself**, in front of every Supabase request,
+because in production every request passes it. That is what found `/shared/:token`:
+with the guard inside the fake, `a-shared-link-is-a-link-not-a-leak.test.js` failed
+17 tests, starting with "opens a saved result for somebody with no account at all"
+(503). My route sweep had missed it -- its sample token failed the route's own shape
+check before any query. The sweep now sends a token in the issued shape. The fake
+also learned PostgREST's `not.` (`published_at=not.is.null`), and refuses it on
+`organization_id`, where it would mean every other tenant.
+
+**New: `tests/no-route-asks-for-what-the-guard-refuses.test.js`.** Every GET (552),
+POST (343), PATCH (10) and DELETE (3) route in `server.js`, anonymous and signed in,
+through the real guard installed explicitly over a fake rebuilt before each test.
+It fails on any refusal and on any 500. Eleven requests are then driven one by one
+with seeded rows, and each must read its table past the guard and render what it
+read. Population floors on every sweep, plus a floor on queries actually sent --
+the first edit sweep sent ids that were not uuids, every route refused them before
+querying, and it passed in 38 ms having reached only the sign-in lookups. It now
+sends uuids and must reach four of the routes' own tables.
+
+**What the sweep found that was not the guard.** `routes/sonara-asset-file-routes.cjs`
+called `layout(title, html)`; the frame takes one object. Nothing destructures out
+of a string, `sections.join` threw, and every page that module rendered -- an
+asset's file page included -- answered 500. Its test passed because its stub
+`layout` took `(title, body)`: the call shape the module used, not the one the frame
+accepts. Both fixed; the stub now destructures the frame's object.
+
+**Three corrections to my own harness.** The third was caught by the full suite
+rather than by this file: the POST sweep reaches `/auth/signup` like every other
+route, all from one client address, and used up the signup allowance in the rate
+limiters' shared in-process store -- so `tests/server.test.js`, later in the same
+run, got 429 where it expected 503 (reproduced: 2 failing after the old sweep, 0
+after the new). Every request in the new test now comes from its own address, and
+the store is cleared when the file ends. The first two were caught by checks
+written to catch them.
+The first version required `server.js` after building the recording chain, so the
+first-require `install()` put a second guard outside the recorder and refusals never
+reached it; the harness test ("a refusal by the guard was not recorded") failed.
+And the sweeps share state with the probes: signed in as the owner, the POST sweep
+really cancels the seeded event through `/api/growth/events/cancel`, and the RSVP
+probe after it was refused -- correctly -- as cancelled.
+
+**The static report, two changes.** It now fails when a table in
+`READ_WITHOUT_ORGANIZATION` has no exemption at all in the runtime guard: against
+the old guard it names all seven entries. And `exemptedBy` returned the first
+matching entry; once the follower query carried `status=eq.active`, the public-page
+entry (which requires only that) claimed it, and the follower entry was reported
+stale while its call was right there. The most specific match now wins, which also
+stops the follower query keeping the public entry alive if the public lookup is
+deleted.
+
+**And the handoff generator miscounted its own budget.** This entry pushed
+`docs/HANDOFF_PROMPT.md` over its 128 KB limit, and the generator refused -- rightly,
+since the document was over. But the slice that chooses how many sprint entries fit
+subtracted only what came before the sprint section: not the sentence it writes after
+choosing ("The N most recent entries..."), and not the two-byte separator between
+entries. Near the edge it overfilled and then failed the check it had just made
+impossible to pass. It now sets both aside first; the same log produces 126,738 bytes
+and 24 entries.
+
+**Falsified**, each restored by copy and `md5sum -c`:
+
+- event exemption removed: 5 tests red, naming `/events/:slug`
+- one column added to the public event select: 4 red -- the guard refuses it
+- asset-file call reverted: both sweeps report "crashed (500)", and 10 asset-file tests fail on the corrected stub
+- guard taken out of the harness: "install() did not wrap the fake"
+- follower filters dropped: 2 red; and the static report names the follower entry
+- the fake stops modelling `not.`: `/s/:slug` and `/account/following` red
+- `shared_links` exemption disabled: the sweep names `/shared/:token`
+- chat exemption disabled, chat test run after `tenant-guard.test.js`: 12 red with the guard inside the fake, 45 passing without it -- the order that hid this
+- old guard under the static report: 7 failures, one per entry
+- edit-sweep ids back to `e1`: "reached only sign-in lookups"
+
+**CodeQL on the first push of this** found two things in my own test code, both
+fixed: the fake decided a request was Supabase's with `startsWith(url)`, which also
+matches `https://project.supabase.co.attacker.test` -- it now compares origins, so a
+look-alike host falls through to the offline firewall -- and a failure message built
+by stripping tags with a regex is now read by matching the heading and the lede.
+
+**Not done.** The sweeps reach what sample parameters and one form can reach. The
+business PATCH and DELETE routes stop at `business_not_found` because no business is
+seeded, and other routes behind a management unlock are covered only where driven
+one by one. The static report's 40 calls whose table it cannot resolve are still
+unresolved. I measured the code, not the deployment: whether production has been
+serving these 503s depends on what is deployed, which I cannot see from here.
+
+
+
+### 2026-10-02 - A check that saw two thirds of its tables, and read the rest by their spelling
+
+`tests/member-read-policies.test.js` holds that every organization-scoped table the
+application reads has a policy a signed-in member can read through, or a recorded
+reason it is service-role only. It has been widened once before, when seven tables
+read through `supabaseList` turned out to be invisible to it. It had two more holes,
+and closing the first exposed the second.
+
+**It could not see a third of its population.** It found tables by a literal
+`/rest/v1/<name>` or by a helper called with a string. Thirty tables are read
+through a constant -- `const VERSION_TABLE = "creator_asset_versions"`, then
+`/rest/v1/${VERSION_TABLE}` -- and neither pattern can follow a variable. 57 tables
+seen, 30 not, and the check reported every one covered. Shape 2: a scan naming a
+smaller population than it claims. It reads `*_TABLE` constants now, in files that
+issue REST calls, with a floor of 80 tables and `creator_asset_versions` as a fixture
+that is only ever named through a constant.
+
+**And it judged a policy by how it was spelled.** Twenty-six of the thirty then
+reported no member read path. Three of those were wrong:
+`creator_generation_assets`, `creator_generation_events` and
+`creator_reference_analyses` get `for select to authenticated` policies inside a
+`foreach ... execute format(...)` loop in 20260723080000, and a search for the text
+`create policy ... on public.<table>` never finds a table named only in an array.
+Filing them as "service-role only" to quiet the check would have written a false
+reason into the register -- worse than no entry. The check now **replays** every
+`create policy` and `drop policy`, literal and loop, in migration order, and asks
+what is left. A fixture holds the loop shape, a later drop, and a literal policy; on
+the real migrations it confirms the three loop-made policies exist and that
+`creator_voice_consents`' loop-made one is gone, dropped by name and replaced.
+
+The simulator also corrected me twice, which is the point of reading what the
+migrations do: I expected `creator_voice_consents` to end with one select policy and
+it ends with two (a later migration adds `creator_voice_consents_select_member`), and
+it found a **false entry already in the register**. `user_roles` was recorded as
+service-role only -- "who may read the privilege table is a decision" -- but
+`"users can read own roles"`, `for select to authenticated using (user_id =
+auth.uid())`, has existed since 20260714120000. A person can read their own roles,
+which is normal and safe. The text search missed it because the statement spans five
+lines. The entry is removed; `user_roles` has no `organization_id`, so the check skips
+it by its own rule anyway.
+
+**The twenty-three that are genuinely unreadable by a member**: nineteen are in
+`verify-migration-replay`'s closed set -- RLS on and no policy at all -- which that
+script asserts against a real PostgreSQL on every release. The check now reads that
+set from there rather than copying nineteen reasons by hand, nineteen chances to write
+one wrong. The other four have only a service-role policy (`creator_assets`,
+`creator_artist_profiles`, `merchant_products`, `merchant_product_variants`) and get an
+entry each, naming the policy.
+
+A two-sided check replaces one I first wrote wrong. My first draft refused any entry
+also in the closed set as "one reason in two places", and it would have deleted
+`business_payment_accounts`' reason -- where the business's money settles -- which says
+*why* a table is closed where the replay only records *that* it is. Removed rather
+than given an exception list. What replaced it is the check that means something: an
+entry claiming service-role only for a table a member can in fact read fails, which is
+how the `user_roles` entry was found.
+
+| break | result |
+|---|---|
+| the constant pattern removed | red, *the constant-named reads have dropped out of view again* |
+| the simulator stops reading loops | 2 red, the loop fixture and three tables reported unreadable |
+| the simulator stops honouring drops | red, *a policy the migrations dropped is still counted* |
+| the false `user_roles` entry restored | red, *recorded as service-role only, and a member can read them* |
+| the closed set cannot be read from the replay | red, *this check has gone blind* |
+
+
+
+
+### 2026-10-02 - Three CodeQL alerts on the multipart parser, measured before fixed
+
+PR #415 merged with CodeQL red on its last two heads: three high-severity alerts,
+all in `lib/sonara-multipart.cjs`, a file that PR never edited. The profile picture
+upload it added made `multipart.parse` reachable from a new request path, and the
+dataflow connected. The alerts were therefore on `main`, which made them this
+change's first job.
+
+Each was measured rather than taken on the scanner's word -- in both directions.
+
+**Polynomial regular expression on the Content-Type header.**
+`/^multipart\/form-data\s*;\s*(.*)$/i` has two quantifiers that can each take a
+space; on a header that fails at the end it backtracks between them. Measured: 5ms
+at 2,000 characters, 20ms at 4,000, 72ms at 8,000, 278ms at 16,000 -- four times
+the cost per doubling. The failing input needs a line feed inside the header, which
+Node's HTTP parser rejects, so the scanner was right about the shape and probably
+wrong about reachability. Fixed anyway, with string operations: whether a regex is
+safe should not depend on which parser sits in front of it. The replacement refuses
+a line terminator anywhere, exactly as the old pattern's `.` did, so it is no more
+permissive than what it replaced. Same input, 0.02ms.
+
+**Two remote property injections.** `parse` wrote every form field onto a plain
+object under the name the sender chose, and `parseDisposition` did the same with
+every parameter on the Content-Disposition line. Measured: a field called
+`constructor` replaced `fields.constructor` with a string, and a field called
+`__proto__` stored nothing, counted nothing against the field limit, and vanished.
+Both now collect into a `Map`; `parseDisposition` reads back only `name` and
+`filename` by literal key, and `parse` returns its fields through `Object.fromEntries`,
+which defines own data properties and runs no setter. `constructor`, `__proto__` and
+`prototype` are refused as field names outright -- no form here uses them, so a
+request that does is refused rather than reinterpreted.
+
+`tests/a-form-field-cannot-name-a-property.test.js`: 11 tests. Against the flagged
+code, 5 fail by name -- the three reserved names, the write-site check, and the
+timing test, which measured **2,688ms** for a 50,000-character header against a
+200ms bound. The existing 35 upload tests and 29 profile tests pass unchanged.
+
+
+
+
+### 2026-10-02 - A marketplace, and two bugs the module tests could not see
 
 The owner's brief: "Creator studio comes with a Marketplace. Where users can sell and
 monetize the audio and video creations and generations, pictures and art."
@@ -213,7 +557,7 @@ smoke:routes and `audit --audit-level moderate` 0 -- each read from its own file
 
 
 
-### 2026-10-03 - My subscription gate could not see the limiter the next merge added
+### 2026-10-02 - My subscription gate could not see the limiter the next merge added
 
 Two things from merging `main` at 090b9904 (#417 and #418), both found because the
 merged tree was measured rather than trusted.
@@ -272,7 +616,7 @@ file.
 
 
 
-### 2026-10-03 - A floor that a realistic throttle sat exactly on
+### 2026-10-02 - A floor that a realistic throttle sat exactly on
 
 The owner's instruction, three times over: "there are no rate limits once
 subscribed... Nothing else to buy nothing else to do. You subscribe, you use the
@@ -336,7 +680,7 @@ from its own file.
 
 
 
-### 2026-10-03 - A bucket that existed without a feature, and a permission with two states
+### 2026-10-02 - A bucket that existed without a feature, and a permission with two states
 
 The owner's brief asks for profiles with pictures and settings, and for camera,
 microphone and contacts permissions. The first thing to establish was what was
@@ -1813,356 +2157,3 @@ from UTC-12 through UTC+11 and a day late in UTC+12 and east, which is New Zeala
 Fiji and Kiribati. No hour covers all of them -- the inhabited offsets span
 twenty-six hours and a day has twenty-four -- so `buildTask` writes "Scheduled for
 2026-10-05." into the description, which is right everywhere.
-
-
-### 2026-10-01 - A second copy of a table is now found by a check
-
-"No duplicate tables" was asked for, and `employee_shifts` was found duplicating
-`employee_schedules` the same day -- by reading the migrations while looking for
-something else. Nothing would have found the next one, and 345 tables is well
-past what anybody holds in their head.
-
-`scripts/report-duplicate-tables.mjs` compares every pair of tables the
-migrations create and fails on a near-duplicate that
-`lib/sonara-duplicate-table-review.cjs` does not account for.
-
-### What it compares, and the two choices that make it usable
-
-**Column names, not types.** Two tables with the same names and different types
-are the same idea stored twice; comparing `text` against `varchar` would make the
-measure sensitive to something that hides what it is looking for.
-
-**The columns almost every table has are removed first** -- `id`,
-`organization_id`, `created_at`, `updated_at`, `metadata`, `user_id`,
-`created_by`, `notes`, `status`. Leaving them in makes every pair of small tables
-look alike, which is how a check ends up with a register nobody reads. A table
-with fewer than four distinctive columns left is not compared at all, and the
-report says how many that excludes -- 272 of 345 are compared, which is 79%.
-
-The threshold is 0.8 overlap, and the report prints **the highest-scoring pair
-below it** so the line is visible rather than asserted:
-`business_service_catalog + business_service_items` at 0.64. There is a real gap
-under the threshold, and a test fails if it closes above 0.75.
-
-### It found a second pair on its first run
-
-`creator_generation_events` and `growth_control_events` at 0.80, sharing
-`event_type`, `event_status`, `details` and `job_id`.
-
-Not a duplicate, and the reason is exactly what the check cannot see: `job_id`
-references `creator_generation_jobs(id)` in one and `growth_provider_jobs(id)` in
-the other, and the second also carries `campaign_id`. Merging them would give one
-table two mutually exclusive job references and a status vocabulary that is the
-union of two products'. Recorded as `parallel_by_design` with that written down,
-because the next person to see two identical-looking event logs will ask.
-
-### The register is two-sided, and an entry is not approval
-
-A reviewed pair that stops being near-duplicate fails too, so an exemption cannot
-outlive its reason. And `employee_shifts` is recorded as
-`duplicate_awaiting_owner_decision` rather than as settled: retiring a table is a
-destructive data change and AGENTS.md puts those behind the owner. A test fails if
-a waiting verdict stops naming whose decision it is.
-
-### Verified
-
-Seven breaks, each watched fail by name:
-
-| Broken                                              | What went red                                             |
-| --------------------------------------------------- | --------------------------------------------------------- |
-| Added a third shift-shaped table in a migration      | two unreviewed pairs, at 1.00 and 0.83                    |
-| Pointed a reviewed entry at a pair that is not one   | both halves: the real pair unreviewed, and the stale entry |
-| Raised the distinctive-column floor to 40            | only 0 of 345 tables compared; the check has gone blind    |
-| Made the CREATE TABLE terminator greedy              | parsing over-ran on user_roles                            |
-| Removed the check from verify:gates                  | is in the release chain rather than only on disk           |
-| Registered a pair the report does not flag           | the register and the report disagree, +2                   |
-| Softened the waiting verdict to read as resolved     | does not describe an unresolved duplicate as decided       |
-
-Adding it to `verify:gates` took the chain from 69 commands to 70, and
-`verify:doc-counts` failed on the three documents quoting the old figure -- which
-is the derived-count machinery working as intended.
-
-
-### 2026-10-01 - No intake form is left to submit
-
-"There should be no quotes, no intake forms. Of any kind." This is the intake
-half. The quote half is not in this change and is explained at the end.
-
-### What was there
-
-A form on a Business Builder workspace page posting to
-`/api/business-builder/intake`; a handler that recorded the submission; a helper
-that turned it into a customer record; a confirmation email; and a page at
-`/business-builder/intake` that had already been reduced to a hidden redirect to
-`/business-builder/launch-readiness`.
-
-All of it is gone -- the form builder, the endpoint, `saveBusinessBuilderIntake`,
-`sendIntakeConfirmationEmail`,
-`safeInsertBusinessBuilderCustomerFromIntake`, the page definition, the
-page-frame href rewrite that pointed the old link somewhere, the route-registry
-entry, the OpenAPI path, and the "Intake" step in both copies of the launch
-checklist.
-
-### What is not gone, and why
-
-`intake_requests` keeps its rows. They are the business's own records, and
-dropping them is a destructive data change that AGENTS.md puts behind owner
-approval. The workspace records card still counts them, relabelled
-"Intake requests on file (no longer collected)" -- a record that silently stops
-being listed is worse than one labelled for what it is.
-
-Two things that look like intake and are not:
-
-* **The contact form in `lib/sonara-shell.cjs` was headed "Request intake".** It
-  posts to `/contact`, it is how somebody reaches support, and the footer and the
-  home-page FAQ both link it. Removing it would remove the support channel. What
-  was wrong was the label, so the label is what changed: "Send us a message".
-* **`/research-lab/latest-screenshot-intake`** is the research catalogue's
-  screenshot intake, not a customer form. Untouched.
-
-### Three things the removal exposed
-
-**A false capability claim.** `lib/catalog/business-builder-products.cjs` listed
-"intake forms" among a paid product's capabilities. Advertising it after the form
-was gone is what `docs/SHIP_READINESS.md` records eleven catalog products being
-removed for -- describing work that does not exist.
-
-**A field label that had been matching one form out of three.**
-`tests/field-labels.test.js` requires every entry in `FIELD_LABELS` to match a
-label some form actually renders. `message` was mapped to "Message", and the
-intake form was the only surface that called it that; the two that remain say
-"Launch context" and "What do you need help with?". So the map had been correct
-only because of the form being deleted, and the check could not see it until the
-form went. Now "Launch context", which is the one that reads as an error
-sentence.
-
-**An OpenAPI path with nothing behind it.** `verify:openapi-contract` caught
-`POST /api/business-builder/intake` still documented after the route was gone,
-which is the right direction for that check to fail in.
-
-### Verified
-
-5,206 tests, `verify:gates`, lint, typecheck, build, `smoke:routes`, `verify:db`.
-Four breaks, each watched fail by name:
-
-| Broken                                  | Test that went red                                        |
-| --------------------------------------- | --------------------------------------------------------- |
-| Put the intake endpoint back             | accepts no intake submission, +1                          |
-| Put the form builder back                | leaves no intake form builder or write path, +1           |
-| Stopped listing the historical rows      | still counts the requests a business already collected    |
-| Put the endpoint back (smoke)            | the intake endpoint answered 200                          |
-
-`tests/business-builder-intake-customer-sync.test.js` was removed with the
-feature it covered. Its one load-bearing assertion -- that a submission can turn
-into a customer record -- is replaced by the absence assertion that
-`safeInsertBusinessBuilderCustomerFromIntake` is no longer in `server.js`, so the
-path cannot come back unnoticed.
-
-### Why quotes are not in this change
-
-Quotes are not a form. `quotes` is read by eleven runtime files, has two
-dedicated modules (`lib/sonara-quote-conversion.cjs` and the quote path in
-`lib/sonara-work-order-lifecycle.cjs`), backs two of the twenty-seven record
-checks, appears in search, in the shareable-result types and in four market
-registries, and `customer_invoices.quote_id` and the work-order lifecycle both
-depend on it. Removing it retires two libraries and two record checks and changes
-a derived count that was only just stabilised.
-
-That is a product decision about whether a business owner can quote their
-customers, not a form to delete, and it is recorded here as asked-for and not yet
-done rather than quietly scoped out.
-
-
-### 2026-10-01 - Six tools stay free, thirty-four need a plan
-
-Asked to reduce the free tools and put the rest behind the paywall.
-
-Forty tools are registered at runtime -- fifteen Business Builder, thirteen
-Creator Studio, twelve Growth Studio, counted from `app.locals.sonaraFreeTools`
-rather than from the route registry, where a commented-out path had already made
-a regex say forty-one.
-
-### Which six, and why it is not a list somebody picked
-
-Exactly six tool paths are named on the public home page, under the heading
-"Free, and no account needed" and the sentence "no account, no card": break-even
-and runway, stock reorder, rate card, split sheet, campaign budget split, and
-referral reward. Those six stay free. The free set is therefore a consequence of
-what SONARA already says in public, and
-`tests/a-locked-tool-is-never-advertised-as-free.test.js` reads `server.js`,
-extracts every tool path the home page links, and fails if that set and
-`lib/sonara-tool-access.cjs` differ **in either direction**. Change one without
-the other and it says so.
-
-### The failure this had to avoid, which is on the record
-
-`routes/sonara-service-lifecycle-routes.cjs` carried a comment explaining why
-the tools were free: until 19 August 2026 they were all behind a login while
-`/business-builder/tools` listed ten of them by name and description, so the
-funnel advertised and then refused. Gating the computation drove a bounce, not a
-signup.
-
-The pricing decision is the owner's. That funnel failure is not, so it is held
-in code instead:
-
-* a locked tool answers **200 with a page** naming it, saying what it works out
-  and what opens it -- never a redirect, never a 404;
-* the three directories label every entry, locked ones shown rather than hidden,
-  because hiding them makes the product look smaller than it is;
-* the paywall runs **before** the field check on POST, so a locked tool is not
-  reported as a badly filled form and does not disclose which inputs it wants.
-
-### Copy that would have become false
-
-Four claims had to move, and finding them was most of the work:
-
-* the free plan's own description said "the free tools in all three studios";
-* `/free-tools` named individual tools -- the pricing calculator, the setup
-  score, the content brief -- that are now behind a plan;
-* each product's start page listed every tool under the heading "Free tools";
-* the home page's "All ... tools" links sat under "Free, and no account needed".
-
-A test asserts the first two directly: the free plan must not promise the tools
-in all three studios, and `/free-tools` must name no locked tool's title.
-
-One of my own new sentences was caught by an existing check rather than by me:
-`no-page-lies-when-the-database-is-down` flagged the phrase "nothing here" on
-`/free-tools` as an empty-state claim about a customer's records. Reworded rather
-than exempted -- an exemption would have been the wrong fix for prose.
-
-### A test mock that had been granting one product of three
-
-`tests/every-tool-result-page-survives-an-outage.test.js` posts to every tool
-with a stubbed Supabase. Its billing stub echoed back the **first** entitlement
-key the request asked for, and for Creator Studio and Growth Studio that is
-`workspace_monthly` -- a choose-one-workspace plan, which opens nothing unless
-its metadata names the workspace. So the stub granted Business Builder and
-silently granted neither of the other two.
-
-That cost nothing while every tool was free. The moment thirty-four moved behind
-a plan, twenty-five tools looked broken and the stub was what was incomplete. It
-now prefers an `all_three_` key. The same correction, with the same reason, went
-into `saas-platform-upgrade`, where it also had to stay **out** of the shared
-customer mock: one case there is specifically about a customer with no
-membership, and answering the membership read for everybody made that case green
-against the state it exists to rule out.
-
-### Verified
-
-5,217 tests, `verify:gates`, lint, typecheck, build, `smoke:routes`, `verify:db`,
-`test:docs`, `scan:client-secrets`. Seven breaks, each watched fail by name:
-
-| Broken                                        | Test that went red                                         |
-| --------------------------------------------- | ---------------------------------------------------------- |
-| Freed every tool                               | frees some tools but not all of them, +2                   |
-| Locked a tool the home page advertises         | matches exactly the tools the public home page links       |
-| Answered a locked tool with 404                | answers a locked tool with a page that names it            |
-| Hid locked tools from the directory            | all three directory cases, +1                              |
-| Validated fields before the paywall            | refuses a locked tool before it checks the fields, +1      |
-| Made a locked tool 404 (smoke)                 | a tool behind the paywall answered 404                     |
-| Locked the free tool too (smoke)               | a free tool answered as if it were locked                  |
-
-The first of those is worth a note: freeing everything leaves the
-"answers a locked tool" case green, because an empty locked set iterates zero
-times. It is caught by the population guard beside it, which is why that guard
-is there.
-
-
-### 2026-10-01 - A comment should not change what a report measures
-
-Found while adding a JSDoc block to `server.js` for an unrelated feature: the
-block moved `data/capability-inventory.json` from 50 recorded UI form links to
-42. A comment, changing what a release-chain report measures.
-
-Two bugs in `lib/sonara-comment-stripping.cjs`, then a third in the generator
-that the first two had been masking.
-
-### A `/*` inside a string opened a comment
-
-`server.js` sets a Content-Security-Policy containing
-`connect-src 'self' https://*.supabase.co`. That is `/` and `*` adjacent, inside
-a double-quoted string. The single regex has no idea where strings are, so its
-block branch read them as an opener and swallowed everything to the next `*/`
-anywhere in the file -- measured, the two lines after that header, `next();` and
-its closing `});`, vanished from every report that strips `server.js`.
-
-The `[^:]` guard in that regex was written for the `https://` half of exactly
-this hazard. It is no help: the guard is on the line branch and the damage came
-from the block branch, one character later.
-
-### Collapsing a comment renumbered the file
-
-The replacement was a single space, so a multi-line comment made the stripped
-text shorter than the file and moved every line after it up. Harmless for a
-consumer that asks what the text contains; wrong for one that takes a line
-number from the real file and indexes into the stripped text -- and
-`sourceBlockForRoute` in `scripts/generate-capability-inventory.cjs` does exactly
-that, with a line number out of a V8 stack trace.
-
-`withoutComments` is now a left-to-right scanner that copies string and template
-literals through untouched, follows `${ ... }` back into code, treats a
-backslash pair opaquely so `/https?:\/\//g` is not read as a line comment, and
-emits one newline for every newline it consumes. `withoutSqlComments` and
-`withoutCssComments` preserve newlines too; the note on the CSS one saying a
-line-reporting caller "cannot use this" is now wrong and is corrected rather
-than deleted, because it described the JavaScript stripper just as accurately
-and nobody had written that down.
-
-Measured across **831 JavaScript files**: zero line drift, zero lines of code
-swallowed, asserted in the test rather than claimed here.
-
-One limit stated rather than implied: this is a scanner, not a parser, so a regex
-literal holding an unescaped `/*` -- `/[/*]/` -- would still be read as an
-opener. A first attempt to assert no file contains one failed, on this module,
-matching the example inside the comment that documents the limit. Pattern
-matching prose as code, in the file about not doing that. Replaced with a case
-that exercises the limit directly, where it cannot false-positive.
-
-### The third bug, which the first two were hiding
-
-With strings no longer swallowed, three form links swapped rather than three
-appearing: the billing checkout, the billing portal and the employee invite
-dropped out. Not a stripper problem -- `localFunctionsFor` finds
-`billingPanel` and its body does contain the form.
-
-`formActionsForPage` has a budget of resolved function bodies per page, and it
-was **40**. The walk now sees more resolvable names, so it spent its forty on
-other branches first. Raising it to 120 brings all three back and takes the
-total to 53; at 400 it is still 53, and the generator takes the same twenty
-seconds at 40 as at 400. So the old number was never a performance decision.
-
-With the budget put back to 40 and the new reporting in place, the walk runs out
-on **41 of the 286 declared pages**. The figure read as a census of the
-application's forms while being an incomplete one, and which forms were missing
-depended on which names the scanner resolved first -- so it moved on edits that
-had nothing to do with forms.
-
-The bound stays, because an unbounded walk over a call graph is slow on a bad
-day. What changed is that binding it is visible:
-`pagesTruncatedByFormWalkBudget` is in the summary and
-`tests/the-form-walk-says-when-it-gave-up.test.js` fails if it is not empty, if
-the budget drops below the measured threshold, or -- the shape that would pass
-every other assertion -- if the walk finds almost no forms at all.
-
-### Verified
-
-`verify:gates`, 5,220 tests, lint, typecheck, build, `smoke:routes`,
-`verify:db`, `test:docs`, `scan:client-secrets`. Seven breaks, each watched fail
-by name:
-
-| Broken                                           | Test that went red                                        |
-| ------------------------------------------------ | --------------------------------------------------------- |
-| Restored the single regex                         | 5 cases including renumbers none of them                  |
-| Stopped emitting newlines for a block comment     | keeps the line count unchanged, +2                        |
-| Stopped copying strings through                   | does not treat the slashes in an https URL as a comment, +3 |
-| Dropped the backslash-pair rule                   | does not read a regular expression's escaped slashes as a comment |
-| Stopped following template interpolations         | removes a comment that is inside a template interpolation, +1 |
-| Put the form-walk budget back to 40               | truncated no page, +2                                     |
-| Stopped recording truncation at all               | records the budget it ran under, +1                        |
-
-The fifth of those was caught only after the first version of its test passed
-without the branch: copying a template verbatim keeps the code inside `${ }`
-too, so the case had to be rewritten to assert what the branch is actually for
--- that a comment inside an interpolation is removed.
-
-Files restored by copy-aside and `md5sum -c` throughout.
