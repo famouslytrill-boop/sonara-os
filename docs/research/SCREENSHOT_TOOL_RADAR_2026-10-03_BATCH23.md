@@ -2,7 +2,7 @@
 
 ## Decision
 
-This intake processes **54 screenshots** supplied on 3 October 2026. It adds seven source-verified GitHub repository research records, five confirmations of resources that SONARA already governs, eighteen non-executing model/Space/dataset/vertical/design references, and nine repository-owned architecture extensions.
+This intake processes **54 screenshots** supplied on 3 October 2026. It adds seven source-verified GitHub repository research records, five confirmations of resources that SONARA already governs, nineteen non-executing model/Space/dataset/vertical/design references, and nine repository-owned architecture extensions.
 
 The seven newly verified repositories are:
 
