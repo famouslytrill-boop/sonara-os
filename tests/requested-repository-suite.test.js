@@ -710,15 +710,15 @@ describe("requested repository runtime surfaces", () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
     // Counts are intentionally exact here so a newly added governed batch cannot
-    // disappear from the route while its own module tests still pass. Batch 21
-    // adds 5 repository records, 16 non-repository references, 3 confirmed
-    // existing records, and 2 within-batch duplicate references.
-    assert.equal(response.body.repositoryCount, 177);
-    assert.equal(response.body.verifiedCount, 173);
+    // disappear from the route while its own module tests still pass. Batch 23
+    // adds 7 repository records, 19 non-repository references and 5 confirmed
+    // existing governed records while adding no executable authority.
+    assert.equal(response.body.repositoryCount, 184);
+    assert.equal(response.body.verifiedCount, 180);
     assert.equal(response.body.blockedCount, 3);
-    assert.equal(response.body.screenshotResearchCount, 167);
+    assert.equal(response.body.screenshotResearchCount, 174);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
-    assert.equal(response.body.nonRepositoryReferenceCount, 147);
+    assert.equal(response.body.nonRepositoryReferenceCount, 166);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -755,8 +755,8 @@ describe("requested repository runtime surfaces", () => {
     const response = await request(app).get("/research-lab/requested-repositories");
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed external repository intake/);
-    assert.match(response.text, /167 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
-    assert.match(response.text, /147 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /174 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /166 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /Tool gateway boundary: Screenshot architecture/);
     assert.match(response.text, /Typed fast-decision lane: Screenshot architecture/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);
