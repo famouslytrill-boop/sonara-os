@@ -2,6 +2,28 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - Import existing subtitles into the Creator Project Graph
+
+Added plain-text SRT import to the existing project command endpoint and project
+page. No new provider, database table, dependency, or parallel editor. Imports
+append captions only after the complete input passes validation. Existing workspace
+membership, source access checks, archive restrictions and revision compare-and-swap
+remain authoritative. Limits: 64 KB UTF-8, 500 total graph nodes, 24-hour timeline,
+2,000 characters per cue. Markup is literal text, escaped by existing output paths.
+
+Focused tests cover malformed batches with no partial writes, invalid timestamps,
+UTF-8 and graph capacity, cross-tenant refusal, stale revisions, races, route form
+submission and export. The first full suite found an existing generated handoff
+count mismatch (433 stated versus 434 test files); regenerate the handoff rather
+than relaxing its test.
+
+Expansion assessment and primary-source research are recorded in
+`docs/research/EXPANSION_EXECUTION_2026-10-03.md`. This change does not complete
+marketplace checkout/delivery, live social streaming, external channel integrations,
+or production migration/deployment verification. Keep those distinct from source
+routes already present. The free-tool count and subscription completeness checks
+pass; the latter explicitly does not prove all provider costs are included.
+
 ### 2026-10-03 - Follow a channel without being sent anything: an Atom feed, and a dependency that kept bringing advisories
 
 **`/channels/:handle/feed.xml`.** A channel can now be followed in any feed reader.
