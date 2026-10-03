@@ -67,6 +67,29 @@ function blockerIds(result) {
 }
 
 describe("you cannot sell what you cannot publish", () => {
+  describe("purchase prerequisites stay separate from listing approval", () => {
+    it("never treats a working payment account as working checkout or delivery", () => {
+      const result = market.purchaseReadiness({ ok: true, payoutsEnabled: true });
+      assert.equal(result.ok, false);
+      assert.deepEqual(result.steps.map((step) => step.state), ["ready", "not_built", "not_built"]);
+      assert.ok(!JSON.stringify(result).includes("trade"));
+    });
+
+    it("distinguishes absent, disabled and unreadable payment accounts", () => {
+      for (const [code, state] of [["setup_required", "setup_required"], ["not_connected", "action_required"], ["charges_disabled", "action_required"], ["stripe_unreachable", "unavailable"], ["account_unreadable", "unavailable"]]) {
+        const result = market.purchaseReadiness({ ok: false, code, detail: "private provider detail" });
+        assert.equal(result.steps[0].state, state);
+        assert.ok(!JSON.stringify(result).includes("private provider detail"));
+      }
+      assert.equal(market.purchaseReadiness().steps[0].state, "unavailable");
+    });
+
+    it("does not claim payouts work when they are false or unknown", () => {
+      for (const payoutsEnabled of [false, null, undefined]) {
+        assert.match(market.purchaseReadiness({ ok: true, payoutsEnabled }).steps[0].message, /payouts are not confirmed/);
+      }
+    });
+  });
   describe("the happy case, so the refusals below mean something", () => {
     it("clears an approved human upload with a price and a licence", () => {
       const result = readiness();

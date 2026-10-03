@@ -49,6 +49,7 @@
 // that cannot charge.
 
 const market = require("../lib/sonara-creator-marketplace.cjs");
+const payments = require("../lib/sonara-connected-payments.cjs");
 
 const OWNER_PAGE = "/creator-studio/owner/marketplace";
 const PUBLIC_PAGE = "/marketplace";
@@ -78,6 +79,7 @@ async function takeVersionOffSale({ config, supabaseHeaders, organizationId, ver
     return { ok: false, taken: 0 };
   }
   const enc = encodeURIComponent;
+
   let listings;
   try {
     const response = await fetch(
@@ -120,6 +122,21 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
 
   const page = (res, input) => res.status(200).type("html").send(layout(input));
   const enc = encodeURIComponent;
+
+  async function sellerPaymentReadiness(organizationId) {
+    if (!UUID.test(String(organizationId || ""))) return { ok: false, code: "no_organization" };
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return { ok: false, code: "unavailable" };
+    try {
+      return await payments.canAcceptPayments({
+        getEnv: deps.getEnv || (() => ""),
+        supabaseUrl: config.url,
+        serviceRoleHeaders: () => supabaseHeaders(config)
+      }, organizationId, (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(4000) }));
+    } catch {
+      return { ok: false, code: "unavailable" };
+    }
+  }
 
   /** `{ ok, rows }`, never a bare array: a failed read must not render as none. */
   async function read(pathAndQuery) {
@@ -267,6 +284,11 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     );
 
     const sections = [brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure)];
+    const purchase = market.purchaseReadiness(await sellerPaymentReadiness(organizationId));
+    sections.push(brandCard("Before buyers can pay", "Listings can be published now. These separate checks explain what still prevents a completed purchase."));
+    for (const step of purchase.steps) {
+      sections.push(brandCard(step.title, escapeHtml(step.message)));
+    }
     if (!listings.ok) {
       sections.push(brandCard(
         "We could not read your listings just now",
@@ -350,6 +372,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       body: "What you are selling, and what each one still needs. Selling is never easier than publishing — anything that cannot be published cannot be sold, and each listing says why.",
       sections,
       actions: [
+        linkAction("/business-builder/owner/payments", "Payment account"),
         linkAction("/creator-studio/owner/approval-graph", "Approvals"),
         linkAction(PUBLIC_PAGE, "The public marketplace"),
         linkAction("/creator-studio", "Creator Studio")

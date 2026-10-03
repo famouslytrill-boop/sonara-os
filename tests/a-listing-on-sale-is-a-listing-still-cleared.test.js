@@ -56,7 +56,8 @@ function columnsNamedBy(query) {
   return named;
 }
 
-function harness({ listing, version, approvals, entryRows = [], failCatalogueWrite = false, failCatalogueDelete = false } = {}) {
+function harness({ listing, version, approvals, entryRows = [], failCatalogueWrite = false, failCatalogueDelete = false,
+  connectEnabled = false, paymentRows = [], livePayment = null, failAccountRead = false, organizationId = ORG } = {}) {
   const calls = [];
   const realFetch = global.fetch;
   global.fetch = async (url, init = {}) => {
@@ -66,6 +67,11 @@ function harness({ listing, version, approvals, entryRows = [], failCatalogueWri
     const body = init.body ? JSON.parse(init.body) : undefined;
     calls.push({ table, method, query: parsed.search.slice(1), body });
     const ok = (rows) => ({ ok: true, status: 200, json: async () => rows });
+    if (parsed.hostname === "api.stripe.com") {
+      if (!livePayment) throw new Error("Provider unavailable");
+      return ok(livePayment);
+    }
+    if (table === "business_payment_accounts") return failAccountRead ? { ok: false } : ok(paymentRows);
     if (table === "creator_marketplace_entries") {
       if (method === "POST" && failCatalogueWrite) return { ok: false, status: 500, json: async () => ({}) };
       if (method === "DELETE" && failCatalogueDelete) return { ok: false, status: 500, json: async () => ({}) };
@@ -85,7 +91,8 @@ function harness({ listing, version, approvals, entryRows = [], failCatalogueWri
     responsePage: (title, body) => `<title>${title}</title><p>${body}</p>`,
     escapeHtml: (value) => String(value == null ? "" : value).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])),
     requireWorkspaceAccess: () => (req, res, next) => { req.sonaraUser = { id: "u1" }; next(); },
-    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORG }),
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId }),
+    getEnv: (name) => connectEnabled ? ({ STRIPE_CONNECT_ENABLED: "true", STRIPE_SECRET_KEY: "sk_test_local_fixture_not_a_secret" }[name] || "") : "",
     getSupabaseServerConfig: () => ({ ok: true, url: "https://example.invalid", serviceRoleKey: "test" }),
     supabaseHeaders: () => ({})
   });
@@ -104,6 +111,53 @@ const HUMAN_VERSION = Object.freeze({
 const APPROVED = Object.freeze([{ state: "approved", decided_at: "2026-10-01T00:00:00Z", decided_by: "u2", created_at: "2026-10-01T00:00:00Z" }]);
 
 describe("a listing on sale is a listing still cleared", () => {
+  describe("seller payment prerequisites", () => {
+    it("checks only this workspace's account and performs no writes", async () => {
+      const { app, calls, restore } = harness({ connectEnabled: true,
+        paymentRows: [{ stripe_account_id: "acct_test12345678" }],
+        livePayment: { charges_enabled: true, payouts_enabled: true, details_submitted: true } });
+      try {
+        const response = await request(app).get(`/creator-studio/owner/marketplace?organizationId=${OTHER_ORG}`);
+        assert.equal(response.status, 200);
+        assert.match(response.text, /can accept charges and payouts are enabled/);
+        assert.match(response.text, /Marketplace checkout is not built yet/);
+        assert.match(response.text, /Delivery after verified payment is not built yet/);
+        const account = calls.find((call) => call.table === "business_payment_accounts");
+        assert.equal(new URLSearchParams(account.query).get("organization_id"), `eq.${ORG}`);
+        assert.ok(calls.every((call) => call.method === "GET"));
+      } finally { restore(); }
+    });
+
+    it("never substitutes cached charges-enabled state for a failed live check", async () => {
+      const { app, restore } = harness({ connectEnabled: true,
+        paymentRows: [{ stripe_account_id: "acct_test12345678", charges_enabled: true }] });
+      try {
+        const response = await request(app).get("/creator-studio/owner/marketplace");
+        assert.equal(response.status, 200);
+        assert.match(response.text, /could not verify your payment account/);
+        assert.doesNotMatch(response.text, /can accept charges/);
+      } finally { restore(); }
+    });
+
+    it("distinguishes an empty account result from a failed database read", async () => {
+      for (const failAccountRead of [false, true]) {
+        const { app, calls, restore } = harness({ connectEnabled: true, failAccountRead });
+        try {
+          const response = await request(app).get("/creator-studio/owner/marketplace");
+          assert.match(response.text, failAccountRead ? /could not verify your payment account/ : /Connect your payment account/);
+          assert.ok(calls.every((call) => call.method === "GET"));
+        } finally { restore(); }
+      }
+    });
+
+    it("does not check private payment accounts while browsing public listings", async () => {
+      const { app, calls, restore } = harness({ connectEnabled: true });
+      try {
+        await request(app).get("/marketplace");
+        assert.ok(calls.every((call) => call.table === "creator_marketplace_entries"));
+      } finally { restore(); }
+    });
+  });
   describe("every column a route names exists", () => {
     it("reads the real column lists, not an empty inventory", () => {
       for (const table of [...TENANT_TABLES, "creator_marketplace_entries"]) {
@@ -186,9 +240,9 @@ describe("a listing on sale is a listing still cleared", () => {
       try {
         const response = await request(app).get("/marketplace");
         assert.equal(response.status, 200);
-        assert.match(response.text, /no listing fee, buyer fee, seller commission or trade fee/);
+        assert.match(response.text, /no listing fee, buyer fee or seller commission/);
         assert.match(response.text, /external payment-processing charges are separate/);
-        assert.match(response.text, /Checkout, digital delivery and trading are not available yet/);
+        assert.match(response.text, /Checkout and digital delivery are not available yet/);
       } finally {
         restore();
       }
