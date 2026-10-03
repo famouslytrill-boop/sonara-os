@@ -14,9 +14,9 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Production: `https://sonaraindustries.com` on Vercel.
 - Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
 
-## Batch convergence (research through Batch 20)
+## Batch convergence (research through Batch 23)
 
-- `lib/sonara-batch-convergence-engine.cjs` aggregates screenshot and operational research through Batch 20 plus the requested-repository registry and maintained formal open-source registry.
+- `lib/sonara-batch-convergence-engine.cjs` aggregates screenshot and operational research through Batch 23 plus the requested-repository registry and maintained formal open-source registry.
 - `data/open-source-tools.ts`, read through `lib/sonara-open-source-registry.cjs`, is the maintained adoption/licence decision surface. Its stricter decision wins over older screenshot/intake metadata when records conflict.
 - `lib/sonara-source-evidence-register.cjs` maps uploaded PDFs, diagrams, graphs, design documents, model registries, research reports, and Batch 10 visual evidence into bounded source-derived requirements. Source evidence is not executable authority.
 - `lib/sonara-model-engine-control-plane.cjs` classifies explicit model/engine runtime placement and all converged repositories into permissive candidates, copyleft review, blocked/unknown, or research-only groups.
@@ -37,6 +37,20 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Five source-checked repositories remain cataloged-disabled: AHa-3D, the frontend UI prompt collection, Strata, InvokeAI and Logo Design Skill. Model weights, body assets, generated media and trademarked logo files retain separate rights boundaries.
 - Eight previously governed repositories were reconciled instead of duplicated. Unresolved cropped repositories, the browser-use video-editing reel and the ambiguous WolfCut owner remain unresolved; approximate stars, screenshots and promotional claims do not establish suitability.
 - Nine architecture records and `.claude/skills/designing-governed-product-workflows/SKILL.md` map visible actions to routes, state/data owners, approval gates, deterministic rules, provenance, retries, accessibility and acceptance checks. Formula processing remains paused until explicit owner authorization. No dependencies, migrations, models or external workflows were activated.
+
+### 2026-09-30 screenshot research intakes
+
+- Batch 21 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-30_BATCH21.md` and cataloged by `lib/sonara-screenshot-tool-radar-batch21.cjs`; it reconciles business/mobile/finance/memory/workflow screenshots without enabling external code.
+- Batch 22 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-09-30_BATCH22.md` and cataloged by `lib/sonara-screenshot-tool-radar-batch22.cjs`; five verified repositories remain cataloged-disabled and its architecture contracts preserve provenance, metric truth, media lifecycle and local-agent privilege boundaries.
+
+### 2026-10-03 screenshot research intake
+
+- Batch 23 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-10-03_BATCH23.md` and cataloged by `lib/sonara-screenshot-tool-radar-batch23.cjs`; it processes 54 screenshots as research evidence.
+- Seven verified repositories are recorded without activation: TesterArmy e2e, Mobile Next MCP, Learn Harness Engineering, Riso Windowseat, Hindsight, OpenDots and uniTerm.
+- Existing VoiceStudio, Qwen Image 2.1, Whisper Large v3 Turbo, Kokoro 82M and FLUX.1 Schnell records are reconciled rather than duplicated.
+- Hugging Face models, datasets, Spaces, LoRAs and community variants remain discovery metadata until the model-hub promotion gate passes exact revision, license/territory, serialization, provenance, compute, safety, benchmark, worker and tenant-canary review.
+- Mobile device control, remote shells/databases/clusters, voice cloning and model inference remain disabled; no provider credential, dependency, migration or production authority is added.
+- Nine architecture extensions cover deterministic agent-test proof, mobile-device security, deterministic procedural media, memory lifecycle, privileged remote operations, voice/speech consent, vertical templates, model promotion and design-reference truth.
 
 ### 2026-09-18 cross-host repository intake
 
