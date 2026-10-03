@@ -96,6 +96,11 @@ const {
   SCREENSHOT_TOOL_RADAR_BATCH22,
   NON_REPOSITORY_REFERENCES_BATCH22
 } = require("../lib/sonara-screenshot-tool-radar-batch22.cjs");
+const {
+  SCREENSHOT_TOOL_RADAR_BATCH23,
+  NON_REPOSITORY_REFERENCES_BATCH23,
+  CONFIRMED_EXISTING_RECORDS_BATCH23
+} = require("../lib/sonara-screenshot-tool-radar-batch23.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -178,6 +183,7 @@ const SCREENSHOT_BATCH19_KEYS = SCREENSHOT_TOOL_RADAR_BATCH19.map((item) => item
 const SCREENSHOT_BATCH20_KEYS = SCREENSHOT_TOOL_RADAR_BATCH20.map((item) => item.key);
 const SCREENSHOT_BATCH21_KEYS = SCREENSHOT_TOOL_RADAR_BATCH21.map((item) => item.key);
 const SCREENSHOT_BATCH22_KEYS = SCREENSHOT_TOOL_RADAR_BATCH22.map((item) => item.key);
+const SCREENSHOT_BATCH23_KEYS = SCREENSHOT_TOOL_RADAR_BATCH23.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
@@ -193,7 +199,8 @@ const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH19,
   ...NON_REPOSITORY_REFERENCES_BATCH20,
   ...NON_REPOSITORY_REFERENCES_BATCH21,
-  ...NON_REPOSITORY_REFERENCES_BATCH22
+  ...NON_REPOSITORY_REFERENCES_BATCH22,
+  ...NON_REPOSITORY_REFERENCES_BATCH23
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -733,12 +740,13 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH19_KEYS,
         ...SCREENSHOT_BATCH20_KEYS,
         ...SCREENSHOT_BATCH21_KEYS,
-        ...SCREENSHOT_BATCH22_KEYS
+        ...SCREENSHOT_BATCH22_KEYS,
+        ...SCREENSHOT_BATCH23_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
     assert.deepEqual(response.body.nonRepositoryReferences.map((item) => item.key), ALL_NON_REPOSITORY_KEYS);
-    for (const record of CONFIRMED_EXISTING_RECORDS_BATCH21) {
+    for (const record of [...CONFIRMED_EXISTING_RECORDS_BATCH21, ...CONFIRMED_EXISTING_RECORDS_BATCH23]) {
       assert.ok(response.body.confirmedExistingRecords.some((item) => item.key === record.key), record.key);
     }
   });
