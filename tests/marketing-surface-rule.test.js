@@ -44,7 +44,10 @@ const CINEMATIC = new Set([
   // for sale is the definition of a front door: nobody arriving here is mid-task,
   // and the page's job is to show what exists. The page a buyer opens for one
   // listing is parameterised and not on either list.
-  "/marketplace"
+  "/marketplace",
+  // Growth Studio's channel directory, added 3 October 2026. A directory orients:
+  // nobody arriving is mid-task, and the page's job is to show what exists.
+  "/channels"
 ]);
 
 // Public pages that stay calm, each with the reason. Being public is not the

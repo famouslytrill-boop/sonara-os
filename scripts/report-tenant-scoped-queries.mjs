@@ -144,6 +144,24 @@ const MINIMUM_CALLS = 90;
 // moves or gets scoped properly cannot leave a stale reason behind.
 const READ_WITHOUT_ORGANIZATION = [
   {
+    file: "routes/sonara-growth-channel-routes.cjs",
+    table: "growth_channels",
+    requires: ["state=eq.public", "handle=eq."],
+    reason:
+      "GET /channels/:handle and POST /channels/:handle/report, registered with no guard -- a public channel. " +
+      "growth_channels_handle_key makes the handle name one channel and state=eq.public keeps drafts and hidden " +
+      "channels unreachable. Every later read and the report write carry organization_id from this row."
+  },
+  {
+    file: "routes/sonara-growth-channel-routes.cjs",
+    table: "growth_channels",
+    requires: ["select=organization_id&handle=eq."],
+    reason:
+      "The address check inside POST /api/growth/channels, behind growth_studio workspace access. It looks " +
+      "across organizations to answer 'taken' before the unique index does; organization_id is the only column " +
+      "selected and any row means taken."
+  },
+  {
     file: "routes/sonara-creator-profile-routes.cjs",
     table: "creator_artist_profiles",
     requires: ["status=eq.active"],

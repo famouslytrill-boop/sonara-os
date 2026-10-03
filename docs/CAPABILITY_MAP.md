@@ -8,17 +8,17 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 908 |
-| GET / POST / PATCH / DELETE | 552 / 343 / 10 / 3 |
-| Declared page routes / workspace groups | 297 / 12 |
-| API operations matched to OpenAPI | 325 |
-| Destinations using workspace-home fallback | 92 |
-| Form action destinations traced to registered pages | 58 |
+| Registered HTTP route operations | 919 |
+| GET / POST / PATCH / DELETE | 555 / 351 / 10 / 3 |
+| Declared page routes / workspace groups | 299 / 12 |
+| API operations matched to OpenAPI | 332 |
+| Destinations using workspace-home fallback | 96 |
+| Form action destinations traced to registered pages | 61 |
 | Traced forms with no matching method/path route | 0 |
-| Route data contracts needing explicit review | 298 |
-| Active migration tables | 349 |
-| Runtime-queried / never-queried tables | 308 / 41 |
-| Migration files | 149 |
+| Route data contracts needing explicit review | 299 |
+| Active migration tables | 353 |
+| Runtime-queried / never-queried tables | 312 / 41 |
+| Migration files | 150 |
 | SQL functions / triggers / calling routes / missing function definition | 33 / 49 / 24 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
@@ -41,10 +41,10 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 908 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
-- All 325 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
-- 298 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
-- 92 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
+- The HTTP layer registers 919 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- All 332 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
+- 299 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
+- 96 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
 
@@ -54,8 +54,8 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_formula_result_registry` | 1 |
 | `explicit_no_persistent_table_expected` | 146 |
 | `explicit_resource_registry` | 259 |
-| `handler_source_table_reference` | 201 |
-| `needs_explicit_data_contract` | 298 |
+| `handler_source_table_reference` | 211 |
+| `needs_explicit_data_contract` | 299 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations
@@ -65,7 +65,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 335 | 95 | `/business-builder/dashboard` |
 | Business Builder Agent Operations | `/owner/agent-activity`, `/owner/agent-schedule`, `/api/agents` | 7 | 1 | `/owner/agent-activity` |
 | Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 132 | 68 | `/creator-studio/dashboard` |
-| Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 121 | 57 | `/growth-studio/dashboard` |
+| Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 129 | 58 | `/growth-studio/dashboard` |
 | Administration | `/admin`, `/api/admin` | 0 | 0 | `/admin` |
 | Research Lab | `/research-lab`, `/api/research-lab` | 15 | 14 | `/research-lab/open-source` |
 | Technology and Repository Catalog | `/technology-radar`, `/api/ecosystem` | 12 | 0 | `/research-lab/open-source` |
@@ -73,7 +73,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | Cross-workspace Formulas | `/formulas`, `/api/formulas` | 5 | 1 | `/formulas` |
 | Shared Account | `/account`, `/auth` | 27 | 8 | `/account` |
 | SONARA Shared API | `/api` | 115 | 0 | `/dashboard` |
-| SONARA Shared Pages | `/` | 136 | 119 | `/dashboard` |
+| SONARA Shared Pages | `/` | 139 | 121 | `/dashboard` |
 
 ### Research-only repositories
 

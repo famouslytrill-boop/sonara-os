@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3058 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3060 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 149 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 44 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 432 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- Supabase over PostgREST for data. 150 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
+- 433 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,77 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 24 most recent entries of 435 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 24 most recent entries of 436 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-03 - Growth Studio channels: a business can speak in public, and a stranger can say "not this"
+
+Growth Studio could publish an event and take an RSVP, and had nowhere to say
+anything between events. It now has channels: a public page a business posts updates
+and announcements to, a directory at `/channels` to find them by, and a way for a
+stranger to flag a post without giving a name.
+
+**What shipped.** Migration `20261003120000` (four tables), `lib/sonara-growth-channels.cjs`
+(every decision), `routes/sonara-growth-channel-routes.cjs`: the owner page
+`/growth-studio/owner/channels` (create a draft, make public, hide, post or announce,
+optionally about one of your published events, take a post down or put it back,
+dismiss reports), and three public routes -- `/channels`, `/channels/:handle`,
+`POST /channels/:handle/report`.
+
+**Built on the previous entry's lesson, not around it.** `/channels/:handle` makes one
+unscoped read -- `growth_channels` by its unique handle with `state=eq.public` -- and
+the tenant guard got a pinned exemption for exactly that shape the same day the page
+did, along with the address check on create. `/channels` lists every organization's
+channels at once, so it reads `growth_channel_directory`, which has no
+`organization_id`; the migration asserts its column set is exactly five columns, so a
+column added later fails the migration instead of quietly becoming public. The new
+routes are in the guard sweep with five probes of their own, including a draft
+channel's address answering 404 and a removed post absent from the page.
+
+**The invariants, and where each is held.**
+
+- *Public means published, on a public channel, now.* The route asks only for
+  `state=eq.published`, and `arrangePublicPosts` drops anything else anyway; a channel
+  that is not public shows nothing whatever rows it is handed.
+- *A stranger sees what was said, never who said it.* `publicPost` builds its result by
+  naming five fields; there is no author, organization or report field to forward. No
+  report count is ever shown publicly -- a visible "12 reports" invites a thirteenth.
+- *A report is a signal, not a verdict.* Nothing hides a post because it was reported;
+  the owner decides. A test pins the module's whole function surface so a
+  hide-on-reports helper cannot arrive unnoticed. Reports record nobody -- the
+  migration refuses a reporter, user, email, address or phone column.
+- *Nothing is sent and nothing is deleted.* No follower list, no send path. Removal,
+  dismissal and hiding are states; the migration asserts no DELETE grant on the three
+  record tables. Post bodies are escaped plain text with line breaks kept, and links
+  are shown as text rather than made clickable.
+
+Publishing writes the channel first and the directory second; hiding removes the
+directory row first and the channel second -- so a failure between the two leaves a
+channel that is public but unlisted, never one listed whose page refuses everyone,
+and the owner is told which happened. The report form is rate-limited at 10 an hour per
+address and registered as an `anonymous_surface` in the subscription gate. A business
+can run 20 channels; the cap is counted before insert.
+
+**Falsified**, each restored by copy and `md5sum -c`:
+
+- directory given an `organization_id`: migration replay refuses, naming the columns
+- report table given `reporter_user_id`: refused, "a report is anonymous"
+- the public channel exemption narrowed to `state=eq.never`: 5 red
+- the route reading any non-draft channel (so hidden ones too): 5 red -- the guard refuses that shape
+- the module no longer dropping removed posts: red
+- a public post forwarding its author: red
+- the route's published filter AND the module's both removed: red, "showed TAKEN-DOWN-POST"
+- with only one of them removed it stays green, which is the point of having two
+
+**Not done.** Following a channel, a feed of followed channels, live audio or video,
+and radio-style streams. A channel is read when somebody chooses to; nothing pushes it.
+An Atom feed per channel would make it subscribable without notifications and is the
+next small step.
+
+
 
 ### 2026-10-02 - Six public pages the tenant guard refused on every request, behind tests that never met it
 
@@ -2055,71 +2121,3 @@ from UTC-12 through UTC+11 and a day late in UTC+12 and east, which is New Zeala
 Fiji and Kiribati. No hour covers all of them -- the inhabited offsets span
 twenty-six hours and a day has twenty-four -- so `buildTask` writes "Scheduled for
 2026-10-05." into the description, which is right everywhere.
-
-
-### 2026-10-01 - A second copy of a table is now found by a check
-
-"No duplicate tables" was asked for, and `employee_shifts` was found duplicating
-`employee_schedules` the same day -- by reading the migrations while looking for
-something else. Nothing would have found the next one, and 345 tables is well
-past what anybody holds in their head.
-
-`scripts/report-duplicate-tables.mjs` compares every pair of tables the
-migrations create and fails on a near-duplicate that
-`lib/sonara-duplicate-table-review.cjs` does not account for.
-
-### What it compares, and the two choices that make it usable
-
-**Column names, not types.** Two tables with the same names and different types
-are the same idea stored twice; comparing `text` against `varchar` would make the
-measure sensitive to something that hides what it is looking for.
-
-**The columns almost every table has are removed first** -- `id`,
-`organization_id`, `created_at`, `updated_at`, `metadata`, `user_id`,
-`created_by`, `notes`, `status`. Leaving them in makes every pair of small tables
-look alike, which is how a check ends up with a register nobody reads. A table
-with fewer than four distinctive columns left is not compared at all, and the
-report says how many that excludes -- 272 of 345 are compared, which is 79%.
-
-The threshold is 0.8 overlap, and the report prints **the highest-scoring pair
-below it** so the line is visible rather than asserted:
-`business_service_catalog + business_service_items` at 0.64. There is a real gap
-under the threshold, and a test fails if it closes above 0.75.
-
-### It found a second pair on its first run
-
-`creator_generation_events` and `growth_control_events` at 0.80, sharing
-`event_type`, `event_status`, `details` and `job_id`.
-
-Not a duplicate, and the reason is exactly what the check cannot see: `job_id`
-references `creator_generation_jobs(id)` in one and `growth_provider_jobs(id)` in
-the other, and the second also carries `campaign_id`. Merging them would give one
-table two mutually exclusive job references and a status vocabulary that is the
-union of two products'. Recorded as `parallel_by_design` with that written down,
-because the next person to see two identical-looking event logs will ask.
-
-### The register is two-sided, and an entry is not approval
-
-A reviewed pair that stops being near-duplicate fails too, so an exemption cannot
-outlive its reason. And `employee_shifts` is recorded as
-`duplicate_awaiting_owner_decision` rather than as settled: retiring a table is a
-destructive data change and AGENTS.md puts those behind the owner. A test fails if
-a waiting verdict stops naming whose decision it is.
-
-### Verified
-
-Seven breaks, each watched fail by name:
-
-| Broken                                              | What went red                                             |
-| --------------------------------------------------- | --------------------------------------------------------- |
-| Added a third shift-shaped table in a migration      | two unreviewed pairs, at 1.00 and 0.83                    |
-| Pointed a reviewed entry at a pair that is not one   | both halves: the real pair unreviewed, and the stale entry |
-| Raised the distinctive-column floor to 40            | only 0 of 345 tables compared; the check has gone blind    |
-| Made the CREATE TABLE terminator greedy              | parsing over-ran on user_roles                            |
-| Removed the check from verify:gates                  | is in the release chain rather than only on disk           |
-| Registered a pair the report does not flag           | the register and the report disagree, +2                   |
-| Softened the waiting verdict to read as resolved     | does not describe an unresolved duplicate as decided       |
-
-Adding it to `verify:gates` took the chain from 69 commands to 70, and
-`verify:doc-counts` failed on the three documents quoting the old figure -- which
-is the derived-count machinery working as intended.

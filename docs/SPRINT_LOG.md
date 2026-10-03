@@ -2,6 +2,70 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - Growth Studio channels: a business can speak in public, and a stranger can say "not this"
+
+Growth Studio could publish an event and take an RSVP, and had nowhere to say
+anything between events. It now has channels: a public page a business posts updates
+and announcements to, a directory at `/channels` to find them by, and a way for a
+stranger to flag a post without giving a name.
+
+**What shipped.** Migration `20261003120000` (four tables), `lib/sonara-growth-channels.cjs`
+(every decision), `routes/sonara-growth-channel-routes.cjs`: the owner page
+`/growth-studio/owner/channels` (create a draft, make public, hide, post or announce,
+optionally about one of your published events, take a post down or put it back,
+dismiss reports), and three public routes -- `/channels`, `/channels/:handle`,
+`POST /channels/:handle/report`.
+
+**Built on the previous entry's lesson, not around it.** `/channels/:handle` makes one
+unscoped read -- `growth_channels` by its unique handle with `state=eq.public` -- and
+the tenant guard got a pinned exemption for exactly that shape the same day the page
+did, along with the address check on create. `/channels` lists every organization's
+channels at once, so it reads `growth_channel_directory`, which has no
+`organization_id`; the migration asserts its column set is exactly five columns, so a
+column added later fails the migration instead of quietly becoming public. The new
+routes are in the guard sweep with five probes of their own, including a draft
+channel's address answering 404 and a removed post absent from the page.
+
+**The invariants, and where each is held.**
+
+- *Public means published, on a public channel, now.* The route asks only for
+  `state=eq.published`, and `arrangePublicPosts` drops anything else anyway; a channel
+  that is not public shows nothing whatever rows it is handed.
+- *A stranger sees what was said, never who said it.* `publicPost` builds its result by
+  naming five fields; there is no author, organization or report field to forward. No
+  report count is ever shown publicly -- a visible "12 reports" invites a thirteenth.
+- *A report is a signal, not a verdict.* Nothing hides a post because it was reported;
+  the owner decides. A test pins the module's whole function surface so a
+  hide-on-reports helper cannot arrive unnoticed. Reports record nobody -- the
+  migration refuses a reporter, user, email, address or phone column.
+- *Nothing is sent and nothing is deleted.* No follower list, no send path. Removal,
+  dismissal and hiding are states; the migration asserts no DELETE grant on the three
+  record tables. Post bodies are escaped plain text with line breaks kept, and links
+  are shown as text rather than made clickable.
+
+Publishing writes the channel first and the directory second; hiding removes the
+directory row first and the channel second -- so a failure between the two leaves a
+channel that is public but unlisted, never one listed whose page refuses everyone,
+and the owner is told which happened. The report form is rate-limited at 10 an hour per
+address and registered as an `anonymous_surface` in the subscription gate. A business
+can run 20 channels; the cap is counted before insert.
+
+**Falsified**, each restored by copy and `md5sum -c`:
+
+- directory given an `organization_id`: migration replay refuses, naming the columns
+- report table given `reporter_user_id`: refused, "a report is anonymous"
+- the public channel exemption narrowed to `state=eq.never`: 5 red
+- the route reading any non-draft channel (so hidden ones too): 5 red -- the guard refuses that shape
+- the module no longer dropping removed posts: red
+- a public post forwarding its author: red
+- the route's published filter AND the module's both removed: red, "showed TAKEN-DOWN-POST"
+- with only one of them removed it stays green, which is the point of having two
+
+**Not done.** Following a channel, a feed of followed channels, live audio or video,
+and radio-style streams. A channel is read when somebody chooses to; nothing pushes it.
+An Atom feed per channel would make it subscribable without notifications and is the
+next small step.
+
 ### 2026-10-02 - Six public pages the tenant guard refused on every request, behind tests that never met it
 
 `lib/sonara-tenant-guard.cjs` wraps fetch and throws on a query against a

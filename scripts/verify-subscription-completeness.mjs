@@ -97,7 +97,8 @@ const LIMITERS = Object.freeze({
   lead_capture_chat: "anonymous_surface",
   public_booking: "anonymous_surface",
   public_event_rsvp: "anonymous_surface",
-  public_store_order: "anonymous_surface"
+  public_store_order: "anonymous_surface",
+  public_channel_report: "anonymous_surface"
 });
 
 // Writes per hour, below which a limiter stops being a ceiling over abuse and

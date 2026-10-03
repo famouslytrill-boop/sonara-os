@@ -1460,6 +1460,75 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
       responses:
         "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code." }
+  /api/growth/channels:
+    post:
+      operationId: createGrowthChannel
+      tags: [Growth Studio]
+      summary: Create a channel, always as a draft.
+      description: >-
+        Saved as a draft whatever is posted; making it public is its own action. An
+        address another channel holds is refused with problem=handle_taken.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/publish:
+    post:
+      operationId: publishGrowthChannel
+      tags: [Growth Studio]
+      summary: Make a channel public and list it in the directory.
+      description: >-
+        The channel is made public first and listed second, so a failed listing
+        leaves a public, unlisted channel and says so with problem=not_listed.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/hide:
+    post:
+      operationId: hideGrowthChannel
+      tags: [Growth Studio]
+      summary: Take a channel out of the directory and hide it.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/posts:
+    post:
+      operationId: postToGrowthChannel
+      tags: [Growth Studio]
+      summary: Post or announce on a channel. Sends nothing to anybody.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/posts/remove:
+    post:
+      operationId: removeGrowthChannelPost
+      tags: [Growth Studio]
+      summary: Take a post down. A state, not a delete; its open reports are marked actioned.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/posts/restore:
+    post:
+      operationId: restoreGrowthChannelPost
+      tags: [Growth Studio]
+      summary: Put a removed post back up.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
+  /api/growth/channels/reports/dismiss:
+    post:
+      operationId: dismissGrowthPostReports
+      tags: [Growth Studio]
+      summary: Dismiss a post's open reports and leave it up.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Form submission accepted; the browser is redirected back to the channels page with a done or problem code." }
   /api/business/storefront:
     post:
       operationId: saveMerchantStorefront

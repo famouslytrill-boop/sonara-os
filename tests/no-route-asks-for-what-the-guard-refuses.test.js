@@ -57,6 +57,8 @@ const SUPABASE = "https://project.supabase.co";
 const ORG = "aaaaaaaa-0000-0000-0000-00000000000a";
 const USER = "11111111-0000-0000-0000-000000000001";
 const PROFILE = "cccccccc-0000-4000-8000-00000000000c";
+const CHANNEL = "99999999-0000-4000-8000-000000000009";
+const POST = "88888888-0000-4000-8000-000000000008";
 
 function seed() {
   return {
@@ -79,6 +81,17 @@ function seed() {
     creator_follows: [{ id: "f1", follower_user_id: USER, artist_profile_id: PROFILE, created_at: "2026-01-01" }],
     lead_capture_pages: [
       { id: "l1", organization_id: ORG, slug: "ask-us", enabled: true, headline: "ASK-US-PAGE", greeting: "Hi.", closing: "Bye." }
+    ],
+    growth_channels: [
+      { id: CHANNEL, organization_id: ORG, handle: "fair-news", title: "FAIR-NEWS", about: "News from the fair.", state: "public" },
+      { id: "eeeeeeee-0000-4000-8000-00000000000e", organization_id: ORG, handle: "draft-news", title: "DRAFT-CHANNEL", about: null, state: "draft" }
+    ],
+    growth_channel_posts: [
+      { id: POST, organization_id: ORG, channel_id: CHANNEL, kind: "announcement", body: "DOORS-AT-SEVEN", event_id: null, state: "published", created_at: "2026-10-01T10:00:00Z", author_user_id: USER },
+      { id: "ffffffff-0000-4000-8000-0000000000f1", organization_id: ORG, channel_id: CHANNEL, kind: "post", body: "TAKEN-DOWN-POST", event_id: null, state: "removed", created_at: "2026-10-01T11:00:00Z", author_user_id: USER }
+    ],
+    growth_channel_directory: [
+      { channel_id: CHANNEL, handle: "fair-news", title: "FAIR-NEWS-LISTED", about: "News from the fair.", listed_at: "2026-10-01T09:00:00Z" }
     ],
     scroll_sites: [{
       id: "sc1", organization_id: ORG, slug: "my-scroll", title: "MY-SCROLL", published_at: "2026-01-01",
@@ -311,6 +324,17 @@ describe("no route asks for what the tenant guard refuses", () => {
     { method: "GET", path: "/chat/ask-us", reads: "lead_capture_pages", shows: "ASK-US-PAGE" },
     { method: "GET", path: "/s/my-scroll", reads: "scroll_sites", shows: "MY-SCROLL-HEADING" },
     { method: "GET", path: "/account/following", token: "token-a", reads: "creator_artist_profiles", shows: "NOVA-ARTIST" },
+    { method: "GET", path: "/channels", reads: "growth_channel_directory", shows: "FAIR-NEWS-LISTED" },
+    { method: "GET", path: "/channels/fair-news", reads: "growth_channels", shows: "DOORS-AT-SEVEN", hides: "TAKEN-DOWN-POST" },
+    { method: "GET", path: "/channels/draft-news", reads: "growth_channels", status: 404, hides: "DRAFT-CHANNEL" },
+    {
+      method: "POST", path: "/channels/fair-news/report", reads: "growth_channels", writes: "growth_post_reports",
+      form: { post_id: POST, reason: "spam" }, shows: "Your report has gone to the business"
+    },
+    {
+      method: "POST", path: "/api/growth/channels", token: "token-a", reads: "growth_channels", writes: "growth_channels",
+      form: { handle: "new-channel", title: "A new channel" }, redirects: /done=created/
+    },
     {
       method: "POST", path: "/events/spring-fair", reads: "growth_events", writes: "growth_event_rsvps",
       form: { display_name: "Pat", email: "pat@example.com", party_size: "2", attending: "true" }, shows: "You are confirmed"
@@ -357,6 +381,8 @@ describe("no route asks for what the tenant guard refuses", () => {
         assert.equal(response.status, 200, `${page.path} answered ${response.status}`);
         assert.ok(response.text.includes(page.shows), `${page.path} rendered without ${page.shows}`);
       }
+      if (page.status) assert.equal(response.status, page.status, `${page.path} answered ${said}`);
+      if (page.hides) assert.ok(!response.text.includes(page.hides), `${page.path} showed ${page.hides}, which is not public`);
       if (page.redirects) {
         assert.equal(response.status, 303, `${page.path} answered ${response.status}`);
         assert.match(String(response.headers.location || ""), page.redirects);

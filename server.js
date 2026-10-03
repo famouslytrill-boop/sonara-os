@@ -36,6 +36,7 @@ const registerAccountProfileRoutes = require("./routes/sonara-account-profile-ro
 const registerCreatorMarketplaceRoutes = require("./routes/sonara-creator-marketplace-routes.cjs");
 const { freeToolSentence } = require("./lib/sonara-tool-access.cjs");
 const registerGrowthEventRoutes = require("./routes/sonara-growth-event-routes.cjs");
+const registerGrowthChannelRoutes = require("./routes/sonara-growth-channel-routes.cjs");
 const registerMerchantStoreRoutes = require("./routes/sonara-merchant-store-routes.cjs");
 // Moved to lib/sonara-env-value-checks.cjs on 18 September 2026 so that
 // scripts/verify-email-env.mjs applies the SAME placeholder and email rules
@@ -746,6 +747,7 @@ registerAccountProfileRoutes(app, { layout, brandCard, linkAction, responsePage,
 registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerMerchantStoreRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
