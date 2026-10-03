@@ -109,9 +109,49 @@ describe("a removed post is not public", () => {
       // post state; if one is added, this names it.
       const surface = Object.keys(channels).filter((name) => typeof channels[name] === "function");
       assert.deepEqual(surface.sort(), [
-        "arrangePublicPosts", "bodyHtml", "channelVisibility", "directoryRow", "isUuid",
+        "arrangePublicPosts", "atomFeed", "bodyHtml", "channelVisibility", "directoryRow", "isUuid",
         "normalizeChannel", "normalizePost", "normalizeReport", "problemSentence", "publicPost", "reportSummary"
       ]);
+    });
+  });
+
+  describe("a feed carries what the page carries, and nothing more", () => {
+    const channel = { id: "c1", handle: "fair-news", title: "Fair & News", about: "News <from> the fair", state: "public" };
+    const rows = [
+      row({ id: "p1", kind: "announcement", body: 'Doors at <7> & "bring" mates\nsecond line', created_at: "2026-10-01T10:00:00Z" }),
+      row({ id: "p2", body: "TAKEN-DOWN", state: "removed", created_at: "2026-10-02T10:00:00Z" })
+    ];
+    const feed = (origin) => channels.atomFeed({ channel, arranged: channels.arrangePublicPosts(rows, { channel }), origin, now: new Date("2026-10-03T00:00:00Z") });
+
+    it("leaves out a removed post and every private field", () => {
+      const xml = feed("https://sonaraindustries.com");
+      assert.doesNotMatch(xml, /TAKEN-DOWN|SECRET/);
+      assert.equal((xml.match(/<entry>/g) || []).length, 1);
+    });
+
+    it("escapes everything a post or channel says, so the document stays well-formed", () => {
+      const xml = feed("https://sonaraindustries.com");
+      assert.match(xml, /<title>Fair &amp; News<\/title>/);
+      assert.match(xml, /Doors at &lt;7&gt; &amp; &quot;bring&quot; mates/);
+      // Every < in the document opens one of the elements this function writes.
+      const tags = [...xml.matchAll(/<\/?([a-z?]+)/g)].map((match) => match[1]);
+      assert.deepEqual([...new Set(tags)].sort(), ["?xml", "author", "category", "content", "entry", "feed", "id", "link", "name", "subtitle", "title", "updated"]);
+      assert.match(xml, /<content type="text">/, "content is text, so a reader makes nothing in it a link");
+    });
+
+    it("drops control characters XML refuses, so one old row cannot break the feed", () => {
+      const xml = channels.atomFeed({ channel: { ...channel, title: "Bad\u0001Title" }, arranged: channels.arrangePublicPosts([], { channel }) });
+      assert.doesNotMatch(xml, /\u0001/);
+    });
+
+    it("prints no link at all rather than inventing an address", () => {
+      const xml = feed("");
+      assert.doesNotMatch(xml, /<link /);
+      assert.match(xml, /<id>tag:sonaraindustries\.com,2026:post:p1<\/id>/, "ids do not depend on the address");
+    });
+
+    it("dates the feed by its newest post", () => {
+      assert.match(feed(""), /<feed[\s\S]*?<updated>2026-10-01T10:00:00\.000Z<\/updated>/);
     });
   });
 

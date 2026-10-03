@@ -327,6 +327,8 @@ describe("no route asks for what the tenant guard refuses", () => {
     { method: "GET", path: "/channels", reads: "growth_channel_directory", shows: "FAIR-NEWS-LISTED" },
     { method: "GET", path: "/channels/fair-news", reads: "growth_channels", shows: "DOORS-AT-SEVEN", hides: "TAKEN-DOWN-POST" },
     { method: "GET", path: "/channels/draft-news", reads: "growth_channels", status: 404, hides: "DRAFT-CHANNEL" },
+    { method: "GET", path: "/channels/fair-news/feed.xml", reads: "growth_channel_posts", shows: "DOORS-AT-SEVEN", hides: "TAKEN-DOWN-POST" },
+    { method: "GET", path: "/channels/draft-news/feed.xml", reads: "growth_channels", status: 404, hides: "DRAFT-CHANNEL" },
     {
       method: "POST", path: "/channels/fair-news/report", reads: "growth_channels", writes: "growth_post_reports",
       form: { post_id: POST, reason: "spam" }, shows: "Your report has gone to the business"

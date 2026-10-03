@@ -15,6 +15,8 @@
 //   GET  /channels                              the public directory. No account.
 //   GET  /channels/:handle                      a public channel. No account.
 //   POST /channels/:handle/report               flag a post. No account, no name.
+//   GET  /channels/:handle/feed.xml             the channel as an Atom feed. Following it
+//                                               is a reader asking; nothing is sent.
 //
 // Every decision is lib/sonara-growth-channels.cjs. This file reads, writes and
 // renders.
@@ -34,6 +36,7 @@
 // anything a business would later ask about.
 
 const channels = require("../lib/sonara-growth-channels.cjs");
+const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
@@ -554,6 +557,9 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       }
       if (posts.arranged.truncated) sections.push(brandCard("Older posts", `Showing the newest ${channels.POSTS_SHOWN}.`));
     }
+    sections.push(brandCard("Follow this channel",
+      `<p>Add <a href="/channels/${escapeHtml(enc(handle))}/feed.xml">this channel's feed</a> to any feed reader to see new posts there. `
+      + "Nothing is sent to you, and nobody here learns that you follow it.</p>"));
     sections.push(brandCard("About reports",
       "A report goes to the business that runs this channel, with no name or address attached. Reporting does not take a post down by itself; the business decides."));
 
@@ -562,6 +568,29 @@ function registerGrowthChannelRoutes(app, deps = {}) {
       body: String(found.channel.about || "").trim() || "No description was written for this channel.",
       sections
     });
+  });
+
+  // The same reads as the page, through the same pinned lookup, as Atom. A reader
+  // polls this; it is cached briefly so a popular channel is not re-read for every
+  // poll. A channel that is not public answers 404 like the page does.
+  app.get("/channels/:handle/feed.xml", async (req, res) => {
+    const checked = channels.normalizeChannel({ handle: req.params.handle, title: "x" });
+    if (!checked.ok) return res.status(404).type("text/plain").send("No such channel.");
+    const config = getSupabaseServerConfig();
+    if (!config?.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
+    const found = await findPublicChannel(config, checked.channel.handle);
+    if (!found.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
+    if (!found.channel) return res.status(404).type("text/plain").send("No such channel.");
+    const posts = await publicPostsFor(config, found.channel);
+    // An unreadable post list is not an empty channel. A feed answering with no
+    // entries would tell every reader the channel had gone quiet.
+    if (!posts.ok) return res.status(503).type("text/plain").send("This feed cannot be read just now.");
+    res.setHeader("Cache-Control", "public, max-age=300");
+    return res.status(200).type("application/atom+xml; charset=utf-8").send(channels.atomFeed({
+      channel: found.channel,
+      arranged: posts.arranged,
+      origin: siteOrigin(req)
+    }));
   });
 
   // Ten an hour from one address. A public, anonymous write: the ceiling is where

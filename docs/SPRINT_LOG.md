@@ -2,6 +2,35 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-03 - Follow a channel without being sent anything: an Atom feed, and a dependency that kept bringing advisories
+
+**`/channels/:handle/feed.xml`.** A channel can now be followed in any feed reader.
+The reader asks; nothing is sent, and nothing here learns who follows. The feed is
+built by `atomFeed` in `lib/sonara-growth-channels.cjs` from `arrangePublicPosts`'
+output only, so it can carry nothing the page cannot -- no author, no report count,
+nothing removed -- and content is `type="text"`, so a reader makes nothing in a post
+a link, the page's rule. Ids are `tag:sonaraindustries.com,2026:` URIs (the codebase's
+own `PRODUCTION_ORIGIN`) built from row ids, so they survive an address change.
+Links are absolute only when `lib/sonara-site-origin.cjs` knows the origin; with none
+the feed has no links rather than invented ones. A failed post read answers 503 --
+a feed with no entries would tell every reader the channel had gone quiet. Through
+the same pinned guard lookup as the page; two probes in the guard sweep.
+
+Falsified: `&` no longer escaped -- red; the feed built from every row instead of the
+arranged public ones -- red, "TAKEN-DOWN".
+
+**`@vercel/node` removed.** `pnpm audit`, the OSV gate and the deploy dry-run all went
+red on GHSA-vfj7-8cjw-p6xm (`braces`, high) with no fixed release, so no override could
+clear it. Both paths ran through `@vercel/node`, which nothing imports: the deploy
+workflows run their own pinned `vercel` CLI, and Vercel's Node.js runtime documentation
+(read 3 October) needs no package for a JavaScript function in `/api` -- the package
+supplies TypeScript types. It was the fifth advisory that one devDependency had carried
+in. Removed with pnpm; the audit is clean with nothing ignored. I first proposed a
+time-limited waiver on the PR and withdrew it once the dependency turned out to be
+unused -- a waiver is a decision for the owner, and this did not need one.
+`docs/owner/INSTALL.md` listed the dev dependencies without `typescript` and counted
+seven OpenTelemetry packages as eight; both corrected.
+
 ### 2026-10-03 - Growth Studio channels: a business can speak in public, and a stranger can say "not this"
 
 Growth Studio could publish an event and take an RSVP, and had nowhere to say
@@ -63,8 +92,7 @@ can run 20 channels; the cap is counted before insert.
 
 **Not done.** Following a channel, a feed of followed channels, live audio or video,
 and radio-style streams. A channel is read when somebody chooses to; nothing pushes it.
-An Atom feed per channel would make it subscribable without notifications and is the
-next small step.
+An Atom feed per channel, the next small step, shipped in the entry above.
 
 ### 2026-10-02 - Six public pages the tenant guard refused on every request, behind tests that never met it
 
