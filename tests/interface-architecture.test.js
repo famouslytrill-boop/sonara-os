@@ -23,6 +23,13 @@ describe("SONARA sitemap and component backlog", () => {
     assert.equal(sitemap.fixedRouteCount, ROUTE_REGISTRY.length);
     assert.equal(flattened.length, ROUTE_REGISTRY.length);
     assert.equal(new Set(flattened.map((item) => `${item.route}|${item.productOwner || ""}|${item.visibility}`)).size, ROUTE_REGISTRY.length);
+    const sectionKeys = sitemap.sections.map((section) => section.key);
+    for (const required of ["public", "auth", "customer", "business_builder", "creator_studio", "growth_studio"]) {
+      assert.ok(sectionKeys.includes(required), `missing sitemap section ${required}`);
+    }
+    const publicSection = sitemap.sections.find((section) => section.key === "public");
+    const companyCategory = publicSection.categories.find((category) => category.name === "Company");
+    assert.ok(companyCategory?.routes.some((item) => item.route === "/"), "public root route should remain in Company");
   });
 
   it("keeps workspace grouping aligned to customer jobs instead of screenshot layouts", () => {
