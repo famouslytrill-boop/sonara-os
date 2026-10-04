@@ -121,3 +121,16 @@ Fresh reconstruction results: 5,937 server tests passed with six pending; all
 build, client-secret scan, documentation checks and local release gates passed.
 Runtime coverage was 94.6%. Migration replay was skipped without PostgreSQL;
 Python measured 102 tests with 21 files unmeasured without their dependencies.
+
+Security review follow-up: the image Worker now refuses supplied foreign origins
+while preserving the dedicated-worker channel's empty origin. Tests cover both
+refusal and successful bounded processing. The updated tree passed 5,939 server
+tests with six pending and all 30 browser checks, plus frozen installation,
+moderate audit, typecheck, lint and build. No CodeQL query was suppressed.
+
+Combined-main follow-up results: 5,953 server tests passed with six pending; all
+30 browser checks passed with a complete final report. Frozen installation,
+moderate audit, typecheck, lint, build and local release gates passed. Generated
+metadata now reflects 437 test files, 53 deterministic formulas and 369 maintained
+runtime notice files. Migration replay remains unexecuted locally without
+PostgreSQL; the CI gate requires execution before deployment.
