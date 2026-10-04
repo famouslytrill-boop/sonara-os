@@ -97,14 +97,14 @@
     "businessAISkillCount": 10,
     "openSourceRegisterCount": 269,
     "requestedRepositoryCount": 10,
-    "screenshotRadarRepositoryRecordCount": 158,
-    "screenshotRadarBatchCount": 17,
+    "screenshotRadarRepositoryRecordCount": 165,
+    "screenshotRadarBatchCount": 18,
     "githubRadarRepositoryCount": 15,
-    "repositoryRecordCountAcrossCatalogs": 512,
+    "repositoryRecordCountAcrossCatalogs": 519,
     "otherReferenceCatalogRecordCount": 25,
-    "catalogEntryCountAcrossAllRegistries": 537,
+    "catalogEntryCountAcrossAllRegistries": 544,
     "repositoryRecordsEnabledInProduction": 0,
-    "researchOrReferenceRepositoryRecordCount": 274,
+    "researchOrReferenceRepositoryRecordCount": 279,
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
@@ -21215,7 +21215,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 126
+        "line": 133
       },
       "contractCompleteness": {
         "route": true,
@@ -21413,7 +21413,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 130
+        "line": 137
       },
       "contractCompleteness": {
         "route": true,
@@ -70395,7 +70395,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -70404,13 +70405,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 248
+        "line": 265
       },
       "contractCompleteness": {
         "route": true,
@@ -86313,7 +86314,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
@@ -86322,13 +86324,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 533
+        "line": 556
       },
       "contractCompleteness": {
         "route": true,
@@ -86395,7 +86397,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
@@ -86404,13 +86407,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 575
+        "line": 601
       },
       "contractCompleteness": {
         "route": true,
@@ -88533,7 +88536,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 218
+        "line": 229
       },
       "contractCompleteness": {
         "route": true,
@@ -88685,7 +88688,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 152
+        "line": 159
       },
       "contractCompleteness": {
         "route": true,
@@ -169464,7 +169467,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -169473,13 +169477,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 360
+        "line": 383
       },
       "contractCompleteness": {
         "route": true,
@@ -169553,7 +169557,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -169562,13 +169567,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 389
+        "line": 412
       },
       "contractCompleteness": {
         "route": true,
@@ -169634,7 +169639,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -169643,13 +169649,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 465
+        "line": 488
       },
       "contractCompleteness": {
         "route": true,
@@ -169715,7 +169721,8 @@
           "creator_asset_approvals",
           "creator_asset_versions",
           "creator_listings",
-          "creator_marketplace_entries"
+          "creator_marketplace_entries",
+          "payments"
         ],
         "tableLineage": [],
         "noPersistenceReason": null,
@@ -169724,13 +169731,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 4,
+        "moduleTableCandidateCount": 5,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 505
+        "line": 528
       },
       "contractCompleteness": {
         "route": true,
@@ -176950,7 +176957,7 @@
     {
       "id": "module:routes/sonara-creator-marketplace-routes.cjs",
       "source": "routes/sonara-creator-marketplace-routes.cjs",
-      "tableCount": 4,
+      "tableCount": 5,
       "tables": [
         {
           "table": "creator_asset_approvals",
@@ -176974,6 +176981,12 @@
           "table": "creator_marketplace_entries",
           "migrations": [
             "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+          ]
+        },
+        {
+          "table": "payments",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql"
           ]
         }
       ]
@@ -252238,6 +252251,154 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:tester_army_e2e",
+        "name": "TesterArmy e2e",
+        "repository": "tester-army/e2e",
+        "repoUrl": "https://github.com/tester-army/e2e",
+        "status": "reference_only_benchmark_candidate",
+        "license": "Apache-2.0",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Launch Readiness",
+          "Mobile Verification"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:mobile_next_mobile_mcp",
+        "name": "Mobile Next MCP",
+        "repository": "mobile-next/mobile-mcp",
+        "repoUrl": "https://github.com/mobile-next/mobile-mcp",
+        "status": "research_only_security_review_required",
+        "license": "Apache-2.0",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Android Verification",
+          "Mobile QA"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:walkinglabs_learn_harness_engineering",
+        "name": "Learn Harness Engineering",
+        "repository": "walkinglabs/learn-harness-engineering",
+        "repoUrl": "https://github.com/walkinglabs/learn-harness-engineering",
+        "status": "curated_reference",
+        "license": "MIT",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Agent Control Plane",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:sevenevesai_riso_windowseat",
+        "name": "Riso Windowseat",
+        "repository": "sevenevesai/riso-windowseat",
+        "repoUrl": "https://github.com/sevenevesai/riso-windowseat",
+        "status": "curated_reference",
+        "license": "MIT for repository source; embedded audio, artwork, fonts or other media must be reviewed separately before reuse",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Deterministic Media",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:vectorize_io_hindsight",
+        "name": "Hindsight agent memory",
+        "repository": "vectorize-io/hindsight",
+        "repoUrl": "https://github.com/vectorize-io/hindsight",
+        "status": "reference_only_memory_benchmark",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Agent Control Plane",
+          "Research Lab",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:copilotkit_opendots",
+        "name": "CopilotKit OpenDots",
+        "repository": "CopilotKit/OpenDots",
+        "repoUrl": "https://github.com/CopilotKit/OpenDots",
+        "status": "reference_only_privileged_agent_workspace",
+        "license": "MIT for repository code; connected providers, channels, speech, browser services, generated content and dependencies retain separate terms",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "SONARA One",
+          "Creator Studio",
+          "Internal Development",
+          "Agent Control Plane"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:ys_ll_uniterm",
+        "name": "uniTerm",
+        "repository": "ys-ll/uniterm",
+        "repoUrl": "https://github.com/ys-ll/uniterm",
+        "status": "research_only_privileged_remote_operations",
+        "license": "Apache-2.0 for repository source; remote systems, credentials, database clients, cloud services and model providers remain separately governed",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Founder Operations",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:GrowthBook",
         "name": "GrowthBook",
         "repository": "growthbook/growthbook",
@@ -259565,6 +259726,112 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:tester_army_e2e",
+        "name": "TesterArmy e2e",
+        "repository": "tester-army/e2e",
+        "repoUrl": "https://github.com/tester-army/e2e",
+        "status": "reference_only_benchmark_candidate",
+        "license": "Apache-2.0",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Launch Readiness",
+          "Mobile Verification"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:mobile_next_mobile_mcp",
+        "name": "Mobile Next MCP",
+        "repository": "mobile-next/mobile-mcp",
+        "repoUrl": "https://github.com/mobile-next/mobile-mcp",
+        "status": "research_only_security_review_required",
+        "license": "Apache-2.0",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Android Verification",
+          "Mobile QA"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:vectorize_io_hindsight",
+        "name": "Hindsight agent memory",
+        "repository": "vectorize-io/hindsight",
+        "repoUrl": "https://github.com/vectorize-io/hindsight",
+        "status": "reference_only_memory_benchmark",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Agent Control Plane",
+          "Research Lab",
+          "Internal Development"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:copilotkit_opendots",
+        "name": "CopilotKit OpenDots",
+        "repository": "CopilotKit/OpenDots",
+        "repoUrl": "https://github.com/CopilotKit/OpenDots",
+        "status": "reference_only_privileged_agent_workspace",
+        "license": "MIT for repository code; connected providers, channels, speech, browser services, generated content and dependencies retain separate terms",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "SONARA One",
+          "Creator Studio",
+          "Internal Development",
+          "Agent Control Plane"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch23.cjs:ys_ll_uniterm",
+        "name": "uniTerm",
+        "repository": "ys-ll/uniterm",
+        "repoUrl": "https://github.com/ys-ll/uniterm",
+        "status": "research_only_privileged_remote_operations",
+        "license": "Apache-2.0 for repository source; remote systems, credentials, database clients, cloud services and model providers remain separately governed",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Founder Operations",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "batch": "screenshot_batch_23",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:Documenso",
         "name": "Documenso",
         "repository": "documenso/documenso",
@@ -260335,7 +260602,7 @@
       "adapter_built": 9,
       "blocked": 54,
       "blocked_commercial_source": 1,
-      "curated_reference": 20,
+      "curated_reference": 22,
       "developer_only": 9,
       "developer_tool_after_review": 5,
       "developer_tool_candidate": 4,
@@ -260345,16 +260612,21 @@
       "optional_adapter_after_review": 67,
       "quarantined_reference": 1,
       "reference_only": 131,
+      "reference_only_benchmark_candidate": 1,
       "reference_only_license_gated": 12,
+      "reference_only_memory_benchmark": 1,
       "reference_only_model_terms_blocked": 1,
       "reference_only_no_license": 5,
+      "reference_only_privileged_agent_workspace": 1,
       "reference_only_privileged_local_tool": 1,
       "research_only": 109,
       "research_only_license_gated": 3,
       "research_only_pre1": 1,
       "research_only_privacy_gated": 1,
+      "research_only_privileged_remote_operations": 1,
       "research_only_safety_gated": 1,
       "research_only_security_gated": 9,
+      "research_only_security_review_required": 1,
       "review_queue": 6,
       "staging_only": 1
     },
@@ -260490,6 +260762,12 @@
         "batch": 22,
         "source": "lib/sonara-screenshot-tool-radar-batch22.cjs",
         "entryCount": 5
+      },
+      {
+        "id": "screenshot_radar_batch_23",
+        "batch": 23,
+        "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
+        "entryCount": 7
       },
       {
         "id": "github_radar",
@@ -263288,7 +263566,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 126
+        "line": 133
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -263318,7 +263596,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 130
+        "line": 137
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -267252,7 +267530,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 248
+        "line": 265
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -267265,7 +267543,8 @@
         "creator_asset_approvals",
         "creator_asset_versions",
         "creator_listings",
-        "creator_marketplace_entries"
+        "creator_marketplace_entries",
+        "payments"
       ],
       "requestFieldsObserved": {
         "body": [],
@@ -272808,7 +273087,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 360
+        "line": 383
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -272821,7 +273100,8 @@
         "creator_asset_approvals",
         "creator_asset_versions",
         "creator_listings",
-        "creator_marketplace_entries"
+        "creator_marketplace_entries",
+        "payments"
       ],
       "requestFieldsObserved": {
         "body": [
@@ -272843,7 +273123,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 389
+        "line": 412
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -272856,7 +273136,8 @@
         "creator_asset_approvals",
         "creator_asset_versions",
         "creator_listings",
-        "creator_marketplace_entries"
+        "creator_marketplace_entries",
+        "payments"
       ],
       "requestFieldsObserved": {
         "body": [
@@ -272884,7 +273165,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 465
+        "line": 488
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -272897,7 +273178,8 @@
         "creator_asset_approvals",
         "creator_asset_versions",
         "creator_listings",
-        "creator_marketplace_entries"
+        "creator_marketplace_entries",
+        "payments"
       ],
       "requestFieldsObserved": {
         "body": [],
@@ -272917,7 +273199,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 505
+        "line": 528
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -272930,7 +273212,8 @@
         "creator_asset_approvals",
         "creator_asset_versions",
         "creator_listings",
-        "creator_marketplace_entries"
+        "creator_marketplace_entries",
+        "payments"
       ],
       "requestFieldsObserved": {
         "body": [],

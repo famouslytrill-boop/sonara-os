@@ -67,6 +67,29 @@ function blockerIds(result) {
 }
 
 describe("you cannot sell what you cannot publish", () => {
+  describe("purchase prerequisites stay separate from listing approval", () => {
+    it("never treats a working payment account as working checkout or delivery", () => {
+      const result = market.purchaseReadiness({ ok: true, payoutsEnabled: true });
+      assert.equal(result.ok, false);
+      assert.deepEqual(result.steps.map((step) => step.state), ["ready", "not_built", "not_built"]);
+      assert.ok(!JSON.stringify(result).includes("trade"));
+    });
+
+    it("distinguishes absent, disabled and unreadable payment accounts", () => {
+      for (const [code, state] of [["setup_required", "setup_required"], ["not_connected", "action_required"], ["charges_disabled", "action_required"], ["stripe_unreachable", "unavailable"], ["account_unreadable", "unavailable"]]) {
+        const result = market.purchaseReadiness({ ok: false, code, detail: "private provider detail" });
+        assert.equal(result.steps[0].state, state);
+        assert.ok(!JSON.stringify(result).includes("private provider detail"));
+      }
+      assert.equal(market.purchaseReadiness().steps[0].state, "unavailable");
+    });
+
+    it("does not claim payouts work when they are false or unknown", () => {
+      for (const payoutsEnabled of [false, null, undefined]) {
+        assert.match(market.purchaseReadiness({ ok: true, payoutsEnabled }).steps[0].message, /payouts are not confirmed/);
+      }
+    });
+  });
   describe("the happy case, so the refusals below mean something", () => {
     it("clears an approved human upload with a price and a licence", () => {
       const result = readiness();
@@ -175,6 +198,16 @@ describe("you cannot sell what you cannot publish", () => {
   });
 
   describe("consent, which is a different question from rights", () => {
+    it("keeps malformed person declarations unanswered instead of bypassing consent", () => {
+      for (const value of [null, undefined, "", "unknown", 0, 1, [], {}, "FALSE"]) {
+        const result = readiness({ version: humanVersion({ provenance: { involves_person: value } }) });
+        assert.equal(result.involvesAPerson, null);
+        assert.equal(result.consentNeeded, true);
+        assert.ok(blockerIds(result).includes("consent_not_recorded"));
+        assert.equal(result.ok, false);
+      }
+      assert.equal(readiness({ version: humanVersion({ provenance: { involves_person: "false" } }) }).ok, true);
+    });
     it("does not ask for consent when no person is in the work", () => {
       const result = readiness({ version: humanVersion({ provenance: { involves_person: false } }) });
       assert.equal(result.consentNeeded, false);
@@ -221,6 +254,13 @@ describe("you cannot sell what you cannot publish", () => {
   });
 
   describe("a price nobody set is not free", () => {
+    it("rejects coercible non-prices and amounts that cannot be represented exactly", () => {
+      for (const value of [true, false, [], [100], {}, " ", "0x64", "1e2", 2147483648, Number.MAX_SAFE_INTEGER + 1, "9007199254740993"]) {
+        assert.ok(blockerIds(readiness({ listing: { price_cents: value } })).includes("price_unreadable"));
+      }
+      assert.equal(readiness({ listing: { price_cents: "2500" } }).priceCents, 2500);
+      assert.equal(readiness({ listing: { price_cents: 2147483647 } }).ok, true);
+    });
     it("refuses a price of zero with its own reason", () => {
       assert.ok(blockerIds(readiness({ listing: { price_cents: 0 } })).includes("price_not_set"));
     });

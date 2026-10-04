@@ -744,7 +744,7 @@ registerCreatorApprovalGraphRoutes(app, { layout, brandCard, linkAction, escapeH
 
 registerAccountProfileRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
-registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
