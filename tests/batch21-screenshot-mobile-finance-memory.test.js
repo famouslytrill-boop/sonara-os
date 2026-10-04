@@ -101,7 +101,7 @@ describe("Batch 21 screenshot research and integration", () => {
 
     const latest = await request(app).get("/research-lab/latest-screenshot-intake");
     assert.equal(latest.status, 200);
-    assert.match(latest.text, /through Batch 23/i);
+    assert.match(latest.text, /through Batch 24/i);
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
 
     const readiness = await request(app)
