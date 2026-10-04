@@ -269,7 +269,7 @@ this fix.
 
 `microphone=()` denies the feature to every origin including this one, so
 `navigator.mediaDevices.getUserMedia({ audio: true })` fails on our own pages.
-It is now `microphone=(self)`. **`camera=()` is unchanged** and stays denied:
+At this release it became `microphone=(self)`. Camera remained denied by default:
 calling here is audio only, and a camera permission nothing uses is a permission
 worth not having.
 
@@ -569,3 +569,27 @@ assert on the *resulting* code were kept and still run — they now guard
 hand-maintained source, which is what they were really checking. The vacuous
 generator-collision checks in `tests/server-split.test.js` were deleted for the
 same reason.
+
+## Local Creator capture and bounded image processing — 4 October 2026
+
+The authenticated Creator Generation page alone overrides camera policy to
+camera=(self); the server default still denies camera. Starting camera or
+microphone requires user action, the saved authenticated-user opt-in and browser
+permission. Camera never also requests audio. Current grants are returned through
+an authenticated, private/no-store API. User IDs from requests never select the
+record owner. Failed reads authorize nothing. The page-bound account must still
+match the current session, with verification before and after a browser prompt
+and every five seconds during continued capture. Verification has a ten-second
+deadline. Stop, departure, visibility loss, track termination, revocation/read
+failure and the 60-second limit release tracks; stale arriving streams are stopped.
+Audio stays local with an 8 MB recording budget and a supported container.
+
+The local editor rechecks local-compute permission before processing and during
+long work. Images are limited to 20 MB, 8192 pixels per side and 16 megapixels,
+reduced to 4 megapixels on devices reporting at most 2 GB. GPU/CPU work uses
+bounded tiles; cancellation destroys job resources, aborts verification, clears
+export links and restores originals. The original/canvas still consume memory,
+and decoding precedes the dimension check. This is not constant-memory decoding,
+HDR processing, arbitrary GPU execution, remote streaming or workspace upload.
+Temporary output links are revoked on departure. No account permissions, provider
+credentials, production data or subscription balances are modified by this update.

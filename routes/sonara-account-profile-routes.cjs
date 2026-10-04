@@ -358,6 +358,16 @@ function registerAccountProfileRoutes(app, deps = {}) {
     return res.status(303).set("location", PROFILE_PAGE).end();
   });
 
+  app.get("/api/account/device-permissions", requireCustomer, async (req, res) => {
+    res.set("Cache-Control", "private, no-store").set("Vary", "Cookie");
+    const grants = await readGrants(req.sonaraUser);
+    if (!grants.ok) return res.status(503).json({ ok: false, code: "device_permissions_unreadable" });
+    return res.json({
+      ok: true, userId: req.sonaraUser.id,
+      permissions: permissions.permissionSummary({ grants: grants.rows }).map(({ key, state, allowed }) => ({ key, state, allowed }))
+    });
+  });
+
   app.get(PERMISSIONS_PAGE, requireCustomer, async (req, res) => {
     const grants = await readGrants(req.sonaraUser);
     const summary = permissions.permissionSummary({ grants: grants.rows, readable: grants.ok });

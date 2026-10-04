@@ -11,10 +11,10 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 920,
+    "routeOperationCount": 921,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 556,
+      "GET": 557,
       "PATCH": 10,
       "POST": 351
     },
@@ -31,7 +31,7 @@
       "shared_account": 27,
       "shared_infrastructure": 3,
       "sonara_shared": 140,
-      "sonara_shared_api": 115
+      "sonara_shared_api": 116
     },
     "actionDestinationCounts": {
       "exact": 349,
@@ -39,23 +39,23 @@
       "machine_ingress": 2,
       "parent_route": 69,
       "route_pair": 105,
-      "workspace_fallback": 96
+      "workspace_fallback": 97
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 146,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 212,
+      "handler_source_table_reference": 213,
       "needs_explicit_data_contract": 299
     },
-    "routesUsingWorkspaceHomeFallback": 96,
+    "routesUsingWorkspaceHomeFallback": 97,
     "formActionLinkCount": 61,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 332,
+    "openApiApiOperationCount": 333,
     "databaseTableCount": 353,
     "databaseContractCoreTableCount": 148,
     "queriedTableCount": 312,
@@ -78,7 +78,7 @@
       "growth_studio": 13,
       "research_lab": 1,
       "shared_infrastructure": 1,
-      "sonara_shared_api": 61
+      "sonara_shared_api": 62
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -967,7 +967,7 @@
       "routePrefixes": [
         "/api"
       ],
-      "routeCount": 115,
+      "routeCount": 116,
       "registeredPageCount": 0,
       "registeredPageRoutes": [],
       "categories": [],
@@ -3169,7 +3169,7 @@
       },
       "source": {
         "file": "routes/sonara-account-profile-routes.cjs",
-        "line": 361
+        "line": 371
       },
       "contractCompleteness": {
         "route": true,
@@ -3813,6 +3813,137 @@
         "outputEvidence": "route-convention",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /api/account/device-permissions",
+      "method": "GET",
+      "route": "/api/account/device-permissions",
+      "kind": "api",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": "/dashboard",
+        "confidence": "workspace_fallback",
+        "reason": "no_exact_page_binding_found"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "getAccountDevicePermissions",
+        "summary": "Read the authenticated person's current device opt-in decisions",
+        "tags": [
+          "Account"
+        ],
+        "requestBodyRef": null,
+        "requestBodyDeclared": false,
+        "responseStatusCodes": [
+          200,
+          401,
+          503
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": null
+      },
+      "response": {
+        "kinds": [
+          "json"
+        ],
+        "statusCodes": [
+          200,
+          401,
+          503
+        ],
+        "jsonFieldsObserved": [
+          "code",
+          "ok",
+          "permissions",
+          "userId"
+        ],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "device_permission_grants"
+        ],
+        "candidateTables": [
+          "device_permission_grants",
+          "files",
+          "profiles"
+        ],
+        "tableLineage": [
+          {
+            "table": "device_permission_grants",
+            "tableId": "table:device_permission_grants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "device_permission_grants_self_read",
+                  "file": "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+                },
+                {
+                  "name": "device_permission_grants_self_insert",
+                  "file": "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-account-profile-routes.cjs",
+        "moduleTableCandidateCount": 3,
+        "schemaMigrations": [
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-account-profile-routes.cjs",
+        "line": 361
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": true,
         "requestFieldSource": "not_declared"
       },
       "action": false
@@ -18078,7 +18209,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 218
+        "line": 220
       },
       "contractCompleteness": {
         "route": true,
@@ -18283,7 +18414,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 227
+        "line": 229
       },
       "contractCompleteness": {
         "route": true,
@@ -18398,7 +18529,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 195
+        "line": 197
       },
       "contractCompleteness": {
         "route": true,
@@ -18504,7 +18635,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 199
+        "line": 201
       },
       "contractCompleteness": {
         "route": true,
@@ -18666,7 +18797,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 383
+        "line": 385
       },
       "contractCompleteness": {
         "route": true,
@@ -19840,7 +19971,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 142
+        "line": 144
       },
       "contractCompleteness": {
         "route": true,
@@ -67577,7 +67708,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 537
+        "line": 539
       },
       "contractCompleteness": {
         "route": true,
@@ -67667,7 +67798,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "contractCompleteness": {
         "route": true,
@@ -67830,7 +67961,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 604
+        "line": 608
       },
       "contractCompleteness": {
         "route": true,
@@ -68020,7 +68151,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 626
+        "line": 630
       },
       "contractCompleteness": {
         "route": true,
@@ -68212,7 +68343,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 681
+        "line": 685
       },
       "contractCompleteness": {
         "route": true,
@@ -68302,7 +68433,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "contractCompleteness": {
         "route": true,
@@ -68392,7 +68523,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "contractCompleteness": {
         "route": true,
@@ -68482,7 +68613,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "contractCompleteness": {
         "route": true,
@@ -68572,7 +68703,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "contractCompleteness": {
         "route": true,
@@ -73305,7 +73436,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 153
+        "line": 155
       },
       "contractCompleteness": {
         "route": true,
@@ -75671,7 +75802,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 502
+        "line": 504
       },
       "contractCompleteness": {
         "route": true,
@@ -95984,7 +96115,7 @@
       },
       "source": {
         "file": "routes/sonara-account-profile-routes.cjs",
-        "line": 392
+        "line": 402
       },
       "contractCompleteness": {
         "route": true,
@@ -126638,7 +126769,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 250
+        "line": 252
       },
       "contractCompleteness": {
         "route": true,
@@ -126974,7 +127105,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 370
+        "line": 372
       },
       "contractCompleteness": {
         "route": true,
@@ -127206,7 +127337,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 357
+        "line": 359
       },
       "contractCompleteness": {
         "route": true,
@@ -127400,7 +127531,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 397
+        "line": 399
       },
       "contractCompleteness": {
         "route": true,
@@ -127574,7 +127705,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 429
+        "line": 431
       },
       "contractCompleteness": {
         "route": true,
@@ -128606,7 +128737,7 @@
       },
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 456
+        "line": 458
       },
       "contractCompleteness": {
         "route": true,
@@ -263388,7 +263519,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 195
+        "line": 197
       },
       "destination": {
         "route": "/creator-studio/generation",
@@ -263423,7 +263554,7 @@
       "kind": "api",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 142
+        "line": 144
       },
       "destination": {
         "route": "/creator-studio/studio",
@@ -266930,7 +267061,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "destination": {
         "route": "/creator-studio/generation/audio",
@@ -266965,7 +267096,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "destination": {
         "route": "/creator-studio/generation/music",
@@ -267000,7 +267131,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "destination": {
         "route": "/creator-studio/generation/reference-analysis",
@@ -267035,7 +267166,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "destination": {
         "route": "/creator-studio/generation/video",
@@ -267070,7 +267201,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 723
+        "line": 727
       },
       "destination": {
         "route": "/creator-studio/generation/voice",
@@ -267974,7 +268105,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 153
+        "line": 155
       },
       "destination": {
         "route": "/creator-studio/studio",
@@ -271101,7 +271232,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-account-profile-routes.cjs",
-        "line": 392
+        "line": 402
       },
       "destination": {
         "route": "/account/permissions",
@@ -274685,6 +274816,16 @@
   ],
   "routeDestinationReviewGaps": [
     {
+      "id": "GET /api/account/device-permissions",
+      "workspace": "sonara_shared_api",
+      "source": {
+        "file": "routes/sonara-account-profile-routes.cjs",
+        "line": 361
+      },
+      "currentDestination": "/dashboard",
+      "reason": "No exact registered page, parent page, or unique rendered form action was established."
+    },
+    {
       "id": "GET /api/billing/status",
       "workspace": "sonara_shared_api",
       "source": {
@@ -275249,7 +275390,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/creator-generation-routes.cjs",
-        "line": 456
+        "line": 458
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
