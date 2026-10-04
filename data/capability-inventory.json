@@ -60,7 +60,7 @@
     "databaseContractCoreTableCount": 148,
     "queriedTableCount": 312,
     "neverQueriedTableCount": 41,
-    "migrationCount": 150,
+    "migrationCount": 151,
     "databaseFunctionCount": 33,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
@@ -10887,7 +10887,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -11160,7 +11161,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -42801,7 +42803,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -42950,7 +42953,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -48295,7 +48299,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -48568,7 +48573,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -48762,7 +48768,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -49041,7 +49048,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -49245,7 +49253,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -49524,7 +49533,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -105062,7 +105072,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -105203,7 +105214,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -110354,7 +110366,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -110627,7 +110640,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -156498,7 +156512,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -156777,7 +156792,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -156984,7 +157000,8 @@
                 "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -157263,7 +157280,8 @@
           "supabase/migrations/20260820080000_recurring_invoices.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "persistenceMode": "resource_registry_contract"
       },
@@ -190939,7 +190957,8 @@
           "supabase/migrations/20260811220000_customer_invoices_accounts_receivable.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -229912,6 +229931,16 @@
         "growth_channels",
         "growth_post_reports"
       ],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql",
+      "creates": [],
+      "alters": [
+        "customer_invoice_payments"
+      ],
+      "drops": [],
+      "rlsEnabled": [],
       "policies": []
     }
   ],

@@ -132,6 +132,7 @@ Required environment variables:
 Required webhook events:
 
 - `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`

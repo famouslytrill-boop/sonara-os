@@ -18,7 +18,7 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | Route data contracts needing explicit review | 299 |
 | Active migration tables | 353 |
 | Runtime-queried / never-queried tables | 312 / 41 |
-| Migration files | 150 |
+| Migration files | 151 |
 | SQL functions / triggers / calling routes / missing function definition | 33 / 49 / 24 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |

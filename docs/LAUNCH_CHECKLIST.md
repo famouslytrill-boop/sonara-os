@@ -59,6 +59,7 @@ https://sonaraindustries.com
 - [ ] Configure webhook endpoint `https://sonaraindustries.com/api/stripe/webhook`.
 - [ ] Subscribe webhook events:
   - `checkout.session.completed`
+  - `checkout.session.async_payment_succeeded`
   - `customer.subscription.created`
   - `customer.subscription.updated`
   - `customer.subscription.deleted`

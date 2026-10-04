@@ -93,6 +93,7 @@ Events. These four are the complete set the handler acts on — see
 `ignored` for anything else:
 
 - `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
