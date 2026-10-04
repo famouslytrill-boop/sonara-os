@@ -12,7 +12,9 @@ This is one reconciliation improvement, not complete provider reconciliation. St
 
 `.github/workflows/native-migration-replay.yml` defines a dedicated Ubuntu 24.04 Node 22/24 lane. It installs native PostgreSQL 16, rejects a root runner, requires replay, preserves pipeline failure with `pipefail`, and uploads commit, migration hashes, runner identity, PostgreSQL version and SQL replay logs on success or failure. The existing main CI replay requirement remains unchanged. The job is not a production migration and does not receive production credentials.
 
-The workflow definition is locally validated, including pinned Actions and its required replay/evidence contract. Its existence is not proof of execution. This environment still cannot assign the unprivileged ownership required for local PostgreSQL replay. A successful supported-runner replay must be linked to the exact candidate before release.
+The initial published candidate `ac3faef14c0f90a68172542685d16d7fef2d5fa1` completed both native Node 22/24 replay jobs successfully in [GitHub Actions run 37232411672](https://github.com/famouslytrill-boop/sonara-os/actions/runs/37232411672). Its Node 24/26 application compatibility jobs also passed. These results establish replay and compatibility for that candidate; they do not establish production migration or deployment. Local native replay remains unavailable in this workspace.
+
+The same candidate's main CI failed at the generated capability-coverage check because its migration/formula inventory was stale. The follow-up regenerates `docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md` and `data/capability-inventory.json`, including the native replay workflow in the infrastructure inventory. Every later candidate must receive its own successful CI and replay evidence before release.
 
 ## Verification and remaining limits
 

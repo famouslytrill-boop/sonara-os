@@ -108,7 +108,7 @@
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
-    "infrastructureSourceFileCount": 44
+    "infrastructureSourceFileCount": 45
   },
   "workspaces": [
     {
@@ -262577,6 +262577,7 @@
       ".github/workflows/event-consumer-readiness.yml",
       ".github/workflows/external-repository-health.yml",
       ".github/workflows/lighthouse-quality.yml",
+      ".github/workflows/native-migration-replay.yml",
       ".github/workflows/node-runtime-compatibility.yml",
       ".github/workflows/open-source-security-scans.yml",
       ".github/workflows/production-commit-drift.yml",

@@ -53,6 +53,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { replayOwner } from "./postgres-replay-owner.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = path.join(root, "supabase", "migrations");
@@ -159,16 +160,6 @@ function unprivilegedUser() {
     if (found.status === 0) return name;
   }
   return null;
-}
-
-export function replayOwner(user, execute = execFileSync) {
-  if (!user) return null;
-  const uid = execute("id", ["-u", user], { encoding: "utf8" }).trim();
-  const gid = execute("id", ["-g", user], { encoding: "utf8" }).trim();
-  if (!/^\d+$/.test(uid) || !/^\d+$/.test(gid) || Number(uid) === 0) {
-    throw new Error("Migration replay requires a valid non-root Unix identity.");
-  }
-  return `${uid}:${gid}`;
 }
 
 function main() {
@@ -334,7 +325,7 @@ function main() {
     const concurrencyCommands = ["7", "8"].map((digit) => {
       const file = path.join(socketDir, `generation-session-${digit}.sql`);
       fs.writeFileSync(file, `begin; select public.generation_usage('${concurrentOrg}', 'reserve', '10000000-0000-4000-8000-00000000000${digit}', 300); select pg_sleep(0.2); commit;`);
-      if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, file]);
+      if (owner) execFileSync("chown", [owner, file]);
       return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
     });
     const concurrent = shell(`${concurrencyCommands[0]} & ${concurrencyCommands[1]} & wait`);

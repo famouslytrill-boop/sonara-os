@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 describe("native replay Unix ownership", () => {
   let replayOwner;
   before(async () => {
-    ({ replayOwner } = await import("../scripts/verify-migration-replay.mjs"));
+    ({ replayOwner } = await import("../scripts/postgres-replay-owner.mjs"));
   });
 
   it("uses the actual primary group when it differs from the username", () => {
