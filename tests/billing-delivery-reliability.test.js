@@ -58,7 +58,7 @@ describe("billing webhook HTTP retry contract", () => {
     try {
       process.env.STRIPE_WEBHOOK_SECRET = "whsec_delivery_regression_1234567890";
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
-      process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_delivery_regression_1234567890";
+      process.env.SUPABASE_SERVICE_ROLE_KEY = "test_service_role";
       const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", data: { object: {
         id: "sub_retry", status: "active", metadata: { organization_id: "00000000-0000-0000-0000-000000000051", plan: "workspace_monthly" }
       } } });
