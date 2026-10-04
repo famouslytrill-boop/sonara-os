@@ -25,6 +25,7 @@ const REVIEW_DECISIONS = new Set(["prioritize", "validate", "watch", "hold", "re
 
 const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
 const registerInventionSystemsRoutes = require("./invention-systems-routes.cjs");
+const { assessMarketFocus } = require("../lib/sonara-market-focus.cjs");
 
 module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
@@ -61,6 +62,7 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
       competitors: competitors.rows,
       signals: signals.rows,
       opportunities: opportunities.rows,
+      focusAssessments: opportunities.rows.map((opportunity) => ({ opportunityId: opportunity.id, ...assessMarketFocus(opportunity) })),
       reviews: reviews.rows,
       summary: summarizePortfolio({ segments: segments.rows, competitors: competitors.rows, signals: signals.rows, opportunities: opportunities.rows })
     });
