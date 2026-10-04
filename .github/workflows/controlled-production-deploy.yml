@@ -56,7 +56,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          required='["SONARA Industries CI","Docker Image CI","Node Runtime Compatibility","Engineering Intelligence and Security Evidence","dependency-scan"]'
+          required='["SONARA Industries CI","Docker Image CI","Node Runtime Compatibility","Native migration replay","Engineering Intelligence and Security Evidence","dependency-scan"]'
 
           for attempt in $(seq 1 60); do
             curl -fsSL \

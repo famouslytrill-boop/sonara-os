@@ -11,12 +11,17 @@ permissions:
 
 jobs:
   replay:
+    name: Node ${{ matrix.node }} / PostgreSQL ${{ matrix.postgres }} replay
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24]
+        node: [22, 24, 26]
+        postgres: [16, 17]
+    env:
+      POSTGRES_MAJOR: ${{ matrix.postgres }}
+      POSTGRES_BIN: /usr/lib/postgresql/${{ matrix.postgres }}/bin
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -24,8 +29,24 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Install native PostgreSQL
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes postgresql-16 postgresql-contrib-16
+          sudo apt-get install --yes curl ca-certificates
+          # Ubuntu 24.04 includes PostgreSQL 16; the official PGDG repository
+          # supplies the maintained PostgreSQL 17 packages used by production.
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --show-error --silent --location \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          printf '%s\n' \
+            'Types: deb' \
+            'URIs: https://apt.postgresql.org/pub/repos/apt' \
+            'Suites: noble-pgdg' \
+            'Components: main' \
+            'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
+            | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
+          sudo apt-get update
+          sudo apt-get install --yes "postgresql-$POSTGRES_MAJOR" "postgresql-contrib-$POSTGRES_MAJOR"
       - name: Replay the candidate migration history
         shell: bash
         env:
@@ -36,17 +57,18 @@ jobs:
           git rev-parse HEAD > replay-evidence/commit.txt
           sha256sum supabase/migrations/*.sql > replay-evidence/migrations.sha256
           id > replay-evidence/runner-identity.txt
+          node --version > replay-evidence/node-version.txt
           if [ "$(id -u)" -eq 0 ]; then
             echo 'Native replay requires a non-root runner.' >&2
             exit 1
           fi
-          /usr/lib/postgresql/16/bin/psql --version > replay-evidence/postgresql-version.txt
-          node scripts/verify-migration-replay.mjs 2>&1 | tee replay-evidence/replay.log
+          "$POSTGRES_BIN/psql" --version > replay-evidence/postgresql-version.txt
+          node scripts/verify-migration-replay.mjs --postgres-bin "$POSTGRES_BIN" 2>&1 | tee replay-evidence/replay.log
       - name: Preserve replay evidence even on failure
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: native-migration-replay-node-${{ matrix.node }}-${{ github.sha }}
+          name: native-migration-replay-node-${{ matrix.node }}-postgres-${{ matrix.postgres }}-${{ github.sha }}
           path: replay-evidence/
           if-no-files-found: error
           retention-days: 14

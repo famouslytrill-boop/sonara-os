@@ -53,7 +53,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { replayOwner } from "./postgres-replay-owner.mjs";
+import { replayBinaries, replayOwner } from "./postgres-replay-owner.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = path.join(root, "supabase", "migrations");
@@ -133,6 +133,15 @@ function sh(value) {
 }
 
 function postgresBinaries() {
+  const arguments_ = process.argv.slice(2);
+  if (arguments_.length) {
+    if (arguments_.length !== 2 || arguments_[0] !== "--postgres-bin") {
+      stop("Usage: node scripts/verify-migration-replay.mjs [--postgres-bin ABSOLUTE_DIRECTORY]");
+    }
+    const selected = replayBinaries(arguments_[1]);
+    if (!selected) stop("Requested PostgreSQL binary directory must be absolute and contain initdb, pg_ctl and psql. No alternate PostgreSQL version was selected.");
+    return selected;
+  }
   const candidates = [];
   const versioned = "/usr/lib/postgresql";
   if (fs.existsSync(versioned)) {

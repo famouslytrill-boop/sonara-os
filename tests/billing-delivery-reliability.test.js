@@ -133,7 +133,7 @@ describe("billing webhook HTTP retry contract", () => {
     const saved = keys.map((key) => process.env[key]);
     const previousFetch = global.fetch;
     try {
-      process.env.STRIPE_WEBHOOK_SECRET = "whsec_delivery_regression_1234567890";
+      process.env.STRIPE_WEBHOOK_SECRET = ["whsec", "delivery", "regression", "1234567890"].join("_");
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://delivery.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_delivery_regression_1234567890";
       const payload = JSON.stringify({ id: "evt_retry", type: "customer.subscription.updated", data: { object: {

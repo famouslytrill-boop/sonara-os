@@ -18,6 +18,16 @@ describe("the migrations are executed somewhere, not only read", () => {
     assert.ok(migrations.length >= 90, `only ${migrations.length} migrations found; these checks have gone blind`);
   });
 
+  it("checks frozen migrations before either push and offers a read-only preview", () => {
+    const scripts = require("../package.json").scripts;
+    for (const name of ["db:preview", "db:push", "db:push:all"]) {
+      assert.ok(scripts[name].indexOf("verify:applied-migrations") < scripts[name].indexOf("supabase db push"));
+      assert.match(scripts[name], /pnpm run verify:applied-migrations && supabase db push/);
+      assert.doesNotMatch(scripts[name], /db:patch-triggers/);
+    }
+    assert.match(scripts["db:preview"], /supabase db push --linked --dry-run/);
+  });
+
   describe("the replay command", () => {
     const source = fs.readFileSync(path.join(root, "scripts", "verify-migration-replay.mjs"), "utf8");
 
@@ -52,6 +62,11 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(lane, /sha256sum supabase\/migrations\/\*\.sql/);
       assert.match(lane, /if: always\(\)/);
       assert.match(lane, /Native replay requires a non-root runner/);
+      assert.match(lane, /node: \[22, 24, 26\]/);
+      assert.match(lane, /postgres: \[16, 17\]/);
+      assert.match(lane, /--postgres-bin "\$POSTGRES_BIN"/);
+      assert.match(lane, /node --version > replay-evidence\/node-version\.txt/);
+      assert.match(lane, /postgres-\$\{\{ matrix\.postgres \}\}/);
     });
 
     it("says loudly when it did not run, rather than reporting a pass", () => {
