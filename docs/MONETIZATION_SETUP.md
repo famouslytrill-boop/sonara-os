@@ -21,6 +21,7 @@ SONARA Oneâ„¢ uses real Stripe products only. Do not wire fake payments or f
 5. Add the webhook endpoint: `https://sonaraindustries.com/api/stripe/webhook`.
 6. Subscribe the webhook to:
    - `checkout.session.completed`
+   - `checkout.session.async_payment_succeeded`
    - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`

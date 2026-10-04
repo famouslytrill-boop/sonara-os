@@ -2906,8 +2906,13 @@ async function handleStripeWebhook(req, res) {
     return res.status(400).json({ ok: false, code: "invalid_payload" });
   }
 
-  const audit = await recordBillingWebhookEvent(event);
+  if (!event || typeof event.id !== "string" || !event.id || typeof event.type !== "string" || !event.data?.object) {
+    return res.status(400).json({ ok: false, code: "invalid_payload" });
+  }
   const sync = await synchronizeBillingFromStripeEvent(event);
+  if (!sync.ok) return res.status(503).json({ ok: false, code: "billing_sync_retry_required", event_id: event.id });
+  const audit = await recordBillingWebhookEvent(event);
+  if (!audit.ok) return res.status(503).json({ ok: false, code: "billing_audit_retry_required", event_id: event.id });
   return res.status(200).json({ ok: true, received: true, audited: audit.ok, synchronized: sync.ok, event_id: event.id });
 }
 

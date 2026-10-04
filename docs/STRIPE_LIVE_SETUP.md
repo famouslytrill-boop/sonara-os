@@ -24,6 +24,7 @@ Use environment variable names only. Do not paste real keys into source code, do
    - `https://sonaraindustries.com/api/stripe/webhook`
 7. Select events:
    - `checkout.session.completed`
+   - `checkout.session.async_payment_succeeded`
    - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`

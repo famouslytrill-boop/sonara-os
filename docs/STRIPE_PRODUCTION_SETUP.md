@@ -20,6 +20,7 @@ Create a Stripe webhook endpoint:
 - URL: `https://your-production-domain.com/api/stripe/webhook`
 - Events:
   - `checkout.session.completed`
+  - `checkout.session.async_payment_succeeded`
   - `customer.subscription.created`
   - `customer.subscription.updated`
   - `customer.subscription.deleted`

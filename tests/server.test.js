@@ -1806,7 +1806,7 @@ describe("pricing and checkout", () => {
       livemode: false,
       data: { object: { object: "payment_intent", customer: "cus_test" } }
     });
-    const timestamp = "1234567890";
+    const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex");
     const calls = [];
     const originalFetch = global.fetch;
@@ -1851,7 +1851,7 @@ describe("pricing and checkout", () => {
         }
       }
     });
-    const timestamp = "1234567890";
+    const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex");
     const calls = [];
     const originalFetch = global.fetch;

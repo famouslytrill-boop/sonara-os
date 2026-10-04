@@ -981,7 +981,7 @@ describe("the billing module stands on its own", () => {
     const billing = createBilling(deps());
     const secret = "whsec_test";
     const body = Buffer.from(JSON.stringify({ id: "evt_1", type: "checkout.session.completed" }));
-    const t = "1700000000";
+    const t = String(Math.floor(Date.now() / 1000));
     const sign = (payload) => crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
     assert.equal(billing.verifyStripeWebhookSignature(body, `t=${t},v1=${sign(`${t}.${body}`)}`, secret).ok, true);
