@@ -593,3 +593,11 @@ and decoding precedes the dimension check. This is not constant-memory decoding,
 HDR processing, arbitrary GPU execution, remote streaming or workspace upload.
 Temporary output links are revoked on departure. No account permissions, provider
 credentials, production data or subscription balances are modified by this update.
+
+The image Worker rejects supplied non-empty message origins that differ from its
+own location. Empty origins remain accepted for the dedicated-worker MessagePort
+channel. The worker is created from a literal same-origin URL, handles only bounded
+RGBA tiles and exposes no DOM, credentials, storage or network operation. The guard
+and actual browser Worker processing are tested; an empty origin alone is not
+described as proof of sender identity. This addresses CodeQL's handler finding
+without disabling the query or suppressing a scan.
