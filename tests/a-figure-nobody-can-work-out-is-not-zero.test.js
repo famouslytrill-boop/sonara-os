@@ -95,16 +95,16 @@ describe("a figure nobody can work out is not zero", () => {
     }
   });
 
-  it("leaves all forty-seven definitions evaluating", () => {
+  it("leaves every definition evaluating within its input domain", () => {
     // The blunt check that the change did not break the library. Every required
-    // input is set to 2, which is non-zero, so every formula should produce a
-    // number.
+    // input is set to 2, except probabilities and smoothing weights whose
+    // valid domain is 0–1. Invalid probabilities must remain refused.
     const definitions = listFormulaDefinitions();
     const failures = [];
     for (const definition of definitions) {
       const inputs = Object.fromEntries(definition.requiredInputs.map((key) => [
         key,
-        key === "ingredients" ? [{ quantity: 2, unit_cost: 2 }] : 2,
+        key === "ingredients" ? [{ quantity: 2, unit_cost: 2 }] : ["event_probability", "alpha"].includes(key) ? 0.5 : 2,
       ]));
       const result = evaluateFormula(definition.formulaKey, inputs);
       if (!result.ok) failures.push(`${definition.formulaKey}: ${result.code}`);

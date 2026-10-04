@@ -22,7 +22,7 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | SQL functions / triggers / calling routes / missing function definition | 33 / 49 / 24 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
-| Deterministic formulas with evaluators | 47 / 47 |
+| Deterministic formulas with evaluators | 53 / 53 |
 | Local developer skills / agent strategies | 12 / 14 |
 | Agent patterns / business AI skill groups / schedules / handlers | 5 / 10 / 5 / 6 |
 | Reviewed repository records across catalogs | 519 |

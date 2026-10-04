@@ -86,8 +86,8 @@
     "ownerRecordChildResourceCount": 13,
     "ownerRecordActionCount": 5,
     "ownerRecordActionsWithoutRegisteredRoute": 0,
-    "formulaCount": 47,
-    "formulasWithEvaluator": 47,
+    "formulaCount": 53,
+    "formulasWithEvaluator": 53,
     "supplementalFinancialFormulaCount": 11,
     "localSkillCount": 12,
     "agentSchedulableActionCount": 5,
@@ -29031,7 +29031,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 98
+        "line": 100
       },
       "contractCompleteness": {
         "route": true,
@@ -29142,7 +29142,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 35
+        "line": 36
       },
       "contractCompleteness": {
         "route": true,
@@ -29318,7 +29318,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 247
+        "line": 249
       },
       "contractCompleteness": {
         "route": true,
@@ -29567,7 +29567,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 290
+        "line": 292
       },
       "contractCompleteness": {
         "route": true,
@@ -29651,6 +29651,7 @@
         "jsonFieldsObserved": [
           "code",
           "competitors",
+          "focusAssessments",
           "framework",
           "ok",
           "opportunities",
@@ -30001,7 +30002,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 39
+        "line": 40
       },
       "contractCompleteness": {
         "route": true,
@@ -30177,7 +30178,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 69
+        "line": 71
       },
       "contractCompleteness": {
         "route": true,
@@ -30353,7 +30354,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 207
+        "line": 209
       },
       "contractCompleteness": {
         "route": true,
@@ -36128,7 +36129,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "contractCompleteness": {
         "route": true,
@@ -69005,7 +69006,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "contractCompleteness": {
         "route": true,
@@ -80097,7 +80098,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "contractCompleteness": {
         "route": true,
@@ -86293,7 +86294,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "contractCompleteness": {
         "route": true,
@@ -95464,7 +95465,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 301
+        "line": 303
       },
       "contractCompleteness": {
         "route": true,
@@ -130138,6 +130139,61 @@
               "module_outputs"
             ],
             "outputUnit": "score"
+          },
+          {
+            "formulaKey": "expected_loss",
+            "requiredInputs": [
+              "event_probability",
+              "loss_amount"
+            ],
+            "targetTables": [],
+            "outputUnit": "money"
+          },
+          {
+            "formulaKey": "smoothed_demand_level",
+            "requiredInputs": [
+              "alpha",
+              "observed_demand",
+              "previous_level"
+            ],
+            "targetTables": [],
+            "outputUnit": "quantity"
+          },
+          {
+            "formulaKey": "service_capacity_jobs",
+            "requiredInputs": [
+              "available_minutes",
+              "minutes_per_job"
+            ],
+            "targetTables": [],
+            "outputUnit": "jobs"
+          },
+          {
+            "formulaKey": "media_duration_seconds",
+            "requiredInputs": [
+              "frame_count",
+              "frames_per_second"
+            ],
+            "targetTables": [],
+            "outputUnit": "seconds"
+          },
+          {
+            "formulaKey": "media_payload_mebibytes",
+            "requiredInputs": [
+              "bitrate_bits_per_second",
+              "duration_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "MiB"
+          },
+          {
+            "formulaKey": "tracked_motion_speed",
+            "requiredInputs": [
+              "displacement_meters",
+              "elapsed_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "meters_per_second"
           }
         ],
         "openApiBody": "#/components/requestBodies/JsonBody"
@@ -130747,6 +130803,61 @@
               "module_outputs"
             ],
             "outputUnit": "score"
+          },
+          {
+            "formulaKey": "expected_loss",
+            "requiredInputs": [
+              "event_probability",
+              "loss_amount"
+            ],
+            "targetTables": [],
+            "outputUnit": "money"
+          },
+          {
+            "formulaKey": "smoothed_demand_level",
+            "requiredInputs": [
+              "alpha",
+              "observed_demand",
+              "previous_level"
+            ],
+            "targetTables": [],
+            "outputUnit": "quantity"
+          },
+          {
+            "formulaKey": "service_capacity_jobs",
+            "requiredInputs": [
+              "available_minutes",
+              "minutes_per_job"
+            ],
+            "targetTables": [],
+            "outputUnit": "jobs"
+          },
+          {
+            "formulaKey": "media_duration_seconds",
+            "requiredInputs": [
+              "frame_count",
+              "frames_per_second"
+            ],
+            "targetTables": [],
+            "outputUnit": "seconds"
+          },
+          {
+            "formulaKey": "media_payload_mebibytes",
+            "requiredInputs": [
+              "bitrate_bits_per_second",
+              "duration_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "MiB"
+          },
+          {
+            "formulaKey": "tracked_motion_speed",
+            "requiredInputs": [
+              "displacement_meters",
+              "elapsed_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "meters_per_second"
           }
         ],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
@@ -140698,7 +140809,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 99
+        "line": 101
       },
       "contractCompleteness": {
         "route": true,
@@ -140883,7 +140994,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 149
+        "line": 151
       },
       "contractCompleteness": {
         "route": true,
@@ -141101,7 +141212,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 248
+        "line": 250
       },
       "contractCompleteness": {
         "route": true,
@@ -141376,7 +141487,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 338
+        "line": 340
       },
       "contractCompleteness": {
         "route": true,
@@ -141597,7 +141708,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 70
+        "line": 72
       },
       "contractCompleteness": {
         "route": true,
@@ -141824,7 +141935,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 208
+        "line": 210
       },
       "contractCompleteness": {
         "route": true,
@@ -239341,6 +239452,133 @@
         "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
         "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
       ]
+    },
+    {
+      "key": "expected_loss",
+      "group": "operating_twin",
+      "productArea": "Business Builder",
+      "workspace": "business_builder",
+      "label": "Scenario expected loss",
+      "expression": "event_probability * loss_amount",
+      "inputs": [
+        "event_probability",
+        "loss_amount"
+      ],
+      "tables": [],
+      "outputUnit": "money",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "smoothed_demand_level",
+      "group": "inventory_operations",
+      "productArea": "Business Builder",
+      "workspace": "business_builder",
+      "label": "Smoothed demand level",
+      "expression": "alpha * observed_demand + (1 - alpha) * previous_level",
+      "inputs": [
+        "alpha",
+        "observed_demand",
+        "previous_level"
+      ],
+      "tables": [],
+      "outputUnit": "quantity",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "service_capacity_jobs",
+      "group": "inventory_operations",
+      "productArea": "Business Builder",
+      "workspace": "business_builder",
+      "label": "Service capacity",
+      "expression": "floor(available_minutes / minutes_per_job)",
+      "inputs": [
+        "available_minutes",
+        "minutes_per_job"
+      ],
+      "tables": [],
+      "outputUnit": "jobs",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "media_duration_seconds",
+      "group": "creator_music",
+      "productArea": "Creator Studio",
+      "workspace": "creator_studio",
+      "label": "Frame duration",
+      "expression": "frame_count / frames_per_second",
+      "inputs": [
+        "frame_count",
+        "frames_per_second"
+      ],
+      "tables": [],
+      "outputUnit": "seconds",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "media_payload_mebibytes",
+      "group": "creator_music",
+      "productArea": "Creator Studio",
+      "workspace": "creator_studio",
+      "label": "Estimated media payload",
+      "expression": "bitrate_bits_per_second * duration_seconds / (8 * 1048576)",
+      "inputs": [
+        "bitrate_bits_per_second",
+        "duration_seconds"
+      ],
+      "tables": [],
+      "outputUnit": "MiB",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "tracked_motion_speed",
+      "group": "creator_music",
+      "productArea": "Creator Studio",
+      "workspace": "creator_studio",
+      "label": "Calibrated motion speed",
+      "expression": "displacement_meters / elapsed_seconds",
+      "inputs": [
+        "displacement_meters",
+        "elapsed_seconds"
+      ],
+      "tables": [],
+      "outputUnit": "meters_per_second",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
     }
   ],
   "supplementalFinancialFormulas": {
@@ -263903,7 +264141,7 @@
       "kind": "api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 35
+        "line": 36
       },
       "destination": {
         "route": "/dashboard",
@@ -264781,7 +265019,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "destination": {
         "route": "/business-builder/market-intelligence",
@@ -267287,7 +267525,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "destination": {
         "route": "/creator-studio/market-intelligence",
@@ -269629,7 +269867,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 415
+        "line": 417
       },
       "destination": {
         "route": "/growth-studio/market-intelligence",
@@ -275020,7 +275258,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 98
+        "line": 100
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275030,7 +275268,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 35
+        "line": 36
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275040,7 +275278,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 247
+        "line": 249
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275050,7 +275288,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 290
+        "line": 292
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275060,7 +275298,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 39
+        "line": 40
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275070,7 +275308,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 69
+        "line": 71
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275080,7 +275318,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 207
+        "line": 209
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275180,7 +275418,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 301
+        "line": 303
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275540,7 +275778,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 99
+        "line": 101
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275550,7 +275788,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 149
+        "line": 151
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275560,7 +275798,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 248
+        "line": 250
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275570,7 +275808,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 338
+        "line": 340
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275580,7 +275818,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 70
+        "line": 72
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275590,7 +275828,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 208
+        "line": 210
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
