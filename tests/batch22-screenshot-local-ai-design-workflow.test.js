@@ -42,7 +42,7 @@ describe("Batch 22 screenshot research", () => {
     assert.equal(catalog.body.repositories.filter((record) => record.enabledInProduction).length, 0);
     const latest = await request(app).get("/research-lab/latest-screenshot-intake");
     assert.equal(latest.status, 200);
-    assert.match(latest.text, /through Batch 23/i);
+    assert.match(latest.text, /through Batch 24/i);
     const convergence = getUnifiedBatchConvergence();
     assert.equal(convergence.latestBatch, 24);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 22 && item.repositoryRecords === 5));
