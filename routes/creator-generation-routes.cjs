@@ -23,7 +23,9 @@ const {
   voiceEvidenceLabel
 } = require("../lib/sonara-plain-language.cjs");
 
-const LOCAL_IMAGE_FORM = `<section class="card"><h2>Process an image on your device</h2><p>Adjust image brightness with your GPU when available, or your CPU. PNG, JPEG and WebP up to 20 MB and 4 megapixels. Your image stays on your device.</p><form data-local-image><label>Image<input type="file" accept="image/png,image/jpeg,image/webp" required></label><label>Brightness (%)<input type="number" name="local_gain" min="0" max="200" step="1" value="100" required></label><button type="submit" disabled>Process image</button><p role="status" aria-live="polite">Choose an image to begin.</p><canvas style="max-width:100%;height:auto" aria-label="Processed image preview"></canvas><a data-local-download hidden>Download PNG</a></form></section><script src="/creator-local-image.js" defer></script>`;
+const LOCAL_IMAGE_FORM = `<section class="card"><h2>Process an image on your device</h2><p>Adjust image brightness with your graphics processor when available, or your CPU. PNG, JPEG and WebP up to 20 MB, 16 megapixels and 8192 pixels per side. Devices reporting 2 GB of memory or less use a 4 megapixel limit. Your image stays on your device.</p><p>Turn on local processing in <a href="/account/permissions">Device permissions</a> before processing. You can cancel while work is in progress.</p><form data-local-image><label>Image<input type="file" accept="image/png,image/jpeg,image/webp" required></label><label>Brightness (%)<input type="number" name="local_gain" min="0" max="200" step="1" value="100" required></label><button type="submit" disabled>Process image</button><button type="button" data-local-cancel hidden>Cancel processing</button><p role="status" aria-live="polite">Choose an image to begin.</p><canvas style="max-width:100%;height:auto" aria-label="Processed image preview"></canvas><a data-local-download hidden>Download PNG</a></form></section><script src="/creator-image-core.js" defer></script><script src="/creator-device-access.js" defer></script><script src="/creator-local-image.js" defer></script>`;
+
+const LOCAL_CAPTURE_FORM = `<section class="card" data-local-capture><h2>Capture on this device</h2><p>Take a photo or record your own microphone. Access starts only when you press a button, after <a href="/account/permissions">Device permissions</a> and your browser allow it. Photos need camera and local processing access. Audio stays local, up to 60 seconds and 8 MB. Leaving this page stops capture.</p><button type="button" data-start-camera>Start camera</button><button type="button" data-start-voice>Start voice recording</button><button type="button" data-stop-capture disabled>Stop capture</button><button type="button" data-take-photo hidden>Take photo</button><p role="status" aria-live="polite">Camera and microphone are off.</p><video muted playsinline hidden style="max-width:100%;height:auto" aria-label="Local camera preview"></video><audio controls hidden aria-label="Local voice recording"></audio><a data-capture-download hidden>Download capture</a></section><script src="/creator-local-capture.js" defer></script>`;
 
 const JOB_TABLE = "creator_generation_jobs";
 const ASSET_TABLE = "creator_generation_assets";
@@ -536,6 +538,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
 
   app.get("/creator-studio/generation", access, async (req, res) => {
     const context = await resolveContext(req, deps);
+    if (context.ok) res.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self), payment=(self)");
     const config = getConfig(deps);
     let project = null;
     if (req.query.project !== undefined) {
@@ -571,7 +574,8 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       ui.card("Included generation", allowance.ok
         ? `$${(Number(allowance.allowanceMinor) / 100).toFixed(2)} included this billing period. $${(Number(allowance.remainingMinor) / 100).toFixed(2)} available, $${(Number(allowance.reservedMinor) / 100).toFixed(2)} reserved for current jobs. Renews ${ui.escape(String(allowance.periodEnd))}. Shared across your organization. Provider limits still apply. No extra purchase required.`
         : "Your subscription allowance could not be verified. Your saved outputs remain available. Try again later."),
-      LOCAL_IMAGE_FORM,
+      LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${ui.escape(context.userId || "")}"`),
+      LOCAL_CAPTURE_FORM.replace("data-local-capture", `data-local-capture data-user-id="${ui.escape(context.userId || "")}"`),
       ...(project ? [ui.card("Project", `This generation will be linked to ${ui.escape(project.title)}. Once it finishes, add its output from the project's source picker.`)] : []),
       generationForm(providers, ui.escape, consents, project?.id),
       ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent record. Direct celebrity, artist, or identity imitation is held for review."),
@@ -1537,3 +1541,4 @@ module.exports.FORM_CAPABILITY_ORDER = FORM_CAPABILITY_ORDER;
 module.exports.offeredCapabilities = offeredCapabilities;
 
 module.exports.LOCAL_IMAGE_FORM = LOCAL_IMAGE_FORM;
+module.exports.LOCAL_CAPTURE_FORM = LOCAL_CAPTURE_FORM;

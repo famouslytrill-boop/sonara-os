@@ -10,7 +10,9 @@
   const status = form.querySelector("[role=status]");
   const download = form.querySelector("[data-local-download]");
   const run = form.querySelector("button[type=submit]");
-  let original = null, url = null, width = 0, height = 0, version = 0;
+  let original = null, url = null, width = 0, height = 0, version = 0, budget = null, active = null;
+  const cancel = form.querySelector("[data-local-cancel]");
+  const core = window.SonaraImageCore;
   const shader = `
     @group(0) @binding(0) var<storage, read> source: array<u32>;
     @group(0) @binding(1) var<storage, read_write> output: array<u32>;
@@ -26,15 +28,12 @@
 
   function clearDownload() {
     if (url) URL.revokeObjectURL(url);
-    url = null;
-    download.hidden = true;
-    download.removeAttribute("href");
+    url = null; download.hidden = true; download.removeAttribute("href");
   }
-  file.addEventListener("change", async () => {
+  async function loadImage(selected) {
     const revision = ++version;
-    original = null; run.disabled = true; clearDownload();
+    original = null; run.disabled = true; clearDownload(); file.required = true;
     canvas.width = canvas.height = 1;
-    const selected = file.files[0];
     if (!selected) { status.textContent = "Choose an image to begin."; return; }
     if (!["image/png", "image/jpeg", "image/webp"].includes(selected.type) || selected.size > 20 * 1024 * 1024) {
       status.textContent = "Choose a PNG, JPEG or WebP image up to 20 MB."; return;
@@ -43,29 +42,26 @@
     try {
       bitmap = await createImageBitmap(selected);
       if (revision !== version) return;
-      if (bitmap.width * bitmap.height > 4194304 || bitmap.width > 4096 || bitmap.height > 4096) {
-        status.textContent = "Use an image up to 4 megapixels and 4096 pixels on each side."; return;
+      budget = core.imageBudget({ width: bitmap.width, height: bitmap.height, inputBytes: selected.size, deviceMemory: navigator.deviceMemory });
+      if (!budget.ok) {
+        status.textContent = `Use an image up to ${budget.maxPixels === 4194304 ? "4" : "16"} megapixels and 8192 pixels per side. This device has a bounded processing budget.`; return;
       }
       width = canvas.width = bitmap.width; height = canvas.height = bitmap.height;
       const context = canvas.getContext("2d", { willReadFrequently: true });
-      context.drawImage(bitmap, 0, 0);
-      original = context.getImageData(0, 0, width, height);
-      run.disabled = false;
+      context.drawImage(bitmap, 0, 0); original = context.getImageData(0, 0, width, height);
+      file.required = false; run.disabled = false;
       status.textContent = `${width} × ${height} image ready. Processing stays on this device.`;
     } catch { if (revision === version) status.textContent = "This browser could not decode the image."; }
     finally { if (bitmap) bitmap.close(); }
-  });
-
+  }
+  file.addEventListener("change", () => loadImage(file.files[0]));
+  window.addEventListener("sonara-local-image", (event) => { if (!active) loadImage(event.detail); });
   gain.addEventListener("input", () => {
     clearDownload();
     if (original) status.textContent = "Brightness changed. Process the image to create a new download.";
   });
 
-  async function gpu(bytes, percent) {
-    if (!window.isSecureContext || !navigator.gpu) throw new Error("GPU unavailable");
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) throw new Error("GPU unavailable");
-    const device = await adapter.requestDevice();
+  async function gpu(bytes, percent, device, pipeline) {
     const buffers = [];
     try {
       device.pushErrorScope("validation");
@@ -81,7 +77,6 @@
       const read = buffer(pixels.byteLength, GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
       device.queue.writeBuffer(source, 0, pixels);
       device.queue.writeBuffer(settings, 0, new Uint32Array([percent, 0, 0, 0]));
-      const pipeline = await device.createComputePipelineAsync({ layout: "auto", compute: { module: device.createShaderModule({ code: shader }), entryPoint: "main" } });
       const bindings = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [source, output, settings].map((item, binding) => ({ binding, resource: { buffer: item } })) });
       const encoder = device.createCommandEncoder();
       const pass = encoder.beginComputePass();
@@ -99,40 +94,107 @@
         result[at + 2] = (pixel >>> 16) & 255; result[at + 3] = pixel >>> 24;
       }
       read.unmap(); return result;
-    } finally { buffers.forEach((item) => item.destroy()); device.destroy(); }
+    } finally { buffers.forEach((item) => item.destroy()); }
   }
-  async function cpu(bytes, percent) {
-    const result = new Uint8ClampedArray(bytes.length);
-    // Yield between chunks so mobile input and painting remain responsive.
-    for (let start = 0; start < bytes.length; start += 262144) {
-      const end = Math.min(bytes.length, start + 262144);
-      for (let i = start; i < end; i += 4) {
-        for (let channel = 0; channel < 3; channel++) result[i + channel] = Math.min(255, Math.floor((bytes[i + channel] * percent + 50) / 100));
-        result[i + 3] = bytes[i + 3];
-      }
-      await new Promise((resolve) => setTimeout(resolve, 0));
+  function cpuSession() {
+    let worker = null, pending = null, nextId = 0;
+    try { worker = new window.Worker("/creator-image-worker.js"); } catch { /* cooperative fallback */ }
+    function close() {
+      if (worker) worker.terminate(); worker = null;
+      if (pending) { window.clearTimeout(pending.timer); pending.reject(new Error("Processing stopped")); pending = null; }
     }
-    return result;
+    if (worker) {
+      worker.onmessage = (event) => {
+        if (!pending || event.data.id !== pending.id) return;
+        const current = pending; pending = null; window.clearTimeout(current.timer);
+        if (event.data.error) current.reject(new Error("Worker failed"));
+        else current.resolve(new Uint8ClampedArray(event.data.pixels));
+      };
+      worker.onerror = close;
+    }
+    return {
+      close,
+      label: () => worker ? "CPU worker" : "CPU (cooperative fallback)",
+      async run(bytes, percent) {
+        if (!worker) return core.scalePixels(bytes, percent);
+        try {
+          return await new Promise((resolve, reject) => {
+            const id = ++nextId, copy = bytes.slice();
+            pending = { id, resolve, reject, timer: window.setTimeout(close, 10000) };
+            worker.postMessage({ id, pixels: copy.buffer, percent }, [copy.buffer]);
+          });
+        } catch { close(); return core.scalePixels(bytes, percent); }
+      }
+    };
   }
+  function stopProcessing() {
+    version++; if (active) active.close(); clearDownload();
+  }
+  cancel.addEventListener("click", () => {
+    stopProcessing(); status.textContent = "Processing cancelled. Your original image is available for another edit.";
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const percent = Number(gain.value);
-    if (!original || !Number.isInteger(percent) || percent < 0 || percent > 200) return;
+    if (active || !original || !Number.isInteger(percent) || percent < 0 || percent > 200) return;
     const revision = version, source = original;
-    run.disabled = true; file.disabled = true; gain.disabled = true; clearDownload();
-    status.textContent = "Processing on this device…";
+    let device = null, pipeline = null, cpu = null, poll = null;
+    const controller = new window.AbortController();
+    const session = { close() { controller.abort(); window.clearInterval(poll); if (device) device.destroy(); if (cpu) cpu.close(); } };
+    active = session;
+    run.disabled = true; file.disabled = true; gain.disabled = true; cancel.hidden = false; clearDownload();
+    status.textContent = "Checking device permissions…";
     try {
-      let pixels, engine = "WebGPU";
-      try { pixels = await gpu(source.data, percent); }
-      catch { engine = "CPU"; pixels = await cpu(source.data, percent); }
+      await window.SonaraDeviceAccess.verify(["local_compute"], form.dataset.userId, controller.signal);
       if (revision !== version) return;
-      canvas.getContext("2d").putImageData(new ImageData(pixels, width, height), 0, 0);
+      let checking = false;
+      poll = window.setInterval(async () => {
+        if (checking || revision !== version) return;
+        checking = true;
+        try { await window.SonaraDeviceAccess.verify(["local_compute"], form.dataset.userId, controller.signal); }
+        catch { if (revision === version) { stopProcessing(); status.textContent = "Processing stopped because device access could not be confirmed. Your original image is available."; } }
+        finally { checking = false; }
+      }, 5000);
+      if (window.isSecureContext && navigator.gpu) {
+        try {
+          const adapter = await navigator.gpu.requestAdapter();
+          if (revision !== version) return;
+          if (adapter) {
+            device = await adapter.requestDevice();
+            if (revision !== version) return;
+            pipeline = await device.createComputePipelineAsync({ layout: "auto", compute: { module: device.createShaderModule({ code: shader }), entryPoint: "main" } });
+          }
+        } catch { if (device) device.destroy(); device = null; }
+      }
+      cpu = cpuSession();
+      const engines = new Set();
+      for (let y = 0; y < height; y += budget.tileRows) {
+        if (revision !== version) return;
+        const rows = Math.min(budget.tileRows, height - y);
+        const bytes = source.data.subarray(y * width * 4, (y + rows) * width * 4);
+        let pixels;
+        if (device) {
+          try { pixels = await gpu(bytes, percent, device, pipeline); engines.add("WebGPU"); }
+          catch { device.destroy(); device = null; }
+        }
+        if (!pixels) { pixels = await cpu.run(bytes, percent); engines.add(cpu.label()); }
+        if (revision !== version) return;
+        canvas.getContext("2d").putImageData(new ImageData(pixels, width, rows), 0, y);
+        status.textContent = `Processing on this device: ${Math.round((y + rows) / height * 100)}%.`;
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+      }
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (revision !== version) return;
       if (!blob) throw new Error("Export unavailable");
       url = URL.createObjectURL(blob); download.href = url; download.download = "creator-local-image.png"; download.hidden = false;
-      status.textContent = `Processed with ${engine}. Download your PNG. No image was uploaded or generation allowance used.`;
-    } catch { status.textContent = "Processing failed. Your original image has not been changed."; }
-    finally { run.disabled = !original; file.disabled = false; gain.disabled = false; }
+      status.textContent = `Processed ${width} × ${height} pixels with ${[...engines].join(" + ")}. Download your PNG. No image was uploaded or generation allowance used.`;
+    } catch (error) {
+      if (revision === version) status.textContent = `${error.message} Your original image has not been changed.`;
+    } finally {
+      session.close(); active = null;
+      if (download.hidden && original) canvas.getContext("2d").putImageData(original, 0, 0);
+      run.disabled = !original; file.disabled = false; gain.disabled = false; cancel.hidden = true;
+    }
   });
-  window.addEventListener("pagehide", clearDownload);
+  window.addEventListener("pagehide", stopProcessing);
 }());

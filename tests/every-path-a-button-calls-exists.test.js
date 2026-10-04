@@ -165,6 +165,19 @@ describe("every path a button calls through JavaScript exists", () => {
       layout: ({ sections }) => sections.join(""), brandCard: () => "", linkAction: () => "", escapeHtml: (text) => String(text).replace(/"/g, "&quot;")
     });
     for (const bundle of await loadedClientFiles([`/creator-studio/projects/${id}`], fixture)) loaded.add(bundle);
+    // The paid, authenticated renderer cannot be reached by an anonymous crawl.
+    const generation = require("express")();
+    require("../routes/creator-generation-routes.cjs")(generation, {
+      requireWorkspaceAccess: () => (req, _res, next) => { req.sonaraUser = { id }; next(); },
+      getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: id }),
+      getSupabaseServerConfig: () => ({ ok: false }), layout: ({ sections }) => sections.join("")
+    });
+    for (const bundle of await loadedClientFiles(["/creator-studio/generation"], generation)) loaded.add(bundle);
+    // Follow literal same-origin Worker/importScripts imports from served code.
+    for (const name of loaded) {
+      const source = fs.readFileSync(path.join(root, "public", name), "utf8");
+      for (const match of source.matchAll(/(?:new\s+(?:window\.)?Worker|(?:self\.)?importScripts)\("\/([A-Za-z0-9._-]+\.js)"/g)) loaded.add(match[1]);
+    }
   });
 
   it("reads the bundles and the route table, so it is not passing on nothing", () => {

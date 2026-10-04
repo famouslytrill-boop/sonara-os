@@ -39,7 +39,22 @@ tags:
     description: Provider metadata and auditable integration jobs.
   - name: Sensory
     description: Opt-in sound and haptic configuration records.
+  - name: Account
+    description: Authenticated personal account controls.
 paths:
+  /api/account/device-permissions:
+    get:
+      operationId: getAccountDevicePermissions
+      summary: Read the authenticated person's current device opt-in decisions
+      tags: [Account]
+      security: [{ customerSession: [] }, { bearerAuth: [] }]
+      responses:
+        '200':
+          description: Account-scoped decisions; browser permission is still required. Private and not cached.
+        '401':
+          description: Sign-in required
+        '503':
+          description: Device permissions could not be read; no capability is authorized
   /api/health:
     get:
       operationId: getHealth
@@ -3497,6 +3512,11 @@ paths:
 
 components:
   securitySchemes:
+    customerSession:
+      type: apiKey
+      in: cookie
+      name: sonara_customer_session
+      description: Customer session verified server-side; the requested user ID never selects whose settings are read.
     bearerAuth:
       type: http
       scheme: bearer

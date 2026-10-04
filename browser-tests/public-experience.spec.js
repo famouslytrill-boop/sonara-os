@@ -227,7 +227,11 @@ test.describe("public experience browser contract", () => {
     await page.addInitScript(() => Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true }));
     await page.goto(`${BASE_URL}/tools`);
     await page.setViewportSize({ width: 390, height: 844 });
-    await mountLocalComponent(page, LOCAL_IMAGE_FORM, "/creator-local-image.js");
+    const userId = "33333333-3333-4333-8333-333333333333";
+    await page.route("**/api/account/device-permissions", (route) => route.fulfill({ json: { ok: true, userId, permissions: [{ key: "local_compute", state: "granted", allowed: true }] } }));
+    await mountLocalComponent(page, LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${userId}"`), "/creator-image-core.js");
+    await page.addScriptTag({ url: `${BASE_URL}/creator-device-access.js` });
+    await page.addScriptTag({ url: `${BASE_URL}/creator-local-image.js` });
     const pixels = await page.evaluate(async () => {
       const canvas = document.createElement("canvas"); canvas.width = 2; canvas.height = 1;
       canvas.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray([100, 50, 20, 255, 0, 255, 10, 255]), 2, 1), 0, 0);
@@ -238,7 +242,7 @@ test.describe("public experience browser contract", () => {
     await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeEnabled();
     await page.getByLabel("Brightness (%)").fill("150");
     await page.getByRole("button", { name: "Process image", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Processed with CPU");
+    await expect(page.getByRole("status")).toContainText("with CPU");
     expect(await page.locator("canvas").evaluate((canvas) => Array.from(canvas.getContext("2d").getImageData(0, 0, 2, 1).data))).toEqual([150, 75, 30, 255, 0, 255, 15, 255]);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByText("Download PNG", { exact: true }).click()]);
     expect(download.suggestedFilename()).toBe("creator-local-image.png");
@@ -246,7 +250,7 @@ test.describe("public experience browser contract", () => {
     // A repeat edit starts with original pixels rather than compounding changes.
     await page.getByLabel("Brightness (%)").fill("100");
     await page.getByRole("button", { name: "Process image", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Processed with CPU");
+    await expect(page.getByRole("status")).toContainText("with CPU");
     expect(await page.locator("canvas").evaluate((canvas) => Array.from(canvas.getContext("2d").getImageData(0, 0, 2, 1).data))).toEqual([100, 50, 20, 255, 0, 255, 10, 255]);
     await page.locator("input[type=file]").setInputFiles({ name: "unsafe.svg", mimeType: "image/svg+xml", buffer: Buffer.from("<svg/>") });
     await expect(page.getByRole("status")).toContainText("Choose a PNG, JPEG or WebP");
@@ -411,5 +415,148 @@ test.describe("public experience browser contract", () => {
     await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
     const reduced = await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     expect(reduced).toBe(true);
+  });
+});
+
+test.describe("device media and bounded image processing", () => {
+  const USER = "33333333-3333-4333-8333-333333333333";
+  const media = require("../routes/creator-generation-routes.cjs");
+  async function mountMedia(page, permission = { allowed: true }) {
+    await page.goto(`${BASE_URL}/tools`);
+    await page.route("**/api/account/device-permissions", async (route) => {
+      if (permission.delay) await new Promise((resolve) => setTimeout(resolve, permission.delay));
+      if (permission.offline) return route.fulfill({ status: 503, json: { ok: false } });
+      return route.fulfill({ json: { ok: true, userId: permission.userId || USER,
+        permissions: ["camera", "microphone", "local_compute"].map((key) => ({ key, state: permission.allowed ? "granted" : "denied", allowed: permission.allowed })) } });
+    });
+    const markup = media.LOCAL_IMAGE_FORM.replace("data-local-image", `data-local-image data-user-id="${USER}"`)
+      + media.LOCAL_CAPTURE_FORM.replace("data-local-capture", `data-local-capture data-user-id="${USER}"`);
+    await mountLocalComponent(page, markup, "/creator-image-core.js");
+    for (const file of ["creator-device-access.js", "creator-local-image.js", "creator-local-capture.js"]) await page.addScriptTag({ url: `${BASE_URL}/${file}` });
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+      window.captureCalls = 0; window.stoppedTracks = 0;
+      navigator.mediaDevices.getUserMedia = async (constraints) => {
+        window.captureCalls++;
+        let stream;
+        if (constraints.video) {
+          const canvas = document.createElement("canvas"); canvas.width = canvas.height = 2;
+          canvas.getContext("2d").fillStyle = "rgb(100, 120, 140)"; canvas.getContext("2d").fillRect(0, 0, 2, 2);
+          stream = canvas.captureStream(5);
+        } else {
+          window.testAudio = new AudioContext();
+          const oscillator = window.testAudio.createOscillator(), destination = window.testAudio.createMediaStreamDestination();
+          oscillator.connect(destination); oscillator.start(); stream = destination.stream; window.testOscillator = oscillator;
+        }
+        for (const track of stream.getTracks()) {
+          const original = track.stop.bind(track);
+          track.stop = () => { window.stoppedTracks++; original(); };
+        }
+        if (window.deferCapture) return new Promise((resolve) => { window.resolveCapture = () => resolve(stream); });
+        return stream;
+      };
+    });
+  }
+  async function imageFile(page, width = 3840, height = 2160) {
+    const bytes = await page.evaluate(async ({ width, height }) => {
+      const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+      const context = canvas.getContext("2d"); context.fillStyle = "rgb(100, 120, 140)"; context.fillRect(0, 0, width, height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      return [...new Uint8Array(await blob.arrayBuffer())];
+    }, { width, height });
+    await page.locator("[data-local-image] input[type=file]").setInputFiles({ name: "owned-4k-image.png", mimeType: "image/png", buffer: Buffer.from(bytes) });
+  }
+  test("capture is off by default and denied account access never opens a device", async ({ page }) => {
+    await mountMedia(page, { allowed: false });
+    expect(await page.evaluate(() => window.captureCalls)).toBe(0);
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
+    expect(await page.evaluate(() => window.captureCalls)).toBe(0);
+  });
+  test("a camera photo enters the image editor without selecting or uploading a file", async ({ page }) => {
+    const errors = []; page.on("pageerror", (error) => errors.push(error.message));
+    await mountMedia(page);
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Take photo", exact: true }).click();
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("2 × 2 image ready");
+    await page.getByRole("button", { name: "Process image", exact: true }).click();
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("Processed 2 × 2 pixels with CPU worker");
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click();
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+    await expect(page.locator("[data-capture-download]")).toBeVisible(); expect(errors).toEqual([]);
+  });
+  test("real MediaRecorder audio can be stopped and downloaded locally", async ({ page }) => {
+    await mountMedia(page);
+    await page.getByRole("button", { name: "Start voice recording", exact: true }).click();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Recording your microphone");
+    await page.waitForTimeout(700);
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click();
+    await expect(page.locator("[data-capture-download]")).toBeVisible();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.locator("[data-capture-download]").click()]);
+    expect(require("node:fs").statSync(await download.path()).size).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+  });
+  test("stopping during a pending browser prompt stops a late-arriving stream", async ({ page }) => {
+    await mountMedia(page); await page.evaluate(() => { window.deferCapture = true; });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => typeof window.resolveCapture)).toBe("function");
+    await page.getByRole("button", { name: "Stop capture", exact: true }).click(); await page.evaluate(() => window.resolveCapture());
+    await expect.poll(() => page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
+  });
+  test("account changes and verification outages refuse capture", async ({ page }) => {
+    for (const permission of [{ allowed: true, userId: "different-user" }, { allowed: true, offline: true }]) {
+      await mountMedia(page, permission); await page.getByRole("button", { name: "Start camera", exact: true }).click();
+      await expect(page.locator("[data-local-capture] [role=status]")).toContainText("could not");
+      expect(await page.evaluate(() => window.captureCalls)).toBe(0); await page.unroute("**/api/account/device-permissions");
+    }
+  });
+  test("account revocation during a browser prompt stops its arriving stream", async ({ page }) => {
+    const permission = { allowed: true }; await mountMedia(page, permission); await page.evaluate(() => { window.deferCapture = true; });
+    await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => typeof window.resolveCapture)).toBe("function");
+    permission.allowed = false; await page.evaluate(() => window.resolveCapture());
+    await expect.poll(() => page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Device permissions");
+  });
+  test("revoked account permission stops active capture on the next check", async ({ page }) => {
+    const permission = { allowed: true }; await mountMedia(page, permission);
+    await page.getByRole("button", { name: "Start camera", exact: true }).click(); await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    permission.allowed = false;
+    await expect(page.locator("[data-local-capture] [role=status]")).toContainText("Capture stopped", { timeout: 9000 });
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1);
+  });
+  test("4K images use bounded CPU worker tiles and preserve pixel math", async ({ page }) => {
+    const errors = [], uploads = []; page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (req) => { if (req.method() === "POST") uploads.push(req.url()); });
+    await page.setViewportSize({ width: 390, height: 844 }); await mountMedia(page); await imageFile(page);
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("3840 × 2160 image ready");
+    await page.locator("[name=local_gain]").fill("150"); await page.getByRole("button", { name: "Process image", exact: true }).click();
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("Processed 3840 × 2160 pixels with CPU worker", { timeout: 30000 });
+    expect(await page.evaluate(() => [...document.querySelector("[data-local-image] canvas").getContext("2d").getImageData(0, 0, 1, 1).data])).toEqual([150, 180, 210, 255]);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.locator("[data-local-download]").click()]);
+    const png = require("node:fs").readFileSync(await download.path()); expect(png.readUInt32BE(16)).toBe(3840); expect(png.readUInt32BE(20)).toBe(2160);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    expect(errors).toEqual([]); expect(uploads).toEqual([]);
+  });
+  test("cancelled work keeps the original and creates no download", async ({ page }) => {
+    await mountMedia(page, { allowed: true, delay: 150 }); await imageFile(page, 20, 20);
+    await page.getByRole("button", { name: "Process image", exact: true }).click(); await page.getByRole("button", { name: "Cancel processing", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeEnabled(); await expect(page.locator("[data-local-download]")).toBeHidden();
+    expect(await page.evaluate(() => [...document.querySelector("[data-local-image] canvas").getContext("2d").getImageData(0, 0, 1, 1).data])).toEqual([100, 120, 140, 255]);
+  });
+  test("low-memory devices refuse a 4K image before processing", async ({ page }) => {
+    await mountMedia(page); await page.evaluate(() => Object.defineProperty(navigator, "deviceMemory", { value: 2, configurable: true })); await imageFile(page);
+    await expect(page.locator("[data-local-image] [role=status]")).toContainText("up to 4 megapixels"); await expect(page.getByRole("button", { name: "Process image", exact: true })).toBeDisabled();
+  });
+  test("leaving the visible page stops capture and discards temporary playback", async ({ page }) => {
+    await mountMedia(page); await page.getByRole("button", { name: "Start camera", exact: true }).click(); await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible();
+    await page.evaluate(() => { Object.defineProperty(document, "hidden", { value: true, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden(); await expect(page.locator("[data-capture-download]")).toBeHidden();
+  });
+  test("the camera automatically stops at its 60-second limit", async ({ page }) => {
+    await mountMedia(page); await page.clock.install(); await page.getByRole("button", { name: "Start camera", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Take photo", exact: true })).toBeVisible(); await page.clock.fastForward(60001);
+    expect(await page.evaluate(() => window.stoppedTracks)).toBe(1); await expect(page.locator("[data-local-capture] video")).toBeHidden();
   });
 });
