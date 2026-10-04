@@ -1,6 +1,6 @@
 # SONARA third-pass capability, business and implementation assessment
 
-Reviewed 4 October 2026, America/New_York. Starting point: the tested second-pass branch, including main through 05943b3. PR #428 is a dependency, not assumed merged or deployed. This report extends [the full market assessment](SONARA_CAPABILITIES_MARKET_FOCUS_2026-10-04.md) and [payment infrastructure assessment](SONARA_SECOND_PASS_PAYMENT_INFRASTRUCTURE_2026-10-04.md). Inventory breadth is not customer acceptance evidence.
+Reviewed 4 October 2026, America/New_York. Starting point: the tested second-pass branch, including main through 05943b3. PR #428 merged into main as 84d0abf during this pass; it is included in the tested baseline. Deployment is not verified. This report extends [the full market assessment](SONARA_CAPABILITIES_MARKET_FOCUS_2026-10-04.md) and [payment infrastructure assessment](SONARA_SECOND_PASS_PAYMENT_INFRASTRUCTURE_2026-10-04.md). Inventory breadth is not customer acceptance evidence.
 
 ## What the business and application are
 
@@ -143,7 +143,7 @@ Local verification passed 5,977 tests with six pending, frozen installation, mod
 
 The package index refresh and writable-cache attempt unpacked PostgreSQL 16 binaries. Package configuration remained unsuccessful because this environment cannot switch identities. Native replay then exposed an existing harness bug: assuming the `nobody` user's group is also called `nobody`; Ubuntu uses `nogroup`. A separate minimal commit resolves the actual numeric user/group IDs. Replay remains BLOCKED at ownership changes to UID/GID 65534, which this environment rejects. PostgreSQL never started and no migration SQL was executed. Partially configured development packages are not an application dependency or production installation.
 
-No live charge, customer communication, production migration, physical-device qualification or customer-retention result was performed or fabricated. PR #428 remains an explicit dependency until its release gates and merge complete.
+No live charge, customer communication, production migration, physical-device qualification or customer-retention result was performed or fabricated. PR #428 is now merged into main as 84d0abf. This third-pass branch remains a draft requiring exact-head CI/native SQL release evidence.
 
 ## Primary references
 
