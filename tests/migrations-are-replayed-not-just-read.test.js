@@ -18,6 +18,16 @@ describe("the migrations are executed somewhere, not only read", () => {
     assert.ok(migrations.length >= 90, `only ${migrations.length} migrations found; these checks have gone blind`);
   });
 
+  it("checks frozen migrations before either push and offers a read-only preview", () => {
+    const scripts = require("../package.json").scripts;
+    for (const name of ["db:preview", "db:push", "db:push:all"]) {
+      assert.ok(scripts[name].indexOf("verify:applied-migrations") < scripts[name].indexOf("supabase db push"));
+      assert.match(scripts[name], /pnpm run verify:applied-migrations && supabase db push/);
+      assert.doesNotMatch(scripts[name], /db:patch-triggers/);
+    }
+    assert.match(scripts["db:preview"], /supabase db push --linked --dry-run/);
+  });
+
   describe("the replay command", () => {
     const source = fs.readFileSync(path.join(root, "scripts", "verify-migration-replay.mjs"), "utf8");
 
@@ -40,6 +50,23 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(workflow, /verify:migration-replay/, "CI does not run the replay");
       assert.match(workflow, /SONARA_MIGRATION_REPLAY_REQUIRED: "1"/, "CI does not make a missing database a failure");
       assert.match(source, /SONARA_MIGRATION_REPLAY_REQUIRED === "1"/, "the script does not read the variable CI sets");
+    });
+
+    it("has a supported non-root replay lane with preserved candidate evidence", () => {
+      const lane = fs.readFileSync(path.join(root, ".github", "workflows", "native-migration-replay.yml"), "utf8");
+      assert.match(lane, /runs-on: ubuntu-24\.04/);
+      assert.match(lane, /SONARA_MIGRATION_REPLAY_REQUIRED: "1"/);
+      assert.match(lane, /set -euo pipefail/);
+      assert.match(lane, /node scripts\/verify-migration-replay\.mjs/);
+      assert.match(lane, /git rev-parse HEAD/);
+      assert.match(lane, /sha256sum supabase\/migrations\/\*\.sql/);
+      assert.match(lane, /if: always\(\)/);
+      assert.match(lane, /Native replay requires a non-root runner/);
+      assert.match(lane, /node: \[22, 24, 26\]/);
+      assert.match(lane, /postgres: \[16, 17\]/);
+      assert.match(lane, /--postgres-bin "\$POSTGRES_BIN"/);
+      assert.match(lane, /node --version > replay-evidence\/node-version\.txt/);
+      assert.match(lane, /postgres-\$\{\{ matrix\.postgres \}\}/);
     });
 
     it("says loudly when it did not run, rather than reporting a pass", () => {

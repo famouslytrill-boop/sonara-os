@@ -53,6 +53,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { replayBinaries, replayOwner } from "./postgres-replay-owner.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = path.join(root, "supabase", "migrations");
@@ -132,6 +133,15 @@ function sh(value) {
 }
 
 function postgresBinaries() {
+  const arguments_ = process.argv.slice(2);
+  if (arguments_.length) {
+    if (arguments_.length !== 2 || arguments_[0] !== "--postgres-bin") {
+      stop("Usage: node scripts/verify-migration-replay.mjs [--postgres-bin ABSOLUTE_DIRECTORY]");
+    }
+    const selected = replayBinaries(arguments_[1]);
+    if (!selected) stop("Requested PostgreSQL binary directory must be absolute and contain initdb, pg_ctl and psql. No alternate PostgreSQL version was selected.");
+    return selected;
+  }
   const candidates = [];
   const versioned = "/usr/lib/postgresql";
   if (fs.existsSync(versioned)) {
@@ -192,6 +202,7 @@ function main() {
   }
 
   const runAs = unprivilegedUser();
+  const owner = replayOwner(runAs);
   if (typeof process.getuid === "function" && process.getuid() === 0 && !runAs) {
     stop("running as root and no unprivileged user is available to run initdb, which refuses to run as root.");
   }
@@ -226,7 +237,7 @@ function main() {
       scratch += 1;
       target = path.join(socketDir, `stmt-${scratch}.sql`);
       fs.writeFileSync(target, sql);
-      if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, target]);
+      if (owner) execFileSync("chown", [owner, target]);
     }
     return shell(`psql -h ${sh(socketDir)} -p ${port} -U postgres -d ${sh(db)} -v ON_ERROR_STOP=1 -q -f ${sh(target)}`);
   };
@@ -242,9 +253,11 @@ function main() {
     if (runAs) {
       // On Debian/Ubuntu, nobody belongs to nogroup, not a group named nobody.
       // Resolve numeric IDs instead of assuming the user and group share a name.
-      const userId = execFileSync("id", ["-u", runAs], { encoding: "utf8" }).trim();
-      const groupId = execFileSync("id", ["-g", runAs], { encoding: "utf8" }).trim();
-      execFileSync("chown", ["-R", `${userId}:${groupId}`, dataDir, socketDir]);
+      try {
+        execFileSync("chown", ["-R", owner, dataDir, socketDir]);
+      } catch (error) {
+        stop(`Migration replay BLOCKED: cannot assign temporary cluster ownership to ${owner}. PostgreSQL has not started; no migration SQL was executed. Run required replay in a host or CI runner that supports an unprivileged PostgreSQL user.\n${error.message}`);
+      }
       execFileSync("chmod", ["700", dataDir]);
     }
 
@@ -321,7 +334,7 @@ function main() {
     const concurrencyCommands = ["7", "8"].map((digit) => {
       const file = path.join(socketDir, `generation-session-${digit}.sql`);
       fs.writeFileSync(file, `begin; select public.generation_usage('${concurrentOrg}', 'reserve', '10000000-0000-4000-8000-00000000000${digit}', 300); select pg_sleep(0.2); commit;`);
-      if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, file]);
+      if (owner) execFileSync("chown", [owner, file]);
       return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
     });
     const concurrent = shell(`${concurrencyCommands[0]} & ${concurrencyCommands[1]} & wait`);
@@ -649,4 +662,4 @@ function main() {
   }
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

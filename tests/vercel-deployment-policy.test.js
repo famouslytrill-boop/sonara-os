@@ -59,6 +59,7 @@ describe('Vercel deployment policy', () => {
       'SONARA Industries CI',
       'Docker Image CI',
       'Node Runtime Compatibility',
+      'Native migration replay',
       'Engineering Intelligence and Security Evidence',
       'dependency-scan'
     ]) {
