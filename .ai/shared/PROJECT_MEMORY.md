@@ -14,7 +14,7 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Production: `https://sonaraindustries.com` on Vercel.
 - Package manager: `pnpm@11.1.1` only. Never add `package-lock.json`.
 
-## Batch convergence (research through Batch 23)
+## Batch convergence (research through Batch 24)
 
 - `lib/sonara-batch-convergence-engine.cjs` aggregates screenshot and operational research through Batch 23 plus the requested-repository registry and maintained formal open-source registry.
 - `data/open-source-tools.ts`, read through `lib/sonara-open-source-registry.cjs`, is the maintained adoption/licence decision surface. Its stricter decision wins over older screenshot/intake metadata when records conflict.
@@ -51,6 +51,15 @@ Durable facts Claude, ChatGPT/Codex, and other repository agents must not re-der
 - Hugging Face models, datasets, Spaces, LoRAs and community variants remain discovery metadata until the model-hub promotion gate passes exact revision, license/territory, serialization, provenance, compute, safety, benchmark, worker and tenant-canary review.
 - Mobile device control, remote shells/databases/clusters, voice cloning and model inference remain disabled; no provider credential, dependency, migration or production authority is added.
 - Nine architecture extensions cover deterministic agent-test proof, mobile-device security, deterministic procedural media, memory lifecycle, privileged remote operations, voice/speech consent, vertical templates, model promotion and design-reference truth.
+
+### 2026-10-04 screenshot research intake
+
+- Batch 24 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-10-04_BATCH24.md` and cataloged by `lib/sonara-screenshot-tool-radar-batch24.cjs`; it processes 34 screenshots as research evidence, including two explicit duplicate-image records.
+- Twelve new repository records remain non-executing: CodeGraph, Free Claude Code, VidBee, sqlmap, Sure, Piik, Microsoft GraphRAG, Data Science for Beginners, REA, Overmind, NVIDIA Model Optimizer and the unlicensed AI Agent Tools directory.
+- Ten existing resources are reconciled instead of duplicated: Munder Difflin, TesterArmy e2e, AutoGPT, OpenVid, Anti Slop, context-mode, PaddleOCR, Lead Gen API Stack, Public APIs and Awesome LLM Apps.
+- High-risk boundaries remain explicit: sqlmap is owned/authorized-target defensive research only; REA is authorized compatibility research only; screen capture requires visible consent; external training services receive no production shell authority; AGPL/ELv2/PolyForm/noncommercial boundaries are not bypassed.
+- Eleven architecture extensions cover code-impact graphs, realtime voice turn-taking, document AI, GraphRAG provenance, eval-to-promotion, project instruction policies, AI request lifecycle, model optimization, screen-sharing privacy, API security and bounded multi-agent topology.
+- No dependency, provider endpoint, model, scanner, reverse-engineering runtime, capture service, migration or production authority is activated by Batch 24.
 
 ### 2026-09-18 cross-host repository intake
 
