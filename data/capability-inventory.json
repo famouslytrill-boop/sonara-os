@@ -60,7 +60,7 @@
     "databaseContractCoreTableCount": 148,
     "queriedTableCount": 312,
     "neverQueriedTableCount": 41,
-    "migrationCount": 151,
+    "migrationCount": 152,
     "databaseFunctionCount": 33,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
@@ -86,8 +86,8 @@
     "ownerRecordChildResourceCount": 13,
     "ownerRecordActionCount": 5,
     "ownerRecordActionsWithoutRegisteredRoute": 0,
-    "formulaCount": 53,
-    "formulasWithEvaluator": 53,
+    "formulaCount": 59,
+    "formulasWithEvaluator": 59,
     "supplementalFinancialFormulaCount": 11,
     "localSkillCount": 12,
     "agentSchedulableActionCount": 5,
@@ -130208,6 +130208,65 @@
             ],
             "targetTables": [],
             "outputUnit": "meters_per_second"
+          },
+          {
+            "formulaKey": "kinetic_energy_joules",
+            "requiredInputs": [
+              "mass_kg",
+              "speed_meters_per_second"
+            ],
+            "targetTables": [],
+            "outputUnit": "joules"
+          },
+          {
+            "formulaKey": "dilution_stock_volume",
+            "requiredInputs": [
+              "target_concentration",
+              "final_volume",
+              "stock_concentration"
+            ],
+            "targetTables": [],
+            "outputUnit": "input_volume_unit"
+          },
+          {
+            "formulaKey": "render_time_estimate_seconds",
+            "requiredInputs": [
+              "frame_count",
+              "measured_frames_per_second",
+              "overhead_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "seconds"
+          },
+          {
+            "formulaKey": "uncompressed_image_bytes",
+            "requiredInputs": [
+              "width_pixels",
+              "height_pixels",
+              "channels",
+              "bytes_per_channel"
+            ],
+            "targetTables": [],
+            "outputUnit": "bytes"
+          },
+          {
+            "formulaKey": "average_acceleration",
+            "requiredInputs": [
+              "final_velocity",
+              "initial_velocity",
+              "elapsed_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "meters_per_second_squared"
+          },
+          {
+            "formulaKey": "rectangle_area_square_meters",
+            "requiredInputs": [
+              "length_meters",
+              "width_meters"
+            ],
+            "targetTables": [],
+            "outputUnit": "square_meters"
           }
         ],
         "openApiBody": "#/components/requestBodies/JsonBody"
@@ -130872,6 +130931,65 @@
             ],
             "targetTables": [],
             "outputUnit": "meters_per_second"
+          },
+          {
+            "formulaKey": "kinetic_energy_joules",
+            "requiredInputs": [
+              "mass_kg",
+              "speed_meters_per_second"
+            ],
+            "targetTables": [],
+            "outputUnit": "joules"
+          },
+          {
+            "formulaKey": "dilution_stock_volume",
+            "requiredInputs": [
+              "target_concentration",
+              "final_volume",
+              "stock_concentration"
+            ],
+            "targetTables": [],
+            "outputUnit": "input_volume_unit"
+          },
+          {
+            "formulaKey": "render_time_estimate_seconds",
+            "requiredInputs": [
+              "frame_count",
+              "measured_frames_per_second",
+              "overhead_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "seconds"
+          },
+          {
+            "formulaKey": "uncompressed_image_bytes",
+            "requiredInputs": [
+              "width_pixels",
+              "height_pixels",
+              "channels",
+              "bytes_per_channel"
+            ],
+            "targetTables": [],
+            "outputUnit": "bytes"
+          },
+          {
+            "formulaKey": "average_acceleration",
+            "requiredInputs": [
+              "final_velocity",
+              "initial_velocity",
+              "elapsed_seconds"
+            ],
+            "targetTables": [],
+            "outputUnit": "meters_per_second_squared"
+          },
+          {
+            "formulaKey": "rectangle_area_square_meters",
+            "requiredInputs": [
+              "length_meters",
+              "width_meters"
+            ],
+            "targetTables": [],
+            "outputUnit": "square_meters"
           }
         ],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
@@ -229942,6 +230060,14 @@
       "drops": [],
       "rlsEnabled": [],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261004130000_seed_bounded_planning_formulas.sql",
+      "creates": [],
+      "alters": [],
+      "drops": [],
+      "rlsEnabled": [],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -239601,6 +239727,137 @@
       ],
       "tables": [],
       "outputUnit": "meters_per_second",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "kinetic_energy_joules",
+      "group": "operating_twin",
+      "productArea": "Business Builder",
+      "workspace": "business_builder",
+      "label": "Translational kinetic energy",
+      "expression": "mass_kg * speed_meters_per_second^2 / 2",
+      "inputs": [
+        "mass_kg",
+        "speed_meters_per_second"
+      ],
+      "tables": [],
+      "outputUnit": "joules",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "dilution_stock_volume",
+      "group": "operating_twin",
+      "productArea": "Business Builder",
+      "workspace": "business_builder",
+      "label": "Research dilution volume",
+      "expression": "target_concentration * final_volume / stock_concentration",
+      "inputs": [
+        "target_concentration",
+        "final_volume",
+        "stock_concentration"
+      ],
+      "tables": [],
+      "outputUnit": "input_volume_unit",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "render_time_estimate_seconds",
+      "group": "creator_music",
+      "productArea": "Creator Studio",
+      "workspace": "creator_studio",
+      "label": "Measured render time estimate",
+      "expression": "frame_count / measured_frames_per_second + overhead_seconds",
+      "inputs": [
+        "frame_count",
+        "measured_frames_per_second",
+        "overhead_seconds"
+      ],
+      "tables": [],
+      "outputUnit": "seconds",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "uncompressed_image_bytes",
+      "group": "creator_music",
+      "productArea": "Creator Studio",
+      "workspace": "creator_studio",
+      "label": "Uncompressed image payload",
+      "expression": "width_pixels * height_pixels * channels * bytes_per_channel",
+      "inputs": [
+        "width_pixels",
+        "height_pixels",
+        "channels",
+        "bytes_per_channel"
+      ],
+      "tables": [],
+      "outputUnit": "bytes",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "average_acceleration",
+      "group": "creator_music",
+      "productArea": "Creator Studio",
+      "workspace": "creator_studio",
+      "label": "Calibrated average acceleration",
+      "expression": "(final_velocity - initial_velocity) / elapsed_seconds",
+      "inputs": [
+        "final_velocity",
+        "initial_velocity",
+        "elapsed_seconds"
+      ],
+      "tables": [],
+      "outputUnit": "meters_per_second_squared",
+      "evaluatorStatus": "evaluator_returns_result",
+      "resultRoute": "/api/formulas/evaluate",
+      "savedResultRoute": "/api/formulas/results",
+      "savedTable": "sonara_formula_results",
+      "migrationFiles": [
+        "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+      ]
+    },
+    {
+      "key": "rectangle_area_square_meters",
+      "group": "operating_twin",
+      "productArea": "Business Builder",
+      "workspace": "business_builder",
+      "label": "Rectangular surface area",
+      "expression": "length_meters * width_meters",
+      "inputs": [
+        "length_meters",
+        "width_meters"
+      ],
+      "tables": [],
+      "outputUnit": "square_meters",
       "evaluatorStatus": "evaluator_returns_result",
       "resultRoute": "/api/formulas/evaluate",
       "savedResultRoute": "/api/formulas/results",

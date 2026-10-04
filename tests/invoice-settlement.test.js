@@ -109,17 +109,17 @@ describe("what is still owed on an invoice", () => {
     it("does not claim the figure is certain", () => {
       const result = settle({ invoice: INVOICE, payments: [{ amount_cents: 44000 }, { amount_cents: null }] });
       assert.equal(result.certain, false);
-      assert.match(result.note, /no amount recorded/);
-      // The balance is still shown, because it is a real upper bound. It is the
-      // confidence that changes, not the arithmetic.
-      assert.equal(result.outstandingCents, 100000);
+      assert.match(result.note, /could not be verified/);
+      // A signed correction may reduce receipts; an unreadable row is unknown.
+      assert.equal(result.status, "unknown");
+      assert.equal(result.outstandingCents, null);
     });
 
     it("does not say paid in full without qualifying it", () => {
       const result = settle({ invoice: INVOICE, payments: [{ amount_cents: 144000 }, { amount_cents: null }] });
-      assert.equal(result.status, "paid");
+      assert.equal(result.status, "unknown");
       assert.notEqual(describeSettlement(result, money), "Paid in full.", "an unqualified 'paid in full' on a figure that is not certain");
-      assert.match(describeSettlement(result, money), /no amount recorded/);
+      assert.match(describeSettlement(result, money), /could not check/);
     });
   });
 
