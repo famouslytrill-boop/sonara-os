@@ -8,6 +8,27 @@ const core = require("../public/creator-image-core.js");
 const science = require("../lib/sonara-operations-science.cjs");
 const register = require("../routes/sonara-account-profile-routes.cjs");
 
+describe("image worker message boundary", () => {
+  function harness() {
+    const outputs = [];
+    const self = { location: { origin: "https://sonara.test" }, importScripts: () => {}, SonaraImageCore: core,
+      postMessage: (message) => outputs.push(message) };
+    require("node:vm").runInNewContext(require("node:fs").readFileSync(require("node:path").join(__dirname, "../public/creator-image-worker.js"), "utf8"), { self, Uint8ClampedArray });
+    return { outputs, send: (origin, pixels = new Uint8ClampedArray([100, 50, 20, 255]).buffer) => self.onmessage({ origin, data: { id: 1, pixels, percent: 150 } }) };
+  }
+  it("refuses supplied foreign origins without processing or responding", () => {
+    const h = harness(); h.send("https://foreign.invalid"); assert.equal(h.outputs.length, 0);
+  });
+  it("accepts the dedicated-worker channel and same-origin messages with bounded pixels", () => {
+    for (const origin of ["", "https://sonara.test"]) {
+      const h = harness(); h.send(origin);
+      assert.deepEqual([...new Uint8ClampedArray(h.outputs[0].pixels)], [150, 75, 30, 255]);
+      h.send(origin, new Uint8ClampedArray(core.TILE_PIXELS * 4 + 4).buffer);
+      assert.equal(h.outputs[1].error, "invalid_image_tile");
+    }
+  });
+});
+
 describe("bounded device image processing", () => {
   it("handles a 4K frame and refuses excessive dimensions, bytes and low-memory use", () => {
     const input = { width: 3840, height: 2160, inputBytes: 1000000 };
