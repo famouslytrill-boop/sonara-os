@@ -108,7 +108,7 @@ describe("Batch 23 screenshot research", () => {
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
 
     const convergence = getUnifiedBatchConvergence();
-    assert.equal(convergence.latestBatch, 23);
+    assert.equal(convergence.latestBatch, 24);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 23 && item.repositoryRecords === 7));
     assert.ok(convergence.repositories.some((item) => item.repository === "tester-army/e2e" && item.seenInBatches.includes(23)));
     assert.equal(convergence.counts.productionExecutionAdded, 0);
