@@ -42,6 +42,18 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(source, /SONARA_MIGRATION_REPLAY_REQUIRED === "1"/, "the script does not read the variable CI sets");
     });
 
+    it("has a supported non-root replay lane with preserved candidate evidence", () => {
+      const lane = fs.readFileSync(path.join(root, ".github", "workflows", "native-migration-replay.yml"), "utf8");
+      assert.match(lane, /runs-on: ubuntu-24\.04/);
+      assert.match(lane, /SONARA_MIGRATION_REPLAY_REQUIRED: "1"/);
+      assert.match(lane, /set -euo pipefail/);
+      assert.match(lane, /node scripts\/verify-migration-replay\.mjs/);
+      assert.match(lane, /git rev-parse HEAD/);
+      assert.match(lane, /sha256sum supabase\/migrations\/\*\.sql/);
+      assert.match(lane, /if: always\(\)/);
+      assert.match(lane, /Native replay requires a non-root runner/);
+    });
+
     it("says loudly when it did not run, rather than reporting a pass", () => {
       assert.match(source, /MIGRATIONS WERE NOT REPLAYED IN THIS RUN/);
       assert.match(source, /Migration replay SKIPPED/);

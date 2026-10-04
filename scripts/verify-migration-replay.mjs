@@ -161,6 +161,16 @@ function unprivilegedUser() {
   return null;
 }
 
+export function replayOwner(user, execute = execFileSync) {
+  if (!user) return null;
+  const uid = execute("id", ["-u", user], { encoding: "utf8" }).trim();
+  const gid = execute("id", ["-g", user], { encoding: "utf8" }).trim();
+  if (!/^\d+$/.test(uid) || !/^\d+$/.test(gid) || Number(uid) === 0) {
+    throw new Error("Migration replay requires a valid non-root Unix identity.");
+  }
+  return `${uid}:${gid}`;
+}
+
 function main() {
   const files = fs.existsSync(migrationsDir)
     ? fs.readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort()
@@ -192,6 +202,7 @@ function main() {
   }
 
   const runAs = unprivilegedUser();
+  const owner = replayOwner(runAs);
   if (typeof process.getuid === "function" && process.getuid() === 0 && !runAs) {
     stop("running as root and no unprivileged user is available to run initdb, which refuses to run as root.");
   }
@@ -226,7 +237,7 @@ function main() {
       scratch += 1;
       target = path.join(socketDir, `stmt-${scratch}.sql`);
       fs.writeFileSync(target, sql);
-      if (runAs) execFileSync("chown", [`${runAs}:${runAs}`, target]);
+      if (owner) execFileSync("chown", [owner, target]);
     }
     return shell(`psql -h ${sh(socketDir)} -p ${port} -U postgres -d ${sh(db)} -v ON_ERROR_STOP=1 -q -f ${sh(target)}`);
   };
@@ -242,9 +253,11 @@ function main() {
     if (runAs) {
       // On Debian/Ubuntu, nobody belongs to nogroup, not a group named nobody.
       // Resolve numeric IDs instead of assuming the user and group share a name.
-      const userId = execFileSync("id", ["-u", runAs], { encoding: "utf8" }).trim();
-      const groupId = execFileSync("id", ["-g", runAs], { encoding: "utf8" }).trim();
-      execFileSync("chown", ["-R", `${userId}:${groupId}`, dataDir, socketDir]);
+      try {
+        execFileSync("chown", ["-R", owner, dataDir, socketDir]);
+      } catch (error) {
+        stop(`Migration replay BLOCKED: cannot assign temporary cluster ownership to ${owner}. PostgreSQL has not started; no migration SQL was executed. Run required replay in a host or CI runner that supports an unprivileged PostgreSQL user.\n${error.message}`);
+      }
       execFileSync("chmod", ["700", dataDir]);
     }
 
@@ -649,4 +662,4 @@ function main() {
   }
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

@@ -46,6 +46,83 @@ describe("billing delivery reliability", () => {
     } } });
     assert.equal(result.ok, false);
   });
+
+  it("never creates a provider customer when the tenant mapping cannot be read", async () => {
+    for (const response of [undefined, { ok: false }, { ok: true, json: async () => { throw Error("bad JSON"); } }, { ok: true, json: async () => ({}) }]) {
+      const calls = [];
+      global.fetch = async (url) => { calls.push(url); return response; };
+      const result = await billing().getOrCreateStripeCustomer({ id: "user" }, "org");
+      assert.equal(result.code, "stripe_customer_mapping_unreadable");
+      assert.equal(calls.length, 1);
+      assert.ok(calls[0].includes("organization_id=eq.org&user_id=eq.user"));
+    }
+  });
+
+  it("refuses conflicting or malformed customer mappings", async () => {
+    for (const rows of [[{ stripe_customer_id: "cus_A" }, { stripe_customer_id: "cus_B" }], [{ stripe_customer_id: "acct_wrong" }]]) {
+      let calls = 0;
+      global.fetch = async () => { calls += 1; return { ok: true, json: async () => rows }; };
+      assert.equal((await billing().getOrCreateStripeCustomer({ id: "user" }, "org")).ok, false);
+      assert.equal(calls, 1);
+    }
+  });
+
+  it("reuses an existing tenant mapping without contacting Stripe", async () => {
+    let calls = 0;
+    global.fetch = async () => { calls += 1; return { ok: true, json: async () => [{ stripe_customer_id: "cus_A" }] }; };
+    assert.deepEqual(await billing().getOrCreateStripeCustomer({ id: "user" }, "org"), { ok: true, stripeCustomerId: "cus_A", source: "database" });
+    assert.equal(calls, 1);
+  });
+
+  it("rejects an unreadable provider response without recording a mapping", async () => {
+    for (const customer of [null, {}, { id: "acct_wrong" }]) {
+      let writes = 0;
+      global.fetch = async (url, init) => {
+        if (url === "https://api.stripe.com/v1/customers") return { ok: true, json: async () => customer };
+        if (init.method === "POST") writes += 1;
+        return { ok: true, json: async () => [] };
+      };
+      assert.equal((await billing().getOrCreateStripeCustomer({ id: "user" }, "org")).code, "stripe_customer_missing");
+      assert.equal(writes, 0);
+    }
+  });
+
+  it("blocks checkout after a failed mapping write and retries with stable provider parameters", async () => {
+    const providerCalls = [];
+    let writable = false;
+    let stored = false;
+    global.fetch = async (url, init) => {
+      if (url === "https://api.stripe.com/v1/customers") {
+        providerCalls.push(init);
+        return { ok: true, json: async () => ({ id: "cus_Retry" }) };
+      }
+      if (init.method === "POST") { stored = writable; return { ok: writable }; }
+      return { ok: true, json: async () => stored ? [{ stripe_customer_id: "cus_Retry" }] : [] };
+    };
+    const service = billing();
+    assert.equal((await service.getOrCreateStripeCustomer({ id: "user", email: "old@example.com" }, "org")).code, "stripe_customer_mapping_unwritable");
+    writable = true;
+    assert.equal((await service.getOrCreateStripeCustomer({ id: "user", email: "new@example.com" }, "org")).ok, true);
+    assert.equal(providerCalls.length, 2);
+    assert.equal(providerCalls[0].headers["Idempotency-Key"], providerCalls[1].headers["Idempotency-Key"]);
+    assert.equal(providerCalls[0].body, providerCalls[1].body);
+    assert.equal(providerCalls[0].headers["Idempotency-Key"].includes("user"), false);
+  });
+
+  it("separates tenant creation keys and refuses an unconfirmed conflict write", async () => {
+    const keys = [];
+    global.fetch = async (url, init) => {
+      if (url === "https://api.stripe.com/v1/customers") {
+        keys.push(init.headers["Idempotency-Key"]);
+        return { ok: true, json: async () => ({ id: "cus_Conflict" }) };
+      }
+      return { ok: true, json: async () => [] };
+    };
+    for (const org of ["orgA", "orgB"]) {
+      assert.equal((await billing().getOrCreateStripeCustomer({ id: "user" }, org)).code, "stripe_customer_mapping_unconfirmed");
+    }
+    assert.notEqual(keys[0], keys[1]);
+  });
 });
 
 describe("billing webhook HTTP retry contract", () => {

@@ -1517,6 +1517,7 @@ describe("pricing and checkout", () => {
   }
 
   function mockCheckoutFetch(calls = []) {
+    let customerMapping = null;
     const organizationId = "00000000-0000-0000-0000-000000000071";
     return async (url, options = {}) => {
       calls.push({ url: String(url), method: options.method || "GET", body: options.body });
@@ -1527,7 +1528,7 @@ describe("pricing and checkout", () => {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
       if (String(url).includes("api.stripe.com/v1/customers")) {
-        return { ok: true, json: async () => ({ id: "cus_test_customer" }) };
+        return { ok: true, json: async () => ({ id: "cus_TestCustomer" }) };
       }
       // Checkout reads the price back from Stripe and refuses to sell if it
       // does not charge what the pricing page advertises. The amount is taken
@@ -1548,7 +1549,8 @@ describe("pricing and checkout", () => {
         return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
       }
       if (String(url).includes("/stripe_customers")) {
-        return { ok: true, json: async () => [] };
+        if (options.method === "POST") customerMapping = JSON.parse(options.body);
+        return { ok: true, json: async () => customerMapping ? [customerMapping] : [] };
       }
       return { ok: true, json: async () => [] };
     };
@@ -1665,7 +1667,7 @@ describe("pricing and checkout", () => {
     const stripeCall = calls.find((call) => call.url.includes("api.stripe.com/v1/checkout/sessions"));
     assert.ok(stripeCall);
     const params = new URLSearchParams(stripeCall.body);
-    assert.equal(params.get("customer"), "cus_test_customer");
+    assert.equal(params.get("customer"), "cus_TestCustomer");
     assert.equal(params.get("metadata[plan]"), "workspace_monthly");
     assert.equal(params.get("metadata[organization_id]"), "00000000-0000-0000-0000-000000000071");
     assert.equal(params.get("subscription_data[metadata][plan]"), "workspace_monthly");
@@ -1705,7 +1707,7 @@ describe("pricing and checkout", () => {
         return { ok: true, json: async () => [{ organization_id: "00000000-0000-0000-0000-000000000071" }] };
       }
       if (String(url).includes("/stripe_customers") && (options.method || "GET") === "GET") {
-        return { ok: true, json: async () => [{ stripe_customer_id: "cus_test_customer" }] };
+        return { ok: true, json: async () => [{ stripe_customer_id: "cus_TestCustomer" }] };
       }
       if (String(url).includes("api.stripe.com/v1/billing_portal/sessions")) {
         return { ok: true, json: async () => ({ url: "https://billing.stripe.com/session/test" }) };

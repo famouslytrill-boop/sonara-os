@@ -1,0 +1,52 @@
+name: Native migration replay
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install native PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-16 postgresql-contrib-16
+      - name: Replay the candidate migration history
+        shell: bash
+        env:
+          SONARA_MIGRATION_REPLAY_REQUIRED: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p replay-evidence
+          git rev-parse HEAD > replay-evidence/commit.txt
+          sha256sum supabase/migrations/*.sql > replay-evidence/migrations.sha256
+          id > replay-evidence/runner-identity.txt
+          if [ "$(id -u)" -eq 0 ]; then
+            echo 'Native replay requires a non-root runner.' >&2
+            exit 1
+          fi
+          /usr/lib/postgresql/16/bin/psql --version > replay-evidence/postgresql-version.txt
+          node scripts/verify-migration-replay.mjs 2>&1 | tee replay-evidence/replay.log
+      - name: Preserve replay evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: native-migration-replay-node-${{ matrix.node }}-${{ github.sha }}
+          path: replay-evidence/
+          if-no-files-found: error
+          retention-days: 14
