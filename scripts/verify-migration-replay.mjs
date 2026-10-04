@@ -240,7 +240,11 @@ function main() {
 
   try {
     if (runAs) {
-      execFileSync("chown", ["-R", `${runAs}:${runAs}`, dataDir, socketDir]);
+      // On Debian/Ubuntu, nobody belongs to nogroup, not a group named nobody.
+      // Resolve numeric IDs instead of assuming the user and group share a name.
+      const userId = execFileSync("id", ["-u", runAs], { encoding: "utf8" }).trim();
+      const groupId = execFileSync("id", ["-g", runAs], { encoding: "utf8" }).trim();
+      execFileSync("chown", ["-R", `${userId}:${groupId}`, dataDir, socketDir]);
       execFileSync("chmod", ["700", dataDir]);
     }
 
