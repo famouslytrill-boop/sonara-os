@@ -102,7 +102,7 @@ describe("Batch 20 screenshot research and workflow integration", () => {
 
     const latest = await request(app).get("/research-lab/latest-screenshot-intake");
     assert.equal(latest.status, 200);
-    assert.match(latest.text, /through Batch 23/i);
+    assert.match(latest.text, /through Batch 24/i);
     assert.match(latest.text, /Formula processing remains paused/i);
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
     for (const extension of ARCHITECTURE_EXTENSIONS_BATCH20) assert.match(latest.text, new RegExp(extension.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
