@@ -11,7 +11,7 @@ Nothing in this batch installs a dependency, activates an MCP server, connects a
 | Source | Verified licence posture | SONARA decision |
 | --- | --- | --- |
 | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) | MIT | Engineering-intelligence benchmark only; never authority to skip exact-head tests |
-| [Alishahryar1/free-claude-code](https://github.com/Alishahryar1/free-claude-code) | AGPL-3.0-only | Research only; no production dependency, proxy, credential path or provider-control bypass |
+| [Alishahryar1/free-claude-code](https://github.com/Alishahryar1/free-claude-code) | AGPL-3.0-only | Research only; this candidate is not a production dependency; no proxy, credential path or provider-control bypass |
 | [nexmoe/VidBee](https://github.com/nexmoe/VidBee) | MIT | Creator media/transcript workflow reference; rights and provider review required |
 | [sqlmapproject/sqlmap](https://github.com/sqlmapproject/sqlmap) | GPL-2.0-or-later with upstream clarifications; commercial licence offered upstream | Authorized owned-target security research only; no database takeover or customer-facing scanner |
 | [we-promise/sure](https://github.com/we-promise/sure) | AGPL-3.0 | Finance product/data-model reference only; no code reuse or account connection |

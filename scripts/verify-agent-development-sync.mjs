@@ -185,7 +185,14 @@ assert.ok(
 const [, baselineSha] = baseline;
 
 function git(...args) {
-  return spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  // These are local, read-only history questions. In a partial clone, probing
+  // an invented SHA otherwise triggers a network fetch for a nonexistent
+  // object. Keep the full-history/shallow distinction below without fetching.
+  return spawnSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, GIT_NO_LAZY_FETCH: "1" }
+  });
 }
 
 function resolveRef(ref) {
