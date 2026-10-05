@@ -44,6 +44,7 @@ describe("Batch 22 screenshot research", () => {
     assert.equal(latest.status, 200);
     assert.match(latest.text, /through Batch 24/i);
     const convergence = getUnifiedBatchConvergence();
+    assert.equal(convergence.latestBatch, 25);
     assert.equal(convergence.latestBatch, 24);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 22 && item.repositoryRecords === 5));
     assert.equal(convergence.counts.productionExecutionAdded, 0);

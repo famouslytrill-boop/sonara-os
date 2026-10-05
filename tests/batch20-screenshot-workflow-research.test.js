@@ -123,6 +123,7 @@ describe("Batch 20 screenshot research and workflow integration", () => {
     assert.ok(strategies.body.strategies.some((item) => item.key === "governed_product_workflow_design"));
 
     const convergence = getUnifiedBatchConvergence();
+    assert.equal(convergence.latestBatch, 25);
     assert.equal(convergence.latestBatch, 24);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 20 && item.repositoryRecords === 5));
     assert.ok(convergence.repositories.some((item) => item.repository === "invoke-ai/InvokeAI" && item.seenInBatches.includes(20)));

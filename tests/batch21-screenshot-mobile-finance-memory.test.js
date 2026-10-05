@@ -118,6 +118,7 @@ describe("Batch 21 screenshot research and integration", () => {
     }
 
     const convergence = getUnifiedBatchConvergence();
+    assert.equal(convergence.latestBatch, 25);
     assert.equal(convergence.latestBatch, 24);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 21 && item.repositoryRecords === 5));
     assert.ok(convergence.repositories.some((item) => item.repository === "1j01/jspaint" && item.seenInBatches.includes(21)));
