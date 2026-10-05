@@ -40,7 +40,7 @@ describe("Batch 25 screenshot research", () => {
       batch.CONFIRMED_EXISTING_RECORDS_BATCH25.map((item) => item.key),
       [
         "n8n_existing",
-        "munder_difflin_existing",
+        "munder_difflin_existing_batch25",
         "tradingview_ai_chart_copilot_existing",
         "paddleocr_existing"
       ]
