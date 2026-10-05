@@ -98,7 +98,7 @@ describe("Batch 19 screenshot skill and business research", () => {
 
   it("includes the new and prior current research batches in platform convergence", () => {
     const convergence = getUnifiedBatchConvergence();
-    assert.equal(convergence.latestBatch, 23);
+    assert.equal(convergence.latestBatch, 24);
     assert.equal(convergence.counts.batches, convergence.batchSummaries.length);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 18));
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 19));

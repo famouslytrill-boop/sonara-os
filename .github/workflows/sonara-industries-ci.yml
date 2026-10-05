@@ -44,6 +44,22 @@ jobs:
 
       - run: pnpm run lint
 
+      # TEMPORARY Batch 24 recovery evidence: materialize generator-owned
+      # capability inventory outputs so they can be committed exactly, then
+      # remove this step before merge.
+      - name: Generate capability inventory recovery artifact
+        run: node scripts/generate-capability-inventory.cjs --write
+
+      - name: Upload capability inventory recovery artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: batch24-capability-inventory-recovery
+          path: |
+            data/capability-inventory.json
+            docs/CAPABILITY_MAP.md
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Run tests
         shell: bash
         run: |

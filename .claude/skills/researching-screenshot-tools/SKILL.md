@@ -231,6 +231,14 @@ The same intake reconciles existing VoiceStudio, Qwen Image 2.1, Whisper Large v
 
 Batch 23 also adds clean-room contracts for deterministic agent-test proof, mobile device security, procedural deterministic media, memory lifecycle, privileged remote operations, voice consent/provenance, vertical workflow templates and design-reference truth.
 
+## Current 2026-10-04 Batch 24 decisions
+
+Batch 24 is documented in `docs/research/SCREENSHOT_TOOL_RADAR_2026-10-04_BATCH24.md` and represented in `lib/sonara-screenshot-tool-radar-batch24.cjs`. Twelve newly verified repository records remain cataloged-disabled and non-executing. Ten already-governed resources are reconciled instead of duplicated, and two duplicate screenshots are explicitly retained only as intake evidence.
+
+CodeGraph is an advisory repository-impact benchmark, never authority to skip tests. Free Claude Code, Sure and Overmind carry reciprocal/mixed-license boundaries. sqlmap is restricted to explicitly authorized owned staging targets and detection-oriented security research; REA is restricted to authorized compatibility/security analysis. Piik contributes screen-sharing privacy patterns. GraphRAG, NVIDIA Model Optimizer and Overmind remain isolated benchmark/reference candidates with provenance, tenant, quality and promotion gates. The AI Agent Tools collection has no detected repository licence and is blocked from code reuse.
+
+Batch 24 also adds clean-room contracts for code-impact graphs, realtime voice turn-taking, document AI ingest, GraphRAG provenance, agent evaluation-to-promotion, project policy files, AI request lifecycle/observability, model optimization, screen-sharing privacy, defensive API security and bounded multi-agent topology.
+
 ## What not to do
 
 Do not bulk-install repositories, add remote install scripts to production, paste credentials into setup commands, run security scanners against unapproved targets, let browser agents bypass site controls, allow infrastructure or model-routing recommendations to mutate production automatically, let media-editor bridges perform destructive work without review, treat cookbook licenses as model licenses, mix copyleft source into proprietary production paths without review, process unbounded OCR uploads in the request process, let social automation publish without explicit authority, copy unlicensed repository material into product code, turn lead directories into indiscriminate scraping/outreach, expose local research dashboards publicly without review, make WebGPU mandatory for core workflows, white-label custom-licensed software contrary to its license, let personal-agent memory imply permission to act, or copy another product's visual identity wholesale. The useful outcome of research is often a SONARA-owned implementation of an idea rather than another dependency.

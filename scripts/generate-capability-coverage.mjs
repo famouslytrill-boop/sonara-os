@@ -135,6 +135,20 @@ lines.push("", "## Gaps to resolve", "", `- ${sortedRoutes.filter(([route]) => !
 
 const content = `${lines.join("\n").trimEnd()}\n`;
 if (process.argv.includes("--check")) {
-  if (!fs.existsSync(output) || fs.readFileSync(output, "utf8") !== content) throw new Error("Capability coverage document is stale; regenerate it.");
+  const current = fs.existsSync(output) ? fs.readFileSync(output, "utf8") : "";
+  if (current !== content) {
+    const currentLines = current.split("\n");
+    const expectedLines = content.split("\n");
+    let index = 0;
+    while (index < currentLines.length && index < expectedLines.length && currentLines[index] === expectedLines[index]) index += 1;
+    const start = Math.max(0, index - 2);
+    const end = Math.min(Math.max(currentLines.length, expectedLines.length), index + 3);
+    console.error(`Capability coverage first mismatch at line ${index + 1}:`);
+    for (let line = start; line < end; line += 1) {
+      console.error(`  ${line + 1} current : ${currentLines[line] ?? "<missing>"}`);
+      console.error(`  ${line + 1} expected: ${expectedLines[line] ?? "<missing>"}`);
+    }
+    throw new Error("Capability coverage document is stale; regenerate it.");
+  }
 } else fs.writeFileSync(output, content);
 console.log(`Capability coverage: ${sortedRoutes.length} paths, ${tableMigrations.size} created tables, ${migrations.length} migrations.`);
