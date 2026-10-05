@@ -1,6 +1,6 @@
 # Migration and runtime release hardening
 
-Checked: 2026-10-04
+Checked: 2026-10-05 (UTC)
 Review by: 2026-10-11
 
 ## Resulting release behavior
@@ -15,17 +15,23 @@ The replay ownership resolver is a small separately tested helper. Ownership tes
 
 The upstream security scan also identified one new credential-shaped webhook fixture in the billing regression test. That synthetic fixture is now assembled from parts, preserving its exact test value and signed-request behavior. No production credential, scanner rule or reviewed-findings baseline is changed.
 
+## Credential changes are separate from ordinary releases
+
+The controlled workflow still validates the protected runtime key against live prices, but automatic pushes and default manual deployments no longer rewrite the Vercel Stripe credential. Synchronization requires a manual workflow dispatch with `synchronize_stripe_runtime_secret` explicitly set to true. The existing protected production environment and live-key checks still apply. This release leaves that option disabled. Tests execute the actual workflow shell block with stubbed external commands to verify default denial, push-event denial even with an injected true flag, explicit manual synchronization, validation-failure refusal and secret-safe output.
+
+Vercel secrets are write-only after saving, so this change does not claim that an exported environment file proves equality with the stored runtime key. Credential rotation remains an explicit owner operation; the existing post-deployment checks still verify the released application.
+
 ## Runtime verification
 
-Official release metadata identified Node **24.21.0 LTS** and **26.10.0 Current** as the latest releases in those majors on the check date. Both local Linux binaries were downloaded from Node.js and verified against their release SHA256 manifests. The application lockfile remains unchanged and pnpm remains pinned to 12.7.0.
+Initial 2026-10-04 release metadata identified Node **24.21.0 LTS** and **26.10.0 Current** as the latest releases in those majors on the check date. Both local Linux binaries were downloaded from Node.js and verified against their release SHA256 manifests. The application lockfile remains unchanged and pnpm remains pinned to 12.7.0.
 
 Vercel's current documented production versions are 24.x, 22.x and 20.x. Advancing the local patch and compatibility testing does not establish Node 26 production hosting support. Production hosting settings are unchanged by this increment.
 
 ## Production migration preflight
 
-Read-only production observations on the check date found PostgreSQL **17.6**, **151 applied migrations**, **409 public tables**, and **zero public tables with RLS disabled**. An enabled RLS flag is not behavioral proof of every policy or grant.
+Initial read-only production observations on 2026-10-04 found PostgreSQL **17.6**, **151 applied migrations**, **409 public tables**, and **zero public tables with RLS disabled**. An enabled RLS flag is not behavioral proof of every policy or grant.
 
-The invoice payment tenant-link migration is already recorded as applied. The candidate's formula seed migration `20261004130000_seed_bounded_planning_formulas.sql` remains unapplied. No SQL was applied to production during this increment. The candidate remains stacked on PR #429, whose release checks must be resolved before the stack can reach main and the controlled production pipeline.
+The invoice payment tenant-link migration is recorded as applied. Follow-up read-only verification on 2026-10-05 UTC found **152 applied migrations**, including `20261004130000_seed_bounded_planning_formulas.sql`. All twelve expected formula definitions are present. This supersedes the earlier pending-seed observation. No SQL was applied by this follow-up. PRs #429 and #430 have merged into main. The credential-change guard is a separate follow-up based on main after the Batch 24/25 research merges. That follow-up also repairs integration syntax, aggregate catalog counts and stale latest-batch assertions while retaining both research batches and their execution boundaries. Every follow-up must pass the full main-target checks before merge and the controlled deployment gates on its merged commit.
 
 The current Supabase PostgreSQL minor-upgrade notice covers 17.6 to 17.11. The observed extension list contains no `ltree` or `btree_gist`; metadata probes found no affected custom selectivity operators and no public function body mentioning PGP encryption. The repository search also found no legacy PGP cipher calls. These limited probes do not inspect encrypted customer data or prove every external caller's behavior. A managed database upgrade still needs its own restore checkpoint, maintenance plan and post-upgrade verification.
 
@@ -35,9 +41,19 @@ The security advisor retains 58 informational no-policy findings and warnings fo
 
 Verification covers explicit binary selection, Unix ownership, migration push integrity, runtime/database matrix coverage, production release dependency, frozen installation, dependency audit, typecheck, lint, the complete server suite, build, generated inventory, route/database/tenant contracts and available local release gates. Local native PostgreSQL execution and complete optional Python-tool measurement remain hosted-CI responsibilities in this workspace. Each published candidate must receive its own successful hosted evidence.
 
-The production formula seed, managed PostgreSQL minor upgrade, real provider transactions, physical-device qualification and observed customer retention are not completed by these checks.
+The formula seed is now recorded as applied. The managed PostgreSQL minor upgrade, real provider transactions, physical-device qualification and observed customer retention are not completed by these checks.
+
+## Hosted evidence and consolidated release
+
+The previously published candidate `fc56f134c3395e0b983f05ae5443dda90477a876` passed all eight triggered workflow runs. [Native replay run 37238678204](https://github.com/famouslytrill-boop/sonara-os/actions/runs/37238678204) executed all 152 migrations in each of six Node/PostgreSQL lanes; none skipped SQL execution. [Runtime compatibility run 37238678112](https://github.com/famouslytrill-boop/sonara-os/actions/runs/37238678112) passed 5,999 tests on each of Node 24.21.0 and Node 26.10.0. [Application CI run 37238678078](https://github.com/famouslytrill-boop/sonara-os/actions/runs/37238678078) measured all 35 Python source files through 238 tests, with 64.1% overall coverage.
+
+Those runs establish execution evidence for that commit. Retargeting the combined candidate to main also requires the workflows limited to main-target pull requests, including security scanning, browser quality and the production dry run. Their results and the eventual merged-SHA deployment evidence must be checked independently; the earlier green runs do not substitute for them.
 
 ## Primary sources
+
+- [Stripe API-key handling](https://docs.stripe.com/keys-best-practices)
+- [Vercel secret visibility](https://vercel.com/docs/environment-variables/sensitive-environment-variables)
+- [GitHub workflow dispatch inputs](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onworkflow_dispatchinputs)
 
 - [Node 24.21.0 release](https://nodejs.org/en/blog/release/v24.21.0)
 - [Node 26.10.0 release](https://nodejs.org/en/blog/release/v26.10.0)

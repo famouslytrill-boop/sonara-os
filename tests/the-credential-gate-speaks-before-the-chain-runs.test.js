@@ -65,6 +65,7 @@ function runScriptOf(stepHeading) {
 }
 
 const PRECONDITION = runScriptOf(PRECONDITION_STEP);
+const SYNCHRONIZATION = runScriptOf(SYNC_STEP);
 
 function bashExecutable() {
   if (process.platform !== "win32") return "bash";
@@ -141,6 +142,69 @@ function runPrecondition(env = {}) {
   fs.rmSync(summaryPath, { force: true });
   return { status, output, summary };
 }
+
+function runSynchronization(env = {}) {
+  const stubs = `
+node() { printf 'LIVE_VALIDATION\\n'; return "\${VERIFY_EXIT:-0}"; }
+pnpm() { cat > /dev/null; printf 'CREDENTIAL_WRITE\\n'; }
+`;
+  try {
+    const output = execFileSync(bashExecutable(), ["-s"], {
+      cwd: workdir,
+      input: stubs + SYNCHRONIZATION,
+      env: {
+        PATH: process.env.PATH,
+        STRIPE_RUNTIME_SECRET_KEY: CANARY,
+        VERCEL_ORG_ID: "fixture-team",
+        VERCEL_PROJECT_ID: "fixture-project",
+        VERCEL_TOKEN: "fixture-token",
+        ...env
+      },
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return { status: 0, output };
+  } catch (error) {
+    return { status: error.status || 1, output: `${error.stdout || ""}${error.stderr || ""}` };
+  }
+}
+
+describe("production credential synchronization requires explicit manual intent", () => {
+  it("declares a boolean manual option disabled by default", () => {
+    assert.match(WORKFLOW, /synchronize_stripe_runtime_secret:\s*\n\s*description:.*\n\s*type: boolean\n\s*required: false\n\s*default: false/);
+    assert.match(WORKFLOW, /STRIPE_RUNTIME_SYNC_REQUESTED: \$\{\{ inputs\.synchronize_stripe_runtime_secret \|\| false \}\}/);
+  });
+
+  for (const [event, requested] of [["push", undefined], ["push", "true"], ["workflow_dispatch", undefined], ["workflow_dispatch", "false"], ["workflow_dispatch", "TRUE"]]) {
+    it(`validates without writing for ${event} with request ${String(requested)}`, () => {
+      const env = { GITHUB_EVENT_NAME: event };
+      if (requested !== undefined) env.STRIPE_RUNTIME_SYNC_REQUESTED = requested;
+      const result = runSynchronization(env);
+      assert.equal(result.status, 0, result.output);
+      assert.match(result.output, /LIVE_VALIDATION/);
+      assert.doesNotMatch(result.output, /CREDENTIAL_WRITE|LEAKCANARY/);
+    });
+  }
+
+  it("synchronizes only after live validation for an explicit manual request", () => {
+    const result = runSynchronization({ GITHUB_EVENT_NAME: "workflow_dispatch", STRIPE_RUNTIME_SYNC_REQUESTED: "true" });
+    assert.equal(result.status, 0, result.output);
+    assert.match(result.output, /LIVE_VALIDATION\s+CREDENTIAL_WRITE/);
+    assert.doesNotMatch(result.output, /LEAKCANARY/);
+  });
+
+  it("refuses a requested write when live validation fails", () => {
+    const result = runSynchronization({ GITHUB_EVENT_NAME: "workflow_dispatch", STRIPE_RUNTIME_SYNC_REQUESTED: "true", VERIFY_EXIT: "7" });
+    assert.equal(result.status, 7);
+    assert.doesNotMatch(result.output, /CREDENTIAL_WRITE|LEAKCANARY/);
+  });
+
+  it("refuses a restricted verifier key even for an explicit manual request", () => {
+    const result = runSynchronization({ GITHUB_EVENT_NAME: "workflow_dispatch", STRIPE_RUNTIME_SYNC_REQUESTED: "true", STRIPE_RUNTIME_SECRET_KEY: VERIFIER_CANARY });
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.output, /LIVE_VALIDATION|CREDENTIAL_WRITE|VERIFIERCANARY/);
+  });
+});
 
 describe("the credential gate speaks before the chain runs", () => {
   it("is the first step that can fail, ahead of everything it would otherwise waste", () => {
