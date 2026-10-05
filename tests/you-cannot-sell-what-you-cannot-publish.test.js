@@ -68,11 +68,22 @@ function blockerIds(result) {
 
 describe("you cannot sell what you cannot publish", () => {
   describe("purchase prerequisites stay separate from listing approval", () => {
-    it("never treats a working payment account as working checkout or delivery", () => {
-      const result = market.purchaseReadiness({ ok: true, payoutsEnabled: true });
-      assert.equal(result.ok, false);
-      assert.deepEqual(result.steps.map((step) => step.state), ["ready", "not_built", "not_built"]);
-      assert.ok(!JSON.stringify(result).includes("trade"));
+    it("never treats a working payment account as working checkout", () => {
+      // Checkout readiness is its own input. A seller whose account works on a
+      // platform with no Connect webhook secret still cannot be paid, because no
+      // payment could be verified and no licence granted.
+      for (const checkout of [undefined, { ok: false }, { ok: "true" }]) {
+        const result = market.purchaseReadiness({ ok: true, payoutsEnabled: true }, checkout);
+        assert.equal(result.ok, false);
+        assert.deepEqual(result.steps.map((step) => step.state), ["ready", "setup_required", "per_listing"]);
+        assert.ok(!JSON.stringify(result).includes("trade"));
+      }
+    });
+
+    it("is ready only when the account and checkout both are", () => {
+      assert.equal(market.purchaseReadiness({ ok: true, payoutsEnabled: true }, { ok: true }).ok, true);
+      assert.equal(market.purchaseReadiness({ ok: false, code: "not_connected" }, { ok: true }).ok, false);
+      assert.deepEqual(market.purchaseReadiness({ ok: true }, { ok: true }).steps.map((step) => step.state), ["ready", "ready", "per_listing"]);
     });
 
     it("distinguishes absent, disabled and unreadable payment accounts", () => {

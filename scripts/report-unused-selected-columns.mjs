@@ -77,6 +77,14 @@ try {
 
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
+  "routes/sonara-marketplace-checkout-routes.cjs": {
+    columns: ["consent_attested", "rights_attested"],
+    reason: [
+      "The listing row read by POST /marketplace/:id/buy is handed whole to purchaseDecision, which passes it to listingReadiness in lib/sonara-creator-marketplace.cjs;",
+      "that function reads both attestations directly (lines 250 and 267 on 5 October 2026: `attestationOf(listing?.rights_attested)` and `attestationOf(listing?.consent_attested)`).",
+      "They are the rights and consent checks a purchase must re-run at the moment of buying, so they are fetched to be used, in the file the row travels to."
+    ].join(" ")
+  },
   "lib/sonara-module-records.cjs": {
     columns: ["created_at"],
     reason: [

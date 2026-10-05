@@ -34,6 +34,7 @@ const registerRotaRoutes = require("./routes/sonara-rota-routes.cjs");
 const registerCreatorApprovalGraphRoutes = require("./routes/sonara-creator-approval-graph-routes.cjs");
 const registerAccountProfileRoutes = require("./routes/sonara-account-profile-routes.cjs");
 const registerCreatorMarketplaceRoutes = require("./routes/sonara-creator-marketplace-routes.cjs");
+const registerMarketplaceCheckoutRoutes = require("./routes/sonara-marketplace-checkout-routes.cjs");
 const { freeToolSentence } = require("./lib/sonara-tool-access.cjs");
 const registerGrowthEventRoutes = require("./routes/sonara-growth-event-routes.cjs");
 const registerGrowthChannelRoutes = require("./routes/sonara-growth-channel-routes.cjs");
@@ -343,6 +344,12 @@ app.use((req, res, next) => { if (req.method === "GET" && !path.extname(req.path
 
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
+// The Creator Studio marketplace's payments, which happen on sellers' connected
+// accounts and are signed with their own webhook secret. Raw, and before the body
+// parsers below, for the same reason as the two above: a parsed body cannot be
+// verified, and an unverifiable payment would grant the buyer nothing.
+app.post("/api/webhooks/stripe-connect", express.raw({ type: "application/json" }),
+  registerMarketplaceCheckoutRoutes.createConnectWebhookHandler({ getEnv, verifyStripeWebhookSignature, getSupabaseServerConfig, supabaseHeaders }));
 
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 app.use(express.json({ limit: "1mb" }));
@@ -745,6 +752,7 @@ registerCreatorApprovalGraphRoutes(app, { layout, brandCard, linkAction, escapeH
 registerAccountProfileRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+registerMarketplaceCheckoutRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });

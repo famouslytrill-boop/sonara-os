@@ -161,6 +161,22 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/webhooks/stripe-connect:
+    post:
+      operationId: receiveStripeConnectWebhook
+      tags: [Creator Studio]
+      summary: Receive a verified Stripe event from a seller's connected account for a marketplace order.
+      description: >-
+        Signed with STRIPE_CONNECT_WEBHOOK_SECRET and verified against the raw body. A checkout
+        event is matched to its order by id and checked against the order's account, session,
+        amount and currency before a licence is granted; a full refund or a dispute revokes it.
+        Replays are safe: transitions are conditional and the grant is keyed on the order.
+      security: [{ stripeSignature: [] }]
+      requestBody: { $ref: "#/components/requestBodies/StripeEvent" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/stripe/webhook:
     post:
       operationId: receiveStripeWebhookAlias

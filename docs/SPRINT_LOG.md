@@ -2,6 +2,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-05 - A marketplace sale is a licence delivered: checkout, settlement, grant, private download, refund
+
+The first convergence chain. A Creator Studio listing could be cleared to sell and
+nobody could buy it. It now runs end to end: asset -> version -> approval ->
+rights/consent -> listing -> **pinned file** -> buyer -> **Stripe Checkout on the
+seller's own account** -> **signed webhook** -> **licence grant** -> **private
+download** -> receipt page -> seller's sales section -> **refund/dispute revokes**
+-> audit trail of every Stripe event.
+
+**Schema** (`20261005010000_a_sale_is_a_licence_delivered.sql`): four service-role
+tables, RLS on with no policies, no DELETE grant anywhere. `creator_version_files`
+pins a copy of the file to the version when it is listed -- insert-only, because the
+asset's one file can be replaced at any time and "deliver version 1" used to mean
+"deliver whatever the asset holds today". `creator_marketplace_orders` snapshots
+title, licence, price, currency, the seller's connected account and the version;
+`state` has seven values including `processing` (a delayed payment: holds the
+listing, never released by expiry). A partial unique index sells an exclusive
+licence once; another keeps one open checkout per buyer per listing.
+`creator_licence_grants` is keyed on the order, so a replayed webhook cannot grant
+twice. `creator_marketplace_payment_events` is keyed on Stripe's event id. The
+migration asserts no card/cvv/pan/application_fee/commission column exists.
+
+**Money path.** Direct charge with `Stripe-Account`, idempotency key per order,
+no application fee (zero commission, as MARKETPLACE_FEES already said). No
+checkout opens unless `STRIPE_CONNECT_WEBHOOK_SECRET` is set -- otherwise a buyer
+could pay for a sale nothing could verify. The webhook is mounted with
+`express.raw` before the body parsers, compares account, session, order,
+amount, currency and payment status against the order, and grants only on
+`paid`. Only a **full** refund revokes; a dispute suspends; nothing is deleted
+and nothing issues a refund (AGENTS.md). Buyer reads are scoped by
+`buyer_user_id`, which the tenant guard now accepts for exactly these two tables;
+the one unscoped listing read and the two webhook order lookups are pinned
+exemptions with fixed column lists.
+
+**Found while building it.** A re-delivered payment for an order already marked
+paid was ignored -- so a grant write that failed after the order update left a
+buyer who paid with no licence, for good. It now re-grants idempotently. The
+public marketplace page described Stripe checkout whether or not checkout was
+configured; it now says which.
+
+**Tests.** `tests/a-sale-is-a-licence-delivered.test.js` (40, every decision with
+the input that would make it wrong) and `tests/buying-a-licence-end-to-end.test.js`
+(16, through the real server, real signature check and real tenant guard).
+`tests/helpers/fake-supabase.cjs` now models `on_conflict` upserts and declared
+unique indexes (409 / 23505); before that a "grant once" test could not fail.
+
+Falsified, each red by name then restored: webhook behind `express.json` (8 red --
+and the first attempt stayed green because the test sent compact JSON that survives
+re-serialisation; it now sends Stripe's indented body); amount check removed; account
+check removed; grant as a plain insert; ignore-duplicates dropped; buyer filter
+dropped from the order page; refunded order revivable (caught by the module test --
+the conditional PATCH and ignore-duplicates grant hold in the e2e, two layers);
+live exclusive hold released; current asset file delivered instead of the pin;
+`Stripe-Account` header removed; unpaid checkout granted.
+
+**Still the owner's.** Set `STRIPE_CONNECT_WEBHOOK_SECRET` from a Connect webhook
+endpoint pointed at `/api/webhooks/stripe-connect` (events: checkout.session.*,
+charge.refunded, charge.dispute.created), apply the migration, and run one sandbox
+purchase. Next chains: merchant storefront payment + reconciliation; inventory /
+order / fulfilment linkage.
+
 ### 2026-10-03 - Import existing subtitles into the Creator Project Graph
 
 Added plain-text SRT import to the existing project command endpoint and project

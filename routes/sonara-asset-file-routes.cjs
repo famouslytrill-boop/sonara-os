@@ -33,6 +33,7 @@
 const express = require("express");
 
 const multipart = require("../lib/sonara-multipart.cjs");
+const crypto = require("node:crypto");
 const storage = require("../lib/sonara-file-storage.cjs");
 
 const REQUIRED = ["layout", "brandCard", "linkAction", "escapeHtml", "requireCustomer", "getCustomerPrimaryOrganization", "getSupabaseServerConfig", "supabaseHeaders"];
@@ -239,6 +240,10 @@ module.exports = function registerAssetFileRoutes(app, deps = {}) {
         bytes: stored.bytes,
         type: verdict.type,
         filename: file.filename,
+        // The file's own fingerprint, so a marketplace sale can check that the
+        // file it pins to a version is the file that version recorded
+        // (lib/sonara-marketplace-orders.cjs pinDecision).
+        sha256: crypto.createHash("sha256").update(file.bytes).digest("hex"),
         at: new Date().toISOString()
       });
       if (!written.ok) {
