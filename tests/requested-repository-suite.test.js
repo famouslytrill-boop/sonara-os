@@ -106,6 +106,10 @@ const {
   NON_REPOSITORY_REFERENCES_BATCH25,
   CONFIRMED_EXISTING_RECORDS_BATCH25
 } = require("../lib/sonara-screenshot-tool-radar-batch25.cjs");
+  SCREENSHOT_TOOL_RADAR_BATCH24,
+  NON_REPOSITORY_REFERENCES_BATCH24,
+  CONFIRMED_EXISTING_RECORDS_BATCH24
+} = require("../lib/sonara-screenshot-tool-radar-batch24.cjs");
 
 const EXPECTED_KEYS = [
   "openhands",
@@ -190,6 +194,7 @@ const SCREENSHOT_BATCH21_KEYS = SCREENSHOT_TOOL_RADAR_BATCH21.map((item) => item
 const SCREENSHOT_BATCH22_KEYS = SCREENSHOT_TOOL_RADAR_BATCH22.map((item) => item.key);
 const SCREENSHOT_BATCH23_KEYS = SCREENSHOT_TOOL_RADAR_BATCH23.map((item) => item.key);
 const SCREENSHOT_BATCH25_KEYS = SCREENSHOT_TOOL_RADAR_BATCH25.map((item) => item.key);
+const SCREENSHOT_BATCH24_KEYS = SCREENSHOT_TOOL_RADAR_BATCH24.map((item) => item.key);
 const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH3,
   ...NON_REPOSITORY_REFERENCES_BATCH5,
@@ -208,6 +213,7 @@ const ALL_NON_REPOSITORY_KEYS = [
   ...NON_REPOSITORY_REFERENCES_BATCH22,
   ...NON_REPOSITORY_REFERENCES_BATCH23,
   ...NON_REPOSITORY_REFERENCES_BATCH25
+  ...NON_REPOSITORY_REFERENCES_BATCH24
 ].map((item) => item.key);
 
 const CORRECTED_REPOSITORIES = {
@@ -726,6 +732,15 @@ describe("requested repository runtime surfaces", () => {
     assert.equal(response.body.screenshotResearchCount, 175);
     assert.equal(response.body.unresolvedVisualLeadCount, 3);
     assert.equal(response.body.nonRepositoryReferenceCount, 180);
+    // disappear from the route while its own module tests still pass. Batch 24
+    // adds 12 repository records, 12 non-repository references and 10 confirmed
+    // existing governed records while adding no executable authority.
+    assert.equal(response.body.repositoryCount, 196);
+    assert.equal(response.body.verifiedCount, 192);
+    assert.equal(response.body.blockedCount, 4);
+    assert.equal(response.body.screenshotResearchCount, 186);
+    assert.equal(response.body.unresolvedVisualLeadCount, 3);
+    assert.equal(response.body.nonRepositoryReferenceCount, 178);
     assert.deepEqual(
       response.body.repositories.map((item) => item.key),
       [
@@ -750,11 +765,13 @@ describe("requested repository runtime surfaces", () => {
         ...SCREENSHOT_BATCH22_KEYS,
         ...SCREENSHOT_BATCH23_KEYS,
         ...SCREENSHOT_BATCH25_KEYS
+        ...SCREENSHOT_BATCH24_KEYS
       ]
     );
     assert.deepEqual(response.body.unresolvedVisualLeads.map((item) => item.key), UNVERIFIED_BATCH2_KEYS);
     assert.deepEqual(response.body.nonRepositoryReferences.map((item) => item.key), ALL_NON_REPOSITORY_KEYS);
     for (const record of [...CONFIRMED_EXISTING_RECORDS_BATCH21, ...CONFIRMED_EXISTING_RECORDS_BATCH23, ...CONFIRMED_EXISTING_RECORDS_BATCH25]) {
+    for (const record of [...CONFIRMED_EXISTING_RECORDS_BATCH21, ...CONFIRMED_EXISTING_RECORDS_BATCH23, ...CONFIRMED_EXISTING_RECORDS_BATCH24]) {
       assert.ok(response.body.confirmedExistingRecords.some((item) => item.key === record.key), record.key);
     }
   });
@@ -765,6 +782,8 @@ describe("requested repository runtime surfaces", () => {
     assert.match(response.text, /Governed external repository intake/);
     assert.match(response.text, /175 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
     assert.match(response.text, /180 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
+    assert.match(response.text, /186 additional developer, design, media, security, research, infrastructure, document, social, 3D, GPU, AI-workspace, and agent tools/);
+    assert.match(response.text, /178 screenshot items are kept as hosted services, learning references, or unresolved non-repository leads/);
     assert.match(response.text, /Tool gateway boundary: Screenshot architecture/);
     assert.match(response.text, /Typed fast-decision lane: Screenshot architecture/);
     assert.match(response.text, /3 screenshot concepts remain intentionally unlinked/);

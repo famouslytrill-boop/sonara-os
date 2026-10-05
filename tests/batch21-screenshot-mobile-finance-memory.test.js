@@ -101,7 +101,7 @@ describe("Batch 21 screenshot research and integration", () => {
 
     const latest = await request(app).get("/research-lab/latest-screenshot-intake");
     assert.equal(latest.status, 200);
-    assert.match(latest.text, /through Batch 23/i);
+    assert.match(latest.text, /through Batch 24/i);
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
 
     const readiness = await request(app)
@@ -119,6 +119,7 @@ describe("Batch 21 screenshot research and integration", () => {
 
     const convergence = getUnifiedBatchConvergence();
     assert.equal(convergence.latestBatch, 25);
+    assert.equal(convergence.latestBatch, 24);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 21 && item.repositoryRecords === 5));
     assert.ok(convergence.repositories.some((item) => item.repository === "1j01/jspaint" && item.seenInBatches.includes(21)));
     assert.equal(convergence.counts.productionExecutionAdded, 0);
