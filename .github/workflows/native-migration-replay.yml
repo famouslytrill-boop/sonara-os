@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [22, 24, 26]
-        postgres: [16, 17]
+        postgres: [16, 17, 18]
     env:
       POSTGRES_MAJOR: ${{ matrix.postgres }}
       POSTGRES_BIN: /usr/lib/postgresql/${{ matrix.postgres }}/bin
@@ -33,7 +33,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes curl ca-certificates
           # Ubuntu 24.04 includes PostgreSQL 16; the official PGDG repository
-          # supplies the maintained PostgreSQL 17 packages used by production.
+          # supplies PostgreSQL 17 and the PostgreSQL 18 compatibility candidate.
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl --fail --show-error --silent --location \
             https://www.postgresql.org/media/keys/ACCC4CF8.asc \
