@@ -19,6 +19,8 @@ const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_S
 const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const failures = [];
 const warnings = [];
+const transport = { requests: 0, attempts: 0, recovered: 0 };
+let connectivityTablesChecked = 0;
 
 if (!supabaseUrl) failures.push("SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is not configured");
 if (!serviceRoleKey) failures.push("SUPABASE_SERVICE_ROLE_KEY is not configured");
@@ -86,7 +88,9 @@ finish({
   localMigrations: migrationState.versions.size,
   appliedMigrations: appliedMigrations.size,
   requiredFunctions: DATABASE_FUNCTIONS.length + DURABLE_EVENT_FOUNDATION_FUNCTIONS.length + 1,
-  requiredBuckets: STORAGE_BUCKETS.length
+  requiredBuckets: STORAGE_BUCKETS.length,
+  connectivityTablesChecked,
+  transport
 });
 
 function verifyTableState(tableName, table, { required, classification }) {
@@ -173,6 +177,8 @@ async function fetchSnapshot() {
 }
 
 async function verifyPostgrestConnectivity(activeTables) {
+  // Probe every active contract table without reading customer rows. Bound
+  // concurrency so a restore/schema-cache recovery does not flood PostgREST.
   const preferred = [
     "organizations",
     "service_catalog_items",
@@ -183,26 +189,34 @@ async function verifyPostgrestConnectivity(activeTables) {
     "market_intelligence_segments",
     "product_lifecycle_initiatives"
   ].filter((table) => activeTables.has(table));
-
-  for (const tableName of preferred) {
-    const response = await requestWithRetry(
-      `${supabaseUrl}/rest/v1/${encodeURIComponent(tableName)}?select=*&limit=0`,
-      { method: "GET", headers: serviceHeaders() },
-      `PostgREST connectivity for public.${tableName}`
-    );
-    if (!response.ok) {
-      const payload = await safeJson(response);
-      failures.push(`PostgREST cannot reach public.${tableName} (HTTP ${response.status}): ${safeMessage(payload)}`);
+  // Keep the established high-value probes first, then cover the remainder.
+  const queue = [...preferred, ...[...activeTables].filter((table) => !preferred.includes(table)).sort()];
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, async () => {
+    while (queue.length) {
+      const tableName = queue.shift();
+      const response = await requestWithRetry(
+        `${supabaseUrl}/rest/v1/${encodeURIComponent(tableName)}?select=*&limit=0`,
+        { method: "GET", headers: serviceHeaders() },
+        `PostgREST connectivity for public.${tableName}`
+      );
+      connectivityTablesChecked += 1;
+      if (!response.ok) {
+        const payload = await safeJson(response);
+        failures.push(`PostgREST cannot reach public.${tableName} (HTTP ${response.status}): ${safeMessage(payload)}`);
+      }
     }
-  }
+  }));
 }
 
 async function requestWithRetry(url, options, label) {
+  transport.requests += 1;
   let lastResponse;
   let lastError;
   for (let attempt = 1; attempt <= 12; attempt += 1) {
+    transport.attempts += 1;
     try {
       lastResponse = await fetch(url, { ...options, signal: AbortSignal.timeout(5000), redirect: "error" });
+      if (lastResponse.ok && attempt > 1) transport.recovered += 1;
       if (lastResponse.ok || ![404, 502, 503, 504].includes(lastResponse.status)) return lastResponse;
     } catch (error) {
       lastError = error;

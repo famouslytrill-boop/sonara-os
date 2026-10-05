@@ -63,7 +63,7 @@ describe("the migrations are executed somewhere, not only read", () => {
       assert.match(lane, /if: always\(\)/);
       assert.match(lane, /Native replay requires a non-root runner/);
       assert.match(lane, /node: \[22, 24, 26\]/);
-      assert.match(lane, /postgres: \[16, 17\]/);
+      assert.match(lane, /postgres: \[16, 17, 18\]/);
       assert.match(lane, /--postgres-bin "\$POSTGRES_BIN"/);
       assert.match(lane, /node --version > replay-evidence\/node-version\.txt/);
       assert.match(lane, /postgres-\$\{\{ matrix\.postgres \}\}/);

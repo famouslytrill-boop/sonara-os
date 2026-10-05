@@ -9,6 +9,9 @@ on:
       - "supabase/migrations/**"
       - "supabase/applied-migration-checksums.json"
       - "scripts/verify-production-project-identity.mjs"
+      - "scripts/verify-production-supabase.mjs"
+      - "lib/sonara-database-contract.cjs"
+      - "lib/sonara-database-retirement-contract.cjs"
       - "scripts/verify-google-oauth-provider.mjs"
       - "scripts/verify-stripe-env.mjs"
       - "scripts/audit-dependencies.mjs"
@@ -147,6 +150,11 @@ jobs:
             --token="$VERCEL_TOKEN"
           test -s .env.production.dry-run
 
+      - name: Verify active production database tables without reading customer rows
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node --env-file=.env.production.dry-run scripts/verify-production-supabase.mjs
+
       - name: Require live Google sign-in provider
         shell: bash
         run: |
@@ -177,7 +185,7 @@ jobs:
           {
             echo "### Controlled production deployment dry run"
             echo
-            echo "Validated build, tests, dependency audit, route/database/API/open-source contracts, production project identity, linked migration preview, hosted Google provider readiness, Vercel production configuration readability, and both Stripe production credentials."
+            echo "Validated build, tests, dependency audit, route/database/API/open-source contracts, production project identity, active production table access, linked migration preview, hosted Google provider readiness, Vercel production configuration readability, and both Stripe production credentials."
             echo
             echo "**No production mutation was performed.**"
             echo "- No Supabase migration apply"

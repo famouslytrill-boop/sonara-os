@@ -267,6 +267,12 @@ describe("Batch 1-10 convergence control plane", () => {
       const result = evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "operational_fact", source: "record", purpose: "assist", sensitivity, userApproved: true });
       assert.equal(result.status, "blocked", `${sensitivity} must never become learned memory`);
     }
+    for (const sensitivity of ["unclassified", "api-key", "finanical_data"]) {
+      const result = evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "operational_fact", source: "record", purpose: "assist", sensitivity, userApproved: true });
+      assert.equal(result.status, "blocked");
+      assert.equal(result.reason, "unknown_sensitivity_must_not_be_learned");
+      assert.equal(result.persistable, false);
+    }
     assert.equal(evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "owner_preference", source: "owner", purpose: "personalize" }).status, "review_required");
     assert.equal(evaluateMemoryCandidate({ organizationId: "org-1", memoryClass: "owner_preference", source: "owner", purpose: "personalize", userApproved: true }).status, "retain_candidate");
   });
