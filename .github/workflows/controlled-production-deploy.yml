@@ -18,6 +18,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      synchronize_stripe_runtime_secret:
+        description: "Explicitly synchronize the verified Stripe runtime credential"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -160,7 +166,7 @@ jobs:
         # It is validated again, properly, in "Synchronize verified Stripe
         # runtime secret to Vercel production" -- against the live configured
         # prices, which is the only check that can prove the key works. That
-        # step is unchanged and remains the authority.
+        # step remains the authority; credential writes require manual opt-in.
         #
         # The problem was WHEN it first spoke. That step is roughly the
         # seventeenth in this job: dependency install, audit, build, the whole
@@ -461,6 +467,7 @@ jobs:
       - name: Synchronize verified Stripe runtime secret to Vercel production
         shell: bash
         env:
+          STRIPE_RUNTIME_SYNC_REQUESTED: ${{ inputs.synchronize_stripe_runtime_secret || false }}
           STRIPE_RUNTIME_SECRET_KEY: ${{ secrets.STRIPE_RUNTIME_SECRET_KEY }}
           STRIPE_VERIFIER_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
@@ -475,6 +482,13 @@ jobs:
           esac
           STRIPE_SECRET_KEY="$runtime_key" \
             node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
+          # Ordinary code/migration releases must not rotate credentials.
+          # Only an explicitly selected manual dispatch may synchronize a key.
+          if [ "${GITHUB_EVENT_NAME:-}" != "workflow_dispatch" ] || [ "${STRIPE_RUNTIME_SYNC_REQUESTED:-false}" != "true" ]; then
+            echo "Runtime key validation passed; credential synchronization was not requested."
+            unset runtime_key
+            exit 0
+          fi
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
           printf '%s' "$runtime_key" | pnpm dlx vercel@59.19.1 env add STRIPE_SECRET_KEY production \

@@ -129,12 +129,12 @@ describe("Batch 24 screenshot research", () => {
 
     const latest = await request(app).get("/research-lab/latest-screenshot-intake");
     assert.equal(latest.status, 200);
-    assert.match(latest.text, /through Batch 24/i);
+    assert.match(latest.text, /through Batch 25/i);
     assert.match(latest.text, /0 latest-intake repositories are enabled/i);
 
     const convergence = getUnifiedBatchConvergence();
-    assert.equal(convergence.latestBatch, 24);
-    assert.match(convergence.mode, /batch_1_24/i);
+    assert.equal(convergence.latestBatch, 25);
+    assert.match(convergence.mode, /batch_1_25/i);
     assert.ok(convergence.batchSummaries.some((item) => item.batch === 24 && item.repositoryRecords === 12));
     assert.ok(convergence.repositories.some((item) => item.repository.toLowerCase() === "microsoft/graphrag" && item.seenInBatches.includes(24)));
     assert.equal(convergence.counts.productionExecutionAdded, 0);

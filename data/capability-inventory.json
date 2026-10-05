@@ -97,14 +97,14 @@
     "businessAISkillCount": 10,
     "openSourceRegisterCount": 269,
     "requestedRepositoryCount": 10,
-    "screenshotRadarRepositoryRecordCount": 165,
-    "screenshotRadarBatchCount": 18,
+    "screenshotRadarRepositoryRecordCount": 178,
+    "screenshotRadarBatchCount": 20,
     "githubRadarRepositoryCount": 15,
-    "repositoryRecordCountAcrossCatalogs": 519,
+    "repositoryRecordCountAcrossCatalogs": 532,
     "otherReferenceCatalogRecordCount": 25,
-    "catalogEntryCountAcrossAllRegistries": 544,
+    "catalogEntryCountAcrossAllRegistries": 557,
     "repositoryRecordsEnabledInProduction": 0,
-    "researchOrReferenceRepositoryRecordCount": 279,
+    "researchOrReferenceRepositoryRecordCount": 289,
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
@@ -21348,7 +21348,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 133
+        "line": 148
       },
       "contractCompleteness": {
         "route": true,
@@ -21546,7 +21546,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 137
+        "line": 152
       },
       "contractCompleteness": {
         "route": true,
@@ -88678,7 +88678,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 229
+        "line": 247
       },
       "contractCompleteness": {
         "route": true,
@@ -88830,7 +88830,7 @@
       },
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 159
+        "line": 174
       },
       "contractCompleteness": {
         "route": true,
@@ -253054,6 +253054,277 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:colbymchenry_codegraph",
+        "name": "CodeGraph",
+        "repository": "colbymchenry/codegraph",
+        "repoUrl": "https://github.com/colbymchenry/codegraph",
+        "status": "reference_only_benchmark_candidate",
+        "license": "MIT",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Engineering Intelligence",
+          "Release Evidence"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:alishahryar1_free_claude_code",
+        "name": "Free Claude Code",
+        "repository": "Alishahryar1/free-claude-code",
+        "repoUrl": "https://github.com/Alishahryar1/free-claude-code",
+        "status": "research_only_copyleft_and_provider_review",
+        "license": "AGPL-3.0-only",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Agent Control Plane",
+          "Provider Gateway"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:nexmoe_vidbee",
+        "name": "VidBee",
+        "repository": "nexmoe/VidBee",
+        "repoUrl": "https://github.com/nexmoe/VidBee",
+        "status": "reference_only_rights_and_provider_review",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Media Library",
+          "Transcript Workflow"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:sqlmapproject_sqlmap",
+        "name": "sqlmap",
+        "repository": "sqlmapproject/sqlmap",
+        "repoUrl": "https://github.com/sqlmapproject/sqlmap",
+        "status": "authorized_staging_research_only",
+        "license": "GPL-2.0-or-later with project clarifications; alternative commercial licence offered upstream",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Security Verification"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:we_promise_sure",
+        "name": "Sure",
+        "repository": "we-promise/sure",
+        "repoUrl": "https://github.com/we-promise/sure",
+        "status": "research_only_copyleft_financial_data_boundary",
+        "license": "AGPL-3.0",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Business Builder",
+          "Financial Operations",
+          "Product Design"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:tntcrafthim_piik",
+        "name": "Piik",
+        "repository": "TNTcraftHIM/Piik",
+        "repoUrl": "https://github.com/TNTcraftHIM/Piik",
+        "status": "reference_only_privacy_and_realtime_review",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Collaboration",
+          "Device Capabilities"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:microsoft_graphrag",
+        "name": "Microsoft GraphRAG",
+        "repository": "microsoft/graphrag",
+        "repoUrl": "https://github.com/microsoft/graphrag",
+        "status": "reference_only_retrieval_benchmark",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Business Builder",
+          "Growth Studio",
+          "Agent Control Plane"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:microsoft_data_science_for_beginners",
+        "name": "Data Science for Beginners",
+        "repository": "microsoft/Data-Science-For-Beginners",
+        "repoUrl": "https://github.com/microsoft/Data-Science-For-Beginners",
+        "status": "educational_reference_only",
+        "license": "MIT",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:morluto_rea",
+        "name": "REA — Reverse Engineer Anything",
+        "repository": "morluto/rea",
+        "repoUrl": "https://github.com/morluto/rea",
+        "status": "research_only_authorization_required",
+        "license": "MIT",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Compatibility Research",
+          "Security Verification"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:overmind_core_overmind",
+        "name": "Overmind",
+        "repository": "overmind-core/overmind",
+        "repoUrl": "https://github.com/overmind-core/overmind",
+        "status": "research_only_mixed_license_privileged_execution",
+        "license": "Mixed: SDK/CLI/client libraries under overmind/ are MIT; repository remainder AGPL-3.0",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Agent Control Plane",
+          "Internal Development",
+          "Evaluation"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:nvidia_model_optimizer",
+        "name": "NVIDIA Model Optimizer",
+        "repository": "NVIDIA/Model-Optimizer",
+        "repoUrl": "https://github.com/NVIDIA/Model-Optimizer",
+        "status": "benchmark_candidate_isolated_worker_only",
+        "license": "Apache-2.0",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Model Engine Control Plane",
+          "Infrastructure"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:cporter202_ai_agent_tools",
+        "name": "AI Agent Tools collection",
+        "repository": "cporter202/ai-agent-tools",
+        "repoUrl": "https://github.com/cporter202/ai-agent-tools",
+        "status": "blocked",
+        "license": "NOASSERTION — no repository licence was detected during intake",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch25.cjs:headcount",
+        "name": "headcount",
+        "repository": "cbrock84/headcount",
+        "repoUrl": "https://github.com/cbrock84/headcount",
+        "status": "curated_reference_no_install",
+        "license": "MIT",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Agent Control Plane",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch25.cjs",
+        "batch": "screenshot_batch_25",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:GrowthBook",
         "name": "GrowthBook",
         "repository": "growthbook/growthbook",
@@ -260487,6 +260758,215 @@
         "repositoryUrlPresent": true
       },
       {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:colbymchenry_codegraph",
+        "name": "CodeGraph",
+        "repository": "colbymchenry/codegraph",
+        "repoUrl": "https://github.com/colbymchenry/codegraph",
+        "status": "reference_only_benchmark_candidate",
+        "license": "MIT",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Engineering Intelligence",
+          "Release Evidence"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:alishahryar1_free_claude_code",
+        "name": "Free Claude Code",
+        "repository": "Alishahryar1/free-claude-code",
+        "repoUrl": "https://github.com/Alishahryar1/free-claude-code",
+        "status": "research_only_copyleft_and_provider_review",
+        "license": "AGPL-3.0-only",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Agent Control Plane",
+          "Provider Gateway"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:nexmoe_vidbee",
+        "name": "VidBee",
+        "repository": "nexmoe/VidBee",
+        "repoUrl": "https://github.com/nexmoe/VidBee",
+        "status": "reference_only_rights_and_provider_review",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Media Library",
+          "Transcript Workflow"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:sqlmapproject_sqlmap",
+        "name": "sqlmap",
+        "repository": "sqlmapproject/sqlmap",
+        "repoUrl": "https://github.com/sqlmapproject/sqlmap",
+        "status": "authorized_staging_research_only",
+        "license": "GPL-2.0-or-later with project clarifications; alternative commercial licence offered upstream",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Security Verification"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:we_promise_sure",
+        "name": "Sure",
+        "repository": "we-promise/sure",
+        "repoUrl": "https://github.com/we-promise/sure",
+        "status": "research_only_copyleft_financial_data_boundary",
+        "license": "AGPL-3.0",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Business Builder",
+          "Financial Operations",
+          "Product Design"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:tntcrafthim_piik",
+        "name": "Piik",
+        "repository": "TNTcraftHIM/Piik",
+        "repoUrl": "https://github.com/TNTcraftHIM/Piik",
+        "status": "reference_only_privacy_and_realtime_review",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Collaboration",
+          "Device Capabilities"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:microsoft_graphrag",
+        "name": "Microsoft GraphRAG",
+        "repository": "microsoft/graphrag",
+        "repoUrl": "https://github.com/microsoft/graphrag",
+        "status": "reference_only_retrieval_benchmark",
+        "license": "MIT",
+        "licenseRisk": "medium",
+        "category": [],
+        "productFit": [
+          "Creator Studio",
+          "Business Builder",
+          "Growth Studio",
+          "Agent Control Plane"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:microsoft_data_science_for_beginners",
+        "name": "Data Science for Beginners",
+        "repository": "microsoft/Data-Science-For-Beginners",
+        "repoUrl": "https://github.com/microsoft/Data-Science-For-Beginners",
+        "status": "educational_reference_only",
+        "license": "MIT",
+        "licenseRisk": "low",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Research Lab"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:morluto_rea",
+        "name": "REA — Reverse Engineer Anything",
+        "repository": "morluto/rea",
+        "repoUrl": "https://github.com/morluto/rea",
+        "status": "research_only_authorization_required",
+        "license": "MIT",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Internal Development",
+          "Compatibility Research",
+          "Security Verification"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
+        "id": "lib/sonara-screenshot-tool-radar-batch24.cjs:overmind_core_overmind",
+        "name": "Overmind",
+        "repository": "overmind-core/overmind",
+        "repoUrl": "https://github.com/overmind-core/overmind",
+        "status": "research_only_mixed_license_privileged_execution",
+        "license": "Mixed: SDK/CLI/client libraries under overmind/ are MIT; repository remainder AGPL-3.0",
+        "licenseRisk": "high",
+        "category": [],
+        "productFit": [
+          "Agent Control Plane",
+          "Internal Development",
+          "Evaluation"
+        ],
+        "enabledInProduction": false,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "batch": "screenshot_batch_24",
+        "catalogRoute": "/research-lab/open-source",
+        "repositoryVerified": true,
+        "repositoryUrlPresent": true
+      },
+      {
         "id": "data/github-radar-repos.ts:Documenso",
         "name": "Documenso",
         "repository": "documenso/documenso",
@@ -261255,27 +261735,38 @@
     "statusCountsAcrossSourceRecords": {
       "adapt_patterns_after_review": 10,
       "adapter_built": 9,
-      "blocked": 54,
+      "authorized_staging_research_only": 1,
+      "benchmark_candidate_isolated_worker_only": 1,
+      "blocked": 55,
       "blocked_commercial_source": 1,
       "curated_reference": 22,
+      "curated_reference_no_install": 1,
       "developer_only": 9,
       "developer_tool_after_review": 5,
       "developer_tool_candidate": 4,
+      "educational_reference_only": 1,
       "install_target_pinned": 30,
       "needs_license_review": 17,
       "needs_security_review": 4,
       "optional_adapter_after_review": 67,
       "quarantined_reference": 1,
       "reference_only": 131,
-      "reference_only_benchmark_candidate": 1,
+      "reference_only_benchmark_candidate": 2,
       "reference_only_license_gated": 12,
       "reference_only_memory_benchmark": 1,
       "reference_only_model_terms_blocked": 1,
       "reference_only_no_license": 5,
+      "reference_only_privacy_and_realtime_review": 1,
       "reference_only_privileged_agent_workspace": 1,
       "reference_only_privileged_local_tool": 1,
+      "reference_only_retrieval_benchmark": 1,
+      "reference_only_rights_and_provider_review": 1,
       "research_only": 109,
+      "research_only_authorization_required": 1,
+      "research_only_copyleft_and_provider_review": 1,
+      "research_only_copyleft_financial_data_boundary": 1,
       "research_only_license_gated": 3,
+      "research_only_mixed_license_privileged_execution": 1,
       "research_only_pre1": 1,
       "research_only_privacy_gated": 1,
       "research_only_privileged_remote_operations": 1,
@@ -261423,6 +261914,18 @@
         "batch": 23,
         "source": "lib/sonara-screenshot-tool-radar-batch23.cjs",
         "entryCount": 7
+      },
+      {
+        "id": "screenshot_radar_batch_24",
+        "batch": 24,
+        "source": "lib/sonara-screenshot-tool-radar-batch24.cjs",
+        "entryCount": 12
+      },
+      {
+        "id": "screenshot_radar_batch_25",
+        "batch": 25,
+        "source": "lib/sonara-screenshot-tool-radar-batch25.cjs",
+        "entryCount": 1
       },
       {
         "id": "github_radar",
@@ -264222,7 +264725,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 133
+        "line": 148
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
@@ -264252,7 +264755,7 @@
       "kind": "api",
       "source": {
         "file": "routes/sonara-requested-repositories-routes.cjs",
-        "line": 137
+        "line": 152
       },
       "destination": {
         "route": "/research-lab/requested-repositories",
