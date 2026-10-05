@@ -15,6 +15,8 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
+const { spawnSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 const releaseCheck = fs.readFileSync(path.join(root, "scripts", "verify-stripe-env.mjs"), "utf8");
@@ -22,6 +24,35 @@ const runtimeGuard = fs.readFileSync(path.join(root, "lib", "sonara-billing.cjs"
 const ladder = fs.readFileSync(path.join(root, "lib", "sonara-stripe-plans.cjs"), "utf8");
 
 describe("the two Stripe checks ask the same question", () => {
+  it("fails a required live run when one price matches and another cannot be reached", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-stripe-partial-"));
+    try {
+      fs.mkdirSync(path.join(dir, "scripts"));
+      fs.mkdirSync(path.join(dir, "lib"));
+      fs.writeFileSync(path.join(dir, "scripts", "verify-stripe-env.mjs"), releaseCheck);
+      fs.writeFileSync(path.join(dir, ".env.example"), "PRICE_ONE=\nPRICE_TWO=\n");
+      fs.writeFileSync(path.join(dir, "server.js"), `// stripe-signature
+module.exports = { STRIPE_PLANS: {
+  first: { env: 'PRICE_ONE', mode: 'payment', amountCents: 100, price: '$1/mo' },
+  second: { env: 'PRICE_TWO', mode: 'payment', amountCents: 100, price: '$1/mo' }
+}};
+`);
+      fs.writeFileSync(path.join(dir, "lib", "sonara-stripe-plans.cjs"), "module.exports = { offeredPlanKeys: () => ['first', 'second'] };\n");
+      fs.writeFileSync(path.join(dir, "provider.cjs"), `global.fetch = async (url) => {
+  if (String(url).includes('price_two')) throw new Error('synthetic transport failure');
+  return new Response(JSON.stringify({active:true,unit_amount:100,currency:'usd',product:{active:true}}));
+};\n`);
+      const result = spawnSync(process.execPath, ["--require", "./provider.cjs", "scripts/verify-stripe-env.mjs", "--require-live"], {
+        cwd: dir, encoding: "utf8", timeout: 10000,
+        env: { ...process.env, STRIPE_SECRET_KEY: ['rk','live','synthetic'].join('_'), PRICE_ONE: "price_one", PRICE_TWO: "price_two" }
+      });
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stdout, /Stripe charges exactly what the pricing page advertises/);
+      assert.match(result.stderr, /second: could not reach Stripe; amounts not compared/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
   it("is reading all three source files", () => {
     assert.ok(
       releaseCheck.length > 500 && runtimeGuard.length > 500 && ladder.length > 500,

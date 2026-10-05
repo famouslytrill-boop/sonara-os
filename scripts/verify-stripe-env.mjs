@@ -142,8 +142,10 @@ if (!isPlaceholder(secret) && !looksLikeStripeKey) {
       }
 
       price = await response.json();
-    } catch (error) {
-      skip(`${plan}: could not reach Stripe (${error.message}); amounts not compared`);
+    } catch {
+      const message = `${plan}: could not reach Stripe; amounts not compared`;
+      if (requireLive) fail(message);
+      else skip(message);
       continue;
     }
 
