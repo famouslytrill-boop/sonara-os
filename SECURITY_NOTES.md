@@ -74,6 +74,19 @@ look like the same accepted noise. The decision to make them actionable --
 whether to adopt a scanner-visible limiter across the application -- is the
 owner's, and it belongs to every route in the codebase, not to this one feature.
 
+**A third, on 6 October 2026: `POST /api/webhooks/stripe-connect`** (PR #436),
+the Creator Studio marketplace's Stripe Connect webhook. Same alert, same reading:
+it is limited by `createRateLimiter` (`stripe_connect_webhook`, 600 a minute per
+address, first in the route's stack), which CodeQL has no model for. Stripe
+retries a 429 with backoff, so the ceiling delays a burst rather than losing a
+payment. `tests/buying-a-licence-end-to-end.test.js` proves it with the counter
+mocked: a refused request answers 429 with `Retry-After` before the signature is
+checked or any table is read, and the buy button beside it (`marketplace_buy`,
+120 per ten minutes, per address **and** per person) refuses without reaching
+Stripe. Falsified: limiter removed from the webhook (three red), `subject` scope
+dropped (one red), ceiling raised to 10,000 (one red). Left open on the same terms
+as the two above.
+
 ## Shell commands built from TMPDIR, 15 September 2026
 
 No check was weakened. This records a real fix with a verified exploit path,
@@ -130,6 +143,32 @@ Additional moderate findings were resolved by:
   exposed. It was still a real patch rather than an exemption: the version in
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
+
+### 5 October 2026 -- `proxy-addr`, reached through `express`
+
+The OSV gate in `open-source-security-scans.yml` went red on
+**GHSA-jqcg-44mw-7w3h** (critical, CVSS 9.1): `proxy-addr` IP spoofing via an
+IPv4-mapped IPv6 address matching a trusted subnet, affecting `>=1.1.0 <2.0.8`.
+OSV published it at 23:30 UTC on 5 October; the previous green scan was the same
+morning. The tree resolved `proxy-addr@2.0.7` through `express > proxy-addr`, and
+nothing in this repository's dependencies had changed.
+
+Fixed by a pnpm workspace override, the existing pattern:
+
+    "proxy-addr@<2.0.8": "2.0.8"
+
+`2.0.8` is inside the range `express@^4.18.2` accepts (`~2.0.7`), so no direct
+dependency moved. Reproduced first with the same checksum-pinned OSV Scanner 2.6.0
+the workflow uses -- one critical finding -- then the same command clean after
+the change.
+
+Exposure, stated rather than assumed: `proxy-addr` decides which forwarded
+addresses Express trusts, and only when `trust proxy` is set. This application
+never sets it (`lib/sonara-rate-limit.cjs` explains why), so the trust function
+the advisory concerns is not configured here. It is patched anyway, because
+"not reachable today" lasts only until somebody sets `trust proxy`.
+
+**No threshold moved and no check was weakened.** The version in the tree changed.
 
 ### 3 October 2026 -- `braces`, with no fixed version, removed by removing what pulled it in
 

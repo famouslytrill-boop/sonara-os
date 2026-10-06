@@ -110,7 +110,10 @@ function buildApp({
     getCustomerPrimaryOrganization: async () => (organization ? { ok: true, organizationId: organization } : { ok: false }),
     getSupabaseServerConfig: () => (configOk ? { ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" } : { ok: false }),
     supabaseHeaders: () => ({ apikey: "server-only" }),
-    createRateLimiter: () => (req, res, next) => next()
+    createRateLimiter: () => (req, res, next) => next(),
+    // Online payment off: this file is about pricing an order, and the paying
+    // half is tests/a-storefront-order-is-paid-on-the-shops-account.test.js.
+    getEnv: () => ""
   });
   return { app, calls };
 }
@@ -637,10 +640,13 @@ describe("a price nobody set is not free", () => {
       assert.equal(patches(missing.calls, "merchant_orders").length, 0);
     });
 
-    it("tells the owner it takes no payment and changes no stock", async () => {
+    it("tells the owner it takes no payment when online payment is off, and changes no stock", async () => {
+      // With online payment on, the same card says buyers pay on Stripe -- asserted
+      // in tests/a-storefront-order-is-paid-on-the-shops-account.test.js.
       const { app } = buildApp();
       const response = await request(app).get(OWNER_PAGE);
-      assert.match(response.text, /does not take payment/);
+      assert.match(response.text, /Online payment is not switched on for shops on this platform yet, so no card details are typed here or stored/);
+      assert.doesNotMatch(response.text, /goes straight to Stripe's checkout/);
       assert.match(response.text, /does not change your stock counts/);
     });
   });
@@ -683,7 +689,7 @@ describe("a price nobody set is not free", () => {
     });
 
     it("refuses to register without every dependency it uses", () => {
-      const required = ["layout", "brandCard", "linkAction", "escapeHtml", "requireBusinessManager", "getCustomerPrimaryOrganization", "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter"];
+      const required = ["layout", "brandCard", "linkAction", "escapeHtml", "requireBusinessManager", "getCustomerPrimaryOrganization", "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter", "getEnv"];
       for (const missing of required) {
         const deps = Object.fromEntries(required.filter((name) => name !== missing).map((name) => [name, () => {}]));
         assert.throws(() => registerMerchantStoreRoutes(express(), deps), new RegExp(missing), `registering without ${missing} did not throw`);

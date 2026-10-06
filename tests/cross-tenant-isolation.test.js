@@ -22,6 +22,7 @@ const request = require("supertest");
 
 const { createFakeSupabase } = require("./helpers/fake-supabase.cjs");
 const { TENANT_SCOPED_TABLES } = require("../lib/sonara-tenant-scoped-tables.cjs");
+const tenantGuard = require("../lib/sonara-tenant-guard.cjs");
 
 const ORG_A = "aaaaaaaa-0000-0000-0000-00000000000a";
 const ORG_B = "bbbbbbbb-0000-0000-0000-00000000000b";
@@ -187,6 +188,7 @@ describe("one organization cannot read another's records", () => {
     it(`never asks for another organization's rows when signed in as ${signedInAs}`, async function checkQueries() {
       this.timeout(60000);
       const ownOrganization = ownMarker === "ALPHA" ? ORG_A : ORG_B;
+      const ownUser = ownMarker === "ALPHA" ? USER_A : USER_B;
       const otherOrganization = ownMarker === "ALPHA" ? ORG_B : ORG_A;
 
       const wrong = [];
@@ -210,7 +212,17 @@ describe("one organization cannot read another's records", () => {
           // guard permits a few shapes -- existence probes, user-scoped reads
           // -- and those are fine; anything else reads across tenants.
           if (!organizationFilter) {
-            const userFilter = query.filters.find((filter) => filter.column === "user_id");
+            // A person's own rows, through the column the tenant guard names for
+            // this table: user_id on the personal tables, buyer_user_id on a
+            // buyer's purchases, which span every seller and so carry no single
+            // organization. It has to be THIS person -- a filter naming somebody
+            // else is reading their purchases.
+            const personal = tenantGuard.personalColumnFor(query.table);
+            const userFilter = query.filters.find((filter) => filter.column === "user_id" || (personal && filter.column === personal));
+            if (userFilter && personal && userFilter.column === personal && !userFilter.value.includes(ownUser)) {
+              wrong.push(`${route}: ${query.method} ${query.table} read another person's rows through ${personal}`);
+              continue;
+            }
             const isProbe = /select=id(&|$)/.test(query.search) && /limit=1(&|$)/.test(query.search);
             if (!userFilter && !isProbe) {
               wrong.push(`${route}: ${query.method} ${query.table} carried no organization (${query.search})`);

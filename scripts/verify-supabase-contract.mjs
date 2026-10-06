@@ -78,7 +78,9 @@ const growthEventMigrationNames = [
 // than folded into businessOperationsMigrationNames: that group is the back office,
 // and this is a public front door with its own rule about what a zero price means.
 const merchantStoreMigrationNames = [
-  "20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+  "20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+  // Payment on the shop's connected account, and the insert-only payment events.
+  "20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
 ];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
@@ -328,14 +330,16 @@ const AGENT_TOOL_PERMISSION_TABLES = Object.freeze(["agent_tool_permissions"]);
 // The public shop, and what people ordered from it.
 //
 // Separate from BUSINESS_OPERATIONS_TABLES because that group is the back office.
-// The distinction worth stating: an order here is a record of what somebody wants
-// and carries no card, no token and no charge. Taking the money runs through
-// business_payment_accounts, which the connected-payment group already governs, and
-// which an owner sets up themselves.
+// The distinction worth stating: an order carries no card and no card token. Since
+// 20261006020000 it carries Stripe identifiers and Stripe's own figures, because
+// the money is taken by Checkout on the shop's connected account (governed by
+// business_payment_accounts); merchant_order_payment_events is the insert-only
+// record of what Stripe said.
 const MERCHANT_STORE_TABLES = Object.freeze([
   "merchant_storefronts",
   "merchant_orders",
-  "merchant_order_lines"
+  "merchant_order_lines",
+  "merchant_order_payment_events"
 ]);
 const GROWTH_EVENT_TABLES = Object.freeze([
   "growth_venues",
@@ -364,6 +368,7 @@ const DEVICE_PERMISSION_TABLES = Object.freeze(["device_permission_grants"]);
 // migration asserts the set). Public pages read only the second.
 const CREATOR_MARKETPLACE_TABLES = Object.freeze(["creator_listings", "creator_marketplace_entries"]);
 const GROWTH_CHANNEL_TABLES = Object.freeze(["growth_channels", "growth_channel_posts", "growth_post_reports", "growth_channel_directory"]);
+const MARKETPLACE_SALE_TABLES = Object.freeze(["creator_version_files", "creator_marketplace_orders", "creator_licence_grants", "creator_marketplace_payment_events"]);
 // Cinematic scroll sites. One table holding one row per site, whose `document`
 // column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
 // rather than folded into the Growth Studio list: the migration is its own
@@ -1021,7 +1026,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES, ...GROWTH_CHANNEL_TABLES]);
+const reviewedExtensionTables = new Set([...CREATOR_PROJECT_TABLES, ...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...AGENT_TOOL_PERMISSION_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...DURABLE_EVENT_FOUNDATION_TABLES, ...TRANSLATION_FOUNDATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES, ...CREATOR_APPROVAL_GRAPH_TABLES, ...GROWTH_EVENT_TABLES, ...MERCHANT_STORE_TABLES, ...DEVICE_PERMISSION_TABLES, ...CREATOR_MARKETPLACE_TABLES, ...GROWTH_CHANNEL_TABLES, ...MARKETPLACE_SALE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {

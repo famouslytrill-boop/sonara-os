@@ -98,7 +98,18 @@ const LIMITERS = Object.freeze({
   public_booking: "anonymous_surface",
   public_event_rsvp: "anonymous_surface",
   public_store_order: "anonymous_surface",
-  public_channel_report: "anonymous_surface"
+  public_channel_report: "anonymous_surface",
+  // Stripe's Connect webhook: nobody is signed in, and the signature is what
+  // authenticates it.
+  stripe_connect_webhook: "anonymous_surface",
+  // A signed-in buyer starting a marketplace checkout.
+  marketplace_buy: "abuse_ceiling",
+  // A storefront buyer has no account: the receipt and its pay button are opened
+  // with the receipt token alone.
+  public_store_receipt: "anonymous_surface",
+  public_store_payment: "anonymous_surface",
+  // A business manager recording a payment from Stripe's own record.
+  "business.storefront_reconcile": "abuse_ceiling"
 });
 
 // Writes per hour, below which a limiter stops being a ceiling over abuse and

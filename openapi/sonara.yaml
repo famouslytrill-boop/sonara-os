@@ -161,6 +161,22 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/webhooks/stripe-connect:
+    post:
+      operationId: receiveStripeConnectWebhook
+      tags: [Creator Studio]
+      summary: Receive a verified Stripe event from a seller's connected account for a marketplace order.
+      description: >-
+        Signed with STRIPE_CONNECT_WEBHOOK_SECRET and verified against the raw body. A checkout
+        event is matched to its order by id and checked against the order's account, session,
+        amount and currency before a licence is granted; a full refund or a dispute revokes it.
+        Replays are safe: transitions are conditional and the grant is keyed on the order.
+      security: [{ stripeSignature: [] }]
+      requestBody: { $ref: "#/components/requestBodies/StripeEvent" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/stripe/webhook:
     post:
       operationId: receiveStripeWebhookAlias
@@ -1582,6 +1598,20 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
       responses:
         "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code." }
+  /api/business/storefront/reconcile/record:
+    post:
+      operationId: recordStorefrontPaymentFromStripe
+      tags: [Business Builder]
+      summary: Record a storefront payment Stripe holds and the order does not show.
+      description: >-
+        For a payment whose webhook never arrived. The Checkout Session is read from
+        Stripe on the shop's own connected account and passed through the same checks
+        a signed webhook event is; the form only says which order and session. Never
+        issues a refund and never marks an order paid that Stripe does not show as paid.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Redirected back to the reconciliation page with done=recorded or done=unchanged." }
   /api/creator/briefs:
     post:
       operationId: openCreatorBrief

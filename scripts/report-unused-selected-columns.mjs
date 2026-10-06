@@ -77,6 +77,22 @@ try {
 
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
+  "routes/sonara-marketplace-checkout-routes.cjs": {
+    columns: ["consent_attested", "rights_attested"],
+    reason: [
+      "The listing row read by POST /marketplace/:id/buy is handed whole to purchaseDecision, which passes it to listingReadiness in lib/sonara-creator-marketplace.cjs;",
+      "that function reads both attestations directly (lines 250 and 267 on 5 October 2026: `attestationOf(listing?.rights_attested)` and `attestationOf(listing?.consent_attested)`).",
+      "They are the rights and consent checks a purchase must re-run at the moment of buying, so they are fetched to be used, in the file the row travels to."
+    ].join(" ")
+  },
+  "routes/sonara-merchant-payment-routes.cjs": {
+    columns: ["buyer_email"],
+    reason: [
+      "orderForCheckout reads the order whole and openCheckout hands it to checkoutFields in lib/sonara-merchant-payments.cjs,",
+      "which reads it directly (line 154 on 6 October 2026: `customer_email: order.buyer_email`) to pre-fill the buyer's email on Stripe's checkout,",
+      "so Stripe's receipt goes to the address the buyer gave the shop. Fetched to be used, in the file the row travels to."
+    ].join(" ")
+  },
   "lib/sonara-module-records.cjs": {
     columns: ["created_at"],
     reason: [

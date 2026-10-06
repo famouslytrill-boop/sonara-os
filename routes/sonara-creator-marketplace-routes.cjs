@@ -50,6 +50,9 @@
 
 const market = require("../lib/sonara-creator-marketplace.cjs");
 const payments = require("../lib/sonara-connected-payments.cjs");
+const checkout = require("../lib/sonara-connected-checkout.cjs");
+const orders = require("../lib/sonara-marketplace-orders.cjs");
+const storage = require("../lib/sonara-file-storage.cjs");
 
 const OWNER_PAGE = "/creator-studio/owner/marketplace";
 const PUBLIC_PAGE = "/marketplace";
@@ -177,11 +180,43 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
    * matching nothing, which would have meant no listing could ever appear
    * publicly. The public pages read the catalogue now and never call this.
    */
+  /**
+   * What has sold. Read from the orders, scoped to this seller; a failed read says
+   * so rather than reporting no sales. Totals are per currency -- adding pence to
+   * cents is a number that means nothing.
+   */
+  async function salesSection(organizationId) {
+    const sold = await read(
+      `creator_marketplace_orders?select=id,title,licence,price_cents,currency,state,created_at,paid_at&organization_id=eq.${enc(organizationId)}&order=created_at.desc&limit=201`
+    );
+    if (!sold.ok) return brandCard("Sales", "We could not read your sales just now. That is a problem on our side, and it does not mean nothing has sold.");
+    const rows = sold.rows.slice(0, 200);
+    if (!rows.length) return brandCard("Sales", "Nothing has sold yet. Paid orders appear here once Stripe confirms each payment.");
+    const totals = new Map();
+    const counts = {};
+    for (const order of rows) {
+      counts[order.state] = (counts[order.state] || 0) + 1;
+      if (order.state !== "paid") continue;
+      totals.set(order.currency, (totals.get(order.currency) || 0) + Number(order.price_cents || 0));
+    }
+    const totalText = totals.size
+      ? [...totals.entries()].map(([currency, cents]) => `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`).join(", ")
+      : "nothing yet";
+    const stateText = Object.entries(counts).map(([state, count]) => `${count} ${state.replace(/_/g, " ")}`).join(", ");
+    const list = rows.slice(0, 20).map((order) =>
+      `<li>${escapeHtml(order.title)} — ${escapeHtml((Number(order.price_cents) / 100).toFixed(2))} ${escapeHtml(String(order.currency).toUpperCase())}, `
+      + `${escapeHtml(String(order.state).replace(/_/g, " "))}${order.paid_at ? `, paid ${escapeHtml(new Date(order.paid_at).toUTCString())}` : ""}</li>`).join("");
+    return brandCard("Sales",
+      `<p>Paid and not refunded: ${escapeHtml(totalText)}. Orders: ${escapeHtml(stateText)}${sold.rows.length > 200 ? " (the newest 200)" : ""}.</p>`
+      + `<p>Money goes to your own Stripe account; SONARA holds none of it and takes no commission. Refunds are made from your Stripe dashboard, and a full refund ends the buyer's licence here.</p>`
+      + `<ul>${list}</ul>`);
+  }
+
   async function versionFor(organizationId, versionId) {
     if (!UUID.test(String(organizationId || ""))) return { ok: false, version: null, approvals: null };
     if (!UUID.test(String(versionId || ""))) return { ok: true, version: null, approvals: [] };
     const versions = await read(
-      `creator_asset_versions?select=id,asset_id,version_number,source,ai_disclosure,provenance&id=eq.${enc(versionId)}&organization_id=eq.${enc(organizationId)}&limit=1`
+      `creator_asset_versions?select=id,asset_id,version_number,source,ai_disclosure,provenance,checksum&id=eq.${enc(versionId)}&organization_id=eq.${enc(organizationId)}&limit=1`
     );
     if (!versions.ok) return { ok: false, version: null, approvals: null };
     const row = versions.rows[0];
@@ -206,7 +241,8 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
         versionNumber: row.version_number,
         source: row.source,
         aiDisclosure: row.ai_disclosure,
-        provenance: row.provenance
+        provenance: row.provenance,
+        checksum: row.checksum
       },
       // null rather than [] when the read failed: publishReadiness tells "no
       // approvals" from "could not read the approvals", and [] would lose that.
@@ -254,6 +290,53 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     return write(`creator_marketplace_entries?listing_id=eq.${enc(listingId)}`, { method: "DELETE" });
   }
 
+  /**
+   * The file a sale of this version delivers: a copy pinned to the version, made
+   * once, that no later replacement of the asset's file can change.
+   *
+   * `{ ok, file }` or `{ ok: false, sentence }`. Called when a listing goes on sale,
+   * so "on sale" always means "there is something to deliver".
+   */
+  async function pinnedFileFor(organizationId, version, userId) {
+    const existing = await read(
+      `creator_version_files?select=version_id,object_path,filename,bytes&version_id=eq.${enc(version.id)}&organization_id=eq.${enc(organizationId)}&limit=1`
+    );
+    if (!existing.ok) return { ok: false, sentence: "We could not check whether this version has a delivery file, so nothing was put on sale." };
+    if (existing.rows[0]) return { ok: true, file: existing.rows[0] };
+
+    const assets = await read(
+      `creator_assets?select=id,metadata&id=eq.${enc(version.assetId)}&organization_id=eq.${enc(organizationId)}&limit=1`
+    );
+    if (!assets.ok) return { ok: false, sentence: "We could not read this version's file, so nothing was put on sale." };
+    const assetFile = assets.rows[0]?.metadata?.storage || null;
+    const decision = orders.pinDecision({ version, assetFile });
+    if (!decision.ok) return { ok: false, sentence: decision.sentence };
+
+    const config = getSupabaseServerConfig();
+    const copied = await storage.copy(config, { organizationId, from: assetFile.path, kind: "versions", filename: assetFile.filename });
+    if (!copied.ok) return { ok: false, sentence: "The file could not be copied for delivery, so nothing was put on sale. Nothing has changed." };
+
+    const row = {
+      version_id: version.id,
+      organization_id: organizationId,
+      bucket: copied.bucket,
+      object_path: copied.path,
+      filename: String(assetFile.filename || "file").slice(0, 255),
+      content_type: String(assetFile.type || "application/octet-stream"),
+      bytes: Number(assetFile.bytes),
+      copied_from_path: assetFile.path,
+      pinned_by: userId || null
+    };
+    const written = await write("creator_version_files", { method: "POST", body: row });
+    if (!written.ok) {
+      // A copy nothing points at is a file nobody can find. Removed, and the
+      // listing refused, rather than left half-made.
+      await storage.remove(config, { organizationId, path: copied.path });
+      return { ok: false, sentence: "The delivery file could not be recorded, so nothing was put on sale. Nothing has changed." };
+    }
+    return { ok: true, file: row };
+  }
+
   function refuse(res, message, status = 400) {
     return res.status(status).type("html").send(responsePage("That did not happen", message, [linkAction(OWNER_PAGE, "Back to your marketplace")]));
   }
@@ -284,11 +367,17 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     );
 
     const sections = [brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure)];
-    const purchase = market.purchaseReadiness(await sellerPaymentReadiness(organizationId));
-    sections.push(brandCard("Before buyers can pay", "Listings can be published now. These separate checks explain what still prevents a completed purchase."));
+    const purchase = market.purchaseReadiness(
+      await sellerPaymentReadiness(organizationId),
+      checkout.checkoutReadiness({ getEnv: deps.getEnv || (() => "") })
+    );
+    sections.push(brandCard(purchase.ok ? "Buyers can pay" : "Before buyers can pay", purchase.ok
+      ? "Your payment account and checkout are ready. Each listing below says whether it can be bought."
+      : "Listings can be published now. These checks say what still prevents a completed purchase."));
     for (const step of purchase.steps) {
       sections.push(brandCard(step.title, escapeHtml(step.message)));
     }
+    sections.push(await salesSection(organizationId));
     if (!listings.ok) {
       sections.push(brandCard(
         "We could not read your listings just now",
@@ -369,7 +458,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       title: "Marketplace",
       eyebrow: "Creator Studio",
       heading: "Your marketplace",
-      body: "What you are selling, and what each one still needs. Selling is never easier than publishing — anything that cannot be published cannot be sold, and each listing says why.",
+      body: "What you are selling, what has sold, and what each listing still needs. Selling is never easier than publishing — anything that cannot be published cannot be sold, and each listing says why.",
       sections,
       actions: [
         linkAction("/business-builder/owner/payments", "Payment account"),
@@ -506,6 +595,13 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       return refuse(res, `This is not ready to sell, so nothing was listed. ${market.listingSentence(readiness)}`);
     }
 
+    // The delivery file, pinned before anything is on sale. A listing a buyer can
+    // pay for and the application cannot deliver is the one state this refuses.
+    const version = await versionFor(organizationId, listing.version_id);
+    if (!version.ok || !version.version) return refuse(res, "We could not read this listing's version, so nothing was put on sale.", 503);
+    const pinned = await pinnedFileFor(organizationId, version.version, req.sonaraUser?.id);
+    if (!pinned.ok) return refuse(res, pinned.sentence);
+
     // State first, catalogue second. If the catalogue write fails, the state is
     // put back, so the failure leaves it off sale -- the other order could leave a
     // public entry for something the creator's page says is a draft.
@@ -559,7 +655,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
     );
     const sections = [
       brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure),
-      brandCard("What you can do today", market.MARKETPLACE_FEES.availability)
+      brandCard("What you can do today", availabilityNow())
     ];
     if (!entries.ok) {
       sections.push(brandCard(
@@ -630,17 +726,34 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       surface: "marketing",
       sections: [
         brandCard("Free marketplace access", market.MARKETPLACE_FEES.disclosure),
-        brandCard("What you can do today", market.MARKETPLACE_FEES.availability),
+        brandCard("What you can do today", availabilityNow()),
         licence ? brandCard("What you may do with it", licence.means) : brandCard("Licence", "This listing does not say what you may do with it."),
         brandCard("How it was made", madeText(entry)),
-        brandCard(
-          "Buying it",
-          "Checkout is not connected yet, so nobody can pay for this through SONARA. The listing, its price and its licence are real; the payment step is not built."
-        )
+        buyingCard(entry)
       ],
       actions: [linkAction(PUBLIC_PAGE, "Back to the marketplace"), linkAction("/signup", "Create a free account")]
     });
   });
+
+  // The buy button exists only when checkout is configured on this platform. The
+  // seller's own account, the listing's clearance and the delivery file are all
+  // checked again, live, when it is pressed (POST /marketplace/:id/buy) -- this
+  // page does not call Stripe for every visitor.
+  function buyingCard(entry) {
+    const ready = checkout.checkoutReadiness({ getEnv: deps.getEnv || (() => "") });
+    if (!ready.ok) {
+      return brandCard("Buying it", "Checkout is not switched on for this marketplace yet, so this cannot be bought right now. The listing, its price and its licence are real.");
+    }
+    return brandCard("Buying it",
+      `<p>${escapeHtml(money(entry.price_cents, entry.currency))}, paid on Stripe's checkout to the creator's own account. You need to be signed in: the licence and the download belong to your account.</p>`
+      + `<form method="post" action="${PUBLIC_PAGE}/${escapeHtml(entry.listing_id)}/buy"><button type="submit">Buy this licence</button></form>`);
+  }
+
+  function availabilityNow() {
+    return checkout.checkoutReadiness({ getEnv: deps.getEnv || (() => "") }).ok
+      ? market.MARKETPLACE_FEES.availabilityWithCheckout
+      : market.MARKETPLACE_FEES.availability;
+  }
 
   function madeText(entry) {
     if (!entry.made_by_machine) return "The creator uploaded this rather than generating it.";

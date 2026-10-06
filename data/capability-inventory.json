@@ -11,67 +11,67 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 921,
+    "routeOperationCount": 930,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 557,
+      "GET": 562,
       "PATCH": 10,
-      "POST": 351
+      "POST": 355
     },
     "workspaceCount": 12,
-    "declaredPageCount": 299,
+    "declaredPageCount": 300,
     "workspaceRouteCounts": {
-      "business_builder": 335,
+      "business_builder": 337,
       "business_builder_agent_ops": 7,
       "creator_studio": 132,
       "cross_workspace_formulas": 5,
       "growth_studio": 129,
       "research_catalog": 12,
       "research_lab": 15,
-      "shared_account": 27,
+      "shared_account": 28,
       "shared_infrastructure": 3,
-      "sonara_shared": 140,
-      "sonara_shared_api": 116
+      "sonara_shared": 145,
+      "sonara_shared_api": 117
     },
     "actionDestinationCounts": {
-      "exact": 349,
-      "form_reference": 299,
-      "machine_ingress": 2,
-      "parent_route": 69,
+      "exact": 354,
+      "form_reference": 301,
+      "machine_ingress": 3,
+      "parent_route": 71,
       "route_pair": 105,
-      "workspace_fallback": 97
+      "workspace_fallback": 96
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
-      "explicit_no_persistent_table_expected": 146,
+      "explicit_no_persistent_table_expected": 150,
       "explicit_resource_registry": 259,
       "handler_source_table_reference": 213,
-      "needs_explicit_data_contract": 299
+      "needs_explicit_data_contract": 304
     },
-    "routesUsingWorkspaceHomeFallback": 97,
-    "formActionLinkCount": 61,
+    "routesUsingWorkspaceHomeFallback": 96,
+    "formActionLinkCount": 64,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "formActionsWithoutRegisteredRoute": 0,
     "routesWithoutDestination": 0,
-    "openApiApiOperationCount": 333,
-    "databaseTableCount": 353,
+    "openApiApiOperationCount": 335,
+    "databaseTableCount": 358,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 312,
+    "queriedTableCount": 317,
     "neverQueriedTableCount": 41,
-    "migrationCount": 152,
+    "migrationCount": 154,
     "databaseFunctionCount": 33,
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 299,
+    "routeDataContractsNeedingExplicitReview": 304,
     "routeDataReviewByMethod": {
-      "GET": 204,
-      "POST": 95
+      "GET": 205,
+      "POST": 99
     },
     "routeDestinationReviewByWorkspace": {
-      "business_builder": 16,
+      "business_builder": 15,
       "business_builder_agent_ops": 1,
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
@@ -120,8 +120,8 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 335,
-      "registeredPageCount": 95,
+      "routeCount": 337,
+      "registeredPageCount": 96,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
@@ -216,6 +216,7 @@
         "/business-builder/owner/stock-counts/:recordId",
         "/business-builder/owner/stock-counts/:recordId/edit",
         "/business-builder/owner/store",
+        "/business-builder/owner/store/reconciliation",
         "/business-builder/owner/sub-apps",
         "/business-builder/owner/sub-apps/:subAppId",
         "/business-builder/owner/sub-apps/:subAppId/:schemaKey",
@@ -379,6 +380,7 @@
             "/business-builder/owner/recurring-work",
             "/business-builder/owner/services",
             "/business-builder/owner/store",
+            "/business-builder/owner/store/reconciliation",
             "/business-builder/owner/work-orders",
             "/business-builder/payments",
             "/business-builder/pricing"
@@ -945,13 +947,14 @@
         "/account",
         "/auth"
       ],
-      "routeCount": 27,
-      "registeredPageCount": 8,
+      "routeCount": 28,
+      "registeredPageCount": 9,
       "registeredPageRoutes": [
         "/account/data/export",
         "/account/notifications",
         "/account/permissions",
         "/account/profile/picture",
+        "/account/purchases",
         "/account/security/two-factor",
         "/auth/login",
         "/auth/signup",
@@ -967,7 +970,7 @@
       "routePrefixes": [
         "/api"
       ],
-      "routeCount": 116,
+      "routeCount": 117,
       "registeredPageCount": 0,
       "registeredPageRoutes": [],
       "categories": [],
@@ -980,8 +983,8 @@
       "routePrefixes": [
         "/"
       ],
-      "routeCount": 140,
-      "registeredPageCount": 122,
+      "routeCount": 145,
+      "registeredPageCount": 125,
       "registeredPageRoutes": [
         "/",
         "/about",
@@ -1052,6 +1055,8 @@
         "/market-intelligence/invention-systems",
         "/marketplace",
         "/marketplace/:id",
+        "/marketplace/orders/:orderId",
+        "/marketplace/orders/:orderId/download",
         "/notifications",
         "/offline",
         "/onboarding",
@@ -1090,6 +1095,7 @@
         "/staff/time",
         "/start",
         "/store/:slug",
+        "/store/:slug/orders/:orderId",
         "/subprocessor-notice",
         "/support",
         "/technology-radar",
@@ -1965,7 +1971,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1467
+        "line": 1491
       },
       "contractCompleteness": {
         "route": true,
@@ -2071,7 +2077,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 835
+        "line": 859
       },
       "contractCompleteness": {
         "route": true,
@@ -2177,7 +2183,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 992
+        "line": 1016
       },
       "contractCompleteness": {
         "route": true,
@@ -2281,7 +2287,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -2385,7 +2391,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -2497,7 +2503,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1182
+        "line": 1206
       },
       "contractCompleteness": {
         "route": true,
@@ -3442,6 +3448,90 @@
       "action": false
     },
     {
+      "id": "GET /account/purchases",
+      "method": "GET",
+      "route": "/account/purchases",
+      "kind": "page_or_download",
+      "workspace": "shared_account",
+      "destination": {
+        "route": "/account/purchases",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_licence_grants",
+          "creator_listings",
+          "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_marketplace_payment_events",
+          "creator_version_files",
+          "files",
+          "payments",
+          "purchases"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
+        "moduleTableCandidateCount": 11,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-marketplace-checkout-routes.cjs",
+        "line": 457
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "route-convention",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
       "id": "GET /account/security",
       "method": "GET",
       "route": "/account/security",
@@ -3709,7 +3799,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1199
+        "line": 1223
       },
       "contractCompleteness": {
         "route": true,
@@ -4056,7 +4146,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1316
+        "line": 1340
       },
       "contractCompleteness": {
         "route": true,
@@ -5063,7 +5153,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1456
+        "line": 1480
       },
       "contractCompleteness": {
         "route": true,
@@ -5384,7 +5474,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1455
+        "line": 1479
       },
       "contractCompleteness": {
         "route": true,
@@ -5946,7 +6036,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1454
+        "line": 1478
       },
       "contractCompleteness": {
         "route": true,
@@ -16138,7 +16228,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1279
+        "line": 1303
       },
       "contractCompleteness": {
         "route": true,
@@ -16894,7 +16984,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1498
+        "line": 1522
       },
       "contractCompleteness": {
         "route": true,
@@ -17456,7 +17546,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1497
+        "line": 1521
       },
       "contractCompleteness": {
         "route": true,
@@ -23145,7 +23235,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1522
+        "line": 1546
       },
       "contractCompleteness": {
         "route": true,
@@ -23707,7 +23797,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1521
+        "line": 1545
       },
       "contractCompleteness": {
         "route": true,
@@ -26862,7 +26952,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1546
+        "line": 1570
       },
       "contractCompleteness": {
         "route": true,
@@ -31462,7 +31552,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1554
+        "line": 1578
       },
       "contractCompleteness": {
         "route": true,
@@ -32428,7 +32518,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 944
+        "line": 968
       },
       "contractCompleteness": {
         "route": true,
@@ -32543,7 +32633,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1265
+        "line": 1289
       },
       "contractCompleteness": {
         "route": true,
@@ -32657,7 +32747,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1152
+        "line": 1176
       },
       "contractCompleteness": {
         "route": true,
@@ -32763,7 +32853,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1126
+        "line": 1150
       },
       "contractCompleteness": {
         "route": true,
@@ -32869,7 +32959,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1112
+        "line": 1136
       },
       "contractCompleteness": {
         "route": true,
@@ -32979,7 +33069,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1346
+        "line": 1370
       },
       "contractCompleteness": {
         "route": true,
@@ -33367,7 +33457,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1692
+        "line": 1716
       },
       "contractCompleteness": {
         "route": true,
@@ -33473,7 +33563,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -33860,7 +33950,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1348
+        "line": 1372
       },
       "contractCompleteness": {
         "route": true,
@@ -34569,7 +34659,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -34853,7 +34943,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -34959,7 +35049,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1730
       },
       "contractCompleteness": {
         "route": true,
@@ -35325,7 +35415,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1387
+        "line": 1411
       },
       "contractCompleteness": {
         "route": true,
@@ -35431,7 +35521,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -35630,7 +35720,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1417
+        "line": 1441
       },
       "contractCompleteness": {
         "route": true,
@@ -35736,7 +35826,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -35842,7 +35932,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1748
       },
       "contractCompleteness": {
         "route": true,
@@ -36041,7 +36131,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1370
+        "line": 1394
       },
       "contractCompleteness": {
         "route": true,
@@ -36237,7 +36327,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -36343,7 +36433,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -36449,7 +36539,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -55806,6 +55896,7 @@
           "merchant_product_variants",
           "merchant_products",
           "merchant_storefronts",
+          "payments",
           "products"
         ],
         "tableLineage": [],
@@ -55815,13 +55906,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 6,
+        "moduleTableCandidateCount": 7,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 182
+        "line": 194
       },
       "contractCompleteness": {
         "route": true,
@@ -55829,6 +55920,96 @@
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /business-builder/owner/store/reconciliation",
+      "method": "GET",
+      "route": "/business-builder/owner/store/reconciliation",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/store/reconciliation",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager"
+      ],
+      "routeRegistry": {
+        "title": "Reconciliation",
+        "productOwner": "business_builder",
+        "visibility": "product",
+        "requiredRole": "business_owner_or_manager",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_business_manager",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [
+          "days",
+          "done"
+        ],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_order_payment_events",
+          "merchant_orders",
+          "merchant_storefronts",
+          "payments"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 378
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
         "requestFieldSource": "not_declared"
@@ -60597,7 +60778,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -61046,7 +61227,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -61152,7 +61333,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -61258,7 +61439,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -64489,7 +64670,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 899
+        "line": 923
       },
       "contractCompleteness": {
         "route": true,
@@ -64593,7 +64774,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -64699,7 +64880,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1692
+        "line": 1716
       },
       "contractCompleteness": {
         "route": true,
@@ -65886,7 +66067,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -65988,7 +66169,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 157
+        "line": 158
       },
       "contractCompleteness": {
         "route": true,
@@ -66090,7 +66271,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 266
+        "line": 271
       },
       "contractCompleteness": {
         "route": true,
@@ -66286,7 +66467,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -66578,7 +66759,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -66684,7 +66865,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -66885,7 +67066,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1730
       },
       "contractCompleteness": {
         "route": true,
@@ -68820,7 +69001,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -68926,7 +69107,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1748
       },
       "contractCompleteness": {
         "route": true,
@@ -69122,7 +69303,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -69228,7 +69409,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -70275,7 +70456,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -70381,7 +70562,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -70536,8 +70717,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -70547,13 +70731,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 265
+        "line": 348
       },
       "contractCompleteness": {
         "route": true,
@@ -71585,7 +71769,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -71691,7 +71875,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -71797,7 +71981,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -72702,7 +72886,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -76351,7 +76535,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1224
+        "line": 1248
       },
       "contractCompleteness": {
         "route": true,
@@ -76545,7 +76729,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1047
+        "line": 1071
       },
       "contractCompleteness": {
         "route": true,
@@ -76649,7 +76833,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -76951,7 +77135,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -77399,7 +77583,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1692
+        "line": 1716
       },
       "contractCompleteness": {
         "route": true,
@@ -77505,7 +77689,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -78089,7 +78273,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -78290,7 +78474,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -79107,7 +79291,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1730
       },
       "contractCompleteness": {
         "route": true,
@@ -79484,7 +79668,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -79590,7 +79774,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -79786,7 +79970,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1724
+        "line": 1748
       },
       "contractCompleteness": {
         "route": true,
@@ -80018,7 +80202,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -80214,7 +80398,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -80320,7 +80504,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -81707,7 +81891,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -81813,7 +81997,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "contractCompleteness": {
         "route": true,
@@ -82102,7 +82286,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "contractCompleteness": {
         "route": true,
@@ -84153,7 +84337,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1029
+        "line": 1053
       },
       "contractCompleteness": {
         "route": true,
@@ -84592,7 +84776,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -84687,7 +84871,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -84782,7 +84966,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -84877,7 +85061,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -84972,7 +85156,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85067,7 +85251,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85162,7 +85346,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85257,7 +85441,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85352,7 +85536,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85447,7 +85631,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85542,7 +85726,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85637,7 +85821,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85732,7 +85916,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85827,7 +86011,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1602
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -85935,7 +86119,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1098
+        "line": 1122
       },
       "contractCompleteness": {
         "route": true,
@@ -86115,7 +86299,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1161
+        "line": 1185
       },
       "contractCompleteness": {
         "route": true,
@@ -86212,7 +86396,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1567
+        "line": 1591
       },
       "contractCompleteness": {
         "route": true,
@@ -86455,8 +86639,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -86466,13 +86653,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 556
+        "line": 652
       },
       "contractCompleteness": {
         "route": true,
@@ -86538,8 +86725,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -86549,13 +86739,189 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 601
+        "line": 697
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /marketplace/orders/:orderId",
+      "method": "GET",
+      "route": "/marketplace/orders/:orderId",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/marketplace/orders/:orderId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "orderId"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "orderId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_licence_grants",
+          "creator_listings",
+          "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_marketplace_payment_events",
+          "creator_version_files",
+          "files",
+          "payments",
+          "purchases"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
+        "moduleTableCandidateCount": 11,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-marketplace-checkout-routes.cjs",
+        "line": 422
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /marketplace/orders/:orderId/download",
+      "method": "GET",
+      "route": "/marketplace/orders/:orderId/download",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/marketplace/orders/:orderId/download",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "orderId"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "orderId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_licence_grants",
+          "creator_listings",
+          "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_marketplace_payment_events",
+          "creator_version_files",
+          "files",
+          "payments",
+          "purchases"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
+        "moduleTableCandidateCount": 11,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-marketplace-checkout-routes.cjs",
+        "line": 440
       },
       "contractCompleteness": {
         "route": true,
@@ -86746,7 +87112,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1580
+        "line": 1604
       },
       "contractCompleteness": {
         "route": true,
@@ -86841,7 +87207,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -87264,7 +87630,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 954
+        "line": 978
       },
       "contractCompleteness": {
         "route": true,
@@ -87368,7 +87734,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -88242,7 +88608,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -88528,7 +88894,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -90082,7 +90448,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1011
+        "line": 1035
       },
       "contractCompleteness": {
         "route": true,
@@ -90280,7 +90646,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1327
+        "line": 1351
       },
       "contractCompleteness": {
         "route": true,
@@ -90769,7 +91135,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1102
+        "line": 1126
       },
       "contractCompleteness": {
         "route": true,
@@ -91808,6 +92174,7 @@
           "merchant_product_variants",
           "merchant_products",
           "merchant_storefronts",
+          "payments",
           "products"
         ],
         "tableLineage": [
@@ -91866,7 +92233,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 6,
+        "moduleTableCandidateCount": 7,
         "schemaMigrations": [
           "supabase/migrations/20260818100000_merchant_product_catalogue.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -91875,7 +92242,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 511
+        "line": 544
       },
       "contractCompleteness": {
         "route": true,
@@ -91884,6 +92251,92 @@
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /store/:slug/orders/:orderId",
+      "method": "GET",
+      "route": "/store/:slug/orders/:orderId",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/store/:slug/orders/:orderId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "slug",
+          "orderId"
+        ],
+        "body": [],
+        "query": [
+          "t"
+        ],
+        "params": [
+          "orderId",
+          "slug"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "html-or-delegated"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_order_payment_events",
+          "merchant_orders",
+          "merchant_storefronts",
+          "payments"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 303
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "route-convention",
+        "persistence": "explicit_no_persistent_table_expected",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -91970,7 +92423,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -92294,7 +92747,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1606
+        "line": 1630
       },
       "contractCompleteness": {
         "route": true,
@@ -92713,7 +93166,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1564
+        "line": 1588
       },
       "contractCompleteness": {
         "route": true,
@@ -94140,7 +94593,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1462
+        "line": 1486
       },
       "contractCompleteness": {
         "route": true,
@@ -97101,7 +97554,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1212
+        "line": 1236
       },
       "contractCompleteness": {
         "route": true,
@@ -98898,7 +99351,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1284
+        "line": 1308
       },
       "contractCompleteness": {
         "route": true,
@@ -99253,7 +99706,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1286
+        "line": 1310
       },
       "contractCompleteness": {
         "route": true,
@@ -101740,7 +102193,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1457
+        "line": 1481
       },
       "contractCompleteness": {
         "route": true,
@@ -102016,7 +102469,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1406
+        "line": 1430
       },
       "contractCompleteness": {
         "route": true,
@@ -102553,7 +103006,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1441
+        "line": 1465
       },
       "contractCompleteness": {
         "route": true,
@@ -107357,6 +107810,7 @@
           "merchant_product_variants",
           "merchant_products",
           "merchant_storefronts",
+          "payments",
           "products"
         ],
         "tableLineage": [
@@ -107368,7 +107822,8 @@
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -107383,15 +107838,16 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 6,
+        "moduleTableCandidateCount": 7,
         "schemaMigrations": [
-          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 356
+        "line": 377
       },
       "contractCompleteness": {
         "route": true,
@@ -115571,9 +116027,9 @@
       "kind": "api",
       "workspace": "business_builder",
       "destination": {
-        "route": "/business-builder/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/owner/store/reconciliation",
+        "confidence": "form_reference",
+        "reason": "page_handler_mentions_action_path"
       },
       "accessMiddleware": [
         "requireBusinessManager"
@@ -115637,6 +116093,7 @@
           "merchant_product_variants",
           "merchant_products",
           "merchant_storefronts",
+          "payments",
           "products"
         ],
         "tableLineage": [
@@ -115663,7 +116120,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 6,
+        "moduleTableCandidateCount": 7,
         "schemaMigrations": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
         ],
@@ -115671,7 +116128,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 316
+        "line": 337
       },
       "contractCompleteness": {
         "route": true,
@@ -115756,6 +116213,7 @@
           "merchant_product_variants",
           "merchant_products",
           "merchant_storefronts",
+          "payments",
           "products"
         ],
         "tableLineage": [
@@ -115782,7 +116240,7 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 6,
+        "moduleTableCandidateCount": 7,
         "schemaMigrations": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
         ],
@@ -115790,7 +116248,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 331
+        "line": 352
       },
       "contractCompleteness": {
         "route": true,
@@ -115801,6 +116259,112 @@
         "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "handler_or_route_path_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /api/business/storefront/reconcile/record",
+      "method": "POST",
+      "route": "/api/business/storefront/reconcile/record",
+      "kind": "api",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/owner/store/reconciliation",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "accessMiddleware": [
+        "requireBusinessManager",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "recordStorefrontPaymentFromStripe",
+        "summary": "Record a storefront payment Stripe holds and the order does not show.",
+        "tags": [
+          "Business Builder"
+        ],
+        "requestBodyRef": "#/components/requestBodies/JsonOrFormBody",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          303
+        ],
+        "responseRefs": [],
+        "bearerAuth": true
+      },
+      "request": {
+        "pathParams": [],
+        "body": [
+          "days",
+          "order_id",
+          "session_id"
+        ],
+        "query": [],
+        "params": [],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "days",
+          "order_id",
+          "session_id"
+        ],
+        "openApiBody": "#/components/requestBodies/JsonOrFormBody"
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [
+          303
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "${RECONCILE_PAGE}?${new URLSearchParams(params).toString()}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_order_payment_events",
+          "merchant_orders",
+          "merchant_storefronts",
+          "payments"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 457
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": true,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -122297,7 +122861,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1283
+        "line": 1307
       },
       "contractCompleteness": {
         "route": true,
@@ -123521,7 +124085,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1473
+        "line": 1497
       },
       "contractCompleteness": {
         "route": true,
@@ -124629,7 +125193,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1486
+        "line": 1510
       },
       "contractCompleteness": {
         "route": true,
@@ -131861,7 +132425,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1500
+        "line": 1524
       },
       "contractCompleteness": {
         "route": true,
@@ -133254,7 +133818,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1509
+        "line": 1533
       },
       "contractCompleteness": {
         "route": true,
@@ -146526,7 +147090,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 345
+        "line": 347
       },
       "contractCompleteness": {
         "route": true,
@@ -146856,7 +147420,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 344
+        "line": 346
       },
       "contractCompleteness": {
         "route": true,
@@ -146865,6 +147429,136 @@
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
+        "openApi": true,
+        "requestFieldSource": "generic_openapi_body_contract"
+      },
+      "action": false
+    },
+    {
+      "id": "POST /api/webhooks/stripe-connect",
+      "method": "POST",
+      "route": "/api/webhooks/stripe-connect",
+      "kind": "webhook",
+      "workspace": "sonara_shared_api",
+      "destination": {
+        "route": null,
+        "confidence": "machine_ingress",
+        "reason": "provider_or_system_webhook"
+      },
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": {
+        "operationId": "receiveStripeConnectWebhook",
+        "summary": "Receive a verified Stripe event from a seller's connected account for a marketplace order.",
+        "tags": [
+          "Creator Studio"
+        ],
+        "requestBodyRef": "#/components/requestBodies/StripeEvent",
+        "requestBodyDeclared": true,
+        "responseStatusCodes": [
+          200,
+          400,
+          503
+        ],
+        "responseRefs": [
+          {
+            "statusCode": 200,
+            "ref": "#/components/responses/Success"
+          },
+          {
+            "statusCode": 400,
+            "ref": "#/components/responses/BadRequest"
+          },
+          {
+            "statusCode": 503,
+            "ref": "#/components/responses/SetupRequired"
+          }
+        ],
+        "bearerAuth": false
+      },
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "openApiBody": "#/components/requestBodies/StripeEvent"
+      },
+      "response": {
+        "kinds": [
+          "json-or-delegated"
+        ],
+        "statusCodes": [
+          200,
+          400,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "route-convention"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "admin_audit_logs",
+          "bookings",
+          "business_employee_invites",
+          "business_memberships",
+          "business_service_catalog",
+          "business_workspaces",
+          "campaigns",
+          "customers",
+          "integrations",
+          "launch_checklist_items",
+          "leads",
+          "organization_memberships",
+          "organizations",
+          "payments",
+          "plans",
+          "products",
+          "profiles",
+          "quotes",
+          "reviews",
+          "service_catalog_items",
+          "subscriptions",
+          "support_email_delivery_attempts",
+          "support_requests",
+          "user_roles"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:server.js",
+        "moduleTableCandidateCount": 24,
+        "schemaMigrations": [],
+        "persistenceMode": "webhook_ingress_requires_data_effect_review"
+      },
+      "source": {
+        "file": "server.js",
+        "line": 364
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "route-convention",
+        "persistence": "needs_explicit_data_contract",
         "openApi": true,
         "requestFieldSource": "generic_openapi_body_contract"
       },
@@ -147052,7 +147746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1140
+        "line": 1164
       },
       "contractCompleteness": {
         "route": true,
@@ -147152,7 +147846,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1176
+        "line": 1200
       },
       "contractCompleteness": {
         "route": true,
@@ -147347,7 +148041,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1106
+        "line": 1130
       },
       "contractCompleteness": {
         "route": true,
@@ -147836,7 +148530,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1430
+        "line": 1454
       },
       "contractCompleteness": {
         "route": true,
@@ -167344,7 +168038,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 913
+        "line": 937
       },
       "contractCompleteness": {
         "route": true,
@@ -168509,7 +169203,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 202
+        "line": 203
       },
       "contractCompleteness": {
         "route": true,
@@ -168613,7 +169307,7 @@
       },
       "source": {
         "file": "routes/sonara-asset-file-routes.cjs",
-        "line": 283
+        "line": 288
       },
       "contractCompleteness": {
         "route": true,
@@ -169844,8 +170538,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -169855,13 +170552,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 383
+        "line": 472
       },
       "contractCompleteness": {
         "route": true,
@@ -169934,8 +170631,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -169945,13 +170645,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 412
+        "line": 501
       },
       "contractCompleteness": {
         "route": true,
@@ -170016,8 +170716,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -170027,13 +170730,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 488
+        "line": 577
       },
       "contractCompleteness": {
         "route": true,
@@ -170098,8 +170801,11 @@
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
+          "creator_assets",
           "creator_listings",
           "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_version_files",
           "payments"
         ],
         "tableLineage": [],
@@ -170109,13 +170815,13 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-creator-marketplace-routes.cjs",
-        "moduleTableCandidateCount": 5,
+        "moduleTableCandidateCount": 8,
         "schemaMigrations": [],
         "persistenceMode": "source_module_candidates"
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 528
+        "line": 624
       },
       "contractCompleteness": {
         "route": true,
@@ -174485,13 +175191,104 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1170
+        "line": 1194
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /marketplace/:id/buy",
+      "method": "POST",
+      "route": "/marketplace/:id/buy",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/marketplace/:id",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireCustomer",
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/marketplace/orders/${enc(order.id)}"
+        ],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_licence_grants",
+          "creator_listings",
+          "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_marketplace_payment_events",
+          "creator_version_files",
+          "files",
+          "payments",
+          "purchases"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
+        "moduleTableCandidateCount": 11,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-marketplace-checkout-routes.cjs",
+        "line": 302
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "needs_explicit_data_contract",
         "openApi": false,
@@ -175677,6 +176474,7 @@
       },
       "response": {
         "kinds": [
+          "redirect",
           "send"
         ],
         "statusCodes": [],
@@ -175701,6 +176499,7 @@
           "merchant_product_variants",
           "merchant_products",
           "merchant_storefronts",
+          "payments",
           "products"
         ],
         "tableLineage": [
@@ -175728,7 +176527,8 @@
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -175791,16 +176591,17 @@
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 6,
+        "moduleTableCandidateCount": 7,
         "schemaMigrations": [
           "supabase/migrations/20260818100000_merchant_product_catalogue.sql",
-          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 542
+        "line": 575
       },
       "contractCompleteness": {
         "route": true,
@@ -175811,6 +176612,95 @@
         "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /store/:slug/orders/:orderId/pay",
+      "method": "POST",
+      "route": "/store/:slug/orders/:orderId/pay",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/store/:slug/orders/:orderId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "slug",
+          "orderId"
+        ],
+        "body": [
+          "t"
+        ],
+        "query": [],
+        "params": [
+          "orderId",
+          "slug"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "t"
+        ]
+      },
+      "response": {
+        "kinds": [
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "needs_explicit_data_contract",
+        "directTables": [],
+        "candidateTables": [
+          "merchant_order_lines",
+          "merchant_order_payment_events",
+          "merchant_orders",
+          "merchant_storefronts",
+          "payments"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
+        "moduleTableCandidateCount": 5,
+        "schemaMigrations": [],
+        "persistenceMode": "source_module_candidates"
+      },
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 336
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "needs_explicit_data_contract",
+        "openApi": false,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -176236,6 +177126,18 @@
     },
     {
       "method": "POST",
+      "action": "/api/business/storefront/reconcile/record",
+      "pages": [
+        "/business-builder/owner/store/reconciliation"
+      ],
+      "formFieldNamesObserved": [
+        "days",
+        "order_id",
+        "session_id"
+      ]
+    },
+    {
+      "method": "POST",
       "action": "/api/checkout/session",
       "pages": [
         "/pricing"
@@ -176577,6 +177479,14 @@
       "formFieldNamesObserved": []
     },
     {
+      "method": "GET",
+      "action": "/marketplace/orders/:parameter/download",
+      "pages": [
+        "/marketplace/orders/:orderId"
+      ],
+      "formFieldNamesObserved": []
+    },
+    {
       "method": "POST",
       "action": "/product-lifecycle/initiatives",
       "pages": [
@@ -176664,6 +177574,16 @@
       ],
       "formFieldNamesObserved": [
         "q"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/store/:parameter/orders/:parameter/pay",
+      "pages": [
+        "/store/:slug/orders/:orderId"
+      ],
+      "formFieldNamesObserved": [
+        "t"
       ]
     },
     {
@@ -177335,7 +178255,7 @@
     {
       "id": "module:routes/sonara-creator-marketplace-routes.cjs",
       "source": "routes/sonara-creator-marketplace-routes.cjs",
-      "tableCount": 5,
+      "tableCount": 8,
       "tables": [
         {
           "table": "creator_asset_approvals",
@@ -177350,6 +178270,12 @@
           ]
         },
         {
+          "table": "creator_assets",
+          "migrations": [
+            "supabase/migrations/012_sonara_full_ecosystem_schema.sql"
+          ]
+        },
+        {
           "table": "creator_listings",
           "migrations": [
             "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
@@ -177359,6 +178285,18 @@
           "table": "creator_marketplace_entries",
           "migrations": [
             "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+          ]
+        },
+        {
+          "table": "creator_marketplace_orders",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "creator_version_files",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
           ]
         },
         {
@@ -178035,9 +178973,121 @@
       ]
     },
     {
+      "id": "module:routes/sonara-marketplace-checkout-routes.cjs",
+      "source": "routes/sonara-marketplace-checkout-routes.cjs",
+      "tableCount": 11,
+      "tables": [
+        {
+          "table": "creator_asset_approvals",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          ]
+        },
+        {
+          "table": "creator_asset_versions",
+          "migrations": [
+            "supabase/migrations/20261002010000_creator_approval_graph.sql"
+          ]
+        },
+        {
+          "table": "creator_licence_grants",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "creator_listings",
+          "migrations": [
+            "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+          ]
+        },
+        {
+          "table": "creator_marketplace_entries",
+          "migrations": [
+            "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+          ]
+        },
+        {
+          "table": "creator_marketplace_orders",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "creator_marketplace_payment_events",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "creator_version_files",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "files",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql",
+            "supabase/migrations/20260923015900_restore_files_replay_precondition.sql"
+          ]
+        },
+        {
+          "table": "payments",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql"
+          ]
+        },
+        {
+          "table": "purchases",
+          "migrations": [
+            "supabase/migrations/011_sonara_saas_launch_system.sql",
+            "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-merchant-payment-routes.cjs",
+      "source": "routes/sonara-merchant-payment-routes.cjs",
+      "tableCount": 5,
+      "tables": [
+        {
+          "table": "merchant_order_lines",
+          "migrations": [
+            "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "merchant_order_payment_events",
+          "migrations": [
+            "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          ]
+        },
+        {
+          "table": "merchant_orders",
+          "migrations": [
+            "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "merchant_storefronts",
+          "migrations": [
+            "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "payments",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql"
+          ]
+        }
+      ]
+    },
+    {
       "id": "module:routes/sonara-merchant-store-routes.cjs",
       "source": "routes/sonara-merchant-store-routes.cjs",
-      "tableCount": 6,
+      "tableCount": 7,
       "tables": [
         {
           "table": "merchant_order_lines",
@@ -178067,6 +179117,12 @@
           "table": "merchant_storefronts",
           "migrations": [
             "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          ]
+        },
+        {
+          "table": "payments",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql"
           ]
         },
         {
@@ -187953,6 +189009,103 @@
       }
     },
     {
+      "id": "table:creator_licence_grants",
+      "schema": "public",
+      "name": "creator_licence_grants",
+      "columnCount": 8,
+      "columns": [
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "buyer_user_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "version_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "licence",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [
+            "personal_use",
+            "commercial_single",
+            "commercial_unlimited",
+            "exclusive_transfer"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "granted_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "revoked_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "revoked_reason",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [
+            "refunded",
+            "disputed"
+          ],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:creator_listings",
       "schema": "public",
       "name": "creator_listings",
@@ -188205,6 +189358,261 @@
       },
       "databaseContractCore": false,
       "tenancy": "global_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_marketplace_orders",
+      "schema": "public",
+      "name": "creator_marketplace_orders",
+      "columnCount": 18,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "version_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "buyer_user_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "licence",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [
+            "personal_use",
+            "commercial_single",
+            "commercial_unlimited",
+            "exclusive_transfer"
+          ],
+          "fallback": null
+        },
+        {
+          "name": "price_cents",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "stripe_account_id",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "checkout_session_id",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "payment_intent_id",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "pending"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "paid_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_marketplace_payment_events",
+      "schema": "public",
+      "name": "creator_marketplace_payment_events",
+      "columnCount": 7,
+      "columns": [
+        {
+          "name": "stripe_event_id",
+          "type": "text",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "stripe_account_id",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
       "queryCoverage": "queried_by_runtime_source_audit",
       "subsystem": null,
       "orphanDisposition": null
@@ -190339,6 +191747,111 @@
         ],
         "rlsEvidence": [
           "supabase/migrations/016_creator_artist_system_schema.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
+      "id": "table:creator_version_files",
+      "schema": "public",
+      "name": "creator_version_files",
+      "columnCount": 10,
+      "columns": [
+        {
+          "name": "version_id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "bucket",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "object_path",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "filename",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "content_type",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "bytes",
+          "type": "number",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "copied_from_path",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "pinned_by",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "pinned_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
         ],
         "policyEvidence": []
       },
@@ -207519,10 +209032,99 @@
       "orphanDisposition": null
     },
     {
+      "id": "table:merchant_order_payment_events",
+      "schema": "public",
+      "name": "merchant_order_payment_events",
+      "columnCount": 8,
+      "columns": [
+        {
+          "name": "stripe_event_id",
+          "type": "text",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "stripe_account_id",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "amount_cents",
+          "type": "number",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+        ],
+        "policyEvidence": []
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:merchant_orders",
       "schema": "public",
       "name": "merchant_orders",
-      "columnCount": 14,
+      "columnCount": 15,
       "columns": [
         {
           "name": "id",
@@ -207635,6 +209237,14 @@
           "generated": false,
           "allowed": [],
           "fallback": "{}"
+        },
+        {
+          "name": "payment_state",
+          "type": "text",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": "unpaid"
         }
       ],
       "migrationLineage": {
@@ -207642,7 +209252,8 @@
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
         ],
         "changedBy": [
-          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -230067,6 +231678,44 @@
       "alters": [],
       "drops": [],
       "rlsEnabled": [],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql",
+      "creates": [
+        "creator_licence_grants",
+        "creator_marketplace_orders",
+        "creator_marketplace_payment_events",
+        "creator_version_files"
+      ],
+      "alters": [
+        "creator_licence_grants",
+        "creator_marketplace_orders",
+        "creator_marketplace_payment_events",
+        "creator_version_files"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "creator_licence_grants",
+        "creator_marketplace_orders",
+        "creator_marketplace_payment_events",
+        "creator_version_files"
+      ],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+      "creates": [
+        "merchant_order_payment_events"
+      ],
+      "alters": [
+        "merchant_order_payment_events",
+        "merchant_orders"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "merchant_order_payment_events"
+      ],
       "policies": []
     }
   ],
@@ -263905,7 +265554,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1182
+        "line": 1206
       },
       "destination": {
         "route": "/account",
@@ -264193,7 +265842,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1199
+        "line": 1223
       },
       "destination": {
         "route": "/account/setup",
@@ -264287,7 +265936,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1316
+        "line": 1340
       },
       "destination": {
         "route": "/dashboard",
@@ -264407,7 +266056,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1279
+        "line": 1303
       },
       "destination": {
         "route": "/dashboard",
@@ -265141,7 +266790,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 944
+        "line": 968
       },
       "destination": {
         "route": "/dashboard",
@@ -265192,7 +266841,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -265332,7 +266981,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -265383,7 +267032,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -265434,7 +267083,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1730
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -265525,7 +267174,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/business-builder/help",
@@ -265616,7 +267265,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1417
+        "line": 1441
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -265667,7 +267316,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -265758,7 +267407,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1370
+        "line": 1394
       },
       "destination": {
         "route": "/business-builder/login",
@@ -265844,7 +267493,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -265895,7 +267544,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -265946,7 +267595,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -266483,7 +268132,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 182
+        "line": 194
       },
       "destination": {
         "route": "/business-builder/owner/store",
@@ -266498,6 +268147,7 @@
         "merchant_product_variants",
         "merchant_products",
         "merchant_storefronts",
+        "payments",
         "products"
       ],
       "requestFieldsObserved": {
@@ -266507,6 +268157,41 @@
       },
       "responseKindsObserved": [
         "send"
+      ],
+      "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
+    },
+    {
+      "id": "GET /business-builder/owner/store/reconciliation",
+      "workspace": "business_builder",
+      "kind": "page_or_download",
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 378
+      },
+      "destination": {
+        "route": "/business-builder/owner/store/reconciliation",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "method": "GET",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "merchant_order_lines",
+        "merchant_order_payment_events",
+        "merchant_orders",
+        "merchant_storefronts",
+        "payments"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [
+          "days",
+          "done"
+        ],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "html-or-delegated"
       ],
       "reviewAction": "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
     },
@@ -266546,7 +268231,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -266629,7 +268314,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -266680,7 +268365,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/business-builder/records",
@@ -266731,7 +268416,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -267766,7 +269451,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -267856,7 +269541,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -267907,7 +269592,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -267998,7 +269683,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1730
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -268264,7 +269949,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -268350,7 +270035,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -268401,7 +270086,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -268556,7 +270241,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -268607,7 +270292,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -268689,7 +270374,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 265
+        "line": 348
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -268701,8 +270386,11 @@
       "moduleCandidateTables": [
         "creator_asset_approvals",
         "creator_asset_versions",
+        "creator_assets",
         "creator_listings",
         "creator_marketplace_entries",
+        "creator_marketplace_orders",
+        "creator_version_files",
         "payments"
       ],
       "requestFieldsObserved": {
@@ -268781,7 +270469,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -268832,7 +270520,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -268883,7 +270571,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -269042,7 +270730,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -269981,7 +271669,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -270173,7 +271861,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -270363,7 +272051,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1706
+        "line": 1730
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -270520,7 +272208,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -270571,7 +272259,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -270692,7 +272380,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -270743,7 +272431,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -270954,7 +272642,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -271005,7 +272693,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1746
+        "line": 1770
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -271129,7 +272817,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1753
+        "line": 1777
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -271951,7 +273639,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1098
+        "line": 1122
       },
       "destination": {
         "route": "/login",
@@ -272151,7 +273839,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1102
+        "line": 1126
       },
       "destination": {
         "route": "/signup",
@@ -272497,6 +274185,42 @@
       },
       "responseKindsObserved": [
         "json"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /api/business/storefront/reconcile/record",
+      "workspace": "business_builder",
+      "kind": "api",
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 457
+      },
+      "destination": {
+        "route": "/business-builder/owner/store/reconciliation",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "merchant_order_lines",
+        "merchant_order_payment_events",
+        "merchant_orders",
+        "merchant_storefronts",
+        "payments"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "days",
+          "order_id",
+          "session_id"
+        ],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "redirect"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
@@ -273203,6 +274927,57 @@
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
     {
+      "id": "POST /api/webhooks/stripe-connect",
+      "workspace": "sonara_shared_api",
+      "kind": "webhook",
+      "source": {
+        "file": "server.js",
+        "line": 364
+      },
+      "destination": {
+        "route": null,
+        "confidence": "machine_ingress",
+        "reason": "provider_or_system_webhook"
+      },
+      "method": "POST",
+      "reason": "webhook_ingress_requires_data_effect_review",
+      "moduleCandidateTables": [
+        "admin_audit_logs",
+        "bookings",
+        "business_employee_invites",
+        "business_memberships",
+        "business_service_catalog",
+        "business_workspaces",
+        "campaigns",
+        "customers",
+        "integrations",
+        "launch_checklist_items",
+        "leads",
+        "organization_memberships",
+        "organizations",
+        "payments",
+        "plans",
+        "products",
+        "profiles",
+        "quotes",
+        "reviews",
+        "service_catalog_items",
+        "subscriptions",
+        "support_email_delivery_attempts",
+        "support_requests",
+        "user_roles"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": []
+      },
+      "responseKindsObserved": [
+        "json-or-delegated"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
       "id": "POST /auth/forgot-password",
       "workspace": "shared_account",
       "kind": "form_or_action",
@@ -273250,7 +275025,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1140
+        "line": 1164
       },
       "destination": {
         "route": "/auth/login",
@@ -273305,7 +275080,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1176
+        "line": 1200
       },
       "destination": {
         "route": "/logout",
@@ -273398,7 +275173,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1106
+        "line": 1130
       },
       "destination": {
         "route": "/auth/signup",
@@ -274246,7 +276021,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 383
+        "line": 472
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -274258,8 +276033,11 @@
       "moduleCandidateTables": [
         "creator_asset_approvals",
         "creator_asset_versions",
+        "creator_assets",
         "creator_listings",
         "creator_marketplace_entries",
+        "creator_marketplace_orders",
+        "creator_version_files",
         "payments"
       ],
       "requestFieldsObserved": {
@@ -274282,7 +276060,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 412
+        "line": 501
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -274294,8 +276072,11 @@
       "moduleCandidateTables": [
         "creator_asset_approvals",
         "creator_asset_versions",
+        "creator_assets",
         "creator_listings",
         "creator_marketplace_entries",
+        "creator_marketplace_orders",
+        "creator_version_files",
         "payments"
       ],
       "requestFieldsObserved": {
@@ -274324,7 +276105,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 488
+        "line": 577
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -274336,8 +276117,11 @@
       "moduleCandidateTables": [
         "creator_asset_approvals",
         "creator_asset_versions",
+        "creator_assets",
         "creator_listings",
         "creator_marketplace_entries",
+        "creator_marketplace_orders",
+        "creator_version_files",
         "payments"
       ],
       "requestFieldsObserved": {
@@ -274358,7 +276142,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 528
+        "line": 624
       },
       "destination": {
         "route": "/creator-studio/owner/marketplace",
@@ -274370,8 +276154,11 @@
       "moduleCandidateTables": [
         "creator_asset_approvals",
         "creator_asset_versions",
+        "creator_assets",
         "creator_listings",
         "creator_marketplace_entries",
+        "creator_marketplace_orders",
+        "creator_version_files",
         "payments"
       ],
       "requestFieldsObserved": {
@@ -275439,7 +277226,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1170
+        "line": 1194
       },
       "destination": {
         "route": "/logout",
@@ -275481,6 +277268,46 @@
       },
       "responseKindsObserved": [
         "json",
+        "redirect"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
+      "id": "POST /marketplace/:id/buy",
+      "workspace": "sonara_shared",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-marketplace-checkout-routes.cjs",
+        "line": 302
+      },
+      "destination": {
+        "route": "/marketplace/:id",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "creator_asset_approvals",
+        "creator_asset_versions",
+        "creator_licence_grants",
+        "creator_listings",
+        "creator_marketplace_entries",
+        "creator_marketplace_orders",
+        "creator_marketplace_payment_events",
+        "creator_version_files",
+        "files",
+        "payments",
+        "purchases"
+      ],
+      "requestFieldsObserved": {
+        "body": [],
+        "query": [],
+        "pathParams": [
+          "id"
+        ]
+      },
+      "responseKindsObserved": [
         "redirect"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
@@ -275794,6 +277621,43 @@
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
     {
+      "id": "POST /store/:slug/orders/:orderId/pay",
+      "workspace": "sonara_shared",
+      "kind": "form_or_action",
+      "source": {
+        "file": "routes/sonara-merchant-payment-routes.cjs",
+        "line": 336
+      },
+      "destination": {
+        "route": "/store/:slug/orders/:orderId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "method": "POST",
+      "reason": "source_module_candidates",
+      "moduleCandidateTables": [
+        "merchant_order_lines",
+        "merchant_order_payment_events",
+        "merchant_orders",
+        "merchant_storefronts",
+        "payments"
+      ],
+      "requestFieldsObserved": {
+        "body": [
+          "t"
+        ],
+        "query": [],
+        "pathParams": [
+          "slug",
+          "orderId"
+        ]
+      },
+      "responseKindsObserved": [
+        "redirect"
+      ],
+      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
+    },
+    {
       "id": "POST /support/request",
       "workspace": "sonara_shared",
       "kind": "form_or_action",
@@ -275858,7 +277722,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1316
+        "line": 1340
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275928,7 +277792,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1279
+        "line": 1303
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275938,7 +277802,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1498
+        "line": 1522
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275948,7 +277812,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1522
+        "line": 1546
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -275988,7 +277852,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1546
+        "line": 1570
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -276198,7 +278062,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 944
+        "line": 968
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -276244,21 +278108,11 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "POST /api/business/storefront",
-      "workspace": "business_builder",
-      "source": {
-        "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 316
-      },
-      "currentDestination": "/business-builder/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "POST /api/business/storefront/publish",
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 331
+        "line": 352
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

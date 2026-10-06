@@ -56,8 +56,11 @@ function columnsNamedBy(query) {
   return named;
 }
 
+const PINNED = Object.freeze([{ version_id: VERSION, object_path: `${ORG}/versions/pinned-a-track.wav`, filename: "a-track.wav", bytes: 1024 }]);
+
 function harness({ listing, version, approvals, entryRows = [], failCatalogueWrite = false, failCatalogueDelete = false,
-  connectEnabled = false, paymentRows = [], livePayment = null, failAccountRead = false, organizationId = ORG } = {}) {
+  connectEnabled = false, paymentRows = [], livePayment = null, failAccountRead = false, organizationId = ORG,
+  pinnedRows = PINNED, assetRows = [], failCopy = false, failPinWrite = false } = {}) {
   const calls = [];
   const realFetch = global.fetch;
   global.fetch = async (url, init = {}) => {
@@ -67,6 +70,15 @@ function harness({ listing, version, approvals, entryRows = [], failCatalogueWri
     const body = init.body ? JSON.parse(init.body) : undefined;
     calls.push({ table, method, query: parsed.search.slice(1), body });
     const ok = (rows) => ({ ok: true, status: 200, json: async () => rows });
+    if (parsed.pathname.startsWith("/storage/v1/")) {
+      if (parsed.pathname === "/storage/v1/object/copy" && failCopy) return { ok: false, status: 500, json: async () => ({}) };
+      return ok({ Key: "copied" });
+    }
+    if (table === "creator_version_files") {
+      if (method === "POST" && failPinWrite) return { ok: false, status: 500, json: async () => ({}) };
+      return ok(method === "GET" ? pinnedRows : []);
+    }
+    if (table === "creator_assets") return ok(assetRows);
     if (parsed.hostname === "api.stripe.com") {
       if (!livePayment) throw new Error("Provider unavailable");
       return ok(livePayment);
@@ -120,8 +132,10 @@ describe("a listing on sale is a listing still cleared", () => {
         const response = await request(app).get(`/creator-studio/owner/marketplace?organizationId=${OTHER_ORG}`);
         assert.equal(response.status, 200);
         assert.match(response.text, /can accept charges and payouts are enabled/);
-        assert.match(response.text, /Marketplace checkout is not built yet/);
-        assert.match(response.text, /Delivery after verified payment is not built yet/);
+        // The account works; checkout does not, because this platform has no
+        // Connect webhook secret. Both are said, and neither is mistaken for the other.
+        assert.match(response.text, /Buyer checkout is not switched on for this platform yet/);
+        assert.match(response.text, /pins a copy of its file to the version/);
         const account = calls.find((call) => call.table === "business_payment_accounts");
         assert.equal(new URLSearchParams(account.query).get("organization_id"), `eq.${ORG}`);
         assert.ok(calls.every((call) => call.method === "GET"));
@@ -242,7 +256,8 @@ describe("a listing on sale is a listing still cleared", () => {
         assert.equal(response.status, 200);
         assert.match(response.text, /no listing fee, buyer fee or seller commission/);
         assert.match(response.text, /external payment-processing charges are separate/);
-        assert.match(response.text, /Checkout and digital delivery are not available yet/);
+        assert.match(response.text, /Checkout is not switched on yet, so no purchase can be made today/);
+        assert.doesNotMatch(response.text, /pays on Stripe's own checkout/);
       } finally {
         restore();
       }
@@ -287,7 +302,7 @@ describe("a listing on sale is a listing still cleared", () => {
       });
       try {
         const response = await request(app).get(`/marketplace/${LISTING}`);
-        assert.match(response.text, /Checkout is not connected yet/);
+        assert.match(response.text, /Checkout is not switched on for this marketplace yet/);
         assert.doesNotMatch(response.text, /<button[^>]*>\s*Buy/i);
       } finally {
         restore();
@@ -344,6 +359,92 @@ describe("a listing on sale is a listing still cleared", () => {
       assert.match(response.text, /still a draft/);
       const states = calls.filter((call) => call.table === "creator_listings" && call.body?.state).map((call) => call.body.state);
       assert.deepEqual(states, ["listed", "draft"]);
+    });
+  });
+
+  describe("listing pins the file a buyer will receive", () => {
+    // A version recorded a checksum and no file, and the asset's one file can be
+    // replaced at any time. So "deliver version 1" meant "deliver whatever the asset
+    // holds today". Listing now copies the file to a path nothing else writes and
+    // records it against the version, before anything goes on sale.
+    const CHECKSUM = "a".repeat(64);
+    const assetWith = (storage) => [{ id: "a1", metadata: { storage } }];
+    const FILE = Object.freeze({ path: `${ORG}/assets/current-a-track.wav`, bytes: 1024, filename: "a-track.wav", type: "audio/wav", sha256: CHECKSUM });
+    const list = async (options) => {
+      const run = harness({ listing: CLEARED_LISTING, approvals: APPROVED, pinnedRows: [], ...options });
+      try {
+        const response = await request(run.app).post(`/creator-studio/owner/marketplace/${LISTING}/list`);
+        return { response, calls: run.calls };
+      } finally { run.restore(); }
+    };
+    const storageCalls = (calls) => calls.filter((call) => call.table.startsWith("/storage/v1/"));
+    const listedState = (calls) => calls.some((call) => call.table === "creator_listings" && call.body?.state === "listed");
+
+    it("copies the asset's file inside the seller's own folder and records it before going on sale", async () => {
+      const { response, calls } = await list({ version: { ...HUMAN_VERSION, checksum: `sha256:${CHECKSUM}` }, assetRows: assetWith(FILE) });
+      assert.equal(response.status, 303);
+      const copy = storageCalls(calls).find((call) => call.table === "/storage/v1/object/copy");
+      assert.ok(copy, "listing put a version on sale without copying its file");
+      assert.equal(copy.body.sourceKey, FILE.path);
+      assert.ok(copy.body.destinationKey.startsWith(`${ORG}/versions/`), `the copy left the seller's folder: ${copy.body.destinationKey}`);
+      assert.notEqual(copy.body.destinationKey, FILE.path);
+      const pin = calls.find((call) => call.table === "creator_version_files" && call.method === "POST");
+      assert.ok(pin, "the copy was never recorded against the version");
+      assert.equal(pin.body.version_id, VERSION);
+      assert.equal(pin.body.organization_id, ORG);
+      assert.equal(pin.body.object_path, copy.body.destinationKey);
+      assert.equal(pin.body.copied_from_path, FILE.path);
+      assert.equal(pin.body.bytes, 1024);
+      const writes = calls.filter((call) => call.method !== "GET");
+      assert.ok(writes.indexOf(pin) < writes.findIndex((call) => call.body?.state === "listed"), "on sale before its file was pinned");
+    });
+
+    it("refuses a file whose checksum is not the version's, and writes nothing", async () => {
+      const { response, calls } = await list({ version: { ...HUMAN_VERSION, checksum: "b".repeat(64) }, assetRows: assetWith(FILE) });
+      assert.equal(response.status, 400);
+      assert.match(response.text, /not the file this version recorded/);
+      assert.deepEqual(storageCalls(calls), []);
+      assert.ok(!listedState(calls));
+      assert.ok(!calls.some((call) => call.table === "creator_marketplace_entries" && call.method !== "GET"));
+    });
+
+    it("refuses a version with no file attached", async () => {
+      const { response, calls } = await list({ version: HUMAN_VERSION, assetRows: [{ id: "a1", metadata: {} }] });
+      assert.equal(response.status, 400);
+      assert.match(response.text, /no file attached/);
+      assert.ok(!listedState(calls));
+    });
+
+    it("will not copy a file from another workspace's folder", async () => {
+      const { response, calls } = await list({ version: HUMAN_VERSION, assetRows: assetWith({ ...FILE, path: `${OTHER_ORG}/assets/theirs.wav`, sha256: null }) });
+      assert.equal(response.status, 400);
+      assert.deepEqual(storageCalls(calls), [], "a copy was requested from another workspace's folder");
+      assert.ok(!listedState(calls));
+    });
+
+    it("leaves it off sale when the copy fails", async () => {
+      const { response, calls } = await list({ version: HUMAN_VERSION, assetRows: assetWith(FILE), failCopy: true });
+      assert.equal(response.status, 400);
+      assert.match(response.text, /could not be copied/);
+      assert.ok(!calls.some((call) => call.table === "creator_version_files" && call.method === "POST"));
+      assert.ok(!listedState(calls));
+    });
+
+    it("removes an unrecorded copy rather than leaving a file nothing points at", async () => {
+      const { response, calls } = await list({ version: HUMAN_VERSION, assetRows: assetWith(FILE), failPinWrite: true });
+      assert.equal(response.status, 400);
+      const copy = storageCalls(calls).find((call) => call.table === "/storage/v1/object/copy");
+      const removed = storageCalls(calls).find((call) => call.method === "DELETE");
+      assert.ok(removed, "the orphaned copy was left in storage");
+      assert.ok(removed.table.endsWith(`/${copy.body.destinationKey}`));
+      assert.ok(!listedState(calls));
+    });
+
+    it("reuses the version's pin rather than copying again", async () => {
+      const { response, calls } = await list({ version: HUMAN_VERSION, pinnedRows: PINNED, assetRows: assetWith({ ...FILE, path: `${ORG}/assets/replaced.wav` }) });
+      assert.equal(response.status, 303);
+      assert.deepEqual(storageCalls(calls), [], "a pinned version was copied again from whatever the asset holds now");
+      assert.ok(!calls.some((call) => call.table === "creator_assets"), "read the asset's current file for a version already pinned");
     });
   });
 

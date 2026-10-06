@@ -14,6 +14,7 @@
 // error. "The application never issued a query that could have returned
 // organization B's data" is the property worth holding.
 
+const crypto = require("node:crypto");
 const tenantGuard = require("../../lib/sonara-tenant-guard.cjs");
 
 const PASSTHROUGH = Symbol("not a supabase request");
@@ -141,6 +142,22 @@ function createFakeSupabase(options = {}) {
   const users = options.users || {};
   const tables = new Map(Object.entries(options.tables || {}).map(([name, rows]) => [name, rows.map((row) => ({ ...row }))]));
   const queries = [];
+  // Unique constraints, including partial ones: { table: [{ name, columns, where? }] }.
+  // Only what a test declares is enforced -- the fake does not read migrations --
+  // so a test relying on one declares it, and the migration replay proves the
+  // real index exists. A plain insert that collides answers 409 with Postgres's
+  // own code, as PostgREST does.
+  const unique = options.unique || {};
+  function violatedConstraint(table, row) {
+    for (const constraint of unique[table] || []) {
+      if (constraint.where && !constraint.where(row)) continue;
+      const clash = rowsFor(table).some((existing) =>
+        (!constraint.where || constraint.where(existing))
+        && constraint.columns.every((column) => existing[column] !== undefined && String(existing[column]) === String(row[column])));
+      if (clash) return constraint.name;
+    }
+    return null;
+  }
 
   function rowsFor(table) {
     if (!tables.has(table)) tables.set(table, []);
@@ -221,9 +238,47 @@ function createFakeSupabase(options = {}) {
 
     if (method === "POST") {
       const incoming = Array.isArray(body) ? body : [body].filter(Boolean);
-      const created = incoming.map((row, index) => ({ id: `generated-${table}-${rowsFor(table).length + index}`, ...row }));
-      rowsFor(table).push(...created);
-      return jsonResponse(created, 201);
+      // `ids: "uuid"` for a caller that checks an id is a uuid before it will use
+      // it, as the marketplace order routes do. The default stays readable.
+      // Column defaults, as the migration declares them. Only what a test declares:
+      // a conditional write like `checkout_attempts=eq.0` matches nothing against a
+      // row the fake inserted without the database's default, and that reads in a
+      // test exactly like a race the route lost.
+      const defaults = (options.defaults || {})[table] || {};
+      const created = incoming.map((row, index) => ({
+        id: options.ids === "uuid" ? crypto.randomUUID() : `generated-${table}-${rowsFor(table).length + index}`,
+        ...Object.fromEntries(Object.entries(defaults).map(([column, value]) => [column, typeof value === "function" ? value() : value])),
+        ...row
+      }));
+      // Upserts. `on_conflict` names the key, and the Prefer header says what a
+      // duplicate does: ignore-duplicates keeps the existing row and returns
+      // nothing for it, merge-duplicates updates it. Without this a replayed
+      // webhook's "insert the grant, ignore if present" looked in a test like a
+      // second grant -- or, worse, a test of "only one grant" passed because the
+      // fake had silently stored two and nobody counted.
+      const conflictKey = parsed.searchParams.get("on_conflict");
+      const prefer = String(init.headers?.Prefer || init.headers?.prefer || "");
+      const resolution = /resolution=ignore-duplicates/.test(prefer) ? "ignore" : /resolution=merge-duplicates/.test(prefer) ? "merge" : null;
+      if (conflictKey && !resolution) {
+        throw new Error(`fake-supabase: on_conflict=${conflictKey} without a resolution in Prefer is a plain insert in PostgREST. Say which you mean.`);
+      }
+      const keyColumns = conflictKey ? conflictKey.split(",").map((column) => column.trim()) : [];
+      const sameKey = (left, right) => keyColumns.every((column) => left[column] !== undefined && String(left[column]) === String(right[column]));
+      const inserted = [];
+      for (const row of created) {
+        const existing = keyColumns.length ? rowsFor(table).find((candidate) => sameKey(candidate, row)) : null;
+        if (existing) {
+          if (resolution === "merge") Object.assign(existing, row);
+          continue;
+        }
+        const violated = violatedConstraint(table, row);
+        if (violated) {
+          return jsonResponse({ code: "23505", message: `duplicate key value violates unique constraint "${violated}"` }, 409);
+        }
+        rowsFor(table).push(row);
+        inserted.push(row);
+      }
+      return jsonResponse(inserted, 201);
     }
 
     if (method === "PATCH") {

@@ -9,7 +9,11 @@
 //   POST /api/business/storefront/publish  give it an address and publish it
 //   POST /api/business/orders/status     confirm, fulfil or cancel an order
 //   GET  /store/:slug                    the public shop. No account.
-//   POST /store/:slug                    place an order. No account.
+//   POST /store/:slug                    place an order, and pay for it on Stripe if the shop
+//                                        takes payments online. No account.
+//
+// The receipt, paying again, and the owner's reconciliation against Stripe are in
+// routes/sonara-merchant-payment-routes.cjs.
 //
 // Every figure is computed in lib/sonara-merchant-storefront.cjs from rows this
 // file read. Nothing here prices anything, and in particular **no price comes from
@@ -25,12 +29,12 @@
 //
 // ## What this does not do
 //
-//   * **Takes no money and stores no card.** AGENTS.md forbids storing raw card
-//     data or CVV. An order here records what somebody wants; taking payment runs
-//     through the organization's own connected account, which
-//     lib/sonara-connected-payments.cjs and business_payment_accounts govern and
-//     which an owner sets up themselves. The public page says so in words rather
-//     than leaving a buyer to assume they have paid.
+//   * **Stores no card.** AGENTS.md forbids storing raw card data or CVV. Payment,
+//     when the shop takes it online, happens on Stripe's hosted page, charged to
+//     the organization's own connected account (lib/sonara-connected-payments.cjs,
+//     business_payment_accounts); card details never reach this application. When
+//     online payment is not available the public page says so in words rather than
+//     leaving a buyer to assume they have paid.
 //   * **Sends nothing.** Alerts are off or explicitly user-controlled by default.
 //     Placing an order writes rows; nobody is emailed.
 //   * **Decrements no stock.** The catalogue migration says nothing decrements
@@ -38,11 +42,14 @@
 //     does not exist.
 
 const storefront = require("../lib/sonara-merchant-storefront.cjs");
+const merchantPay = require("../lib/sonara-merchant-payments.cjs");
+const checkout = require("../lib/sonara-connected-checkout.cjs");
+const { createMerchantPayments } = require("./sonara-merchant-payment-routes.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
   "requireBusinessManager", "getCustomerPrimaryOrganization",
-  "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter"
+  "getSupabaseServerConfig", "supabaseHeaders", "createRateLimiter", "getEnv"
 ];
 
 const SHOP_TABLE = "merchant_storefronts";
@@ -62,8 +69,13 @@ function registerMerchantStoreRoutes(app, deps = {}) {
   const {
     layout, brandCard, linkAction, escapeHtml,
     requireBusinessManager, getCustomerPrimaryOrganization,
-    getSupabaseServerConfig, supabaseHeaders, createRateLimiter
+    getSupabaseServerConfig, supabaseHeaders, createRateLimiter, getEnv
   } = deps;
+  const shopPayments = createMerchantPayments(deps);
+  // Whether shops on this platform can take payment online at all. Configuration,
+  // read per request; whether *this* shop's Stripe account can take a charge is
+  // asked live when an order is paid, not for every visitor.
+  const onlinePayment = () => checkout.checkoutReadiness({ getEnv }).ok;
 
   const enc = encodeURIComponent;
   const OWNER_PAGE = "/business-builder/owner/store";
@@ -197,7 +209,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
       `${SHOP_TABLE}?select=id,slug,enabled,headline,intro,currency,accepts_orders&${orgFilter}&limit=1`);
     const catalogue = await readCatalogue(scope.config, scope.organizationId);
     const orders = await rest(scope.config,
-      `${ORDER_TABLE}?select=id,buyer_name,buyer_email,status,subtotal_cents,currency,note,created_at,cancellation_reason&${orgFilter}&order=created_at.desc&limit=${ORDER_CAP}`);
+      `${ORDER_TABLE}?select=id,buyer_name,buyer_email,status,payment_state,amount_paid_cents,refunded_cents,subtotal_cents,currency,note,created_at,cancellation_reason&${orgFilter}&order=created_at.desc&limit=${ORDER_CAP}`);
 
     if (!shops.ok || !catalogue.ok || !orders.ok) {
       return res.status(200).type("html").send(layout({
@@ -256,6 +268,9 @@ function registerMerchantStoreRoutes(app, deps = {}) {
           // came in. It was selected and shown nowhere until
           // report-unused-selected-columns.mjs said so.
           + `${order.created_at ? `, placed ${escapeHtml(new Date(order.created_at).toUTCString())}` : ", no date recorded"}</p>`,
+          `<p>Payment: ${escapeHtml(PAYMENT_STATE_WORDS[order.payment_state] || "not recorded")}`
+          + `${Number.isInteger(order.amount_paid_cents) ? ` — ${escapeHtml(storefront.money(order.amount_paid_cents, order.currency))} taken` : ""}`
+          + `${Number(order.refunded_cents) > 0 ? `, ${escapeHtml(storefront.money(Number(order.refunded_cents), order.currency))} refunded` : ""}.</p>`,
           order.note ? `<p>They said: ${escapeHtml(order.note)}</p>` : "",
           order.cancellation_reason ? `<p>Cancelled because: ${escapeHtml(order.cancellation_reason)}</p>` : "",
           orderStatusForm(order)
@@ -266,11 +281,17 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     }
 
     // Said plainly, because a shop owner would otherwise reasonably assume the
-    // opposite. Taking payment is their connected account's job and not this
-    // page's.
+    // opposite.
+    sections.push(brandCard(
+      "How buyers pay",
+      onlinePayment()
+        ? "When your Stripe account can take charges, a buyer who places an order goes straight to Stripe's checkout and pays your account directly -- SONARA takes no commission, and card details are typed on Stripe's page, never here. "
+          + `<a href="/business-builder/owner/store/reconciliation">Check every payment against Stripe</a>. Refunds are issued in your Stripe dashboard and appear here when Stripe reports them.`
+        : "Online payment is not switched on for shops on this platform yet, so no card details are typed here or stored. An order records what somebody wants, and you collect the money the way you already do."
+    ));
     sections.push(brandCard(
       "What this shop does not do",
-      "It does not take payment, so no card details are ever typed here or stored. An order records what somebody wants, and you collect the money the way you already do. It does not email the buyer either, and it does not change your stock counts."
+      "It does not email the buyer, and it does not change your stock counts."
     ));
 
     sections.push(brandCard("Name your shop", shopForm(shop)));
@@ -452,6 +473,18 @@ function registerMerchantStoreRoutes(app, deps = {}) {
   const PAYMENT_SENTENCE =
     "Nothing is charged here and no card details are asked for or stored. "
     + "This sends the shop what you want and how to reach you; they will tell you how to pay.";
+  const ONLINE_PAYMENT_SENTENCE =
+    "If this shop takes payments online, placing the order takes you to Stripe's checkout to pay the shop directly; "
+    + "card details are typed on Stripe's page, never here. If it does not, the shop will tell you how to pay.";
+  const paymentSentence = () => (onlinePayment() ? ONLINE_PAYMENT_SENTENCE : PAYMENT_SENTENCE);
+  const PAYMENT_STATE_WORDS = Object.freeze({
+    unpaid: "not paid",
+    checkout_open: "checkout open, not paid yet",
+    processing: "payment on its way",
+    paid: "paid",
+    refunded: "refunded",
+    disputed: "disputed"
+  });
 
   function shopSections({ slug, split, window, offered }) {
     const sections = [];
@@ -471,7 +504,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
           + `${escapeHtml(storefront.money(entry.offer.priceCents, entry.offer.currency))}</li>`).join("") + "</ul>"
       ));
     }
-    sections.push(brandCard("How paying works", PAYMENT_SENTENCE));
+    sections.push(brandCard("How paying works", paymentSentence()));
     return sections;
   }
 
@@ -576,9 +609,13 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     });
     if (!priced.ok) return refuse(storefront.problemSentence(priced.problems[0]) || "We could not price that order.", 400);
 
+    // The buyer's key to their receipt. Only its hash is stored; the token itself
+    // is in the receipt's address and nowhere else.
+    const receiptKey = merchantPay.newBuyerToken();
     const created = await write(config, ORDER_TABLE, {
       organization_id: loaded.shop.organization_id,
       storefront_id: loaded.shop.id,
+      buyer_token_hash: receiptKey.hash,
       buyer_name: buyer.buyer.buyerName,
       buyer_email: buyer.buyer.buyerEmail,
       status: "placed",
@@ -616,6 +653,20 @@ function registerMerchantStoreRoutes(app, deps = {}) {
       return res.status(page.status).type("html").send(page.html);
     }
 
+    const receiptPath = `/store/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderId)}?t=${encodeURIComponent(receiptKey.token)}`;
+    // Paying now, if this platform takes payment online and this shop's Stripe
+    // account can be charged. Anything short of a checkout URL leaves the order
+    // placed and unpaid, and the buyer is told which and why.
+    let payingSentence = PAYMENT_SENTENCE;
+    if (onlinePayment()) {
+      const fresh = await shopPayments.orderForCheckout(loaded.shop.organization_id, orderId);
+      const opened = fresh.ok && fresh.order
+        ? await shopPayments.openCheckout({ order: fresh.order, lines: fresh.lines, slug, token: receiptKey.token, req })
+        : { ok: false, sentence: "We could not open the payment just now. Nothing has been charged -- you can pay from your receipt." };
+      if (opened.ok) return res.redirect(303, opened.url);
+      payingSentence = opened.sentence;
+    }
+
     const page = publicPage({
       heading: String(loaded.shop.headline || "").trim() || "A shop",
       body: `Your order is with the shop: ${priced.reason}`,
@@ -623,7 +674,8 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         brandCard("What you ordered", "<ul>" + priced.lines.map((line) =>
           `<li>${escapeHtml(String(line.quantity))} × ${escapeHtml(line.description)} — `
           + `${escapeHtml(storefront.money(line.lineTotalCents, line.currency))}</li>`).join("") + "</ul>"),
-        brandCard("How paying works", PAYMENT_SENTENCE)
+        brandCard("How paying works", escapeHtml(payingSentence)),
+        brandCard("Your receipt", `<a href="${escapeHtml(receiptPath)}">Your order and its receipt</a> -- keep this link; it is the only way back to this order.`)
       ]
     });
     return res.status(page.status).type("html").send(page.html);
