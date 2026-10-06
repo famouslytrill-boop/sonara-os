@@ -2,6 +2,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-06 - Stock moves with orders and jobs
+
+The P0 "inventory/order/fulfilment linkage", and the inventory step of both the
+storefront chain (order -> payment -> **fulfilment**) and the Business Builder job
+chain (job -> **inventory** -> work completion). `inventory_items.quantity` was a
+number somebody typed; a variant's stock link "links rather than deducts" said its
+own form. A shop could sell its last mug twice and a job's cable never left the reel.
+
+**Ledger and functions** (`20261006030000_stock_moves_with_orders_and_jobs.sql`):
+`inventory_reservations`, one row per movement a sale or job caused -- `held`,
+`consumed`, `released`, `returned` -- unique per source so a retry cannot move stock
+twice, no DELETE, revoke-before-grant (the lesson of 20261006010000). Available =
+on hand - held; on hand moves only when goods move. Two SECURITY INVOKER functions
+under one advisory lock per organization: `inventory_order_stock` (reserve
+all-or-nothing per item with the shortages named / fulfil / release; a reinstated
+order is held again subject to stock; an order placed before its stock was linked is
+consumed at fulfilment, even below zero) and `inventory_material_stock` (a job's
+material used or returned; a job is never refused -- the material is already used).
+No FK to the source, so a work order's cascade neither blocks nor erases the history.
+
+**Proven on PostgreSQL**, not in a fake: `tests/sql/inventory-stock.sql` in the
+migration replay (holds, shortages, retries, release, fulfilment once, shipped stock
+not released, reinstatement, archived items, job use below zero and return, tenancy),
+and a **two-session race for the last mug** -- exactly one hold. Falsified: lock
+removed -> the race probe fails; shortage check removed -> "oversold". The first
+replay run also caught a real design flaw: a released hold could never be held again
+(the unique index), so a reinstated order would have reported `already_reserved`
+holding nothing.
+
+**Application**: the shop withholds a sold-out version (and, if stock cannot be
+read, a linked one -- never offered blind), shows "N left" and caps the form; an
+order asks the stock function before any checkout, and a refusal or a check that
+could not run **cancels** the order with its reason rather than leaving it placed
+with nothing held. The owner's status change moves stock first and the status only
+if it moved (fulfilled consumes, cancelled releases, reinstated re-holds), with the
+outcome rebuilt from counts. A work-order material saved as used or returned moves
+the count and the record page says what happened -- including below zero.
+
+**Two existing defects found on the way.** (1) A work-order material picked from
+inventory with no typed description was refused as `missing_required` on **every**
+save (the line handler re-checks the "either" fields after filling, and materials
+filled nothing), so nothing could ever be recorded against stock by picking it; it
+now fills its name from the item. (2) The line handler redirected refusals as
+`?problem=` and **no page read it** -- a line that did not save came back in silence;
+record pages now say what happened. Also: the Supabase contract gate could not see
+a table named inside a template string, so the ledger was invisible to it; it is now
+named through `*_TABLE` constants and has its own reviewed group (falsified: removing
+it from the group fails by name).
+
+Tests: `tests/stock-moves-with-orders-and-jobs.test.js` (23; the stock function's
+answers scripted and every call recorded -- re-implementing the SQL in JS would test
+the copy); `tests/helpers/fake-supabase.cjs` can now script an RPC. Falsified, each
+red by name: no reserve on placement; refused order left placed; status set before
+stock moved; sold-out offered; unreadable stock offered; material hook removed;
+material fill removed; a garbled stock reply read as success; an unrecorded count
+read as zero.
+
+**Not done here**: no restock on refund (a refund is money; whether goods came back
+is the owner's to record), and an unpaid order's hold lasts until the owner cancels
+it -- there is no automatic expiry yet.
+
 ### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
 
 ### 2026-10-06 - Commerce recovery and truthful route/data lineage

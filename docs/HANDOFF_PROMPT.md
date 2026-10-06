@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3089 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 154 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 155 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 448 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 449 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,74 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 27 most recent entries of 441 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 27 most recent entries of 442 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-06 - Stock moves with orders and jobs
+
+The P0 "inventory/order/fulfilment linkage", and the inventory step of both the
+storefront chain (order -> payment -> **fulfilment**) and the Business Builder job
+chain (job -> **inventory** -> work completion). `inventory_items.quantity` was a
+number somebody typed; a variant's stock link "links rather than deducts" said its
+own form. A shop could sell its last mug twice and a job's cable never left the reel.
+
+**Ledger and functions** (`20261006030000_stock_moves_with_orders_and_jobs.sql`):
+`inventory_reservations`, one row per movement a sale or job caused -- `held`,
+`consumed`, `released`, `returned` -- unique per source so a retry cannot move stock
+twice, no DELETE, revoke-before-grant (the lesson of 20261006010000). Available =
+on hand - held; on hand moves only when goods move. Two SECURITY INVOKER functions
+under one advisory lock per organization: `inventory_order_stock` (reserve
+all-or-nothing per item with the shortages named / fulfil / release; a reinstated
+order is held again subject to stock; an order placed before its stock was linked is
+consumed at fulfilment, even below zero) and `inventory_material_stock` (a job's
+material used or returned; a job is never refused -- the material is already used).
+No FK to the source, so a work order's cascade neither blocks nor erases the history.
+
+**Proven on PostgreSQL**, not in a fake: `tests/sql/inventory-stock.sql` in the
+migration replay (holds, shortages, retries, release, fulfilment once, shipped stock
+not released, reinstatement, archived items, job use below zero and return, tenancy),
+and a **two-session race for the last mug** -- exactly one hold. Falsified: lock
+removed -> the race probe fails; shortage check removed -> "oversold". The first
+replay run also caught a real design flaw: a released hold could never be held again
+(the unique index), so a reinstated order would have reported `already_reserved`
+holding nothing.
+
+**Application**: the shop withholds a sold-out version (and, if stock cannot be
+read, a linked one -- never offered blind), shows "N left" and caps the form; an
+order asks the stock function before any checkout, and a refusal or a check that
+could not run **cancels** the order with its reason rather than leaving it placed
+with nothing held. The owner's status change moves stock first and the status only
+if it moved (fulfilled consumes, cancelled releases, reinstated re-holds), with the
+outcome rebuilt from counts. A work-order material saved as used or returned moves
+the count and the record page says what happened -- including below zero.
+
+**Two existing defects found on the way.** (1) A work-order material picked from
+inventory with no typed description was refused as `missing_required` on **every**
+save (the line handler re-checks the "either" fields after filling, and materials
+filled nothing), so nothing could ever be recorded against stock by picking it; it
+now fills its name from the item. (2) The line handler redirected refusals as
+`?problem=` and **no page read it** -- a line that did not save came back in silence;
+record pages now say what happened. Also: the Supabase contract gate could not see
+a table named inside a template string, so the ledger was invisible to it; it is now
+named through `*_TABLE` constants and has its own reviewed group (falsified: removing
+it from the group fails by name).
+
+Tests: `tests/stock-moves-with-orders-and-jobs.test.js` (23; the stock function's
+answers scripted and every call recorded -- re-implementing the SQL in JS would test
+the copy); `tests/helpers/fake-supabase.cjs` can now script an RPC. Falsified, each
+red by name: no reserve on placement; refused order left placed; status set before
+stock moved; sold-out offered; unreadable stock offered; material hook removed;
+material fill removed; a garbled stock reply read as success; an unrecorded count
+read as zero.
+
+**Not done here**: no restock on refund (a refund is money; whether goods came back
+is the owner's to record), and an unpaid order's hold lasts until the owner cancels
+it -- there is no automatic expiry yet.
+
+
 
 ### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
 
@@ -2004,136 +2067,3 @@ opened "One table" and the list had held two since August. Left as found rather
 than fixed inside a change about something else, recorded here so it was a known
 inaccuracy rather than a believed one -- and then fixed in its own commit, which
 is the whole reason it was deferred.
-
-
-
-### 2026-10-01 - "2026-07-28" was a string, not a requirement
-
-Asked to upgrade the Integration Gateway for current MCP authorization
-requirements, with no connector bypassing tenant-scoped credentials or audit
-logging. Establishing what "current" means came first: the training cutoff behind
-this work is May 2026 and it is now October, so the specification was read, not
-recalled -- `modelcontextprotocol.io/specification/versioning` and
-`.../2026-07-28/basic/authorization`, both fetched live on 1 October 2026.
-
-Not a formality. Two findings contradict what an assistant would write from
-memory, and both are load-bearing:
-
-- **Dynamic Client Registration (RFC 7591) is deprecated** in this revision,
-  retained only for authorization servers without Client ID Metadata Documents. A
-  gateway written from training would have made a deprecated mechanism its primary
-  registration path.
-- **Negotiation is no longer the `initialize` handshake.** Every request carries
-  `io.modelcontextprotocol/protocolVersion` in `_meta`, Streamable HTTP adds an
-  `MCP-Protocol-Version` header, there is a `server/discover` RPC, and a mismatch
-  answers `UnsupportedProtocolVersionError`. The handshake is the
-  backward-compatibility path for `2025-11-25` and earlier.
-
-### The defect that was already here
-
-`lib/sonara-aggregation-control-plane.cjs` line 12 declared `mcp: "2026-07-28"`.
-Line 273 of that same file said "declaring a spec version is not runtime proof".
-`lib/sonara-platform-completeness.cjs` line 196 declared the revision again,
-independently. Nothing compared them, and no module held what the revision
-requires, so no check could measure a connector against anything.
-
-`lib/sonara-mcp-authorization-contract.cjs` holds the requirements now, each with
-the citation it was read from and its level in the specification's own word -- a
-SHOULD recorded as a MUST would make this repository stricter than the standard it
-claims to implement. Three functions carry the sharp edges:
-
-- `issuerMatches` is RFC 3986 6.2.1 simple string comparison, because the
-  specification forbids scheme/host case folding, default-port elision,
-  trailing-slash and percent-encoding normalization before comparing. Tolerance
-  here is the vulnerability, not a convenience.
-- `validateAuthorizationResponse` is the RFC 9207 table as four rows. The row that
-  gets lost is `iss` **absent** while metadata advertises it: a rejection, not a
-  pass -- and an implementation missing it behaves correctly on every honest
-  request.
-- `evaluateConnectorAuthorization` decides by transport, and both directions are
-  defects: an HTTP connector exempted from the OAuth MUSTs is unauthenticated, and
-  a stdio connector held to them can never be enabled, since stdio takes
-  credentials from the environment. Unrecognised transports fail closed.
-
-Tenant-scoped credentials and audit logging are SONARA's own, non-waivable on
-every transport including the one the specification exempts from OAuth.
-
-### What was broken to prove it
-
-`tests/a-version-string-is-not-conformance.test.js`, 28 tests. Five breaks, each
-caught by the test naming it: `issuerMatches` folding case and stripping a trailing
-slash (**2** red), removing the advertised-but-absent `iss` rejection (**1**),
-treating an unrecognised transport as HTTP (**1**), drifting the contract's
-revision from the declared baseline (**3**), holding stdio to the HTTP requirements
-(**1**). Restored by copy-aside and `md5sum -c`, not `git checkout`.
-
-`pnpm run verify:mcp-authorization` is the gate, and it is two-sided on purpose.
-Four breaks against it: drifting the aggregation baseline, flipping an MCP-capable
-registry record to `adapter_available`, replacing the issuer comparison with
-`new URL().href`, and making the classifier deny everything. The last matters most
--- an all-deny classifier satisfies every refusal assertion in the file, so the
-gate also probes that a conforming connector is still admitted, and that probe was
-the only thing that fired. The `new URL().href` break is the realistic one: it is
-what a developer reaches for, and it accepted four forbidden forms at once.
-
-The gate asserts its own population too. Two registry records are MCP-capable
-(`gemini_cli`, `claude_code`), both `developer_only`; finding none fails rather
-than passes, because that means the scan stopped matching.
-
-### And one the scanner found, which took two attempts and a primary source
-
-CodeQL raised two high-severity "clear-text logging of sensitive information"
-alerts on the gate, both naming `BLOCKING_OAUTH_KEYS`. Nothing secret was logged
--- the constant holds requirement identifiers -- but the alert was not wrong
-about the name.
-
-The first fix was wrong, and worth recording because the reasoning was
-plausible. The constant was renamed to `BLOCKING_OAUTH_REQUIREMENT_IDS` on the
-theory that the `KEYS` suffix was the trigger. CodeQL failed again on the new
-head, identically. The theory was comfortable and untested.
-
-The answer was in CodeQL's own source --
-`shared/concepts/codeql/concepts/internal/SensitiveDataHeuristics.qll` in
-`github/codeql`, read 1 October 2026. `maybePassword()` matches the literal
-string **`oauth`**:
-
-```
-(pass(wd|word|code|.?phrase)(?!.*question)|(auth(entication|ori[sz]ation)?).?key|oauth|api.?(key|tok)|([_-]|\b)mfa([_-]|\b))
-```
-
-So `KEYS` was never the trigger and the first rename kept the one that was. Note
-also that bare `auth` does NOT match -- only `oauth`, or `auth`/`authorization`
-followed by `key` -- which is why `AUTHORIZATION_PATH` in the same module was
-never flagged, and `notSensitiveRegexp` excludes anything containing `path`
-anyway.
-
-The constants are now `SPEC_REQUIREMENT_IDS` and `BLOCKING_SPEC_REQUIREMENT_IDS`,
-and the objects' `key` field is `id`. Renamed rather than suppressed, so no
-security check is weakened and `SECURITY_NOTES.md` needs no entry.
-`record.key` in the gate is deliberately untouched: it is the `AI_INTEGRATIONS`
-record's own field, and CodeQL did not flag it.
-
-Verified before pushing this time, not after, by transcribing those regexes and
-running them over every identifier in the three files: the gate script, where
-both alerts were, classifies **zero** identifiers as sensitive. The two tokens
-that still match (`OAuth`, `secrets`) sit inside string literals, which are
-prose rather than names. That transcription lives in the scratchpad rather than
-the repository -- it is a one-off measurement against an external project's
-internals, and a copy of somebody else's regex kept here would be a claim that
-rots the next time they change it.
-
-The reject-row break was re-run after each rename, and still turns the test red
-both times: a refactor that quietly disarms its own tests would be this
-repository's defect wearing a tidier name.
-
-### What this is not
-
-No MCP runtime. `docs/CONNECTORS_AND_MCP.md` still says registry infrastructure
-only. This is the prerequisite
-`docs/research/PLATFORM_COMPLETENESS_AND_MARKET_CONVERGENCE_2026-09-25.md` line 255
-names, written before the runtime so the runtime cannot be built around it; the
-gate refuses any MCP-capable record that becomes production-reachable while no
-runtime exists, so wiring one means producing conformance evidence rather than
-changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
-Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
-nothing here has been exercised against a live authorization server.

@@ -35,6 +35,7 @@ const recordFilter = require("../lib/sonara-record-filter.cjs");
 const recordArchive = require("../lib/sonara-record-archive.cjs");
 const procurement = require("../lib/sonara-procurement-workflow.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
+const inventoryStock = require("../lib/sonara-inventory-stock.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
@@ -1314,9 +1315,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         }
       }
 
+      const lineNotice = lineOutcome(req.query);
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
+            ...(lineNotice ? [ui.card("What just happened", ui.escape(lineNotice))] : []),
             summaryCard(page, parent, ui),
             ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
@@ -1492,6 +1495,19 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             paymentId: saved?.rows?.[0]?.id || null
           });
         } catch { /* a saved payment is not undone by a notification that failed */ }
+      }
+
+      // A work-order material recorded as used or returned moves the stock count,
+      // through the same locked function family the storefront uses. The line is
+      // saved either way -- the material was used -- and the page says whether the
+      // count moved, from codes and numbers rather than from carried text.
+      if (spec.table === "business_work_order_materials" && saved?.ok !== false && isUuid(String(saved?.rows?.[0]?.id || ""))) {
+        const moved = await inventoryStock.materialStock(config, (c) => headers(c), { organizationId: org.organizationId, materialId: saved.rows[0].id });
+        if (!acceptsHtml(req)) return res.status(200).json({ ...saved, stock: moved });
+        const params = moved.ok
+          ? { line: "saved", stock: moved.code, ...(Number.isFinite(Number(moved.quantity)) ? { qty: String(moved.quantity) } : {}), ...(Number.isFinite(Number(moved.onHand)) ? { on_hand: String(moved.onHand) } : {}) }
+          : { line: "saved", stock: "not_moved" };
+        return res.redirect(303, `${back}?${new URLSearchParams(params).toString()}`);
       }
 
       return respond(saved?.ok === false ? 502 : 200, saved);
@@ -2417,6 +2433,33 @@ function workedHours(row) {
 // an empty string" -- which would fail a date or number column outright.
 function dropBlanks(body) {
   return Object.fromEntries(Object.entries(body || {}).filter(([, value]) => !(typeof value === "string" && value.trim() === "")));
+}
+
+// What a line save did, for the record page it returns to.
+//
+// The line handler has always redirected with `?problem=<code>` when it refused,
+// and no page read it: a line that did not save came back to the same page with
+// nothing said. Rebuilt here from codes and numbers only -- never from text carried
+// in the address -- for the refusals and for what a material line did to stock.
+function lineOutcome(query = {}) {
+  if (query.line === "saved" && query.stock) {
+    const number = (value) => (/^-?\d{1,9}(\.\d{1,2})?$/.test(String(value ?? "")) ? Number(value) : null);
+    const code = String(query.stock);
+    if (code === "not_moved") return `Saved. ${inventoryStock.materialStockSentence({ ok: false })}`;
+    return `Saved. ${inventoryStock.materialStockSentence({ ok: true, code, quantity: number(query.qty), onHand: number(query.on_hand) })}`;
+  }
+  const problem = String(query.problem || "");
+  if (!problem) return null;
+  if (/_not_yours$/.test(problem)) return "That was not saved: it pointed at something that does not belong to this workspace.";
+  if (/_invalid$/.test(problem)) return "That was not saved: one of the choices could not be read. Pick it again.";
+  if (/_unreadable$/.test(problem)) return "That was not saved: we could not check one of the choices just now. Try again shortly.";
+  return ({
+    missing_required: "That was not saved: something it needs was left empty.",
+    parent_required: "That was not saved: it was not attached to a record.",
+    setup_required: "That was not saved: the database is not reachable just now.",
+    insert_failed: "That was not saved. Nothing changed -- try again shortly.",
+    not_saved: "That was not saved. Nothing changed -- try again shortly."
+  })[problem] || "That was not saved.";
 }
 
 function acceptsHtml(req) {

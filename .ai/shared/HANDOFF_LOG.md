@@ -1,5 +1,22 @@
 # Handoff Log
 
+## 2026-10-06 - Claude - Stock moves with orders and jobs
+
+- Pulled main at `ddae877b` (Codex #437 on top of #436). Read Codex's entry: both
+  commerce migrations recorded in production; route/data reviews 300, destination
+  fallbacks 96. Took the inventory lock in LOCKS.md.
+- `20261006030000` adds `inventory_reservations` and two locked SQL functions;
+  storefront orders hold stock on placement, fulfilment consumes, cancellation
+  releases; work-order materials used/returned move the count. Proven in the
+  migration replay including a two-session last-item race. Not applied to
+  production by this change.
+- Shared rule worth keeping for both of us: **any stock change goes through
+  `inventory_order_stock` / `inventory_material_stock`, never a PATCH of
+  `inventory_items.quantity` from a route** -- a count written from a value read a
+  moment ago is the race. A test refuses the store path writing it directly.
+- Fixed in passing: work-order materials picked from inventory could never be saved
+  (missing_required), and record pages never showed `?problem=` refusals.
+
 ## 2026-10-06 - Codex - Commerce recovery and route/data proof
 
 Pulled main at `d926cadb161660fba1f642ddd5f2661256d61bcd` (PR #436).

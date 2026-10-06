@@ -16,10 +16,10 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | Form action destinations traced to registered pages | 64 |
 | Traced forms with no matching method/path route | 0 |
 | Route data contracts needing explicit review | 300 |
-| Active migration tables | 358 |
-| Runtime-queried / never-queried tables | 317 / 41 |
-| Migration files | 154 |
-| SQL functions / triggers / calling routes / missing function definition | 33 / 49 / 24 / 0 |
+| Active migration tables | 359 |
+| Runtime-queried / never-queried tables | 318 / 41 |
+| Migration files | 155 |
+| SQL functions / triggers / calling routes / missing function definition | 35 / 49 / 24 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
 | Deterministic formulas with evaluators | 59 / 59 |

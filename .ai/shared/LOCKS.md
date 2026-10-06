@@ -1,6 +1,13 @@
 # Locks
 
-Active: none.
+Active:
+- HELD: inventory/order/fulfilment linkage -- Claude, branch
+  `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-06. Covers a new
+  `inventory_reservations` table and its stock functions,
+  `lib/sonara-merchant-storefront.cjs`, `routes/sonara-merchant-store-routes.cjs`
+  (availability, reserve on order, fulfil/cancel moving stock), and the
+  `merchant_product_variants` / `business_work_order_materials` stock link. Does
+  not touch payments, webhooks or billing. Release when its PR merges or closes.
 
 History:
 - RELEASED: commerce webhook recovery -- Codex, branch `codex/commerce-recovery-20261006`, completed locally 2026-10-06. Marketplace and merchant webhook recovery and inventory lineage are tested; public publication awaits owner approval after automatic review rejected the upload.

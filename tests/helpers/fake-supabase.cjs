@@ -191,10 +191,22 @@ function createFakeSupabase(options = {}) {
       return jsonResponse(user);
     }
 
-    // Stored procedures are not modelled. Returning a shaped failure lets the
+    // Stored procedures are not modelled unless a test scripts one. A scripted
+    // function answers what the test says the real one would -- its behaviour is
+    // proven against PostgreSQL by scripts/verify-migration-replay.mjs, not
+    // re-implemented here -- and every call is recorded with its body, so a test
+    // can assert what the route asked for. Unscripted, a shaped failure lets the
     // caller take its own degraded path instead of throwing here.
     if (parsed.pathname.startsWith("/rest/v1/rpc/")) {
-      queries.push({ method, table: `rpc:${parsed.pathname.split("/").pop()}`, search: parsed.search, filters: [] });
+      const name = parsed.pathname.split("/").pop();
+      let rpcBody;
+      try { rpcBody = init.body ? JSON.parse(init.body) : undefined; } catch { rpcBody = undefined; }
+      queries.push({ method, table: `rpc:${name}`, search: parsed.search, filters: [], body: rpcBody });
+      const scripted = (options.rpc || {})[name];
+      if (typeof scripted === "function") {
+        const answer = scripted(rpcBody, { rows: (table) => rowsFor(table) });
+        return jsonResponse(answer, 200);
+      }
       return jsonResponse({ ok: false, code: "rpc_not_modelled" }, 404);
     }
 
