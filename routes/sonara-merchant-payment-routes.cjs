@@ -143,7 +143,7 @@ function createMerchantPayments(deps) {
     if (!changed.ok) return { ok: false, outcome: "not_saved" };
 
     const object = event.data?.object || {};
-    await write("merchant_order_payment_events?on_conflict=stripe_event_id", {
+    const recorded = await write("merchant_order_payment_events?on_conflict=stripe_event_id", {
       method: "POST",
       body: {
         stripe_event_id: String(event.id).slice(0, 200),
@@ -156,6 +156,7 @@ function createMerchantPayments(deps) {
       },
       prefer: "resolution=ignore-duplicates,return=minimal"
     });
+    if (!recorded.ok) return { ok: false, outcome: "audit_not_saved" };
     return { ok: true, outcome, action: decision.action };
   }
 

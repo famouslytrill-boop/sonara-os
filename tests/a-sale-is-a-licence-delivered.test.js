@@ -248,6 +248,14 @@ describe("a sale is a licence delivered", () => {
       for (const state of ["pending", "processing"]) assert.equal(may({ order: { ...PAID, state } }).code, "pending");
     });
 
+    it("refuses closed and unknown orders even with a stale unrevoked grant", () => {
+      for (const state of ["refunded", "disputed", "expired", "payment_failed", "unknown"]) {
+        const answer = may({ order: { ...PAID, state } });
+        assert.equal(answer.ok, false, state);
+        assert.equal(answer.status, 410, state);
+      }
+    });
+
     it("needs the buyer's own grant on this order", () => {
       assert.equal(may({ grant: null }).code, "no_grant");
       assert.equal(may({ grant: { ...GRANT, order_id: STRANGER } }).code, "no_grant");

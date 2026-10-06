@@ -235,6 +235,30 @@ describe("a storefront order is paid on the shop's own account", function storef
       });
     }
 
+    it("retries a failed payment audit write while keeping the payment idempotent", async () => {
+      const { fake } = world();
+      await placeOrder();
+      const [order] = fake.rows("merchant_orders");
+      const event = completed(order);
+      const inner = global.fetch;
+      let failures = 0;
+      global.fetch = async (input, init = {}) => {
+        const url = new URL(typeof input === "string" ? input : input.url);
+        if (!failures && url.pathname === "/rest/v1/merchant_order_payment_events" && init.method === "POST") {
+          failures += 1;
+          return { ok: false, status: 503, json: async () => [], text: async () => "unavailable" };
+        }
+        return inner(input, init);
+      };
+      assert.equal((await deliver(event)).status, 503);
+      assert.equal(failures, 1);
+      assert.equal(fake.rows("merchant_orders")[0].payment_state, "paid");
+      assert.equal(fake.rows("merchant_order_payment_events").length, 0);
+      assert.equal((await deliver(event)).status, 200);
+      assert.equal(fake.rows("merchant_order_payment_events").length, 1);
+      assert.equal(fake.rows("merchant_orders")[0].amount_paid_cents, order.subtotal_cents);
+    });
+
     it("sees a partial refund and then a full one recorded, and a late smaller one changes nothing", async () => {
       const { fake } = world();
       await placeOrder();
