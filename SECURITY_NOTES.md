@@ -131,6 +131,32 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+### 5 October 2026 -- `proxy-addr`, reached through `express`
+
+The OSV gate in `open-source-security-scans.yml` went red on
+**GHSA-jqcg-44mw-7w3h** (critical, CVSS 9.1): `proxy-addr` IP spoofing via an
+IPv4-mapped IPv6 address matching a trusted subnet, affecting `>=1.1.0 <2.0.8`.
+OSV published it at 23:30 UTC on 5 October; the previous green scan was the same
+morning. The tree resolved `proxy-addr@2.0.7` through `express > proxy-addr`, and
+nothing in this repository's dependencies had changed.
+
+Fixed by a pnpm workspace override, the existing pattern:
+
+    "proxy-addr@<2.0.8": "2.0.8"
+
+`2.0.8` is inside the range `express@^4.18.2` accepts (`~2.0.7`), so no direct
+dependency moved. Reproduced first with the same checksum-pinned OSV Scanner 2.6.0
+the workflow uses -- one critical finding -- then the same command clean after
+the change.
+
+Exposure, stated rather than assumed: `proxy-addr` decides which forwarded
+addresses Express trusts, and only when `trust proxy` is set. This application
+never sets it (`lib/sonara-rate-limit.cjs` explains why), so the trust function
+the advisory concerns is not configured here. It is patched anyway, because
+"not reachable today" lasts only until somebody sets `trust proxy`.
+
+**No threshold moved and no check was weakened.** The version in the tree changed.
+
 ### 3 October 2026 -- `braces`, with no fixed version, removed by removing what pulled it in
 
 `pnpm audit --audit-level moderate`, the OSV gate and the deploy dry-run's own
