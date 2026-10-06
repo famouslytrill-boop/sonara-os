@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 155 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 449 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 451 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,80 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 27 most recent entries of 442 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 27 most recent entries of 443 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-06 - Every route has a data contract, and the inventory can no longer say otherwise
+
+The P0 "close the route/data-contract gaps". `data/capability-inventory.json` listed
+**300** routes whose tables it could not name. Most were not missing contracts; the
+generator could not read them, and the same blind spots labelled **39** routes that
+do read tables "no persistent table expected" -- `/service-catalog`, `/call/:token`,
+`/account/permissions`, `/shared/:token`, the public marketplace, the `/staff/*`
+pages and more.
+
+**Twelve defects in `scripts/generate-capability-inventory.cjs`, each found by
+asking why one route was on the list:**
+
+1. **It read the async safety net instead of the route.** Every handler is wrapped
+   by `lib/sonara-async-route-safety.cjs`, so the "live registered handler" the
+   generator captured was the same seven lines for all 930 routes.
+   `unwrapHandler` now exposes the original, and the generator throws if it ever
+   captures the wrapper again (it did, for 930 routes, when falsified).
+2. Helpers handed over in `deps` (`saveModuleOutput`, `safeListTable`) were never
+   followed. Now resolved from the registration call itself, only to what it passes.
+3. Local REST wrappers -- `read(pathAndQuery)`, `rows(ctx, table, query)` -- were
+   recognised in one commerce module only. Now any function proven to put a
+   parameter straight after `/rest/v1/`, local, imported or injected.
+4. Parameter lists were matched with `\([^)]*\)`, so a function with a default
+   like `fetch: request = (...args) => fetch(...args)` was never recorded --
+   the creator project store was invisible for that alone.
+5. Routes registered in a loop over a literal list, a `Map.forEach`, or a
+   registration helper (`registerCatalogRoute(path, handler)`) now bind the
+   handler of the entry that produced the path, and only that one.
+6. Anonymous stack frames have no parentheses, so 66 routes registered inside a
+   callback were placed on the enclosing function's line.
+7. The call regex consumed the character before a name, so `f(g(x))` never
+   reached `g`.
+8. `module.exports = { ... }` members were unreachable as `mod.fn(...)`.
+9. Supabase Auth, Storage and Stripe endpoints are now a data contract of their own
+   (`provider_endpoint_reference`): a sign-in has one; it is held by Auth.
+10. The trace stopped silently at 40 functions or depth 5 on 352-544 routes. Now
+   400 and 8, stopping on none, and any stop is reported per route.
+11. Form actions with quotes inside `${...}` were cut short, and a templated
+   segment (`/api/growth/${key}`) is now matched as a pattern and named.
+12. An imported `FORMULA_TABLES` list credited every formula table to any body that
+   mentioned it -- including the static readiness report that only prints their
+   names. Credited now only alongside a database call; and a route may no longer
+   carry a "no table" reason while tracing a table (`routesSayingNoTableWhileTracingOne`).
+
+**What is left was read, one route at a time:** 58 routes whose handler reads
+nothing -- redirects, in-repository catalogues, rendered pages, computations,
+cookies -- recorded with a reason in `lib/sonara-route-data-reviews.cjs`. The
+generator refuses an entry the trace contradicts, an entry for an unregistered
+route, and an entry nobody needed; `tests/a-route-that-reads-nothing-reads-nothing.test.js`
+calls each route's own handler with Supabase configured and every outbound request
+recorded, with a control route that must be caught. Three routes that looked like
+these turned out to write data (`/login/verify`, the creator project API,
+`/api/integrations/providers`) and are traced instead.
+
+**Gaps: 300 -> 0, and `routesWithoutDataContract` is now a generator invariant.**
+A new route traces to what it reaches or is reviewed. 486 routes trace to tables
+(221 before), 28 to a provider endpoint. Workspace fallbacks 96 -> 93 as a side
+effect of the form walk seeing nested calls.
+
+**Falsified:** each of the first eleven fixes reverted one at a time -- the generator
+refused every one (`routesWithoutDataContract: 1..68`, or the wrapper guard) and
+`tests/the-inventory-traces-what-a-route-calls.test.js` failed on the route written
+for it. Register: contradicting, unregistered, unneeded and missing entries each
+refused; a reviewed handler made to read a table failed both the generator and the
+runtime test; a blinded recorder failed the control; the formula naming rule put
+back failed `routesSayingNoTableWhileTracingOne`.
+
+
 
 ### 2026-10-06 - Stock moves with orders and jobs
 
@@ -1994,76 +2063,3 @@ Also noted, not changed: `creator_assets.organization_id` is nullable. RLS is on
 with a service-role-only policy and every read filters by organization, so a null
 row is an orphan rather than a leak -- but it is a tenant column that can be
 absent, which newer tables assert against.
-
-
-
-
-### 2026-10-01 - Two columns that looked like a permission model, on the wrong tenant
-
-`entity_agent_tool_registry` has had `enabled boolean not null default false` and
-`requires_approval boolean not null default true` since migration 008 -- two
-columns that look exactly like tool permissions, with safe defaults. Nothing has
-ever read either. Measured 1 October 2026: every reference is a contract list, a
-subsystem registry or a planning document, plus
-`routes/sonara-subsystem-routes.cjs`, whose own comment says "Adding a row to
-entity_agent_tool_registry registers a tool; it does not run one".
-
-The obvious move was to wire it up, and it would have been a cross-tenant
-authorization read. That table keys on `entity_id`; `public.entities` has no
-`organization_id` (008 line 32), which migration 20260813120000 already records
-for `agent_pending_actions`; and `lib/sonara-agent-runner.cjs` runs an action for
-an `organizationId`. Consulting one tenant's row to authorise another's work is
-worse than no check, because it looks like one.
-
-So `agent_tool_permissions` is organization-scoped, the registry stays the
-operator research record it was, and the distinction is written into the
-migration, the contract gate's new table group and the route's wiring comment.
-
-### Four kinds of absence, which the usual two would have collapsed
-
-`lib/sonara-agent-tool-permissions.cjs` keeps them apart, because `null` is not
-`[]` is not `0`:
-
-- **unwired** -- no reader here. Reported, untouched. Denying would refuse every
-  action at every unwired caller, a worse way to find a deployment gap. It is the
-  state the breaker sat in silently until this morning.
-- **unavailable** -- a reader was supplied and the read failed. **Escalates**, the
-  opposite of what the breaker does with a failed history read: the breaker is a
-  reliability heuristic, so absent evidence of failure must not penalise an
-  agent, while this is authorization, so absent evidence of permission must not
-  grant one. "Ask the owner" is not an outage.
-- **unconfigured** -- read succeeded, no rows. The model is not in force; the
-  authority module still governs. No rows as deny-everything would make applying
-  the migration an outage for every existing deployment, and as allow-everything
-  would make the table decorative. Opt-in per tenant, strict once opted in.
-- **denied** -- rows exist and this tool is absent, or present and not allowed.
-
-A truncated page reports as unreadable rather than as a short list: a tool missing
-from a partial read would otherwise be refused with a false reason attached.
-
-### What was broken to prove it
-
-25 new tests across two files. `...-is-actually-connected.test.js` drives the real
-Express route and injects nothing. Removing `readPermissions` from
-`routes/sonara-agent-activity-routes.cjs` turns **5 of its 7** red, including all
-three asserting the read happens and that the outcome changes; the two that stay
-green assert an action is NOT denied, correct in both states. That visible
-signature is exactly what was missing when the breaker was wired to nothing.
-
-Letting a permission row relax a gated action turns the invariant test red by
-name. Making an unreadable set fail open turns `verify:supabase-contract` red by
-name -- that gate checks both directions, because a model that only ever refuses
-is as broken as one that only ever permits and only the second gets noticed.
-Restores were copy-aside plus `md5sum -c`.
-
-### Left for the owner, and one small untruth left alone
-
-Nothing writes these rows yet, so every organization is `unconfigured` and
-behaviour is unchanged until an owner surface exists. Deliberate: granting a tool
-is a security setting change, which AGENTS.md puts behind owner approval.
-
-The comment above `AGENT_QUEUE_TABLES` in `scripts/verify-supabase-contract.mjs`
-opened "One table" and the list had held two since August. Left as found rather
-than fixed inside a change about something else, recorded here so it was a known
-inaccuracy rather than a believed one -- and then fixed in its own commit, which
-is the whole reason it was deferred.

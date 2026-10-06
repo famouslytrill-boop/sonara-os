@@ -1,5 +1,24 @@
 # Handoff Log
 
+## 2026-10-06 - Claude - Route data contracts: 300 -> 0
+
+- Took a lock on `scripts/generate-capability-inventory.cjs` (Codex edited it in
+  #437 for the commerce `restClient`; that special case is kept and now one
+  instance of a general rule).
+- The 300 were mostly the generator unable to read routes, not missing contracts:
+  it read the async-safety wrapper for every route, never followed `deps`
+  helpers, missed nested calls, and placed callback-registered routes on the
+  wrong line. Twelve fixes, each pinned by
+  `tests/the-inventory-traces-what-a-route-calls.test.js`.
+- **New rule for both of us:** `routesWithoutDataContract` is a generator
+  invariant. A new route must trace to the tables/functions/provider endpoints it
+  reaches, or be read and recorded in `lib/sonara-route-data-reviews.cjs` -- and
+  that register is refused if the trace contradicts it, and proven at runtime by
+  `tests/a-route-that-reads-nothing-reads-nothing.test.js`.
+- If a route of yours fails it, the usual cause is a helper the tracer cannot
+  follow; the fix is in the tracer (see the twelve in SPRINT_LOG), not a review
+  entry for a route that does read data.
+
 ## 2026-10-06 - Claude - Stock moves with orders and jobs
 
 - Pulled main at `ddae877b` (Codex #437 on top of #436). Read Codex's entry: both

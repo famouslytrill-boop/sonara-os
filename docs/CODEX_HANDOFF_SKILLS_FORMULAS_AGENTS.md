@@ -299,6 +299,27 @@ Each entry's reason must be something you **verified**, with the file you opened
 and the date. "Reviewed and approved" is not checkable. If you cannot say which
 file you opened, say so in the comment instead of asserting it.
 
+### Route data contracts (added 6 October 2026)
+
+Every registered route has a data contract, and the inventory generator fails
+the release when one does not (`routesWithoutDataContract`). A route's contract is
+what `scripts/generate-capability-inventory.cjs` traces from the handler it
+registered: the tables, SQL functions and provider endpoints (Supabase Auth and
+Storage, Stripe) it reaches through local, imported, injected and loop-bound
+helpers. A route that reaches none is read by a person and recorded in
+`lib/sonara-route-data-reviews.cjs` with its kind and reason.
+
+That register is the two-sided list above, held three ways: the generator
+refuses an entry the trace contradicts, an entry for a route that is not
+registered, and an entry for a route that did not need one;
+`tests/a-route-that-reads-nothing-reads-nothing.test.js` calls each reviewed
+handler with Supabase configured and fails on any outbound request.
+
+When your new route fails `routesWithoutDataContract`, check whether it *does*
+read data through a helper the tracer cannot follow. Three routes looked like
+"reads nothing" and turned out to write -- fix the tracer for those, and pin the
+fix in `tests/the-inventory-traces-what-a-route-calls.test.js`.
+
 ---
 
 ## 8. External tools and code

@@ -2,6 +2,73 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-06 - Every route has a data contract, and the inventory can no longer say otherwise
+
+The P0 "close the route/data-contract gaps". `data/capability-inventory.json` listed
+**300** routes whose tables it could not name. Most were not missing contracts; the
+generator could not read them, and the same blind spots labelled **39** routes that
+do read tables "no persistent table expected" -- `/service-catalog`, `/call/:token`,
+`/account/permissions`, `/shared/:token`, the public marketplace, the `/staff/*`
+pages and more.
+
+**Twelve defects in `scripts/generate-capability-inventory.cjs`, each found by
+asking why one route was on the list:**
+
+1. **It read the async safety net instead of the route.** Every handler is wrapped
+   by `lib/sonara-async-route-safety.cjs`, so the "live registered handler" the
+   generator captured was the same seven lines for all 930 routes.
+   `unwrapHandler` now exposes the original, and the generator throws if it ever
+   captures the wrapper again (it did, for 930 routes, when falsified).
+2. Helpers handed over in `deps` (`saveModuleOutput`, `safeListTable`) were never
+   followed. Now resolved from the registration call itself, only to what it passes.
+3. Local REST wrappers -- `read(pathAndQuery)`, `rows(ctx, table, query)` -- were
+   recognised in one commerce module only. Now any function proven to put a
+   parameter straight after `/rest/v1/`, local, imported or injected.
+4. Parameter lists were matched with `\([^)]*\)`, so a function with a default
+   like `fetch: request = (...args) => fetch(...args)` was never recorded --
+   the creator project store was invisible for that alone.
+5. Routes registered in a loop over a literal list, a `Map.forEach`, or a
+   registration helper (`registerCatalogRoute(path, handler)`) now bind the
+   handler of the entry that produced the path, and only that one.
+6. Anonymous stack frames have no parentheses, so 66 routes registered inside a
+   callback were placed on the enclosing function's line.
+7. The call regex consumed the character before a name, so `f(g(x))` never
+   reached `g`.
+8. `module.exports = { ... }` members were unreachable as `mod.fn(...)`.
+9. Supabase Auth, Storage and Stripe endpoints are now a data contract of their own
+   (`provider_endpoint_reference`): a sign-in has one; it is held by Auth.
+10. The trace stopped silently at 40 functions or depth 5 on 352-544 routes. Now
+   400 and 8, stopping on none, and any stop is reported per route.
+11. Form actions with quotes inside `${...}` were cut short, and a templated
+   segment (`/api/growth/${key}`) is now matched as a pattern and named.
+12. An imported `FORMULA_TABLES` list credited every formula table to any body that
+   mentioned it -- including the static readiness report that only prints their
+   names. Credited now only alongside a database call; and a route may no longer
+   carry a "no table" reason while tracing a table (`routesSayingNoTableWhileTracingOne`).
+
+**What is left was read, one route at a time:** 58 routes whose handler reads
+nothing -- redirects, in-repository catalogues, rendered pages, computations,
+cookies -- recorded with a reason in `lib/sonara-route-data-reviews.cjs`. The
+generator refuses an entry the trace contradicts, an entry for an unregistered
+route, and an entry nobody needed; `tests/a-route-that-reads-nothing-reads-nothing.test.js`
+calls each route's own handler with Supabase configured and every outbound request
+recorded, with a control route that must be caught. Three routes that looked like
+these turned out to write data (`/login/verify`, the creator project API,
+`/api/integrations/providers`) and are traced instead.
+
+**Gaps: 300 -> 0, and `routesWithoutDataContract` is now a generator invariant.**
+A new route traces to what it reaches or is reviewed. 486 routes trace to tables
+(221 before), 28 to a provider endpoint. Workspace fallbacks 96 -> 93 as a side
+effect of the form walk seeing nested calls.
+
+**Falsified:** each of the first eleven fixes reverted one at a time -- the generator
+refused every one (`routesWithoutDataContract: 1..68`, or the wrapper guard) and
+`tests/the-inventory-traces-what-a-route-calls.test.js` failed on the route written
+for it. Register: contradicting, unregistered, unneeded and missing entries each
+refused; a reviewed handler made to read a table failed both the generator and the
+runtime test; a blinded recorder failed the control; the formula naming rule put
+back failed `routesSayingNoTableWhileTracingOne`.
+
 ### 2026-10-06 - Stock moves with orders and jobs
 
 The P0 "inventory/order/fulfilment linkage", and the inventory step of both the

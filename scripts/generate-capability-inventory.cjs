@@ -9,6 +9,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const express = require("express");
+const { unwrapHandler } = require("../lib/sonara-async-route-safety.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const DATA_PATH = path.join(ROOT, "data", "capability-inventory.json");
@@ -33,7 +34,12 @@ function normalizeRouteParams(value) {
 function captureRegistrationSite(stack) {
   const candidates = [];
   for (const frame of String(stack || "").split("\n").slice(1)) {
-    const match = frame.match(/\((.*):(\d+):(\d+)\)$/);
+    // V8 prints a named frame as `at name (file:line:col)` and an anonymous one
+    // as `at file:line:col`, without the parentheses. Reading only the first
+    // form skipped every anonymous frame, so a route registered inside a
+    // callback -- `PAGES.forEach((page) => app.get(...))` -- was placed on the
+    // line of the enclosing named function's call instead of its own.
+    const match = frame.match(/\((.*):(\d+):(\d+)\)$/) || frame.match(/^\s*at (?:async )?([^\s()]+):(\d+):(\d+)$/);
     if (!match) continue;
     const absolute = path.resolve(match[1]);
     if (absolute === __filename || absolute.includes(`${path.sep}node_modules${path.sep}`)) continue;
@@ -52,12 +58,17 @@ function captureLiveRoutes() {
     previous.set(method, original);
     express.application[method] = function captureSonaraRoute(routePath, ...handlers) {
       if (typeof routePath === "string" && routePath.startsWith("/")) {
+        // server.js wraps every handler in lib/sonara-async-route-safety.cjs
+        // before it reaches here, so `handlers` are the wrapper. Its source is
+        // the same seven lines for every route; reading it traced each route's
+        // tables from code that touches none. Read what the route registered.
+        const own = handlers.map((handler) => unwrapHandler(handler));
         registrations.push({
           method: method.toUpperCase(),
           path: routePath,
           source: captureRegistrationSite(new Error().stack),
-          registeredHandlerSources: handlers.map((handler) => String(handler)),
-          registeredHandlerNames: handlers.map((handler) => handler.name || "anonymous")
+          registeredHandlerSources: own.map((handler) => String(handler)),
+          registeredHandlerNames: own.map((handler) => handler.name || "anonymous")
         });
       }
       return original.call(this, routePath, ...handlers);
@@ -80,9 +91,16 @@ function captureLiveRoutes() {
     }
   }
 
-  return registrations
+  const captured = registrations
     .filter((record) => byOperation.has(`${record.method} ${record.path}`))
     .map((record) => ({ ...record, layer: byOperation.get(`${record.method} ${record.path}`) }));
+  // If the wrapper ever stops exposing what it wraps, every route reads back as
+  // the wrapper again and the inventory quietly traces nothing. Stop instead.
+  const stillWrapped = captured.filter((record) => record.registeredHandlerSources.some((source) => /settle\(handler\.call\(this/.test(source)));
+  if (stillWrapped.length) {
+    throw new Error(`${stillWrapped.length} route(s) captured the async-safety wrapper instead of their own handler (first: ${stillWrapped[0].method} ${stillWrapped[0].path}). See unwrapHandler in lib/sonara-async-route-safety.cjs.`);
+  }
+  return captured;
 }
 
 function migrationCatalog() {
@@ -574,8 +592,95 @@ function buildInventory() {
       return literalAccess || restPathAccess || tableListValue;
     });
   };
+  // Local REST wrappers: functions proven to put one of their own parameters
+  // straight after /rest/v1/ -- `read(pathAndQuery)`, `rest(scope, path)`,
+  // `supabaseRequest(config, table, query)`. Twenty-odd route files define
+  // one, and each call's literal argument at that position names the table as
+  // surely as a written-out URL does. A wrapper that only forwards its
+  // parameter to another proven wrapper is proven too.
+  const restWrapperCache = new Map();
+  function callArguments(code, openParen) {
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    for (let index = openParen; index < code.length; index += 1) {
+      const char = code[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") { quote = char; continue; }
+      if (char === "(") depth += 1;
+      else if (char === ")" && --depth === 0) return topLevelEntries(code.slice(openParen + 1, index));
+    }
+    return [];
+  }
+  function restWrappersFor(sourceFile) {
+    if (!sourceFile) return new Map();
+    if (restWrapperCache.has(sourceFile)) return restWrapperCache.get(sourceFile);
+    const source = readSource(sourceFile);
+    const bodies = localFunctionsFor(sourceFile);
+    const parameters = new Map();
+    const definitions = [
+      /(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g,
+      /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\s*)?\(([^)]*)\)\s*(?:=>)?\s*\{/g
+    ];
+    for (const pattern of definitions) {
+      for (const match of source.matchAll(pattern)) {
+        if (!bodies.has(match[1]) || parameters.has(match[1])) continue;
+        parameters.set(match[1], match[2].split(",").map((parameter) => parameter.trim().replace(/\s*=[\s\S]*$/, "")));
+      }
+    }
+    const wrappers = new Map();
+    // Set before it is filled: a file whose helpers come from a file that
+    // takes helpers from it must not recurse forever.
+    restWrapperCache.set(sourceFile, wrappers);
+    for (const [name, names] of parameters) {
+      const body = bodies.get(name);
+      const position = names.findIndex((parameter) => /^[A-Za-z_$][\w$]*$/.test(parameter) && body.includes(`/rest/v1/\${${parameter}}`));
+      if (position >= 0) wrappers.set(name, position);
+    }
+    // A wrapper defined elsewhere is just as proven when this file is handed it
+    // -- `safeListTable` is written once in server.js and called from a dozen
+    // route files that receive it as a dependency.
+    for (const [localName, resolved] of [...importedFunctionsFor(sourceFile), ...injectedFunctionsFor(sourceFile)]) {
+      if (bodies.has(localName) || wrappers.has(localName) || !resolved?.file || resolved.file === sourceFile) continue;
+      const position = restWrappersFor(resolved.file).get(resolved.name);
+      if (position !== undefined) wrappers.set(localName, position);
+    }
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const [name, names] of parameters) {
+        if (wrappers.has(name)) continue;
+        const body = bodies.get(name);
+        for (const [wrapper, position] of wrappers) {
+          for (const call of body.matchAll(new RegExp(`(?<![.$\\w])${wrapper}\\s*\\(`, "g"))) {
+            const argument = callArguments(body, call.index + call[0].length - 1)[position];
+            const forwarded = names.findIndex((parameter) => parameter && argument === parameter);
+            if (forwarded >= 0) { wrappers.set(name, forwarded); changed = true; break; }
+          }
+          if (wrappers.has(name)) break;
+        }
+      }
+    }
+    return wrappers;
+  }
+  function tablesThroughRestWrappers(sourceFile, code) {
+    const found = new Set();
+    for (const [wrapper, position] of restWrappersFor(sourceFile)) {
+      for (const call of code.matchAll(new RegExp(`(?<![.$\\w])${wrapper.replace(/[.$]/g, "\\$&")}\\s*\\(`, "g"))) {
+        const argument = callArguments(code, call.index + call[0].length - 1)[position] || "";
+        const table = argument.match(/^["'`]([a-z_][a-z0-9_]*)(?:[?/"'`]|\$\{)/)?.[1];
+        if (table && tableNameSet.has(table)) found.add(table);
+      }
+    }
+    return found;
+  }
   const tablesReferencedByHandler = (sourceFile, handlerSource) => {
     const found = new Set(referencesInEndpointAccess(withoutComments(handlerSource)));
+    for (const table of tablesThroughRestWrappers(sourceFile, withoutComments(handlerSource))) found.add(table);
     const moduleSource = sourceFile ? readSource(sourceFile) : "";
     // Commerce's local REST client accepts "table?query", rather than a full
     // /rest/v1 URL. Trace only that proven wrapper and a literal first argument;
@@ -618,7 +723,11 @@ function buildInventory() {
         }
         if (Array.isArray(value)) {
           const referenced = new RegExp(`\\b${localName}\\b`).test(handlerSource);
-          if (referenced && importedName.toLowerCase().includes("formula")) addKnown(value);
+          // Naming the formula tables is not reading them. The static readiness
+          // report lists them by name and touches none; only a body that also
+          // makes a database call is credited with the whole list.
+          const readsSomething = /\/rest\/v1\/|\b(?:safeCountTable|safeCountFiltered|safeListTable|supabase(?:List|Get|Insert|Update|Patch|Delete|Count|Upsert|Select))\s*\(/.test(handlerSource);
+          if (referenced && readsSomething && importedName.toLowerCase().includes("formula")) addKnown(value);
           continue;
         }
         if (value && typeof value === "object") {
@@ -647,6 +756,24 @@ function buildInventory() {
   };
   const localFunctionCache = new Map();
   const importedFunctionCache = new Map();
+  function closingParen(source, openIndex) {
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    for (let index = openIndex; index < source.length; index += 1) {
+      const char = source[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") { quote = char; continue; }
+      if (char === "(") depth += 1;
+      else if (char === ")" && --depth === 0) return index;
+    }
+    return -1;
+  }
   function closingBrace(source, openIndex) {
     let depth = 0;
     let quote = null;
@@ -669,14 +796,29 @@ function buildInventory() {
     if (localFunctionCache.has(sourceFile)) return localFunctionCache.get(sourceFile);
     const source = readSource(sourceFile);
     const functions = new Map();
+    // Each head ends at the opening "(" of the parameter list, which is then
+    // matched by counting rather than by `[^)]*`. That stopped at the first
+    // ")" -- so a function with a default like `fetch: request = (...args) =>
+    // fetch(...args)` was never recorded, and neither was anything it returns.
+    // The creator project store was invisible for that reason alone.
     const starts = [
-      /(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g,
-      /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{/g,
-      /return\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g
+      { head: /(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g, tail: /^\s*\{/ },
+      { head: /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\s*)?\(/g, tail: /^\s*=>\s*\{/ },
+      { head: /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?[A-Za-z_$][\w$]*\s*=>\s*\{/g, tail: null },
+      { head: /return\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g, tail: /^\s*\{/ }
     ];
-    for (const pattern of starts) {
-      for (const match of source.matchAll(pattern)) {
-        const open = match.index + match[0].lastIndexOf("{");
+    for (const { head, tail } of starts) {
+      for (const match of source.matchAll(head)) {
+        let open;
+        if (tail) {
+          const parametersClose = closingParen(source, match.index + match[0].length - 1);
+          if (parametersClose < 0) continue;
+          const rest = source.slice(parametersClose + 1, parametersClose + 40).match(tail);
+          if (!rest) continue;
+          open = parametersClose + rest[0].length;
+        } else {
+          open = match.index + match[0].lastIndexOf("{");
+        }
         const close = closingBrace(source, open);
         if (close >= 0) functions.set(match[1], source.slice(open + 1, close));
       }
@@ -718,7 +860,17 @@ function buildInventory() {
         if (body !== undefined) imports.set(localName, { file: targetFile, name: exportedName, body });
       }
     }
-    const factoryObject = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*\(/g;
+    // `deps.projectStore || createCreatorProjectStore(deps)` is a factory call
+    // with a test seam in front of it; production takes the factory branch.
+    const factoryObject = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$.]*\s*\|\|\s*)?([A-Za-z_$][\w$]*)\s*\(/g;
+    // The object literal a factory is called with, if it is called with one.
+    // This used to take the next "{" anywhere after the call, so a factory
+    // called with `(deps)` was credited with whatever block came next in the
+    // file as the functions it had been handed.
+    const objectArgumentAt = (index) => {
+      const open = source.slice(index).match(/^\s*\{/);
+      return open ? index + open[0].length - 1 : -1;
+    };
     // A named export attached to a default CommonJS function (the Connect
     // webhook factory) is just as traceable as a destructured import. Resolve
     // explicit assignments only; do not assume every local function is exported.
@@ -733,11 +885,26 @@ function buildInventory() {
         const body = localFunctionsFor(targetFile).get(exported[2]);
         if (body !== undefined) imports.set(`${match[1]}.${exported[1]}`, { file: targetFile, name: exported[2], body });
       }
+      // And the usual shape, `module.exports = { completeChallenge, ... }`.
+      // `twoFactor.completeChallenge(...)` reached nothing before this, which is
+      // how a sign-in's second step read as touching no table.
+      const exportObject = readSource(targetFile).match(/module\.exports\s*=\s*(?:Object\.freeze\s*\(\s*)?\{/);
+      if (exportObject) {
+        const targetSource = readSource(targetFile);
+        const open = exportObject.index + exportObject[0].length - 1;
+        const close = closingBrace(targetSource, open);
+        for (const entry of close > open ? topLevelEntries(targetSource.slice(open + 1, close)) : []) {
+          const names = entry.match(/^([A-Za-z_$][\w$]*)(?:\s*:\s*([A-Za-z_$][\w$]*))?$/);
+          if (!names) continue;
+          const body = localFunctionsFor(targetFile).get(names[2] || names[1]);
+          if (body !== undefined && !imports.has(`${match[1]}.${names[1]}`)) imports.set(`${match[1]}.${names[1]}`, { file: targetFile, name: names[2] || names[1], body });
+        }
+      }
     }
     for (const match of source.matchAll(factoryObject)) {
       const factory = imports.get(match[2]);
       if (!factory) continue;
-      const argsOpen = source.indexOf("{", match.index + match[0].length);
+      const argsOpen = objectArgumentAt(match.index + match[0].length);
       const argsClose = argsOpen >= 0 ? closingBrace(source, argsOpen) : -1;
       const provided = providedFunctions(argsOpen, argsClose);
       const returnedFunctions = localFunctionsFor(factory.file);
@@ -751,7 +918,7 @@ function buildInventory() {
     for (const match of source.matchAll(factoryBinding)) {
       const factory = imports.get(match[2]);
       if (!factory) continue;
-      const argsOpen = source.indexOf("{", match.index + match[0].length);
+      const argsOpen = objectArgumentAt(match.index + match[0].length);
       const argsClose = argsOpen >= 0 ? closingBrace(source, argsOpen) : -1;
       const provided = providedFunctions(argsOpen, argsClose);
       for (const declaration of match[1].split(",")) {
@@ -767,7 +934,7 @@ function buildInventory() {
       const localBody = localFunctionsFor(sourceFile).get(match[2]);
       const factory = imports.get(match[2]) || (localBody === undefined ? null : { file: sourceFile, name: match[2], body: localBody });
       if (!factory) continue;
-      const argsOpen = source.indexOf("{", match.index + match[0].length);
+      const argsOpen = objectArgumentAt(match.index + match[0].length);
       const argsClose = argsOpen >= 0 ? closingBrace(source, argsOpen) : -1;
       const provided = providedFunctions(argsOpen, argsClose);
       for (const [methodName, body] of localFunctionsFor(factory.file)) {
@@ -780,31 +947,226 @@ function buildInventory() {
     importedFunctionCache.set(sourceFile, imports);
     return imports;
   }
-  function localCallGraphPersistenceReferences(sourceFile, entrySource) {
-    if (!sourceFile) return { tables: [], rpcCalls: [], requestFields: { body: [], query: [], params: [] } };
+
+  // Helpers a route module is handed by whoever registers it.
+  //
+  // Most route files are `function register(app, deps)` and take their helpers
+  // -- saveModuleOutput, the session reader, the access checks -- from the
+  // object server.js passes in. Neither resolver above can see those: the name
+  // is not defined in the file and not required by it. So a tool that saves its
+  // result through `saveModuleOutput` read as touching no table at all, and 38
+  // routes sat in the review list for that reason alone.
+  //
+  // Resolved from the registration call itself -- `register(app, { name })`,
+  // `register(app, { key: name })`, `register(app, deps)` and `{ ...deps, name }`
+  // -- and only to a function that call actually passes. A helper the caller
+  // does not pass stays unresolved rather than being matched by name.
+  const injectedKeyCache = new Map();
+  const injectedFunctionCache = new Map();
+  const callerFiles = (() => {
+    const files = ["server.js"];
+    for (const dir of ["routes", "lib"]) {
+      const absolute = path.join(ROOT, dir);
+      if (!fs.existsSync(absolute)) continue;
+      for (const name of fs.readdirSync(absolute).sort()) if (/\.(?:cjs|js)$/.test(name)) files.push(`${dir}/${name}`);
+    }
+    return files;
+  })();
+  function topLevelEntries(text) {
+    const entries = [];
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    let start = 0;
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") { quote = char; continue; }
+      if ("([{".includes(char)) depth += 1;
+      else if (")]}".includes(char)) depth -= 1;
+      else if (char === "," && depth === 0) { entries.push(text.slice(start, index).trim()); start = index + 1; }
+    }
+    entries.push(text.slice(start).trim());
+    return entries.filter(Boolean);
+  }
+  function depsParameterOf(sourceFile) {
+    return readSource(sourceFile).match(/function\s+[A-Za-z_$][\w$]*\s*\(\s*app\s*,\s*([A-Za-z_$][\w$]*)\s*(?:=\s*\{\s*\})?\s*\)/)?.[1] || null;
+  }
+  function resolveInCaller(callerFile, expression) {
+    const text = String(expression).trim();
+    const identifier = text.match(/^([A-Za-z_$][\w$]*)(?:\s*\|\|[\s\S]*)?$/)?.[1];
+    if (identifier) {
+      const localBody = localFunctionsFor(callerFile).get(identifier);
+      if (localBody !== undefined) return { file: callerFile, name: identifier, body: localBody };
+      return importedFunctionsFor(callerFile).get(identifier) || injectedFunctionsFor(callerFile).get(identifier) || null;
+    }
+    const member = text.match(/^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)$/);
+    if (member && member[1] === depsParameterOf(callerFile)) return injectedKeysFor(callerFile).get(member[2]) || null;
+    // An inline wrapper -- `key: (req) => helper(req)` -- is traced as written.
+    if (/^(?:async\s+)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)/.test(text)) return { file: callerFile, name: "inline", body: text };
+    return null;
+  }
+  function injectedKeysFor(sourceFile) {
+    if (injectedKeyCache.has(sourceFile)) return injectedKeyCache.get(sourceFile);
+    const keys = new Map();
+    injectedKeyCache.set(sourceFile, keys);
+    if (!depsParameterOf(sourceFile)) return keys;
+    for (const callerFile of callerFiles) {
+      if (callerFile === sourceFile) continue;
+      const callerSource = readSource(callerFile);
+      for (const required of callerSource.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*require\(\s*["']([^"']+)["']\s*\)/g)) {
+        if (!required[2].startsWith(".")) continue;
+        const base = path.resolve(ROOT, path.dirname(callerFile), required[2]);
+        const target = [base, `${base}.cjs`, `${base}.js`].find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+        if (!target || relativeFile(target) !== sourceFile) continue;
+        const call = new RegExp(`\\b${required[1]}\\s*\\(\\s*[A-Za-z_$][\\w$]*\\s*,\\s*`, "g");
+        for (const site of callerSource.matchAll(call)) {
+          const argumentStart = site.index + site[0].length;
+          const callerDeps = depsParameterOf(callerFile);
+          const passthrough = callerSource.slice(argumentStart).match(/^([A-Za-z_$][\w$]*)\s*\)/)?.[1];
+          if (passthrough && passthrough === callerDeps) {
+            for (const [key, value] of injectedKeysFor(callerFile)) if (!keys.has(key)) keys.set(key, value);
+            continue;
+          }
+          if (callerSource[argumentStart] !== "{") continue;
+          const close = closingBrace(callerSource, argumentStart);
+          if (close < 0) continue;
+          for (const entry of topLevelEntries(callerSource.slice(argumentStart + 1, close))) {
+            const spread = entry.match(/^\.\.\.\s*([A-Za-z_$][\w$]*)$/);
+            if (spread) {
+              if (spread[1] === callerDeps) for (const [key, value] of injectedKeysFor(callerFile)) if (!keys.has(key)) keys.set(key, value);
+              continue;
+            }
+            const shorthand = entry.match(/^([A-Za-z_$][\w$]*)$/);
+            const pair = entry.match(/^([A-Za-z_$][\w$]*)\s*:\s*([\s\S]+)$/);
+            const key = shorthand?.[1] || pair?.[1];
+            if (!key || keys.has(key)) continue;
+            const resolved = resolveInCaller(callerFile, shorthand ? shorthand[1] : pair[2]);
+            if (resolved) keys.set(key, resolved);
+          }
+        }
+      }
+    }
+    return keys;
+  }
+  function injectedFunctionsFor(sourceFile) {
+    if (injectedFunctionCache.has(sourceFile)) return injectedFunctionCache.get(sourceFile);
+    const functions = new Map();
+    injectedFunctionCache.set(sourceFile, functions);
+    const depsName = depsParameterOf(sourceFile);
+    if (!depsName) return functions;
+    const keys = injectedKeysFor(sourceFile);
+    const source = readSource(sourceFile);
+    for (const [key, value] of keys) functions.set(`${depsName}.${key}`, value);
+    for (const match of source.matchAll(new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*${depsName}\\b`, "g"))) {
+      for (const declaration of topLevelEntries(match[1])) {
+        const names = declaration.match(/^([A-Za-z_$][\w$]*)(?:\s*:\s*([A-Za-z_$][\w$]*))?(?:\s*=[\s\S]*)?$/);
+        if (names && keys.has(names[1])) functions.set(names[2] || names[1], keys.get(names[1]));
+      }
+    }
+    for (const match of source.matchAll(new RegExp(`(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*${depsName}\\.([A-Za-z_$][\\w$]*)\\b`, "g"))) {
+      if (keys.has(match[2])) functions.set(match[1], keys.get(match[2]));
+    }
+    return functions;
+  }
+  // The same function body is reached from hundreds of routes; scanning it for
+  // every table each time is what made a full walk slow, not the walk.
+  const bodyEvidenceCache = new Map();
+  // What a body reaches that is not a table: Supabase Auth and Storage, and
+  // Stripe. A sign-in has a data contract -- it is just held by the auth
+  // service rather than by a table this repository created.
+  const providerConstantCache = new Map();
+  function providerConstantsFor(file) {
+    if (!providerConstantCache.has(file)) {
+      const constants = new Map();
+      for (const match of readSource(file).matchAll(/(?:const|let|var)\s+([A-Z][A-Z0-9_]*)\s*=\s*["'`](https:\/\/api\.stripe\.com\/v1[^"'`]*)["'`]/g)) constants.set(match[1], match[2]);
+      providerConstantCache.set(file, constants);
+    }
+    return providerConstantCache.get(file);
+  }
+  function providerEndpointsIn(file, body) {
+    const code = withoutComments(String(body));
+    const found = new Set();
+    for (const match of code.matchAll(/\/auth\/v1\/([a-z_]+)/g)) found.add(`supabase_auth:${match[1]}`);
+    for (const match of code.matchAll(/\/storage\/v1\/([a-z_]+)/g)) found.add(`supabase_storage:${match[1]}`);
+    for (const match of code.matchAll(/api\.stripe\.com\/v1\/([a-z_]+)/g)) found.add(`stripe:${match[1]}`);
+    for (const [name, value] of providerConstantsFor(file)) {
+      for (const use of code.matchAll(new RegExp(`\\b${name}\\b(?:\\}\\/([a-z_]+))?`, "g"))) {
+        const segment = use[1] || value.replace(/^https:\/\/api\.stripe\.com\/v1\/?/, "").split(/[/?]/)[0];
+        if (segment) found.add(`stripe:${segment}`);
+      }
+    }
+    return sorted(found);
+  }
+  function bodyEvidence(file, body) {
+    const key = `${file}\u0000${body}`;
+    if (!bodyEvidenceCache.has(key)) {
+      bodyEvidenceCache.set(key, {
+        tables: tablesReferencedByHandler(file, body),
+        rpcs: rpcNamesIn(body),
+        directInputs: extractReferences(body),
+        providers: providerEndpointsIn(file, body),
+        outbound: /(?:^|[^.$\w])(?:fetch|fetchImpl)\s*\(|\bhttps?\.request\s*\(/.test(withoutComments(String(body)))
+      });
+    }
+    return bodyEvidenceCache.get(key);
+  }
+  // Bounds on the table tracer, both measured on 6 October 2026. At 40
+  // functions and depth 5 -- the values this replaced -- the trace stopped
+  // early on 352 and then 544 routes and said nothing. At 400 and 8 it stops on
+  // none, and the generator takes the same twenty seconds. Either running out
+  // is reported per route in `routesTruncatedByPersistenceTraceBudget`.
+  const PERSISTENCE_TRACE_FUNCTION_BUDGET = 400;
+  const PERSISTENCE_TRACE_DEPTH_LIMIT = 8;
+  const persistenceTraceTruncatedRoutes = new Set();
+  function localCallGraphPersistenceReferences(sourceFile, entrySource, routeId = null, entryBindings = new Map()) {
+    if (!sourceFile) return { tables: [], rpcCalls: [], providerEndpoints: [], outbound: false, requestFields: { body: [], query: [], params: [] } };
     const seen = new Set();
     const found = new Set();
     const rpcCalls = new Set(rpcNamesIn(entrySource));
+    const entryEvidence = bodyEvidence(sourceFile, String(entrySource));
+    const providers = new Set(entryEvidence.providers);
+    let outbound = entryEvidence.outbound;
     const requestFields = { body: new Set(), query: new Set(), params: new Set() };
     const ignored = new Set(["if", "for", "while", "switch", "catch", "return", "typeof", "new", "delete", "throw", "function", "class", "await", "super"]);
     function visit(file, source, depth, closureBindings = new Map()) {
-      if (depth > 4 || seen.size >= 40) return;
-      const calls = /(^|[^.$\w])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*\(/g;
+      if (seen.size >= PERSISTENCE_TRACE_FUNCTION_BUDGET) {
+        if (routeId) persistenceTraceTruncatedRoutes.add(routeId);
+        return;
+      }
+      // A lookbehind, not a consumed character: `(^|[^.$\w])name\(` used up the
+      // "(" before a nested call, so `Promise.resolve(handler(req))` never
+      // reached `handler` and neither did any other call written directly
+      // inside another one.
+      const calls = /(?<![.$\w])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*\(/g;
       for (const match of source.matchAll(calls)) {
-        const name = match[2];
+        const name = match[1];
         if (ignored.has(name)) continue;
         const localBody = localFunctionsFor(file).get(name);
-        const binding = localBody === undefined ? closureBindings.get(name) || importedFunctionsFor(file).get(name) : null;
+        const binding = localBody === undefined ? closureBindings.get(name) || importedFunctionsFor(file).get(name) || injectedFunctionsFor(file).get(name) : null;
         const imported = localBody === undefined ? binding : null;
         const targetFile = imported?.file || file;
         const body = localBody === undefined ? imported?.body : localBody;
         const key = `${targetFile}:${name}`;
         if (body === undefined || seen.has(key)) continue;
+        // Deeper than the limit, a callee that resolves is one this trace did
+        // not read. Said, not skipped quietly.
+        if (depth >= PERSISTENCE_TRACE_DEPTH_LIMIT) {
+          if (routeId) persistenceTraceTruncatedRoutes.add(routeId);
+          continue;
+        }
         seen.add(key);
-        const tables = tablesReferencedByHandler(targetFile, body);
+        const evidence = bodyEvidence(targetFile, body);
+        const { tables, rpcs, directInputs } = evidence;
+        for (const provider of evidence.providers) providers.add(provider);
+        if (evidence.outbound) outbound = true;
         for (const table of tables) found.add(table);
-        for (const name of rpcNamesIn(body)) rpcCalls.add(name);
-        const directInputs = extractReferences(body);
+        for (const name of rpcs) rpcCalls.add(name);
         for (const group of ["body", "query", "params"]) for (const field of directInputs[group]) requestFields[group].add(field);
         const passedRequestGroup = String(source).slice(match.index + match[0].length).match(/^\s*req\s*\??\.\s*(body|query|params)\b/)?.[1];
         if (passedRequestGroup) {
@@ -825,12 +1187,152 @@ function buildInventory() {
         visit(targetFile, body, depth + 1, nextBindings);
       }
     }
-    visit(sourceFile, String(entrySource), 0);
+    visit(sourceFile, String(entrySource), 0, entryBindings);
     return {
       tables: sorted(found),
       rpcCalls: sorted(rpcCalls),
+      providerEndpoints: sorted(providers),
+      outbound,
       requestFields: Object.fromEntries(Object.entries(requestFields).map(([group, fields]) => [group, sorted(fields)]))
     };
+  }
+
+  // Routes registered in a loop over a literal list --
+  //   for (const [suffix, handler] of [["evidence", addEvidence], ...])
+  //     app.post(`/initiatives/:id/${suffix}`, ..., (req, res) => handler(req, deps))
+  // -- call a loop variable, which no name lookup resolves. The list is in the
+  // source, so the tuple that produced this route is too: substitute each
+  // tuple's literals into the registered path and keep the one that matches.
+  // Only an exact match binds; a loop whose tuples cannot be told apart binds
+  // nothing.
+  function loopBindingsForRegistration(sourceFile, line, routeBlock, routePath) {
+    const bindings = new Map();
+    bindings.literals = new Map();
+    if (!sourceFile || !line || !routeBlock) return bindings;
+    const source = readSource(sourceFile);
+    const offset = source.split("\n").slice(0, line - 1).join("\n").length;
+    const registration = routeBlock.match(/^\s*app\.[a-z]+\s*\(/);
+    if (!registration) return bindings;
+    const pathExpression = callArguments(routeBlock, registration[0].length - 1)[0] || "";
+    const literal = (text) => text?.match(/^["'`]([^"'`$]*)["'`]$/)?.[1];
+    for (const loop of source.slice(0, offset).matchAll(/for\s*\(\s*const\s*\[([^\]]+)\]\s*of\s*\[/g)) {
+      const arrayOpen = loop.index + loop[0].length - 1;
+      const arrayClose = closingBracket(source, arrayOpen);
+      if (arrayClose < 0) continue;
+      const bodyOpen = source.slice(arrayClose).search(/\{/) + arrayClose;
+      const bodyClose = closingBrace(source, bodyOpen);
+      if (!(bodyOpen < offset && offset < bodyClose)) continue;
+      const names = topLevelEntries(loop[1]);
+      const matches = [];
+      for (const tuple of topLevelEntries(source.slice(arrayOpen + 1, arrayClose))) {
+        if (!tuple.startsWith("[")) continue;
+        const elements = topLevelEntries(tuple.slice(1, tuple.lastIndexOf("]")));
+        const values = new Map(names.map((name, index) => [name, literal(elements[index])]));
+        const produced = values.has(pathExpression)
+          ? values.get(pathExpression)
+          : pathExpression.startsWith("`")
+            ? pathExpression.slice(1, -1).replace(/\$\{\s*([A-Za-z_$][\w$]*)\s*\}/g, (whole, name) => (values.get(name) ?? whole))
+            : literal(pathExpression);
+        if (produced === routePath) matches.push({ names, elements });
+      }
+      if (matches.length !== 1) continue;
+      const { names: tupleNames, elements } = matches[0];
+      tupleNames.forEach((name, index) => {
+        const element = elements[index];
+        if (!/^[A-Za-z_$][\w$]*$/.test(element || "")) return;
+        const localBody = localFunctionsFor(sourceFile).get(element);
+        const resolved = localBody !== undefined
+          ? { file: sourceFile, name: element, body: localBody }
+          : importedFunctionsFor(sourceFile).get(element) || injectedFunctionsFor(sourceFile).get(element);
+        if (resolved) bindings.set(name, resolved);
+      });
+    }
+    // And for a registration helper -- `function registerCatalogRoute(route,
+    // handler) { app.get(route, (req, res) => handler(req, res)) }` -- whose
+    // handler is whatever the caller passed. The call whose route argument
+    // produces this path supplies the handler; an interpolation the source
+    // cannot evaluate matches one path segment, and anything other than exactly
+    // one matching call binds nothing.
+    const enclosing = [];
+    for (const head of source.matchAll(/(?:function\s+([A-Za-z_$][\w$]*)\s*\(([^()]*)\)\s*\{|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\(([^()]*)\)\s*=>\s*\{)/g)) {
+      const open = head.index + head[0].length - 1;
+      if (open > offset) break;
+      const close = closingBrace(source, open);
+      if (close > offset) enclosing.push({ name: head[1] || head[3], parameters: (head[2] ?? head[4]).split(",").map((name) => name.trim().replace(/\s*=[\s\S]*$/, "")), open });
+    }
+    const helper = enclosing.sort((left, right) => right.open - left.open)[0];
+    const routeParameter = helper ? helper.parameters.indexOf(pathExpression) : -1;
+    if (helper && routeParameter >= 0) {
+      const produces = (argument) => {
+        const plain = literal(argument);
+        if (plain !== undefined) return plain === routePath;
+        if (!argument?.startsWith("`")) return false;
+        const pattern = argument.slice(1, -1).split(/\$\{[^}]*\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^/]+");
+        return new RegExp(`^${pattern}$`).test(routePath);
+      };
+      const calls = [...source.matchAll(new RegExp(`(?<![.$\\w])${helper.name}\\s*\\(`, "g"))]
+        .map((call) => callArguments(source, call.index + call[0].length - 1))
+        .filter((args) => produces(args[routeParameter]));
+      if (calls.length === 1) {
+        helper.parameters.forEach((name, index) => {
+          const argument = calls[0][index];
+          if (!name || !argument || index === routeParameter) return;
+          if (/^(?:async\s+)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)/.test(argument)) {
+            bindings.set(name, { file: sourceFile, name: "inline", body: argument });
+            return;
+          }
+          if (!/^[A-Za-z_$][\w$]*$/.test(argument)) return;
+          const localBody = localFunctionsFor(sourceFile).get(argument);
+          const resolved = localBody !== undefined
+            ? { file: sourceFile, name: argument, body: localBody }
+            : importedFunctionsFor(sourceFile).get(argument) || injectedFunctionsFor(sourceFile).get(argument);
+          if (resolved) bindings.set(name, resolved);
+        });
+      }
+    }
+
+    // The same for `ENTRIES.forEach((value, key) => app.get(key, ...))` over a
+    // literal `const ENTRIES = new Map([[path, { table: "..." }], ...])`. The
+    // entry whose key is this route's path supplies the literal properties its
+    // handler reads, so `resource.table` is read as the table it names.
+    bindings.literals = new Map();
+    for (const loop of source.slice(0, offset).matchAll(/\b([A-Z][A-Z0-9_]*)\.forEach\(\s*\(\s*([A-Za-z_$][\w$]*)\s*,\s*([A-Za-z_$][\w$]*)\s*\)\s*=>\s*\{/g)) {
+      const bodyOpen = loop.index + loop[0].length - 1;
+      const bodyClose = closingBrace(source, bodyOpen);
+      if (!(bodyOpen < offset && offset < bodyClose) || pathExpression !== loop[3]) continue;
+      const declaration = source.match(new RegExp(`const\\s+${loop[1]}\\s*=\\s*new\\s+Map\\(\\s*\\[`));
+      if (!declaration) continue;
+      const arrayOpen = declaration.index + declaration[0].length - 1;
+      const arrayClose = closingBracket(source, arrayOpen);
+      for (const entry of topLevelEntries(source.slice(arrayOpen + 1, arrayClose))) {
+        if (!entry.startsWith("[")) continue;
+        const [key, value] = topLevelEntries(entry.slice(1, entry.lastIndexOf("]")));
+        if (literal(key) !== routePath || !value?.startsWith("{")) continue;
+        for (const property of topLevelEntries(value.slice(1, value.lastIndexOf("}")))) {
+          const pair = property.match(/^([A-Za-z_$][\w$]*)\s*:\s*(["'`][^"'`$]*["'`])$/);
+          if (pair) bindings.literals.set(`${loop[2]}.${pair[1]}`, pair[2]);
+        }
+      }
+    }
+    return bindings;
+  }
+  function closingBracket(source, openIndex) {
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    for (let index = openIndex; index < source.length; index += 1) {
+      const char = source[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "\"" || char === "'" || char === "`") { quote = char; continue; }
+      if (char === "[") depth += 1;
+      else if (char === "]" && --depth === 0) return index;
+    }
+    return -1;
   }
 
   const registrationRecords = captureLiveRoutes();
@@ -840,7 +1342,7 @@ function buildInventory() {
     const routePath = record.path;
     const routeEntry = registryByRoute.get(`${method} ${routePath}`) || null;
     const sourceFile = record.source.file || null;
-    const handlers = record.layer.route.stack.map((item) => item.handle);
+    const handlers = record.layer.route.stack.map((item) => unwrapHandler(item.handle));
     const handlerSources = record.registeredHandlerSources || handlers.map((handler) => String(handler));
     const routeBlock = sourceBlockForRoute(sourceFile, record.source.line);
     const handlerSource = handlerSources.join("\n");
@@ -853,14 +1355,19 @@ function buildInventory() {
     const routeBlockIsEndpointSpecific = Boolean(literalRegistration && literalRegistration[1].toUpperCase() === method && literalRegistration[2] === routePath);
     const tableEvidenceSource = routeBlockIsEndpointSpecific ? evidenceSource : [handlerSource, ...namedHandlerBodies].join("\n");
     const handlerEntrySource = (record.registeredHandlerNames || []).filter((name) => name && name !== "anonymous").map((name) => `${name}()`).join("\n");
-    const graphEvidence = routeBlockIsEndpointSpecific
-      ? localCallGraphPersistenceReferences(sourceFile, [handlerEntrySource, tableEvidenceSource].filter(Boolean).join("\n"))
-      : { tables: [], rpcCalls: [], requestFields: { body: [], query: [], params: [] } };
+    const loopBindings = routeBlockIsEndpointSpecific ? Object.assign(new Map(), { literals: new Map() }) : loopBindingsForRegistration(sourceFile, record.source.line, routeBlock, routePath);
+    // A property bound from the loop's literal entry is substituted in place,
+    // so `supabaseList(config, resource.table)` reads as the table it names.
+    let boundEvidenceSource = tableEvidenceSource;
+    for (const [expression, value] of loopBindings.literals) {
+      boundEvidenceSource = boundEvidenceSource.replace(new RegExp(`\\b${expression.replace(".", "\\s*\\.\\s*")}\\b`, "g"), value);
+    }
+    const graphEvidence = localCallGraphPersistenceReferences(sourceFile, [handlerEntrySource, boundEvidenceSource].filter(Boolean).join("\n"), `${method} ${routePath}`, loopBindings);
     for (const group of ["body", "query", "params"]) {
       inputs[group] = sorted([...inputs[group], ...graphEvidence.requestFields[group]]);
     }
     const directTables = sourceFile ? sorted([
-      ...tablesReferencedByHandler(sourceFile, tableEvidenceSource),
+      ...tablesReferencedByHandler(sourceFile, boundEvidenceSource),
       ...graphEvidence.tables
     ]) : [];
     const routeKey = `${method} ${routePath}`;
@@ -887,6 +1394,8 @@ function buildInventory() {
       workspace: workspaceFor(routePath, routeEntry, sourceFile),
       directTableReferences: directTables,
       rpcCalls: sorted([...rpcNamesIn(tableEvidenceSource), ...graphEvidence.rpcCalls]),
+      providerEndpoints: graphEvidence.providerEndpoints,
+      outboundCallObserved: graphEvidence.outbound,
       tableEvidenceLevel: routeBlockIsEndpointSpecific && directTables.length ? "literal_route_and_local_helper_evidence" : handlerSource && directTables.length ? "registered_handler_reference" : null,
       handlerSource,
       registrationSource: routeBlock,
@@ -951,7 +1460,9 @@ function buildInventory() {
       if (depth > FORM_WALK_DEPTH_LIMIT) return;
       const code = withoutComments(String(source));
       for (const match of code.matchAll(/<form\b[^>]*>/gi)) {
-        const action = match[0].match(/\baction\s*=\s*["'](\/[^"']+)["']/i)?.[1];
+        // An interpolated id can carry its own quotes -- `${encodeURIComponent(String(row.id || ""))}` --
+        // and stopping at the first one read the action as ending mid-expression.
+        const action = match[0].match(/\baction\s*=\s*(["'])(\/(?:\$\{[^{}]*\}|(?!\1)[^\\])+)\1/i)?.[2];
         if (!action) continue;
         const method = (match[0].match(/\bmethod\s*=\s*["'](get|post|patch|delete)["']/i)?.[1] || "GET").toUpperCase();
         const operation = `${method} ${action.replace(/\$\{[^}]+\}/g, ":parameter").split("?")[0]}`;
@@ -963,9 +1474,13 @@ function buildInventory() {
           found.get(operation).add(field[1]);
         }
       }
-      const calls = /(^|[^.$\w])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*\(/g;
+      // A lookbehind, not a consumed character: `(^|[^.$\w])name\(` used up the
+      // "(" before a nested call, so `Promise.resolve(handler(req))` never
+      // reached `handler` and neither did any other call written directly
+      // inside another one.
+      const calls = /(?<![.$\w])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*\(/g;
       for (const match of code.matchAll(calls)) {
-        const name = match[2];
+        const name = match[1];
         const localBody = localFunctionsFor(file).get(name);
         const imported = localBody === undefined ? closureBindings.get(name) || importedFunctionsFor(file).get(name) : null;
         const targetFile = imported?.file || file;
@@ -1277,6 +1792,9 @@ function buildInventory() {
     return null;
   }
 
+  const { ROUTE_DATA_REVIEWS } = require(path.join(ROOT, "lib", "sonara-route-data-reviews.cjs"));
+  const routeDataReviewByRoute = new Map(ROUTE_DATA_REVIEWS.map((entry) => [entry.route, entry]));
+  const routeDataReviewOutcomes = new Map();
   const routes = rawRoutes.map((route) => {
     const moduleTablesForRoute = route.moduleTableNames || [];
     const resource = resourceForOperation(route.route, route.method);
@@ -1302,13 +1820,14 @@ function buildInventory() {
       ...resourceTableNames, ...formulaTableNames, ...(agentContract?.tables || []), ...route.directTableReferences, ...rpcEffectTables,
       ...triggeredEffects.flatMap((effect) => [...effect.readTables, ...effect.writeTables])
     ]);
-    const mode = resource ? "resource_registry_contract"
+    const tracedMode = resource ? "resource_registry_contract"
       : agentContract ? "agent_registry_route_contract"
         : isFormulaEvaluate ? "deterministic_compute_no_write"
           : isFormulaSave ? "formula_result_and_activity_write"
             : isFormulaCatalog ? "static_formula_catalog"
               : route.directTableReferences.length ? "endpoint_handler_evidence"
                 : rpcEffectTables.length ? "migration_rpc_effects"
+                : route.providerEndpoints.length ? "provider_endpoint_evidence"
             : route.kind === "webhook" ? "webhook_ingress_requires_data_effect_review"
               : route.kind === "page_or_download" && !supabaseBackedPage ? "navigation_or_static_output"
                 : /\/(?:health|readiness|manifest|definitions|catalog|open-source|model-engines|agent-skill-strategies|batch-convergence|source-evidence|learning-memory)(?:\/|$)/.test(route.route) ? "static_or_read_only_contract"
@@ -1319,15 +1838,34 @@ function buildInventory() {
       : pageForAction(route);
     const isUserAction = route.method !== "GET" && route.kind !== "webhook";
     const dataModuleId = route.source.file ? `module:${route.source.file}` : null;
-    const knownNoPersistence = ["navigation_or_static_output", "deterministic_compute_no_write", "static_formula_catalog", "static_or_read_only_contract"].includes(mode) && !supabaseBackedPage;
-    const dataMappingStatus = resource ? "explicit_resource_registry"
+    const knownNoPersistence = ["navigation_or_static_output", "deterministic_compute_no_write", "static_formula_catalog", "static_or_read_only_contract"].includes(tracedMode) && !supabaseBackedPage;
+    const tracedStatus = resource ? "explicit_resource_registry"
       : agentContract ? "explicit_agent_runner_registry"
       : isFormulaSave ? "explicit_formula_result_registry"
         : isFormulaEvaluate || isFormulaCatalog ? "explicit_no_persistent_table_expected"
           : route.directTableReferences.length || rpcEffectTables.length ? "handler_source_table_reference"
+            : route.providerEndpoints.length ? "provider_endpoint_reference"
             : knownNoPersistence ? "explicit_no_persistent_table_expected"
           : "needs_explicit_data_contract";
-    const noPersistenceReason = isFormulaEvaluate ? "Deterministic calculation; result persistence is a separate POST /api/formulas/results action."
+    // A reviewed "reads nothing" applies only where the trace agrees and the
+    // route would otherwise be left for review. Anything else is recorded as a
+    // review that has stopped being true, and the generator refuses it.
+    const dataReview = routeDataReviewByRoute.get(route.id) || null;
+    const traceContradictions = [
+      ...route.directTableReferences.map((table) => `table ${table}`),
+      ...rpcContracts.map((contract) => `function ${contract.name}`),
+      ...route.providerEndpoints.map((endpoint) => `provider ${endpoint}`),
+      ...(route.outboundCallObserved ? ["an outbound request"] : []),
+      ...(persistenceTraceTruncatedRoutes.has(route.id) ? ["a trace that was cut short"] : [])
+    ];
+    if (dataReview) {
+      routeDataReviewOutcomes.set(route.id, { contradictions: traceContradictions, wouldOtherwiseBeReviewed: tracedStatus === "needs_explicit_data_contract" });
+    }
+    const reviewApplies = Boolean(dataReview) && !traceContradictions.length && tracedStatus === "needs_explicit_data_contract";
+    const mode = reviewApplies ? "reviewed_no_database_access" : tracedMode;
+    const dataMappingStatus = reviewApplies ? "explicit_no_persistent_table_expected" : tracedStatus;
+    const noPersistenceReason = reviewApplies ? dataReview.reason
+      : isFormulaEvaluate ? "Deterministic calculation; result persistence is a separate POST /api/formulas/results action."
       : isFormulaCatalog ? "Formula definitions and static readiness metadata are returned from the in-repository formula registry."
       : mode === "static_or_read_only_contract" ? "Read-only health, readiness, manifest, definition, or catalog response."
             : mode === "navigation_or_static_output" && !supabaseBackedPage ? "Page navigation or rendered content with no direct database contract in the route registry."
@@ -1394,6 +1932,9 @@ function buildInventory() {
         resourceContract: contractFields,
         agentRouteContract: agentContract,
         rpcEffects: rpcContracts,
+        // Supabase Auth, Supabase Storage and Stripe endpoints the traced
+        // handler reaches. Not tables, but a data contract all the same.
+        providerEndpoints: route.providerEndpoints,
         triggeredEffects,
         formulaInputCatalog: isFormulaEvaluate ? formulaInputsByKey : undefined,
         sourceModule: dataModuleId,
@@ -1562,6 +2103,20 @@ function buildInventory() {
     };
   });
   const normalizedRouteIds = new Set(routes.map((route) => `${route.method} ${normalizeRouteParams(route.route)}`));
+  // A form whose action interpolates a fixed segment -- `/api/growth/${spec.key}`
+  // -- cannot be expanded here, so it is matched as a pattern against the
+  // registered routes and named in the summary rather than passed silently.
+  // Matching nothing is still a form with no route.
+  const templatedFormMatches = new Map();
+  const formHasRoute = (link) => {
+    const id = `${link.method} ${normalizeRouteParams(link.action)}`;
+    if (normalizedRouteIds.has(id)) return true;
+    if (!link.action.includes(":parameter")) return false;
+    const pattern = new RegExp(`^${link.method} ${link.action.split(":parameter").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^/]+")}$`);
+    const matched = routes.filter((route) => pattern.test(`${route.method} ${normalizeRouteParams(route.route)}`)).map((route) => route.id);
+    if (matched.length) templatedFormMatches.set(`${link.method} ${link.action}`, sorted(matched));
+    return matched.length > 0;
+  };
   const ownerActionContractChecks = ownerRecordActions.map((action) => ({
     id: action.id,
     route: action.route,
@@ -1578,6 +2133,7 @@ function buildInventory() {
   const workspaceRouteCounts = countBy(routes, (route) => route.workspace);
   const duplicateRouteIds = routes.map((route) => route.id).filter((id, index, list) => list.indexOf(id) !== index);
   const dataGapRoutes = routes.filter((route) => route.data.mappingStatus === "needs_explicit_data_contract");
+  const rawRouteById = new Map(rawRoutes.map((route) => [route.id, route]));
   const destinationGapRoutes = routes.filter((route) => route.destination.confidence === "workspace_fallback");
   const destinations = countBy(routes, (route) => route.destination.confidence);
   const map = {
@@ -1601,7 +2157,13 @@ function buildInventory() {
       // naming the pages where it stopped looking.
       pagesTruncatedByFormWalkBudget: sorted(formWalkTruncatedPages),
       formWalkFunctionBudget: FORM_WALK_FUNCTION_BUDGET,
-      formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !normalizedRouteIds.has(`${link.method} ${normalizeRouteParams(link.action)}`)).length,
+      // The same rule for the table tracer: zero, or a route's tables were read
+      // from part of what it calls and it says which routes.
+      routesTruncatedByPersistenceTraceBudget: sorted(persistenceTraceTruncatedRoutes),
+      routesReviewedAsReadingNothing: ROUTE_DATA_REVIEWS.length,
+      persistenceTraceFunctionBudget: PERSISTENCE_TRACE_FUNCTION_BUDGET,
+      formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !formHasRoute(link)).length,
+      templatedFormActionsMatchedByPattern: Object.fromEntries([...templatedFormMatches].sort(([left], [right]) => left.localeCompare(right))),
       routesWithoutDestination: routes.filter((route) => !route.contractCompleteness.destination).length,
       openApiApiOperationCount: routes.filter((route) => route.route.startsWith("/api/") && route.openApi).length,
       databaseTableCount: tables.length,
@@ -1721,6 +2283,13 @@ function buildInventory() {
       moduleCandidateTables: route.data.candidateTables,
       requestFieldsObserved: { body: route.request.body, query: route.request.query, pathParams: route.request.pathParams },
       responseKindsObserved: route.response.kinds,
+      // What the trace saw, so a reviewer starts from evidence: whether
+      // anything the handler calls makes an outbound request, and whether the
+      // trace read all of what it calls.
+      traceObservations: {
+        outboundCallObserved: rawRouteById.get(route.id)?.outboundCallObserved === true,
+        traceComplete: !persistenceTraceTruncatedRoutes.has(route.id)
+      },
       reviewAction: route.method === "GET"
         ? "Trace any delegated read to its exact table or provider; otherwise record a source-backed no-table reason."
         : "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
@@ -1735,12 +2304,25 @@ function buildInventory() {
   };
 
   map.validation = {
+    // lib/sonara-route-data-reviews.cjs, held from both sides: an entry for a
+    // route that is not registered, an entry the trace now contradicts, and an
+    // entry for a route the generator would not have left for review.
+    routeDataReviewsWithoutRoute: ROUTE_DATA_REVIEWS.filter((entry) => !routeDataReviewOutcomes.has(entry.route)).map((entry) => entry.route),
+    routeDataReviewsContradictedByTrace: [...routeDataReviewOutcomes].filter(([, outcome]) => outcome.contradictions.length)
+      .map(([id, outcome]) => `${id}: the review says it reads nothing, and the trace found ${outcome.contradictions.join(", ")}`),
+    routeDataReviewsNotNeeded: [...routeDataReviewOutcomes].filter(([, outcome]) => !outcome.contradictions.length && !outcome.wouldOtherwiseBeReviewed).map(([id]) => id),
+    // Zero since 6 October 2026, and held there. A new route either traces to
+    // the tables, functions or provider endpoints it reaches, or somebody reads
+    // it and records why it reaches none in lib/sonara-route-data-reviews.cjs.
+    routesWithoutDataContract: dataGapRoutes.map((route) => route.id),
+    // Two signals about one route that cannot both be true.
+    routesSayingNoTableWhileTracingOne: routes.filter((route) => route.data.noPersistenceReason && route.data.directTables.length).map((route) => `${route.id}: ${route.data.directTables.join(", ")}`),
     duplicateRouteIds: sorted(duplicateRouteIds),
     routesMissingSource: routes.filter((route) => !route.source.file).map((route) => route.id),
     routesMissingWorkspace: routes.filter((route) => !route.workspace).map((route) => route.id),
     routesMissingDestination: routes.filter((route) => !route.contractCompleteness.destination).map((route) => route.id),
     apiRoutesMissingOpenApiContract: routes.filter((route) => route.route.startsWith("/api/") && !route.openApi).map((route) => route.id),
-    formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !normalizedRouteIds.has(`${link.method} ${normalizeRouteParams(link.action)}`)).map((link) => `${link.method} ${link.action}`),
+    formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !formHasRoute(link)).map((link) => `${link.method} ${link.action}`),
     ownerActionsWithoutRegisteredRoute: ownerActionContractChecks.filter((action) => !action.routeRegistered).map((action) => action.id),
     ownerActionsWithoutActiveTable: ownerActionContractChecks.filter((action) => !action.tableInMigrations).map((action) => action.id),
     activeTablesWithoutCreateMigration: tables.filter((table) => table.migrationLineage.createdBy.length === 0).map((table) => table.name),

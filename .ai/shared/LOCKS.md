@@ -1,6 +1,12 @@
 # Locks
 
 Active:
+- HELD: capability inventory tracer and route data reviews -- Claude, branch
+  `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-06. Covers
+  `scripts/generate-capability-inventory.cjs`, `lib/sonara-route-data-reviews.cjs`
+  and `unwrapHandler` in `lib/sonara-async-route-safety.cjs`. Regenerating
+  `data/capability-inventory.json` is fine from any branch; editing the tracer
+  is not, until this merges. Release when its PR merges or closes.
 - HELD: inventory/order/fulfilment linkage -- Claude, branch
   `claude/sonara-engineering-handoff-b6ui1t`, taken 2026-10-06. Covers a new
   `inventory_reservations` table and its stock functions,

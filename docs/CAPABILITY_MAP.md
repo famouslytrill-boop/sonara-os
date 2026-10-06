@@ -12,14 +12,14 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | GET / POST / PATCH / DELETE | 562 / 355 / 10 / 3 |
 | Declared page routes / workspace groups | 300 / 12 |
 | API operations matched to OpenAPI | 335 |
-| Destinations using workspace-home fallback | 96 |
-| Form action destinations traced to registered pages | 64 |
+| Destinations using workspace-home fallback | 93 |
+| Form action destinations traced to registered pages | 77 |
 | Traced forms with no matching method/path route | 0 |
-| Route data contracts needing explicit review | 300 |
+| Route data contracts needing explicit review | 0 |
 | Active migration tables | 359 |
 | Runtime-queried / never-queried tables | 318 / 41 |
 | Migration files | 155 |
-| SQL functions / triggers / calling routes / missing function definition | 35 / 49 / 24 / 0 |
+| SQL functions / triggers / calling routes / missing function definition | 35 / 49 / 645 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
 | Deterministic formulas with evaluators | 59 / 59 |
@@ -43,8 +43,8 @@ The remaining sections connect the existing resource registries, deterministic r
 
 - The HTTP layer registers 930 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 335 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
-- 300 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
-- 96 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
+- 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
+- 93 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
 
@@ -52,10 +52,10 @@ The remaining sections connect the existing resource registries, deterministic r
 | --- | ---: |
 | `explicit_agent_runner_registry` | 3 |
 | `explicit_formula_result_registry` | 1 |
-| `explicit_no_persistent_table_expected` | 146 |
+| `explicit_no_persistent_table_expected` | 153 |
 | `explicit_resource_registry` | 259 |
-| `handler_source_table_reference` | 221 |
-| `needs_explicit_data_contract` | 300 |
+| `handler_source_table_reference` | 486 |
+| `provider_endpoint_reference` | 28 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations

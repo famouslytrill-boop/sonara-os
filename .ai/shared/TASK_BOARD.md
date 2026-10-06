@@ -15,6 +15,9 @@ Updated: 2026-10-06 UTC during connected-account commerce convergence.
 
 ## In progress
 
+- Claude, PR #439: stock moves with orders and jobs (done), and route data
+  contracts 300 -> 0 with `routesWithoutDataContract` held at zero by the
+  generator. Next: the 93 workspace-home destination fallbacks.
 - Claude, PR #436: connected-account commerce -- marketplace sale chain (done,
   awaiting owner migration + review), storefront payment and reconciliation (in
   progress on the same branch). Locked in LOCKS.md; Codex please avoid those
