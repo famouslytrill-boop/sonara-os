@@ -37,9 +37,8 @@
 //     leaving a buyer to assume they have paid.
 //   * **Sends nothing.** Alerts are off or explicitly user-controlled by default.
 //     Placing an order writes rows; nobody is emailed.
-//   * **Decrements no stock.** The catalogue migration says nothing decrements
-//     inventory, and implying an order did would be a claim about a capability that
-//     does not exist.
+// Stock is consumed only when the owner fulfills a confirmed order. Checkout
+// does not reserve stock. The database snapshots links when lines are inserted.
 
 const storefront = require("../lib/sonara-merchant-storefront.cjs");
 const merchantPay = require("../lib/sonara-merchant-payments.cjs");
@@ -210,8 +209,10 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     const catalogue = await readCatalogue(scope.config, scope.organizationId);
     const orders = await rest(scope.config,
       `${ORDER_TABLE}?select=id,buyer_name,buyer_email,status,payment_state,amount_paid_cents,refunded_cents,subtotal_cents,currency,note,created_at,cancellation_reason&${orgFilter}&order=created_at.desc&limit=${ORDER_CAP}`);
+    const fulfillments = await rest(scope.config,
+      `merchant_order_fulfillments?select=order_id,fulfilled_at,stock_changes&${orgFilter}&order=fulfilled_at.desc&limit=${ORDER_CAP}`);
 
-    if (!shops.ok || !catalogue.ok || !orders.ok) {
+    if (!shops.ok || !catalogue.ok || !orders.ok || !fulfillments.ok) {
       return res.status(200).type("html").send(layout({
         title: "Your shop",
         eyebrow: "Business Builder",
@@ -227,6 +228,15 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     const split = storefront.storefrontFor({ storefront: shop, products: catalogue.products, variants: catalogue.variants });
 
     const sections = [];
+    const fulfillmentByOrder = new Map(fulfillments.rows.map((receipt) => [receipt.order_id, receipt]));
+    const fulfillmentEvidence = (order) => {
+      const receipt = fulfillmentByOrder.get(order.id);
+      if (!receipt) return order.status === "fulfilled" ? "<p>No stock-consumption receipt is recorded for this historical fulfillment.</p>" : "";
+      const changes = Array.isArray(receipt.stock_changes) ? receipt.stock_changes : [];
+      return `<p>Fulfillment recorded ${escapeHtml(new Date(receipt.fulfilled_at).toUTCString())}.</p>`
+        + (changes.length ? "<ul>" + changes.map((change) => `<li>${escapeHtml(change.name)}: ${escapeHtml(change.quantity)} ${escapeHtml(change.unit || "each")} consumed; ${escapeHtml(change.after)} remaining.</li>`).join("") + "</ul>"
+          : "<p>This order contained no tracked stock.</p>");
+    };
     const notice = noticeFor(req.query);
     if (notice) sections.push(brandCard("What just happened", escapeHtml(notice)));
 
@@ -273,6 +283,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
           + `${Number(order.refunded_cents) > 0 ? `, ${escapeHtml(storefront.money(Number(order.refunded_cents), order.currency))} refunded` : ""}.</p>`,
           order.note ? `<p>They said: ${escapeHtml(order.note)}</p>` : "",
           order.cancellation_reason ? `<p>Cancelled because: ${escapeHtml(order.cancellation_reason)}</p>` : "",
+          fulfillmentEvidence(order),
           orderStatusForm(order)
         ].join("")).join("")
       ));
@@ -290,8 +301,8 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         : "Online payment is not switched on for shops on this platform yet, so no card details are typed here or stored. An order records what somebody wants, and you collect the money the way you already do."
     ));
     sections.push(brandCard(
-      "What this shop does not do",
-      "It does not email the buyer, and it does not change your stock counts."
+      "Stock and fulfillment",
+      "Confirm the order, then mark it fulfilled when the goods are handed over. Fulfillment consumes linked stock and saves a stock receipt in one transaction. Checkout does not reserve stock. Online orders need verified full payment; for offline orders, collect payment separately. Fulfilled orders cannot be cancelled here, and refunds do not put goods back into stock. This shop does not email the buyer."
     ));
 
     sections.push(brandCard("Name your shop", shopForm(shop)));
@@ -387,22 +398,24 @@ function registerMerchantStoreRoutes(app, deps = {}) {
       `${ORDER_TABLE}?select=id&id=eq.${enc(orderId)}&organization_id=eq.${enc(scope.organizationId)}&limit=1`);
     if (!owned.ok || !owned.rows.length) return res.redirect(303, back({ problem: "order_missing" }));
 
-    const reason = String(req.body?.reason || "").trim().slice(0, storefront.NOTE_MAX);
-    const patch = { status, updated_at: new Date().toISOString() };
-    if (status === "cancelled") {
-      patch.cancelled_at = new Date().toISOString();
-      patch.cancellation_reason = reason || null;
-    }
-
-    // Scoped by organization as well as by id: the service-role key bypasses row
-    // level security and an id alone is not an authorization.
-    const patched = await write(
-      scope.config,
-      `${ORDER_TABLE}?id=eq.${enc(orderId)}&organization_id=eq.${enc(scope.organizationId)}`,
-      patch,
-      "PATCH"
-    );
-    return res.redirect(303, back(patched.ok ? { done: "status" } : { problem: "save_failed" }));
+    // The RPC locks the owned order and commits stock, its receipt and status
+    // together. No fallback PATCH: that would report fulfillment without stock.
+    const response = await fetch(`${scope.config.url}/rest/v1/rpc/transition_merchant_order`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_organization_id: scope.organizationId, p_order_id: orderId, p_actor_id: scope.userId,
+        p_status: status, p_reason: String(req.body?.reason || "").trim().slice(0, storefront.NOTE_MAX),
+        p_require_paid: onlinePayment()
+      })
+    }).catch(() => null);
+    const result = await response?.json().catch(() => null);
+    const saved = response?.ok && result?.ok === true && result.status === status
+      && typeof result.noop === "boolean";
+    const knownProblems = ["order_missing", "status_unknown", "status_transition_invalid", "payment_not_ready",
+      "order_lines_missing", "inventory_snapshot_missing", "inventory_unavailable", "stock_insufficient"];
+    const problem = knownProblems.includes(result?.message) ? result.message : "save_failed";
+    return res.redirect(303, back(saved ? { done: "status" } : { problem }));
   });
 
   // ---------------------------------------------------------------------------
