@@ -73,7 +73,8 @@ function buildApp({
   shopsOk = true, productsOk = true, variantsOk = true, ordersOk = true,
   writeOk = true, orderInsertReturns = [{ id: ORDER }], lineWriteOk = true,
   organization = ORG,
-  configOk = true
+  configOk = true,
+  fulfillments = [], fulfillmentsOk = true, rpcResult = null
 } = {}) {
   const app = express();
   app.use(express.json());
@@ -86,11 +87,16 @@ function buildApp({
     calls.push({ href, method, body: init?.body ? JSON.parse(init.body) : null });
 
     if (method === "GET") {
+      if (href.includes("/merchant_order_fulfillments")) return { ok: fulfillmentsOk, status: fulfillmentsOk ? 200 : 500, json: async () => fulfillments };
       if (href.includes("/merchant_storefronts")) return { ok: shopsOk, status: shopsOk ? 200 : 500, json: async () => shops };
       if (href.includes("/merchant_product_variants")) return { ok: variantsOk, status: variantsOk ? 200 : 500, json: async () => variants };
       if (href.includes("/merchant_products")) return { ok: productsOk, status: productsOk ? 200 : 500, json: async () => products };
       if (href.includes("/merchant_orders")) return { ok: ordersOk, status: ordersOk ? 200 : 500, json: async () => orders };
       return { ok: true, status: 200, json: async () => [] };
+    }
+    if (href.includes("/rpc/transition_merchant_order")) {
+      const result = rpcResult || { ok: true, status: JSON.parse(init.body).p_status, noop: false };
+      return { ok: writeOk && !result.message, status: result.message ? 400 : writeOk ? 200 : 500, json: async () => result };
     }
     if (href.includes("/merchant_order_lines")) {
       return { ok: lineWriteOk, status: lineWriteOk ? 201 : 500, json: async () => [] };
@@ -561,7 +567,7 @@ describe("a price nobody set is not free", () => {
     });
 
     it("tells the owner a read failed rather than that they sell nothing", async () => {
-      for (const failure of [{ shopsOk: false }, { productsOk: false }, { variantsOk: false }, { ordersOk: false }]) {
+      for (const failure of [{ shopsOk: false }, { productsOk: false }, { variantsOk: false }, { ordersOk: false }, { fulfillmentsOk: false }]) {
         const { app } = buildApp(failure);
         const response = await request(app).get(OWNER_PAGE);
         assert.equal(response.status, 200);
@@ -621,10 +627,12 @@ describe("a price nobody set is not free", () => {
     it("carries the organization filter on the order status write", async () => {
       const { app, calls } = buildApp({ orders: [{ id: ORDER }] });
       await request(app).post("/api/business/orders/status").type("form").send({ order_id: ORDER, status: "cancelled", reason: "Out of stock." });
-      const patch = patches(calls, "merchant_orders")[0];
-      assert.ok(patch.href.includes(`organization_id=eq.${ORG}`), "an id alone authorised a write");
-      assert.equal(patch.body.status, "cancelled");
-      assert.equal(patch.body.cancellation_reason, "Out of stock.");
+      const rpc = calls.find((call) => call.href.includes("/rpc/transition_merchant_order"));
+      assert.equal(rpc.body.p_organization_id, ORG, "an id alone authorised a write");
+      assert.equal(rpc.body.p_actor_id, USER);
+      assert.equal(rpc.body.p_status, "cancelled");
+      assert.equal(rpc.body.p_reason, "Out of stock.");
+      assert.equal(patches(calls, "merchant_orders").length, 0);
       assert.equal(calls.filter((call) => call.method === "DELETE").length, 0);
     });
 
@@ -640,14 +648,66 @@ describe("a price nobody set is not free", () => {
       assert.equal(patches(missing.calls, "merchant_orders").length, 0);
     });
 
-    it("tells the owner it takes no payment when online payment is off, and changes no stock", async () => {
+    it("explains offline payment and when stock is consumed", async () => {
       // With online payment on, the same card says buyers pay on Stripe -- asserted
       // in tests/a-storefront-order-is-paid-on-the-shops-account.test.js.
       const { app } = buildApp();
       const response = await request(app).get(OWNER_PAGE);
       assert.match(response.text, /Online payment is not switched on for shops on this platform yet, so no card details are typed here or stored/);
       assert.doesNotMatch(response.text, /goes straight to Stripe's checkout/);
-      assert.match(response.text, /does not change your stock counts/);
+      assert.match(response.text, /Fulfillment consumes linked stock/);
+      assert.match(response.text, /Checkout does not reserve stock/);
+    });
+
+    it("passes only the server's organization, actor and payment mode to fulfillment", async () => {
+      const { app, calls } = buildApp({ orders: [{ id: ORDER }] });
+      const response = await request(app).post("/api/business/orders/status").type("form").send({
+        order_id: ORDER, status: "fulfilled", organization_id: OTHER_ORG, p_organization_id: OTHER_ORG,
+        actor_id: OTHER_ORG, p_actor_id: OTHER_ORG, p_require_paid: "true", stock_changes: "[]"
+      });
+      assert.match(response.headers.location, /done=status/);
+      const [rpc] = calls.filter((call) => call.href.includes("/rpc/transition_merchant_order"));
+      assert.deepEqual(rpc.body, { p_organization_id: ORG, p_order_id: ORDER, p_actor_id: USER,
+        p_status: "fulfilled", p_reason: "", p_require_paid: false });
+    });
+
+    for (const problem of ["status_transition_invalid", "payment_not_ready", "order_lines_missing",
+      "inventory_snapshot_missing", "inventory_unavailable", "stock_insufficient"]) {
+      it(`reports ${problem} without a fallback status write`, async () => {
+        const { app, calls } = buildApp({ orders: [{ id: ORDER }], rpcResult: { message: problem } });
+        const response = await request(app).post("/api/business/orders/status").type("form").send({ order_id: ORDER, status: "fulfilled" });
+        assert.match(response.headers.location, new RegExp(`problem=${problem}`));
+        assert.equal(patches(calls, "merchant_orders").length, 0);
+        const page = await request(app).get(response.headers.location);
+        assert.match(page.text, new RegExp(shopLib.problemSentence(problem).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      });
+    }
+
+    for (const rpcResult of [{}, { ok: true, status: "confirmed", noop: false }, { ok: true, status: "fulfilled" }, { message: "internal secret" }]) {
+      it(`refuses a malformed fulfillment response ${JSON.stringify(rpcResult)}`, async () => {
+        const { app } = buildApp({ orders: [{ id: ORDER }], rpcResult });
+        const response = await request(app).post("/api/business/orders/status").type("form").send({ order_id: ORDER, status: "fulfilled" });
+        assert.match(response.headers.location, /problem=save_failed/);
+        assert.doesNotMatch(response.headers.location, /internal/);
+      });
+    }
+
+    it("reports a failed RPC rather than reporting fulfillment", async () => {
+      const { app, calls } = buildApp({ orders: [{ id: ORDER }], writeOk: false });
+      const response = await request(app).post("/api/business/orders/status").type("form").send({ order_id: ORDER, status: "fulfilled" });
+      assert.match(response.headers.location, /problem=save_failed/);
+      assert.equal(patches(calls, "merchant_orders").length, 0);
+    });
+
+    it("accepts an idempotent retry and displays its saved stock evidence", async () => {
+      const { app } = buildApp({ orders: [{ id: ORDER, status: "fulfilled" }],
+        rpcResult: { ok: true, status: "fulfilled", noop: true },
+        fulfillments: [{ order_id: ORDER, fulfilled_at: "2026-10-06T03:00:00Z",
+          stock_changes: [{ name: "Mug", quantity: 2, after: 3, unit: "each" }] }] });
+      const response = await request(app).post("/api/business/orders/status").type("form").send({ order_id: ORDER, status: "fulfilled" });
+      assert.match(response.headers.location, /done=status/);
+      const page = await request(app).get(OWNER_PAGE);
+      assert.match(page.text, /Mug: 2 each consumed; 3 remaining/);
     });
   });
 
