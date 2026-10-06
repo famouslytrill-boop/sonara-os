@@ -36,7 +36,7 @@ const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml", "requireCustomer",
-  "getSupabaseServerConfig", "supabaseHeaders", "getEnv"
+  "getSupabaseServerConfig", "supabaseHeaders", "getEnv", "createRateLimiter"
 ];
 
 // Column lists are written out in each query rather than held in a constant:
@@ -211,7 +211,7 @@ function registerMarketplaceCheckoutRoutes(app, deps = {}) {
   for (const name of REQUIRED) {
     if (!deps[name]) throw new TypeError(`registerMarketplaceCheckoutRoutes requires ${name}`);
   }
-  const { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv } = deps;
+  const { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, createRateLimiter } = deps;
   const { read, write } = restClient(deps);
   const enc = encodeURIComponent;
 
@@ -260,7 +260,23 @@ function registerMarketplaceCheckoutRoutes(app, deps = {}) {
 
   const refuse = (res, sentence, status = 409) => page(res, { status, heading: "Not bought", body: sentence });
 
-  app.post("/marketplace/:id/buy", requireCustomer, async (req, res) => {
+  // A press on a new listing opens a Stripe Checkout session on the seller's own
+  // account, so a script pressing across listings would fill strangers' Stripe
+  // dashboards with abandoned sessions. (Pressing again on the same listing
+  // reuses the open order and, through the idempotency key, the same session.)
+  // 120 in ten minutes, per person and per address: 720 an hour, clear of the
+  // 600/hour floor scripts/verify-subscription-completeness.mjs holds any limit a
+  // signed-in person can meet to.
+  const buyLimiter = createRateLimiter({
+    name: "marketplace_buy",
+    windowSeconds: 600,
+    maxAttempts: 120,
+    scopes: ["ip", "subject"],
+    subjectFrom: (req) => req.sonaraUser?.id,
+    getSupabaseServerConfig
+  });
+
+  app.post("/marketplace/:id/buy", requireCustomer, buyLimiter, async (req, res) => {
     const listingId = String(req.params.id || "");
     if (!orders.isUuid(listingId)) return refuse(res, "That listing reference is not one of ours.", 404);
     const buyerUserId = req.sonaraUser?.id;

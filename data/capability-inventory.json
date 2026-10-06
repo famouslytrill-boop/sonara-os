@@ -1968,7 +1968,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1475
+        "line": 1487
       },
       "contractCompleteness": {
         "route": true,
@@ -2074,7 +2074,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 843
+        "line": 855
       },
       "contractCompleteness": {
         "route": true,
@@ -2180,7 +2180,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1000
+        "line": 1012
       },
       "contractCompleteness": {
         "route": true,
@@ -2284,7 +2284,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -2388,7 +2388,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -2500,7 +2500,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1190
+        "line": 1202
       },
       "contractCompleteness": {
         "route": true,
@@ -3514,7 +3514,7 @@
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 418
+        "line": 434
       },
       "contractCompleteness": {
         "route": true,
@@ -3796,7 +3796,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1207
+        "line": 1219
       },
       "contractCompleteness": {
         "route": true,
@@ -4143,7 +4143,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1324
+        "line": 1336
       },
       "contractCompleteness": {
         "route": true,
@@ -5150,7 +5150,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1464
+        "line": 1476
       },
       "contractCompleteness": {
         "route": true,
@@ -5471,7 +5471,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1463
+        "line": 1475
       },
       "contractCompleteness": {
         "route": true,
@@ -6033,7 +6033,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1462
+        "line": 1474
       },
       "contractCompleteness": {
         "route": true,
@@ -16225,7 +16225,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1287
+        "line": 1299
       },
       "contractCompleteness": {
         "route": true,
@@ -16981,7 +16981,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1506
+        "line": 1518
       },
       "contractCompleteness": {
         "route": true,
@@ -17543,7 +17543,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1505
+        "line": 1517
       },
       "contractCompleteness": {
         "route": true,
@@ -23232,7 +23232,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1530
+        "line": 1542
       },
       "contractCompleteness": {
         "route": true,
@@ -23794,7 +23794,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1529
+        "line": 1541
       },
       "contractCompleteness": {
         "route": true,
@@ -26949,7 +26949,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1554
+        "line": 1566
       },
       "contractCompleteness": {
         "route": true,
@@ -31549,7 +31549,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1562
+        "line": 1574
       },
       "contractCompleteness": {
         "route": true,
@@ -32515,7 +32515,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 952
+        "line": 964
       },
       "contractCompleteness": {
         "route": true,
@@ -32630,7 +32630,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1273
+        "line": 1285
       },
       "contractCompleteness": {
         "route": true,
@@ -32744,7 +32744,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1160
+        "line": 1172
       },
       "contractCompleteness": {
         "route": true,
@@ -32850,7 +32850,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1134
+        "line": 1146
       },
       "contractCompleteness": {
         "route": true,
@@ -32956,7 +32956,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1120
+        "line": 1132
       },
       "contractCompleteness": {
         "route": true,
@@ -33066,7 +33066,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1354
+        "line": 1366
       },
       "contractCompleteness": {
         "route": true,
@@ -33454,7 +33454,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1712
       },
       "contractCompleteness": {
         "route": true,
@@ -33560,7 +33560,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -33947,7 +33947,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1356
+        "line": 1368
       },
       "contractCompleteness": {
         "route": true,
@@ -34656,7 +34656,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -34940,7 +34940,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -35046,7 +35046,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1714
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -35412,7 +35412,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1395
+        "line": 1407
       },
       "contractCompleteness": {
         "route": true,
@@ -35518,7 +35518,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -35717,7 +35717,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1425
+        "line": 1437
       },
       "contractCompleteness": {
         "route": true,
@@ -35823,7 +35823,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -35929,7 +35929,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1732
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -36128,7 +36128,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1378
+        "line": 1390
       },
       "contractCompleteness": {
         "route": true,
@@ -36324,7 +36324,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -36430,7 +36430,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -36536,7 +36536,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -60684,7 +60684,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -61133,7 +61133,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -61239,7 +61239,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -61345,7 +61345,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -64576,7 +64576,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 907
+        "line": 919
       },
       "contractCompleteness": {
         "route": true,
@@ -64680,7 +64680,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -64786,7 +64786,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1712
       },
       "contractCompleteness": {
         "route": true,
@@ -65973,7 +65973,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -66373,7 +66373,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -66665,7 +66665,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -66771,7 +66771,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -66972,7 +66972,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1714
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -68907,7 +68907,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -69013,7 +69013,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1732
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -69209,7 +69209,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -69315,7 +69315,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -70362,7 +70362,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -70468,7 +70468,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -71675,7 +71675,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -71781,7 +71781,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -71887,7 +71887,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -72792,7 +72792,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -76441,7 +76441,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1232
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -76635,7 +76635,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1055
+        "line": 1067
       },
       "contractCompleteness": {
         "route": true,
@@ -76739,7 +76739,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -77041,7 +77041,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1572
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -77489,7 +77489,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1700
+        "line": 1712
       },
       "contractCompleteness": {
         "route": true,
@@ -77595,7 +77595,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -78179,7 +78179,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -78380,7 +78380,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -79197,7 +79197,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1714
+        "line": 1726
       },
       "contractCompleteness": {
         "route": true,
@@ -79574,7 +79574,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -79680,7 +79680,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -79876,7 +79876,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1732
+        "line": 1744
       },
       "contractCompleteness": {
         "route": true,
@@ -80108,7 +80108,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -80304,7 +80304,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -80410,7 +80410,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -81797,7 +81797,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -81903,7 +81903,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "contractCompleteness": {
         "route": true,
@@ -82192,7 +82192,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "contractCompleteness": {
         "route": true,
@@ -84243,7 +84243,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1037
+        "line": 1049
       },
       "contractCompleteness": {
         "route": true,
@@ -84682,7 +84682,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -84777,7 +84777,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -84872,7 +84872,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -84967,7 +84967,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85062,7 +85062,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85157,7 +85157,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85252,7 +85252,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85347,7 +85347,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85442,7 +85442,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85537,7 +85537,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85632,7 +85632,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85727,7 +85727,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85822,7 +85822,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -85917,7 +85917,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1610
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -86025,7 +86025,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1106
+        "line": 1118
       },
       "contractCompleteness": {
         "route": true,
@@ -86205,7 +86205,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1169
+        "line": 1181
       },
       "contractCompleteness": {
         "route": true,
@@ -86302,7 +86302,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1575
+        "line": 1587
       },
       "contractCompleteness": {
         "route": true,
@@ -86739,7 +86739,7 @@
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 383
+        "line": 399
       },
       "contractCompleteness": {
         "route": true,
@@ -86827,7 +86827,7 @@
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 401
+        "line": 417
       },
       "contractCompleteness": {
         "route": true,
@@ -87018,7 +87018,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1588
+        "line": 1600
       },
       "contractCompleteness": {
         "route": true,
@@ -87113,7 +87113,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1572
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -87536,7 +87536,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 962
+        "line": 974
       },
       "contractCompleteness": {
         "route": true,
@@ -87640,7 +87640,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -88514,7 +88514,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -88800,7 +88800,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1572
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -90354,7 +90354,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1019
+        "line": 1031
       },
       "contractCompleteness": {
         "route": true,
@@ -90552,7 +90552,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1335
+        "line": 1347
       },
       "contractCompleteness": {
         "route": true,
@@ -91041,7 +91041,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1110
+        "line": 1122
       },
       "contractCompleteness": {
         "route": true,
@@ -92242,7 +92242,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -92566,7 +92566,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1614
+        "line": 1626
       },
       "contractCompleteness": {
         "route": true,
@@ -92985,7 +92985,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1572
+        "line": 1584
       },
       "contractCompleteness": {
         "route": true,
@@ -94412,7 +94412,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1470
+        "line": 1482
       },
       "contractCompleteness": {
         "route": true,
@@ -97373,7 +97373,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1220
+        "line": 1232
       },
       "contractCompleteness": {
         "route": true,
@@ -99170,7 +99170,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1292
+        "line": 1304
       },
       "contractCompleteness": {
         "route": true,
@@ -99525,7 +99525,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1294
+        "line": 1306
       },
       "contractCompleteness": {
         "route": true,
@@ -102012,7 +102012,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1465
+        "line": 1477
       },
       "contractCompleteness": {
         "route": true,
@@ -102288,7 +102288,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1414
+        "line": 1426
       },
       "contractCompleteness": {
         "route": true,
@@ -102825,7 +102825,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1449
+        "line": 1461
       },
       "contractCompleteness": {
         "route": true,
@@ -122569,7 +122569,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1291
+        "line": 1303
       },
       "contractCompleteness": {
         "route": true,
@@ -123793,7 +123793,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1481
+        "line": 1493
       },
       "contractCompleteness": {
         "route": true,
@@ -124901,7 +124901,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1494
+        "line": 1506
       },
       "contractCompleteness": {
         "route": true,
@@ -132133,7 +132133,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1508
+        "line": 1520
       },
       "contractCompleteness": {
         "route": true,
@@ -133526,7 +133526,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1517
+        "line": 1529
       },
       "contractCompleteness": {
         "route": true,
@@ -147153,7 +147153,9 @@
         "confidence": "machine_ingress",
         "reason": "provider_or_system_webhook"
       },
-      "accessMiddleware": [],
+      "accessMiddleware": [
+        "rateLimitMiddleware"
+      ],
       "routeRegistry": null,
       "openApi": {
         "operationId": "receiveStripeConnectWebhook",
@@ -147256,7 +147258,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 351
+        "line": 363
       },
       "contractCompleteness": {
         "route": true,
@@ -147452,7 +147454,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1148
+        "line": 1160
       },
       "contractCompleteness": {
         "route": true,
@@ -147552,7 +147554,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1184
+        "line": 1196
       },
       "contractCompleteness": {
         "route": true,
@@ -147747,7 +147749,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1114
+        "line": 1126
       },
       "contractCompleteness": {
         "route": true,
@@ -148236,7 +148238,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1438
+        "line": 1450
       },
       "contractCompleteness": {
         "route": true,
@@ -167744,7 +167746,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 921
+        "line": 933
       },
       "contractCompleteness": {
         "route": true,
@@ -174897,7 +174899,7 @@
       },
       "source": {
         "file": "server.js",
-        "line": 1178
+        "line": 1190
       },
       "contractCompleteness": {
         "route": true,
@@ -174923,7 +174925,8 @@
         "reason": "nearest_registered_parent_page"
       },
       "accessMiddleware": [
-        "requireCustomer"
+        "requireCustomer",
+        "rateLimitMiddleware"
       ],
       "routeRegistry": null,
       "openApi": null,
@@ -174987,7 +174990,7 @@
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 263
+        "line": 279
       },
       "contractCompleteness": {
         "route": true,
@@ -264988,7 +264991,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1190
+        "line": 1202
       },
       "destination": {
         "route": "/account",
@@ -265276,7 +265279,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1207
+        "line": 1219
       },
       "destination": {
         "route": "/account/setup",
@@ -265370,7 +265373,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1324
+        "line": 1336
       },
       "destination": {
         "route": "/dashboard",
@@ -265490,7 +265493,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 1287
+        "line": 1299
       },
       "destination": {
         "route": "/dashboard",
@@ -266224,7 +266227,7 @@
       "kind": "api",
       "source": {
         "file": "server.js",
-        "line": 952
+        "line": 964
       },
       "destination": {
         "route": "/dashboard",
@@ -266275,7 +266278,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/automations",
@@ -266415,7 +266418,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/business-builder/checklist",
@@ -266466,7 +266469,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/customers",
@@ -266517,7 +266520,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1714
+        "line": 1726
       },
       "destination": {
         "route": "/business-builder/dashboard",
@@ -266608,7 +266611,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/business-builder/help",
@@ -266699,7 +266702,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1425
+        "line": 1437
       },
       "destination": {
         "route": "/business-builder/invite/accept",
@@ -266750,7 +266753,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/launch-plan",
@@ -266841,7 +266844,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1378
+        "line": 1390
       },
       "destination": {
         "route": "/business-builder/login",
@@ -266927,7 +266930,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/offers",
@@ -266978,7 +266981,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/business-builder/offers/free",
@@ -267029,7 +267032,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/orders",
@@ -267629,7 +267632,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/payments",
@@ -267712,7 +267715,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/business-builder/readiness",
@@ -267763,7 +267766,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/business-builder/records",
@@ -267814,7 +267817,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/business-builder/records/free",
@@ -268849,7 +268852,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/automations",
@@ -268939,7 +268942,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/catalog",
@@ -268990,7 +268993,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/creator-studio/checklist",
@@ -269081,7 +269084,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1714
+        "line": 1726
       },
       "destination": {
         "route": "/creator-studio/dashboard",
@@ -269347,7 +269350,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/creator-studio/help",
@@ -269433,7 +269436,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/media-kit",
@@ -269484,7 +269487,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/monetization",
@@ -269639,7 +269642,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/offers",
@@ -269690,7 +269693,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/creator-studio/offers/free",
@@ -269867,7 +269870,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/records",
@@ -269918,7 +269921,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/creator-studio/records/free",
@@ -269969,7 +269972,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/creator-studio/releases",
@@ -270128,7 +270131,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/creator-studio/settings",
@@ -271067,7 +271070,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/growth-studio/analytics",
@@ -271259,7 +271262,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/growth-studio/checklist",
@@ -271449,7 +271452,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1714
+        "line": 1726
       },
       "destination": {
         "route": "/growth-studio/dashboard",
@@ -271606,7 +271609,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/growth-studio/followups",
@@ -271657,7 +271660,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/growth-studio/help",
@@ -271778,7 +271781,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/growth-studio/offers",
@@ -271829,7 +271832,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/growth-studio/offers/free",
@@ -272040,7 +272043,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/growth-studio/records",
@@ -272091,7 +272094,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1754
+        "line": 1766
       },
       "destination": {
         "route": "/growth-studio/records/free",
@@ -272215,7 +272218,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1761
+        "line": 1773
       },
       "destination": {
         "route": "/growth-studio/settings",
@@ -273037,7 +273040,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1106
+        "line": 1118
       },
       "destination": {
         "route": "/login",
@@ -273237,7 +273240,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "server.js",
-        "line": 1110
+        "line": 1122
       },
       "destination": {
         "route": "/signup",
@@ -274294,7 +274297,7 @@
       "kind": "webhook",
       "source": {
         "file": "server.js",
-        "line": 351
+        "line": 363
       },
       "destination": {
         "route": null,
@@ -274387,7 +274390,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1148
+        "line": 1160
       },
       "destination": {
         "route": "/auth/login",
@@ -274442,7 +274445,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1184
+        "line": 1196
       },
       "destination": {
         "route": "/logout",
@@ -274535,7 +274538,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1114
+        "line": 1126
       },
       "destination": {
         "route": "/auth/signup",
@@ -276588,7 +276591,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "server.js",
-        "line": 1178
+        "line": 1190
       },
       "destination": {
         "route": "/logout",
@@ -276640,7 +276643,7 @@
       "kind": "form_or_action",
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 263
+        "line": 279
       },
       "destination": {
         "route": "/marketplace/:id",
@@ -277047,7 +277050,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1324
+        "line": 1336
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -277117,7 +277120,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1287
+        "line": 1299
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -277127,7 +277130,7 @@
       "workspace": "creator_studio",
       "source": {
         "file": "server.js",
-        "line": 1506
+        "line": 1518
       },
       "currentDestination": "/creator-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -277137,7 +277140,7 @@
       "workspace": "growth_studio",
       "source": {
         "file": "server.js",
-        "line": 1530
+        "line": 1542
       },
       "currentDestination": "/growth-studio/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -277177,7 +277180,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 1554
+        "line": 1566
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -277387,7 +277390,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "server.js",
-        "line": 952
+        "line": 964
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

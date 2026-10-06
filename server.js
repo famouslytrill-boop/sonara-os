@@ -348,7 +348,19 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handl
 // accounts and are signed with their own webhook secret. Raw, and before the body
 // parsers below, for the same reason as the two above: a parsed body cannot be
 // verified, and an unverifiable payment would grant the buyer nothing.
-app.post("/api/webhooks/stripe-connect", express.raw({ type: "application/json" }),
+//
+// Rate limited per address, generously: Stripe delivers from a small set of
+// addresses and retries anything answered 429 with backoff, so a ceiling here
+// delays a burst rather than losing an event -- and stops anybody else using the
+// endpoint to make this application read orders as fast as they can post.
+const connectWebhookLimiter = createRateLimiter({
+  name: "stripe_connect_webhook",
+  windowSeconds: 60,
+  maxAttempts: 600,
+  scopes: ["ip"],
+  getSupabaseServerConfig
+});
+app.post("/api/webhooks/stripe-connect", connectWebhookLimiter, express.raw({ type: "application/json" }),
   registerMarketplaceCheckoutRoutes.createConnectWebhookHandler({ getEnv, verifyStripeWebhookSignature, getSupabaseServerConfig, supabaseHeaders }));
 
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
@@ -752,7 +764,7 @@ registerCreatorApprovalGraphRoutes(app, { layout, brandCard, linkAction, escapeH
 registerAccountProfileRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerCreatorMarketplaceRoutes(app, { layout, brandCard, linkAction, responsePage, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
-registerMarketplaceCheckoutRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv });
+registerMarketplaceCheckoutRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, createRateLimiter });
 
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });

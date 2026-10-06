@@ -183,6 +183,19 @@ describe("buying a licence, end to end", function endToEnd() {
     }
   });
 
+  it("rate-limits both the webhook and the buy button, before either does any work", () => {
+    const handlersFor = (method, routePath) => {
+      const layer = app._router.stack.find((candidate) => candidate.route?.path === routePath && candidate.route.methods[method]);
+      assert.ok(layer, `${method.toUpperCase()} ${routePath} is not registered; this check has gone blind`);
+      return layer.route.stack.map((entry) => entry.handle.name);
+    };
+    const webhook = handlersFor("post", "/api/webhooks/stripe-connect");
+    assert.equal(webhook[0], "rateLimitMiddleware", `the webhook's first handler is ${webhook[0]}`);
+    const buying = handlersFor("post", "/marketplace/:id/buy");
+    const limiter = buying.indexOf("rateLimitMiddleware");
+    assert.ok(limiter > 0 && limiter < buying.length - 1, `buy handlers: ${buying.join(", ")}`);
+  });
+
   it("sends the buyer to Stripe's checkout on the seller's account, at the listing's price", async () => {
     const { fake, stripe } = world();
     // What a buyer's form might try to decide. None of it may matter.
@@ -279,7 +292,10 @@ describe("buying a licence, end to end", function endToEnd() {
     assert.equal(forged.status, 400);
     const wrongSecret = await deliver(paidEvent(order), { secret: "whsec_someoneelses0123456789" });
     assert.equal(wrongSecret.status, 400);
-    assert.deepEqual(fake.queries, [], "an unverified webhook reached the database");
+    // The rate limiter's own counter is the one call allowed before the
+    // signature; no table may be read.
+    assert.ok(fake.queries.some((query) => query.table === "rpc:sonara_consume_rate_limit"), "the limiter never ran; this check has gone blind");
+    assert.deepEqual(fake.queries.filter((query) => !query.table.startsWith("rpc:")), [], "an unverified webhook reached the database");
     assert.equal(fake.rows("creator_marketplace_orders")[0].state, "pending");
   });
 

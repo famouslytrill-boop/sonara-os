@@ -57,6 +57,15 @@ the conditional PATCH and ignore-duplicates grant hold in the e2e, two layers);
 live exclusive hold released; current asset file delivered instead of the pin;
 `Stripe-Account` header removed; unpaid checkout granted.
 
+**Rate limits** (after CodeQL flagged the webhook): the Connect webhook takes 600 a
+minute per address -- Stripe retries a 429 with backoff, so a ceiling delays rather
+than loses an event -- and the buy button 120 per ten minutes per person and per
+address (720/hour, clear of the 600/hour floor `verify-subscription-completeness`
+holds a signed-in person's limits to -- the first figure, 30, was below it and the
+gate said so), because each press can open a Checkout session on a stranger's
+Stripe account.
+A test asserts both are in the route stack; removing either turns it red.
+
 **Still the owner's.** Set `STRIPE_CONNECT_WEBHOOK_SECRET` from a Connect webhook
 endpoint pointed at `/api/webhooks/stripe-connect` (events: checkout.session.*,
 charge.refunded, charge.dispute.created), apply the migration, and run one sandbox
