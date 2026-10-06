@@ -260,7 +260,7 @@ describe("a storefront payment is checked against Stripe", () => {
   });
 
   describe("the states the code knows are the states the database allows", () => {
-    const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"), "utf8");
+    const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"), "utf8");
     const allowed = (sql.match(/check \(payment_state in \(([^)]*)\)\)/) || [])[1];
 
     it("reads the check constraint rather than nothing", () => {

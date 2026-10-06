@@ -80,7 +80,7 @@ const growthEventMigrationNames = [
 const merchantStoreMigrationNames = [
   "20261002120000_a_storefront_a_stranger_can_buy_from.sql",
   // Payment on the shop's connected account, and the insert-only payment events.
-  "20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+  "20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
 ];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
@@ -331,7 +331,7 @@ const AGENT_TOOL_PERMISSION_TABLES = Object.freeze(["agent_tool_permissions"]);
 //
 // Separate from BUSINESS_OPERATIONS_TABLES because that group is the back office.
 // The distinction worth stating: an order carries no card and no card token. Since
-// 20261006010000 it carries Stripe identifiers and Stripe's own figures, because
+// 20261006020000 it carries Stripe identifiers and Stripe's own figures, because
 // the money is taken by Checkout on the shop's connected account (governed by
 // business_payment_accounts); merchant_order_payment_events is the insert-only
 // record of what Stripe said.

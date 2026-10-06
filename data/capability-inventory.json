@@ -107823,7 +107823,7 @@
               ],
               "changedBy": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-                "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -107841,7 +107841,7 @@
         "moduleTableCandidateCount": 7,
         "schemaMigrations": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-          "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -176528,7 +176528,7 @@
               ],
               "changedBy": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-                "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -176595,7 +176595,7 @@
         "schemaMigrations": [
           "supabase/migrations/20260818100000_merchant_product_catalogue.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-          "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -179061,7 +179061,7 @@
         {
           "table": "merchant_order_payment_events",
           "migrations": [
-            "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+            "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
           ]
         },
         {
@@ -209104,13 +209104,13 @@
       ],
       "migrationLineage": {
         "createdBy": [
-          "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "changedBy": [
-          "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "rlsEvidence": [
-          "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "policyEvidence": []
       },
@@ -209253,7 +209253,7 @@
         ],
         "changedBy": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-          "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -231704,7 +231704,7 @@
       "policies": []
     },
     {
-      "file": "supabase/migrations/20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+      "file": "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
       "creates": [
         "merchant_order_payment_events"
       ],

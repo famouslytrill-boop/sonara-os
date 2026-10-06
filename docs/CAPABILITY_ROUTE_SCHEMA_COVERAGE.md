@@ -1074,7 +1074,7 @@ CREATE TABLE evidence only; later ALTER, policies, grants and remote applied sta
 | media_capture_records | 20260530120000_live_readiness_tenant_foundation.sql |
 | menu_items | 014_sonara_restaurant_margin_ops_schema.sql, 20260811210000_repair_missing_platform_tables.sql |
 | merchant_order_lines | 20261002120000_a_storefront_a_stranger_can_buy_from.sql |
-| merchant_order_payment_events | 20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql |
+| merchant_order_payment_events | 20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql |
 | merchant_orders | 20261002120000_a_storefront_a_stranger_can_buy_from.sql |
 | merchant_product_variants | 20260818100000_merchant_product_catalogue.sql |
 | merchant_products | 20260818100000_merchant_product_catalogue.sql |

@@ -1,6 +1,13 @@
 -- A storefront order is paid on the shop's own account, and the owner can check
 -- every payment against Stripe's record of it.
 --
+-- (First written as 20261006010000. Supabase's preview branch rolled that back on
+-- 6 October 2026: the new events table carried service-role privileges beyond the
+-- select and insert granted here -- Supabase's default privileges on `public`, which
+-- the local migration replay's shim does not reproduce -- and the assertion below
+-- refused it. It never applied anywhere, so it is replaced under a new name rather
+-- than edited in place; scripts/verify-applied-migrations.mjs pins by filename.)
+--
 -- 20261002120000_a_storefront_a_stranger_can_buy_from.sql gave a stranger a shop
 -- to order from and deliberately took no money: an order recorded what somebody
 -- wanted, and the owner collected payment however they already did. This is the
@@ -118,8 +125,12 @@ create index if not exists merchant_order_payment_events_organization_idx
   on public.merchant_order_payment_events (organization_id, received_at desc);
 
 alter table public.merchant_order_payment_events enable row level security;
+-- Everything off first, then exactly what is meant. A plain grant adds to whatever
+-- the platform's default privileges already gave the service role on a new table.
+revoke all on public.merchant_order_payment_events from anon, authenticated, service_role;
 grant select, insert on public.merchant_order_payment_events to service_role;
-revoke all on public.merchant_order_payment_events from anon, authenticated;
+-- An order changes state and is never removed.
+revoke delete, truncate on public.merchant_orders from service_role;
 
 notify pgrst, 'reload schema';
 
@@ -135,13 +146,19 @@ begin
     raise exception 'public.merchant_order_payment_events carries a policy; it is reached through the service role only';
   end if;
   -- Select and insert, and nothing else: no update, no removal, no truncation. What
-  -- Stripe said cannot be rewritten.
-  if exists (select 1 from information_schema.role_table_grants
-             where table_schema = 'public' and table_name = 'merchant_order_payment_events'
-               and (grantee in ('anon', 'authenticated')
-                    or (grantee = 'service_role' and privilege_type not in ('SELECT', 'INSERT')))) then
-    raise exception 'public.merchant_order_payment_events allows more than select and insert, or is reachable by anon/authenticated';
+  -- Stripe said cannot be rewritten. The message names each privilege and who
+  -- granted it, because the first version of this said only "more than select and
+  -- insert" and the environment that refused it could not be inspected from here.
+  select string_agg(grantee || ':' || privilege_type || ' (granted by ' || grantor || ')', ', ' order by grantee, privilege_type)
+    into offending
+    from information_schema.role_table_grants
+   where table_schema = 'public' and table_name = 'merchant_order_payment_events'
+     and (grantee in ('anon', 'authenticated')
+          or (grantee = 'service_role' and privilege_type not in ('SELECT', 'INSERT')));
+  if offending is not null then
+    raise exception 'public.merchant_order_payment_events allows more than select and insert to the service role, or is reachable by anon/authenticated: %', offending;
   end if;
+  offending := null;
   if has_table_privilege('service_role', 'public.merchant_orders', 'DELETE') then
     raise exception 'public.merchant_orders can be removed by the service role; an order is changed by state, never removed';
   end if;

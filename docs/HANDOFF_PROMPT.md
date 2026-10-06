@@ -131,7 +131,7 @@ records change state and are never deleted, prices from the server's rows. Readi
 Codex's handoff also showed a process difference on my side -- it says never
 `git add -A`; #436's earlier commits used it. Staged by name from this commit on.
 
-**Schema** (`20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql`):
+**Schema** (`20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql`):
 `merchant_orders` gains `payment_state` (separate from `status`: the goods and the
 money are separate facts), the shop's account, session, URL, expiry, attempt
 counter, payment intent, `amount_paid_cents` (Stripe's figure, so a mismatch shows),
@@ -187,6 +187,27 @@ conditional write still holds it in the e2e); truncation ignored; an unknown fee
 counted as zero; the repair skipping the decision; `Stripe-Account` dropped; the
 raw token stored (my first attempt at that mutation was overwritten by a later key
 in the same object literal and proved nothing -- rerun so it stuck).
+
+**Supabase's preview branch refused the first version, and was right to.** Pushed as
+`20261006010000`, it failed on the real platform at its own assertion: the new events
+table carried service-role privileges beyond the `select, insert` granted, from
+Supabase's default privileges on `public`. The local replay passed it because its
+shim creates the roles and nothing else -- it does not reproduce those defaults --
+so **the preview branch is the only place in this pipeline that exercises them**.
+Fixed by revoking everything from the service role before granting exactly what is
+meant, and the assertion now names each extra privilege and its grantor (the first
+message said only "more than select and insert", and the database that refused it
+cannot be inspected from this session). The migration never applied anywhere, so
+it is replaced as `20261006020000` rather than edited: the applied-migration pins are
+by filename and rightly refuse a changed one. Worth carrying forward: any new
+insert-only table should `revoke all ... from service_role` before its grant.
+
+**A trap in the process switch.** Staging by name rather than with `-A` meant the
+derived counts were regenerated while the two new source files were still untracked,
+and `verify-proprietary-notice.mjs` counts from `git ls-files` -- so 9bc0fdb8 shipped
+`EXPECTED_FILES = 374` for a tree of 376 and its gates were green locally only
+because the files were not yet in the index. The order is: `git add <new files>` by
+name, *then* regenerate, then stage the regenerated files by name.
 
 **Still the owner's**: apply both #436 migrations; one Connect webhook endpoint at
 `/api/webhooks/stripe-connect` with `checkout.session.*`, `charge.refunded` and
