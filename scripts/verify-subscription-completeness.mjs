@@ -103,7 +103,13 @@ const LIMITERS = Object.freeze({
   // authenticates it.
   stripe_connect_webhook: "anonymous_surface",
   // A signed-in buyer starting a marketplace checkout.
-  marketplace_buy: "abuse_ceiling"
+  marketplace_buy: "abuse_ceiling",
+  // A storefront buyer has no account: the receipt and its pay button are opened
+  // with the receipt token alone.
+  public_store_receipt: "anonymous_surface",
+  public_store_payment: "anonymous_surface",
+  // A business manager recording a payment from Stripe's own record.
+  "business.storefront_reconcile": "abuse_ceiling"
 });
 
 // Writes per hour, below which a limiter stops being a ceiling over abuse and

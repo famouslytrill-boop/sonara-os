@@ -85,6 +85,14 @@ const ACCOUNTED = Object.freeze({
       "They are the rights and consent checks a purchase must re-run at the moment of buying, so they are fetched to be used, in the file the row travels to."
     ].join(" ")
   },
+  "routes/sonara-merchant-payment-routes.cjs": {
+    columns: ["buyer_email"],
+    reason: [
+      "orderForCheckout reads the order whole and openCheckout hands it to checkoutFields in lib/sonara-merchant-payments.cjs,",
+      "which reads it directly (line 154 on 6 October 2026: `customer_email: order.buyer_email`) to pre-fill the buyer's email on Stripe's checkout,",
+      "so Stripe's receipt goes to the address the buyer gave the shop. Fetched to be used, in the file the row travels to."
+    ].join(" ")
+  },
   "lib/sonara-module-records.cjs": {
     columns: ["created_at"],
     reason: [

@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3085 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3089 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 153 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 154 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 445 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 447 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,97 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 26 most recent entries of 439 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 26 most recent entries of 440 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
+
+The Business Builder chain's payment -> receipt -> reconciliation steps. The
+storefront (`/store/:slug`) took orders and no money; "they will tell you how to
+pay" was the whole payment story. Now, when online payment is on and the shop's
+Stripe account can take charges, placing an order sends the buyer to Stripe
+Checkout charged directly on the shop's connected account, the one Connect webhook
+marks it paid, the buyer has a receipt, and the owner has a page that checks every
+payment against Stripe's own record.
+
+**Coordination first.** The owner asked for this to line up with ChatGPT/Codex.
+`.ai/shared/LOCKS.md` now holds a lock on the connected-account commerce files
+(platform billing and invoice settlement, Codex's #428-#430 work, explicitly not
+locked); `HANDOFF_LOG.md` and `TASK_BOARD.md` have entries; and
+`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` gained section 12 -- the
+convergence process and a six-rule **commerce payment contract** both agents
+follow: direct charges with `Stripe-Account`, one checkout opener, one Connect
+webhook dispatched by `metadata.sonara_kind`, fulfilment only from Stripe's word,
+records change state and are never deleted, prices from the server's rows. Reading
+Codex's handoff also showed a process difference on my side -- it says never
+`git add -A`; #436's earlier commits used it. Staged by name from this commit on.
+
+**Schema** (`20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql`):
+`merchant_orders` gains `payment_state` (separate from `status`: the goods and the
+money are separate facts), the shop's account, session, URL, expiry, attempt
+counter, payment intent, `amount_paid_cents` (Stripe's figure, so a mismatch shows),
+`refunded_cents` (cumulative, only rises) and `paid_at`, with checks tying them
+together. The buyer has no account, so a receipt is opened by a 24-byte token whose
+SHA-256 is the only thing stored. `merchant_order_payment_events` is insert-only,
+keyed on Stripe's event id. The migration asserts no card/cvv/pan/payment_token/
+application_fee/commission column and no raw token column.
+
+**Decisions** (`lib/sonara-merchant-payments.cjs`): `payDecision` refuses a
+checkout whose lines no longer add up to the total rather than charging a figure
+nobody agreed to, reuses an open checkout with time left, and expires one about to
+run out before opening the next (an old checkout that cannot be expired because it
+was paid is applied from Stripe's record instead -- no second checkout). Each
+attempt has its own idempotency key. `eventDecision` checks account, order id twice,
+amount and currency; accepts a payment on an earlier attempt; reports a second
+payment on a paid order as a duplicate owed back, and a payment after cancellation
+as paid-after-cancel, rather than losing either. `reconcile` compares orders with
+the shop's Checkout Sessions (expanded to the balance transaction): matched,
+missed payment (repairable), not at Stripe -- or *unverified* when Stripe's list was
+cut short -- amount, intent and refund mismatches, duplicates; totals gross, fee
+and net per currency, with a fee Stripe did not report shown as unknown, not zero.
+
+**Routes**: the order form pays on placement; `GET /store/:slug/orders/:id?t=` is
+the receipt; `POST .../pay` pays again; `/business-builder/owner/store/reconciliation`
+and `POST /api/business/storefront/reconcile/record`, which reads the session from
+Stripe with the platform key and runs it through the same `eventDecision` a signed
+event does. The Connect webhook dispatches `merchant_order`, and a refund or dispute
+matching no marketplace order falls through to the storefront. Three pinned
+tenant-guard exemptions (receipt by id + token hash; webhook by id; by payment
+intent), each with a fixed column list. `lib/sonara-connected-checkout.cjs` gained
+`expireSession`, `retrieveSession` and `listSessions`, and `createSession` takes a
+per-attempt idempotency key.
+
+**Tests**: `tests/a-storefront-payment-is-checked-against-stripe.test.js` (47) and
+`tests/a-storefront-order-is-paid-on-the-shops-account.test.js` (17, buyer half
+through server.js; owner half through the route module, both behind the guard).
+`tests/helpers/fake-supabase.cjs` now applies declared column defaults -- without
+them a conditional write on `checkout_attempts=eq.0` matched nothing and read in a
+test exactly like a lost race. One assertion I wrote was vacuous (it looked for
+"Pay $" where the shop prints "24.00 USD"); fixed, and given a positive twin.
+
+Falsified, each red by name then restored: amount check removed; account check
+removed; webhook dispatch removed (4 red); receipt ignoring the token -- caught by
+the test, but **the guard allowed that query**: the webhook's by-id exemption covered
+its columns, so any route could borrow it for a bare read of an order. Fixed rather
+than noted: all four webhook order lookups (marketplace and storefront, by id and by
+payment intent) now also filter on the event's connected account, the guard requires
+that filter (`connectedAccountLookup`), and a test asserts a bare by-id read is
+refused on both tables; lines check removed (5 red); an application fee
+added; old checkout not expired; a refund allowed to shrink (module red; the route's
+conditional write still holds it in the e2e); truncation ignored; an unknown fee
+counted as zero; the repair skipping the decision; `Stripe-Account` dropped; the
+raw token stored (my first attempt at that mutation was overwritten by a later key
+in the same object literal and proved nothing -- rerun so it stuck).
+
+**Still the owner's**: apply both #436 migrations; one Connect webhook endpoint at
+`/api/webhooks/stripe-connect` with `checkout.session.*`, `charge.refunded` and
+`charge.dispute.created`, its secret as `STRIPE_CONNECT_WEBHOOK_SECRET`; one sandbox
+storefront purchase. Next: inventory/order/fulfilment linkage.
+
+
 
 ### 2026-10-05 - A marketplace sale is a licence delivered: checkout, settlement, grant, private download, refund
 
@@ -1981,105 +2067,3 @@ runtime exists, so wiring one means producing conformance evidence rather than
 changing a status. Five MCP servers in this session (Base44, Canva, Cloudflare,
 Stripe, supabase) are unauthorized and cannot be authorized non-interactively, so
 nothing here has been exercised against a live authorization server.
-
-
-
-### 2026-10-01 - The autonomy breaker had never evaluated anything
-
-Asked to build the agent control plane: tool permissions, approvals, limits,
-evaluations, redacted telemetry, evidence history. Three of those six were already
-built and building them again would have duplicated working code -- approvals is
-`lib/sonara-agent-authority.cjs` plus the queue and `/owner/agent-activity`,
-evidence history is `agent_action_logs` and `createActionHistoryReader`, and
-redacted telemetry is `lib/sonara-redaction.cjs` applied in the action log and the
-queue. The gaps were limits, tool permissions and evaluations.
-
-Checking the first one found something worse than a gap.
-
-### The gate was wired to nothing, and silently
-
-`evaluateAutonomyBreaker` demotes an agent whose recent unattended runs keep
-failing. `createActionHistoryReader` reads those runs out of `agent_action_logs`.
-**Nothing called the reader.** `routes/sonara-agent-activity-routes.cjs` built its
-runner with `record` and `publishEvent` and no `readHistory`; the assistant routes
-passed neither. So on every unattended run the breaker received `null`, returned
-`unavailable`, left the classification untouched, and the action ran.
-
-It said nothing while doing it. The degraded report was guarded on
-`typeof readHistory === "function"` -- the one condition that is false precisely
-when the check is unwired. Proven by building the runner exactly as the route does
-and running a real self-serve action: `breaker: "unavailable"`, `limit:
-"unavailable"`, `requiresOwnerApproval: false`, `status: "completed"`, **events
-emitted: none**.
-
-Every test for the breaker had been passing throughout, because every one of them
-injected `readHistory` straight into `createRunner`. The gate was proven to work
-when given history and nothing asserted the application gives it any. A gate nobody
-connected is indistinguishable from a gate that keeps passing.
-
-`tests/the-autonomy-breaker-is-actually-connected.test.js` is the difference: it
-drives the real Express route with a database stub that answers the history read,
-and nothing in it injects a reader. Removing the one wiring line turns **seven** of
-its tests red, including the three that assert the read happens at all. The
-unwired case now reports `no_history_reader` instead of nothing, told apart from
-`history_unreadable` so a deployment gap and a broken read are different lines.
-
-### created_at was fetched on every run and read by nothing
-
-The reader selected `result, created_at`, ordered by `created_at`, and then dropped
-it in the map that built the rows. Shape 3 from the skill, in a safety path: a
-value fetched into a decision and never used. `report-unused-selected-columns.mjs`
-rated it **advisory**, because `order=created_at.desc` -- and a comment -- count as
-the column being "named elsewhere in the file".
-
-What the drop cost: the breaker could only count by row order, so three failures
-from six months ago still demoted an organization today, while fifty runs in a
-minute with two failures tripped nothing. The row window is deliberate and stays
-("3 of the last 10 failed" is a sentence an owner can check); what it could not do
-alone is tell "recently unreliable" from "was unreliable once, long ago, and has
-barely run since". `BREAKER_RECENCY_DAYS = 30` is that bound, written down as a
-**relaxation**, with the owner's sentence naming the window. Rows with no timestamp
-still count, so the gate cannot go quiet by losing its dates.
-
-### The limit the control plane was missing
-
-`lib/sonara-agent-limits.cjs` answers the question the breaker cannot. An agent
-whose every run succeeds can loop ten thousand times and the breaker stays green,
-because nothing failed. Sixty unattended runs an hour per agent, twenty of any one
-action, counted off the history read that was already happening -- **no new table
-and no second query**, because `agent_action_logs` is already the evidence history,
-already organization-scoped and already indexed on `(organization_id, created_at
-desc)`.
-
-Over the cap, the action is demoted to owner approval, which lands it in
-`agent_pending_actions` and on `/owner/agent-activity` with its own category,
-`held_at_volume_limit`. Nothing is dropped: a runaway that vanished silently is the
-failure this prevents, not one to introduce. A demoted run records `approval_state:
-'pending'`, which the history read filters out, so the cap does not sustain itself
-once the runaway stops.
-
-Undated rows are **not** counted toward the cap, which is the opposite of the
-breaker's rule on the same input and deliberate: counting them would put two
-hundred rows inside one hour, demote every unattended action, and be an outage
-wearing a cap's clothing. The state goes to `unavailable` and says so instead.
-
-### Two weak checks of my own, both caught by breaking them
-
-The release-gate assertion built its row list **from** the cap constant, so raising
-the cap to 100,000 left it green -- it proved the code enforces whatever it
-declares, not that what it declares is a cap. The ranges are asserted separately
-now. And the eligibility rule for the degraded report was wrong on first write: it
-suppressed the line for a reader that was supplied and then failed, which two
-existing tests caught immediately. A supplied reader that breaks is always
-reported; only the unwired case is limited to tenant-scoped runs, so the
-deliberately process-scoped drafting runner stays quiet.
-
-### What is still a gap
-
-**Tool permissions** -- `entity_agent_tool_registry` is schema with no enforcement;
-nothing consults a per-tenant tool grant before a run. **Evaluations** --
-`agent_evaluation_runs` is a table name a constant points at. **The assistant
-routes** run organization-scoped unattended actions with no recorder and no reader,
-so they have no history to read and are now loud about it rather than silent; wiring
-them needs a decision about what `agent_key` those runs carry, which decides the
-breaker's population, and that is its own change rather than a rider on this one.

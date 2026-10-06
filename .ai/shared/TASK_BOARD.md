@@ -1,6 +1,6 @@
 # Shared Task Board
 
-Updated: 2026-09-18 UTC during operational maturity hardening.
+Updated: 2026-10-06 UTC during connected-account commerce convergence.
 
 ## Current visual integration
 
@@ -14,6 +14,14 @@ Updated: 2026-09-18 UTC during operational maturity hardening.
   was triggered by this design integration.
 
 ## In progress
+
+- Claude, PR #436: connected-account commerce -- marketplace sale chain (done,
+  awaiting owner migration + review), storefront payment and reconciliation (in
+  progress on the same branch). Locked in LOCKS.md; Codex please avoid those
+  files until it merges.
+- Owner: apply `20261005010000_a_sale_is_a_licence_delivered.sql` (and the
+  storefront payment migration once it lands), create a Stripe Connect webhook
+  endpoint for `/api/webhooks/stripe-connect`, set `STRIPE_CONNECT_WEBHOOK_SECRET`.
 
 
 - Review, merge, and run the controlled production deployment for deterministic

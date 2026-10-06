@@ -39,6 +39,7 @@ const { freeToolSentence } = require("./lib/sonara-tool-access.cjs");
 const registerGrowthEventRoutes = require("./routes/sonara-growth-event-routes.cjs");
 const registerGrowthChannelRoutes = require("./routes/sonara-growth-channel-routes.cjs");
 const registerMerchantStoreRoutes = require("./routes/sonara-merchant-store-routes.cjs");
+const registerMerchantPaymentRoutes = require("./routes/sonara-merchant-payment-routes.cjs");
 // Moved to lib/sonara-env-value-checks.cjs on 18 September 2026 so that
 // scripts/verify-email-env.mjs applies the SAME placeholder and email rules
 // this file's readiness surface applies, rather than a looser copy. See the
@@ -769,7 +770,10 @@ registerMarketplaceCheckoutRoutes(app, { layout, brandCard, linkAction, escapeHt
 registerGrowthEventRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 registerGrowthChannelRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
-registerMerchantStoreRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+registerMerchantStoreRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter, getEnv });
+// A storefront order's receipt, paying it on the shop's own Stripe account, and the
+// owner's reconciliation of every payment against Stripe's record.
+registerMerchantPaymentRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv, createRateLimiter });
 
 registerRotaRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 

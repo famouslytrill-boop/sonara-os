@@ -414,7 +414,8 @@ describe("no route asks for what the tenant guard refuses", () => {
       getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORG }),
       getSupabaseServerConfig: () => ({ ok: true, url: SUPABASE, serviceRoleKey: "service-role-placeholder" }),
       supabaseHeaders: () => ({ apikey: "service-role-placeholder" }),
-      createRateLimiter: () => (req, res, next) => next()
+      createRateLimiter: () => (req, res, next) => next(),
+      getEnv: () => ""
     });
 
     current = "POST /api/business/storefront/publish";

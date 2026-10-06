@@ -8,7 +8,8 @@
 //   GET  /marketplace/orders/:orderId            the buyer's order: what Stripe has confirmed
 //   GET  /marketplace/orders/:orderId/download   the purchased file, for that buyer only
 //   GET  /account/purchases                      everything this person has bought
-//   POST /api/webhooks/stripe-connect            Stripe's word on a payment (createConnectWebhookHandler)
+//   POST /api/webhooks/stripe-connect            Stripe's word on a payment (createConnectWebhookHandler),
+//                                                for marketplace sales and, dispatched by kind, storefront orders
 //
 // Every decision is lib/sonara-marketplace-orders.cjs; the Stripe call is
 // lib/sonara-connected-checkout.cjs. docs/COMMERCE_UPLOAD_READINESS.md is the
@@ -29,6 +30,10 @@
 // server's own reads at the moment of purchase.
 
 const orders = require("../lib/sonara-marketplace-orders.cjs");
+const merchantPayments = {
+  KIND: require("../lib/sonara-merchant-payments.cjs").KIND,
+  handleMerchantEvent: require("./sonara-merchant-payment-routes.cjs").handleMerchantEvent
+};
 const checkout = require("../lib/sonara-connected-checkout.cjs");
 const payments = require("../lib/sonara-connected-payments.cjs");
 const storage = require("../lib/sonara-file-storage.cjs");
@@ -105,23 +110,41 @@ function createConnectWebhookHandler(deps) {
     if (!/^evt_[A-Za-z0-9]+$/.test(String(event?.id || ""))) return res.status(400).json({ ok: false, code: "unreadable" });
     const object = event.data?.object || {};
 
+    // One Connect webhook for every kind of sale, dispatched by what the checkout
+    // says it was for (docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md section 12). A
+    // storefront order goes to routes/sonara-merchant-payment-routes.cjs; the
+    // marketplace is handled below.
+    if (String(event.type || "").startsWith("checkout.session.") && object.metadata?.sonara_kind === merchantPayments.KIND) {
+      return merchantPayments.handleMerchantEvent(deps, event, res);
+    }
+
     // Find the order the event is about. A checkout event names it; a refund or
-    // dispute names the payment intent.
+    // dispute names the payment intent. Both lookups are also filtered on the
+    // connected account the event came from: the tenant guard allows these unscoped
+    // reads only with that filter, so a route that forgets its own scope cannot
+    // borrow this exemption for a bare read by id.
+    const eventAccount = String(event.account || "");
+    if (!/^acct_[A-Za-z0-9]{8,}$/.test(eventAccount)) return res.status(200).json({ ok: true, ignored: "not_a_connected_account_event" });
     let found;
     if (String(event.type || "").startsWith("checkout.session.")) {
       const orderId = object.metadata?.sonara_order_id;
       if (object.metadata?.sonara_kind !== "creator_marketplace" || !orders.isUuid(orderId)) {
-        return res.status(200).json({ ok: true, ignored: "not_a_marketplace_order" });
+        return res.status(200).json({ ok: true, ignored: "not_a_sonara_order" });
       }
-      found = await read(`creator_marketplace_orders?select=id,organization_id,listing_id,version_id,buyer_user_id,licence,price_cents,currency,stripe_account_id,checkout_session_id,payment_intent_id,state&id=eq.${enc(orderId)}&limit=1`);
+      found = await read(`creator_marketplace_orders?select=id,organization_id,listing_id,version_id,buyer_user_id,licence,price_cents,currency,stripe_account_id,checkout_session_id,payment_intent_id,state&id=eq.${enc(orderId)}&stripe_account_id=eq.${enc(eventAccount)}&limit=1`);
     } else if (event.type === "charge.refunded" || event.type === "charge.dispute.created") {
       const intent = String(object.payment_intent || "");
       if (!/^pi_[A-Za-z0-9]{8,}$/.test(intent)) return res.status(200).json({ ok: true, ignored: "no_payment_intent" });
-      found = await read(`creator_marketplace_orders?select=id,organization_id,listing_id,version_id,buyer_user_id,licence,price_cents,currency,stripe_account_id,checkout_session_id,payment_intent_id,state&payment_intent_id=eq.${enc(intent)}&limit=1`);
+      found = await read(`creator_marketplace_orders?select=id,organization_id,listing_id,version_id,buyer_user_id,licence,price_cents,currency,stripe_account_id,checkout_session_id,payment_intent_id,state&payment_intent_id=eq.${enc(intent)}&stripe_account_id=eq.${enc(eventAccount)}&limit=1`);
     } else {
       return res.status(200).json({ ok: true, ignored: "unhandled_type" });
     }
     if (!found.ok) return res.status(503).json({ ok: false, code: "unreadable" });
+    // A refund or dispute names only the payment intent, and it may be a storefront
+    // payment rather than a marketplace one.
+    if (!found.rows[0] && !String(event.type || "").startsWith("checkout.session.")) {
+      return merchantPayments.handleMerchantEvent(deps, event, res);
+    }
     const order = found.rows[0] || null;
     const decision = orders.fulfilmentDecision({ event, order });
     if (!order || decision.action === "ignore") {

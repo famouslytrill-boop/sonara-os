@@ -1,7 +1,15 @@
 # Locks
 
 Active:
-- None.
+- HELD: connected-account commerce payment surfaces -- Claude, branch
+  `claude/sonara-engineering-handoff-b6ui1t`, PR #436, taken 2026-10-06. Covers
+  `lib/sonara-connected-checkout.cjs`, `lib/sonara-marketplace-orders.cjs`,
+  `lib/sonara-merchant-payments.cjs`, `routes/sonara-marketplace-checkout-routes.cjs`,
+  `routes/sonara-merchant-store-routes.cjs`, the `/api/webhooks/stripe-connect`
+  mount in `server.js`, and migrations touching `merchant_orders` or
+  `creator_marketplace_*`. Platform billing (`lib/sonara-billing.cjs`) and invoice
+  settlement (`lib/sonara-invoice-settlement.cjs`) are NOT locked -- Codex's
+  surface, untouched by this work. Release when PR #436 merges or closes.
 
 History:
 - RELEASED: immutable checkout/setup-python v7 action pins — Codex, verified locally 2026-09-18.

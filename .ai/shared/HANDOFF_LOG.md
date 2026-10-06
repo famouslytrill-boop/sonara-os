@@ -1,5 +1,30 @@
 # Handoff Log
 
+## 2026-10-06 - Claude - Connected-account commerce: marketplace sale chain, then storefront payment and reconciliation
+
+- PR #436 (draft) takes the Creator Studio marketplace through the whole chain:
+  pinned delivery file -> Stripe Checkout as a direct charge on the seller's
+  connected account -> signed Connect webhook -> licence grant -> private
+  download -> refund/dispute revokes -> every Stripe event recorded. Migration
+  `20261005010000_a_sale_is_a_licence_delivered.sql` is NOT applied to production;
+  `production-deploy-dry-run` stays red until the owner applies it.
+- Same branch, next: the Business Builder storefront takes payment through the
+  same Connect checkout and the same webhook, then an owner reconciliation page
+  compares every order with Stripe's own record (gross, fee, net, refunds).
+- **Shared contract, so the two of us do not build it twice** -- written into
+  `docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` section 12: one Connect webhook
+  endpoint and secret (`STRIPE_CONNECT_WEBHOOK_SECRET`), dispatched by
+  `metadata.sonara_kind`; one checkout opener (`lib/sonara-connected-checkout.cjs`);
+  fulfilment only from a signed event or a server-side read of Stripe's own
+  object; zero application fee; refunds recorded, never issued.
+- Process alignment found while reading this log: Codex's handoff says never
+  `git add -A` and stage files by name. Claude's commits on #436 used `-A` (each
+  checked against `git status`); staging by name from here.
+- Dependency note for Codex: `proxy-addr` is overridden to 2.0.8 for
+  GHSA-jqcg-44mw-7w3h (critical, published 2026-10-05 23:30 UTC) in
+  `pnpm-workspace.yaml`. `main` will fail the OSV gate until #436 or an equivalent
+  override lands.
+
 ## 2026-09-18 - Codex - Node 24 production runtime / Node 26 compatibility proof
 
 - Stacked runtime migration on top of PR #294 hardening rather than mixing scopes. Draft PR #295 keeps production and ordinary CI on Node 24, adds Node 26 as a blocking compatibility lane, and prewires Node 27 as manual/non-blocking only until an official release exists.

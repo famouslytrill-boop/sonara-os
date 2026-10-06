@@ -148,5 +148,6 @@
   "20261003120000_channels_a_business_can_speak_from.sql": "13e21f24f03cecbb4b8ea723c63e9a4942fbb9a3506382c0f88903435fd41de5",
   "20261004120000_invoice_payment_tenant_link.sql": "f58878eba46bb5e801ae5e1728de4140a16528bc629d3a1e56f0e10d87a607a2",
   "20261004130000_seed_bounded_planning_formulas.sql": "754482d936f2e87e1c76519c2915ae71138474f1629786cf8a9a2f10a3e331ec",
-  "20261005010000_a_sale_is_a_licence_delivered.sql": "9674d858c25bd66cbed4f2adb73e8b2ebeafebd4cc06d3c7545f973c480ad948"
+  "20261005010000_a_sale_is_a_licence_delivered.sql": "9674d858c25bd66cbed4f2adb73e8b2ebeafebd4cc06d3c7545f973c480ad948",
+  "20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql": "5f77e75ebe185a9eaa0f0913b608df1e0086a98395a5dd436bb7d8743d6ba66a"
 }

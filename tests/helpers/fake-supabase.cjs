@@ -240,8 +240,14 @@ function createFakeSupabase(options = {}) {
       const incoming = Array.isArray(body) ? body : [body].filter(Boolean);
       // `ids: "uuid"` for a caller that checks an id is a uuid before it will use
       // it, as the marketplace order routes do. The default stays readable.
+      // Column defaults, as the migration declares them. Only what a test declares:
+      // a conditional write like `checkout_attempts=eq.0` matches nothing against a
+      // row the fake inserted without the database's default, and that reads in a
+      // test exactly like a race the route lost.
+      const defaults = (options.defaults || {})[table] || {};
       const created = incoming.map((row, index) => ({
         id: options.ids === "uuid" ? crypto.randomUUID() : `generated-${table}-${rowsFor(table).length + index}`,
+        ...Object.fromEntries(Object.entries(defaults).map(([column, value]) => [column, typeof value === "function" ? value() : value])),
         ...row
       }));
       // Upserts. `on_conflict` names the key, and the Prefer header says what a

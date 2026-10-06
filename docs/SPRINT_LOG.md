@@ -2,6 +2,90 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
+
+The Business Builder chain's payment -> receipt -> reconciliation steps. The
+storefront (`/store/:slug`) took orders and no money; "they will tell you how to
+pay" was the whole payment story. Now, when online payment is on and the shop's
+Stripe account can take charges, placing an order sends the buyer to Stripe
+Checkout charged directly on the shop's connected account, the one Connect webhook
+marks it paid, the buyer has a receipt, and the owner has a page that checks every
+payment against Stripe's own record.
+
+**Coordination first.** The owner asked for this to line up with ChatGPT/Codex.
+`.ai/shared/LOCKS.md` now holds a lock on the connected-account commerce files
+(platform billing and invoice settlement, Codex's #428-#430 work, explicitly not
+locked); `HANDOFF_LOG.md` and `TASK_BOARD.md` have entries; and
+`docs/CODEX_HANDOFF_SKILLS_FORMULAS_AGENTS.md` gained section 12 -- the
+convergence process and a six-rule **commerce payment contract** both agents
+follow: direct charges with `Stripe-Account`, one checkout opener, one Connect
+webhook dispatched by `metadata.sonara_kind`, fulfilment only from Stripe's word,
+records change state and are never deleted, prices from the server's rows. Reading
+Codex's handoff also showed a process difference on my side -- it says never
+`git add -A`; #436's earlier commits used it. Staged by name from this commit on.
+
+**Schema** (`20261006010000_a_storefront_order_is_paid_on_the_shops_own_account.sql`):
+`merchant_orders` gains `payment_state` (separate from `status`: the goods and the
+money are separate facts), the shop's account, session, URL, expiry, attempt
+counter, payment intent, `amount_paid_cents` (Stripe's figure, so a mismatch shows),
+`refunded_cents` (cumulative, only rises) and `paid_at`, with checks tying them
+together. The buyer has no account, so a receipt is opened by a 24-byte token whose
+SHA-256 is the only thing stored. `merchant_order_payment_events` is insert-only,
+keyed on Stripe's event id. The migration asserts no card/cvv/pan/payment_token/
+application_fee/commission column and no raw token column.
+
+**Decisions** (`lib/sonara-merchant-payments.cjs`): `payDecision` refuses a
+checkout whose lines no longer add up to the total rather than charging a figure
+nobody agreed to, reuses an open checkout with time left, and expires one about to
+run out before opening the next (an old checkout that cannot be expired because it
+was paid is applied from Stripe's record instead -- no second checkout). Each
+attempt has its own idempotency key. `eventDecision` checks account, order id twice,
+amount and currency; accepts a payment on an earlier attempt; reports a second
+payment on a paid order as a duplicate owed back, and a payment after cancellation
+as paid-after-cancel, rather than losing either. `reconcile` compares orders with
+the shop's Checkout Sessions (expanded to the balance transaction): matched,
+missed payment (repairable), not at Stripe -- or *unverified* when Stripe's list was
+cut short -- amount, intent and refund mismatches, duplicates; totals gross, fee
+and net per currency, with a fee Stripe did not report shown as unknown, not zero.
+
+**Routes**: the order form pays on placement; `GET /store/:slug/orders/:id?t=` is
+the receipt; `POST .../pay` pays again; `/business-builder/owner/store/reconciliation`
+and `POST /api/business/storefront/reconcile/record`, which reads the session from
+Stripe with the platform key and runs it through the same `eventDecision` a signed
+event does. The Connect webhook dispatches `merchant_order`, and a refund or dispute
+matching no marketplace order falls through to the storefront. Three pinned
+tenant-guard exemptions (receipt by id + token hash; webhook by id; by payment
+intent), each with a fixed column list. `lib/sonara-connected-checkout.cjs` gained
+`expireSession`, `retrieveSession` and `listSessions`, and `createSession` takes a
+per-attempt idempotency key.
+
+**Tests**: `tests/a-storefront-payment-is-checked-against-stripe.test.js` (47) and
+`tests/a-storefront-order-is-paid-on-the-shops-account.test.js` (17, buyer half
+through server.js; owner half through the route module, both behind the guard).
+`tests/helpers/fake-supabase.cjs` now applies declared column defaults -- without
+them a conditional write on `checkout_attempts=eq.0` matched nothing and read in a
+test exactly like a lost race. One assertion I wrote was vacuous (it looked for
+"Pay $" where the shop prints "24.00 USD"); fixed, and given a positive twin.
+
+Falsified, each red by name then restored: amount check removed; account check
+removed; webhook dispatch removed (4 red); receipt ignoring the token -- caught by
+the test, but **the guard allowed that query**: the webhook's by-id exemption covered
+its columns, so any route could borrow it for a bare read of an order. Fixed rather
+than noted: all four webhook order lookups (marketplace and storefront, by id and by
+payment intent) now also filter on the event's connected account, the guard requires
+that filter (`connectedAccountLookup`), and a test asserts a bare by-id read is
+refused on both tables; lines check removed (5 red); an application fee
+added; old checkout not expired; a refund allowed to shrink (module red; the route's
+conditional write still holds it in the e2e); truncation ignored; an unknown fee
+counted as zero; the repair skipping the decision; `Stripe-Account` dropped; the
+raw token stored (my first attempt at that mutation was overwritten by a later key
+in the same object literal and proved nothing -- rerun so it stuck).
+
+**Still the owner's**: apply both #436 migrations; one Connect webhook endpoint at
+`/api/webhooks/stripe-connect` with `checkout.session.*`, `charge.refunded` and
+`charge.dispute.created`, its secret as `STRIPE_CONNECT_WEBHOOK_SECRET`; one sandbox
+storefront purchase. Next: inventory/order/fulfilment linkage.
+
 ### 2026-10-05 - A marketplace sale is a licence delivered: checkout, settlement, grant, private download, refund
 
 The first convergence chain. A Creator Studio listing could be cleared to sell and

@@ -414,3 +414,72 @@ provenance, consent and anti-clone safety are enforced; no raw card data or CVV;
 sounds, voice, haptics, SMS, push and email alerts are off or explicitly
 user-controlled by default; and audit or security checks are not weakened
 without the exact reason recorded in `SECURITY_NOTES.md`.
+
+---
+
+## 12. Convergence, and the shared commerce contract
+
+Added 6 October 2026 by Claude, so that Claude and Codex work the commerce
+surfaces the same way. The owner's direction on 5 October changed the strategy
+from breadth to convergence:
+
+> Capability → complete workflow → provider execution → real customer
+> transaction → telemetry → proof → repeat usage.
+
+**In practice: one chain at a time, end to end, before the next.** Not ten more
+features on a surface; one surface taken through every step a customer actually
+crosses, with each step proven by a test that drives the real route. The three
+chains the owner named:
+
+- **Creator Marketplace:** asset → version → approval → rights/consent → listing
+  → buyer → checkout → settlement → licence grant → private delivery → receipt →
+  seller reporting → reconciliation → refund/dispute → audit trail. *Built in PR
+  #436.*
+- **Business Builder:** lead → estimate → customer → booking/job → employee →
+  inventory → work completion → invoice → payment → receipt → repeat job →
+  profitability. *Storefront payment and reconciliation are the payment →
+  receipt → reconciliation part, in progress on PR #436. Invoice settlement is
+  Codex's (#428–#430).*
+- **Growth:** lead/source → campaign → channel → outbound connector → delivery
+  receipt → engagement → conversion → attribution → ROI → next action. *Not
+  started.*
+
+Before starting a chain, take a lock in `.ai/shared/LOCKS.md` naming the files,
+and write the entry in `.ai/shared/HANDOFF_LOG.md`. Two agents converging the same
+surface in parallel is how one webhook becomes two.
+
+### The commerce payment contract
+
+Every way a SONARA customer takes money from *their* customer -- marketplace
+sales, storefront orders, and whatever comes next -- follows these, and a change
+to any of them is a change to this section first:
+
+1. **Direct charges on the seller's connected account.** Every Stripe call
+   carries `Stripe-Account` (`lib/sonara-connected-payments.cjs` `stripeHeaders`).
+   No `application_fee_amount`, no `transfer_data`, no `on_behalf_of`: marketplace
+   and storefront commission is zero, and taking one is a decision with a migration
+   behind it, not a parameter.
+2. **One checkout opener.** `lib/sonara-connected-checkout.cjs` `createSession`:
+   hosted Checkout only, an idempotency key per attempt, a 10-second deadline, and
+   it refuses unless `checkoutReadiness` passes -- which requires
+   `STRIPE_CONNECT_WEBHOOK_SECRET`, because a payment nothing can verify is a
+   payment nothing can fulfil.
+3. **One Connect webhook.** `POST /api/webhooks/stripe-connect`, mounted with
+   `express.raw` *before* the body parsers, one signing secret, dispatched on
+   `metadata.sonara_kind` (`creator_marketplace`, `merchant_order`). A new kind is
+   a new branch in that dispatcher, never a second endpoint.
+4. **Fulfilment from Stripe's word only.** A signed event, or a server-side read of
+   Stripe's own object with the platform key (the reconciliation repair). Never a
+   success page, never a query string, never the buyer's form. Every field --
+   account, session, order id, amount, currency, payment status -- is compared to
+   the stored order before anything changes.
+5. **Records change state; they are not deleted.** Payment events are insert-only,
+   keyed on Stripe's event id. Refunds and disputes are recorded when Stripe
+   reports them; nothing here issues a refund (AGENTS.md: owner approval).
+6. **Prices come from the server's rows.** A posted price is a buyer naming their
+   own. Amounts are snapshotted onto the order when it is created.
+
+**Platform billing is separate.** `lib/sonara-billing.cjs` and
+`/api/stripe/webhook` charge *SONARA's* customers on SONARA's own account, with
+their own secret. Do not route connected-account events there, or platform
+events here.

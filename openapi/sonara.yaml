@@ -1598,6 +1598,20 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
       responses:
         "303": { description: "Form submission accepted; the browser is redirected back with a done or problem code." }
+  /api/business/storefront/reconcile/record:
+    post:
+      operationId: recordStorefrontPaymentFromStripe
+      tags: [Business Builder]
+      summary: Record a storefront payment Stripe holds and the order does not show.
+      description: >-
+        For a payment whose webhook never arrived. The Checkout Session is read from
+        Stripe on the shop's own connected account and passed through the same checks
+        a signed webhook event is; the form only says which order and session. Never
+        issues a refund and never marks an order paid that Stripe does not show as paid.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "303": { description: "Redirected back to the reconciliation page with done=recorded or done=unchanged." }
   /api/creator/briefs:
     post:
       operationId: openCreatorBrief
