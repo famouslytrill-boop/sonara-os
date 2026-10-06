@@ -345,6 +345,107 @@ describe("buying a licence, end to end", function endToEnd() {
     assert.equal(second.fake.rows("creator_licence_grants").length, 1, "a buyer who paid was left with no licence after Stripe's retry");
   });
 
+  function failWriteOnce(table, method) {
+    const inner = global.fetch;
+    let failures = 0;
+    global.fetch = async (input, init = {}) => {
+      const url = new URL(typeof input === "string" ? input : input.url);
+      if (!failures && url.pathname === `/rest/v1/${table}` && init.method === method) {
+        failures += 1;
+        return { ok: false, status: 503, json: async () => [], text: async () => "unavailable" };
+      }
+      return inner(input, init);
+    };
+    return () => assert.equal(failures, 1, "the intended write was never reached");
+  }
+
+  for (const [type, object, state] of [
+    ["checkout.session.completed", { payment_status: "unpaid" }, "processing"],
+    ["checkout.session.async_payment_failed", {}, "payment_failed"],
+    ["checkout.session.expired", {}, "expired"]
+  ]) {
+    it(`retries ${type} when its order transition cannot be saved`, async () => {
+      const { fake } = world();
+      await buy(LISTING);
+      const [order] = fake.rows("creator_marketplace_orders");
+      const reached = failWriteOnce("creator_marketplace_orders", "PATCH");
+      const event = paidEvent(order, object, { type });
+      assert.equal((await deliver(event)).status, 503);
+      reached();
+      assert.equal(fake.rows("creator_marketplace_orders")[0].state, "pending");
+      assert.equal((await deliver(event)).status, 200);
+      assert.equal(fake.rows("creator_marketplace_orders")[0].state, state);
+      assert.equal(fake.rows("creator_marketplace_payment_events").length, 1);
+    });
+  }
+
+  for (const [type, object, state] of [
+    ["charge.refunded", { refunded: true }, "refunded"],
+    ["charge.dispute.created", {}, "disputed"]
+  ]) {
+    it(`blocks delivery and repairs a failed revocation on retry of ${type}`, async () => {
+      const { fake, storage } = world();
+      await buy(LISTING);
+      const [order] = fake.rows("creator_marketplace_orders");
+      await deliver(paidEvent(order));
+      const reached = failWriteOnce("creator_licence_grants", "PATCH");
+      const event = { id: "evt_revokeRetry", type, account: ACCOUNT, data: { object: { payment_intent: "pi_test12345678", ...object } } };
+      assert.equal((await deliver(event)).status, 503);
+      reached();
+      assert.equal(fake.rows("creator_marketplace_orders")[0].state, state);
+      assert.ok(!fake.rows("creator_licence_grants")[0].revoked_at);
+      const before = storage.length;
+      assert.equal((await asBuyer(`/marketplace/orders/${order.id}/download`)).status, 410);
+      assert.equal(storage.length, before, "a closed order received a signed URL");
+      assert.equal((await deliver(event)).status, 200);
+      assert.ok(fake.rows("creator_licence_grants")[0].revoked_at);
+      assert.equal(fake.rows("creator_licence_grants")[0].revoked_reason, state);
+      assert.equal(fake.rows("creator_marketplace_payment_events").filter((row) => row.stripe_event_id === event.id).length, 1);
+    });
+  }
+
+  it("requires paid status even when repairing a grant for an already paid order", async () => {
+    const { fake } = world();
+    await buy(LISTING);
+    const [order] = fake.rows("creator_marketplace_orders");
+    await fetch(`${ENV.SUPABASE_URL}/rest/v1/creator_marketplace_orders?id=eq.${order.id}&organization_id=eq.${SELLER}`, {
+      method: "PATCH", body: JSON.stringify({ state: "paid" })
+    });
+    assert.equal((await deliver(paidEvent(order, { payment_status: "unpaid" }))).status, 200);
+    assert.equal(fake.rows("creator_licence_grants").length, 0);
+  });
+
+  it("retries a failed audit write without issuing a second licence", async () => {
+    const { fake } = world();
+    await buy(LISTING);
+    const [order] = fake.rows("creator_marketplace_orders");
+    const reached = failWriteOnce("creator_marketplace_payment_events", "POST");
+    const event = paidEvent(order);
+    assert.equal((await deliver(event)).status, 503);
+    reached();
+    assert.equal(fake.rows("creator_licence_grants").length, 1);
+    assert.equal(fake.rows("creator_marketplace_payment_events").length, 0);
+    assert.equal((await deliver(event)).status, 200);
+    assert.equal(fake.rows("creator_licence_grants").length, 1);
+    assert.equal(fake.rows("creator_marketplace_payment_events").length, 1);
+  });
+
+  for (const [table, method] of [["creator_marketplace_entries", "DELETE"], ["creator_listings", "PATCH"]]) {
+    it(`repairs an exclusive listing after a failed ${table} write`, async () => {
+      const { fake } = world();
+      await buy(EXCLUSIVE);
+      const [order] = fake.rows("creator_marketplace_orders");
+      const reached = failWriteOnce(table, method);
+      const event = paidEvent(order);
+      assert.equal((await deliver(event)).status, 503);
+      reached();
+      assert.equal((await deliver(event)).status, 200);
+      assert.equal(fake.rows("creator_listings").find((row) => row.id === EXCLUSIVE).state, "sold_exclusively");
+      assert.ok(!fake.rows("creator_marketplace_entries").some((row) => row.listing_id === EXCLUSIVE));
+      assert.equal(fake.rows("creator_licence_grants").length, 1);
+    });
+  }
+
   it("refuses a forged signature, and one made with another secret, before reading anything", async () => {
     const { fake } = world();
     await buy(LISTING);

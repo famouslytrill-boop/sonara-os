@@ -577,6 +577,17 @@ function buildInventory() {
   const tablesReferencedByHandler = (sourceFile, handlerSource) => {
     const found = new Set(referencesInEndpointAccess(withoutComments(handlerSource)));
     const moduleSource = sourceFile ? readSource(sourceFile) : "";
+    // Commerce's local REST client accepts "table?query", rather than a full
+    // /rest/v1 URL. Trace only that proven wrapper and a literal first argument;
+    // a table mentioned in copy or in another handler remains a candidate.
+    // Otherwise even a buyer's receipt was classified as having no persistence.
+    if (moduleSource.includes('/rest/v1/${pathAndQuery}')
+      && /const\s*\{\s*read,\s*write\s*\}\s*=\s*restClient\(/.test(moduleSource)) {
+      const code = withoutComments(handlerSource);
+      for (const match of code.matchAll(/\b(?:read|write)\s*\(\s*["'`]([a-z_][a-z0-9_]*)(?:\?|["'`])/g)) {
+        if (tableNameSet.has(match[1])) found.add(match[1]);
+      }
+    }
     const addKnown = (value) => {
       if (typeof value === "string" && tableNameSet.has(value)) found.add(value);
       else if (Array.isArray(value)) for (const item of value) addKnown(item);
@@ -708,6 +719,21 @@ function buildInventory() {
       }
     }
     const factoryObject = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*\(/g;
+    // A named export attached to a default CommonJS function (the Connect
+    // webhook factory) is just as traceable as a destructured import. Resolve
+    // explicit assignments only; do not assume every local function is exported.
+    const moduleImports = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*require\(\s*["']([^"']+)["']\s*\)/g;
+    for (const match of source.matchAll(moduleImports)) {
+      if (!match[2].startsWith(".")) continue;
+      const targetBase = path.resolve(ROOT, path.dirname(sourceFile), match[2]);
+      const target = [targetBase, `${targetBase}.cjs`, `${targetBase}.js`].find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+      if (!target || !target.startsWith(`${ROOT}${path.sep}`)) continue;
+      const targetFile = relativeFile(target);
+      for (const exported of readSource(targetFile).matchAll(/module\.exports\.([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*;/g)) {
+        const body = localFunctionsFor(targetFile).get(exported[2]);
+        if (body !== undefined) imports.set(`${match[1]}.${exported[1]}`, { file: targetFile, name: exported[2], body });
+      }
+    }
     for (const match of source.matchAll(factoryObject)) {
       const factory = imports.get(match[2]);
       if (!factory) continue;
@@ -738,12 +764,16 @@ function buildInventory() {
       }
     }
     for (const match of source.matchAll(factoryObject)) {
-      const factory = imports.get(match[2]);
+      const localBody = localFunctionsFor(sourceFile).get(match[2]);
+      const factory = imports.get(match[2]) || (localBody === undefined ? null : { file: sourceFile, name: match[2], body: localBody });
       if (!factory) continue;
       const argsOpen = source.indexOf("{", match.index + match[0].length);
       const argsClose = argsOpen >= 0 ? closingBrace(source, argsOpen) : -1;
       const provided = providedFunctions(argsOpen, argsClose);
       for (const [methodName, body] of localFunctionsFor(factory.file)) {
+        // Local factories need an explicit returned method; otherwise unrelated
+        // functions in the same file would be credited to the returned object.
+        if (localBody !== undefined && !new RegExp(`return\\s*\\{[^}]*\\b${methodName}\\b`).test(factory.body)) continue;
         imports.set(`${match[1]}.${methodName}`, { file: factory.file, name: methodName, body, injectedFunctions: provided });
       }
     }

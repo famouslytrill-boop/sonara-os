@@ -44,10 +44,10 @@
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
-      "explicit_no_persistent_table_expected": 150,
+      "explicit_no_persistent_table_expected": 146,
       "explicit_resource_registry": 259,
-      "handler_source_table_reference": 213,
-      "needs_explicit_data_contract": 304
+      "handler_source_table_reference": 221,
+      "needs_explicit_data_contract": 300
     },
     "routesUsingWorkspaceHomeFallback": 96,
     "formActionLinkCount": 64,
@@ -65,10 +65,10 @@
     "databaseTriggerCount": 49,
     "routesCallingDatabaseFunctions": 24,
     "routesWithMissingDatabaseFunctionDefinition": 0,
-    "routeDataContractsNeedingExplicitReview": 304,
+    "routeDataContractsNeedingExplicitReview": 300,
     "routeDataReviewByMethod": {
       "GET": 205,
-      "POST": 99
+      "POST": 95
     },
     "routeDestinationReviewByWorkspace": {
       "business_builder": 15,
@@ -3489,8 +3489,10 @@
         "evidence": "route-convention"
       },
       "data": {
-        "mappingStatus": "explicit_no_persistent_table_expected",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_marketplace_orders"
+        ],
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
@@ -3504,20 +3506,39 @@
           "payments",
           "purchases"
         ],
-        "tableLineage": [],
-        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "tableLineage": [
+          {
+            "table": "creator_marketplace_orders",
+            "tableId": "table:creator_marketplace_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
         "moduleTableCandidateCount": 11,
-        "schemaMigrations": [],
-        "persistenceMode": "navigation_or_static_output"
+        "schemaMigrations": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 457
+        "line": 463
       },
       "contractCompleteness": {
         "route": true,
@@ -3525,7 +3546,7 @@
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "route-convention",
-        "persistence": "explicit_no_persistent_table_expected",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -56002,7 +56023,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 378
+        "line": 379
       },
       "contractCompleteness": {
         "route": true,
@@ -86805,8 +86826,11 @@
         "evidence": "route-convention"
       },
       "data": {
-        "mappingStatus": "explicit_no_persistent_table_expected",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_licence_grants",
+          "creator_marketplace_orders"
+        ],
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
@@ -86820,20 +86844,55 @@
           "payments",
           "purchases"
         ],
-        "tableLineage": [],
-        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "tableLineage": [
+          {
+            "table": "creator_licence_grants",
+            "tableId": "table:creator_licence_grants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_orders",
+            "tableId": "table:creator_marketplace_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
         "moduleTableCandidateCount": 11,
-        "schemaMigrations": [],
-        "persistenceMode": "navigation_or_static_output"
+        "schemaMigrations": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 422
+        "line": 428
       },
       "contractCompleteness": {
         "route": true,
@@ -86841,7 +86900,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "route-convention",
-        "persistence": "explicit_no_persistent_table_expected",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -86893,8 +86952,12 @@
         "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "explicit_no_persistent_table_expected",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_licence_grants",
+          "creator_marketplace_orders",
+          "creator_version_files"
+        ],
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
@@ -86908,20 +86971,71 @@
           "payments",
           "purchases"
         ],
-        "tableLineage": [],
-        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "tableLineage": [
+          {
+            "table": "creator_licence_grants",
+            "tableId": "table:creator_licence_grants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_orders",
+            "tableId": "table:creator_marketplace_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_version_files",
+            "tableId": "table:creator_version_files",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
         "moduleTableCandidateCount": 11,
-        "schemaMigrations": [],
-        "persistenceMode": "navigation_or_static_output"
+        "schemaMigrations": [
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 440
+        "line": 446
       },
       "contractCompleteness": {
         "route": true,
@@ -86929,7 +87043,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
-        "persistence": "explicit_no_persistent_table_expected",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -92306,8 +92420,12 @@
         "evidence": "route-convention"
       },
       "data": {
-        "mappingStatus": "explicit_no_persistent_table_expected",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_order_lines",
+          "merchant_orders",
+          "merchant_storefronts"
+        ],
         "candidateTables": [
           "merchant_order_lines",
           "merchant_order_payment_events",
@@ -92315,20 +92433,73 @@
           "merchant_storefronts",
           "payments"
         ],
-        "tableLineage": [],
-        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "tableLineage": [
+          {
+            "table": "merchant_order_lines",
+            "tableId": "table:merchant_order_lines",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_orders",
+            "tableId": "table:merchant_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_storefronts",
+            "tableId": "table:merchant_storefronts",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
+        "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
         "rpcEffects": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
         "moduleTableCandidateCount": 5,
-        "schemaMigrations": [],
-        "persistenceMode": "navigation_or_static_output"
+        "schemaMigrations": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 303
+        "line": 304
       },
       "contractCompleteness": {
         "route": true,
@@ -92336,7 +92507,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "route-convention",
-        "persistence": "explicit_no_persistent_table_expected",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -116332,8 +116503,12 @@
         "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_order_lines",
+          "merchant_order_payment_events",
+          "merchant_orders"
+        ],
         "candidateTables": [
           "merchant_order_lines",
           "merchant_order_payment_events",
@@ -116341,7 +116516,57 @@
           "merchant_storefronts",
           "payments"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "merchant_order_lines",
+            "tableId": "table:merchant_order_lines",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_order_payment_events",
+            "tableId": "table:merchant_order_payment_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_orders",
+            "tableId": "table:merchant_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -116349,12 +116574,15 @@
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
         "moduleTableCandidateCount": 5,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
+        "schemaMigrations": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 457
+        "line": 458
       },
       "contractCompleteness": {
         "route": true,
@@ -116362,7 +116590,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
-        "persistence": "needs_explicit_data_contract",
+        "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "rendered_form_plus_handler_observation"
       },
@@ -147509,8 +147737,14 @@
         "evidence": "route-convention"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_licence_grants",
+          "creator_listings",
+          "creator_marketplace_entries",
+          "creator_marketplace_orders",
+          "creator_marketplace_payment_events"
+        ],
         "candidateTables": [
           "admin_audit_logs",
           "bookings",
@@ -147537,7 +147771,88 @@
           "support_requests",
           "user_roles"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "creator_licence_grants",
+            "tableId": "table:creator_licence_grants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_listings",
+            "tableId": "table:creator_listings",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_entries",
+            "tableId": "table:creator_marketplace_entries",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_orders",
+            "tableId": "table:creator_marketplace_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_payment_events",
+            "tableId": "table:creator_marketplace_payment_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -147545,8 +147860,11 @@
         "triggeredEffects": [],
         "sourceModule": "module:server.js",
         "moduleTableCandidateCount": 24,
-        "schemaMigrations": [],
-        "persistenceMode": "webhook_ingress_requires_data_effect_review"
+        "schemaMigrations": [
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql",
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "server.js",
@@ -147558,7 +147876,7 @@
         "destination": true,
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "route-convention",
-        "persistence": "needs_explicit_data_contract",
+        "persistence": "handler_source_table_reference",
         "openApi": true,
         "requestFieldSource": "generic_openapi_body_contract"
       },
@@ -175254,8 +175572,14 @@
         "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "creator_asset_approvals",
+          "creator_asset_versions",
+          "creator_listings",
+          "creator_marketplace_orders",
+          "creator_version_files"
+        ],
         "candidateTables": [
           "creator_asset_approvals",
           "creator_asset_versions",
@@ -175269,7 +175593,88 @@
           "payments",
           "purchases"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "creator_asset_approvals",
+            "tableId": "table:creator_asset_approvals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_approval_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_approval_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_approval_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_asset_versions",
+            "tableId": "table:creator_asset_versions",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002010000_creator_approval_graph.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002010000_creator_approval_graph.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002010000_creator_approval_graph.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_listings",
+            "tableId": "table:creator_listings",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_marketplace_orders",
+            "tableId": "table:creator_marketplace_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "creator_version_files",
+            "tableId": "table:creator_version_files",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -175277,12 +175682,16 @@
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-marketplace-checkout-routes.cjs",
         "moduleTableCandidateCount": 11,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
+        "schemaMigrations": [
+          "supabase/migrations/20261002010000_creator_approval_graph.sql",
+          "supabase/migrations/20261003060000_a_marketplace_for_creative_work.sql",
+          "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 302
+        "line": 308
       },
       "contractCompleteness": {
         "route": true,
@@ -175290,7 +175699,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
-        "persistence": "needs_explicit_data_contract",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -176488,6 +176897,7 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "merchant_order_lines",
+          "merchant_order_payment_events",
           "merchant_orders",
           "merchant_product_variants",
           "merchant_products",
@@ -176515,6 +176925,22 @@
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_order_payment_events",
+            "tableId": "table:merchant_order_payment_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
               ],
               "policyEvidence": []
             }
@@ -176668,8 +177094,12 @@
         "evidence": "handler-source"
       },
       "data": {
-        "mappingStatus": "needs_explicit_data_contract",
-        "directTables": [],
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "merchant_order_lines",
+          "merchant_order_payment_events",
+          "merchant_orders"
+        ],
         "candidateTables": [
           "merchant_order_lines",
           "merchant_order_payment_events",
@@ -176677,7 +177107,57 @@
           "merchant_storefronts",
           "payments"
         ],
-        "tableLineage": [],
+        "tableLineage": [
+          {
+            "table": "merchant_order_lines",
+            "tableId": "table:merchant_order_lines",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_order_payment_events",
+            "tableId": "table:merchant_order_payment_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_orders",
+            "tableId": "table:merchant_orders",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
+            }
+          }
+        ],
         "noPersistenceReason": null,
         "resourceContract": null,
         "agentRouteContract": null,
@@ -176685,12 +177165,15 @@
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-payment-routes.cjs",
         "moduleTableCandidateCount": 5,
-        "schemaMigrations": [],
-        "persistenceMode": "source_module_candidates"
+        "schemaMigrations": [
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 336
+        "line": 337
       },
       "contractCompleteness": {
         "route": true,
@@ -176698,7 +177181,7 @@
         "destination": true,
         "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
-        "persistence": "needs_explicit_data_contract",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "rendered_form_plus_handler_observation"
       },
@@ -268166,7 +268649,7 @@
       "kind": "page_or_download",
       "source": {
         "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 378
+        "line": 379
       },
       "destination": {
         "route": "/business-builder/owner/store/reconciliation",
@@ -274189,42 +274672,6 @@
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
     {
-      "id": "POST /api/business/storefront/reconcile/record",
-      "workspace": "business_builder",
-      "kind": "api",
-      "source": {
-        "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 457
-      },
-      "destination": {
-        "route": "/business-builder/owner/store/reconciliation",
-        "confidence": "form_reference",
-        "reason": "rendered_form_action"
-      },
-      "method": "POST",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "merchant_order_lines",
-        "merchant_order_payment_events",
-        "merchant_orders",
-        "merchant_storefronts",
-        "payments"
-      ],
-      "requestFieldsObserved": {
-        "body": [
-          "days",
-          "order_id",
-          "session_id"
-        ],
-        "query": [],
-        "pathParams": []
-      },
-      "responseKindsObserved": [
-        "redirect"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
       "id": "POST /api/business/sub-apps",
       "workspace": "business_builder",
       "kind": "api",
@@ -274920,57 +275367,6 @@
           "resourceType",
           "id"
         ]
-      },
-      "responseKindsObserved": [
-        "json-or-delegated"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
-      "id": "POST /api/webhooks/stripe-connect",
-      "workspace": "sonara_shared_api",
-      "kind": "webhook",
-      "source": {
-        "file": "server.js",
-        "line": 364
-      },
-      "destination": {
-        "route": null,
-        "confidence": "machine_ingress",
-        "reason": "provider_or_system_webhook"
-      },
-      "method": "POST",
-      "reason": "webhook_ingress_requires_data_effect_review",
-      "moduleCandidateTables": [
-        "admin_audit_logs",
-        "bookings",
-        "business_employee_invites",
-        "business_memberships",
-        "business_service_catalog",
-        "business_workspaces",
-        "campaigns",
-        "customers",
-        "integrations",
-        "launch_checklist_items",
-        "leads",
-        "organization_memberships",
-        "organizations",
-        "payments",
-        "plans",
-        "products",
-        "profiles",
-        "quotes",
-        "reviews",
-        "service_catalog_items",
-        "subscriptions",
-        "support_email_delivery_attempts",
-        "support_requests",
-        "user_roles"
-      ],
-      "requestFieldsObserved": {
-        "body": [],
-        "query": [],
-        "pathParams": []
       },
       "responseKindsObserved": [
         "json-or-delegated"
@@ -277273,46 +277669,6 @@
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },
     {
-      "id": "POST /marketplace/:id/buy",
-      "workspace": "sonara_shared",
-      "kind": "form_or_action",
-      "source": {
-        "file": "routes/sonara-marketplace-checkout-routes.cjs",
-        "line": 302
-      },
-      "destination": {
-        "route": "/marketplace/:id",
-        "confidence": "parent_route",
-        "reason": "nearest_registered_parent_page"
-      },
-      "method": "POST",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "creator_asset_approvals",
-        "creator_asset_versions",
-        "creator_licence_grants",
-        "creator_listings",
-        "creator_marketplace_entries",
-        "creator_marketplace_orders",
-        "creator_marketplace_payment_events",
-        "creator_version_files",
-        "files",
-        "payments",
-        "purchases"
-      ],
-      "requestFieldsObserved": {
-        "body": [],
-        "query": [],
-        "pathParams": [
-          "id"
-        ]
-      },
-      "responseKindsObserved": [
-        "redirect"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
       "id": "POST /owner/administration/module-status",
       "workspace": "sonara_shared",
       "kind": "form_or_action",
@@ -277617,43 +277973,6 @@
       },
       "responseKindsObserved": [
         "send"
-      ],
-      "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
-    },
-    {
-      "id": "POST /store/:slug/orders/:orderId/pay",
-      "workspace": "sonara_shared",
-      "kind": "form_or_action",
-      "source": {
-        "file": "routes/sonara-merchant-payment-routes.cjs",
-        "line": 336
-      },
-      "destination": {
-        "route": "/store/:slug/orders/:orderId",
-        "confidence": "parent_route",
-        "reason": "nearest_registered_parent_page"
-      },
-      "method": "POST",
-      "reason": "source_module_candidates",
-      "moduleCandidateTables": [
-        "merchant_order_lines",
-        "merchant_order_payment_events",
-        "merchant_orders",
-        "merchant_storefronts",
-        "payments"
-      ],
-      "requestFieldsObserved": {
-        "body": [
-          "t"
-        ],
-        "query": [],
-        "pathParams": [
-          "slug",
-          "orderId"
-        ]
-      },
-      "responseKindsObserved": [
-        "redirect"
       ],
       "reviewAction": "Trace writes, SQL functions, provider effects, and input/output validation; record exact tables or a source-backed no-table reason."
     },

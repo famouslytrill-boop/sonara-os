@@ -148,7 +148,7 @@ function createConnectWebhookHandler(deps) {
     const order = found.rows[0] || null;
     const decision = orders.fulfilmentDecision({ event, order });
     if (!order || decision.action === "ignore") {
-      if (order) await recordEvent(order, event, decision.code);
+      if (order && !(await recordEvent(order, event, decision.code)).ok) return res.status(503).json({ ok: false, code: "audit_not_saved" });
       return res.status(200).json({ ok: true, ignored: decision.code });
     }
 
@@ -183,39 +183,45 @@ function createConnectWebhookHandler(deps) {
       if (order.licence === "exclusive_transfer") {
         // Sold once: off the public catalogue, and marked so the seller cannot put
         // it back on sale by pressing a button.
-        await write(`creator_marketplace_entries?listing_id=eq.${enc(order.listing_id)}`, { method: "DELETE" });
-        await write(`creator_listings?id=eq.${enc(order.listing_id)}&organization_id=eq.${enc(order.organization_id)}`, {
+        const removed = await write(`creator_marketplace_entries?listing_id=eq.${enc(order.listing_id)}`, { method: "DELETE" });
+        if (!removed.ok) return res.status(503).json({ ok: false, code: "listing_not_saved" });
+        const closed = await write(`creator_listings?id=eq.${enc(order.listing_id)}&organization_id=eq.${enc(order.organization_id)}`, {
           method: "PATCH",
           body: { state: "sold_exclusively", updated_at: now }
         });
+        if (!closed.ok) return res.status(503).json({ ok: false, code: "listing_not_saved" });
       }
       outcome = paid.rows.length ? "granted" : "grant_confirmed";
     } else if (decision.action === "processing") {
-      await write(`creator_marketplace_orders?${scope}&state=eq.pending`, { method: "PATCH", body: { state: "processing", updated_at: now } });
+      const changed = await write(`creator_marketplace_orders?${scope}&state=eq.pending`, { method: "PATCH", body: { state: "processing", updated_at: now } });
+      if (!changed.ok) return res.status(503).json({ ok: false, code: "not_saved" });
     } else if (decision.action === "fail") {
-      await write(`creator_marketplace_orders?${scope}&state=in.(pending,processing)`, { method: "PATCH", body: { state: "payment_failed", closed_at: now, updated_at: now } });
+      const changed = await write(`creator_marketplace_orders?${scope}&state=in.(pending,processing)`, { method: "PATCH", body: { state: "payment_failed", closed_at: now, updated_at: now } });
+      if (!changed.ok) return res.status(503).json({ ok: false, code: "not_saved" });
     } else if (decision.action === "expire") {
-      await write(`creator_marketplace_orders?${scope}&state=eq.pending`, { method: "PATCH", body: { state: "expired", closed_at: now, updated_at: now } });
+      const changed = await write(`creator_marketplace_orders?${scope}&state=eq.pending`, { method: "PATCH", body: { state: "expired", closed_at: now, updated_at: now } });
+      if (!changed.ok) return res.status(503).json({ ok: false, code: "not_saved" });
     } else if (decision.action === "refund" || decision.action === "dispute") {
       const state = decision.action === "refund" ? "refunded" : "disputed";
       const from = decision.action === "refund" ? "state=eq.paid" : "state=in.(paid,refunded)";
       const changed = await write(`creator_marketplace_orders?${scope}&${from}`, { method: "PATCH", body: { state, closed_at: now, updated_at: now } });
       if (!changed.ok) return res.status(503).json({ ok: false, code: "not_saved" });
       // The licence ends with the money. Revoked, never deleted.
-      await write(`creator_licence_grants?order_id=eq.${enc(order.id)}&organization_id=eq.${enc(order.organization_id)}&revoked_at=is.null`, {
+      const revoked = await write(`creator_licence_grants?order_id=eq.${enc(order.id)}&organization_id=eq.${enc(order.organization_id)}&revoked_at=is.null`, {
         method: "PATCH",
         body: { revoked_at: now, revoked_reason: state }
       });
+      if (!revoked.ok) return res.status(503).json({ ok: false, code: "revocation_not_saved" });
     }
 
-    await recordEvent(order, event, outcome);
+    if (!(await recordEvent(order, event, outcome)).ok) return res.status(503).json({ ok: false, code: "audit_not_saved" });
     return res.status(200).json({ ok: true, outcome });
   };
 
   // The audit trail: insert-only, keyed on Stripe's event id. A replay is a
   // duplicate here and is ignored; the transitions above are what make it safe.
   async function recordEvent(order, event, outcome) {
-    await write("creator_marketplace_payment_events?on_conflict=stripe_event_id", {
+    return write("creator_marketplace_payment_events?on_conflict=stripe_event_id", {
       method: "POST",
       body: {
         stripe_event_id: event.id,

@@ -4,6 +4,53 @@ person should not have to rediscover. This is the hand-written half of
 
 ### 2026-10-06 - A storefront order is paid on the shop's own account, and checked against Stripe
 
+### 2026-10-06 - Commerce recovery and truthful route/data lineage
+
+Pulled main at `d926cadb161660fba1f642ddd5f2661256d61bcd` (PR #436).
+Connected-account webhooks now return 503 when a required order transition,
+exclusive listing closure, grant revocation or payment-event audit write fails.
+Full refunds and disputes replay the outstanding revocation after an order has
+already changed state. Downloads require a paid order independently of the
+grant, so a stale unrevoked grant cannot unlock a refunded or disputed purchase.
+Already-paid grant repair still requires Stripe's paid status. No refunds or
+payout changes are issued by this change.
+
+The capability inventory traces literal table queries through commerce's local
+REST wrapper, explicit CommonJS named exports and returned local factory methods.
+Purchase and receipt pages no longer claim to have no persistent data. Remaining
+route/data reviews: 300 (304 on pulled main); workspace-home destination fallbacks:
+96. These are static inventory review counts, not a count of proven broken
+customer screens. No destination gaps were relabelled as resolved.
+
+Falsification: restoring the three original runtime files made all 11 added
+recovery tests fail by name. Restoring the original inventory scanner and
+regenerating made six commerce lineage checks fail by name. Working files and
+generated inventories were restored with byte checksums verified. The negative
+lineage test keeps unrelated version files and approvals out of the purchases
+page's confirmed table set.
+
+Full suite: 6,171 passing, 6 existing browser-media checks pending. Focused
+commerce recovery: 137 passing. Inventory lineage: 7 passing. Frozen installation, moderate audit, typecheck, lint, build, route smoke,
+API, repository database/tenant contracts and client-secret scan passed. The broader
+release gates passed after generated inventory/handoff refresh. Native PostgreSQL
+migration replay was explicitly skipped because its binaries are absent. Chromium
+installation was attempted; the provider returned an invalid download archive, so
+the six browser-media checks remain pending. No check was weakened.
+
+Read-only production verification: both commerce migrations are recorded; all
+eight queried commerce tables exist with RLS enabled, and merchant payment
+columns are present. Connected seller accounts, published marketplace entries,
+marketplace orders, grants, merchant orders and merchant payment events are all
+zero. No seller, listing, transaction or production credential was fabricated.
+This is schema evidence, not a real purchase or native-device proof.
+
+Remaining convergence work includes inventory reservation/fulfillment,
+Marketplace provider reconciliation, social delivery/conversion proof,
+authenticated provider connections, worker execution, native devices and the
+other P1/P2 priorities. Local tests stub Stripe and Storage; they prove code
+behaviour, not settlement, deployment or real customer/device evidence.
+
+
 The Business Builder chain's payment -> receipt -> reconciliation steps. The
 storefront (`/store/:slug`) took orders and no money; "they will tell you how to
 pay" was the whole payment story. Now, when online payment is on and the shop's
