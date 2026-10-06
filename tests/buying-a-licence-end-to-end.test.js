@@ -196,6 +196,68 @@ describe("buying a licence, end to end", function endToEnd() {
     assert.ok(limiter > 0 && limiter < buying.length - 1, `buy handlers: ${buying.join(", ")}`);
   });
 
+  // CodeQL's js/missing-rate-limiting recognises a short list of npm packages and
+  // has no model for lib/sonara-rate-limit.cjs, so its alert on the webhook stays
+  // open (SECURITY_NOTES.md). These are what stand in for it: the real limiter on
+  // the real routes, with the database counter answering for itself.
+  describe("the rate limits refuse, not merely exist", () => {
+    function counter(answer) {
+      const consumed = [];
+      const inner = global.fetch;
+      global.fetch = async (input, init = {}) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url === `${ENV.SUPABASE_URL}/rest/v1/rpc/sonara_consume_rate_limit`) {
+          const body = JSON.parse(init.body);
+          consumed.push(body);
+          const row = answer(body);
+          return { ok: true, status: 200, json: async () => [row], text: async () => JSON.stringify([row]) };
+        }
+        return inner(input, init);
+      };
+      return consumed;
+    }
+    const REFUSE = () => ({ allowed: false, remaining: 0, retry_after_seconds: 42 });
+    const ALLOW = () => ({ allowed: true, remaining: 10, retry_after_seconds: 0 });
+
+    it("answers a refused webhook 429 before verifying, reading or granting anything", async () => {
+      const { fake } = world();
+      await buy(LISTING);
+      const [order] = fake.rows("creator_marketplace_orders");
+      fake.reset();
+      const consumed = counter(REFUSE);
+      const response = await deliver(paidEvent(order));
+      assert.equal(response.status, 429);
+      assert.equal(response.headers["retry-after"], "42");
+      assert.equal(consumed.length, 1);
+      assert.match(consumed[0].p_bucket_key, /^stripe_connect_webhook:ip:[0-9a-f]{32}$/);
+      assert.deepEqual([consumed[0].p_window_seconds, consumed[0].p_max_attempts], [60, 600]);
+      assert.deepEqual(fake.queries.filter((query) => !query.table.startsWith("rpc:")), [], "a refused webhook still read the database");
+      assert.deepEqual(fake.rows("creator_licence_grants"), []);
+      assert.equal(fake.rows("creator_marketplace_orders")[0].state, "pending");
+    });
+
+    it("answers a refused buy 429 and opens no checkout, counting the person as well as the address", async () => {
+      const { fake, stripe } = world();
+      const consumed = counter(REFUSE);
+      const response = await buy(LISTING);
+      assert.equal(response.status, 429);
+      assert.equal(response.headers["retry-after"], "42");
+      assert.match(consumed[0].p_bucket_key, /^marketplace_buy:ip:/);
+      assert.deepEqual([consumed[0].p_window_seconds, consumed[0].p_max_attempts], [600, 120]);
+      assert.deepEqual(fake.rows("creator_marketplace_orders"), []);
+      assert.deepEqual(stripe, [], "a refused buy still reached Stripe");
+    });
+
+    it("counts both buckets on an allowed buy, and goes on to Stripe", async () => {
+      const { fake } = world();
+      const consumed = counter(ALLOW);
+      const response = await buy(LISTING);
+      assert.equal(response.status, 303);
+      assert.deepEqual(consumed.map((call) => call.p_bucket_key.split(":").slice(0, 2).join(":")), ["marketplace_buy:ip", "marketplace_buy:subject"]);
+      assert.equal(fake.rows("creator_marketplace_orders").length, 1);
+    });
+  });
+
   it("sends the buyer to Stripe's checkout on the seller's account, at the listing's price", async () => {
     const { fake, stripe } = world();
     // What a buyer's form might try to decide. None of it may matter.
