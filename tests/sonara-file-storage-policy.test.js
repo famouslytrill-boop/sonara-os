@@ -91,6 +91,15 @@ describe("secure customer filing/storage policy",()=>{
     assert.equal(out.expiresInSeconds,300);
     assert.equal(out.signedUrlCreated,false);
   });
+  it("uses authenticated streaming instead of signed URLs for legal and sensitive media",()=>{
+    for(const classification of ["restricted_legal","restricted_sensitive_media"]){
+      const out=signedAccessPlan({classification,authorizationVerified:true,seconds:300});
+      assert.equal(out.access,"authenticated_stream");
+      assert.equal(out.expiresInSeconds,null);
+      assert.equal(out.authorizationRecheckedPerRequest,true);
+      assert.equal(out.legalHoldMustOverrideDeletion,true);
+    }
+  });
   it("refuses long-lived private signed URL suggestions",()=>{
     assert.ok(signedAccessPlan({classification:"tenant_confidential",authorizationVerified:true,seconds:86400})
       .blockers.includes("signed_url_ttl_out_of_range"));
