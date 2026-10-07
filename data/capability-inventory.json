@@ -11,10 +11,10 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 952,
+    "routeOperationCount": 954,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 574,
+      "GET": 576,
       "PATCH": 10,
       "POST": 365
     },
@@ -24,7 +24,7 @@
       "business_builder": 343,
       "business_builder_agent_ops": 7,
       "creator_studio": 136,
-      "cross_workspace_formulas": 5,
+      "cross_workspace_formulas": 7,
       "growth_studio": 133,
       "research_catalog": 12,
       "research_lab": 15,
@@ -34,25 +34,25 @@
       "sonara_shared_api": 118
     },
     "actionDestinationCounts": {
-      "exact": 363,
-      "form_reference": 352,
+      "exact": 365,
+      "form_reference": 354,
       "machine_ingress": 3,
       "parent_route": 79,
       "reviewed_no_page": 5,
       "route_pair": 132,
       "static_page_link": 1,
-      "workspace_fallback": 17
+      "workspace_fallback": 15
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
-      "explicit_no_persistent_table_expected": 154,
+      "explicit_no_persistent_table_expected": 155,
       "explicit_resource_registry": 262,
-      "handler_source_table_reference": 503,
+      "handler_source_table_reference": 504,
       "provider_endpoint_reference": 29
     },
-    "routesUsingWorkspaceHomeFallback": 17,
-    "formActionLinkCount": 129,
+    "routesUsingWorkspaceHomeFallback": 15,
+    "formActionLinkCount": 131,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "routesTruncatedByPersistenceTraceBudget": [],
@@ -82,7 +82,7 @@
     "databaseContractCoreTableCount": 148,
     "queriedTableCount": 320,
     "neverQueriedTableCount": 41,
-    "migrationCount": 158,
+    "migrationCount": 159,
     "databaseFunctionCount": 38,
     "databaseTriggerCount": 51,
     "routesCallingDatabaseFunctions": 665,
@@ -92,7 +92,6 @@
     "routeDestinationReviewByWorkspace": {
       "business_builder": 1,
       "creator_studio": 1,
-      "cross_workspace_formulas": 2,
       "growth_studio": 2,
       "sonara_shared_api": 11
     },
@@ -960,10 +959,12 @@
         "/formulas",
         "/api/formulas"
       ],
-      "routeCount": 5,
-      "registeredPageCount": 1,
+      "routeCount": 7,
+      "registeredPageCount": 3,
       "registeredPageRoutes": [
-        "/formulas"
+        "/formulas",
+        "/formulas/:formulaKey",
+        "/formulas/:formulaKey/results"
       ],
       "categories": [],
       "homeRoute": "/formulas"
@@ -35852,6 +35853,7 @@
         "mappingStatus": "explicit_no_persistent_table_expected",
         "directTables": [],
         "candidateTables": [
+          "sonara_formula_definitions",
           "sonara_formula_results"
         ],
         "tableLineage": [],
@@ -35862,13 +35864,13 @@
         "providerEndpoints": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
-        "moduleTableCandidateCount": 1,
+        "moduleTableCandidateCount": 2,
         "schemaMigrations": [],
         "persistenceMode": "static_formula_catalog"
       },
       "source": {
         "file": "routes/sonara-formula-routes.cjs",
-        "line": 64
+        "line": 68
       },
       "contractCompleteness": {
         "route": true,
@@ -35946,6 +35948,7 @@
         "mappingStatus": "explicit_no_persistent_table_expected",
         "directTables": [],
         "candidateTables": [
+          "sonara_formula_definitions",
           "sonara_formula_results"
         ],
         "tableLineage": [],
@@ -35956,13 +35959,13 @@
         "providerEndpoints": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
-        "moduleTableCandidateCount": 1,
+        "moduleTableCandidateCount": 2,
         "schemaMigrations": [],
         "persistenceMode": "static_formula_catalog"
       },
       "source": {
         "file": "routes/sonara-formula-routes.cjs",
-        "line": 60
+        "line": 64
       },
       "contractCompleteness": {
         "route": true,
@@ -165714,6 +165717,7 @@
         "mappingStatus": "explicit_no_persistent_table_expected",
         "directTables": [],
         "candidateTables": [
+          "sonara_formula_definitions",
           "sonara_formula_results"
         ],
         "tableLineage": [],
@@ -165724,13 +165728,13 @@
         "providerEndpoints": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
-        "moduleTableCandidateCount": 1,
+        "moduleTableCandidateCount": 2,
         "schemaMigrations": [],
         "persistenceMode": "navigation_or_static_output"
       },
       "source": {
         "file": "routes/sonara-formula-routes.cjs",
-        "line": 38
+        "line": 42
       },
       "contractCompleteness": {
         "route": true,
@@ -165739,6 +165743,234 @@
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /formulas/:formulaKey",
+      "method": "GET",
+      "route": "/formulas/:formulaKey",
+      "kind": "page_or_download",
+      "workspace": "cross_workspace_formulas",
+      "destination": {
+        "route": "/formulas/:formulaKey",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "formulaKey"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "formulaKey"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          404
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "explicit_no_persistent_table_expected",
+        "directTables": [],
+        "candidateTables": [
+          "sonara_formula_definitions",
+          "sonara_formula_results"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": "Page navigation or rendered content with no direct database contract in the route registry.",
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-formula-routes.cjs",
+        "moduleTableCandidateCount": 2,
+        "schemaMigrations": [],
+        "persistenceMode": "navigation_or_static_output"
+      },
+      "source": {
+        "file": "routes/sonara-formula-routes.cjs",
+        "line": 80
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "explicit_no_persistent_table_expected",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /formulas/:formulaKey/results",
+      "method": "GET",
+      "route": "/formulas/:formulaKey/results",
+      "kind": "page_or_download",
+      "workspace": "cross_workspace_formulas",
+      "destination": {
+        "route": "/formulas/:formulaKey/results",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "formulaKey"
+        ],
+        "body": [],
+        "query": [
+          "saved"
+        ],
+        "params": [
+          "formulaKey"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "send"
+        ],
+        "statusCodes": [
+          200,
+          404
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [],
+        "dynamicJsonResponseObserved": false,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "sonara_formula_results"
+        ],
+        "candidateTables": [
+          "sonara_formula_definitions",
+          "sonara_formula_results"
+        ],
+        "tableLineage": [
+          {
+            "table": "sonara_formula_results",
+            "tableId": "table:sonara_formula_results",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260621020200_sonara_formula_table_library.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260621020200_sonara_formula_table_library.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "sonara_formula_results_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "sonara_formula_results_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "sonara_formula_results_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "sonara_formula_results_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "sonara_formula_results_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "sonara_formula_results_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-formula-routes.cjs",
+        "moduleTableCandidateCount": 2,
+        "schemaMigrations": [
+          "supabase/migrations/20260621020200_sonara_formula_table_library.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-formula-routes.cjs",
+        "line": 88
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -288547,9 +288779,9 @@
       "kind": "api",
       "workspace": "cross_workspace_formulas",
       "destination": {
-        "route": "/formulas",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/formulas/:formulaKey",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -288595,6 +288827,9 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "formulaKey"
+        ],
         "conditionalInputFields": [
           {
             "formulaKey": "gross_revenue",
@@ -289294,11 +289529,13 @@
       },
       "response": {
         "kinds": [
-          "json"
+          "json",
+          "send"
         ],
         "statusCodes": [
           200,
-          400
+          400,
+          404
         ],
         "jsonFieldsObserved": [],
         "redirectTargetsObserved": [],
@@ -289310,6 +289547,7 @@
         "mappingStatus": "explicit_no_persistent_table_expected",
         "directTables": [],
         "candidateTables": [
+          "sonara_formula_definitions",
           "sonara_formula_results"
         ],
         "tableLineage": [],
@@ -290015,13 +290253,13 @@
           }
         ],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
-        "moduleTableCandidateCount": 1,
+        "moduleTableCandidateCount": 2,
         "schemaMigrations": [],
         "persistenceMode": "deterministic_compute_no_write"
       },
       "source": {
         "file": "routes/sonara-formula-routes.cjs",
-        "line": 73
+        "line": 106
       },
       "contractCompleteness": {
         "route": true,
@@ -290031,7 +290269,7 @@
         "outputEvidence": "handler-source",
         "persistence": "explicit_no_persistent_table_expected",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -290042,9 +290280,9 @@
       "kind": "api",
       "workspace": "cross_workspace_formulas",
       "destination": {
-        "route": "/formulas",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/formulas/:formulaKey",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -290104,11 +290342,16 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "formulaKey"
+        ],
         "openApiBody": "#/components/requestBodies/JsonBody"
       },
       "response": {
         "kinds": [
-          "json"
+          "json",
+          "redirect",
+          "send"
         ],
         "statusCodes": [
           200,
@@ -290117,7 +290360,9 @@
           503
         ],
         "jsonFieldsObserved": [],
-        "redirectTargetsObserved": [],
+        "redirectTargetsObserved": [
+          "/formulas/${definition.formulaKey}/results?saved=1"
+        ],
         "dynamicJsonResponseObserved": true,
         "fieldEvidence": "literal_response_objects_observed",
         "evidence": "handler-source"
@@ -290129,6 +290374,7 @@
           "sonara_formula_results"
         ],
         "candidateTables": [
+          "sonara_formula_definitions",
           "sonara_formula_results"
         ],
         "tableLineage": [
@@ -290217,7 +290463,7 @@
         "providerEndpoints": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-formula-routes.cjs",
-        "moduleTableCandidateCount": 1,
+        "moduleTableCandidateCount": 2,
         "schemaMigrations": [
           "supabase/migrations/011_sonara_saas_launch_system.sql",
           "supabase/migrations/20260619035605_functional_saas_operational_tables.sql",
@@ -290233,7 +290479,7 @@
       },
       "source": {
         "file": "routes/sonara-formula-routes.cjs",
-        "line": 78
+        "line": 119
       },
       "contractCompleteness": {
         "route": true,
@@ -290243,7 +290489,7 @@
         "outputEvidence": "handler-source",
         "persistence": "explicit_formula_result_registry",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -405461,6 +405707,26 @@
     },
     {
       "method": "POST",
+      "action": "/api/formulas/evaluate",
+      "pages": [
+        "/formulas/:formulaKey"
+      ],
+      "formFieldNamesObserved": [
+        "formulaKey"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/formulas/results",
+      "pages": [
+        "/formulas/:formulaKey"
+      ],
+      "formFieldNamesObserved": [
+        "formulaKey"
+      ]
+    },
+    {
+      "method": "POST",
       "action": "/api/growth/:parameter",
       "pages": [
         "/growth-studio/attribution",
@@ -407285,8 +407551,14 @@
     {
       "id": "module:routes/sonara-formula-routes.cjs",
       "source": "routes/sonara-formula-routes.cjs",
-      "tableCount": 1,
+      "tableCount": 2,
       "tables": [
+        {
+          "table": "sonara_formula_definitions",
+          "migrations": [
+            "supabase/migrations/20260621020200_sonara_formula_table_library.sql"
+          ]
+        },
         {
           "table": "sonara_formula_results",
           "migrations": [
@@ -461128,6 +461400,14 @@
       "drops": [],
       "rlsEnabled": [],
       "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261007110000_every_formula_can_be_saved.sql",
+      "creates": [],
+      "alters": [],
+      "drops": [],
+      "rlsEnabled": [],
+      "policies": []
     }
   ],
   "databaseFunctions": [
@@ -497614,26 +497894,6 @@
         "line": 128
       },
       "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/formulas/evaluate",
-      "workspace": "cross_workspace_formulas",
-      "source": {
-        "file": "routes/sonara-formula-routes.cjs",
-        "line": 73
-      },
-      "currentDestination": "/formulas",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/formulas/results",
-      "workspace": "cross_workspace_formulas",
-      "source": {
-        "file": "routes/sonara-formula-routes.cjs",
-        "line": 78
-      },
-      "currentDestination": "/formulas",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {

@@ -8,17 +8,17 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 952 |
-| GET / POST / PATCH / DELETE | 574 / 365 / 10 / 3 |
+| Registered HTTP route operations | 954 |
+| GET / POST / PATCH / DELETE | 576 / 365 / 10 / 3 |
 | Declared page routes / workspace groups | 303 / 12 |
 | API operations matched to OpenAPI | 336 |
-| Destinations using workspace-home fallback | 17 |
-| Form action destinations traced to registered pages | 129 |
+| Destinations using workspace-home fallback | 15 |
+| Form action destinations traced to registered pages | 131 |
 | Traced forms with no matching method/path route | 0 |
 | Route data contracts needing explicit review | 0 |
 | Active migration tables | 361 |
 | Runtime-queried / never-queried tables | 320 / 41 |
-| Migration files | 158 |
+| Migration files | 159 |
 | SQL functions / triggers / calling routes / missing function definition | 38 / 51 / 665 / 0 |
 | Resource route/table/schema contracts / record pages / child resources | 39 / 35 / 13 |
 | Owner record form overrides and row actions / missing route | 5 / 0 |
@@ -41,10 +41,10 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 952 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- The HTTP layer registers 954 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 336 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
 - 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
-- 17 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
+- 15 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
 
@@ -52,9 +52,9 @@ The remaining sections connect the existing resource registries, deterministic r
 | --- | ---: |
 | `explicit_agent_runner_registry` | 3 |
 | `explicit_formula_result_registry` | 1 |
-| `explicit_no_persistent_table_expected` | 154 |
+| `explicit_no_persistent_table_expected` | 155 |
 | `explicit_resource_registry` | 262 |
-| `handler_source_table_reference` | 503 |
+| `handler_source_table_reference` | 504 |
 | `provider_endpoint_reference` | 29 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
@@ -70,7 +70,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | Research Lab | `/research-lab`, `/api/research-lab` | 15 | 14 | `/research-lab/open-source` |
 | Technology and Repository Catalog | `/technology-radar`, `/api/ecosystem` | 12 | 0 | `/research-lab/open-source` |
 | Shared Infrastructure | `/infrastructure`, `/api/infrastructure` | 3 | 1 | `/infrastructure` |
-| Cross-workspace Formulas | `/formulas`, `/api/formulas` | 5 | 1 | `/formulas` |
+| Cross-workspace Formulas | `/formulas`, `/api/formulas` | 7 | 3 | `/formulas` |
 | Shared Account | `/account`, `/auth` | 28 | 9 | `/account` |
 | SONARA Shared API | `/api` | 118 | 0 | `/dashboard` |
 | SONARA Shared Pages | `/` | 152 | 127 | `/dashboard` |
@@ -94,8 +94,6 @@ These operations still resolve to workspace homes. Each needs a real destination
 | `GET /api/routes/public` | sonara_shared_api | `/dashboard` | `routes/sonara-route-registry-routes.cjs:81` |
 | `POST /api/creator/reference-analyses` | sonara_shared_api | `/dashboard` | `routes/creator-generation-routes.cjs:503` |
 | `POST /api/creator/workflows/plan` | sonara_shared_api | `/dashboard` | `routes/creator-music-system-readonly.cjs:128` |
-| `POST /api/formulas/evaluate` | cross_workspace_formulas | `/formulas` | `routes/sonara-formula-routes.cjs:73` |
-| `POST /api/formulas/results` | cross_workspace_formulas | `/formulas` | `routes/sonara-formula-routes.cjs:78` |
 | `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2211` |
 | `POST /api/motion/events` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2160` |
 

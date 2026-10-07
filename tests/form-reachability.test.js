@@ -88,8 +88,6 @@ const NO_FORM_NEEDED = {
   // lets a hand-entered sale say it is not established; this table has no
   // equivalent. An offline-touchpoint feature starts with that column.
 
-  "/api/formulas/results": "Written when a formula is evaluated, not composed by hand.",
-
   // Examined, all of them. They divide into two kinds, and the distinction
   // matters more than the individual entries.
   //

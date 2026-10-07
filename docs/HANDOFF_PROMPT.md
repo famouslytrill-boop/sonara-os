@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3093 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 158 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 159 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 462 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 463 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,67 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 36 most recent entries of 460 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 37 most recent entries of 461 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Every formula can be worked out, and saved
+
+`/formulas` listed fifty-nine formulas and nothing could be worked out from the
+page. The only way to evaluate one was to POST JSON to `/api/formulas/evaluate`,
+and `/api/formulas/results` had no caller at all. Both were on the list of
+routes that fell back to the workspace home page.
+
+The library is now usable:
+- `/formulas` links each formula to `/formulas/:formulaKey`.
+- That page draws one field per declared input. The fields come from the
+  definition, so the page cannot ask for something the evaluator ignores.
+- The answer is shown with the arithmetic that produced it.
+- "Save to my records" posts the inputs, not the answer, so the server works the
+  result out again. A saved figure is always one the evaluator produced.
+- `/formulas/:formulaKey/results` lists the business's saved results. It is
+  gated on the formula's workspace, and a failed read says so rather than
+  saying there are none.
+- The evaluate and results endpoints answer HTML forms and JSON callers.
+- Workspace fallbacks: 17 → 15.
+
+Building the save exposed the real defect. `sonara_formula_results.formula_key`
+references `sonara_formula_definitions`. Sixteen formulas the runtime evaluates
+had no row there, so the foreign key refused every save of them. The route
+reported that refusal as `setup_required`, telling the owner to finish a setup
+that was already finished. Migration `20261004130000` had fixed the same thing
+for twelve formulas and missed these sixteen, and nothing stopped it recurring.
+
+Fixes:
+- `20261007110000_every_formula_can_be_saved.sql` seeds the sixteen, generated
+  from the library rather than retyped.
+- A new test fails whenever a formula exists in the library without a seed row.
+  Its parser stops at `ON CONFLICT` or a line-ending semicolon, because a note
+  inside a seed row contains a semicolon. Without that it read 39 keys and
+  tripped its own "gone blind" floor.
+- A foreign-key refusal now answers `409 formula_not_in_database`. A missing
+  table is still `setup_required`, and anything else is `database_unavailable`.
+
+Two smaller defects fixed on the way:
+- A saved result stored the whole request body as `input_values`: the formula
+  key, any stray field, and anything a caller added. It now stores only the
+  formula's declared inputs.
+- An unparseable clock time in `shift_hours` reached the "divides by zero"
+  message. It is now an invalid input that names the field.
+
+Falsified four ways, each turning the suite red:
+- the seed migration removed;
+- the whole body stored again;
+- every failure collapsed back to `setup_required`;
+- the organization filter dropped from the saved-results read.
+
+**Owner step:** apply `20261007110000` to production. Until it is applied, saves
+of those sixteen answer `formula_not_in_database` rather than pretending setup is
+incomplete.
+
+
 
 ### 2026-10-07 - The Android app can be vouched for
 

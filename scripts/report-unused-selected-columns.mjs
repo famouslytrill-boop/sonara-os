@@ -195,6 +195,14 @@ const ACCOUNTED = Object.freeze({
       "Fetched to be used, in the file the rows travel to; the select names only the four columns that table shows."
     ].join(" ")
   },
+  "routes/sonara-formula-routes.cjs": {
+    columns: ["created_at"],
+    reason: [
+      "readSavedResults hands a formula's saved results to savedResultsCard in lib/sonara-formula-pages.cjs, which reads the timestamp",
+      "directly (line 141 on 7 October 2026: `row.created_at`) for the Saved column. The other three selected columns are named in",
+      "the route file only by the select itself too, but each is also named there elsewhere; created_at is the one used solely by the page module."
+    ].join(" ")
+  },
 });
 
 

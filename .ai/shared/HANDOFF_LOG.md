@@ -1,5 +1,18 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Formula calculators, and sixteen formulas that could not be saved (PR #444)
+
+- `/formulas/:formulaKey` (public calculator) and `/formulas/:formulaKey/results`
+  (workspace-gated). The page module is `lib/sonara-formula-pages.cjs`; a new
+  input that is not a single number needs its kind added there, or
+  `tests/every-formula-can-be-saved.test.js` fails.
+- Migration `20261007110000_every_formula_can_be_saved.sql` seeds sixteen
+  definitions. Owner step: apply to production. A formula added to
+  `lib/sonara-formula-library.cjs` now needs a seed row in a migration, or the
+  same test fails.
+- `evaluateFormula` returns, and `/api/formulas/results` stores, only declared
+  inputs. A foreign-key refusal is `409 formula_not_in_database`.
+
 ## 2026-10-07 - Claude - Offline check-ins, generation retry (PR #444)
 
 - `public/sonara-offline-queue.js` is a generic device queue (prepare, keep,
