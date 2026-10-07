@@ -323,6 +323,43 @@ function main() {
       fs.readFileSync(path.join(root, "tests/sql/included-generation.sql"), "utf8"),
       ["generation_reserves_settles_and_isolates"]);
 
+    behaves(psql, "merchant fulfillment snapshots, retries and rolls back atomically",
+      fs.readFileSync(path.join(root, "tests/sql/merchant-order-fulfillment.sql"), "utf8"),
+      ["merchant_fulfillment_snapshots_consumes_retries_and_rolls_back"]);
+
+    behaves(psql, "merchant fulfillment concurrency fixture",
+      fs.readFileSync(path.join(root, "tests/sql/merchant-fulfillment-concurrency.sql"), "utf8"),
+      ["merchant_fulfillment_concurrency_ready"]);
+    // Each race uses two independent PostgreSQL connections, not two calls on
+    // one client. First retry the same order; then compete for insufficient stock.
+    for (const [race, orders] of [["duplicate", [30, 30]], ["scarce", [31, 32]]]) {
+      const commands = orders.map((order, index) => {
+        const file = path.join(socketDir, `fulfillment-${race}-${index}.sql`);
+        fs.writeFileSync(file, `begin; set local role service_role;
+          do $$ begin
+            begin
+              perform public.transition_merchant_order('21000000-0000-4000-8000-000000000002',
+                '21000000-0000-4000-8000-0000000000${order}', '21000000-0000-4000-8000-000000000001', 'fulfilled', '', false);
+            exception when raise_exception then
+              if '${race}' <> 'scarce' or sqlerrm <> 'stock_insufficient' then raise; end if;
+            end;
+            perform pg_sleep(0.2);
+          end $$; commit;`);
+        if (owner) execFileSync("chown", [owner, file]);
+        return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
+      });
+      const raced = shell(`${commands[0]} & first=$!; ${commands[1]} & second=$!; wait "$first"; left=$?; wait "$second"; right=$?; test "$left" -eq 0 && test "$right" -eq 0`);
+      if (raced.status !== 0) stop(`Merchant fulfillment ${race} race failed: ${raced.stderr || raced.stdout}`);
+    }
+    behaves(psql, "concurrent merchant fulfillment consumes exactly once and cannot oversell", `
+      select 'fulfillment_concurrent_receipts_' || count(*) from public.merchant_order_fulfillments
+        where organization_id = '21000000-0000-4000-8000-000000000002';
+      select 'fulfillment_concurrent_stock_' || count(*) from public.inventory_items
+        where organization_id = '21000000-0000-4000-8000-000000000002' and quantity = 1;
+      select 'fulfillment_concurrent_pending_' || count(*) from public.merchant_orders
+        where organization_id = '21000000-0000-4000-8000-000000000002' and status = 'confirmed';
+      `, ["fulfillment_concurrent_receipts_2", "fulfillment_concurrent_stock_2", "fulfillment_concurrent_pending_1"]);
+
     // Two independent PostgreSQL sessions must not reserve the same pool.
     const concurrentOrg = "10000000-0000-4000-8000-000000000006";
     behaves(psql, "concurrent generation fixture", `
@@ -345,8 +382,10 @@ function main() {
       select 'generation_concurrent_holds_' || count(*) from public.generation_usage_reservations where organization_id = '${concurrentOrg}';
       delete from public.organizations where id = '${concurrentOrg}';`, ["generation_concurrent_holds_1"]);
 
-    // Stock moving with orders and jobs (20261006030000): holds, shortages,
-    // fulfilment, release, retries, job use and return, tenancy.
+    // Stock held by orders and moved by jobs (20261006040000), together with
+    // fulfilment's own consumption (20261006035501): holds, shortages, retries,
+    // a fulfilled order consuming its hold once, a cancelled one releasing it,
+    // job use and return, tenancy.
     behaves(psql, "stock holds, ships, releases and isolates tenants",
       fs.readFileSync(path.join(root, "tests/sql/inventory-stock.sql"), "utf8"),
       ["stock_holds_ships_releases_and_isolates"]);
@@ -369,7 +408,7 @@ function main() {
       select 'stock_race_ready';`, ["stock_race_ready"]);
     const stockCommands = ["4", "5"].map((digit) => {
       const file = path.join(socketDir, `stock-session-${digit}.sql`);
-      fs.writeFileSync(file, `begin; select public.inventory_order_stock('${stockOrg}', '20000000-0000-4000-8000-00000000009${digit}', 'reserve'); select pg_sleep(0.2); commit;`);
+      fs.writeFileSync(file, `begin; select public.inventory_order_hold('${stockOrg}', '20000000-0000-4000-8000-00000000009${digit}'); select pg_sleep(0.2); commit;`);
       if (owner) execFileSync("chown", [owner, file]);
       return `psql -h ${sh(socketDir)} -p ${port} -U postgres -d replay -v ON_ERROR_STOP=1 -q -f ${sh(file)}`;
     });

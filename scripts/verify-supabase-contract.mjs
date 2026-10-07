@@ -79,7 +79,7 @@ const growthEventMigrationNames = [
 // and this is a public front door with its own rule about what a zero price means.
 // Stock that moves with orders and jobs: the ledger and its two locked functions.
 const inventoryStockMigrationNames = [
-  "20261006030000_stock_moves_with_orders_and_jobs.sql"
+  "20261006040000_stock_holds_with_orders_and_jobs.sql"
 ];
 const merchantStoreMigrationNames = [
   "20261002120000_a_storefront_a_stranger_can_buy_from.sql",
@@ -346,9 +346,10 @@ const MERCHANT_STORE_TABLES = Object.freeze([
   "merchant_order_payment_events"
 ]);
 // The stock ledger. Its own group: rows are written only by
-// inventory_order_stock and inventory_material_stock under one lock per
-// organization, which is the guarantee that two buyers cannot both take the
-// last item -- proven by the two-session race in verify-migration-replay.mjs.
+// inventory_order_hold, inventory_material_stock and the trigger that settles a
+// hold when transition_merchant_order fulfils or cancels its order, all under the
+// item row locks fulfilment takes -- the guarantee that two buyers cannot both
+// take the last item, proven by the two-session race in verify-migration-replay.mjs.
 const INVENTORY_STOCK_TABLES = Object.freeze(["inventory_reservations"]);
 const GROWTH_EVENT_TABLES = Object.freeze([
   "growth_venues",

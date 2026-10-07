@@ -2,15 +2,17 @@
 
 // Stock that moves with orders and jobs: the application's side.
 //
-// The moves are two PostgreSQL functions (20261006030000), and their behaviour --
-// holds, shortages, fulfilment, release, retries, job use and return, tenancy,
-// and two buyers racing for the last item in two real sessions -- is proven by
-// scripts/verify-migration-replay.mjs against PostgreSQL. This file proves the
-// routes use them correctly: what is offered, what is refused before anything is
-// written, that an order is held before any checkout opens, that a refusal
-// cancels the order rather than leaving it placed with nothing held, that the
-// owner's status changes move stock first and change the status only if it moved,
-// and that a job's material moves the count and says so.
+// The moves are PostgreSQL functions -- inventory_order_hold and
+// inventory_material_stock (20261006040000), and transition_merchant_order
+// (20261006035501), whose status change settles the holds through a trigger --
+// and their behaviour, including two buyers racing for the last item in two real
+// sessions, is proven by scripts/verify-migration-replay.mjs against PostgreSQL.
+// This file proves the routes use them correctly: what is offered, what is refused
+// before anything is written, that an order is held before any checkout opens,
+// that a refusal cancels the order rather than leaving it placed with nothing
+// held, that the owner's status changes go through the status function alone and
+// never touch a hold or a count from the route, and that a job's material moves
+// the count and says so.
 //
 // The stock function's answers are scripted here and every call is recorded, so
 // these tests assert what the route ASKED for. Re-implementing the SQL in
@@ -95,8 +97,8 @@ describe("stock moves with orders and jobs", () => {
       const calls = [];
       const fetchImpl = async () => { calls.push(1); return { ok: true, json: async () => ({ ok: true, code: "reserved" }) }; };
       const config = { ok: true, url: SUPABASE };
-      for (const args of [{ organizationId: "x", orderId: SHOP, action: "reserve" }, { organizationId: ORG, orderId: "", action: "reserve" }, { organizationId: ORG, orderId: SHOP, action: "delete" }]) {
-        assert.equal((await stock.orderStock(config, () => ({}), args, fetchImpl)).ok, false);
+      for (const args of [{ organizationId: "x", orderId: SHOP }, { organizationId: ORG, orderId: "" }, { organizationId: ORG }]) {
+        assert.equal((await stock.holdOrderStock(config, () => ({}), args, fetchImpl)).ok, false);
       }
       assert.equal((await stock.materialStock(config, () => ({}), { organizationId: ORG, materialId: "nope" }, fetchImpl)).ok, false);
       assert.equal(calls.length, 0);
@@ -105,10 +107,10 @@ describe("stock moves with orders and jobs", () => {
     it("reads a reply that is not { ok, code } as a failure, not as nothing to move", async () => {
       const config = { ok: true, url: SUPABASE };
       for (const body of [null, [], {}, { ok: "true", code: "reserved" }, { ok: true }]) {
-        const result = await stock.orderStock(config, () => ({}), { organizationId: ORG, orderId: SHOP, action: "reserve" }, async () => ({ ok: true, json: async () => body }));
+        const result = await stock.holdOrderStock(config, () => ({}), { organizationId: ORG, orderId: SHOP }, async () => ({ ok: true, json: async () => body }));
         assert.equal(result.ok, false, JSON.stringify(body));
       }
-      const refused = await stock.orderStock(config, () => ({}), { organizationId: ORG, orderId: SHOP, action: "reserve" }, async () => ({ ok: false, status: 404, json: async () => ({}) }));
+      const refused = await stock.holdOrderStock(config, () => ({}), { organizationId: ORG, orderId: SHOP }, async () => ({ ok: false, status: 404, json: async () => ({}) }));
       assert.equal(refused.ok, false);
     });
   });
@@ -120,6 +122,7 @@ describe("stock moves with orders and jobs", () => {
 
     function world({ quantity = 5, held = [], stockAnswer, failStockRead = false } = {}) {
       const answers = [];
+      const transitions = [];
       const fake = createFakeSupabase({
         url: SUPABASE,
         ids: "uuid",
@@ -132,9 +135,13 @@ describe("stock moves with orders and jobs", () => {
           inventory_reservations: held.map((quantityHeld) => ({ organization_id: ORG, inventory_item_id: ITEM, quantity: quantityHeld, state: "held" }))
         },
         rpc: {
-          inventory_order_stock: (body) => {
+          inventory_order_hold: (body) => {
             answers.push(body);
             return typeof stockAnswer === "function" ? stockAnswer(body) : (stockAnswer || { ok: true, code: "reserved", held: 1, untracked: 0 });
+          },
+          transition_merchant_order: (body) => {
+            transitions.push(body);
+            return { ok: true, status: body.p_status, noop: false };
           }
         }
       });
@@ -158,7 +165,7 @@ describe("stock moves with orders and jobs", () => {
         createRateLimiter: () => (req, res, next) => next(),
         getEnv: () => ""
       });
-      return { app, fake, answers };
+      return { app, fake, answers, transitions };
     }
 
     const order = (app, quantity) => request(app).post("/store/corner-shop").type("form")
@@ -192,7 +199,7 @@ describe("stock moves with orders and jobs", () => {
       const response = await order(app, 2);
       assert.equal(response.status, 200, response.text);
       const [placed] = fake.rows("merchant_orders");
-      assert.deepEqual(answers, [{ p_organization_id: ORG, p_order_id: placed.id, p_action: "reserve" }]);
+      assert.deepEqual(answers, [{ p_organization_id: ORG, p_order_id: placed.id }]);
       assert.equal(placed.status, "placed");
     });
 
@@ -233,47 +240,24 @@ describe("stock moves with orders and jobs", () => {
       }).then((response) => response.json()).then((rows) => rows[0].id);
     };
 
-    it("takes stock off the shelf before marking an order fulfilled, and says what moved", async () => {
-      const { app, fake, answers } = world({ stockAnswer: { ok: true, code: "consumed", consumed: 1, unreserved: 0, untracked: 0 } });
-      const id = await seedOrder(fake, "confirmed");
-      const response = await setStatus(app, id, "fulfilled");
-      assert.match(response.headers.location, /done=status&stock=fulfil&moved=1/);
-      assert.deepEqual(answers.map((body) => body.p_action), ["fulfil"]);
-      assert.equal(fake.rows("merchant_orders")[0].status, "fulfilled");
-      const page = await request(app).get(response.headers.location);
-      assert.match(page.text, /Stock taken off the shelf for 1 line\./);
-    });
-
-    it("leaves the order where it was when the stock could not move", async () => {
-      const { app, fake } = world({ stockAnswer: { ok: false, code: "rejected" } });
-      const id = await seedOrder(fake, "confirmed");
-      const response = await setStatus(app, id, "fulfilled");
-      assert.match(response.headers.location, /problem=stock_not_moved/);
-      assert.equal(fake.rows("merchant_orders")[0].status, "confirmed", "the order said fulfilled while its stock had not moved");
-    });
-
-    it("gives held stock back when an order is cancelled, and holds it again when it is reinstated", async () => {
-      const { app, fake, answers } = world({ stockAnswer: (body) => (body.p_action === "release" ? { ok: true, code: "released", released: 1, untracked: 0 } : { ok: true, code: "reserved", held: 1, untracked: 0 }) });
-      const id = await seedOrder(fake, "placed");
-      await setStatus(app, id, "cancelled");
-      await setStatus(app, id, "placed");
-      assert.deepEqual(answers.map((body) => body.p_action), ["release", "reserve"]);
-      assert.equal(fake.rows("merchant_orders")[0].status, "placed");
-    });
-
-    it("will not reinstate a cancelled order the stock can no longer cover", async () => {
-      const { app, fake } = world({ stockAnswer: { ok: false, code: "insufficient_stock", shortages: [{ name: "Mug", available: 0 }] } });
-      const id = await seedOrder(fake, "cancelled");
-      const response = await setStatus(app, id, "confirmed");
-      assert.match(response.headers.location, /problem=stock_short/);
-      assert.equal(fake.rows("merchant_orders")[0].status, "cancelled");
-    });
-
-    it("moves no stock for a change that does not ship, cancel or reinstate", async () => {
-      const { app, fake, answers } = world();
-      const id = await seedOrder(fake, "placed");
-      await setStatus(app, id, "confirmed");
-      assert.deepEqual(answers, []);
+    it("changes an order's status only through the status function, and never touches a hold or a count", async () => {
+      // Fulfilment takes the stock off the shelf inside transition_merchant_order,
+      // and a trigger settles the hold in the same transaction. A route that also
+      // moved stock would take a shipped order off the shelf twice.
+      for (const status of ["confirmed", "fulfilled", "cancelled"]) {
+        const { app, fake, answers, transitions } = world();
+        const id = await seedOrder(fake, status === "fulfilled" ? "confirmed" : "placed");
+        const before = fake.queries.length;
+        const response = await setStatus(app, id, status);
+        assert.match(response.headers.location, /done=status/, status);
+        assert.deepEqual(transitions.map((body) => [body.p_order_id, body.p_status]), [[id, status]]);
+        assert.deepEqual(answers, [], `${status} asked the hold function for something`);
+        const writes = fake.queries.slice(before).filter((query) => query.method !== "GET");
+        assert.ok(writes.some((query) => query.table === "rpc:transition_merchant_order"), "this check is not seeing the route's writes");
+        for (const query of writes) {
+          assert.ok(!["inventory_items", "inventory_reservations"].includes(query.table), `${status} wrote ${query.table} from the route`);
+        }
+      }
     });
   });
 

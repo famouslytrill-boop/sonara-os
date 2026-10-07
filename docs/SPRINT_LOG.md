@@ -2,6 +2,40 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Stock holds reconciled with Codex's fulfilment (#438)
+
+Codex's #438 merged while #439 was open: each order line now freezes its stock
+link at insert, and `transition_merchant_order` is the order status machine --
+fulfilment requires payment, takes stock off the shelf once and writes a stock
+receipt. #439 also took stock off the shelf at fulfilment, so merged as it was a
+shipped order would have left the shelf **twice**. My lock for this work was on my
+branch only, which is why Codex could not see it; a lock has to be visible from
+main to do anything.
+
+Resolution, keeping Codex's function as the only thing that moves on-hand stock
+for an order:
+
+- `20261006030000` (never applied anywhere) is replaced by `20261006040000`.
+  `inventory_order_hold` only *holds*: it locks the order, then its items in id
+  order -- the order fulfilment locks them -- and holds the line's **frozen**
+  link, the one fulfilment consumes. Its `fulfil` and `release` actions are gone.
+- A trigger on `merchant_orders.status` settles holds in the same transaction:
+  fulfilled -> consumed, cancelled -> released. Held and on hand cannot drift
+  between two requests because there is no second request.
+- The owner's status route is Codex's, untouched; the route never writes a hold
+  or a count. Placement still holds stock before any checkout, so the last mug
+  cannot be paid for twice (Codex's design had "Checkout does not reserve stock",
+  which let the second payment be taken and then fail at fulfilment -- a refund,
+  which AGENTS.md reserves for the owner).
+- `inventory_material_stock` now locks the same item rows rather than an
+  advisory lock, so jobs, holds and fulfilment share one lock.
+
+Proven in the replay with Codex's own fulfilment tests alongside: a fulfilled
+order consumes its hold and on hand drops once (5 -> 2, not -1), a cancelled order
+releases, a cancelled order cannot be held again, a fulfilled one cannot be
+cancelled, and the two-session last-item race. Falsified: trigger removed -> "a
+cancelled order kept its hold"; item row lock removed -> the race test fails.
+
 ### 2026-10-06 - Every route has a data contract, and the inventory can no longer say otherwise
 
 The P0 "close the route/data-contract gaps". `data/capability-inventory.json` listed
@@ -70,6 +104,8 @@ runtime test; a blinded recorder failed the control; the formula naming rule put
 back failed `routesSayingNoTableWhileTracingOne`.
 
 ### 2026-10-06 - Stock moves with orders and jobs
+
+*Superseded in part on 7 October: fulfilment now moves stock only in Codex's `transition_merchant_order`, and this migration was replaced by `20261006040000`. See the entry above.*
 
 The P0 "inventory/order/fulfilment linkage", and the inventory step of both the
 storefront chain (order -> payment -> **fulfilment**) and the Business Builder job

@@ -1,5 +1,21 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Merged #438 into #439; one place moves an order's stock
+
+- Codex: your `transition_merchant_order` is kept exactly as merged and is the only
+  thing that takes an order's stock off the shelf. #439 had its own fulfil path; it
+  is removed, so nothing double-decrements.
+- What #439 adds on top: `inventory_order_hold` (20261006040000, replacing the
+  unapplied 030000) holds the line's frozen link when an order is placed, under the
+  same order-then-items row locks your function takes; a trigger on the order's
+  status settles the hold (fulfilled -> consumed, cancelled -> released) in your
+  transaction. The owner card no longer says "Checkout does not reserve stock".
+- **Updated shared rule:** on-hand stock moves only in `transition_merchant_order`
+  (order fulfilment) and `inventory_material_stock` (jobs). Holds only through
+  `inventory_order_hold`. Never a route PATCH of `inventory_items.quantity`.
+- Lesson for both of us: my lock lived only on my branch. Before starting a chain,
+  check open PRs as well as LOCKS.md on main.
+
 ## 2026-10-06 - Claude - Route data contracts: 300 -> 0
 
 - Took a lock on `scripts/generate-capability-inventory.cjs` (Codex edited it in

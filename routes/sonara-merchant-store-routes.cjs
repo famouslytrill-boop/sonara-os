@@ -37,11 +37,14 @@
 //     leaving a buyer to assume they have paid.
 //   * **Sends nothing.** Alerts are off or explicitly user-controlled by default.
 //     Placing an order writes rows; nobody is emailed.
-//   * **Moves stock only through the stock functions.** A version linked to a
-//     stock item has its stock held when an order is placed, taken off the shelf
-//     when the owner marks it fulfilled, and given back if the order is cancelled
-//     first (lib/sonara-inventory-stock.cjs, 20261006030000). Unlinked versions
-//     move nothing, and the owner's page says which.
+//   * **Moves stock in two places, and nowhere else.** A version linked to a
+//     stock item has that stock held when an order is placed
+//     (`inventory_order_hold`, 20261006040000), so two buyers cannot both be sold
+//     the last one. It comes off the shelf when the owner fulfils a confirmed
+//     order (`transition_merchant_order`, 20261006035501, which also writes the
+//     stock receipt). Fulfilling or cancelling settles the hold in the same
+//     transaction. The database snapshots each line's stock link when the line is
+//     inserted; unlinked versions move nothing.
 
 const storefront = require("../lib/sonara-merchant-storefront.cjs");
 const merchantPay = require("../lib/sonara-merchant-payments.cjs");
@@ -203,18 +206,9 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     published: "Your shop's address is saved.",
     status: "Saved where that order has got to."
   });
-  // What the stock did, rebuilt from the counts in the address -- never from a
-  // sentence carried in it.
-  const stockNotice = (query) => {
-    const action = String(query?.stock || "");
-    if (!stock.ORDER_ACTIONS.includes(action)) return "";
-    const count = (name) => (/^\d{1,4}$/.test(String(query?.[name] || "")) ? Number(query[name]) : 0);
-    const key = { fulfil: "consumed", release: "released", reserve: "held" }[action];
-    return stock.ownerStockSentence(action, { ok: true, [key]: count("moved"), untracked: count("untracked"), unreserved: count("unreserved") });
-  };
   const noticeFor = (query) => {
     const done = DONE_SENTENCES[String(query?.done || "")];
-    if (done) return [done, stockNotice(query)].filter(Boolean).join(" ");
+    if (done) return done;
     return storefront.problemSentence(String(query?.problem || "")) || null;
   };
   const back = (params) => `${OWNER_PAGE}?${new URLSearchParams(params).toString()}`;
@@ -242,8 +236,10 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     const catalogue = await readCatalogue(scope.config, scope.organizationId);
     const orders = await rest(scope.config,
       `${ORDER_TABLE}?select=id,buyer_name,buyer_email,status,payment_state,amount_paid_cents,refunded_cents,subtotal_cents,currency,note,created_at,cancellation_reason&${orgFilter}&order=created_at.desc&limit=${ORDER_CAP}`);
+    const fulfillments = await rest(scope.config,
+      `merchant_order_fulfillments?select=order_id,fulfilled_at,stock_changes&${orgFilter}&order=fulfilled_at.desc&limit=${ORDER_CAP}`);
 
-    if (!shops.ok || !catalogue.ok || !orders.ok) {
+    if (!shops.ok || !catalogue.ok || !orders.ok || !fulfillments.ok) {
       return res.status(200).type("html").send(layout({
         title: "Your shop",
         eyebrow: "Business Builder",
@@ -259,6 +255,15 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     const split = storefront.storefrontFor({ storefront: shop, products: catalogue.products, variants: catalogue.variants, stock: catalogue.stock });
 
     const sections = [];
+    const fulfillmentByOrder = new Map(fulfillments.rows.map((receipt) => [receipt.order_id, receipt]));
+    const fulfillmentEvidence = (order) => {
+      const receipt = fulfillmentByOrder.get(order.id);
+      if (!receipt) return order.status === "fulfilled" ? "<p>No stock-consumption receipt is recorded for this historical fulfillment.</p>" : "";
+      const changes = Array.isArray(receipt.stock_changes) ? receipt.stock_changes : [];
+      return `<p>Fulfillment recorded ${escapeHtml(new Date(receipt.fulfilled_at).toUTCString())}.</p>`
+        + (changes.length ? "<ul>" + changes.map((change) => `<li>${escapeHtml(change.name)}: ${escapeHtml(change.quantity)} ${escapeHtml(change.unit || "each")} consumed; ${escapeHtml(change.after)} remaining.</li>`).join("") + "</ul>"
+          : "<p>This order contained no tracked stock.</p>");
+    };
     const notice = noticeFor(req.query);
     if (notice) sections.push(brandCard("What just happened", escapeHtml(notice)));
 
@@ -306,6 +311,7 @@ function registerMerchantStoreRoutes(app, deps = {}) {
           + `${Number(order.refunded_cents) > 0 ? `, ${escapeHtml(storefront.money(Number(order.refunded_cents), order.currency))} refunded` : ""}.</p>`,
           order.note ? `<p>They said: ${escapeHtml(order.note)}</p>` : "",
           order.cancellation_reason ? `<p>Cancelled because: ${escapeHtml(order.cancellation_reason)}</p>` : "",
+          fulfillmentEvidence(order),
           orderStatusForm(order)
         ].join("")).join("")
       ));
@@ -323,8 +329,8 @@ function registerMerchantStoreRoutes(app, deps = {}) {
         : "Online payment is not switched on for shops on this platform yet, so no card details are typed here or stored. An order records what somebody wants, and you collect the money the way you already do."
     ));
     sections.push(brandCard(
-      "What this shop does not do",
-      "It does not email the buyer. Versions linked to a stock item hold that stock when ordered, use it up when you mark the order fulfilled, and give it back if you cancel first; unlinked versions do not touch your counts."
+      "Stock and fulfillment",
+      "Placing an order holds any linked stock, so the last one cannot be sold twice. Confirm the order, then mark it fulfilled when the goods are handed over: fulfillment takes the stock off the shelf and saves a stock receipt in one transaction, and cancelling first gives the held stock back. Online orders need verified full payment; for offline orders, collect payment separately. Fulfilled orders cannot be cancelled here, and refunds do not put goods back into stock. This shop does not email the buyer."
     ));
 
     sections.push(brandCard("Name your shop", shopForm(shop)));
@@ -417,47 +423,27 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     if (!storefront.ORDER_STATUSES.includes(status)) return res.redirect(303, back({ problem: "status_unknown" }));
 
     const owned = await rest(scope.config,
-      `${ORDER_TABLE}?select=id,status&id=eq.${enc(orderId)}&organization_id=eq.${enc(scope.organizationId)}&limit=1`);
+      `${ORDER_TABLE}?select=id&id=eq.${enc(orderId)}&organization_id=eq.${enc(scope.organizationId)}&limit=1`);
     if (!owned.ok || !owned.rows.length) return res.redirect(303, back({ problem: "order_missing" }));
 
-    // The stock moves first, and the status only if it did. Fulfilled takes it off
-    // the shelf; cancelled gives back what is still held; a cancelled order set
-    // back to placed or confirmed is held again, if the stock is there. A move that
-    // failed leaves the order where it was, so the two never disagree.
-    const from = owned.rows[0].status;
-    const action = status === "fulfilled" && from !== "fulfilled" ? "fulfil"
-      : status === "cancelled" && from !== "cancelled" ? "release"
-        : ["placed", "confirmed"].includes(status) && from === "cancelled" ? "reserve"
-          : null;
-    let moved = null;
-    if (action) {
-      moved = await stock.orderStock(scope.config, supabaseHeaders, { organizationId: scope.organizationId, orderId, action });
-      if (!moved.ok) return res.redirect(303, back({ problem: moved.code === "insufficient_stock" ? "stock_short" : "stock_not_moved" }));
-    }
-
-    const reason = String(req.body?.reason || "").trim().slice(0, storefront.NOTE_MAX);
-    const patch = { status, updated_at: new Date().toISOString() };
-    if (status === "cancelled") {
-      patch.cancelled_at = new Date().toISOString();
-      patch.cancellation_reason = reason || null;
-    }
-
-    // Scoped by organization as well as by id: the service-role key bypasses row
-    // level security and an id alone is not an authorization.
-    const patched = await write(
-      scope.config,
-      `${ORDER_TABLE}?id=eq.${enc(orderId)}&organization_id=eq.${enc(scope.organizationId)}`,
-      patch,
-      "PATCH"
-    );
-    if (!patched.ok) return res.redirect(303, back({ problem: "save_failed" }));
-    return res.redirect(303, back(moved ? {
-      done: "status",
-      stock: action,
-      moved: String(Number(moved.consumed ?? moved.released ?? moved.held) || 0),
-      untracked: String(Number(moved.untracked) || 0),
-      unreserved: String(Number(moved.unreserved) || 0)
-    } : { done: "status" }));
+    // The RPC locks the owned order and commits stock, its receipt and status
+    // together. No fallback PATCH: that would report fulfillment without stock.
+    const response = await fetch(`${scope.config.url}/rest/v1/rpc/transition_merchant_order`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_organization_id: scope.organizationId, p_order_id: orderId, p_actor_id: scope.userId,
+        p_status: status, p_reason: String(req.body?.reason || "").trim().slice(0, storefront.NOTE_MAX),
+        p_require_paid: onlinePayment()
+      })
+    }).catch(() => null);
+    const result = await response?.json().catch(() => null);
+    const saved = response?.ok && result?.ok === true && result.status === status
+      && typeof result.noop === "boolean";
+    const knownProblems = ["order_missing", "status_unknown", "status_transition_invalid", "payment_not_ready",
+      "order_lines_missing", "inventory_snapshot_missing", "inventory_unavailable", "stock_insufficient"];
+    const problem = knownProblems.includes(result?.message) ? result.message : "save_failed";
+    return res.redirect(303, back(saved ? { done: "status" } : { problem }));
   });
 
   // ---------------------------------------------------------------------------
@@ -710,10 +696,10 @@ function registerMerchantStoreRoutes(app, deps = {}) {
     }
 
     // Hold the stock, or refuse the order. The stock function is the one that says
-    // yes or no -- under one lock per business, so two buyers cannot both take the
-    // last one. A refusal, or a check that could not run, cancels the order rather
+    // yes or no -- under the order and item row locks fulfilment also takes, so two
+    // buyers cannot both take the last one. A refusal, or a check that could not run, cancels the order rather
     // than leaving a placed order nothing is held for, and no checkout is opened.
-    const held = await stock.orderStock(config, supabaseHeaders, { organizationId: loaded.shop.organization_id, orderId, action: "reserve" });
+    const held = await stock.holdOrderStock(config, supabaseHeaders, { organizationId: loaded.shop.organization_id, orderId });
     if (!held.ok) {
       const short = held.code === "insufficient_stock";
       await write(config, `${ORDER_TABLE}?id=eq.${enc(orderId)}&organization_id=eq.${enc(loaded.shop.organization_id)}`, {

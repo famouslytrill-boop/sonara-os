@@ -500,6 +500,15 @@ to any of them is a change to this section first:
 6. **Prices come from the server's rows.** A posted price is a buyer naming their
    own. Amounts are snapshotted onto the order when it is created.
 
+7. **Stock moves in two places.** On-hand stock for an order comes off the shelf
+   only in `transition_merchant_order` (20261006035501), at fulfilment, with its
+   stock receipt; a job's materials only in `inventory_material_stock`. A placed
+   order *holds* its lines' frozen stock links through `inventory_order_hold`
+   (20261006040000), and a trigger on the order's status settles the hold in the
+   same transaction. The hold and fulfilment lock the order and then its item
+   rows in id order; the job function locks the item row it moves.
+   No route writes `inventory_items.quantity` or a hold itself.
+
 **Platform billing is separate.** `lib/sonara-billing.cjs` and
 `/api/stripe/webhook` charge *SONARA's* customers on SONARA's own account, with
 their own secret. Do not route connected-account events there, or platform

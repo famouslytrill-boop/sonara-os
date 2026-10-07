@@ -76,13 +76,13 @@
     },
     "routesWithoutDestination": 0,
     "openApiApiOperationCount": 335,
-    "databaseTableCount": 359,
+    "databaseTableCount": 360,
     "databaseContractCoreTableCount": 148,
-    "queriedTableCount": 318,
+    "queriedTableCount": 319,
     "neverQueriedTableCount": 41,
-    "migrationCount": 155,
-    "databaseFunctionCount": 35,
-    "databaseTriggerCount": 49,
+    "migrationCount": 156,
+    "databaseFunctionCount": 38,
+    "databaseTriggerCount": 51,
     "routesCallingDatabaseFunctions": 645,
     "routesWithMissingDatabaseFunctionDefinition": 0,
     "routeDataContractsNeedingExplicitReview": 0,
@@ -103779,6 +103779,7 @@
           "business_memberships",
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_orders",
           "merchant_product_variants",
           "merchant_products",
@@ -103790,6 +103791,7 @@
         "candidateTables": [
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_order_lines",
           "merchant_orders",
           "merchant_product_variants",
@@ -103929,15 +103931,36 @@
             "tableId": "table:inventory_reservations",
             "migrationLineage": {
               "createdBy": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "rlsEvidence": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_order_fulfillments",
+            "tableId": "table:merchant_order_fulfillments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "merchant_order_fulfillments_service",
+                  "file": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+                }
+              ]
             }
           },
           {
@@ -104195,7 +104218,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 10,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -104222,13 +104245,14 @@
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
           "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
           "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
-          "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 226
+        "line": 220
       },
       "contractCompleteness": {
         "route": true,
@@ -205863,6 +205887,7 @@
         "candidateTables": [
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_order_lines",
           "merchant_orders",
           "merchant_product_variants",
@@ -205948,13 +205973,13 @@
             "tableId": "table:inventory_reservations",
             "migrationLineage": {
               "createdBy": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "rlsEvidence": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "policyEvidence": []
             }
@@ -206015,7 +206040,7 @@
         "providerEndpoints": [],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 10,
         "schemaMigrations": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
           "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
@@ -206033,13 +206058,13 @@
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-          "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 600
+        "line": 586
       },
       "contractCompleteness": {
         "route": true,
@@ -206132,7 +206157,8 @@
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -206184,7 +206210,8 @@
         "moduleTableCandidateCount": 5,
         "schemaMigrations": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -234731,6 +234758,10 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "business_memberships",
+          "inventory_items",
+          "inventory_reservations",
+          "merchant_order_fulfillments",
+          "merchant_order_lines",
           "merchant_orders",
           "organization_memberships",
           "organizations",
@@ -234739,6 +234770,7 @@
         "candidateTables": [
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_order_lines",
           "merchant_orders",
           "merchant_product_variants",
@@ -234800,6 +234832,131 @@
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
+            }
+          },
+          {
+            "table": "inventory_items",
+            "tableId": "table:inventory_items",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+                "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "inventory_items_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "inventory_reservations",
+            "tableId": "table:inventory_reservations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "merchant_order_fulfillments",
+            "tableId": "table:merchant_order_fulfillments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "merchant_order_fulfillments_service",
+                  "file": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "merchant_order_lines",
+            "tableId": "table:merchant_order_lines",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+              ],
+              "policyEvidence": []
             }
           },
           {
@@ -235001,40 +235158,129 @@
             ],
             "calls": [],
             "evidence": "comment_stripped_latest_sql_function_definition"
+          },
+          {
+            "id": "database-function:transition_merchant_order",
+            "name": "transition_merchant_order",
+            "source": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+            ],
+            "directReadTables": [
+              "inventory_items",
+              "merchant_order_fulfillments",
+              "merchant_order_lines",
+              "merchant_orders"
+            ],
+            "directWriteTables": [
+              "inventory_items",
+              "merchant_order_fulfillments",
+              "merchant_orders"
+            ],
+            "readTables": [
+              "inventory_items",
+              "merchant_order_fulfillments",
+              "merchant_order_lines",
+              "merchant_orders"
+            ],
+            "writeTables": [
+              "inventory_items",
+              "merchant_order_fulfillments",
+              "merchant_orders"
+            ],
+            "writeOperations": [
+              {
+                "operation": "UPDATE",
+                "table": "inventory_items"
+              },
+              {
+                "operation": "INSERT",
+                "table": "merchant_order_fulfillments"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "merchant_orders"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
           }
         ],
         "providerEndpoints": [
           "supabase_auth:token",
           "supabase_auth:user"
         ],
-        "triggeredEffects": [],
+        "triggeredEffects": [
+          {
+            "id": "database-trigger:inventory_items:inventory_items_set_updated_at",
+            "name": "inventory_items_set_updated_at",
+            "table": "inventory_items",
+            "events": [
+              "UPDATE"
+            ],
+            "timing": "BEFORE",
+            "functionName": "set_updated_at",
+            "functionDefinition": "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+            "readTables": [],
+            "writeTables": [],
+            "migration": "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
+            "evidence": "comment_stripped_create_trigger_statement"
+          },
+          {
+            "id": "database-trigger:merchant_orders:merchant_orders_settle_inventory_holds",
+            "name": "merchant_orders_settle_inventory_holds",
+            "table": "merchant_orders",
+            "events": [
+              "UPDATE"
+            ],
+            "timing": "AFTER",
+            "functionName": "settle_inventory_holds_on_order_status",
+            "functionDefinition": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
+            "readTables": [
+              "merchant_order_lines"
+            ],
+            "writeTables": [
+              "inventory_reservations"
+            ],
+            "migration": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
+            "evidence": "comment_stripped_create_trigger_statement"
+          }
+        ],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 10,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
+          "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
           "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
           "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260621020000_sonara_operational_strengthening_retry.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260723060000_business_builder_control_plane.sql",
           "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
           "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260901150000_owner_records_can_be_archived.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
           "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
-          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 410
+        "line": 416
       },
       "contractCompleteness": {
         "route": true,
@@ -252684,6 +252930,7 @@
         "candidateTables": [
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_order_lines",
           "merchant_orders",
           "merchant_product_variants",
@@ -252953,7 +253200,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 10,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -252977,7 +253224,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 370
+        "line": 376
       },
       "contractCompleteness": {
         "route": true,
@@ -253078,6 +253325,7 @@
         "candidateTables": [
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_order_lines",
           "merchant_orders",
           "merchant_product_variants",
@@ -253347,7 +253595,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 10,
         "schemaMigrations": [
           "supabase/migrations/010_sonara_platform_current_schema.sql",
           "supabase/migrations/011_sonara_saas_launch_system.sql",
@@ -253371,7 +253619,7 @@
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 385
+        "line": 391
       },
       "contractCompleteness": {
         "route": true,
@@ -253569,7 +253817,8 @@
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -253821,7 +254070,8 @@
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
           "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
-          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -392358,6 +392608,7 @@
         "candidateTables": [
           "inventory_items",
           "inventory_reservations",
+          "merchant_order_fulfillments",
           "merchant_order_lines",
           "merchant_orders",
           "merchant_product_variants",
@@ -392459,13 +392710,13 @@
             "tableId": "table:inventory_reservations",
             "migrationLineage": {
               "createdBy": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "rlsEvidence": [
-                "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+                "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
               ],
               "policyEvidence": []
             }
@@ -392478,7 +392729,8 @@
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -392578,7 +392830,7 @@
         ],
         "triggeredEffects": [],
         "sourceModule": "module:routes/sonara-merchant-store-routes.cjs",
-        "moduleTableCandidateCount": 9,
+        "moduleTableCandidateCount": 10,
         "schemaMigrations": [
           "supabase/migrations/013_sonara_business_employee_music_ops_schema.sql",
           "supabase/migrations/019_sonara_operational_strengthening_retry.sql",
@@ -392598,13 +392850,14 @@
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
           "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
-          "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 631
+        "line": 617
       },
       "contractCompleteness": {
         "route": true,
@@ -392718,7 +392971,8 @@
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
               ],
               "changedBy": [
-                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+                "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+                "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -392774,7 +393028,8 @@
         "schemaMigrations": [
           "supabase/migrations/20260826090000_business_payment_accounts.sql",
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
-          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -395435,7 +395690,7 @@
     {
       "id": "module:routes/sonara-merchant-store-routes.cjs",
       "source": "routes/sonara-merchant-store-routes.cjs",
-      "tableCount": 9,
+      "tableCount": 10,
       "tables": [
         {
           "table": "inventory_items",
@@ -395449,7 +395704,13 @@
         {
           "table": "inventory_reservations",
           "migrations": [
-            "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+            "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
+          ]
+        },
+        {
+          "table": "merchant_order_fulfillments",
+          "migrations": [
+            "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
           ]
         },
         {
@@ -421935,13 +422196,13 @@
       ],
       "migrationLineage": {
         "createdBy": [
-          "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "changedBy": [
-          "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "rlsEvidence": [
-          "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+          "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
         ],
         "policyEvidence": []
       },
@@ -425403,10 +425664,88 @@
       "orphanDisposition": null
     },
     {
+      "id": "table:merchant_order_fulfillments",
+      "schema": "public",
+      "name": "merchant_order_fulfillments",
+      "columnCount": 6,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "order_id",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "fulfilled_by",
+          "type": "uuid",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "fulfilled_at",
+          "type": "timestamp",
+          "required": false,
+          "generated": true,
+          "allowed": [],
+          "fallback": null
+        },
+        {
+          "name": "stock_changes",
+          "type": "json",
+          "required": true,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
+        }
+      ],
+      "migrationLineage": {
+        "createdBy": [
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+        ],
+        "changedBy": [
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+        ],
+        "rlsEvidence": [
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+        ],
+        "policyEvidence": [
+          {
+            "name": "merchant_order_fulfillments_service",
+            "file": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+          }
+        ]
+      },
+      "databaseContractCore": false,
+      "tenancy": "organization_scoped_registry",
+      "queryCoverage": "queried_by_runtime_source_audit",
+      "subsystem": null,
+      "orphanDisposition": null
+    },
+    {
       "id": "table:merchant_order_lines",
       "schema": "public",
       "name": "merchant_order_lines",
-      "columnCount": 11,
+      "columnCount": 12,
       "columns": [
         {
           "name": "id",
@@ -425495,6 +425834,14 @@
           "generated": false,
           "allowed": [],
           "fallback": "{}"
+        },
+        {
+          "name": "inventory_item_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -425502,7 +425849,8 @@
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
         ],
         "changedBy": [
-          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
+          "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
+          "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql"
@@ -448203,7 +448551,27 @@
       "policies": []
     },
     {
-      "file": "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql",
+      "file": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+      "creates": [
+        "merchant_order_fulfillments"
+      ],
+      "alters": [
+        "merchant_order_fulfillments",
+        "merchant_order_lines"
+      ],
+      "drops": [],
+      "rlsEnabled": [
+        "merchant_order_fulfillments"
+      ],
+      "policies": [
+        {
+          "name": "merchant_order_fulfillments_service",
+          "table": "merchant_order_fulfillments"
+        }
+      ]
+    },
+    {
+      "file": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
       "creates": [
         "inventory_reservations"
       ],
@@ -448541,9 +448909,9 @@
     {
       "id": "database-function:inventory_material_stock",
       "name": "inventory_material_stock",
-      "source": "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql",
+      "source": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
       "definitionMigrations": [
-        "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+        "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
       ],
       "directReadTables": [
         "business_work_order_materials",
@@ -448577,45 +448945,33 @@
       "evidence": "comment_stripped_latest_sql_function_definition"
     },
     {
-      "id": "database-function:inventory_order_stock",
-      "name": "inventory_order_stock",
-      "source": "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql",
+      "id": "database-function:inventory_order_hold",
+      "name": "inventory_order_hold",
+      "source": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
       "definitionMigrations": [
-        "supabase/migrations/20261006030000_stock_moves_with_orders_and_jobs.sql"
+        "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
       ],
       "directReadTables": [
         "inventory_items",
         "inventory_reservations",
         "merchant_order_lines",
-        "merchant_orders",
-        "merchant_product_variants"
+        "merchant_orders"
       ],
       "directWriteTables": [
-        "inventory_items",
         "inventory_reservations"
       ],
       "readTables": [
         "inventory_items",
         "inventory_reservations",
         "merchant_order_lines",
-        "merchant_orders",
-        "merchant_product_variants"
+        "merchant_orders"
       ],
       "writeTables": [
-        "inventory_items",
         "inventory_reservations"
       ],
       "writeOperations": [
         {
           "operation": "INSERT",
-          "table": "inventory_reservations"
-        },
-        {
-          "operation": "UPDATE",
-          "table": "inventory_items"
-        },
-        {
-          "operation": "UPDATE",
           "table": "inventory_reservations"
         }
       ],
@@ -448739,6 +449095,34 @@
       "evidence": "comment_stripped_latest_sql_function_definition"
     },
     {
+      "id": "database-function:settle_inventory_holds_on_order_status",
+      "name": "settle_inventory_holds_on_order_status",
+      "source": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
+      "definitionMigrations": [
+        "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql"
+      ],
+      "directReadTables": [
+        "merchant_order_lines"
+      ],
+      "directWriteTables": [
+        "inventory_reservations"
+      ],
+      "readTables": [
+        "merchant_order_lines"
+      ],
+      "writeTables": [
+        "inventory_reservations"
+      ],
+      "writeOperations": [
+        {
+          "operation": "UPDATE",
+          "table": "inventory_reservations"
+        }
+      ],
+      "calls": [],
+      "evidence": "comment_stripped_latest_sql_function_definition"
+    },
+    {
       "id": "database-function:settle_sonara_event_outbox",
       "name": "settle_sonara_event_outbox",
       "source": "supabase/migrations/20260917090000_durable_event_outbox_and_ai_evaluation_store.sql",
@@ -448765,6 +449149,29 @@
           "table": "event_delivery_attempts"
         }
       ],
+      "calls": [],
+      "evidence": "comment_stripped_latest_sql_function_definition"
+    },
+    {
+      "id": "database-function:snapshot_merchant_order_inventory",
+      "name": "snapshot_merchant_order_inventory",
+      "source": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+      "definitionMigrations": [
+        "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+      ],
+      "directReadTables": [
+        "inventory_items",
+        "merchant_orders",
+        "merchant_product_variants"
+      ],
+      "directWriteTables": [],
+      "readTables": [
+        "inventory_items",
+        "merchant_orders",
+        "merchant_product_variants"
+      ],
+      "writeTables": [],
+      "writeOperations": [],
       "calls": [],
       "evidence": "comment_stripped_latest_sql_function_definition"
     },
@@ -449154,6 +449561,52 @@
         {
           "operation": "INSERT",
           "table": "business_work_order_events"
+        }
+      ],
+      "calls": [],
+      "evidence": "comment_stripped_latest_sql_function_definition"
+    },
+    {
+      "id": "database-function:transition_merchant_order",
+      "name": "transition_merchant_order",
+      "source": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+      "definitionMigrations": [
+        "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql"
+      ],
+      "directReadTables": [
+        "inventory_items",
+        "merchant_order_fulfillments",
+        "merchant_order_lines",
+        "merchant_orders"
+      ],
+      "directWriteTables": [
+        "inventory_items",
+        "merchant_order_fulfillments",
+        "merchant_orders"
+      ],
+      "readTables": [
+        "inventory_items",
+        "merchant_order_fulfillments",
+        "merchant_order_lines",
+        "merchant_orders"
+      ],
+      "writeTables": [
+        "inventory_items",
+        "merchant_order_fulfillments",
+        "merchant_orders"
+      ],
+      "writeOperations": [
+        {
+          "operation": "UPDATE",
+          "table": "inventory_items"
+        },
+        {
+          "operation": "INSERT",
+          "table": "merchant_order_fulfillments"
+        },
+        {
+          "operation": "UPDATE",
+          "table": "merchant_orders"
         }
       ],
       "calls": [],
@@ -449658,6 +450111,44 @@
       "readTables": [],
       "writeTables": [],
       "migration": "supabase/migrations/011_sonara_saas_launch_system.sql",
+      "evidence": "comment_stripped_create_trigger_statement"
+    },
+    {
+      "id": "database-trigger:merchant_order_lines:merchant_order_lines_snapshot_stock",
+      "name": "merchant_order_lines_snapshot_stock",
+      "table": "merchant_order_lines",
+      "events": [
+        "INSERT"
+      ],
+      "timing": "BEFORE",
+      "functionName": "snapshot_merchant_order_inventory",
+      "functionDefinition": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+      "readTables": [
+        "inventory_items",
+        "merchant_orders",
+        "merchant_product_variants"
+      ],
+      "writeTables": [],
+      "migration": "supabase/migrations/20261006035501_merchant_order_fulfillment_consumes_linked_stock.sql",
+      "evidence": "comment_stripped_create_trigger_statement"
+    },
+    {
+      "id": "database-trigger:merchant_orders:merchant_orders_settle_inventory_holds",
+      "name": "merchant_orders_settle_inventory_holds",
+      "table": "merchant_orders",
+      "events": [
+        "UPDATE"
+      ],
+      "timing": "AFTER",
+      "functionName": "settle_inventory_holds_on_order_status",
+      "functionDefinition": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
+      "readTables": [
+        "merchant_order_lines"
+      ],
+      "writeTables": [
+        "inventory_reservations"
+      ],
+      "migration": "supabase/migrations/20261006040000_stock_holds_with_orders_and_jobs.sql",
       "evidence": "comment_stripped_create_trigger_statement"
     },
     {
@@ -484851,7 +485342,7 @@
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-merchant-store-routes.cjs",
-        "line": 385
+        "line": 391
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
