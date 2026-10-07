@@ -5,6 +5,7 @@ on:
     branches:
       - codex/durable-generation-lifecycle-20260916
       - codex/google-signin-no-legacy-rebase-20260919
+      - codex/convergence-execution-contract-20261007
       - codex/business-management-scope-20261007
       - codex/reservation-workflows-20261007
 
@@ -32,7 +33,14 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Regenerate management scope evidence
+      # This branch is edited through the GitHub connector. Generate the route
+      # inventory from the full checkout here; never hand-edit derived evidence.
+      - name: Regenerate convergence route evidence
+        if: github.ref_name == 'codex/convergence-execution-contract-20261007'
+        run: |
+          pnpm run capability-map:write
+          pnpm run report:capability-coverage
+      - name: Regenerate management scope route evidence
         if: github.ref_name == 'codex/business-management-scope-20261007' || github.ref_name == 'codex/reservation-workflows-20261007'
         run: |
           pnpm run capability-map:write
@@ -48,5 +56,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/HANDOFF_PROMPT.md data/capability-inventory.json docs/CAPABILITY_MAP.md docs/CAPABILITY_ROUTE_SCHEMA_COVERAGE.md
-          git commit -m "Regenerate repository handoff"
+          git commit -m "Regenerate route evidence and repository handoff"
           git push origin HEAD:${{ github.ref_name }}

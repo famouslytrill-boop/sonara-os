@@ -479,6 +479,29 @@ describe("buying a licence, end to end", function endToEnd() {
     });
   }
 
+  for (const changed of [
+    { organization_id: OTHER_BUYER },
+    { version_id: "99999999-9999-4999-8999-999999999999" },
+    { licence: "exclusive_transfer" }
+  ]) {
+    it("refuses private delivery when the grant snapshot differs in " + Object.keys(changed)[0], async () => {
+      const { fake, storage } = world();
+      await buy(LISTING);
+      const [order] = fake.rows("creator_marketplace_orders");
+      await deliver(paidEvent(order));
+      await fetch(ENV.SUPABASE_URL + "/rest/v1/creator_licence_grants?order_id=eq." + order.id + "&organization_id=eq." + SELLER, {
+        method: "PATCH", body: JSON.stringify(changed)
+      });
+      const before = storage.length;
+      const download = await asBuyer("/marketplace/orders/" + order.id + "/download");
+      assert.equal(download.status, 409);
+      assert.equal(storage.length, before, "a different grant authorized private storage");
+      const receipt = await asBuyer("/marketplace/orders/" + order.id);
+      assert.match(receipt.text, /licence does not match this purchase/);
+      assert.doesNotMatch(receipt.text, /Download your file/);
+    });
+  }
+
   it("shows another buyer nothing, and answers them as if the order did not exist", async () => {
     const { fake } = world();
     await buy(LISTING);

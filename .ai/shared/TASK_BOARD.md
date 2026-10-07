@@ -1,6 +1,6 @@
 # Shared Task Board
 
-Updated: 2026-10-06 UTC during connected-account commerce convergence.
+Updated: 2026-10-07 UTC during workflow convergence; current PR #441 validation is in progress.
 
 ## Current visual integration
 
@@ -13,19 +13,15 @@ Updated: 2026-10-06 UTC during connected-account commerce convergence.
 - [ ] Keep production deployment owner-controlled; no provider-side deployment
   was triggered by this design integration.
 
-## In progress
+## Convergence in progress — source snapshot 2026-10-07
 
-- Claude, PR #439: stock moves with orders and jobs (done), and route data
-  contracts 300 -> 0 with `routesWithoutDataContract` held at zero by the
-  generator. Next: the 93 workspace-home destination fallbacks.
-- Claude, PR #436: connected-account commerce -- marketplace sale chain (done,
-  awaiting owner migration + review), storefront payment and reconciliation (in
-  progress on the same branch). Locked in LOCKS.md; Codex please avoid those
-  files until it merges.
-- Owner: apply `20261005010000_a_sale_is_a_licence_delivered.sql` (and the
-  storefront payment migration once it lands), create a Stripe Connect webhook
-  endpoint for `/api/webhooks/stripe-connect`, set `STRIPE_CONNECT_WEBHOOK_SECRET`.
-
+- Main inspected: `a8890755d8bdfdcf8f899f7ab1b235f8461d8840` (merged #439). Source evidence records zero route/data-contract review gaps and 61 workspace-home destination fallbacks. The full route map remains the authoritative generated index.
+- Codex, PR #441: Creator seller reconciliation, verified financial-reader roles, private licence snapshot guards and customer receipt clarification are implemented. 82 focused tests and the full 6,341-test suite passed at `deea8f80971878cf9cf620b5723cfada0608ba8d`. The inventory is regenerated and lists every remaining destination endpoint/source. Current release gates and desktop/mobile Chromium evidence are tracked on the PR. Real provider/customer transaction proof remains open.
+- #436/#437/#439 commerce payments, webhook recovery and stock linkage are merged. Their production acceptance still requires current migrations, configured connected accounts, signed events, fulfilment and receipts; source tests are not a live transaction.
+- #440 LinkedIn organization execution remains active and separate from the commerce work. #442 leasing/licensing legal review remains separate from runtime code.
+- Next P0 convergence work: resolve the remaining 61 destination fallbacks against actual workflows; prove Creator purchase → settlement → exact licence → private delivery → receipt → refund/dispute; prove merchant paid order → held stock → fulfilment → receipt → reconciliation.
+- P1/P2 items remain open unless their own provider, device or customer evidence proves completion. Connector catalogues, media planners, vertical packs and app shells alone do not close those priorities.
+- Owner/provider dependencies: verify the current commerce migrations and connected payment setup, then run approved real transactions. Never put secret values in chat or source.
 
 - Review, merge, and run the controlled production deployment for deterministic
   operations, Free Launch Stack, provider governance, and procurement approval.
@@ -56,7 +52,9 @@ Updated: 2026-10-06 UTC during connected-account commerce convergence.
 - Obtain qualified legal review.
 - Complete PWA/browser and physical-device verification.
 
-## Done
+## Historical completed work
+
+The following entries preserve earlier checkpoints; their counts and branch status are historical.
 
 - Reconciled the latest main baseline with deterministic reservations, employee
   access, analytics, privacy-aware mapping, automation planning, and Creator
@@ -92,36 +90,25 @@ Updated: 2026-10-06 UTC during connected-account commerce convergence.
 - Added scheduled and post-main production connectivity verification with exact-SHA deployment waiting.
 - Released organization setup compatibility, payload-size handling, production database groundwork, and paid-launch fail-closed controls.
 
-## Current deployment evidence
+## Earlier deployment evidence — current deployment not reverified in this update
 
 - Current audited source `main`: `fa9402a8671bae7934925c5c64f147a221bf4e16`.
 - Latest READY Vercel production commit found: `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`.
 - Production remains behind source until an exact-SHA controlled deployment proves otherwise.
 
-## Convergence scope prerequisite — 2026-10-07
+## Booking workflow convergence — PR #445 — 2026-10-07
 
-- [x] Inspect merged Claude #439 and keep active #440/#442 work separate.
-- [x] Implement request-local scope binding from the management membership already verified by the server. Primary staff membership in another organization cannot select its records during that management request.
-- [x] Pass 13 focused cases for actual resolver behavior, same-user workspace concurrency, actor mismatch and cleanup after errors.
-- [ ] Pass the 10 real-server regressions and all release checks on the published scope branch.
-- [ ] Add usable booking/resource/waitlist destination screens after their record scope is verified. The current 61 destination fallbacks remain open.
-- [ ] Prove actual provider/customer commerce and physical-device execution; the scope fix and #441 source checks do not establish that evidence.
-
-## Booking workflow convergence — 2026-10-07
-
-- Creator PR #441 is ready: 6,341 tests and 34 Chromium cases passed at
-  `cc629ed12097fea6b77d4ae8166b5d5bb9c0223c`.
-- Management scope PR #443 is ready: 6,320 tests passed at
-  `3ba58318eb91969ed8cb0e4c007d871048b15fa7`.
-- This branch adds resource and waitlist screens linked from bookings, native
-  form saves, workspace-preserving redirects and a conditional offer update
-  that cannot revive or overwrite a changed booking. A recorded offer is not
-  a customer notification or confirmed booking.
-- Local checks: 24 focused controller/JSON equality tests pass. Six actual
-  server workflow cases and four desktop/mobile browser cases await full CI.
-- The intended destination closure is five existing endpoints. Regenerate and
-  inspect the measured inventory before claiming any fallback reduction.
-- Based on PR #443; merge that prerequisite first. PR #444 independently owns
-  market-intelligence/prompt destinations and the destination evidence register.
-  Do not replace its generator or fake Supabase nested logical-filter work.
+- Creator PR #441 merged on main at `538fa5cd84e7725f8e99fa39ce105ec143f8a9f0`.
+  This workflow branch includes that update and the latest scope PR #443 head
+  `0dea677c377eab0b161cdaa16ba90e112ef21d39`.
+- Adds resource and waitlist screens linked from bookings, native form saves,
+  workspace-preserving redirects, and conditional offer writes that cannot
+  revive or overwrite changed bookings. A recorded offer is not a message,
+  time reservation or confirmed booking.
+- Local verification: 24 focused tests pass. Six actual server cases and four
+  desktop/mobile browser cases are included; full exact-head CI is pending.
+- The intended destination closure is five endpoints. Check generated evidence
+  before claiming a measured fallback reduction.
+- Merge #443 first. #444 independently owns market/prompt screens, destination
+  review evidence, and nested fake Supabase logical filters. Preserve those edits.
 - No production deployment, migration, customer message or live transaction.

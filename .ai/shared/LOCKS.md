@@ -2,18 +2,12 @@
 
 Active:
 - HELD: reservation-resource and waitlist destination workflow -- Codex,
-  branch `codex/reservation-workflows-20261007`, taken 2026-10-07. Covers
-  the operations expansion controller, reservation page renderer, bookings
-  navigation, route declarations and their workflow tests. Builds on PR #443's
-  verified management organization scope. No payment, inventory, schema,
-  market-intelligence or prompt-library changes. The fake Supabase change
-  models jsonb equality only; preserve Claude #444's nested logical filters.
-  Release when this workflow PR merges or closes.
-- HELD: Business Builder management organization scope -- Codex, branch
-  `codex/business-management-scope-20261007`, taken 2026-10-07. Covers
-  `requireBusinessManager` in `server.js`, the primary organization resolver,
-  the new request scope module and their regression tests. No membership,
-  credential, schema or role changes. Release when the scope PR merges or closes.
+  PR #445, branch `codex/reservation-workflows-20261007`, taken 2026-10-07.
+  Covers the operations expansion controller, reservation renderer, bookings
+  navigation and workflow tests. Builds on PR #443's verified management scope.
+  No payments, inventory, schema, market-intelligence or prompt-library edits.
+  The fake Supabase addition models jsonb equality; preserve Claude #444's
+  nested logical-filter work. Release when PR #445 merges or closes.
 - HELD: Creator marketplace reconciliation and delivery snapshot checks -- Codex,
   PR #441, branch `codex/convergence-execution-contract-20261007`, taken 2026-10-07.
   Covers the new seller report, buyer receipt/download guards and connected

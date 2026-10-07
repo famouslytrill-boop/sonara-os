@@ -420,7 +420,7 @@ function registerMarketplaceCheckoutRoutes(app, deps = {}) {
     if (!found.ok) return { ok: false };
     const order = found.rows[0] || null;
     if (!order) return { ok: true, order: null, grant: null };
-    const grants = await read(`creator_licence_grants?select=order_id,buyer_user_id,version_id,licence,granted_at,revoked_at,revoked_reason&order_id=eq.${enc(order.id)}&buyer_user_id=eq.${enc(buyer)}&limit=1`);
+    const grants = await read(`creator_licence_grants?select=order_id,organization_id,buyer_user_id,version_id,licence,revoked_at,revoked_reason&order_id=eq.${enc(order.id)}&buyer_user_id=eq.${enc(buyer)}&limit=1`);
     if (!grants.ok) return { ok: false };
     return { ok: true, order, grant: grants.rows[0] || null };
   }
@@ -433,8 +433,8 @@ function registerMarketplaceCheckoutRoutes(app, deps = {}) {
     const allowed = orders.downloadDecision({ order, grant, userId: req.sonaraUser.id });
     const sections = [
       brandCard("What you bought", `${escapeHtml(order.title)} -- ${escapeHtml(money(order.price_cents, order.currency))}, ${escapeHtml(String(order.licence).replace(/_/g, " "))}.`),
-      brandCard("Payment", escapeHtml(orders.orderSentence(order))
-        + (grant?.granted_at ? ` Licence granted ${escapeHtml(new Date(grant.granted_at).toUTCString())}.` : ""))
+      brandCard("Payment", escapeHtml(orders.orderSentence(order))),
+      brandCard("Licence", escapeHtml(allowed.ok ? "Your licence matches this purchase and its download is available." : allowed.sentence))
     ];
     if (allowed.ok) {
       sections.push(brandCard("Download", `<form method="get" action="/marketplace/orders/${escapeHtml(order.id)}/download"><button type="submit">Download your file</button></form>`
