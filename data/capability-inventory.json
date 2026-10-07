@@ -11,19 +11,19 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 936,
+    "routeOperationCount": 937,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 565,
+      "GET": 566,
       "PATCH": 10,
       "POST": 358
     },
     "workspaceCount": 12,
-    "declaredPageCount": 300,
+    "declaredPageCount": 301,
     "workspaceRouteCounts": {
       "business_builder": 339,
       "business_builder_agent_ops": 7,
-      "creator_studio": 133,
+      "creator_studio": 134,
       "cross_workspace_formulas": 5,
       "growth_studio": 129,
       "research_catalog": 12,
@@ -34,7 +34,7 @@
       "sonara_shared_api": 117
     },
     "actionDestinationCounts": {
-      "exact": 354,
+      "exact": 355,
       "form_reference": 333,
       "machine_ingress": 3,
       "parent_route": 73,
@@ -47,7 +47,7 @@
       "explicit_no_persistent_table_expected": 153,
       "explicit_resource_registry": 262,
       "handler_source_table_reference": 489,
-      "provider_endpoint_reference": 28
+      "provider_endpoint_reference": 29
     },
     "routesUsingWorkspaceHomeFallback": 61,
     "formActionLinkCount": 112,
@@ -465,8 +465,8 @@
         "/api/creator-studio",
         "/api/creator"
       ],
-      "routeCount": 133,
-      "registeredPageCount": 68,
+      "routeCount": 134,
+      "registeredPageCount": 69,
       "registeredPageRoutes": [
         "/creator-studio/album-cycles",
         "/creator-studio/album-cycles/:recordId/edit",
@@ -510,6 +510,7 @@
         "/creator-studio/offers/free",
         "/creator-studio/owner/approval-graph",
         "/creator-studio/owner/marketplace",
+        "/creator-studio/owner/marketplace/reconciliation",
         "/creator-studio/product-lifecycle",
         "/creator-studio/projects",
         "/creator-studio/projects/:id",
@@ -638,7 +639,8 @@
             "/creator-studio/monetization",
             "/creator-studio/offers",
             "/creator-studio/offers/free",
-            "/creator-studio/owner/marketplace"
+            "/creator-studio/owner/marketplace",
+            "/creator-studio/owner/marketplace/reconciliation"
           ]
         },
         {
@@ -143982,7 +143984,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 348
+        "line": 350
       },
       "contractCompleteness": {
         "route": true,
@@ -143991,6 +143993,98 @@
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /creator-studio/owner/marketplace/reconciliation",
+      "method": "GET",
+      "route": "/creator-studio/owner/marketplace/reconciliation",
+      "kind": "page_or_download",
+      "workspace": "creator_studio",
+      "destination": {
+        "route": "/creator-studio/owner/marketplace/reconciliation",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": {
+        "title": "Reconciliation",
+        "productOwner": "creator_studio",
+        "visibility": "product",
+        "requiredRole": "customer",
+        "requiredPlan": "free",
+        "requiredProvider": "supabase",
+        "readiness": "needs_login",
+        "navigationPlacement": "workspace"
+      },
+      "openApi": null,
+      "request": {
+        "pathParams": [],
+        "body": [],
+        "query": [
+          "days"
+        ],
+        "params": [],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "provider_endpoint_reference",
+        "directTables": [],
+        "candidateTables": [
+          "business_payment_accounts",
+          "creator_licence_grants",
+          "creator_marketplace_orders",
+          "payments"
+        ],
+        "tableLineage": [],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [],
+        "providerEndpoints": [
+          "stripe:checkout"
+        ],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-marketplace-reconciliation-routes.cjs",
+        "moduleTableCandidateCount": 4,
+        "schemaMigrations": [],
+        "persistenceMode": "provider_endpoint_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-marketplace-reconciliation-routes.cjs",
+        "line": 55
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "provider_endpoint_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -193360,7 +193454,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 652
+        "line": 655
       },
       "contractCompleteness": {
         "route": true,
@@ -193468,7 +193562,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 697
+        "line": 700
       },
       "contractCompleteness": {
         "route": true,
@@ -368916,7 +369010,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 472
+        "line": 475
       },
       "contractCompleteness": {
         "route": true,
@@ -369340,7 +369434,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 501
+        "line": 504
       },
       "contractCompleteness": {
         "route": true,
@@ -369792,7 +369886,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 577
+        "line": 580
       },
       "contractCompleteness": {
         "route": true,
@@ -370172,7 +370266,7 @@
       },
       "source": {
         "file": "routes/sonara-creator-marketplace-routes.cjs",
-        "line": 624
+        "line": 627
       },
       "contractCompleteness": {
         "route": true,
@@ -399613,6 +399707,37 @@
           "migrations": [
             "supabase/migrations/011_sonara_saas_launch_system.sql",
             "supabase/migrations/20260619035605_functional_saas_operational_tables.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module:routes/sonara-marketplace-reconciliation-routes.cjs",
+      "source": "routes/sonara-marketplace-reconciliation-routes.cjs",
+      "tableCount": 4,
+      "tables": [
+        {
+          "table": "business_payment_accounts",
+          "migrations": [
+            "supabase/migrations/20260826090000_business_payment_accounts.sql"
+          ]
+        },
+        {
+          "table": "creator_licence_grants",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "creator_marketplace_orders",
+          "migrations": [
+            "supabase/migrations/20261005010000_a_sale_is_a_licence_delivered.sql"
+          ]
+        },
+        {
+          "table": "payments",
+          "migrations": [
+            "supabase/migrations/010_sonara_platform_current_schema.sql"
           ]
         }
       ]

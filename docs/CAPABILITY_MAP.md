@@ -8,9 +8,9 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 936 |
-| GET / POST / PATCH / DELETE | 565 / 358 / 10 / 3 |
-| Declared page routes / workspace groups | 300 / 12 |
+| Registered HTTP route operations | 937 |
+| GET / POST / PATCH / DELETE | 566 / 358 / 10 / 3 |
+| Declared page routes / workspace groups | 301 / 12 |
 | API operations matched to OpenAPI | 335 |
 | Destinations using workspace-home fallback | 61 |
 | Form action destinations traced to registered pages | 112 |
@@ -41,7 +41,7 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 936 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- The HTTP layer registers 937 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 335 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
 - 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
 - 61 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
@@ -55,7 +55,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_no_persistent_table_expected` | 153 |
 | `explicit_resource_registry` | 262 |
 | `handler_source_table_reference` | 489 |
-| `provider_endpoint_reference` | 28 |
+| `provider_endpoint_reference` | 29 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations
@@ -64,7 +64,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | --- | --- | ---: | ---: | --- |
 | Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 339 | 96 | `/business-builder/dashboard` |
 | Business Builder Agent Operations | `/owner/agent-activity`, `/owner/agent-schedule`, `/api/agents` | 7 | 1 | `/owner/agent-activity` |
-| Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 133 | 68 | `/creator-studio/dashboard` |
+| Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 134 | 69 | `/creator-studio/dashboard` |
 | Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 129 | 58 | `/growth-studio/dashboard` |
 | Administration | `/admin`, `/api/admin` | 0 | 0 | `/admin` |
 | Research Lab | `/research-lab`, `/api/research-lab` | 15 | 14 | `/research-lab/open-source` |
@@ -74,6 +74,74 @@ The remaining sections connect the existing resource registries, deterministic r
 | Shared Account | `/account`, `/auth` | 28 | 9 | `/account` |
 | SONARA Shared API | `/api` | 117 | 0 | `/dashboard` |
 | SONARA Shared Pages | `/` | 148 | 125 | `/dashboard` |
+
+### Destination workflows still open
+
+These operations still resolve to workspace homes. Each needs a real destination workflow; an entry in this list is not provider execution or customer proof.
+
+| Operation | Workspace | Current fallback | Source |
+| --- | --- | --- | --- |
+| `GET /api/billing/status` | sonara_shared_api | `/dashboard` | `server.js:1340` |
+| `GET /api/business-builder/control-plane` | business_builder | `/business-builder/dashboard` | `routes/sonara-business-control-plane-routes.cjs:425` |
+| `GET /api/business/map/snapshot` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:202` |
+| `GET /api/business/operations/analytics` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:65` |
+| `GET /api/business/reservation-resources` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:101` |
+| `GET /api/business/waitlist` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:138` |
+| `GET /api/checkout/session` | sonara_shared_api | `/dashboard` | `server.js:1303` |
+| `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1522` |
+| `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1546` |
+| `GET /api/growth/consents` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:804` |
+| `GET /api/growth/metrics` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:1103` |
+| `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:89` |
+| `GET /api/health` | sonara_shared_api | `/dashboard` | `server.js:1570` |
+| `GET /api/infrastructure/manifest` | shared_infrastructure | `/infrastructure` | `routes/sonara-infrastructure-routes.cjs:10` |
+| `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:1952` |
+| `GET /api/invention-systems/catalog` | sonara_shared_api | `/dashboard` | `routes/invention-systems-routes.cjs:17` |
+| `GET /api/last9/readiness` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2159` |
+| `GET /api/market-intelligence/competitors` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:100` |
+| `GET /api/market-intelligence/framework` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:36` |
+| `GET /api/market-intelligence/opportunities` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:249` |
+| `GET /api/market-intelligence/opportunities/:opportunityId` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:292` |
+| `GET /api/market-intelligence/portfolio` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:40` |
+| `GET /api/market-intelligence/segments` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:71` |
+| `GET /api/market-intelligence/signals` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:209` |
+| `GET /api/product-lifecycle/framework` | sonara_shared_api | `/dashboard` | `routes/product-lifecycle-routes.cjs:95` |
+| `GET /api/product-lifecycle/initiatives/:initiativeId/summary` | sonara_shared_api | `/dashboard` | `routes/product-lifecycle-routes.cjs:133` |
+| `GET /api/prompt-library/collections` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:263` |
+| `GET /api/prompt-library/discovery` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:96` |
+| `GET /api/prompt-library/templates` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:127` |
+| `GET /api/routes/public` | sonara_shared_api | `/dashboard` | `routes/sonara-route-registry-routes.cjs:81` |
+| `GET /api/sensory/haptic-patterns` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/sensory/profiles` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/support/status` | sonara_shared_api | `/dashboard` | `server.js:968` |
+| `PATCH /api/market-intelligence/opportunities/:opportunityId` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:303` |
+| `POST /api/agents/schedule/tick` | business_builder_agent_ops | `/owner/agent-activity` | `routes/sonara-agent-activity-routes.cjs:912` |
+| `POST /api/business/reservation-resources` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:111` |
+| `POST /api/business/waitlist` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:149` |
+| `POST /api/business/waitlist/:bookingId/offer` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:186` |
+| `POST /api/creator/reference-analyses` | sonara_shared_api | `/dashboard` | `routes/creator-generation-routes.cjs:458` |
+| `POST /api/creator/workflows/plan` | sonara_shared_api | `/dashboard` | `routes/creator-music-system-readonly.cjs:128` |
+| `POST /api/formulas/evaluate` | cross_workspace_formulas | `/formulas` | `routes/sonara-formula-routes.cjs:73` |
+| `POST /api/formulas/results` | cross_workspace_formulas | `/formulas` | `routes/sonara-formula-routes.cjs:78` |
+| `POST /api/growth/consents` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:805` |
+| `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2186` |
+| `POST /api/market-intelligence/competitors` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:101` |
+| `POST /api/market-intelligence/fetch-source` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:151` |
+| `POST /api/market-intelligence/opportunities` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:250` |
+| `POST /api/market-intelligence/opportunities/:opportunityId/reviews` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:340` |
+| `POST /api/market-intelligence/segments` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:72` |
+| `POST /api/market-intelligence/signals` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:210` |
+| `POST /api/motion/events` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2135` |
+| `POST /api/prompt-library/collections` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:273` |
+| `POST /api/prompt-library/collections/:id/items` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:293` |
+| `POST /api/prompt-library/connections` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:316` |
+| `POST /api/prompt-library/render` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:115` |
+| `POST /api/prompt-library/runs` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:210` |
+| `POST /api/prompt-library/templates` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:137` |
+| `POST /api/prompt-library/templates/:id/versions` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:174` |
+| `POST /api/sensory/haptic-patterns` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2186` |
+| `POST /api/sensory/profiles` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2186` |
 
 ### Research-only repositories
 
