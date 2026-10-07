@@ -56226,6 +56226,7 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "business_control_audit_events",
+          "business_integration_connections",
           "business_memberships",
           "business_permission_grants",
           "business_workspaces",
@@ -56270,6 +56271,22 @@
               ],
               "rlsEvidence": [
                 "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "business_integration_connections",
+            "tableId": "table:business_integration_connections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723060500_business_integration_connections.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723060500_business_integration_connections.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723060500_business_integration_connections.sql"
               ],
               "policyEvidence": []
             }
@@ -56600,6 +56617,7 @@
           "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
           "supabase/migrations/20260723060000_business_builder_control_plane.sql",
+          "supabase/migrations/20260723060500_business_integration_connections.sql",
           "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
           "supabase/migrations/20260728120000_member_read_policies.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
