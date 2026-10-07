@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 160 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 495 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 496 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,68 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 38 most recent entries of 463 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 38 most recent entries of 464 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A dispute the seller wins gives the sale back
+
+This closes the end of the refund-and-dispute link in two chains, the
+marketplace (... → refund/dispute → audit) and the shop (... → payment →
+receipt → profitability).
+
+A dispute takes effect the moment it opens. A marketplace licence is revoked and
+a shop order turns `disputed`, which takes it out of money received. Nothing
+handled `charge.dispute.closed`, so how the dispute ended never reached this
+application. When the seller won, and kept the money:
+- the buyer stayed locked out of something they had paid for;
+- the shop's sale stayed outside its figures;
+
+both for good.
+
+Both decisions now handle it:
+- `won` and `warning_closed` (an inquiry that never became a chargeback) put the
+  sale back.
+- `lost` changes nothing, but is recorded.
+- Any other status is ignored and recorded.
+
+Marketplace:
+- The licence is restored before the order. If the second write fails, Stripe
+  retries, the order is still disputed, and the repair runs again. Delivery
+  checks the order's state, so nothing downloads in between.
+- Written the other way round, a failed licence write would leave a paid order
+  that no retry reaches.
+- A licence revoked because the order was refunded stays revoked, and the order
+  returns to `refunded`.
+
+Shop: the order returns to `paid`, or to `refunded` if it had been refunded in
+full.
+
+The gap was possible partly because the list of events the Connect webhook must
+be subscribed to was written nowhere:
+- `CONNECT_WEBHOOK_EVENTS` in `lib/sonara-connected-checkout.cjs` now holds it.
+- `docs/owner/OWNER-STEPS.md` step 7 now tells the owner to subscribe to each.
+- A test fails in two directions: on an event a dispatcher names that the list
+  does not hold, and on a listed event that nothing handles or the owner is not
+  told about.
+
+Falsified five ways, each failing a named test:
+- no marketplace reinstate;
+- the order written before the licence;
+- no shop reinstate;
+- `charge.dispute.closed` dropped from the list;
+- the refunded-before-dispute guard removed.
+
+The first draft of the retry test failed the order write, which is repaired in
+either write order, so falsification 2 passed it. The test now fails the
+licence write, which is the one that matters.
+
+**Owner step:** add `charge.dispute.closed` to the Connect webhook endpoint's
+events in the Stripe dashboard (step 7).
+
+
 
 ### 2026-10-07 - The server starts from what is shipped
 
@@ -2092,51 +2149,3 @@ has never failed.
 **not** a problem: `key` comes from a `spec` literal written a few lines below each
 call, and the request supplies the value, which is parsed as a number. Stated in the
 file, because the two look identical and only one of them is a bug.
-
-
-
-### 2026-10-02 - A form field name was a property name
-
-CodeQL, high severity: *Remote property injection -- a property name to write to
-depends on a user-provided value*, on `lib/sonara-merchant-storefront.cjs`.
-`quantitiesFrom` built `quantities[variantId] = text` on a plain object, and
-`variantId` came straight out of a form field name.
-
-**Measured rather than described**, because "prototype pollution" is a phrase that
-makes people nod without checking:
-
-    const plain = {};
-    plain["__proto__"] = "1";
-    Object.prototype.hasOwnProperty.call(plain, "__proto__")   // false
-
-    const second = {};
-    second["constructor"] = "x";
-    typeof second.constructor                                   // "string"
-
-The first is the commercially interesting one: a field named `qty___proto__` sets
-no own property, so **the line silently vanishes from an order the buyer is then
-told was placed**. The second overwrites a real property with a string.
-
-Two halves to the fix, and each is asserted on its own. `quantitiesFrom` returns a
-**Map**, whose keys are not properties, so there is nothing for a crafted name to
-reach. And the key has to match `UUID_PATTERN`, because a variant id is a
-`gen_random_uuid()` value and `qty_banana` is not a variant -- which is the
-correctness half, and means `priceOrder` never has to ask. `priceOrder` also copies
-a plain-object argument through `Object.keys`, so an inherited property cannot reach
-the loop by the other door.
-
-The store test's fixtures used ids like `v1`, which the uuid check correctly
-refuses, so they are real uuids now -- the fixtures were wrong about the data, not
-the check.
-
-**Two of my own new assertions were too broad, both caught by running them.** The
-"no dynamic property write remains" check matched `quantities[key]` inside
-`priceOrder`'s object-to-Map conversion, which is a READ with a key from
-`Object.keys` -- own properties only, and safe. A check that fires on the safe shape
-gets relaxed until it fires on nothing, so it targets an assignment specifically.
-And the comment-stripping was needed again, for the fourth time in this session's
-work, because the module's header quotes the old code.
-
-Falsified three ways, each failing and restored with `md5sum -c`: back to a plain
-object with a dynamic write (5 red), the uuid check removed with the Map kept (2
-red), and inherited properties allowed into the loop (1 red). Suite 5679 passing.

@@ -543,6 +543,73 @@ describe("buying a licence, end to end", function endToEnd() {
     assert.equal(fake.rows("creator_marketplace_payment_events").length, 4);
   });
 
+  // A dispute revokes the licence when it opens. When the seller wins it the
+  // payment stands, so the buyer gets the work back; nothing handled
+  // charge.dispute.closed, and a won dispute locked the buyer out for good.
+  const disputeEvent = (id, type, object = {}) => ({ id, type, account: ACCOUNT, data: { object: { payment_intent: "pi_test12345678", ...object } } });
+
+  it("gives the licence back when the seller wins the dispute, and keeps it revoked when they lose", async () => {
+    const { fake } = world();
+    await buy(LISTING);
+    const [order] = fake.rows("creator_marketplace_orders");
+    await deliver(paidEvent(order));
+    await deliver(disputeEvent("evt_disputeOpen1", "charge.dispute.created"));
+    assert.equal((await asBuyer(`/marketplace/orders/${order.id}/download`)).status, 410);
+
+    const lost = await deliver(disputeEvent("evt_disputeLost1", "charge.dispute.closed", { status: "lost" }));
+    assert.equal(lost.status, 200);
+    assert.equal(fake.rows("creator_marketplace_orders")[0].state, "disputed", "a lost dispute gave the sale back");
+    assert.equal(fake.rows("creator_licence_grants")[0].revoked_reason, "disputed");
+
+    const won = await deliver(disputeEvent("evt_disputeWon1", "charge.dispute.closed", { status: "won" }));
+    assert.equal(won.status, 200);
+    assert.equal(won.body.outcome, "dispute_won");
+    assert.equal(fake.rows("creator_marketplace_orders")[0].state, "paid");
+    const [grant] = fake.rows("creator_licence_grants");
+    assert.equal(grant.revoked_at, null, "the buyer is still locked out after the seller won the dispute");
+    assert.equal(grant.revoked_reason, null);
+    assert.equal((await asBuyer(`/marketplace/orders/${order.id}/download`)).status, 303);
+    const recorded = fake.rows("creator_marketplace_payment_events").map((row) => row.outcome);
+    assert.ok(recorded.includes("dispute_lost") && recorded.includes("dispute_won"), `the dispute's end was not recorded: ${recorded.join(", ")}`);
+  });
+
+  it("restores the licence before the order, so a failed write is repaired on Stripe's retry", async () => {
+    const { fake, storage } = world();
+    await buy(LISTING);
+    const [order] = fake.rows("creator_marketplace_orders");
+    await deliver(paidEvent(order));
+    await deliver(disputeEvent("evt_disputeOpen2", "charge.dispute.created"));
+    // The licence write fails. Had the order been made paid first, Stripe's
+    // retry would find a paid order, decide "not disputed", and never reach the
+    // licence again -- a paid order the buyer still could not open.
+    const reached = failWriteOnce("creator_licence_grants", "PATCH");
+    const event = disputeEvent("evt_disputeWon2", "charge.dispute.closed", { status: "won" });
+    assert.equal((await deliver(event)).status, 503);
+    reached();
+    assert.equal(fake.rows("creator_marketplace_orders")[0].state, "disputed");
+    const before = storage.length;
+    assert.equal((await asBuyer(`/marketplace/orders/${order.id}/download`)).status, 410, "the file was handed out while the order was still disputed");
+    assert.equal(storage.length, before);
+    assert.equal((await deliver(event)).status, 200);
+    assert.equal(fake.rows("creator_marketplace_orders")[0].state, "paid", "Stripe's retry did not finish giving the sale back");
+    assert.equal(fake.rows("creator_licence_grants")[0].revoked_at, null);
+  });
+
+  it("returns an order refunded before the dispute to refunded, not to paid", async () => {
+    const { fake } = world();
+    await buy(LISTING);
+    const [order] = fake.rows("creator_marketplace_orders");
+    await deliver(paidEvent(order));
+    await deliver(disputeEvent("evt_fullrefund2", "charge.refunded", { refunded: true }));
+    await deliver(disputeEvent("evt_disputeOpen3", "charge.dispute.created"));
+    assert.equal(fake.rows("creator_marketplace_orders")[0].state, "disputed");
+    const won = await deliver(disputeEvent("evt_disputeWon3", "charge.dispute.closed", { status: "won" }));
+    assert.equal(won.body.outcome, "dispute_won_refunded");
+    assert.equal(fake.rows("creator_marketplace_orders")[0].state, "refunded");
+    assert.equal(fake.rows("creator_licence_grants")[0].revoked_reason, "refunded", "a refunded buyer got the work back by the seller winning a dispute");
+    assert.equal((await asBuyer(`/marketplace/orders/${order.id}/download`)).status, 410);
+  });
+
   it("sells an exclusive licence once: a second buyer cannot start, and the sale takes it off the catalogue", async () => {
     const { fake, stripe } = world();
     assert.equal((await buy(EXCLUSIVE)).status, 303);

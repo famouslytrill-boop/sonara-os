@@ -2,6 +2,61 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A dispute the seller wins gives the sale back
+
+This closes the end of the refund-and-dispute link in two chains, the
+marketplace (... → refund/dispute → audit) and the shop (... → payment →
+receipt → profitability).
+
+A dispute takes effect the moment it opens. A marketplace licence is revoked and
+a shop order turns `disputed`, which takes it out of money received. Nothing
+handled `charge.dispute.closed`, so how the dispute ended never reached this
+application. When the seller won, and kept the money:
+- the buyer stayed locked out of something they had paid for;
+- the shop's sale stayed outside its figures;
+
+both for good.
+
+Both decisions now handle it:
+- `won` and `warning_closed` (an inquiry that never became a chargeback) put the
+  sale back.
+- `lost` changes nothing, but is recorded.
+- Any other status is ignored and recorded.
+
+Marketplace:
+- The licence is restored before the order. If the second write fails, Stripe
+  retries, the order is still disputed, and the repair runs again. Delivery
+  checks the order's state, so nothing downloads in between.
+- Written the other way round, a failed licence write would leave a paid order
+  that no retry reaches.
+- A licence revoked because the order was refunded stays revoked, and the order
+  returns to `refunded`.
+
+Shop: the order returns to `paid`, or to `refunded` if it had been refunded in
+full.
+
+The gap was possible partly because the list of events the Connect webhook must
+be subscribed to was written nowhere:
+- `CONNECT_WEBHOOK_EVENTS` in `lib/sonara-connected-checkout.cjs` now holds it.
+- `docs/owner/OWNER-STEPS.md` step 7 now tells the owner to subscribe to each.
+- A test fails in two directions: on an event a dispatcher names that the list
+  does not hold, and on a listed event that nothing handles or the owner is not
+  told about.
+
+Falsified five ways, each failing a named test:
+- no marketplace reinstate;
+- the order written before the licence;
+- no shop reinstate;
+- `charge.dispute.closed` dropped from the list;
+- the refunded-before-dispute guard removed.
+
+The first draft of the retry test failed the order write, which is repaired in
+either write order, so falsification 2 passed it. The test now fails the
+licence write, which is the one that matters.
+
+**Owner step:** add `charge.dispute.closed` to the Connect webhook endpoint's
+events in the Stripe dashboard (step 7).
+
 ### 2026-10-07 - The server starts from what is shipped
 
 Docker Image CI failed on 9c30834c, and the cause was mine. The route serving

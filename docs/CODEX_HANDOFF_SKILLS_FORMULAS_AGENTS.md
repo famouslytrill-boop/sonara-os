@@ -518,7 +518,12 @@ to any of them is a change to this section first:
    the stored order before anything changes.
 5. **Records change state; they are not deleted.** Payment events are insert-only,
    keyed on Stripe's event id. Refunds and disputes are recorded when Stripe
-   reports them; nothing here issues a refund (AGENTS.md: owner approval).
+   reports them; nothing here issues a refund (AGENTS.md: owner approval). A
+   dispute that closes `won` or `warning_closed` puts the sale back: a marketplace
+   licence revoked for the dispute is restored before the order (so a failed
+   write is repaired on retry), and a shop order returns to paid, or to refunded
+   if it had been refunded in full. The events the Connect endpoint must be
+   subscribed to are `CONNECT_WEBHOOK_EVENTS` in `lib/sonara-connected-checkout.cjs`.
 6. **Prices come from the server's rows.** A posted price is a buyer naming their
    own. Amounts are snapshotted onto the order when it is created.
 

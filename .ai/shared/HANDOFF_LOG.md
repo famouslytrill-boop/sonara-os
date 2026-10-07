@@ -1,5 +1,17 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Won disputes give the sale back; Connect webhook event list (PR #446)
+
+- `charge.dispute.closed` is handled for marketplace orders and shop orders.
+  `won`/`warning_closed` reinstate; `lost` is recorded only.
+- `CONNECT_WEBHOOK_EVENTS` in `lib/sonara-connected-checkout.cjs` is the list
+  the Connect endpoint must be subscribed to. A new event type in either sale
+  decision must be added there and to OWNER-STEPS step 7, or
+  `tests/a-dispute-the-seller-wins-gives-the-sale-back.test.js` fails.
+- #444 merged at 17:44 UTC with a route that broke the Docker build;
+  #446 fixes it. Production (sonaraindustries.com) answers 503
+  DEPLOYMENT_PAUSED. That is a Vercel project setting, not code.
+
 ## 2026-10-07 - Claude - main merged into #444; three base-branch failures fixed, one left for Codex
 
 - Main at `e0379b97` fails `pnpm test` (5) and `verify:gates`. Fixed in #444:

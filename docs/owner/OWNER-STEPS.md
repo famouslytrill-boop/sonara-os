@@ -413,6 +413,36 @@ If it takes you anywhere else, stop and tell me: the module refuses any
 onboarding URL not on that host, so a different destination means something is
 wrong upstream rather than a cosmetic issue.
 
+### The Connect webhook, and the events it must receive
+
+Marketplace sales and shop orders change state only when Stripe tells this
+application what happened. In the Stripe dashboard, under **Developers →
+Webhooks**, add an endpoint that listens to **events on connected accounts**:
+
+```
+https://sonaraindustries.com/api/webhooks/stripe-connect
+```
+
+Subscribe it to exactly these events:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `checkout.session.expired`
+- `charge.refunded`
+- `charge.dispute.created`
+- `charge.dispute.closed`
+
+Then copy its signing secret into Vercel Production as
+`STRIPE_CONNECT_WEBHOOK_SECRET` and redeploy. No checkout opens until that
+secret is set, because a payment nothing can verify is a payment nothing can
+fulfil.
+
+Missing an event fails silently: the application never hears about it. The last
+one, `charge.dispute.closed`, is how a dispute the seller *won* gives the buyer
+their licence back and puts the sale back into the business's money received.
+Without it, a won dispute stays disputed for good.
+
 ### What this does *not* turn on
 
 **No pay button appears on a shared invoice**, now or later. `/shared/:token`

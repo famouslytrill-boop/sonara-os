@@ -139,6 +139,11 @@ function createMerchantPayments(deps) {
         method: "PATCH",
         body: { payment_state: "disputed", updated_at: now }
       });
+    } else if (decision.action === "reinstate") {
+      changed = await write(`merchant_orders?${scope}&payment_state=eq.disputed`, {
+        method: "PATCH",
+        body: { payment_state: decision.restoreState, updated_at: now }
+      });
     }
     if (!changed.ok) return { ok: false, outcome: "not_saved" };
 
