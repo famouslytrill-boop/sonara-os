@@ -61,12 +61,29 @@ async function converse(app, path, contact, { swapCampaignTo } = {}) {
 describe("an enquiry is credited to the campaign that brought it", () => {
   describe("the link", () => {
     it("tags this site's chat links and nothing else", () => {
-      const body = "Book: https://sonara.example/chat/bright-plumbing. Or https://sonara.example/chat/bright-plumbing?ref=card, https://elsewhere.example/chat/bright-plumbing and https://sonara.example/chat/bright-plumbing/extra";
+      // The whole message is compared, not searched: a search for a link
+      // passes when that text appears anywhere, including inside a longer
+      // address that was rewritten around it.
+      const untouched = [
+        "Or https://sonara.example/chat/bright-plumbing?ref=card, which already has a query",
+        "https://elsewhere.example/chat/bright-plumbing is another site",
+        "https://elsewhere.example/go?to=https://sonara.example/chat/bright-plumbing is inside another site's address",
+        "https://sonara.example/chat/bright-plumbing/extra is a longer path",
+        "https://sonara.example/chat/bright-plumbing.html is a longer path too"
+      ];
+      const body = [
+        "Book: https://sonara.example/chat/bright-plumbing.",
+        "(https://sonara.example/chat/bright-plumbing)",
+        "Quoted on a phone: “https://sonara.example/chat/bright-plumbing”",
+        ...untouched
+      ].join("\n");
       const tagged = links.tagCampaignLinks(body, { origin: SITE, campaignId: CAMPAIGN });
-      assert.ok(tagged.includes(`https://sonara.example/chat/bright-plumbing?c=${CAMPAIGN}.`), "this site's chat link was not tagged");
-      assert.ok(tagged.includes("https://sonara.example/chat/bright-plumbing?ref=card"), "a link the owner gave a query was rewritten");
-      assert.ok(tagged.includes("https://elsewhere.example/chat/bright-plumbing "), "a link to another site was rewritten");
-      assert.ok(tagged.includes("https://sonara.example/chat/bright-plumbing/extra"), "a longer path was rewritten");
+      assert.equal(tagged, [
+        `Book: https://sonara.example/chat/bright-plumbing?c=${CAMPAIGN}.`,
+        `(https://sonara.example/chat/bright-plumbing?c=${CAMPAIGN})`,
+        `Quoted on a phone: “https://sonara.example/chat/bright-plumbing?c=${CAMPAIGN}”`,
+        ...untouched
+      ].join("\n"));
       assert.equal(links.tagCampaignLinks(tagged, { origin: SITE, campaignId: CAMPAIGN }), tagged, "tagging twice changed the message");
       assert.equal(links.tagCampaignLinks(body, { origin: "http://sonara.example", campaignId: CAMPAIGN }), body, "an http origin was trusted");
       assert.equal(links.campaignFromValue("not-a-campaign"), null);

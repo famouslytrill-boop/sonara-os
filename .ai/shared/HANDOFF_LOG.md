@@ -9,6 +9,13 @@
   an HTML body, tag its hrefs the same way, or HTML campaigns lose attribution.
 - `CHAT_POST_SCHEMA` gained `campaign`; `lead_conversations.metadata` carries
   `claimed_campaign_id`.
+- `tagCampaignLinks` tags a link only where it stands alone. The start of the
+  message, a space, or an opening bracket or quote must come before it. After
+  it comes the end or a space, perhaps after closing punctuation. Curly quotes
+  and guillemets count, because phone keyboards type them. A link inside
+  another address, or with `.html` or `/extra` after it, is left as written.
+  Test it by comparing the whole message: `.includes()` passes on a link
+  rewritten in the middle of a longer one.
 
 ## 2026-10-07 - Claude - Campaign email delivery receipts (PR #446)
 

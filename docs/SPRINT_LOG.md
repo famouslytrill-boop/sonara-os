@@ -2,6 +2,48 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A campaign link is tagged only where it stands alone
+
+CodeQL flagged `js/incomplete-url-substring-sanitization` on the test for
+`tagCampaignLinks`. The flagged line is an assertion, not sanitization: it
+checked that one link survived by searching the output with `.includes()`.
+
+The search was also too weak to catch a real bug, and the bug was there. A
+search for a link passes when that text appears anywhere, including inside a
+longer address that was rewritten around it. Both of these were rewritten,
+although the function's own comment says links elsewhere are left as written:
+- **A chat link inside another site's address.** The redirect
+  `https://elsewhere.example/go?to=https://sonara.example/chat/bright-plumbing`
+  was given `?c=…`, which changes another site's link.
+- **A longer path on this site.** `…/chat/bright-plumbing.html` became
+  `…/chat/bright-plumbing?c=<id>.html`. That is a different address, and its
+  campaign id is no longer a valid one.
+
+The tagger now changes a link only where it stands alone:
+- **Before it:** the start of the message, a space, or an opening bracket or
+  quote.
+- **After it:** the end of the message or a space, perhaps after closing
+  punctuation.
+- **Curly quotes and guillemets count as quotes.** A phone keyboard types them
+  by default, so a link quoted on a phone would otherwise lose its credit
+  without anybody noticing.
+
+Anything else makes the link part of a longer address. Leaving that untagged
+costs only the credit; the enquiry is still taken.
+
+The test now compares the whole tagged message rather than searching it. It
+covers:
+- three standalone links: at the end of a sentence, in brackets, and in curly
+  quotes;
+- five that must not change: a query, another site, inside another site's
+  address, `/extra`, and `.html`.
+
+Falsified four ways, each failing the test:
+- the previous tagger;
+- the start boundary removed;
+- the end boundary put back to the old one;
+- straight quotes only before the link.
+
 ### 2026-10-07 - An enquiry is credited to the campaign that brought it
 
 The Growth chain's conversion → attribution link had a hole in the middle. A
