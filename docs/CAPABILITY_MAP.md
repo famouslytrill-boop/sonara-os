@@ -8,9 +8,9 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 
 | Area | Current inventory |
 | --- | ---: |
-| Registered HTTP route operations | 936 |
-| GET / POST / PATCH / DELETE | 565 / 358 / 10 / 3 |
-| Declared page routes / workspace groups | 300 / 12 |
+| Registered HTTP route operations | 937 |
+| GET / POST / PATCH / DELETE | 566 / 358 / 10 / 3 |
+| Declared page routes / workspace groups | 301 / 12 |
 | API operations matched to OpenAPI | 335 |
 | Destinations using workspace-home fallback | 61 |
 | Form action destinations traced to registered pages | 112 |
@@ -41,7 +41,7 @@ The remaining sections connect the existing resource registries, deterministic r
 
 ## What the map says today
 
-- The HTTP layer registers 936 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
+- The HTTP layer registers 937 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 335 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
 - 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
 - 61 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
@@ -55,7 +55,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | `explicit_no_persistent_table_expected` | 153 |
 | `explicit_resource_registry` | 262 |
 | `handler_source_table_reference` | 489 |
-| `provider_endpoint_reference` | 28 |
+| `provider_endpoint_reference` | 29 |
 - 41 active schema tables are not queried by runtime source according to the repository's comment-stripped orphan-table audit. Their table-level dispositions are listed in the JSON; the map does not invent a route for a schema that has not been built.
 
 ### Workspace destinations
@@ -64,7 +64,7 @@ The remaining sections connect the existing resource registries, deterministic r
 | --- | --- | ---: | ---: | --- |
 | Business Builder | `/business-builder`, `/api/business-builder`, `/api/business` | 339 | 96 | `/business-builder/dashboard` |
 | Business Builder Agent Operations | `/owner/agent-activity`, `/owner/agent-schedule`, `/api/agents` | 7 | 1 | `/owner/agent-activity` |
-| Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 133 | 68 | `/creator-studio/dashboard` |
+| Creator Studio | `/creator-studio`, `/api/creator-studio`, `/api/creator` | 134 | 69 | `/creator-studio/dashboard` |
 | Growth Studio | `/growth-studio`, `/api/growth-studio`, `/api/growth` | 129 | 58 | `/growth-studio/dashboard` |
 | Administration | `/admin`, `/api/admin` | 0 | 0 | `/admin` |
 | Research Lab | `/research-lab`, `/api/research-lab` | 15 | 14 | `/research-lab/open-source` |
