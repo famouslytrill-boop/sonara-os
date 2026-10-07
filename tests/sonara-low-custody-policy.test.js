@@ -6,9 +6,9 @@ const {
   SOFTWARE_FEES, MERCHANT_FLOWS, NEVER_SUPPORTED,
   externalPaymentLinkReview, lowCustodyDecision, externalReceiptEvidence
 } = require("../lib/sonara-low-custody-policy.cjs");
-const { connectReadiness, canAcceptPayments, createAccount, onboardingLink } =
+const { connectReadiness, canAcceptPayments, createAccount } =
   require("../lib/sonara-connected-payments.cjs");
-const { checkoutReadiness, createSession, expireSession, retrieveSession, listSessions } =
+const { checkoutReadiness, createSession, expireSession, retrieveSession } =
   require("../lib/sonara-connected-checkout.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const FOREIGN="22222222-2222-4222-8222-222222222222";
