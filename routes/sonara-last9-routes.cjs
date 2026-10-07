@@ -1576,7 +1576,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     ...ALL_OWNER_PAGES.map((page) => ({ table: page.table, label: page.title })),
     ...ALL_OWNER_PAGES.flatMap((page) => childrenOf(page).map((spec) => ({ table: spec.table, label: spec.title || spec.table }))),
     ...CREATOR_RECORD_PAGES.map((page) => ({ table: page.table, label: page.title })),
-    ...GROWTH_RECORD_PAGES.map((page) => ({ table: GROWTH_TABLES[page.tableKey], label: page.title || page.tableKey }))
+    ...GROWTH_RECORD_PAGES.map((page) => ({ table: GROWTH_TABLES[page.tableKey], label: page.title || page.tableKey })),
+    ...GROWTH_RECORD_PAGES.flatMap((page) => (page.children || []).map((child) => ({ table: GROWTH_TABLES[child.tableKey], label: child.title })))
   ]
     .filter((entry) => entry.table)
     .filter((entry, index, all) => all.findIndex((other) => other.table === entry.table) === index);

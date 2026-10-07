@@ -44,7 +44,8 @@ const KEPT_FOR_CUSTOMERS = [...new Set([
   ...ALL_OWNER_PAGES.map((page) => page.table),
   ...ALL_OWNER_PAGES.flatMap((page) => childrenOf(page).map((spec) => spec.table)),
   ...CREATOR_RECORD_PAGES.map((page) => page.table),
-  ...GROWTH_RECORD_PAGES.map((page) => GROWTH_TABLES[page.tableKey])
+  ...GROWTH_RECORD_PAGES.map((page) => GROWTH_TABLES[page.tableKey]),
+  ...GROWTH_RECORD_PAGES.flatMap((page) => (page.children || []).map((child) => GROWTH_TABLES[child.tableKey]))
 ].filter(Boolean))];
 
 // Tables a customer would specifically go looking for after deciding to leave.
@@ -56,6 +57,7 @@ const MUST_BE_THERE = [
   "growth_leads",
   "growth_contact_consents",
   "growth_campaigns",
+  "growth_campaign_spend",
   "recipe_ingredients",
   "creator_artist_profiles"
 ];

@@ -2,6 +2,42 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A campaign says whether it paid for itself
+
+The Growth chain ran lead → campaign → send → conversion → attribution and
+stopped there. Nothing recorded what a campaign cost, so "did it pay for
+itself" and "what next" could not be answered for anybody.
+
+`growth_campaign_spend` (migration `20261007090000_what_a_campaign_cost.sql`)
+records what the owner spent, append-only. A mistake is answered by a
+`correction` row, never an edit. The currency is required and never converted.
+A `source` column keeps a typed-in amount apart from one a connector reports
+later.
+
+Each campaign now has a page at `/growth-studio/your-campaigns/:campaignId`,
+linked from the list. It shows what the campaign cost, with the form to record
+it, the leads, sends and conversions recorded against it, and the return per
+currency (`lib/sonara-campaign-results.cjs`):
+- A return is worked out only where there is both spend and a conversion with a
+  value in that currency.
+- Spend with no recorded result reads "no result with a value yet", not -100%.
+  The results may simply not have been recorded.
+- A read that failed withholds the return, and a capped read is marked "at
+  least".
+- The next step is one sentence, people waiting to hear back before money.
+  Nothing is sent, paused or spent on the owner's behalf.
+
+The spend table is in the data export, declared as a child of the campaigns
+page. The replay's set of server-only tables records it (56 -> 57), and the
+contract names its migration.
+
+Falsified seven ways, each failing by name: currencies merged, no results read
+as a total loss, a failed read ignored, the campaign read without its
+organization filter, the currency field cut to three characters before checking
+(which turned "dollars" into "dol" and accepted it, a bug the test caught in the
+first draft), money ranked above people waiting, and the list without its link.
+**Owner step:** apply `20261007090000` to production before this merges.
+
 ### 2026-10-07 - An exemption that said "listed" about rows nothing reads
 
 `tests/form-reachability.test.js` excused `POST /api/creator/reference-analyses`

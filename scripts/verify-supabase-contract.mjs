@@ -108,7 +108,10 @@ const growthStudioMigrationNames = [
   // Who a campaign send reached, per recipient. Listed here because this check
   // is two-sided: declaring a table in GROWTH_STUDIO_TABLES is not enough, and
   // the migration that creates it and enables RLS on it has to be named too.
-  "20260916040000_growth_campaign_send_records.sql"
+  "20260916040000_growth_campaign_send_records.sql",
+  // What a campaign cost, as the owner recorded it, so its return can be worked
+  // out. Append-only like the send records above it.
+  "20261007090000_what_a_campaign_cost.sql"
 ];
 const scrollSiteMigrationNames = ["20260826020000_cinematic_scroll_sites.sql"];
 // Connected payment accounts, added 26 August 2026 -- one connected Stripe
@@ -414,7 +417,11 @@ const GROWTH_STUDIO_TABLES = Object.freeze([
   // and read back to work out the remainder -- see migration
   // 20260916040000_growth_campaign_send_records.sql for why no rows must never
   // be read as "nobody was reached".
-  "growth_campaign_sends"
+  "growth_campaign_sends",
+  // What a campaign cost, as the owner recorded it. Append-only; written and
+  // read on the campaign's own page in routes/growth-studio-control-routes.cjs.
+  // Migration 20261007090000_what_a_campaign_cost.sql.
+  "growth_campaign_spend"
 ]);
 const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_initiatives",

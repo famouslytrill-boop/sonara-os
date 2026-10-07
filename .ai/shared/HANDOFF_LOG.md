@@ -1,5 +1,17 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - What a campaign cost, and whether it paid for itself (PR #444)
+
+- New table `growth_campaign_spend`, migration `20261007090000_what_a_campaign_cost.sql`:
+  append-only, RLS on with no policy, select and insert for service_role only.
+  Owner step: apply it to production (project `yqncsonkxgwhcxedgevk`) so #444's
+  Supabase Preview passes, as was done for `20261006040000` on #439.
+- `GROWTH_TABLES` gains `sends` and `spend`. A growth record page may now declare
+  `detailPath` (a link column to `${path}/:id`) and `children` (tables the data
+  export carries with it).
+- The closed-table set in `scripts/verify-migration-replay.mjs` is 57. If #441 or
+  #442 add a server-only table, measure the set on the merged tree.
+
 ## 2026-10-07 - Claude - Follow-up to #439: work screens, destination register, test harness
 
 - New draft PR on `claude/sonara-engineering-handoff-b6ui1t` (the branch was
