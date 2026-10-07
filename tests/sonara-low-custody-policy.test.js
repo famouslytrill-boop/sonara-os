@@ -162,6 +162,36 @@ describe("runtime-reviewed low-custody opt-in switch",()=>{
     assert.equal(gate.ok,false);
     assert.equal(gate.status,"setup_required");
   });
+  it("missing mode fails closed even when an old deployment enables Connect",()=>{
+    const deps={getEnv:key=>({
+      STRIPE_CONNECT_ENABLED:"true",STRIPE_SECRET_KEY:"sk_test_"+"b".repeat(40),
+      STRIPE_CONNECT_WEBHOOK_SECRET:"whsec_"+"c".repeat(40)
+    })[key]};
+    const out=connectReadiness(deps);
+    assert.equal(out.ok,false);
+    assert.equal(out.status,"setup_required");
+    assert.ok(out.detail.includes("only its own software fees"));
+    assert.equal(checkoutReadiness(deps).ok,false);
+  });
+  it("unknown or misspelled funds modes fail closed",()=>{
+    for(const SONARA_CUSTOMER_FUNDS_MODE of ["", "other", "custody_escrow", "external-only"]) {
+      const deps={getEnv:key=>({
+        SONARA_CUSTOMER_FUNDS_MODE, STRIPE_CONNECT_ENABLED:"true",
+        STRIPE_SECRET_KEY:"sk_test_"+"a".repeat(40)
+      })[key]};
+      assert.equal(connectReadiness(deps).ok,false);
+    }
+  });
+  it("Connect checkout requires both reviewed mode AND old feature flag",()=>{
+    const deps={getEnv:key=>({
+      SONARA_CUSTOMER_FUNDS_MODE:"connect_direct_reviewed",
+      STRIPE_CONNECT_ENABLED:"false",
+      STRIPE_SECRET_KEY:"sk_test_"+"a".repeat(40)
+    })[key]};
+    const out=connectReadiness(deps);
+    assert.equal(out.ok,false);
+    assert.equal(out.status,"setup_required");
+  });
   it("external_only blocks Connect even with legacy Connect enabled",()=>{
     const deps={getEnv:name=>({
       SONARA_CUSTOMER_FUNDS_MODE:"external_only",
