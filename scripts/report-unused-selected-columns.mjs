@@ -195,6 +195,15 @@ const ACCOUNTED = Object.freeze({
       "Fetched to be used, in the file the rows travel to; the select names only the four columns that table shows."
     ].join(" ")
   },
+  "routes/growth-studio-control-routes.cjs": {
+    columns: ["bounce_type", "provider_message_id"],
+    reason: [
+      "The campaign page hands its sends and the provider's delivery events to summarizeCampaign in lib/sonara-campaign-results.cjs,",
+      "which passes both to summarizeDelivery in lib/sonara-email-delivery-receipts.cjs. That reads provider_message_id from both",
+      "(counting each email once, and only accepted sends that carry one as reportable) and bounce_type from the events (permanent",
+      "bounces, which set the next step). Checked 7 October 2026. Fetched to be used, two files along."
+    ].join(" ")
+  },
   "routes/sonara-formula-routes.cjs": {
     columns: ["created_at"],
     reason: [

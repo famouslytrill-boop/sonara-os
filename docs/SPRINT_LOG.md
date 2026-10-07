@@ -2,6 +2,63 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A campaign email says what happened to it
+
+The Growth chain runs lead → campaign → channel → outbound connector → delivery
+receipt → engagement → conversion → ROI. It stopped at the connector:
+`growth_campaign_sends` records that Resend *accepted* a message, and nothing
+after that. Whether the message reached the inbox, bounced, was marked as spam,
+was opened or had a link followed was never recorded. A campaign's page said
+"Emails delivered to the provider", which is accurate and reads as "delivered".
+
+What changed:
+- **`POST /api/webhooks/resend`** (`routes/sonara-email-receipt-routes.cjs`):
+  - Verifies the Svix signature over the raw body, within five minutes.
+  - Finds the accepted send by the provider's message id. The organization and
+    campaign come from that row, never from the event.
+  - Records one row in the new append-only `growth_email_delivery_events`,
+    keyed on `svix-id`, so a resend is a duplicate.
+  - Acknowledges an email that is not a campaign send (a sign-in email, an
+    invoice) and records nothing.
+  - Is rate limited, and mounted raw before the body parsers.
+- **Tenant guard:** the webhook's one cross-tenant read is a pinned lookup
+  (exact keys, `status=eq.accepted`, `limit=1`, three columns).
+- **Campaign page:** a new "What happened to the emails" card.
+  - It counts each email once, so three opens of one email are one opened email.
+  - It is stated against the emails the provider can report on. An accepted
+    message sent through the single-message endpoint returns no id, so "40
+    delivered" means 40 of those reportable, which the page says.
+  - Opens are labelled as depending on tracking.
+- **Next step:** a spam complaint, then a permanent bounce, now set the next
+  step, after new leads and refused sends.
+
+Suppression was already handled: Resend suppresses bounced and complained
+addresses, and the send handler reads that list. So this records and reports
+rather than adding a second suppression.
+
+**A design mistake caught by a failing test.** The receipt read first went into
+the same readability gate as spend and conversions. An unreadable receipt table
+then withheld the campaign's return, and the table does not exist in production
+until its migration is applied. Receipts are now summarised on their own, with
+their own "could not be read" state.
+
+**The signature check is held to the vendor's value.** Svix publishes a test
+vector (docs.svix.com/receiving/verifying-payloads/how-manual), and the test
+reproduces it.
+
+Falsified six ways, each failing a named test:
+- no timestamp tolerance;
+- any signature version accepted;
+- a replay not deduplicated;
+- events counted instead of emails;
+- receipts gating the return;
+- every accepted send used as the denominator.
+
+**Owner steps** (OWNER-STEPS step 10):
+- Add the Resend webhook endpoint with its eight events.
+- Set `RESEND_WEBHOOK_SECRET`.
+- Apply `20261007130000`.
+
 ### 2026-10-07 - A dispute the seller wins gives the sale back
 
 This closes the end of the refund-and-dispute link in two chains, the

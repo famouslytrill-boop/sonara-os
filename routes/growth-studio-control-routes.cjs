@@ -1340,13 +1340,16 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!found.ok) return campaignPage(res, 502, [ui.card("Not available right now", "We could not read this campaign just now. Nothing has changed.")]);
     if (!found.campaign) return campaignPage(res, 404, [ui.card("Not found", "That campaign is not in this workspace.")]);
     const capped = (result, limit) => (result.ok ? { ...result, truncated: result.rows.length >= limit } : result);
-    const [spend, conversions, leads, sends] = await Promise.all([
+    const [spend, conversions, leads, sends, deliveryEvents] = await Promise.all([
       rest(config, TABLES.spend, `select=id,kind,amount_cents,currency,spent_on,description,reference&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=spent_on.desc&limit=500`).then((result) => capped(result, 500)),
       rest(config, TABLES.conversions, `select=id,value,currency,attribution_confidence,occurred_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&order=occurred_at.desc&limit=1000`).then((result) => capped(result, 1000)),
       rest(config, TABLES.leads, `select=id,status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=2000`).then((result) => capped(result, 2000)),
-      rest(config, TABLES.sends, `select=status&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=5000`).then((result) => capped(result, 5000))
+      rest(config, TABLES.sends, `select=status,provider_message_id&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=5000`).then((result) => capped(result, 5000)),
+      // What the provider reported after accepting each email. Written by
+      // POST /api/webhooks/resend (routes/sonara-email-receipt-routes.cjs).
+      rest(config, "growth_email_delivery_events", `select=event_type,provider_message_id,bounce_type&organization_id=eq.${encodeURIComponent(context.organizationId)}&campaign_id=eq.${encodeURIComponent(found.campaign.id)}&limit=20000`).then((result) => capped(result, 20000))
     ]);
-    const summary = campaignResults.summarizeCampaign({ spend, conversions, leads, sends });
+    const summary = campaignResults.summarizeCampaign({ spend, conversions, leads, sends, deliveryEvents });
     const today = new Date().toISOString().slice(0, 10);
     const defaultCurrency = (spend.ok && spend.rows[0]?.currency) || (conversions.ok && conversions.rows.find((row) => row.currency)?.currency) || "usd";
     const sections = [
@@ -1355,6 +1358,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       summary.ok ? campaignResultsPages.returnCard(summary, ui.escape) : campaignResultsPages.unreadableCard(summary, ui.escape),
       campaignResultsPages.nextStepCard(summary, ui.escape),
       summary.ok ? campaignResultsPages.activityCard(summary) : "",
+      summary.ok ? campaignResultsPages.deliveryCard(summary) : "",
       campaignResultsPages.spendCard(spend, { action: `${CAMPAIGN_PAGE}/${encodeURIComponent(found.campaign.id)}/spend`, defaultCurrency, today, escape: ui.escape })
     ].filter(Boolean);
     return campaignPage(res, 200, sections, found.campaign.name || "Campaign");

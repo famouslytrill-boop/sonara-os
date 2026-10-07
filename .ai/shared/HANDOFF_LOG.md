@@ -1,5 +1,17 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Campaign email delivery receipts (PR #446)
+
+- New table `growth_email_delivery_events`, migration
+  `20261007130000_what_happened_to_a_campaign_email.sql`: append-only, service
+  role only, unique on `provider_event_id`. Closed-table replay set is now 58.
+- `POST /api/webhooks/resend` verifies Svix signatures with
+  `RESEND_WEBHOOK_SECRET` (classified optional). Test vector in
+  `tests/a-campaign-email-says-what-happened-to-it.test.js`.
+- `summarizeCampaign` takes an optional `deliveryEvents` read that is NOT part
+  of its readability gate. Keep it that way, or an unmigrated table hides every
+  campaign's return.
+
 ## 2026-10-07 - Claude - Won disputes give the sale back; Connect webhook event list (PR #446)
 
 - `charge.dispute.closed` is handled for marketplace orders and shop orders.

@@ -506,7 +506,7 @@ your production database**. (28 were pending at that run; the repository has
 added more since.)
 
 It is in the repository. `010_sonara_platform_current_schema.sql` creates it,
-and `pnpm run verify:migration-replay` applies all 160 migrations to an empty
+and `pnpm run verify:migration-replay` applies all 161 migrations to an empty
 PostgreSQL and gets a working schema every time. So the migration set is fine.
 What has gone wrong is that production's migration history says
 `010_sonara_platform_current_schema.sql` is already applied and the table it
@@ -771,6 +771,39 @@ other credentials in GitHub Actions artifacts.
 Until one of those paths has a completed restore drill, SONARA has rollback
 instructions and schema evidence, but it does not have proved customer-data
 recovery.
+
+## 10 — Let campaign emails report what happened to them
+
+Added 7 October 2026. A Growth Studio campaign records that the email provider
+*accepted* each message. Whether it then reached the inbox, bounced, was marked
+as spam, was opened or had a link followed only reaches this application if
+Resend is told where to report it. Until then a campaign's page says "Delivered
+to the provider" and nothing after that, and says why.
+
+### Do this
+
+1. In the Resend dashboard, open **Webhooks** and add an endpoint:
+
+   ```
+   https://sonaraindustries.com/api/webhooks/resend
+   ```
+
+2. Subscribe it to these events: `email.delivered`, `email.delivery_delayed`,
+   `email.bounced`, `email.complained`, `email.opened`, `email.clicked`,
+   `email.failed`, `email.suppressed`.
+3. Copy the endpoint's signing secret (it starts with `whsec_`) into Vercel
+   Production as `RESEND_WEBHOOK_SECRET`, and redeploy.
+4. Apply migration `20261007130000_what_happened_to_a_campaign_email.sql`.
+
+### How to tell it worked
+
+Send a campaign to an address you own. Within a minute its page under
+**Growth Studio → Your campaigns** shows **What happened to the emails**, with the
+message counted under *Reached the inbox server*.
+
+Opens and clicks are only reported if open and click tracking are switched on
+for the sending domain in Resend. Leaving them off is a reasonable choice: the
+page says so rather than showing a low number as if nobody read the email.
 
 ## What is not on this list, and why
 

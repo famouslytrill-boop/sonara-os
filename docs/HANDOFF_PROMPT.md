@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3099 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3114 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 160 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 161 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 496 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 497 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,70 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 38 most recent entries of 464 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 38 most recent entries of 465 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A campaign email says what happened to it
+
+The Growth chain runs lead → campaign → channel → outbound connector → delivery
+receipt → engagement → conversion → ROI. It stopped at the connector:
+`growth_campaign_sends` records that Resend *accepted* a message, and nothing
+after that. Whether the message reached the inbox, bounced, was marked as spam,
+was opened or had a link followed was never recorded. A campaign's page said
+"Emails delivered to the provider", which is accurate and reads as "delivered".
+
+What changed:
+- **`POST /api/webhooks/resend`** (`routes/sonara-email-receipt-routes.cjs`):
+  - Verifies the Svix signature over the raw body, within five minutes.
+  - Finds the accepted send by the provider's message id. The organization and
+    campaign come from that row, never from the event.
+  - Records one row in the new append-only `growth_email_delivery_events`,
+    keyed on `svix-id`, so a resend is a duplicate.
+  - Acknowledges an email that is not a campaign send (a sign-in email, an
+    invoice) and records nothing.
+  - Is rate limited, and mounted raw before the body parsers.
+- **Tenant guard:** the webhook's one cross-tenant read is a pinned lookup
+  (exact keys, `status=eq.accepted`, `limit=1`, three columns).
+- **Campaign page:** a new "What happened to the emails" card.
+  - It counts each email once, so three opens of one email are one opened email.
+  - It is stated against the emails the provider can report on. An accepted
+    message sent through the single-message endpoint returns no id, so "40
+    delivered" means 40 of those reportable, which the page says.
+  - Opens are labelled as depending on tracking.
+- **Next step:** a spam complaint, then a permanent bounce, now set the next
+  step, after new leads and refused sends.
+
+Suppression was already handled: Resend suppresses bounced and complained
+addresses, and the send handler reads that list. So this records and reports
+rather than adding a second suppression.
+
+**A design mistake caught by a failing test.** The receipt read first went into
+the same readability gate as spend and conversions. An unreadable receipt table
+then withheld the campaign's return, and the table does not exist in production
+until its migration is applied. Receipts are now summarised on their own, with
+their own "could not be read" state.
+
+**The signature check is held to the vendor's value.** Svix publishes a test
+vector (docs.svix.com/receiving/verifying-payloads/how-manual), and the test
+reproduces it.
+
+Falsified six ways, each failing a named test:
+- no timestamp tolerance;
+- any signature version accepted;
+- a replay not deduplicated;
+- events counted instead of emails;
+- receipts gating the return;
+- every accepted send used as the denominator.
+
+**Owner steps** (OWNER-STEPS step 10):
+- Add the Resend webhook endpoint with its eight events.
+- Set `RESEND_WEBHOOK_SECRET`.
+- Apply `20261007130000`.
+
+
 
 ### 2026-10-07 - A dispute the seller wins gives the sale back
 
@@ -2098,54 +2157,3 @@ which lists a conflicted path once per stage. Run with conflicts unresolved it r
 365 shipped files; on the resolved tree it reads 349. Neither is wrong — the first was
 counting the same files three times. Resolve the merge before pinning any derived
 count, or the figure that gets committed is an artefact of the conflict.
-
-
-
-
-### 2026-10-02 - A page that said a read had failed when there was nothing to read
-
-Found while testing something else, which is the only reason it was found at all.
-
-Hardening `groupBy` in `routes/sonara-creator-project-graph-routes.cjs` -- a dynamic
-property write of the same shape as the storefront's injection, though reached from
-the database rather than from a request -- needed a test, so one fed it a row whose
-`asset_id` was `__proto__`. The guard dropped the row, the asset ended up with no
-group, and the page said:
-
-> Cover art -- we could not read its versions just now. That is not the same as
-> having none.
-
-Which is itself false. The read had succeeded. The asset had no versions.
-
-**`graphForBrief` was inferring a failed read from a missing key**, and both cases
-produce a missing key: a read that failed, and an asset with no versions yet. The
-map cannot tell them apart, and guessing picked the alarming one -- so the page told
-a creator something definite and wrong about their own data on the strength of a
-request that had worked. That is this repository's recurring defect pointed the
-other way round: not a success reported falsely, but a failure.
-
-Worse, **my own earlier test had encoded the conflation**: "reports an asset whose
-versions could not be read as unreadable, not as empty", asserting exactly this
-behaviour with an empty map. It was written to guard the three-state discipline and
-instead froze a two-state guess.
-
-The fix is an explicit `versionsReadable`, passed by the caller, which is the only
-place that knows. A missing key now means the asset has no versions. The route
-passes `read.versions.ok` even though it already bails on a failed read -- being
-explicit there is the point, because the module must not guess it.
-
-Two tests now, where there was one: an unreadable read with `versionsReadable: false`
-reports unreadable, and an empty map with the default reports no versions. Falsified
-by restoring the inference: 2 red, by name.
-
-The `groupBy` guard that started this is covered too -- removing it leaves
-`out["__proto__"]` reading `Object.prototype`, and `.push` on it throws, so a
-malformed row takes the page down. 1 red. It had been green with the guard removed
-until this test existed, which made it an unverified check: exactly what
-`.claude/skills/checks-that-cannot-lie/SKILL.md` says to assume about any check that
-has never failed.
-
-`lib/sonara-industries-tools.cjs` has the same `values[key] = parsed` shape and is
-**not** a problem: `key` comes from a `spec` literal written a few lines below each
-call, and the request supplies the value, which is parsed as a number. Stated in the
-file, because the two look identical and only one of them is a bug.
