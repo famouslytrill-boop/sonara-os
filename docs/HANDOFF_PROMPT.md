@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 156 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 452 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 453 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,57 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 28 most recent entries of 446 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 28 most recent entries of 447 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Market evidence is recorded from the page
+
+`/market-intelligence` and its three studio pages promised "track customer
+segments, competitor evidence, pricing, market signals, scored opportunities,
+and portfolio decisions" and showed four counts and some guidance. Every record
+type could be written only by an API client. `tests/form-reachability.test.js`
+excused that as deliberate -- "a free-text form would produce exactly the
+invented market data the page exists to refuse" -- and the reason did not hold:
+the endpoints already accepted the same records from any client under the same
+validation, so the missing form kept out the customer, not invented data.
+
+Now each page lists its studio's segments, competitors, signals and
+opportunities (the parent page lists all four studios and asks which a new
+record belongs to), with a form under each that posts to the endpoint that was
+always there. The evidence rules are the endpoints' and reach the form
+unchanged: an https source and the date a competitor's details were checked or a
+signal was observed, a confidence level, a score on the published scale. A
+browser posting a form is sent back to the page with the outcome named by a key
+the page translates -- only known keys are printed, so a link cannot put its own
+sentence on the page -- and an API client gets the JSON it always got.
+
+`/market-intelligence/opportunities/:id` is new: the score shown as the sum it
+is, the reviews with the form that records one (a review is the only thing that
+moves the state), a rescore form that recalculates the score and leaves the
+state alone, and the focus evidence `lib/sonara-market-focus.cjs` reads, saved
+in exactly its shape (whole cents for one month, an ISO measured-at) and refused
+when any part is missing. Fetching a source page now shows the text beside a
+signal form prefilled with only the address and the site's name; nothing is
+written and the summary, type and confidence are never guessed.
+
+The option lists moved into `lib/sonara-market-intelligence-pages.cjs` and the
+routes validate against those same arrays. Pinned by
+`tests/market-evidence-is-recorded-from-the-page.test.js` (11 tests, every
+dropdown value posted and accepted); falsified eight ways, each failing by name:
+a browser answered with JSON, a studio page recording into no studio, a failed
+read shown as empty, any back address accepted, the rescore form carrying the
+state, partial focus evidence accepted, the notice printing text from the
+address, and the page listing nothing.
+
+Also corrected in the same exemption list: `/api/motion/events` was excused as
+"interface telemetry, posted by public/sonara-one.js". No file in `public/`
+posts to it and `git log -S` finds no commit that ever made one do so. The
+reason now says what is true. Workspace fallbacks 61 -> 52.
+
+
 
 ### 2026-10-07 - Every roadmap stage gate can be passed from the page
 
@@ -2025,67 +2071,3 @@ PostgreSQL initdb. CI must supply that evidence before merge/activation.
 and the larger marketplace/community/device/worker/subscription-allowance
 roadmap. Research entries are not silently installed or enabled. Production
 migration application and deployment are still outstanding.
-
-
-
-### 2026-10-02 - A test that was only true on the day it was written
-
-`main` went red overnight with nothing pushed to it. Two tests in
-`tests/work-that-comes-round-again-comes-round-once.test.js` -- mine, from the
-recurring-work change on 1 October -- failed because the date changed.
-
-    AssertionError: the task was dated the first missed day rather than the most recent one
-    + actual   '2026-10-02T12:00:00.000Z'
-    - expected '2026-10-01T12:00:00.000Z'
-
-The engine was right and the test was wrong. `const TODAY = "2026-10-01"` was a
-literal, and the comment above it read "Fixed so every assertion below reads
-against one day rather than against whenever the suite happens to run" -- which is
-the reasoning error, written down and made to look deliberate.
-
-**One constant was doing two incompatible jobs.** Eight engine tests inject the
-clock (`isDue(template, { now: NOW })`) and their arithmetic depends on a pinned
-day: `passedOver: 20` is exactly 10 September to 1 October, so a moving day would
-make them meaningless. Two route tests drive
-`POST /api/business/recurring-work/run` over HTTP, where the engine reads the
-process clock and no fixture can reach it. Those two compared the real clock's
-answer against the literal, so they were true on 1 October and false on 2 October.
-
-Now split: `FIXED_DAY` stays pinned for the injected-clock tests, and `REAL_TODAY`
-plus a `daysBefore` helper derive the route tests' expectations from the same
-clock the code reads.
-
-### A second one, four days from going off
-
-Then the file was searched for the shape rather than for the failure: every
-`it(...)` that calls `request(app)` and also carries a date literal. Four came
-back, and one was a bomb.
-
-"records the occurrence it issued, not the day it was pressed" used a weekly
-template starting 4 August, last issued 8 September. Those occurrences land on 29
-September and then **6 October**. It passed on 2 October and would have started
-failing on 6 October. Same defect, not yet triggered, and it would have broken
-`main` again on a day nobody was expecting it.
-
-The other three send `starts_on: "2026-10-06"` as form input, and
-`lib/sonara-recurring-tasks.cjs` never compares `starts_on` to today -- checked
-rather than assumed, because a past start date is the entire point of catch-up.
-Those are genuinely date-independent and were left alone.
-
-### Kept sharp rather than made to pass
-
-The easy fix is to assert whatever the engine produced, which would have removed
-the failure and the test. Both route tests now assert in both directions: the task
-carries the most recent day due **and** not the first day missed; the template
-moves to the occurrence **and** not to the day the button was pressed. Those two
-days are deliberately different -- the weekly fixture lands three days before
-today -- because if they coincided the second assertion would prove nothing.
-
-Proven by breaking: reintroducing the stepping bug in `latestDue` turns **seven**
-red including the HTTP-driven one, and making the route record the press day turns
-the new assertion red by name. Restores were copy-aside plus `md5sum -c`.
-
-`faketime` is not available here, so date-independence is not proven by moving the
-clock -- it rests on there being no date literal left in either route test and on
-both expectations deriving from the clock the route reads. Worth saying plainly
-rather than claiming more.

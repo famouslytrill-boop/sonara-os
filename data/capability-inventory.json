@@ -11,12 +11,12 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 936,
+    "routeOperationCount": 939,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 565,
+      "GET": 566,
       "PATCH": 10,
-      "POST": 358
+      "POST": 360
     },
     "workspaceCount": 12,
     "declaredPageCount": 300,
@@ -30,27 +30,27 @@
       "research_lab": 15,
       "shared_account": 28,
       "shared_infrastructure": 3,
-      "sonara_shared": 148,
+      "sonara_shared": 151,
       "sonara_shared_api": 117
     },
     "actionDestinationCounts": {
-      "exact": 354,
-      "form_reference": 333,
+      "exact": 355,
+      "form_reference": 340,
       "machine_ingress": 3,
-      "parent_route": 73,
-      "route_pair": 112,
-      "workspace_fallback": 61
+      "parent_route": 74,
+      "route_pair": 115,
+      "workspace_fallback": 52
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 153,
       "explicit_resource_registry": 262,
-      "handler_source_table_reference": 489,
+      "handler_source_table_reference": 492,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 61,
-    "formActionLinkCount": 112,
+    "routesUsingWorkspaceHomeFallback": 52,
+    "formActionLinkCount": 120,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
     "routesTruncatedByPersistenceTraceBudget": [],
@@ -83,7 +83,7 @@
     "migrationCount": 156,
     "databaseFunctionCount": 38,
     "databaseTriggerCount": 51,
-    "routesCallingDatabaseFunctions": 651,
+    "routesCallingDatabaseFunctions": 654,
     "routesWithMissingDatabaseFunctionDefinition": 0,
     "routeDataContractsNeedingExplicitReview": 0,
     "routeDataReviewByMethod": {},
@@ -94,7 +94,7 @@
       "cross_workspace_formulas": 2,
       "growth_studio": 5,
       "shared_infrastructure": 1,
-      "sonara_shared_api": 43
+      "sonara_shared_api": 34
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -1002,8 +1002,8 @@
       "routePrefixes": [
         "/"
       ],
-      "routeCount": 148,
-      "registeredPageCount": 125,
+      "routeCount": 151,
+      "registeredPageCount": 126,
       "registeredPageRoutes": [
         "/",
         "/about",
@@ -1072,6 +1072,7 @@
         "/manifest.webmanifest",
         "/market-intelligence",
         "/market-intelligence/invention-systems",
+        "/market-intelligence/opportunities/:opportunityId",
         "/marketplace",
         "/marketplace/:id",
         "/marketplace/orders/:orderId",
@@ -46982,7 +46983,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 100
+        "line": 103
       },
       "contractCompleteness": {
         "route": true,
@@ -47100,7 +47101,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 36
+        "line": 39
       },
       "contractCompleteness": {
         "route": true,
@@ -47121,9 +47122,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "form_reference",
+        "reason": "page_handler_mentions_action_path"
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -47534,7 +47535,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 249
+        "line": 255
       },
       "contractCompleteness": {
         "route": true,
@@ -47555,9 +47556,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -48037,7 +48038,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 292
+        "line": 298
       },
       "contractCompleteness": {
         "route": true,
@@ -48726,7 +48727,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 40
+        "line": 43
       },
       "contractCompleteness": {
         "route": true,
@@ -49160,7 +49161,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 71
+        "line": 74
       },
       "contractCompleteness": {
         "route": true,
@@ -49594,7 +49595,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 209
+        "line": 215
       },
       "contractCompleteness": {
         "route": true,
@@ -60835,10 +60836,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -60867,6 +60871,10 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "business_memberships",
+          "market_intelligence_competitors",
+          "market_intelligence_opportunities",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -60931,6 +60939,242 @@
                 },
                 {
                   "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_competitors",
+            "tableId": "table:market_intelligence_competitors",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_segments",
+            "tableId": "table:market_intelligence_segments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_signals",
+            "tableId": "table:market_intelligence_signals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
@@ -61130,7 +61374,9 @@
           "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
           "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
           "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
           "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -61146,13 +61392,13 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 417
+        "line": 444
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -139045,10 +139291,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -139077,6 +139326,10 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "business_memberships",
+          "market_intelligence_competitors",
+          "market_intelligence_opportunities",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -139141,6 +139394,242 @@
                 },
                 {
                   "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_competitors",
+            "tableId": "table:market_intelligence_competitors",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_segments",
+            "tableId": "table:market_intelligence_segments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_signals",
+            "tableId": "table:market_intelligence_signals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
@@ -139340,7 +139829,9 @@
           "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
           "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
           "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
           "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -139356,13 +139847,13 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 417
+        "line": 444
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -173587,10 +174078,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -173619,6 +174113,10 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "business_memberships",
+          "market_intelligence_competitors",
+          "market_intelligence_opportunities",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -173683,6 +174181,242 @@
                 },
                 {
                   "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_competitors",
+            "tableId": "table:market_intelligence_competitors",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_segments",
+            "tableId": "table:market_intelligence_segments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_signals",
+            "tableId": "table:market_intelligence_signals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
@@ -173882,7 +174616,9 @@
           "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
           "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
           "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
           "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -173898,13 +174634,13 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 417
+        "line": 444
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -192845,10 +193581,13 @@
       "request": {
         "pathParams": [],
         "body": [],
-        "query": [],
+        "query": [
+          "done",
+          "problem"
+        ],
         "params": [],
         "bodyAccessed": false,
-        "queryAccessed": false,
+        "queryAccessed": true,
         "paramsAccessed": false,
         "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
@@ -192877,6 +193616,10 @@
         "mappingStatus": "handler_source_table_reference",
         "directTables": [
           "business_memberships",
+          "market_intelligence_competitors",
+          "market_intelligence_opportunities",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -192941,6 +193684,242 @@
                 },
                 {
                   "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_competitors",
+            "tableId": "table:market_intelligence_competitors",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_competitors_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_segments",
+            "tableId": "table:market_intelligence_segments",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_segments_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_signals",
+            "tableId": "table:market_intelligence_signals",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_signals_select_member",
                   "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
                 }
               ]
@@ -193143,7 +194122,9 @@
           "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
           "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
           "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
           "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
           "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
           "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
@@ -193159,13 +194140,13 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 417
+        "line": 444
       },
       "contractCompleteness": {
         "route": true,
         "workspace": true,
         "destination": true,
-        "inputEvidence": "no_named_fields_found_or_delegated",
+        "inputEvidence": "handler_form_or_path_fields_found",
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": false,
@@ -193259,6 +194240,482 @@
         "inputEvidence": "no_named_fields_found_or_delegated",
         "outputEvidence": "handler-source",
         "persistence": "provider_endpoint_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /market-intelligence/opportunities/:opportunityId",
+      "method": "GET",
+      "route": "/market-intelligence/opportunities/:opportunityId",
+      "kind": "page_or_download",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "opportunityId"
+        ],
+        "body": [],
+        "query": [
+          "done",
+          "problem"
+        ],
+        "params": [
+          "opportunityId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": true,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect",
+          "send"
+        ],
+        "statusCodes": [
+          200
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "market_intelligence_opportunities",
+          "market_intelligence_reviews",
+          "organization_memberships",
+          "organizations",
+          "profiles"
+        ],
+        "candidateTables": [
+          "market_intelligence_competitors",
+          "market_intelligence_events",
+          "market_intelligence_opportunities",
+          "market_intelligence_reviews",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
+          "research_sources",
+          "reviews"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_reviews",
+            "tableId": "table:market_intelligence_reviews",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_reviews_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [
+          "supabase_auth:token",
+          "supabase_auth:user"
+        ],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/market-intelligence-routes.cjs",
+        "moduleTableCandidateCount": 8,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/market-intelligence-routes.cjs",
+        "line": 347
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
         "openApi": false,
         "requestFieldSource": "not_declared"
       },
@@ -212899,9 +214356,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -212935,30 +214392,15 @@
         "pathParams": [
           "opportunityId"
         ],
-        "body": [
-          "metadata",
-          "name",
-          "next_review_at",
-          "nextReviewAt",
-          "owner_name",
-          "ownerName",
-          "problem",
-          "product_lifecycle_initiative_id",
-          "productLifecycleInitiativeId",
-          "proposed_value",
-          "proposedValue",
-          "state",
-          "target_segment",
-          "targetSegment"
-        ],
+        "body": [],
         "query": [],
         "params": [
           "opportunityId"
         ],
         "bodyAccessed": true,
         "queryAccessed": false,
-        "paramsAccessed": true,
-        "wholeBodyForwarded": true,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
         "computedBodyFieldAccess": false,
         "headers": [],
         "cookies": [],
@@ -212974,11 +214416,7 @@
           200,
           400
         ],
-        "jsonFieldsObserved": [
-          "code",
-          "ok",
-          "opportunity"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -213351,7 +214789,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 303
+        "line": 309
       },
       "contractCompleteness": {
         "route": true,
@@ -213361,7 +214799,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "not_declared"
       },
       "action": true
     },
@@ -302988,9 +304426,15 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/market-intelligence",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/market-intelligence",
+          "/creator-studio/market-intelligence",
+          "/growth-studio/market-intelligence",
+          "/market-intelligence"
+        ]
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -303023,6 +304467,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "billing_period",
           "billingPeriod",
           "capabilities",
@@ -303056,6 +304501,20 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "billing_period",
+          "capabilities",
+          "category",
+          "currency",
+          "entry_price",
+          "name",
+          "notes",
+          "pricing_model",
+          "source_url",
+          "strengths",
+          "verified_at",
+          "weaknesses"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -303065,14 +304524,9 @@
         ],
         "statusCodes": [
           201,
-          400,
-          503
+          400
         ],
-        "jsonFieldsObserved": [
-          "code",
-          "competitor",
-          "ok"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -303445,7 +304899,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 101
+        "line": 104
       },
       "contractCompleteness": {
         "route": true,
@@ -303455,7 +304909,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -303466,9 +304920,15 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/market-intelligence",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/market-intelligence",
+          "/creator-studio/market-intelligence",
+          "/growth-studio/market-intelligence",
+          "/market-intelligence"
+        ]
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -303516,6 +304976,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "source_url",
           "sourceUrl"
         ],
@@ -303529,6 +304990,9 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "source_url"
+        ],
         "openApiBody": "#/components/requestBodies/JsonBody"
       },
       "response": {
@@ -303543,16 +305007,7 @@
           403,
           503
         ],
-        "jsonFieldsObserved": [
-          "characters",
-          "code",
-          "detail",
-          "fetched",
-          "note",
-          "ok",
-          "sourceUrl",
-          "truncated"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -303887,7 +305342,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 151
+        "line": 154
       },
       "contractCompleteness": {
         "route": true,
@@ -303897,7 +305352,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -303908,9 +305363,15 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/market-intelligence",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/market-intelligence",
+          "/creator-studio/market-intelligence",
+          "/growth-studio/market-intelligence",
+          "/market-intelligence"
+        ]
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -303943,6 +305404,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "metadata",
           "name",
           "next_review_at",
@@ -303970,6 +305432,14 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "name",
+          "next_review_at",
+          "owner_name",
+          "problem",
+          "proposed_value",
+          "target_segment"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -303979,14 +305449,9 @@
         ],
         "statusCodes": [
           201,
-          400,
-          503
+          400
         ],
-        "jsonFieldsObserved": [
-          "code",
-          "ok",
-          "opportunity"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -304359,7 +305824,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 250
+        "line": 256
       },
       "contractCompleteness": {
         "route": true,
@@ -304369,7 +305834,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -304380,9 +305845,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action"
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -304417,6 +305882,7 @@
           "opportunityId"
         ],
         "body": [
+          "back",
           "customer_evidence_count",
           "customerEvidenceCount",
           "decision",
@@ -304440,6 +305906,10 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "decision",
+          "rationale"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -304451,11 +305921,7 @@
           201,
           400
         ],
-        "jsonFieldsObserved": [
-          "code",
-          "ok",
-          "review"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -304888,7 +306354,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 340
+        "line": 314
       },
       "contractCompleteness": {
         "route": true,
@@ -304898,7 +306364,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -304909,9 +306375,15 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/market-intelligence",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/market-intelligence",
+          "/creator-studio/market-intelligence",
+          "/growth-studio/market-intelligence",
+          "/market-intelligence"
+        ]
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -304944,6 +306416,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "buying_triggers",
           "buyingTriggers",
           "constraints",
@@ -304974,6 +306447,18 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "buying_triggers",
+          "constraints",
+          "customer_type",
+          "description",
+          "geography",
+          "jobs_to_be_done",
+          "name",
+          "pain_points",
+          "segment_key",
+          "status"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -304983,14 +306468,9 @@
         ],
         "statusCodes": [
           201,
-          400,
-          503
+          400
         ],
-        "jsonFieldsObserved": [
-          "code",
-          "ok",
-          "segment"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -305363,7 +306843,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 72
+        "line": 75
       },
       "contractCompleteness": {
         "route": true,
@@ -305373,7 +306853,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -305384,9 +306864,15 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/market-intelligence",
+        "confidence": "form_reference",
+        "reason": "rendered_form_action_on_several_pages",
+        "pages": [
+          "/business-builder/market-intelligence",
+          "/creator-studio/market-intelligence",
+          "/growth-studio/market-intelligence",
+          "/market-intelligence"
+        ]
       },
       "accessMiddleware": [
         "requireCustomer"
@@ -305419,6 +306905,7 @@
       "request": {
         "pathParams": [],
         "body": [
+          "back",
           "confidence",
           "expires_at",
           "expiresAt",
@@ -305455,6 +306942,20 @@
         "headers": [],
         "cookies": [],
         "multipart": false,
+        "renderedFormFieldsObserved": [
+          "confidence",
+          "expires_at",
+          "geography",
+          "metric_name",
+          "metric_unit",
+          "metric_value",
+          "observed_at",
+          "signal_type",
+          "source_name",
+          "source_url",
+          "summary",
+          "title"
+        ],
         "openApiBody": null
       },
       "response": {
@@ -305464,14 +306965,9 @@
         ],
         "statusCodes": [
           201,
-          400,
-          503
+          400
         ],
-        "jsonFieldsObserved": [
-          "code",
-          "ok",
-          "signal"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -305844,7 +307340,7 @@
       },
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 210
+        "line": 216
       },
       "contractCompleteness": {
         "route": true,
@@ -305854,7 +307350,7 @@
         "outputEvidence": "handler-source",
         "persistence": "handler_source_table_reference",
         "openApi": true,
-        "requestFieldSource": "handler_or_route_path_observation"
+        "requestFieldSource": "rendered_form_plus_handler_observation"
       },
       "action": true
     },
@@ -390242,6 +391738,892 @@
       "action": true
     },
     {
+      "id": "POST /market-intelligence/opportunities/:opportunityId",
+      "method": "POST",
+      "route": "/market-intelligence/opportunities/:opportunityId",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "route_pair",
+        "reason": "matching_get_route"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "opportunityId"
+        ],
+        "body": [
+          "back",
+          "name",
+          "next_review_at",
+          "owner_name",
+          "problem",
+          "proposed_value",
+          "target_segment"
+        ],
+        "query": [],
+        "params": [
+          "opportunityId"
+        ],
+        "bodyAccessed": true,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": true,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "name",
+          "next_review_at",
+          "owner_name",
+          "problem",
+          "proposed_value",
+          "target_segment"
+        ]
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "market_intelligence_events",
+          "market_intelligence_opportunities",
+          "organization_memberships",
+          "organizations",
+          "profiles"
+        ],
+        "candidateTables": [
+          "market_intelligence_competitors",
+          "market_intelligence_events",
+          "market_intelligence_opportunities",
+          "market_intelligence_reviews",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
+          "research_sources",
+          "reviews"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_events",
+            "tableId": "table:market_intelligence_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [
+          "supabase_auth:token",
+          "supabase_auth:user"
+        ],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/market-intelligence-routes.cjs",
+        "moduleTableCandidateCount": 8,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/market-intelligence-routes.cjs",
+        "line": 386
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
+      "id": "POST /market-intelligence/opportunities/:opportunityId/focus-evidence",
+      "method": "POST",
+      "route": "/market-intelligence/opportunities/:opportunityId/focus-evidence",
+      "kind": "form_or_action",
+      "workspace": "sonara_shared",
+      "destination": {
+        "route": "/market-intelligence/opportunities/:opportunityId",
+        "confidence": "parent_route",
+        "reason": "nearest_registered_parent_page"
+      },
+      "accessMiddleware": [
+        "requireCustomer"
+      ],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "opportunityId"
+        ],
+        "body": [
+          "back",
+          "cost_ceiling",
+          "customer_commitment",
+          "measured_on",
+          "revenue",
+          "source_reference",
+          "variable_cost"
+        ],
+        "query": [],
+        "params": [
+          "opportunityId"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": false,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false,
+        "renderedFormFieldsObserved": [
+          "cost_ceiling",
+          "customer_commitment",
+          "measured_on",
+          "revenue",
+          "source_reference",
+          "variable_cost"
+        ]
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect"
+        ],
+        "statusCodes": [],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_memberships",
+          "market_intelligence_events",
+          "market_intelligence_opportunities",
+          "organization_memberships",
+          "organizations",
+          "profiles"
+        ],
+        "candidateTables": [
+          "market_intelligence_competitors",
+          "market_intelligence_events",
+          "market_intelligence_opportunities",
+          "market_intelligence_reviews",
+          "market_intelligence_segments",
+          "market_intelligence_signals",
+          "research_sources",
+          "reviews"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "market_intelligence_events",
+            "tableId": "table:market_intelligence_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "market_intelligence_opportunities",
+            "tableId": "table:market_intelligence_opportunities",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260725120000_market_intelligence_system.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "market_intelligence_opportunities_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [
+          "supabase_auth:token",
+          "supabase_auth:user"
+        ],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/market-intelligence-routes.cjs",
+        "moduleTableCandidateCount": 8,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260725120000_market_intelligence_system.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/market-intelligence-routes.cjs",
+        "line": 393
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "rendered_form_plus_handler_observation"
+      },
+      "action": true
+    },
+    {
       "id": "POST /marketplace/:id/buy",
       "method": "POST",
       "route": "/marketplace/:id/buy",
@@ -397543,6 +399925,118 @@
     },
     {
       "method": "POST",
+      "action": "/api/market-intelligence/competitors",
+      "pages": [
+        "/business-builder/market-intelligence",
+        "/creator-studio/market-intelligence",
+        "/growth-studio/market-intelligence",
+        "/market-intelligence"
+      ],
+      "formFieldNamesObserved": [
+        "billing_period",
+        "capabilities",
+        "category",
+        "currency",
+        "entry_price",
+        "name",
+        "notes",
+        "pricing_model",
+        "source_url",
+        "strengths",
+        "verified_at",
+        "weaknesses"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/market-intelligence/fetch-source",
+      "pages": [
+        "/business-builder/market-intelligence",
+        "/creator-studio/market-intelligence",
+        "/growth-studio/market-intelligence",
+        "/market-intelligence"
+      ],
+      "formFieldNamesObserved": [
+        "source_url"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/market-intelligence/opportunities",
+      "pages": [
+        "/business-builder/market-intelligence",
+        "/creator-studio/market-intelligence",
+        "/growth-studio/market-intelligence",
+        "/market-intelligence"
+      ],
+      "formFieldNamesObserved": [
+        "name",
+        "next_review_at",
+        "owner_name",
+        "problem",
+        "proposed_value",
+        "target_segment"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/market-intelligence/opportunities/:parameter/reviews",
+      "pages": [
+        "/market-intelligence/opportunities/:opportunityId"
+      ],
+      "formFieldNamesObserved": [
+        "decision",
+        "rationale"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/market-intelligence/segments",
+      "pages": [
+        "/business-builder/market-intelligence",
+        "/creator-studio/market-intelligence",
+        "/growth-studio/market-intelligence",
+        "/market-intelligence"
+      ],
+      "formFieldNamesObserved": [
+        "buying_triggers",
+        "constraints",
+        "customer_type",
+        "description",
+        "geography",
+        "jobs_to_be_done",
+        "name",
+        "pain_points",
+        "segment_key",
+        "status"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/api/market-intelligence/signals",
+      "pages": [
+        "/business-builder/market-intelligence",
+        "/creator-studio/market-intelligence",
+        "/growth-studio/market-intelligence",
+        "/market-intelligence"
+      ],
+      "formFieldNamesObserved": [
+        "confidence",
+        "expires_at",
+        "geography",
+        "metric_name",
+        "metric_unit",
+        "metric_value",
+        "observed_at",
+        "signal_type",
+        "source_name",
+        "source_url",
+        "summary",
+        "title"
+      ]
+    },
+    {
+      "method": "POST",
       "action": "/api/research-lab/subsystems/:parameter",
       "pages": [
         "/research-lab/subsystems/agent-foundation",
@@ -397966,6 +400460,36 @@
         "/settings"
       ],
       "formFieldNamesObserved": []
+    },
+    {
+      "method": "POST",
+      "action": "/market-intelligence/opportunities/:parameter",
+      "pages": [
+        "/market-intelligence/opportunities/:opportunityId"
+      ],
+      "formFieldNamesObserved": [
+        "name",
+        "next_review_at",
+        "owner_name",
+        "problem",
+        "proposed_value",
+        "target_segment"
+      ]
+    },
+    {
+      "method": "POST",
+      "action": "/market-intelligence/opportunities/:parameter/focus-evidence",
+      "pages": [
+        "/market-intelligence/opportunities/:opportunityId"
+      ],
+      "formFieldNamesObserved": [
+        "cost_ceiling",
+        "customer_commitment",
+        "measured_on",
+        "revenue",
+        "source_reference",
+        "variable_cost"
+      ]
     },
     {
       "method": "GET",
@@ -489089,7 +491613,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 100
+        "line": 103
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489099,27 +491623,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 36
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/market-intelligence/opportunities",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 249
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/market-intelligence/opportunities/:opportunityId",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 292
+        "line": 39
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489129,7 +491633,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 40
+        "line": 43
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489139,7 +491643,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 71
+        "line": 74
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489149,7 +491653,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/market-intelligence-routes.cjs",
-        "line": 209
+        "line": 215
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489240,16 +491744,6 @@
       "source": {
         "file": "server.js",
         "line": 968
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "PATCH /api/market-intelligence/opportunities/:opportunityId",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 303
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489350,66 +491844,6 @@
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
         "line": 2186
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/market-intelligence/competitors",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 101
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/market-intelligence/fetch-source",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 151
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/market-intelligence/opportunities",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 250
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/market-intelligence/opportunities/:opportunityId/reviews",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 340
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/market-intelligence/segments",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 72
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/market-intelligence/signals",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/market-intelligence-routes.cjs",
-        "line": 210
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

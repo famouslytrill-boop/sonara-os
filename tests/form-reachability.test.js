@@ -38,8 +38,13 @@ const NO_FORM_NEEDED = {
   // where they set when it runs for them.
   "/api/agents/schedule/tick": "A scheduler calls this, not a customer. Customers set their schedule at /owner/agent-schedule.",
 
-  // Posted by client scripts, not by a person filling anything in.
-  "/api/motion/events": "Interface telemetry, posted by public/sonara-one.js.",
+  // Its reason here was "Interface telemetry, posted by public/sonara-one.js."
+  // Checked on 7 October 2026: no file in public/ posts to it, and
+  // `git log -S"/api/motion/events" -- public/` finds no commit that ever made
+  // one do so. The reason described a client that never existed. What is true:
+  // it stores raw device motion readings and nothing sends any, so it records
+  // nothing today -- and a form is the wrong way to send sensor readings anyway.
+  "/api/motion/events": "No client posts to it: nothing in public/ ever has. It stores raw device motion readings, which a person does not type, so a form is not the missing piece; a consented sensor client is.",
   // /api/location/events used to be here, exempted as "posted by client script"
   // while no script posted to it. It has a real form now -- the check-in form on
   // /staff/location -- so the exemption is gone rather than reworded. The
@@ -112,35 +117,16 @@ const NO_FORM_NEEDED = {
   "/api/business/automations/validate": "Validation is a preview API called by the workflow interface; it writes no automation and cannot be represented by a generic create form.",
   "/api/creator/workflows/plan": "Media planning is a preview API called by Creator Studio; it creates no provider job and must not be mistaken for a generation form.",
   "/api/creator/automations/validate": "Creator automation validation is a preview API; it writes no automation and requires the Creator Studio workflow interface.",
-  // Examined. This one creates nothing at all -- it fetches the text of a page
-  // so it does not have to be pasted, and returns it. The create-shaped scan
-  // matches it on the POST, which is the right default and the wrong answer
-  // here.
-  //
-  // Its reason used to end "and the signal form is still the only way anything
-  // is written". There is no signal form. Nothing in this repository posts to
-  // any market-intelligence endpoint from a page -- grep finds no form action,
-  // no create spec, nothing. The clause described a form that was never built,
-  // which is the same defect as a page describing a capability it does not have,
-  // sitting in the reason a check was excused.
-  "/api/market-intelligence/fetch-source": "Creates no record. It returns page text for a person to read; nothing is written by it.",
-  // The four below are examined now, and they share one answer.
-  //
-  // All four accept POSTs and no page offers a form for any of them. That is
-  // deliberate rather than missing: /*/market-intelligence is guidance plus a
-  // count of what the organization has recorded, and these are research records
-  // whose fields are structured enough that a free-text form would produce
-  // exactly the invented market data the page exists to refuse.
-  //
-  // What was genuinely wrong is now fixed and is worth stating here, because it
-  // is why these were worth examining at all: the page claimed "the workspace
-  // starts empty until organization-scoped evidence is recorded" while reading
-  // nothing, so a record written through any of these four was invisible from
-  // the moment it was created. The page counts them now.
-  "/api/market-intelligence/competitors": "API-only research record. No form by design: the page counts what is recorded rather than offering free text, which is how invented market data gets in.",
-  "/api/market-intelligence/opportunities": "API-only research record, scored and reviewed through their own endpoints rather than typed. The page counts what is recorded.",
-  "/api/market-intelligence/segments": "API-only research record. No form by design; the page counts what is recorded.",
-  "/api/market-intelligence/signals": "API-only research record. No form by design; the page counts what is recorded.",
+  // The five market-intelligence entries that stood here -- fetch-source and the
+  // four research records -- are gone because the forms exist now, on
+  // /market-intelligence and the three studio pages. Their reason was that "a
+  // free-text form would produce exactly the invented market data the page
+  // exists to refuse". It did not hold: the endpoints already accepted the same
+  // records from any API client under the same validation (an https source and
+  // the date it was checked or observed, a confidence level, a score on the
+  // published scale), so the missing form kept out the customer rather than the
+  // invented data. The forms carry those rules unchanged.
+
   // Examined together. The prompt library has pages -- /prompt-library and
   // /prompt-library/:slug -- carrying exactly one form: "Fill the template",
   // which posts to /prompt-library/:slug/render, produces a preview to read,

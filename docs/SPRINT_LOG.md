@@ -2,6 +2,50 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Market evidence is recorded from the page
+
+`/market-intelligence` and its three studio pages promised "track customer
+segments, competitor evidence, pricing, market signals, scored opportunities,
+and portfolio decisions" and showed four counts and some guidance. Every record
+type could be written only by an API client. `tests/form-reachability.test.js`
+excused that as deliberate -- "a free-text form would produce exactly the
+invented market data the page exists to refuse" -- and the reason did not hold:
+the endpoints already accepted the same records from any client under the same
+validation, so the missing form kept out the customer, not invented data.
+
+Now each page lists its studio's segments, competitors, signals and
+opportunities (the parent page lists all four studios and asks which a new
+record belongs to), with a form under each that posts to the endpoint that was
+always there. The evidence rules are the endpoints' and reach the form
+unchanged: an https source and the date a competitor's details were checked or a
+signal was observed, a confidence level, a score on the published scale. A
+browser posting a form is sent back to the page with the outcome named by a key
+the page translates -- only known keys are printed, so a link cannot put its own
+sentence on the page -- and an API client gets the JSON it always got.
+
+`/market-intelligence/opportunities/:id` is new: the score shown as the sum it
+is, the reviews with the form that records one (a review is the only thing that
+moves the state), a rescore form that recalculates the score and leaves the
+state alone, and the focus evidence `lib/sonara-market-focus.cjs` reads, saved
+in exactly its shape (whole cents for one month, an ISO measured-at) and refused
+when any part is missing. Fetching a source page now shows the text beside a
+signal form prefilled with only the address and the site's name; nothing is
+written and the summary, type and confidence are never guessed.
+
+The option lists moved into `lib/sonara-market-intelligence-pages.cjs` and the
+routes validate against those same arrays. Pinned by
+`tests/market-evidence-is-recorded-from-the-page.test.js` (11 tests, every
+dropdown value posted and accepted); falsified eight ways, each failing by name:
+a browser answered with JSON, a studio page recording into no studio, a failed
+read shown as empty, any back address accepted, the rescore form carrying the
+state, partial focus evidence accepted, the notice printing text from the
+address, and the page listing nothing.
+
+Also corrected in the same exemption list: `/api/motion/events` was excused as
+"interface telemetry, posted by public/sonara-one.js". No file in `public/`
+posts to it and `git log -S` finds no commit that ever made one do so. The
+reason now says what is true. Workspace fallbacks 61 -> 52.
+
 ### 2026-10-07 - Every roadmap stage gate can be passed from the page
 
 `/product-lifecycle/initiatives/:id` showed the readiness score and what was
