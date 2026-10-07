@@ -39,9 +39,9 @@
       "machine_ingress": 3,
       "parent_route": 77,
       "reviewed_no_page": 5,
-      "route_pair": 131,
+      "route_pair": 132,
       "static_page_link": 1,
-      "workspace_fallback": 18
+      "workspace_fallback": 17
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
@@ -51,7 +51,7 @@
       "handler_source_table_reference": 500,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 18,
+    "routesUsingWorkspaceHomeFallback": 17,
     "formActionLinkCount": 128,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
@@ -90,7 +90,7 @@
     "routeDataContractsNeedingExplicitReview": 0,
     "routeDataReviewByMethod": {},
     "routeDestinationReviewByWorkspace": {
-      "business_builder": 2,
+      "business_builder": 1,
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
       "growth_studio": 2,
@@ -7994,9 +7994,12 @@
       "kind": "api",
       "workspace": "business_builder",
       "destination": {
-        "route": "/business-builder/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/control-center",
+        "confidence": "route_pair",
+        "reason": "json_form_of_page",
+        "evidence": {
+          "function": "listBusinesses"
+        }
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -495267,16 +495270,6 @@
         "line": 1340
       },
       "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/business-builder/control-plane",
-      "workspace": "business_builder",
-      "source": {
-        "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 425
-      },
-      "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {

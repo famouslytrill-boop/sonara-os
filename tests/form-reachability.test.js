@@ -101,11 +101,19 @@ const NO_FORM_NEEDED = {
   // routes/sonara-last9-routes.cjs exist, so a record written through them is
   // invisible from the moment it is created. That is the shape that made the
   // market-intelligence page worth fixing.
-  // Listed at /creator-studio/generation/reference-analysis. The generation
-  // form's capability picker does not offer reference_analysis, and the
-  // validator special-cases it (`capability !== "reference_analysis"`), so only
-  // a direct POST makes one.
-  "/api/creator/reference-analyses": "Listed at /creator-studio/generation/reference-analysis and creatable only by direct POST; the generation form's capability picker does not offer reference_analysis. A form belongs on that page.",
+  // Corrected 7 October 2026. This said the analyses were "listed at
+  // /creator-studio/generation/reference-analysis". They are not listed
+  // anywhere: that path is a 302 to the generation studio, and nothing in
+  // server.js, routes/ or lib/ reads creator_reference_analyses -- the insert
+  // is the only reference. Rows are written as review_required and no runner
+  // or reviewer reads them.
+  //
+  // Whether a customer should be able to submit reference material for
+  // analysis at all is an anti-clone safety decision (AGENTS.md: "Enforce
+  // provenance, consent, and anti-clone safety"), left open on purpose in
+  // routes/creator-generation-routes.cjs. It is the owner's to make, and a form
+  // would make it for them.
+  "/api/creator/reference-analyses": "Nothing reads creator_reference_analyses -- no list, no reviewer, no runner -- and offering the submission is an anti-clone safety decision that is the owner's to make. A form would collect requests nobody acts on.",
   // Examined. integration_jobs is inserted here and read by nothing: no runner,
   // no page, no status transition anywhere in the repository. A form would let
   // somebody queue work that will never run, which is worse than no form. Its

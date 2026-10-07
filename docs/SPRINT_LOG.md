@@ -2,6 +2,26 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - An exemption that said "listed" about rows nothing reads
+
+`tests/form-reachability.test.js` excused `POST /api/creator/reference-analyses`
+because the analyses were "listed at /creator-studio/generation/reference-analysis".
+That path is a 302 to the generation studio, and nothing in the runtime reads
+`creator_reference_analyses`: the insert is the only reference. The reason now
+says so. Whether customers may submit reference material for analysis at all is
+an anti-clone safety decision, which `routes/creator-generation-routes.cjs`
+leaves open on purpose. It is the owner's to make, and building a form would
+make it for them.
+
+Also: `GET /api/business-builder/control-plane` and
+`/business-builder/control-center` both call `listBusinesses`, so it is recorded
+as a JSON twin. Workspace fallbacks 18 -> 17. Of the 17 left, 12 are JSON
+endpoints nothing in the repository calls: four readiness endpoints, billing
+status, the integration provider list, the invention catalog, prompt discovery,
+the public route list, the map snapshot, workflow planning and motion events.
+Each one needs a consumer or a decision to remove it, not a page invented to
+hold it.
+
 ### 2026-10-07 - A JSON endpoint that does what a form does
 
 `POST /api/prompt-library/render` fills in a starter template. The page's own
