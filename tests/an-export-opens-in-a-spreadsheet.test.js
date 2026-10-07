@@ -48,6 +48,25 @@ describe("an export opens in a spreadsheet", () => {
     }
   });
 
+  it("uses the stronger human spreadsheet guard for current formula starters and locale variants", () => {
+    for (const attack of ["=1+1","+SUM(A1)","-cmd","@SUM(A1)","\t=1","\r=1","\n=1","＝1+1","＋1+1","－cmd","＠SUM(A1)"]) {
+      const written = cell(attack, { profile: "spreadsheet_human" });
+      assert.equal(written.startsWith('"\t'), true, `${JSON.stringify(attack)} was written as ${written}`);
+      assert.equal(wasNeutralised(attack), true);
+    }
+    // Real numeric credits remain numbers, not text.
+    for (const number of ["-1","-12.50","+3","1e6"]) {
+      assert.equal(cell(number, { profile: "spreadsheet_human" }), number);
+    }
+  });
+
+  it("labels the guard profile used by a human-view CSV", () => {
+    const built = buildRecordCsv([{ note: "=DANGER()" }], ["note"], { profile: "spreadsheet_human" });
+    assert.equal(built.formulaGuard, "quoted_tab_prefix");
+    assert.equal(built.neutralised, 1);
+    assert.equal(built.body.includes('"\t=DANGER()"'), true);
+  });
+
   it("counts what it altered instead of changing records silently", () => {
     const built = buildRecordCsv(
       [{ note: "=DANGER()" }, { note: "ordinary" }, { note: "@ALSO()" }],

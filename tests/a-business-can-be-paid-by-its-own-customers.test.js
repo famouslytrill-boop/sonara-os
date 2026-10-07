@@ -8,7 +8,9 @@ const payments = require("../lib/sonara-connected-payments.cjs");
 // these assertions are about.
 function deps(env = {}) {
   return {
-    getEnv: (name) => env[name],
+    getEnv: (name) => name === "SONARA_CUSTOMER_FUNDS_MODE"
+       ? (Object.hasOwn(env, name) ? env[name] : "connect_direct_reviewed")
+       : env[name],
     serviceRoleHeaders: () => ({ apikey: "service-role", Authorization: "Bearer service-role" }),
     supabaseUrl: "https://project.supabase.co"
   };

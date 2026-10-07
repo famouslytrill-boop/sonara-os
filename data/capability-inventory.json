@@ -11,17 +11,17 @@
     ]
   },
   "summary": {
-    "routeOperationCount": 937,
+    "routeOperationCount": 938,
     "routesByMethod": {
       "DELETE": 3,
-      "GET": 566,
+      "GET": 567,
       "PATCH": 10,
       "POST": 358
     },
     "workspaceCount": 12,
     "declaredPageCount": 301,
     "workspaceRouteCounts": {
-      "business_builder": 339,
+      "business_builder": 340,
       "business_builder_agent_ops": 7,
       "creator_studio": 134,
       "cross_workspace_formulas": 5,
@@ -34,7 +34,7 @@
       "sonara_shared_api": 117
     },
     "actionDestinationCounts": {
-      "exact": 355,
+      "exact": 356,
       "form_reference": 333,
       "machine_ingress": 3,
       "parent_route": 73,
@@ -46,7 +46,7 @@
       "explicit_formula_result_registry": 1,
       "explicit_no_persistent_table_expected": 153,
       "explicit_resource_registry": 262,
-      "handler_source_table_reference": 489,
+      "handler_source_table_reference": 490,
       "provider_endpoint_reference": 29
     },
     "routesUsingWorkspaceHomeFallback": 61,
@@ -83,7 +83,7 @@
     "migrationCount": 156,
     "databaseFunctionCount": 38,
     "databaseTriggerCount": 51,
-    "routesCallingDatabaseFunctions": 651,
+    "routesCallingDatabaseFunctions": 652,
     "routesWithMissingDatabaseFunctionDefinition": 0,
     "routeDataContractsNeedingExplicitReview": 0,
     "routeDataReviewByMethod": {},
@@ -124,7 +124,7 @@
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
-    "infrastructureSourceFileCount": 45
+    "infrastructureSourceFileCount": 46
   },
   "workspaces": [
     {
@@ -136,13 +136,14 @@
         "/api/business-builder",
         "/api/business"
       ],
-      "routeCount": 339,
+      "routeCount": 340,
       "registeredPageCount": 96,
       "registeredPageRoutes": [
         "/business-builder/automations",
         "/business-builder/billing",
         "/business-builder/businesses",
         "/business-builder/businesses/:businessId",
+        "/business-builder/businesses/:businessId/integrations/:id/open-provider",
         "/business-builder/businesses/:businessId/manage/:resource",
         "/business-builder/catalog",
         "/business-builder/checklist",
@@ -1600,7 +1601,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 524
+        "line": 525
       },
       "contractCompleteness": {
         "route": true,
@@ -2080,7 +2081,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 599
+        "line": 603
       },
       "contractCompleteness": {
         "route": true,
@@ -3513,7 +3514,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1584
+        "line": 1587
       },
       "contractCompleteness": {
         "route": true,
@@ -3924,7 +3925,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1619
+        "line": 1622
       },
       "contractCompleteness": {
         "route": true,
@@ -6580,7 +6581,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 434
+        "line": 435
       },
       "contractCompleteness": {
         "route": true,
@@ -7048,7 +7049,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 473
+        "line": 474
       },
       "contractCompleteness": {
         "route": true,
@@ -7517,7 +7518,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 558
+        "line": 559
       },
       "contractCompleteness": {
         "route": true,
@@ -8424,7 +8425,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 425
+        "line": 426
       },
       "contractCompleteness": {
         "route": true,
@@ -9735,7 +9736,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -10496,7 +10497,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -11093,7 +11094,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -11663,7 +11664,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -12282,7 +12283,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -12951,7 +12952,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -13532,7 +13533,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -14093,7 +14094,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -15144,7 +15145,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -15752,7 +15753,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -17074,7 +17075,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -17638,7 +17639,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -18413,7 +18414,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -19064,7 +19065,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -19653,7 +19654,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -20711,7 +20712,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -21286,7 +21287,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -21881,7 +21882,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -22556,7 +22557,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -23144,7 +23145,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -23725,7 +23726,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -24286,7 +24287,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -24842,7 +24843,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -25856,7 +25857,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -26833,7 +26834,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -29503,7 +29504,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -30042,7 +30043,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -32182,7 +32183,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -32850,7 +32851,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -33430,7 +33431,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -34117,7 +34118,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -44675,7 +44676,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -44859,7 +44860,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1952
+        "line": 1955
       },
       "contractCompleteness": {
         "route": true,
@@ -45947,7 +45948,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2159
+        "line": 2162
       },
       "contractCompleteness": {
         "route": true,
@@ -46550,7 +46551,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -52414,7 +52415,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -52907,7 +52908,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -53460,7 +53461,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "contractCompleteness": {
         "route": true,
@@ -55702,7 +55703,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 423
+        "line": 424
       },
       "contractCompleteness": {
         "route": true,
@@ -56153,7 +56154,488 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 658
+        "line": 693
+      },
+      "contractCompleteness": {
+        "route": true,
+        "workspace": true,
+        "destination": true,
+        "inputEvidence": "handler_form_or_path_fields_found",
+        "outputEvidence": "handler-source",
+        "persistence": "handler_source_table_reference",
+        "openApi": false,
+        "requestFieldSource": "not_declared"
+      },
+      "action": false
+    },
+    {
+      "id": "GET /business-builder/businesses/:businessId/integrations/:id/open-provider",
+      "method": "GET",
+      "route": "/business-builder/businesses/:businessId/integrations/:id/open-provider",
+      "kind": "page_or_download",
+      "workspace": "business_builder",
+      "destination": {
+        "route": "/business-builder/businesses/:businessId/integrations/:id/open-provider",
+        "confidence": "exact",
+        "reason": "page_route"
+      },
+      "accessMiddleware": [],
+      "routeRegistry": null,
+      "openApi": null,
+      "request": {
+        "pathParams": [
+          "businessId",
+          "id"
+        ],
+        "body": [],
+        "query": [],
+        "params": [
+          "businessId",
+          "id"
+        ],
+        "bodyAccessed": false,
+        "queryAccessed": false,
+        "paramsAccessed": true,
+        "wholeBodyForwarded": false,
+        "computedBodyFieldAccess": false,
+        "headers": [],
+        "cookies": [],
+        "multipart": false
+      },
+      "response": {
+        "kinds": [
+          "json",
+          "redirect",
+          "send"
+        ],
+        "statusCodes": [
+          404,
+          409,
+          503
+        ],
+        "jsonFieldsObserved": [],
+        "redirectTargetsObserved": [
+          "/account/setup",
+          "/login"
+        ],
+        "dynamicJsonResponseObserved": true,
+        "fieldEvidence": "literal_response_objects_observed",
+        "evidence": "handler-source"
+      },
+      "data": {
+        "mappingStatus": "handler_source_table_reference",
+        "directTables": [
+          "business_control_audit_events",
+          "business_integration_connections",
+          "business_memberships",
+          "business_permission_grants",
+          "business_workspaces",
+          "organization_memberships",
+          "organizations",
+          "profiles"
+        ],
+        "candidateTables": [
+          "bookings",
+          "business_assets",
+          "business_bookings",
+          "business_channels",
+          "business_control_audit_events",
+          "business_employee_profiles",
+          "business_integration_connections",
+          "business_locations",
+          "business_ownership_transfers",
+          "business_permission_grants",
+          "business_service_catalog",
+          "business_workspaces",
+          "customer_records",
+          "customers",
+          "integrations",
+          "inventory_items",
+          "order_records",
+          "organization_memberships",
+          "organizations",
+          "products",
+          "profiles",
+          "quotes"
+        ],
+        "tableLineage": [
+          {
+            "table": "business_control_audit_events",
+            "tableId": "table:business_control_audit_events",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "business_integration_connections",
+            "tableId": "table:business_integration_connections",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723060500_business_integration_connections.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723060500_business_integration_connections.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723060500_business_integration_connections.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "business_memberships",
+            "tableId": "table:business_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_memberships_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "business_permission_grants",
+            "tableId": "table:business_permission_grants",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql"
+              ],
+              "policyEvidence": []
+            }
+          },
+          {
+            "table": "business_workspaces",
+            "tableId": "table:business_workspaces",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
+                "supabase/migrations/20260723060000_business_builder_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "business_workspaces_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organization_memberships",
+            "tableId": "table:organization_memberships",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "memberships_select_org_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "memberships_manage_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organization_memberships_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organization_memberships_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "organizations",
+            "tableId": "table:organizations",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "organizations_select_member",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_insert_owner",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_update_owner_admin",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "organizations_member_select",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "organizations_owner_update",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                },
+                {
+                  "name": "service_role_organizations_all",
+                  "file": "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql"
+                }
+              ]
+            }
+          },
+          {
+            "table": "profiles",
+            "tableId": "table:profiles",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+                "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/010_sonara_platform_current_schema.sql",
+                "supabase/migrations/011_sonara_saas_launch_system.sql",
+                "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+                "supabase/migrations/20260811210000_repair_missing_platform_tables.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "profiles_select_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                },
+                {
+                  "name": "profiles_update_own",
+                  "file": "supabase/migrations/011_sonara_saas_launch_system.sql"
+                }
+              ]
+            }
+          }
+        ],
+        "noPersistenceReason": null,
+        "resourceContract": null,
+        "agentRouteContract": null,
+        "rpcEffects": [
+          {
+            "id": "database-function:sonara_bootstrap_customer_workspace",
+            "name": "sonara_bootstrap_customer_workspace",
+            "source": "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+            "definitionMigrations": [
+              "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql"
+            ],
+            "directReadTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "directWriteTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "readTables": [
+              "organization_memberships",
+              "organizations"
+            ],
+            "writeTables": [
+              "organization_memberships",
+              "organizations",
+              "profiles"
+            ],
+            "writeOperations": [
+              {
+                "operation": "INSERT",
+                "table": "profiles"
+              },
+              {
+                "operation": "UPDATE",
+                "table": "organization_memberships"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organizations"
+              },
+              {
+                "operation": "INSERT",
+                "table": "organization_memberships"
+              }
+            ],
+            "calls": [],
+            "evidence": "comment_stripped_latest_sql_function_definition"
+          }
+        ],
+        "providerEndpoints": [],
+        "triggeredEffects": [],
+        "sourceModule": "module:routes/sonara-business-control-plane-routes.cjs",
+        "moduleTableCandidateCount": 22,
+        "schemaMigrations": [
+          "supabase/migrations/010_sonara_platform_current_schema.sql",
+          "supabase/migrations/011_sonara_saas_launch_system.sql",
+          "supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql",
+          "supabase/migrations/20260530120000_live_readiness_tenant_foundation.sql",
+          "supabase/migrations/20260603090000_production_auth_workspace_rls.sql",
+          "supabase/migrations/20260714120000_sonara_service_lifecycle_runtime_tables.sql",
+          "supabase/migrations/20260723060000_business_builder_control_plane.sql",
+          "supabase/migrations/20260723060500_business_integration_connections.sql",
+          "supabase/migrations/20260726093000_customer_workspace_bootstrap.sql",
+          "supabase/migrations/20260728120000_member_read_policies.sql",
+          "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+          "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+          "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+          "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
+          "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+          "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+          "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+        ],
+        "persistenceMode": "endpoint_handler_evidence"
+      },
+      "source": {
+        "file": "routes/sonara-business-control-plane-routes.cjs",
+        "line": 650
       },
       "contractCompleteness": {
         "route": true,
@@ -56606,7 +57088,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 645
+        "line": 680
       },
       "contractCompleteness": {
         "route": true,
@@ -57642,7 +58124,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 415
+        "line": 416
       },
       "contractCompleteness": {
         "route": true,
@@ -64006,7 +64488,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 577
+        "line": 580
       },
       "contractCompleteness": {
         "route": true,
@@ -64554,7 +65036,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -65579,7 +66061,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -66162,7 +66644,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -66758,7 +67240,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -68125,7 +68607,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -68801,7 +69283,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -69953,7 +70435,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -70517,7 +70999,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 537
+        "line": 540
       },
       "contractCompleteness": {
         "route": true,
@@ -71374,7 +71856,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -71924,7 +72406,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -73312,7 +73794,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -74548,7 +75030,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -75160,7 +75642,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -75809,7 +76291,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -76554,7 +77036,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -77215,7 +77697,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -78451,7 +78933,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -79025,7 +79507,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -79566,7 +80048,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -80119,7 +80601,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -80690,7 +81172,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -81272,7 +81754,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -83467,7 +83949,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -84021,7 +84503,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -84609,7 +85091,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -85294,7 +85776,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -85894,7 +86376,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -86516,7 +86998,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -87203,7 +87685,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -87838,7 +88320,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -88382,7 +88864,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -89022,7 +89504,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -89577,7 +90059,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -90332,7 +90814,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -91186,7 +91668,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -91956,7 +92438,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -92587,7 +93069,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -93314,7 +93796,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -93957,7 +94439,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -95431,7 +95913,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -96012,7 +96494,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -96625,7 +97107,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -97338,7 +97820,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -97967,7 +98449,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -98522,7 +99004,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -99089,7 +99571,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -100543,7 +101025,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -101131,7 +101613,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -101786,7 +102268,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -102538,7 +103020,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -103205,7 +103687,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -103773,7 +104255,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -104436,7 +104918,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -105015,7 +105497,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -106961,7 +107443,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -107522,7 +108004,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -108178,7 +108660,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -108750,7 +109232,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -109291,7 +109773,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -109845,7 +110327,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -110381,7 +110863,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -110930,7 +111412,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -111478,7 +111960,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -112043,7 +112525,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -113000,7 +113482,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 915
+        "line": 918
       },
       "contractCompleteness": {
         "route": true,
@@ -113861,7 +114343,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -114662,7 +115144,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -118713,7 +119195,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 3100
+        "line": 3103
       },
       "contractCompleteness": {
         "route": true,
@@ -128583,7 +129065,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -129136,7 +129618,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -129635,7 +130117,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -130236,7 +130718,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1241
+        "line": 1244
       },
       "contractCompleteness": {
         "route": true,
@@ -130754,7 +131236,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -135597,7 +136079,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -136129,7 +136611,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -141121,7 +141603,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -141707,7 +142189,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -145334,7 +145816,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -145877,7 +146359,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -151720,7 +152202,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -152284,7 +152766,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -160309,7 +160791,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1869
+        "line": 1872
       },
       "contractCompleteness": {
         "route": true,
@@ -160852,7 +161334,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 641
+        "line": 644
       },
       "contractCompleteness": {
         "route": true,
@@ -202547,7 +203029,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1934
+        "line": 1937
       },
       "contractCompleteness": {
         "route": true,
@@ -203979,7 +204461,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1830
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -204731,7 +205213,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1830
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -205483,7 +205965,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1830
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -206235,7 +206717,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1830
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -206987,7 +207469,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1830
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -207739,7 +208221,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1830
+        "line": 1833
       },
       "contractCompleteness": {
         "route": true,
@@ -210383,7 +210865,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 498
+        "line": 499
       },
       "contractCompleteness": {
         "route": true,
@@ -210863,7 +211345,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 597
+        "line": 601
       },
       "contractCompleteness": {
         "route": true,
@@ -214331,7 +214813,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1678
+        "line": 1681
       },
       "contractCompleteness": {
         "route": true,
@@ -221470,7 +221952,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 441
+        "line": 442
       },
       "contractCompleteness": {
         "route": true,
@@ -221964,7 +222446,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 499
+        "line": 500
       },
       "contractCompleteness": {
         "route": true,
@@ -222452,7 +222934,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 571
+        "line": 572
       },
       "contractCompleteness": {
         "route": true,
@@ -222932,7 +223414,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 598
+        "line": 602
       },
       "contractCompleteness": {
         "route": true,
@@ -223418,7 +223900,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 596
+        "line": 600
       },
       "contractCompleteness": {
         "route": true,
@@ -223894,7 +224376,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 522
+        "line": 523
       },
       "contractCompleteness": {
         "route": true,
@@ -224399,7 +224881,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 544
+        "line": 545
       },
       "contractCompleteness": {
         "route": true,
@@ -224875,7 +225357,7 @@
       },
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 523
+        "line": 524
       },
       "contractCompleteness": {
         "route": true,
@@ -226989,7 +227471,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -227946,7 +228428,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -228727,7 +229209,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -229479,7 +229961,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -230721,7 +231203,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -231413,7 +231895,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -232046,7 +232528,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -232898,7 +233380,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -233664,7 +234146,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -234410,7 +234892,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -235184,7 +235666,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -235864,7 +236346,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -236654,7 +237136,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -237965,7 +238447,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -238663,7 +239145,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -239457,7 +239939,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -240024,7 +240506,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1030
+        "line": 1033
       },
       "contractCompleteness": {
         "route": true,
@@ -240769,7 +241251,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -241399,7 +241881,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1709
+        "line": 1712
       },
       "contractCompleteness": {
         "route": true,
@@ -242037,7 +242519,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1083
+        "line": 1086
       },
       "contractCompleteness": {
         "route": true,
@@ -242774,7 +243256,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -243735,7 +244217,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -244471,7 +244953,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -245304,7 +245786,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -249186,7 +249668,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -249721,7 +250203,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1775
+        "line": 1778
       },
       "contractCompleteness": {
         "route": true,
@@ -250985,7 +251467,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -251743,7 +252225,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -252521,7 +253003,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -253380,7 +253862,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -254054,7 +254536,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -254822,7 +255304,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -257207,7 +257689,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1959
+        "line": 1962
       },
       "contractCompleteness": {
         "route": true,
@@ -257763,7 +258245,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2009
+        "line": 2012
       },
       "contractCompleteness": {
         "route": true,
@@ -258428,7 +258910,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -259189,7 +259671,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -259934,7 +260416,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -260673,7 +261155,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -261412,7 +261894,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -263104,7 +263586,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -263773,7 +264255,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -264442,7 +264924,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -265119,7 +265601,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1377
+        "line": 1380
       },
       "contractCompleteness": {
         "route": true,
@@ -266265,7 +266747,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -266916,7 +267398,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1191
+        "line": 1194
       },
       "contractCompleteness": {
         "route": true,
@@ -267476,7 +267958,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1137
+        "line": 1140
       },
       "contractCompleteness": {
         "route": true,
@@ -273301,7 +273783,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -274021,7 +274503,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -280333,7 +280815,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -281079,7 +281561,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -282248,7 +282730,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -282995,7 +283477,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -294260,6 +294742,7 @@
           "growth_control_events",
           "growth_metric_snapshots",
           "growth_provider_jobs",
+          "growth_touchpoints",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -294578,6 +295061,66 @@
             }
           },
           {
+            "table": "growth_touchpoints",
+            "tableId": "table:growth_touchpoints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
             "table": "organization_memberships",
             "tableId": "table:organization_memberships",
             "migrationLineage": {
@@ -294779,6 +295322,7 @@
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
@@ -297484,6 +298028,7 @@
           "growth_control_events",
           "growth_metric_snapshots",
           "growth_provider_jobs",
+          "growth_touchpoints",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -297743,6 +298288,66 @@
             }
           },
           {
+            "table": "growth_touchpoints",
+            "tableId": "table:growth_touchpoints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
             "table": "organization_memberships",
             "tableId": "table:organization_memberships",
             "migrationLineage": {
@@ -297944,6 +298549,7 @@
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
@@ -298044,6 +298650,7 @@
         "directTables": [
           "business_memberships",
           "growth_provider_jobs",
+          "growth_touchpoints",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -298169,6 +298776,66 @@
             }
           },
           {
+            "table": "growth_touchpoints",
+            "tableId": "table:growth_touchpoints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
             "table": "organization_memberships",
             "tableId": "table:organization_memberships",
             "migrationLineage": {
@@ -298370,6 +299037,7 @@
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
@@ -300327,7 +300995,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -302274,7 +302942,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2041
+        "line": 2044
       },
       "contractCompleteness": {
         "route": true,
@@ -303061,7 +303729,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -306463,7 +307131,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2135
+        "line": 2138
       },
       "contractCompleteness": {
         "route": true,
@@ -313682,7 +314350,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -314359,7 +315027,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -315095,7 +315763,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "contractCompleteness": {
         "route": true,
@@ -318885,7 +319553,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -319446,7 +320114,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -320052,7 +320720,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -320683,7 +321351,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -321284,7 +321952,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -321910,7 +322578,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -322404,7 +323072,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -322974,7 +323642,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -323571,7 +324239,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -324193,7 +324861,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -324808,7 +325476,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -325478,7 +326146,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -326142,7 +326810,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -326726,7 +327394,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -327303,7 +327971,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -327865,7 +328533,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -328421,7 +329089,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -329011,7 +329679,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -329596,7 +330264,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -331070,7 +331738,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -331658,7 +332326,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -332991,7 +333659,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -333626,7 +334294,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -334271,7 +334939,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -334908,7 +335576,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -335470,7 +336138,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -336060,7 +336728,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -336842,7 +337510,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -337647,7 +338315,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -338298,7 +338966,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -338944,7 +339612,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -339534,7 +340202,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -340118,7 +340786,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -340758,7 +341426,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -341390,7 +342058,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -341965,7 +342633,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -342535,7 +343203,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -343967,7 +344635,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -344590,7 +345258,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -345266,7 +345934,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -345936,7 +346604,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -346522,7 +347190,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -347135,7 +347803,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -347717,7 +348385,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -348296,7 +348964,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -348902,7 +349570,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -349465,7 +350133,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -350022,7 +350690,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -350580,7 +351248,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -351132,7 +351800,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -351708,7 +352376,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -352276,7 +352944,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -353095,7 +353763,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -364010,7 +364678,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -364563,7 +365231,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -365085,7 +365753,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -365635,7 +366303,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 821
+        "line": 824
       },
       "contractCompleteness": {
         "route": true,
@@ -366903,7 +367571,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -367435,7 +368103,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -368026,7 +368694,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -368612,7 +369280,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -370816,7 +371484,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -371359,7 +372027,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -371932,7 +372600,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -372496,7 +373164,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -381456,7 +382124,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 711
+        "line": 714
       },
       "contractCompleteness": {
         "route": true,
@@ -381999,7 +382667,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 784
+        "line": 787
       },
       "contractCompleteness": {
         "route": true,
@@ -488200,6 +488868,7 @@
       ".github/workflows/android-twa-packaging.yml",
       ".github/workflows/bootstrap-production-hardening-deps.yml",
       ".github/workflows/browser-quality.yml",
+      ".github/workflows/codex-regenerate-governance-convergence.yml",
       ".github/workflows/controlled-production-deploy-dry-run.yml",
       ".github/workflows/controlled-production-deploy.yml",
       ".github/workflows/dependency-scan.yml",
@@ -489044,7 +489713,7 @@
       "workspace": "business_builder",
       "source": {
         "file": "routes/sonara-business-control-plane-routes.cjs",
-        "line": 425
+        "line": 426
       },
       "currentDestination": "/business-builder/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489174,7 +489843,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489184,7 +489853,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 1952
+        "line": 1955
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489204,7 +489873,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2159
+        "line": 2162
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489344,7 +490013,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489354,7 +490023,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
+        "line": 2174
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489474,7 +490143,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489544,7 +490213,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2135
+        "line": 2138
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489624,7 +490293,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -489634,7 +490303,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
+        "line": 2189
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
