@@ -302,7 +302,7 @@ describe("a sale is a licence delivered", () => {
 
   describe("opening Stripe's checkout", () => {
     const ENV = Object.freeze({
-      STRIPE_CONNECT_ENABLED: "true",
+      SONARA_CUSTOMER_FUNDS_MODE: "connect_direct_reviewed", STRIPE_CONNECT_ENABLED: "true",
       STRIPE_SECRET_KEY: "sk_test_local_fixture_not_a_secret",
       STRIPE_CONNECT_WEBHOOK_SECRET: "whsec_localfixture0123456789"
     });

@@ -51,7 +51,7 @@ const CHECKED_AT = "2026-09-01T14:32:00Z";
 // placeholder prefix. A harness with the wrong names renders "Not available
 // yet" and every assertion below would be measuring that page instead.
 const ENV = Object.freeze({
-  STRIPE_CONNECT_ENABLED: "true",
+  SONARA_CUSTOMER_FUNDS_MODE: "connect_direct_reviewed", STRIPE_CONNECT_ENABLED: "true",
   STRIPE_SECRET_KEY: "sk_test_not_a_placeholder_1234567890"
 });
 

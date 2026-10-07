@@ -104,7 +104,7 @@ function harness({ listing, version, approvals, entryRows = [], failCatalogueWri
     escapeHtml: (value) => String(value == null ? "" : value).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])),
     requireWorkspaceAccess: () => (req, res, next) => { req.sonaraUser = { id: "u1" }; next(); },
     getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId }),
-    getEnv: (name) => connectEnabled ? ({ STRIPE_CONNECT_ENABLED: "true", STRIPE_SECRET_KEY: "sk_test_local_fixture_not_a_secret" }[name] || "") : "",
+    getEnv: (name) => connectEnabled ? ({ SONARA_CUSTOMER_FUNDS_MODE: "connect_direct_reviewed", STRIPE_CONNECT_ENABLED: "true", STRIPE_SECRET_KEY: "sk_test_local_fixture_not_a_secret" }[name] || "") : "",
     getSupabaseServerConfig: () => ({ ok: true, url: "https://example.invalid", serviceRoleKey: "test" }),
     supabaseHeaders: () => ({})
   });

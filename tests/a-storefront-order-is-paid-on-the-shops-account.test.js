@@ -33,7 +33,7 @@ const ENV = Object.freeze({
   NEXT_PUBLIC_SUPABASE_URL: SUPABASE,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-placeholder",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-placeholder",
-  STRIPE_CONNECT_ENABLED: "true",
+  SONARA_CUSTOMER_FUNDS_MODE: "connect_direct_reviewed", STRIPE_CONNECT_ENABLED: "true",
   STRIPE_SECRET_KEY: "sk_test_local_fixture_not_a_secret",
   STRIPE_CONNECT_WEBHOOK_SECRET: SECRET,
   NEXT_PUBLIC_SITE_URL: "https://sonara.example"
