@@ -26,6 +26,9 @@ create table if not exists sonara_control.customer_provider_connections (
     'manual_export'
   )),
   auth_type text not null,
+  credential_custody text not null default 'none' check (credential_custody in (
+    'supabase_vault','provider_managed','deployment_secret_store','native_secure_store','none'
+  )),
   credential_reference text,
   provider_origin text,
   environment text not null check (environment in ('development','sandbox','production')),
@@ -148,3 +151,16 @@ comment on column sonara_control.provider_event_inbox.encrypted_payload_object_r
 --    local credential reference while preserving audit history.
 -- 8. Financial mutation remains disabled while SONARA customer-funds mode is
 --    external_only. Provider dashboard handoff is not provider API authority.
+-- 9. Tenant/provider secrets use an opaque Vault UUID/reference only after a
+--    server-only custody broker exists. Browser roles never receive SELECT on
+--    vault.decrypted_secrets and no generic Data API route resolves a secret.
+-- 10. Do not create a PUBLIC-schema SECURITY DEFINER credential resolver.
+--     Any privileged resolver must live outside exposed API schemas, authenticate
+--     the caller/server context, bind organization_id + connection_id, and expose
+--     only the minimum operation needed.
+-- 11. Before this control plane can activate, remediate the currently observed
+--     browser-role TRUNCATE/TRIGGER/REFERENCES privileges on
+--     public.business_integration_connections. RLS is not a substitute for
+--     least-privilege object grants.
+-- 12. Future migration must explicitly REVOKE ALL from anon/authenticated on
+--     secret-bearing private objects before granting only reviewed access paths.
