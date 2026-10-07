@@ -86,6 +86,17 @@ describe("a check-in with no signal is sent later", () => {
       assert.equal(fake.rows("location_events").length, 0);
     });
 
+    it("stores metadata a caller sends as values, never as a prototype", async () => {
+      const done = await request(buildApp(fake)).post(ENDPOINT).set("content-type", "application/json")
+        .send('{"event_type":"check_in","privacy_mode":"manual","metadata":{"__proto__":{"polluted":true},"note":"van 3","api_key":"x"}}');
+      assert.equal(done.status, 200, JSON.stringify(done.body));
+      const [row] = fake.rows("location_events");
+      assert.equal(Object.getPrototypeOf(row.metadata), Object.prototype, "a posted __proto__ replaced the metadata's prototype");
+      assert.equal(row.metadata.polluted, undefined);
+      assert.equal(row.metadata.note, "van 3");
+      assert.equal(row.metadata.api_key, undefined, "a secret-shaped key was kept");
+    });
+
     it("still takes a check-in that names no id, as it always did", async () => {
       const done = await request(buildApp(fake)).post(ENDPOINT).send({ event_type: "check_in", privacy_mode: "manual" });
       assert.equal(done.status, 200);

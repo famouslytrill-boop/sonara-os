@@ -3618,14 +3618,17 @@ function sanitizeChoice(value, fallback) {
   return clean || fallback;
 }
 
+// Built from entries rather than by assigning keys a caller chose, and without
+// the three keys that address an object's prototype rather than a property of
+// it: `__proto__` assigned on a plain object replaces its prototype instead of
+// storing a value.
+const PROTOTYPE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 function sanitizeObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const output = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (["password", "secret", "token", "service_role", "api_key"].some((part) => key.toLowerCase().includes(part))) continue;
-    output[key] = typeof item === "string" ? sanitizeText(item) : item;
-  }
-  return output;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !PROTOTYPE_KEYS.has(key))
+    .filter(([key]) => !["password", "secret", "token", "service_role", "api_key"].some((part) => key.toLowerCase().includes(part)))
+    .map(([key, item]) => [key, typeof item === "string" ? sanitizeText(item) : item]));
 }
 
 function toNumberOrNull(value) {
