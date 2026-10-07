@@ -31,8 +31,8 @@ const session = (changes = {}) => ({ id: SESSION, client_reference_id: ORDER,
   metadata: { sonara_kind: "creator_marketplace", sonara_order_id: ORDER },
   amount_total: 2500, currency: "usd", payment_status: "paid", status: "complete",
   payment_intent: { id: INTENT, client_secret: "must-never-be-rendered",
-    latest_charge: { id: "ch_sale123", amount: 2500, currency: "usd", amount_refunded: 0,
-      refunded: false, disputed: false, balance_transaction: { currency: "usd", fee: 100, net: 2400 } } }, ...changes });
+    latest_charge: { id: "ch_sale123", payment_intent: INTENT, paid: true, captured: true, status: "succeeded", amount: 2500, currency: "usd", amount_refunded: 0,
+      refunded: false, disputed: false, balance_transaction: { source: "ch_sale123", amount: 2500, currency: "usd", fee: 100, net: 2400 } } }, ...changes });
 const run = (changes = {}) => reconcile({ organizationId: ORG, accountId: ACCOUNT,
   orderRows: [order()], grants: [grant()], sessions: [session()], ...changes });
 const codes = (result) => result.rows[0].codes;
@@ -52,6 +52,31 @@ describe("marketplace sales are checked against payment and delivery evidence", 
   it("projects only safe fields from expanded provider objects", () => {
     assert.doesNotMatch(JSON.stringify(run()), /client_secret|must-never-be-rendered|latest_charge/);
     assert.equal(projectSession(session()).intentId, INTENT);
+  });
+  it("requires the charge's own intent, successful capture and coherent refund evidence", () => {
+    for (const change of [
+      { payment_intent: "pi_other123" }, { payment_intent: null },
+      { paid: false }, { captured: false }, { status: "failed" },
+      { amount_refunded: 2501 }, { refunded: true, amount_refunded: 0 },
+      { refunded: false, amount_refunded: 2500 }
+    ]) {
+      const value = session();
+      Object.assign(value.payment_intent.latest_charge, change);
+      const result = run({ sessions: [value] });
+      assert.ok(codes(result).includes("charge_unverified"), JSON.stringify(change));
+      assert.equal(result.unknownRefunds, 1);
+      assert.deepEqual(result.balances, {});
+    }
+  });
+  it("requires balance evidence to name the charge and satisfy net = amount - fee", () => {
+    for (const change of [{ source: "ch_other123" }, { source: null },
+      { amount: null }, { net: 2401 }, { fee: -1 }]) {
+      const value = session();
+      Object.assign(value.payment_intent.latest_charge.balance_transaction, change);
+      const result = run({ sessions: [value] });
+      assert.equal(result.unknownBalances, 1, JSON.stringify(change));
+      assert.deepEqual(result.balances, {});
+    }
   });
   it("does not count merchant or unrelated checkouts", () => {
     assert.equal(run({ sessions: [session({ metadata: { sonara_kind: "merchant_storefront", sonara_order_id: ORDER } })] }).totals.usd.stripePaid, 0);
@@ -119,7 +144,7 @@ describe("marketplace sales are checked against payment and delivery evidence", 
   });
   it("does not mix original charge balance currency with sale currency", () => {
     const value = session();
-    value.payment_intent.latest_charge.balance_transaction = { currency: "eur", fee: 95, net: 2100 };
+    value.payment_intent.latest_charge.balance_transaction = { source: "ch_sale123", amount: 2195, currency: "eur", fee: 95, net: 2100 };
     const result = run({ sessions: [value] });
     assert.equal(result.totals.usd.stripePaid, 2500);
     assert.deepEqual(result.balances.eur, { fee: 95, net: 2100, charges: 1 });

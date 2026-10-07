@@ -45,8 +45,8 @@ async function renderReport(query, { missingGrant = false, providerFailure = fal
         id: SESSION, status: "complete", payment_status: "paid", amount_total: 2500, currency: "usd",
         client_reference_id: ORDER, metadata: { sonara_kind: "creator_marketplace", sonara_order_id: ORDER },
         payment_intent: { id: INTENT, client_secret: "never-publish-this-fixture-secret",
-          latest_charge: { amount: 2500, currency: "usd", amount_refunded: 0, refunded: false, disputed: false,
-            balance_transaction: { currency: "usd", fee: 100, net: 2400 } } }
+          latest_charge: { id: "ch_sale123", payment_intent: INTENT, paid: true, captured: true, status: "succeeded", amount: 2500, currency: "usd", amount_refunded: 0, refunded: false, disputed: false,
+            balance_transaction: { source: "ch_sale123", amount: 2500, currency: "usd", fee: 100, net: 2400 } } }
       }], has_more: false }));
     }
     if (url.host !== "fixture.example.invalid") throw new Error("Unexpected external read");

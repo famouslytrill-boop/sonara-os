@@ -103,11 +103,51 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 37 most recent entries of 462 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 37 most recent entries of 463 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Commerce evidence identity and staged governance convergence
+
+Started from main `b8684abd` including Claude PR #444 and the shared handoff.
+The checked capability inventory reports 955 routes, zero unresolved route/data
+contract reviews and 15 workspace fallbacks. These are structural measurements,
+not real customer, settlement, bank receipt or device proof.
+
+Seller reconciliation previously accepted an expanded charge with another
+payment intent and an expanded balance transaction with another source. It now
+requires the charge's exact intent, successful paid/captured status, bounded and
+consistent refund amounts, and a balance source naming that charge with
+`net = amount - fee` in the balance transaction's own currency. Unknown or
+inconsistent evidence remains unknown; no refund or payout is executed.
+
+The 29 new governance modules from #442/#443 remain staged. Each now has an
+individual TEST_ONLY reason naming the missing consumer/evidence integration.
+No authorization, money movement, legal publishing or provider mode is enabled
+by accounting for these modules. The existing two-sided report still rejects a
+missing reason and a stale reason after runtime integration.
+
+Falsification: two new reconciliation tests failed against the prior code for a
+foreign charge intent and foreign balance source, then passed with the fix.
+Removing a staged-module reason failed by its module name; adding a temporary
+non-test reference failed the stale-entry side. Both probes were restored.
+
+Validation: frozen pnpm install, moderate dependency audit, typecheck, lint,
+build, client-secret scan, route smoke and repository database checks passed.
+Full suite: 6,832 passing / 6 pending. Local PostgreSQL replay is skipped because
+binaries are absent; no migration was executed. Browser/physical-device and
+live-provider tests were not run for this change. Release gate result is tracked
+in the pull request validation, rather than inferred from these static checks.
+
+Stripe primary references checked 2026-10-07:
+https://docs.stripe.com/api/charges/object and
+https://docs.stripe.com/api/balance_transactions/object.
+Charge evidence is not bank-deposit evidence; the original charge balance excludes
+later refund/dispute impact. Physical-device and live-provider proof stay open.
+
+
 
 ### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
 
@@ -2065,51 +2105,3 @@ has never failed.
 **not** a problem: `key` comes from a `spec` literal written a few lines below each
 call, and the request supplies the value, which is parsed as a number. Stated in the
 file, because the two look identical and only one of them is a bug.
-
-
-
-### 2026-10-02 - A form field name was a property name
-
-CodeQL, high severity: *Remote property injection -- a property name to write to
-depends on a user-provided value*, on `lib/sonara-merchant-storefront.cjs`.
-`quantitiesFrom` built `quantities[variantId] = text` on a plain object, and
-`variantId` came straight out of a form field name.
-
-**Measured rather than described**, because "prototype pollution" is a phrase that
-makes people nod without checking:
-
-    const plain = {};
-    plain["__proto__"] = "1";
-    Object.prototype.hasOwnProperty.call(plain, "__proto__")   // false
-
-    const second = {};
-    second["constructor"] = "x";
-    typeof second.constructor                                   // "string"
-
-The first is the commercially interesting one: a field named `qty___proto__` sets
-no own property, so **the line silently vanishes from an order the buyer is then
-told was placed**. The second overwrites a real property with a string.
-
-Two halves to the fix, and each is asserted on its own. `quantitiesFrom` returns a
-**Map**, whose keys are not properties, so there is nothing for a crafted name to
-reach. And the key has to match `UUID_PATTERN`, because a variant id is a
-`gen_random_uuid()` value and `qty_banana` is not a variant -- which is the
-correctness half, and means `priceOrder` never has to ask. `priceOrder` also copies
-a plain-object argument through `Object.keys`, so an inherited property cannot reach
-the loop by the other door.
-
-The store test's fixtures used ids like `v1`, which the uuid check correctly
-refuses, so they are real uuids now -- the fixtures were wrong about the data, not
-the check.
-
-**Two of my own new assertions were too broad, both caught by running them.** The
-"no dynamic property write remains" check matched `quantities[key]` inside
-`priceOrder`'s object-to-Map conversion, which is a READ with a key from
-`Object.keys` -- own properties only, and safe. A check that fires on the safe shape
-gets relaxed until it fires on nothing, so it targets an assignment specifically.
-And the comment-stripping was needed again, for the fourth time in this session's
-work, because the module's header quotes the old code.
-
-Falsified three ways, each failing and restored with `md5sum -c`: back to a plain
-object with a dynamic write (5 red), the uuid check removed with the Map kept (2
-red), and inherited properties allowed into the loop (1 red). Suite 5679 passing.
