@@ -7,7 +7,7 @@ const {
   AUTHORITY_SOURCES,providerOriginAssessment,oauthGrantPreflight,
   customerProviderConnectionPreflight,providerActionPreflight,
   providerDashboardPathway,providerSecretCustodyPlan,
-  customProviderManifestPreflight
+  customProviderManifestPreflight,knownProviderDirectAccess
 }=require("../lib/sonara-customer-provider-pathways.cjs");
 
 const ORG="11111111-1111-4111-8111-111111111111";
@@ -200,6 +200,19 @@ describe("customer-owned and customer-provided provider pathways",()=>{
     });
     assert.equal(out.state,"provider_action_review_ready");
     assert.equal(out.executionAuthorized,false);
+  });
+
+  it("uses curated official destinations for one-click provider access",()=>{
+    const stripe=knownProviderDirectAccess("stripe");
+    assert.equal(stripe.ok,true);
+    assert.equal(stripe.navigationUrl,"https://dashboard.stripe.com/");
+    assert.equal(stripe.credentialAttached,false);
+    assert.equal(stripe.customerReauthenticatesAtProvider,true);
+
+    const custom=knownProviderDirectAccess("customer_erp");
+    assert.equal(custom.ok,false);
+    assert.equal(custom.code,"verified_provider_destination_unavailable");
+    assert.equal(custom.navigationUrl,null);
   });
 
   it("gives customers a direct provider-dashboard pathway without attaching credentials",()=>{
