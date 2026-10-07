@@ -108,7 +108,7 @@
     "infrastructureServiceCount": 16,
     "infrastructurePipelineLayerCount": 16,
     "infrastructureCapabilityTrackCount": 20,
-    "infrastructureSourceFileCount": 46
+    "infrastructureSourceFileCount": 45
   },
   "workspaces": [
     {
@@ -265795,7 +265795,6 @@
       ".github/workflows/android-twa-packaging.yml",
       ".github/workflows/bootstrap-production-hardening-deps.yml",
       ".github/workflows/browser-quality.yml",
-      ".github/workflows/codex-regenerate-capability-inventory.yml",
       ".github/workflows/controlled-production-deploy-dry-run.yml",
       ".github/workflows/controlled-production-deploy.yml",
       ".github/workflows/dependency-scan.yml",
