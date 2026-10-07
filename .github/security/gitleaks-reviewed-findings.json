@@ -358,6 +358,12 @@
       "rule": "generic-api-key",
       "lineSha256": "a062b6f6b99ce4fe9774bd7294bb494f57d799c100f2f14ce4d9f986c3b30a3f",
       "reason": "public Hugging Face Kokoro model resource identifier, not a credential"
+    },
+    {
+      "file": "tests/a-campaign-email-says-what-happened-to-it.test.js",
+      "rule": "generic-api-key",
+      "lineSha256": "57bfc40f0b1fbdb8a0639bae19931808b3313eba8fc42b6d274df4647686c947",
+      "reason": "public Svix webhook-signature test vector (docs.svix.com/receiving/verifying-payloads/how-manual), not a credential"
     }
   ]
 }

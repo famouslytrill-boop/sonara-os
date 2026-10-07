@@ -87,6 +87,23 @@ Stripe. Falsified: limiter removed from the webhook (three red), `subject` scope
 dropped (one red), ceiling raised to 10,000 (one red). Left open on the same terms
 as the two above.
 
+**A fourth and fifth, on 7 October 2026: `POST /api/webhooks/resend`** (PR #446),
+which records what happened to a campaign email after the provider accepted it.
+Same alert, same reading:
+- **In `server.js`:** the route is limited by `createRateLimiter`
+  (`email_receipt_webhook`, 600 a minute per address, first in the route's
+  stack). The sender, Svix on Resend's behalf, retries a 429 with backoff, so the
+  ceiling delays a burst rather than losing a receipt.
+- **In `tests/a-campaign-email-says-what-happened-to-it.test.js`:** the alert is on
+  a test harness that mounts the handler on its own to exercise the signature and
+  the lookup. It is not a production route.
+
+`tests/a-campaign-email-says-what-happened-to-it.test.js` drives the real route in
+`server.js` with the counter mocked. It proves the limiter is first in the stack,
+and that a refused request answers 429 with `Retry-After` before the signature is
+checked or any table is read. Falsified: the limiter removed from the route
+fails it. Left open on the same terms as the three above.
+
 ## Shell commands built from TMPDIR, 15 September 2026
 
 No check was weakened. This records a real fix with a verified exploit path,

@@ -2,6 +2,31 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - #446 CI: a scanner finding and two CodeQL alerts on the receipt webhook
+
+Three new reds on 50da60d4.
+
+**Gitleaks (`scanners`)** flagged the Svix test-vector secret quoted in
+`tests/a-campaign-email-says-what-happened-to-it.test.js`. It is the value Svix
+publishes in its own verification guide, not a credential.
+- It is added to `.github/security/gitleaks-reviewed-findings.json` with that
+  reason, the same treatment as the RFC Web Push vectors already there.
+- Splitting the string so the scanner cannot see it would have been hiding a
+  finding rather than reviewing it.
+- Reproduced locally with the workflow's own pinned binary (8.30.1, checksum
+  checked) and its baseline comparison: one unreviewed finding before, none
+  after, none stale.
+
+**CodeQL `js/missing-rate-limiting`, twice:** once on the route in `server.js`,
+once on the test harness. The route is limited by `createRateLimiter`, which
+CodeQL has no model for.
+- A new test drives the real route with the counter mocked. It shows the limiter
+  is first in the stack, and that a refused request answers 429 with
+  `Retry-After` before the signature is checked or anything is read.
+- Falsified: the limiter removed from the route fails it.
+- Recorded in `SECURITY_NOTES.md` and left open, on the terms of the three
+  earlier alerts of this kind.
+
 ### 2026-10-07 - A finished job can be booked again
 
 The Business Builder chain ends invoice → payment → repeat job → profitability.

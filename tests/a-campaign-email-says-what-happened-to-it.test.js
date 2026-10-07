@@ -127,6 +127,57 @@ describe("a campaign email says what happened to it", () => {
     });
   });
 
+  // CodeQL's js/missing-rate-limiting has no model for lib/sonara-rate-limit.cjs,
+  // so its alert on this route stays open (SECURITY_NOTES.md). This is what
+  // stands in for it: the real limiter on the real route, refusing before the
+  // signature is checked or anything is read.
+  describe("the rate limit refuses, not merely exists", () => {
+    const ENV = { SUPABASE_URL: "https://project.supabase.co", NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-placeholder", SUPABASE_SERVICE_ROLE_KEY: "service-role-placeholder", RESEND_WEBHOOK_SECRET: SECRET };
+    let savedEnv;
+    let savedFetch;
+    let server;
+    before(() => {
+      savedEnv = Object.fromEntries(Object.keys(ENV).map((key) => [key, process.env[key]]));
+      Object.assign(process.env, ENV);
+      server = require("../server");
+    });
+    after(() => {
+      for (const [key, value] of Object.entries(savedEnv)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    });
+    beforeEach(() => { savedFetch = global.fetch; });
+    afterEach(() => { global.fetch = savedFetch; });
+
+    it("puts the limiter first, and answers a refused receipt 429 before verifying or reading anything", async () => {
+      const layer = server._router.stack.find((candidate) => candidate.route?.path === "/api/webhooks/resend" && candidate.route.methods.post);
+      assert.ok(layer, "POST /api/webhooks/resend is not registered; this check has gone blind");
+      assert.equal(layer.route.stack[0].handle.name, "rateLimitMiddleware", "something runs before the rate limit");
+
+      const consumed = [];
+      const other = [];
+      global.fetch = async (input, init = {}) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url === `${ENV.SUPABASE_URL}/rest/v1/rpc/sonara_consume_rate_limit`) {
+          consumed.push(JSON.parse(init.body));
+          const row = { allowed: false, remaining: 0, retry_after_seconds: 42 };
+          return { ok: true, status: 200, json: async () => [row], text: async () => JSON.stringify([row]) };
+        }
+        other.push(url);
+        return { ok: false, status: 500, json: async () => ({}), text: async () => "" };
+      };
+      const { body, headers } = signed(delivered("email.delivered"));
+      const response = await request(server).post("/api/webhooks/resend").set({ ...headers, "content-type": "application/json" }).send(body);
+      assert.equal(response.status, 429);
+      assert.equal(response.headers["retry-after"], "42");
+      assert.equal(consumed.length, 1);
+      assert.match(consumed[0].p_bucket_key, /^email_receipt_webhook:ip:[0-9a-f]{32}$/);
+      assert.deepEqual([consumed[0].p_window_seconds, consumed[0].p_max_attempts], [60, 600]);
+      assert.deepEqual(other.filter((url) => url.includes("/rest/v1/")), [], "a refused receipt still read the database");
+    });
+  });
+
   describe("the campaign page", () => {
     let fake;
     let savedFetch;
