@@ -44,7 +44,11 @@ describe("fee-only money route coverage regression", () => {
     assert.match(file, /customerMoneyMode !== "connect_direct_reviewed"/);
   });
   it("no unchecked direct Stripe checkout session API is introduced in route/lib code", () => {
-    const allowed = new Set(["lib/sonara-connected-checkout.cjs"]);
+    const allowed = new Set([
+      "lib/sonara-connected-checkout.cjs",
+      // SONARA's own subscription billing is intentionally allowed.
+      "lib/sonara-billing.cjs"
+    ]);
     let checked = 0;
     for (const rel of [...recursiveCjs("lib"), ...recursiveCjs("routes")]) {
       const content = source(rel);
@@ -54,6 +58,10 @@ describe("fee-only money route coverage regression", () => {
       }
       checked++;
     }
+    const ownBilling = source("lib/sonara-billing.cjs");
+    assert.match(ownBilling, /STRIPE_PLANS\[plan\]\.mode === "subscription"/);
+    assert.match(ownBilling, /api\.stripe\.com\/v1\/checkout\/sessions/);
+    assert.doesNotMatch(ownBilling, /["']Stripe-Account["']/);
     assert.ok(checked > 10);
   });
   it("historic signed merchant webhooks remain separate from new checkout and SONARA billing", () => {
