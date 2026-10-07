@@ -1,5 +1,16 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Offline check-ins, generation retry (PR #444)
+
+- `public/sonara-offline-queue.js` is a generic device queue (prepare, keep,
+  flush, pending). It is safe only for endpoints that dedupe on
+  `client_event_id`; `/api/location/events` does now (migration
+  `20261007100000`, owner step: apply to production). Do not point it at an
+  endpoint that does not, or a lost answer becomes a second row.
+- `POST /api/creator/generation/jobs/:jobId/retry` goes through the shared
+  `submitGeneration` in routes/creator-generation-routes.cjs. Cancel is now a
+  conditional write; `updateJob(..., { onlyIfUnfinished: true })`.
+
 ## 2026-10-07 - Claude - What a campaign cost, and whether it paid for itself (PR #444)
 
 - New table `growth_campaign_spend`, migration `20261007090000_what_a_campaign_cost.sql`:

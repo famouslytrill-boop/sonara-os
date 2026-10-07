@@ -2,6 +2,40 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A check-in with no signal is sent later, once
+
+The first P1 slice of the offline mutation engine, on the mutation that needs it
+most. Field staff check in where the signal is worst, and a check-in that could
+not be sent was lost: "nothing was recorded", and no record of having been
+there.
+
+**The device keeps it.** `public/sonara-offline-queue.js` is generic: name it,
+keep it, flush it.
+- It keeps the request body exactly as it would have been sent. For a check-in
+  that is already reduced on the device to the chosen precision, so the stored
+  copy is no finer than what the server would have received.
+- It holds at most 50 entries and refuses a 51st, saying so, rather than
+  dropping the oldest.
+- It sends on page load and when the browser reports it is back online.
+- When an entry has no answer or gets a 5xx, it waits, and later entries wait
+  behind it so order is kept.
+- A 4xx is dropped and counted as refused, since resending would be refused
+  again.
+- An entry older than a week is dropped and counted, never sent as fresh.
+
+**The server records it once, at the time it happened.** Migration
+`20261007100000` adds `location_events.client_event_id` with a unique constraint
+per organization. The device names each check-in when the button is pressed,
+and the insert is `on_conflict … ignore-duplicates`, so a send whose answer was
+lost is retried without a second row and reported as `duplicate`. Two
+concurrent retries cannot race a read-then-decide. `captured_at` is accepted
+from the device between a week back and five minutes ahead, refused outside
+that window, and `metadata.sent_later` marks a late arrival.
+
+Falsified five ways, each failing by name: a plain insert, no time window, a new
+id on each retry, a server failure treated as a refusal, and skipping past a
+waiting entry. **Owner step:** apply `20261007100000` to production.
+
 ### 2026-10-07 - A failed generation can be tried again; stopping one cannot undo a charge
 
 **Retry.** A generation job that failed or was stopped could only be abandoned.

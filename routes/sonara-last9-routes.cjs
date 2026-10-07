@@ -2103,11 +2103,33 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       req.body.privacy_mode
     );
 
+    // A check-in the device kept while it had no signal arrives later, possibly
+    // more than once. The device names it (client_event_id) and says when it
+    // happened (captured_at); the database ignores a repeat of the name. The
+    // time is accepted only within a window: a week back covers a long shift
+    // out of signal, and a few minutes forward covers a phone clock that runs
+    // fast. Anything outside it is refused rather than stored as a time the
+    // owner would read as true.
+    const clientEventId = String(req.body.client_event_id || "");
+    if (clientEventId && !isUuid(clientEventId)) return res.status(400).json({ ok: false, code: "client_event_id_invalid" });
+    let capturedAt = null;
+    if (req.body.captured_at) {
+      const when = Date.parse(String(req.body.captured_at));
+      const now = Date.now();
+      if (!Number.isFinite(when) || when < now - CHECK_IN_LATEST_DELAY_MS || when > now + CHECK_IN_CLOCK_SKEW_MS) {
+        return res.status(400).json({ ok: false, code: "captured_at_out_of_range" });
+      }
+      capturedAt = new Date(when).toISOString();
+    }
+    const sentLater = req.body.sent_later === true || req.body.sent_later === "true";
+
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
       employee_id: req.body.employee_id || null,
       location_zone_id: req.body.location_zone_id || null,
+      client_event_id: clientEventId || null,
+      ...(capturedAt ? { captured_at: capturedAt } : {}),
       event_type: eventType,
       latitude: reduced.latitude,
       longitude: reduced.longitude,
@@ -2118,9 +2140,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       speed_mps: reduced.mode === "precise" ? toNumberOrNull(req.body.speed_mps ?? req.body.speed) : null,
       heading_degrees: reduced.mode === "precise" ? toNumberOrNull(req.body.heading_degrees ?? req.body.heading) : null,
       privacy_mode: reduced.mode,
-      metadata: sanitizeObject(req.body.metadata)
+      metadata: { ...sanitizeObject(req.body.metadata), ...(sentLater ? { sent_later: true } : {}) }
     };
-    const saved = await supabaseInsert(config, "location_events", payload);
+    const saved = clientEventId
+      ? await supabaseInsertOnce(config, "location_events", payload, "organization_id,client_event_id")
+      : await supabaseInsert(config, "location_events", payload);
     // A browser that submitted the form itself gets the page back, not JSON.
     //
     // The form carries a real method and action so it works with no JavaScript
@@ -2434,7 +2458,7 @@ function checkInCard(employeeId, ui) {
 function withCheckInScripts(html) {
   return html.replace(
     "</body>",
-    '<script src="/sonara-location-precision.js"></script><script src="/sonara-check-in.js"></script></body>'
+    '<script src="/sonara-location-precision.js"></script><script src="/sonara-offline-queue.js"></script><script src="/sonara-check-in.js"></script></body>'
   );
 }
 
@@ -3533,6 +3557,25 @@ async function supabaseCount(config, table, organizationId, filterClause = "") {
   const range = response.headers?.get?.("content-range") || "";
   const match = range.match(/\/(\d+)$/);
   return { ok: true, count: match ? Number(match[1]) : 0 };
+}
+
+// A check-in kept on a device for up to a week, and a phone clock up to five
+// minutes fast. See POST /api/location/events.
+const CHECK_IN_LATEST_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
+const CHECK_IN_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+// An insert the database ignores when the row's key is already there. An
+// ignored repeat comes back as no rows, which is reported as `duplicate`, not
+// as a failure: the check-in it repeats was recorded.
+async function supabaseInsertOnce(config, table, payload, conflictColumns) {
+  const response = await fetch(`${config.url}/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumns)}`, {
+    method: "POST",
+    headers: headers(config, { Prefer: "return=representation,resolution=ignore-duplicates" }),
+    body: JSON.stringify(payload)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, code: "insert_failed", table, status: response?.status || null };
+  const rows = await response.json().catch(() => []);
+  return { ok: true, table, rows, duplicate: Array.isArray(rows) && rows.length === 0 };
 }
 
 async function supabaseInsert(config, table, payload) {

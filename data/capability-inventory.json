@@ -82,7 +82,7 @@
     "databaseContractCoreTableCount": 148,
     "queriedTableCount": 320,
     "neverQueriedTableCount": 41,
-    "migrationCount": 157,
+    "migrationCount": 158,
     "databaseFunctionCount": 38,
     "databaseTriggerCount": 51,
     "routesCallingDatabaseFunctions": 665,
@@ -9745,7 +9745,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -10510,7 +10510,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -11107,7 +11107,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -11677,7 +11677,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -12296,7 +12296,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -12965,7 +12965,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -13546,7 +13546,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -14107,7 +14107,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -14311,7 +14311,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -14565,7 +14566,8 @@
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -15162,7 +15164,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -15770,7 +15772,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -16302,7 +16304,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -16585,7 +16588,8 @@
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
           "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
           "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql",
-          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -17233,7 +17237,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -17797,7 +17801,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -18572,7 +18576,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -19223,7 +19227,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -19812,7 +19816,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -20878,7 +20882,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -21453,7 +21457,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -22048,7 +22052,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -22723,7 +22727,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -23311,7 +23315,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -23892,7 +23896,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -24453,7 +24457,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -25009,7 +25013,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -26031,7 +26035,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -27008,7 +27012,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -29679,7 +29683,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -30218,7 +30222,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -32358,7 +32362,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -33026,7 +33030,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -33606,7 +33610,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -34293,7 +34297,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -44869,7 +44873,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -45611,7 +45615,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -46135,13 +46140,14 @@
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20260929020000_creator_records_can_be_archived.sql"
+          "supabase/migrations/20260929020000_creator_records_can_be_archived.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2160
+        "line": 2184
       },
       "contractCompleteness": {
         "route": true,
@@ -46744,7 +46750,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -52635,7 +52641,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -53128,7 +53134,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -53681,7 +53687,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "contractCompleteness": {
         "route": true,
@@ -63877,7 +63883,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -64469,7 +64476,8 @@
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
           "supabase/migrations/20260929020000_creator_records_can_be_archived.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -82616,7 +82624,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -82899,7 +82908,8 @@
           "supabase/migrations/20261002120000_a_storefront_a_stranger_can_buy_from.sql",
           "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
           "supabase/migrations/20261004120000_invoice_payment_tenant_link.sql",
-          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql"
+          "supabase/migrations/20261006020000_a_storefront_order_is_paid_on_the_shops_own_account.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -120819,7 +120829,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 3101
+        "line": 3125
       },
       "contractCompleteness": {
         "route": true,
@@ -208238,7 +208248,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -208496,7 +208507,8 @@
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -208990,7 +209002,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -209248,7 +209261,8 @@
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -209742,7 +209756,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -210000,7 +210015,8 @@
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -210494,7 +210510,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -210752,7 +210769,8 @@
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -211246,7 +211264,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -211504,7 +211523,8 @@
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -211998,7 +212018,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -212256,7 +212277,8 @@
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923020000_business_work_order_job_lifecycle.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -231496,7 +231518,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -232457,7 +232479,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -233238,7 +233260,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -233990,7 +234012,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -235232,7 +235254,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -237409,7 +237431,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -238175,7 +238197,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -238921,7 +238943,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -239695,7 +239717,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -241165,7 +241187,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -243968,7 +243990,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -245280,7 +245302,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -248246,7 +248268,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -249815,7 +249837,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -253697,7 +253719,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -255506,7 +255528,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -256264,7 +256286,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -257042,7 +257064,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -257901,7 +257923,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -259343,7 +259365,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -263710,7 +263732,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -264455,7 +264477,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -265194,7 +265216,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -267641,7 +267663,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -270802,7 +270824,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -277838,7 +277860,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -278558,7 +278580,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -285549,7 +285571,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -286295,7 +286317,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -287464,7 +287486,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -288211,7 +288233,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -305552,7 +305574,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -306975,6 +306997,8 @@
         "body": [
           "accuracy",
           "accuracy_meters",
+          "captured_at",
+          "client_event_id",
           "employee_id",
           "event_type",
           "heading",
@@ -306985,6 +307009,7 @@
           "metadata",
           "organization_id",
           "privacy_mode",
+          "sent_later",
           "speed",
           "speed_mps"
         ],
@@ -307236,7 +307261,8 @@
                 "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
                 "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
                 "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+                "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -307493,7 +307519,8 @@
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
+          "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "persistenceMode": "endpoint_handler_evidence"
       },
@@ -308286,7 +308313,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -311746,7 +311773,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2136
+        "line": 2160
       },
       "contractCompleteness": {
         "route": true,
@@ -318994,7 +319021,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -319671,7 +319698,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -320407,7 +320434,7 @@
       },
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "contractCompleteness": {
         "route": true,
@@ -435708,7 +435735,7 @@
       "id": "table:location_events",
       "schema": "public",
       "name": "location_events",
-      "columnCount": 17,
+      "columnCount": 18,
       "columns": [
         {
           "name": "id",
@@ -435860,6 +435887,14 @@
           "generated": true,
           "allowed": [],
           "fallback": null
+        },
+        {
+          "name": "client_event_id",
+          "type": "uuid",
+          "required": false,
+          "generated": false,
+          "allowed": [],
+          "fallback": null
         }
       ],
       "migrationLineage": {
@@ -435877,7 +435912,8 @@
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
-          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+          "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
+          "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql"
         ],
         "rlsEvidence": [
           "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -460874,6 +460910,16 @@
       "rlsEnabled": [
         "growth_campaign_spend"
       ],
+      "policies": []
+    },
+    {
+      "file": "supabase/migrations/20261007100000_a_check_in_sent_later_is_one_check_in.sql",
+      "creates": [],
+      "alters": [
+        "location_events"
+      ],
+      "drops": [],
+      "rlsEnabled": [],
       "policies": []
     }
   ],
@@ -497287,7 +497333,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2172
+        "line": 2196
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -497317,7 +497363,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2160
+        "line": 2184
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -497387,7 +497433,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2187
+        "line": 2211
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
@@ -497397,7 +497443,7 @@
       "workspace": "sonara_shared_api",
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
-        "line": 2136
+        "line": 2160
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

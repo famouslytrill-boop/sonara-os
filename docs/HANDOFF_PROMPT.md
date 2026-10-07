@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3089 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 157 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 158 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 459 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 460 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 35 most recent entries of 458 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 35 most recent entries of 459 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A check-in with no signal is sent later, once
+
+The first P1 slice of the offline mutation engine, on the mutation that needs it
+most. Field staff check in where the signal is worst, and a check-in that could
+not be sent was lost: "nothing was recorded", and no record of having been
+there.
+
+**The device keeps it.** `public/sonara-offline-queue.js` is generic: name it,
+keep it, flush it.
+- It keeps the request body exactly as it would have been sent. For a check-in
+  that is already reduced on the device to the chosen precision, so the stored
+  copy is no finer than what the server would have received.
+- It holds at most 50 entries and refuses a 51st, saying so, rather than
+  dropping the oldest.
+- It sends on page load and when the browser reports it is back online.
+- When an entry has no answer or gets a 5xx, it waits, and later entries wait
+  behind it so order is kept.
+- A 4xx is dropped and counted as refused, since resending would be refused
+  again.
+- An entry older than a week is dropped and counted, never sent as fresh.
+
+**The server records it once, at the time it happened.** Migration
+`20261007100000` adds `location_events.client_event_id` with a unique constraint
+per organization. The device names each check-in when the button is pressed,
+and the insert is `on_conflict … ignore-duplicates`, so a send whose answer was
+lost is retried without a second row and reported as `duplicate`. Two
+concurrent retries cannot race a read-then-decide. `captured_at` is accepted
+from the device between a week back and five minutes ahead, refused outside
+that window, and `metadata.sent_later` marks a late arrival.
+
+Falsified five ways, each failing by name: a plain insert, no time window, a new
+id on each retry, a server failure treated as a refusal, and skipping past a
+waiting entry. **Owner step:** apply `20261007100000` to production.
+
+
 
 ### 2026-10-07 - A failed generation can be tried again; stopping one cannot undo a charge
 
@@ -2019,90 +2055,3 @@ line 178.
 `lib/sonara-env-value-checks.cjs` keeps the old email pattern. It reads environment
 variables set at deploy time, which is not uncontrolled data in the sense CodeQL
 means, and sweeping it in would be a different change. Worth doing separately.
-
-
-
-### 2026-10-02 - A price nobody set is not free
-
-Business Builder could hold products and variants with prices. It could not put
-them in front of a stranger: no route, no address, nowhere to say what the shop is
-called. The same gap `public_booking_pages` filled for appointments, and this is
-deliberately the same shape, `enabled boolean not null default false` included --
-this migration publishes nobody.
-
-**The invariant it exists for.** `merchant_product_variants.price_cents` is
-`not null default 0`, so zero is indistinguishable between "this is free" and
-"nobody has set a price yet". That default was right for the catalogue and is
-dangerous at the till. CLAUDE.md records the version that already shipped here:
-`Number(null)` is `0` and finite, which made unpriced services read as free across
-twenty-three columns.
-
-So `offerFor` refuses a variant at zero, and says in words that zero means nobody
-filled it in rather than that it is free. **An unreadable price is a different
-answer from zero** -- `price_unreadable` against `price_not_set` -- because they
-are different problems and the owner fixes them differently. There is no `is_free`
-flag: giving something away is a decision somebody should make out loud, and
-inventing a column for it would be inventing the decision.
-
-**The owner sees what the visitor does not.** A shop that silently hides a variant
-nobody priced is a shop whose owner never finds out why it looks empty. So
-`storefrontFor` returns `{ offered, withheld }` and the owner's page prints a
-reason per withheld line, while the public page simply does not show them -- and a
-test asserts a stranger is not shown the owner's reason either.
-
-**A total is never taken from the request.** `priceOrder` takes the offers the
-server read and quantities from the form, and there is no price parameter a caller
-could pass one through. The test posts `price_cents`, `unit_price_cents`,
-`subtotal_cents` and `line_total_cents` and asserts the order still totals 1200.
-
-**A line not on sale refuses the whole order.** Quietly dropping it would charge
-somebody for less than they asked for and call it their order.
-
-**Two currencies do not add up.** A variant priced in another currency is withheld
-rather than converted, because there is no exchange rate here and inventing one
-makes a figure wrong by a factor rather than by a rounding.
-
-**A line's price is a frozen copy, not a join.** An order's total must not change
-when the owner edits the price next week -- somebody agreed to a figure, and a
-receipt that re-prices itself cannot be argued with. The variant reference is kept
-so the owner can still see what was bought.
-
-**What it does not do, and says so twice.** It takes no money and stores no card:
-there is no card column, no CVV, no token, no charge path, and the migration asserts
-against the live catalogue that none appears later. Taking payment runs through the
-organization's own connected account. The public page says "Nothing is charged here
-and no card details are asked for or stored" before the form and again on the
-confirmation, because a buyer who has just pressed "Place this order" would
-otherwise reasonably believe they had paid. It sends nothing, and it decrements no
-stock -- the catalogue migration already said nothing decrements inventory, and
-implying an order did would be a claim about a capability that does not exist. A
-test greps both files for every send path, every card field and `inventory_items`.
-
-**The half-written order.** If the order row saves and its lines do not, the buyer
-is told exactly that: their order reached the shop, what was in it was not
-recorded, nothing was charged, and to contact the shop quoting their name. A total
-with nothing behind it is the kind of record that gets argued about later, and
-reporting success would be the lie.
-
-Two unfiltered reads recorded with their standing-in filter, both necessary: the
-public page finds a shop by a globally unique slug, and publish has to look across
-organizations to answer "that address is taken". Everything the public page then
-reads is scoped by the organization it took off that shop row, which is what makes
-one unfiltered read enough.
-
-Falsified: twelve assertions, each failing by name and restored with `md5sum -c` --
-five on the migration (card column, missing frozen-price columns, the enabled
-default, both unique indexes) and seven on the code: zero offered as free (5 red),
-the `Number(null)` guard removed (1 red), a not-on-sale line dropped instead of
-refusing (2 red), a currency converted silently (1 red), the route taking the total
-from the request (1 red), a missing radio publishing the shop (1 red), and a failed
-line write reported as success (1 red).
-
-`verify:migration-replay` applies 143 migrations in order to an empty PostgreSQL
-with every `do $$` assertion executing. Suite 5659 passing, 0 unfiltered tenant
-queries.
-
-**Not built.** A checkout. Taking money needs the connected payment path and
-credentials only the owner has -- `docs/owner/OWNER-STEPS.md` action 5. This shop is
-honest about that rather than pretending: it records what somebody wants and says
-plainly that payment happens elsewhere.
