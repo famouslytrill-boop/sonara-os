@@ -3,6 +3,7 @@
 // A manager's business can differ from their ordinary primary organization.
 // Exercise the real resolver, including overlapping workspaces for one actor.
 const assert = require("node:assert/strict");
+const { setImmediate } = require("node:timers");
 const {
   runWithBusinessManagementScope,
   organizationInBusinessManagementScope
