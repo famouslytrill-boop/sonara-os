@@ -200,7 +200,7 @@ describe("runtime-reviewed low-custody opt-in switch",()=>{
     const decision=connectReadiness(deps);
     assert.equal(decision.ok,false);
     assert.equal(decision.status,"setup_required");
-    assert.ok(decision.detail.includes("intentionally disabled"));
+    assert.ok(decision.detail.includes("only its own software fees"));
   });
   it("new merchant checkout session creation is blocked with zero network calls", async ()=>{
     let networkCalls=0;
