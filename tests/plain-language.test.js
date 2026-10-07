@@ -365,7 +365,15 @@ describe("signed-in workspaces speak plainly", () => {
   // which answers 503 here for the same reason -- it cannot read a workspace, and
   // a page comparing payments with Stripe says so rather than showing nothing as
   // "everything agrees".
-  const SIGNED_IN_SKIPPED = 120;
+  // 120 -> 121 on 7 October 2026: /business-builder/owner/waitlist, behind
+  // requireBusinessManager and needing a workspace, so this crawl gets a refusal
+  // rather than the page -- which says it cannot read the list instead of saying
+  // nobody is waiting. Its copy is read by
+  // tests/a-waiting-list-is-kept-on-a-page.test.js with the guard stubbed,
+  // including the sentence that offering an opening tells the customer nothing.
+  // Codex's #441 adds a seller reconciliation page in parallel; measure on the
+  // merged tree rather than adding the two increments by hand (see 118 above).
+  const SIGNED_IN_SKIPPED = 121;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
