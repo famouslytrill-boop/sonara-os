@@ -31,7 +31,7 @@ function journal(override = {}) {
     ...override
   });
 }
-const COLUMBUS = { verifiedByAuthority: true, country: "US", state: "OH", municipality: "Columbus" };
+const COLUMBUS = { verifiedByAuthority: true, country: "US", state: "OH", municipality: "Columbus", jurisdictionKey: "US-OH-COLUMBUS" };
 function preflight(overrides = {}) {
   return riskPreflight({
     transactionClass: "residential_property", location: COLUMBUS,
@@ -39,7 +39,7 @@ function preflight(overrides = {}) {
     actor: { authorityVerified: true, authorizationReference: "owner_ref", rentalUnits: 5 },
     policy: {
       reviewerRole: "qualified_counsel", decision: "approved_for_scope",
-      reviewedOn: "2026-10-01", expiresOn: "2026-12-31",
+      reviewedOn: "2026-10-01", expiresOn: "2026-12-31", jurisdictionKey: "US-OH-COLUMBUS",
       transactionClass: "residential_property"
     },
     terms: {
@@ -64,6 +64,7 @@ describe("SONARA draft lease and licensing ledger (no money moved)", () => {
     assert.equal(row.evidenceRef, "evt_1");
     assert.equal(row.hash.length, 64);
     assert.equal(row.organizationId, ORG);
+    assert.equal(depositPosition([row], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT }).actualLiabilityCents, null);
     assert.equal(verifyDraftChain([row], { organizationId: ORG, ledgerId: "lease_books" }).ok, true);
   });
   it("rejects decimal, negative, zero, numeric string, overflow and unsupported currency", () => {
@@ -90,7 +91,7 @@ describe("SONARA draft lease and licensing ledger (no money moved)", () => {
       sequence: 2, previousHash: first.hash, evidence: evidence("evt_2")
     });
     assert.equal(verifyDraftChain([first, next], { organizationId: ORG, ledgerId: "lease_books" }).ok, true);
-    assert.equal(depositPosition([first, next], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT }).outstandingLiabilityCents, 0);
+    assert.equal(depositPosition([first, next], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT }).projectedLiabilityCents, 0);
     const duplicate = journal({
       eventId: EVENT2, sequence: 2, previousHash: first.hash,
       sourceEventId: "evt_1", evidence: evidence("evt_1")
@@ -115,7 +116,7 @@ describe("SONARA draft lease and licensing ledger (no money moved)", () => {
       evidence: evidence("evt_2", 15000)
     });
     const out = depositPosition([first, returned], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT });
-    assert.deepEqual(out, { certain: false, outstandingLiabilityCents: null, issue: "deposit_overdrawn" });
+    assert.deepEqual(out, { mathVerified: false, projectedLiabilityCents: null, actualLiabilityCents: null, issue: "deposit_overdrawn" });
   });
   it("requires documented owner and legal approval for deduction proposals", () => {
     const first = journal();
@@ -130,7 +131,7 @@ describe("SONARA draft lease and licensing ledger (no money moved)", () => {
         ownerApproved: true, legalReviewRecorded: true, reviewerRef: "legal_ref",
         documentRef: "damage_photo_ref" }
     });
-    assert.equal(depositPosition([first, deduction], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT }).outstandingLiabilityCents, 9000);
+    assert.equal(depositPosition([first, deduction], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT }).projectedLiabilityCents, 9000);
   });
 });
 
@@ -149,8 +150,9 @@ describe("SONARA review-only jurisdiction and customer protections", () => {
   it("blocks unknown jurisdiction, missing actor authority and out-of-scope counsel", () => {
     assert.ok(preflight({ location: { country: "US", state: "OH", municipality: "Columbus" } }).blockers.includes("jurisdiction_unverified"));
     assert.ok(preflight({ actor: { authorityVerified: false } }).blockers.includes("actor_authority_missing"));
-    assert.ok(preflight({ policy: { reviewerRole: "qualified_counsel", decision: "approved_for_scope", transactionClass: "vehicle_lease", reviewedOn: "2026-10-01", expiresOn: "2026-12-31" } }).blockers.includes("qualified_legal_scope_review_missing_or_expired"));
+    assert.ok(preflight({ policy: { reviewerRole: "qualified_counsel", decision: "approved_for_scope", transactionClass: "vehicle_lease", reviewedOn: "2026-10-01", expiresOn: "2026-12-31", jurisdictionKey: "US-OH-COLUMBUS" } }).blockers.includes("qualified_legal_scope_review_missing_or_expired"));
     assert.equal(preflight({ asOf: "2026-02-30" }).state, "blocked_pending_review");
+    assert.ok(preflight({ policy: { reviewerRole: "qualified_counsel", decision: "approved_for_scope", transactionClass: "residential_property", reviewedOn: "2026-10-01", expiresOn: "2026-12-31", jurisdictionKey: "US-OH-CLEVELAND" } }).blockers.includes("qualified_legal_scope_review_missing_or_expired"));
   });
   it("applies Columbus 5+ unit deposit-alternatives checks and the October 2026 registry review", () => {
     const baseline = preflight();
@@ -167,7 +169,7 @@ describe("SONARA review-only jurisdiction and customer protections", () => {
     assert.ok(missingUnitCount.blockers.includes("columbus_renter_choice_unit_count_missing"));
     const after = preflight({ asOf: "2027-01-02", policy: {
       reviewerRole: "qualified_counsel", decision: "approved_for_scope",
-      reviewedOn: "2026-12-15", expiresOn: "2027-04-01", transactionClass: "residential_property"
+      reviewedOn: "2026-12-15", expiresOn: "2027-04-01", transactionClass: "residential_property", jurisdictionKey: "US-OH-COLUMBUS"
     } });
     assert.ok(after.blockers.includes("columbus_rental_registry_registration_unverified"));
   });
@@ -184,7 +186,7 @@ describe("SONARA review-only jurisdiction and customer protections", () => {
     const result = preflight({
       transactionClass: "equipment_lease",
       policy: { reviewerRole: "qualified_counsel", decision: "approved_for_scope",
-        transactionClass: "equipment_lease", reviewedOn: "2026-10-01", expiresOn: "2026-12-31" },
+        transactionClass: "equipment_lease", reviewedOn: "2026-10-01", expiresOn: "2026-12-31", jurisdictionKey: "US-OH-COLUMBUS" },
       terms: { versionApproved: true, termsVersion: "lease_v1",
         requiredChargesCents: 1000, consumerPurpose: true }
     });
@@ -195,7 +197,7 @@ describe("SONARA review-only jurisdiction and customer protections", () => {
     const result = preflight({
       transactionClass: "digital_content_license",
       policy: { reviewerRole: "qualified_counsel", decision: "approved_for_scope",
-        transactionClass: "digital_content_license", reviewedOn: "2026-10-01", expiresOn: "2026-12-31" }
+        transactionClass: "digital_content_license", reviewedOn: "2026-10-01", expiresOn: "2026-12-31", jurisdictionKey: "US-OH-COLUMBUS" }
     });
     assert.ok(result.blockers.includes("media_license_rights_unverified"));
     assert.ok(result.blockers.includes("seller_identity_unverified"));
