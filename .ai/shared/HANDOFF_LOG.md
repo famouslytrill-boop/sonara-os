@@ -245,13 +245,20 @@ behaviour, not settlement, deployment or real customer/device evidence.
   assets with offline database and manager fixtures; real authorization runs in
   the server regressions. No physical-device or live-customer proof is claimed.
 
-### Native booking navigation repair — 2026-10-07
+### Native document transition fallback — 2026-10-07
 
-The native HTTP browser workflow exposed an intermittent transition rejection:
-the shared builder script wrapped a full document navigation in the API for
-same-document DOM changes. The link now navigates natively; existing CSS handles
-cross-document motion where supported. No page-error filtering or motion disabling
-was added to the test. A fifth browser case makes the same-document API throw and
-requires the real anchor navigation to succeed. Final full checks rerun.
+The native HTTP workflow exposed Chrome's expected ready-promise rejection when
+a cross-document animation is skipped. The original same-document-wrapper
+hypothesis was insufficient; the builder script is not delivered by the current
+frame, so its change is reverted. The actual parser-blocking prepaint script now
+handles AbortError/InvalidStateError/TimeoutError from native pageswap/pagereveal
+ready promises. Unrelated errors still propagate; no global page-error filter or
+motion disabling is added. The frame cache-busts the updated prepaint script.
+
+Three executable startup tests cover both events, expected cancellations,
+unrelated exceptions and absent transitions. A fifth browser case creates a
+rejected native-transition promise and requires navigation with zero page errors.
+Local focused tests: 27 pass. Final expected full suite: 6,397 tests; Chromium: 39.
+Verify current CI before claiming those full counts have passed.
 
 Primary reference: https://developer.chrome.com/docs/web-platform/view-transitions/cross-document
