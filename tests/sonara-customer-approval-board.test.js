@@ -16,8 +16,8 @@ const base=(o={})=>({
  requestedAt:"2026-10-07T06:00:00Z",expiresAt:"2026-10-07T07:00:00Z",
  proposedByUserId:U1,eligibleHumanApproverCount:2,soloOwnerMode:false,
  decisions:[
-  {id:D1,userId:U1,role:"owner",status:"approved",snapshotHash:HASH,decidedAt:"2026-10-07T06:05:00Z"},
-  {id:D2,userId:U2,role:"admin",status:"approved",snapshotHash:HASH,decidedAt:"2026-10-07T06:06:00Z"}
+  {id:D1,organizationId:ORG,requestId:REQ,userId:U1,role:"owner",status:"approved",snapshotHash:HASH,decidedAt:"2026-10-07T06:05:00Z"},
+  {id:D2,organizationId:ORG,requestId:REQ,userId:U2,role:"admin",status:"approved",snapshotHash:HASH,decidedAt:"2026-10-07T06:06:00Z"}
  ],
  stepUpVerified:true,independentChannelVerified:true,...o
 });
@@ -36,6 +36,15 @@ describe("customer-owned approval board",()=>{
    const out=evaluateApprovalBoard(base({proposedByUserId:U3}));
    assert.equal(out.state,"approval_evidence_ready");
    assert.equal(out.validApprovalCount,2);
+ });
+ it("rejects cross-tenant or cross-request approval replay",()=>{
+   const U3="77777777-7777-4777-8777-777777777777";
+   let rows=base().decisions.map((x,i)=>i?{...x,organizationId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}:x);
+   let out=evaluateApprovalBoard(base({proposedByUserId:U3,decisions:rows}));
+   assert.ok(out.blockers.includes("decision_tenant_mismatch"));
+   rows=base().decisions.map((x,i)=>i?{...x,requestId:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"}:x);
+   out=evaluateApprovalBoard(base({proposedByUserId:U3,decisions:rows}));
+   assert.ok(out.blockers.includes("decision_request_mismatch"));
  });
  it("requires exact immutable proposal snapshot match",()=>{
    const rows=base().decisions.map((x,i)=>i?{...x,snapshotHash:"b".repeat(64)}:x);
@@ -59,7 +68,7 @@ describe("customer-owned approval board",()=>{
    assert.equal(p.residualRisk,"no_independent_second_human");
  });
  it("requires solo owner to reconfirm after a delay",()=>{
-   const one=[{id:D1,userId:U1,role:"owner",status:"approved",snapshotHash:HASH,decidedAt:"2026-10-07T06:01:00Z"}];
+   const one=[{id:D1,organizationId:ORG,requestId:REQ,userId:U1,role:"owner",status:"approved",snapshotHash:HASH,decidedAt:"2026-10-07T06:01:00Z"}];
    let out=evaluateApprovalBoard(base({eligibleHumanApproverCount:1,soloOwnerMode:true,decisions:one,
      independentChannelVerified:true,soloSecondConfirmationAt:"2026-10-07T06:02:00Z"}));
    assert.ok(out.blockers.includes("delayed_owner_reconfirmation_missing"));
@@ -76,7 +85,7 @@ describe("customer-owned approval board",()=>{
  });
  it("a decline blocks even if quorum otherwise exists",()=>{
    const rows=[...base().decisions,{id:"88888888-8888-4888-8888-888888888888",
-     userId:"99999999-9999-4999-8999-999999999999",role:"owner",status:"declined",
+     organizationId:ORG,requestId:REQ,userId:"99999999-9999-4999-8999-999999999999",role:"owner",status:"declined",
      snapshotHash:HASH,decidedAt:"2026-10-07T06:07:00Z"}];
    const out=evaluateApprovalBoard(base({proposedByUserId:"77777777-7777-4777-8777-777777777777",decisions:rows}));
    assert.ok(out.blockers.includes("board_declined"));
