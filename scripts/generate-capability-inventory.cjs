@@ -1876,6 +1876,14 @@ function buildInventory() {
     if (!reviewed) return null;
     destinationReviewsUsed.add(route.id);
     if (reviewed.kind === "json_form_of_page") return { route: reviewed.page, confidence: "route_pair", reason: "json_form_of_page", evidence: reviewed.evidence };
+    if (reviewed.kind === "json_form_of_action") {
+      const action = rawRoutes.find((candidate) => candidate.id === reviewed.action);
+      const page = action ? pageForAction(action) : null;
+      if (page?.route && !["workspace_fallback", "no_user_page"].includes(page.confidence)) {
+        return { route: page.route, confidence: "route_pair", reason: "json_form_of_action", action: reviewed.action, evidence: reviewed.evidence };
+      }
+      return null;
+    }
     if (reviewed.kind === "linked_evidence") return { route: reviewed.page, confidence: "static_page_link", reason: reviewed.kind, consumers: reviewed.consumers };
     return { route: null, confidence: "reviewed_no_page", reason: reviewed.kind, consumers: reviewed.consumers || [] };
   }
@@ -1910,6 +1918,21 @@ function buildInventory() {
             if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.page}`);
           }
         } else problems.push(`${entry.route}: gives no evidence that it is the JSON form of ${entry.page}`);
+      }
+      if (entry.kind === "json_form_of_action") {
+        const action = rawRoutes.find((candidate) => candidate.id === entry.action);
+        if (!action) problems.push(`${entry.route}: ${entry.action} is not a registered route`);
+        else {
+          const page = pageForAction(action);
+          if (!page.route || ["workspace_fallback", "no_user_page"].includes(page.confidence)) problems.push(`${entry.route}: ${entry.action} is not on a page either, so this places nothing`);
+          const call = entry.evidence?.function ? new RegExp(`\\b${escapeRegExp(entry.evidence.function)}\\s*\\(`) : null;
+          if (!call) problems.push(`${entry.route}: gives no function that it shares with ${entry.action}`);
+          else {
+            for (const [label, subject] of [["the route", raw], ["the action", action]]) {
+              if (!call.test(String(subject.handlerSource || ""))) problems.push(`${entry.route}: ${label} does not call ${entry.evidence.function}, so it is not the JSON form of ${entry.action}`);
+            }
+          }
+        }
       }
       if (entry.kind === "method_refusal" && ROUTE_DATA_REVIEWS.find((review) => review.route === entry.route)?.kind !== "method_not_allowed") {
         problems.push(`${entry.route}: lib/sonara-route-data-reviews.cjs does not record it as a route that only refuses a method`);

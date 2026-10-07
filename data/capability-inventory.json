@@ -39,9 +39,9 @@
       "machine_ingress": 3,
       "parent_route": 77,
       "reviewed_no_page": 5,
-      "route_pair": 129,
+      "route_pair": 131,
       "static_page_link": 1,
-      "workspace_fallback": 20
+      "workspace_fallback": 18
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
@@ -51,7 +51,7 @@
       "handler_source_table_reference": 500,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 20,
+    "routesUsingWorkspaceHomeFallback": 18,
     "formActionLinkCount": 128,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
@@ -94,7 +94,7 @@
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
       "growth_studio": 2,
-      "sonara_shared_api": 13
+      "sonara_shared_api": 11
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -313765,9 +313765,13 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/business-builder/prompts/:templateId",
+        "confidence": "route_pair",
+        "reason": "json_form_of_action",
+        "action": "POST /business-builder/prompts/:templateId/collections",
+        "evidence": {
+          "function": "addCollectionItem"
+        }
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -314668,9 +314672,13 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/prompt-library/:slug",
+        "confidence": "route_pair",
+        "reason": "json_form_of_action",
+        "action": "POST /prompt-library/:slug/render",
+        "evidence": {
+          "function": "renderPrompt"
+        }
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -495427,26 +495435,6 @@
       "source": {
         "file": "routes/sonara-last9-routes.cjs",
         "line": 2135
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/prompt-library/collections/:id/items",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 310
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/prompt-library/render",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-prompt-library-routes.cjs",
-        "line": 116
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

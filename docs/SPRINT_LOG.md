@@ -2,6 +2,22 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A JSON endpoint that does what a form does
+
+`POST /api/prompt-library/render` fills in a starter template. The page's own
+form does the same at `POST /prompt-library/:slug/render`, with the slug in the
+path rather than the body, and both call `renderPrompt`.
+`POST /api/prompt-library/collections/:id/items` and the instruction page's
+add-to-collection form both call `addCollectionItem`. The generator's twin rule
+needs the same path without `/api`, so neither was placed, and both were
+reported as having no screen.
+
+The destination register gains `json_form_of_action`: the entry names the page
+action, the action must be registered and resolve to a page, and both handlers
+must call the function named in the evidence. Falsified twice, both failing
+`routeDestinationReviewsNotHeld` by name: a function neither handler calls, and
+an action that is not registered. Workspace fallbacks 20 -> 18.
+
 ### 2026-10-07 - Two forms answered the person with JSON
 
 `/creator-studio/device-cues` carries three create forms: sound cues (the page's

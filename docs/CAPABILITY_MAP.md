@@ -12,7 +12,7 @@ This map is derived from the checked out source. The JSON inventory is the row-l
 | GET / POST / PATCH / DELETE | 571 / 363 / 10 / 3 |
 | Declared page routes / workspace groups | 302 / 12 |
 | API operations matched to OpenAPI | 335 |
-| Destinations using workspace-home fallback | 20 |
+| Destinations using workspace-home fallback | 18 |
 | Form action destinations traced to registered pages | 128 |
 | Traced forms with no matching method/path route | 0 |
 | Route data contracts needing explicit review | 0 |
@@ -44,7 +44,7 @@ The remaining sections connect the existing resource registries, deterministic r
 - The HTTP layer registers 947 unique method/path operations across 12 workspace groups. Every row has a source location and destination. 0 lack a destination; “workspace_fallback” destinations lead to the workspace home and do not prove which screen owns the action.
 - All 335 registered API operations have an OpenAPI operation record. Each API row contains its operation ID, summary, tags, request body contract reference, authentication marker, and documented response statuses.
 - 0 operations are explicitly listed in `routeDataContractGaps` because the checked out route handler or a formal resource/record registry does not prove the exact table effects or a no-write reason. Their module-level candidate tables are kept separate from confirmed endpoint tables.
-- 20 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
+- 18 operations are listed in `routeDestinationReviewGaps` because their page destination is still the workspace home fallback.
 
 ### Route data-contract evidence
 

@@ -103,11 +103,29 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 31 most recent entries of 453 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 32 most recent entries of 454 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A JSON endpoint that does what a form does
+
+`POST /api/prompt-library/render` fills in a starter template. The page's own
+form does the same at `POST /prompt-library/:slug/render`, with the slug in the
+path rather than the body, and both call `renderPrompt`.
+`POST /api/prompt-library/collections/:id/items` and the instruction page's
+add-to-collection form both call `addCollectionItem`. The generator's twin rule
+needs the same path without `/api`, so neither was placed, and both were
+reported as having no screen.
+
+The destination register gains `json_form_of_action`: the entry names the page
+action, the action must be registered and resolve to a page, and both handlers
+must call the function named in the evidence. Falsified twice, both failing
+`routeDestinationReviewsNotHeld` by name: a function neither handler calls, and
+an action that is not registered. Workspace fallbacks 20 -> 18.
+
+
 
 ### 2026-10-07 - Two forms answered the person with JSON
 
