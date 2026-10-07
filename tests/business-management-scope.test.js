@@ -49,6 +49,14 @@ describe("a management request stays in the business that authorized it", () => 
     assert.deepEqual(queries, [], "a verified request looked up or created an unrelated workspace");
   });
 
+  it("keeps a verified legacy database UUID usable without another membership lookup", async () => {
+    const legacy = "00000000-0000-0000-0000-000000000031";
+    const work = runWithBusinessManagementScope(USER, membership(legacy, "owner"), () => resolve(USER));
+    assert.equal(work.ok, true);
+    assert.equal((await work.value).organizationId, legacy);
+    assert.deepEqual(queries, []);
+  });
+
   it("retains ordinary primary membership lookup outside management requests", async () => {
     assert.deepEqual(await resolve({ ...USER, organization_id: MANAGED, role: "owner" }, {
       autoBootstrap: false, organizationId: MANAGED

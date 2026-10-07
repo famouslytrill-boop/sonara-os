@@ -17,8 +17,9 @@ const UNKNOWN_WORKSPACE = "88888888-8888-4888-8888-888888888888";
 const ENV = Object.freeze({
   SUPABASE_URL: "https://project.supabase.co",
   NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-placeholder",
-  SUPABASE_SERVICE_ROLE_KEY: "service-role-placeholder"
+  SUPABASE_ANON_KEY: "anon_manager_scope_fixture_1234567890",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon_manager_scope_fixture_1234567890",
+  SUPABASE_SERVICE_ROLE_KEY: "service_role_manager_scope_fixture_1234567890"
 });
 const RECORD_TABLES = new Set(["business_assets", "business_bookings"]);
 
@@ -72,6 +73,9 @@ describe("the business you manage is the business your record APIs read", functi
   });
 
   function world(edit = () => {}) {
+    // The shared suite resets environment between cases. Configure this offline
+    // world each time, as the real-server commerce fixture does.
+    Object.assign(process.env, ENV);
     const tables = seed();
     edit(tables);
     const fake = createFakeSupabase({

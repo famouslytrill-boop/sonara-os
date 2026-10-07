@@ -102,7 +102,7 @@ Updated: 2026-10-06 UTC during connected-account commerce convergence.
 
 - [x] Inspect merged Claude #439 and keep active #440/#442 work separate.
 - [x] Implement request-local scope binding from the management membership already verified by the server. Primary staff membership in another organization cannot select its records during that management request.
-- [x] Pass 12 focused cases for actual resolver behavior, same-user workspace concurrency, actor mismatch and cleanup after errors.
+- [x] Pass 13 focused cases for actual resolver behavior, same-user workspace concurrency, actor mismatch and cleanup after errors.
 - [ ] Pass the 10 real-server regressions and all release checks on the published scope branch.
 - [ ] Add usable booking/resource/waitlist destination screens after their record scope is verified. The current 61 destination fallbacks remain open.
 - [ ] Prove actual provider/customer commerce and physical-device execution; the scope fix and #441 source checks do not establish that evidence.
