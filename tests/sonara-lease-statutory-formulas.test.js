@@ -23,6 +23,8 @@ function consumerLease(override = {}) {
     calendarYear: 2026, naturalPerson: true, householdPurpose: true,
     personalProperty: true, termMonths: 12,
     totalContractualObligationCents: 3000000,
+    earlyTerminationPenaltyBindsBeyondFourMonths: false,
+    lessorOrArrangerActivityReviewed: true,
     termsDurationVerified: true, totalObligationVerified: true,
     ...override
   });
@@ -85,6 +87,22 @@ describe("2026 CFPB Regulation M consumer personal-property lease applicability"
     const response = consumerLease({ totalContractualObligationCents: 7340000 });
     assert.equal(response.likelyWithinRegulationMDefinition, true);
     assert.equal(response.disclosureApproved, false);
+  });
+  it("flags month-to-month early termination penalty beyond four months", () => {
+    const result = consumerLease({
+      termMonths: 1,
+      earlyTerminationPenaltyBindsBeyondFourMonths: true
+    });
+    assert.equal(result.likelyWithinRegulationMDefinition, true);
+    assert.equal(result.disclosureApproved, false);
+  });
+  it("requires review of lessor or lease-arranger activity status", () => {
+    const result = consumerLease({ lessorOrArrangerActivityReviewed: false });
+    assert.ok(result.blockers.includes("lessor_regular_activity_scope_unverified"));
+  });
+  it("does not presume a term without reviewing cancellation penalties", () => {
+    const result = consumerLease({ earlyTerminationPenaltyBindsBeyondFourMonths: undefined });
+    assert.ok(result.blockers.includes("term_duration_unverified"));
   });
   it("does not automatically apply Regulation M to a 4-month rental", () => {
     const result = consumerLease({ termMonths: 4 });
