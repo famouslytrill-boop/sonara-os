@@ -13,7 +13,7 @@ const JOB_ID = "66666666-6666-4666-8666-666666666666";
 const SNAPSHOT_ID = "77777777-7777-4777-8777-777777777777";
 const CONVERSION_ID = "99999999-9999-4999-8999-999999999999";
 
-function buildApp({ paid = true, activityEvents = null } = {}) {
+function buildApp({ paid = true, activityEvents = null, role = "owner" } = {}) {
   const app = express();
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
@@ -27,7 +27,7 @@ function buildApp({ paid = true, activityEvents = null } = {}) {
       req.sonaraUser = { id: USER_ID, email: "growth@example.com" };
       return next();
     },
-    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID, role }),
     getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
     insertActivityEvent: async (organizationId, userId, eventType, eventData) => {
       if (Array.isArray(activityEvents)) activityEvents.push({ organizationId, userId, eventType, eventData });
@@ -247,6 +247,95 @@ describe("Growth Studio operating system", () => {
     const result = await request(buildApp()).post("/api/growth/provider-jobs").send({ provider_key: "posthog", capability: "event_capture", operation: "event_capture", idempotency_key: "posthog-event-1", request_payload: { event: "consultation_booked", distinct_id: "lead-123" } });
     assert.equal(result.body.job.status, "completed");
     assert.doesNotMatch(JSON.stringify(result.body), /phc_test_secret/);
+  });
+
+  it("publishes an explicitly approved LinkedIn organization post and records provider proof", async () => {
+    process.env.LINKEDIN_MARKETING_ENABLED = "true";
+    process.env.LINKEDIN_ACCESS_TOKEN = "linkedin-test-token";
+    process.env.LINKEDIN_ORGANIZATION_ID = "5515715";
+
+    let job = providerJob({
+      provider_key: "linkedin_marketing",
+      capability: "organization_posts",
+      operation: "organization_posts",
+      request_payload: { commentary: "A real provider-backed update." }
+    });
+    let providerHeaders;
+    let providerBody;
+    let publicationEvidence;
+
+    global.fetch = async (url, options = {}) => {
+      const stringUrl = String(url);
+      const method = options.method || "GET";
+      if (stringUrl.includes("/rest/v1/growth_provider_jobs") && method === "POST") {
+        job = { ...job, ...JSON.parse(options.body) };
+        return jsonResponse(201, [job]);
+      }
+      if (stringUrl.includes("/rest/v1/growth_provider_jobs") && method === "PATCH") {
+        job = { ...job, ...JSON.parse(options.body) };
+        return jsonResponse(200, [job]);
+      }
+      if (stringUrl.includes("/rest/v1/growth_touchpoints") && method === "POST") {
+        publicationEvidence = JSON.parse(options.body);
+        return jsonResponse(201, [{ id: "12121212-1212-4212-8212-121212121212", ...publicationEvidence }]);
+      }
+      if (stringUrl.includes("/rest/v1/growth_control_events")) return jsonResponse(201, []);
+      if (stringUrl === "https://api.linkedin.com/rest/posts") {
+        providerHeaders = options.headers;
+        providerBody = JSON.parse(options.body);
+        return new Response(null, { status: 201, headers: { "x-restli-id": "urn:li:share:6844785523593134080" } });
+      }
+      return jsonResponse(200, []);
+    };
+
+    const result = await request(buildApp()).post("/api/growth/provider-jobs").send({
+      provider_key: "linkedin_marketing",
+      capability: "organization_posts",
+      operation: "organization_posts",
+      idempotency_key: "linkedin-post-1",
+      approved: true,
+      request_payload: { commentary: "A real provider-backed update." }
+    });
+
+    assert.equal(result.status, 201, JSON.stringify(result.body));
+    assert.equal(result.body.job.status, "completed");
+    assert.equal(result.body.job.provider_job_id, "urn:li:share:6844785523593134080");
+    assert.equal(result.body.publicationEvidenceRecorded, true);
+    assert.equal(providerHeaders.Authorization, "Bearer linkedin-test-token");
+    assert.equal(providerHeaders["Linkedin-Version"], "202609");
+    assert.equal(providerHeaders["X-Restli-Protocol-Version"], "2.0.0");
+    assert.equal(providerBody.author, "urn:li:organization:5515715");
+    assert.equal(providerBody.commentary, "A real provider-backed update.");
+    assert.equal(providerBody.lifecycleState, "PUBLISHED");
+    assert.equal(publicationEvidence.event_name, "provider.published");
+    assert.equal(publicationEvidence.provider_key, "linkedin_marketing");
+    assert.equal(publicationEvidence.external_event_id, "urn:li:share:6844785523593134080");
+    assert.equal(publicationEvidence.hand_entered, false);
+    assert.doesNotMatch(JSON.stringify(result.body), /linkedin-test-token/);
+  });
+
+  it("does not let an employee turn a provider approval attestation into a public LinkedIn write", async () => {
+    process.env.LINKEDIN_MARKETING_ENABLED = "true";
+    process.env.LINKEDIN_ACCESS_TOKEN = "linkedin-test-token";
+    process.env.LINKEDIN_ORGANIZATION_ID = "5515715";
+    let providerCalled = false;
+    global.fetch = async (url) => {
+      if (String(url) === "https://api.linkedin.com/rest/posts") providerCalled = true;
+      return jsonResponse(200, []);
+    };
+
+    const result = await request(buildApp({ role: "employee" })).post("/api/growth/provider-jobs").send({
+      provider_key: "linkedin_marketing",
+      capability: "organization_posts",
+      operation: "organization_posts",
+      idempotency_key: "linkedin-post-employee",
+      approved: true,
+      request_payload: { commentary: "This must not publish." }
+    });
+
+    assert.equal(result.status, 403);
+    assert.equal(result.body.ok, false);
+    assert.equal(providerCalled, false);
   });
 
   it("stores GA4 reports with sampling and freshness evidence", async () => {
