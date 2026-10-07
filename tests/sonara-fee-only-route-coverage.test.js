@@ -60,7 +60,7 @@ describe("fee-only money route coverage regression", () => {
     }
     const ownBilling = source("lib/sonara-billing.cjs");
     assert.match(ownBilling, /STRIPE_PLANS\[plan\]\.mode === "subscription"/);
-    assert.match(ownBilling, /api\.stripe\.com\/v1\/checkout\/sessions/);
+    assert.ok(ownBilling.includes("\"https://api.stripe.com/v1/checkout/sessions\""));
     assert.doesNotMatch(ownBilling, /["']Stripe-Account["']/);
     assert.ok(checked > 10);
   });
