@@ -133,8 +133,20 @@ describe("deterministic legal and content review gates", () => {
     const out = legalDocumentDraftGate(validDraft({
       jurisdictionEvidenceRecorded:false, counselScopeVerified:false
     }));
-    assert.ok(out.blockers.includes("jurisdiction_unverified"));
-    assert.ok(out.blockers.includes("legal_reviewer_scope_missing"));
+    assert.ok(out.reviewRequirements.includes("jurisdiction_unverified"));
+    assert.ok(out.reviewRequirements.includes("legal_reviewer_scope_missing"));
+    assert.equal(out.status, "educational_draft_unreviewed");
+    assert.equal(out.bindingEffectClaimed, false);
+  });
+  it("low-budget founders may generate clearly labeled unreviewed educational drafts", () => {
+    const out=legalDocumentDraftGate(validDraft({
+      counselScopeVerified:false,currentRuleVersionApproved:false,
+      jurisdictionEvidenceRecorded:false
+    }));
+    assert.equal(out.status,"educational_draft_unreviewed");
+    assert.ok(out.requiredLabel.includes("not legal advice"));
+    assert.equal(out.signatureCaptured,false);
+    assert.equal(out.automaticLegalCompliance,false);
   });
   it("blocks any autonomy for lease signing, custody, tenant denial or legal advice", () => {
     for (const operation of ["legal_advice", "lease_execution", "tenant_rejection", "release_customer_funds"]) {
