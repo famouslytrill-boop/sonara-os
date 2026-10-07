@@ -135,6 +135,28 @@ describe("Business Builder control plane", () => {
     assert.equal(refused.body.code, "integration_governance_required");
     assert.equal(calls.some((call) => call.url.includes("business_integration_connections") && call.method === "POST"), false);
 
+    const oauthRefused = await request(buildApp())
+      .post(`/api/business-builder/businesses/${BUSINESS_ID}/integrations`)
+      .set("Accept", "application/json")
+      .send({
+        provider_key: "calendar",
+        connection_mode: "oauth",
+        connection_status: "connected",
+        settings: {
+          governance: {
+            organizationScoped: true,
+            secrets: "server_only",
+            commercial: { status: "approved", termsUrl: "https://provider.example/terms", reviewedAt: "2026-09-13T12:00:00Z" },
+            rateLimit: { mode: "provider_headers", honorsRetryAfter: true },
+            operator: { mode: "human_approval", externalActionsAllowed: false },
+            ai: { mode: "disabled", required: false }
+          }
+        }
+      });
+    assert.equal(oauthRefused.status, 409);
+    assert.ok(oauthRefused.body.reasons.includes("provider_server_verification_required"));
+    assert.ok(oauthRefused.body.reasons.includes("oauth_grant_verification_required"));
+
     const accepted = await request(buildApp())
       .post(`/api/business-builder/businesses/${BUSINESS_ID}/integrations`)
       .set("Accept", "application/json")
