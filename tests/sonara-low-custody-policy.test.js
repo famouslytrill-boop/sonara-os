@@ -8,6 +8,7 @@ const {
 } = require("../lib/sonara-low-custody-policy.cjs");
 const { connectReadiness, canAcceptPayments, createAccount, onboardingLink } =
   require("../lib/sonara-connected-payments.cjs");
+const { checkoutReadiness } = require("../lib/sonara-connected-checkout.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const FOREIGN="22222222-2222-4222-8222-222222222222";
 const merchant=(overrides={})=>({
@@ -149,6 +150,17 @@ describe("SONARA externally reported payment receipts cannot become paid grants"
 });
 
 describe("runtime-reviewed low-custody opt-in switch",()=>{
+  it("software-fees-only mode blocks marketplace and storefront checkout readiness",()=>{
+    const deps={getEnv:key=>({
+      SONARA_CUSTOMER_FUNDS_MODE:"external_only",
+      STRIPE_CONNECT_ENABLED:"true",
+      STRIPE_CONNECT_WEBHOOK_SECRET:"whsec_"+"a".repeat(40),
+      STRIPE_SECRET_KEY:"sk_test_"+"b".repeat(40)
+    })[key]};
+    const gate=checkoutReadiness(deps);
+    assert.equal(gate.ok,false);
+    assert.equal(gate.status,"setup_required");
+  });
   it("external_only blocks Connect even with legacy Connect enabled",()=>{
     const deps={getEnv:name=>({
       SONARA_CUSTOMER_FUNDS_MODE:"external_only",
