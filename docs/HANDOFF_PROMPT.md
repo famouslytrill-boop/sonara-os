@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 157 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 458 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 459 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,43 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 34 most recent entries of 457 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 35 most recent entries of 458 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - A failed generation can be tried again; stopping one cannot undo a charge
+
+**Retry.** A generation job that failed or was stopped could only be abandoned.
+The job page offered nothing, and starting again meant retyping the request.
+`POST /api/creator/generation/jobs/:jobId/retry` (a "Try again" button on the
+job page) makes a new job from the same request. It goes through the same
+`submitGeneration` path a new request does, now shared, so every check runs
+again:
+- the safety review;
+- an active voice permission, so one revoked since refuses it;
+- the project;
+- a fresh credit reservation;
+- the submission rate limit.
+
+The original job is never reopened, and each job's history names the other. A
+completed job is not retryable, because it delivered and was charged.
+
+**Cancel.** Stopping a job read its status and then wrote `cancelled`
+unconditionally. A job that completed and was charged between the read and the
+write was cancelled anyway, and the cancel releases the job's reserved credit:
+work delivered, credit returned. The write is now conditional on the job being
+unfinished (`status=not.in.(completed,failed,cancelled)`). When it matches
+nothing, the answer is "not cancellable", and nothing is released or recorded.
+
+Falsified four ways, each failing by name: the cancel write made unconditional,
+completed jobs made retryable, the retry skipping the safety and consent
+checks, and the link between the two jobs not recorded. The release is observed
+at the `generation_usage` RPC, because `updateJob` calls the allowance module
+directly rather than the injected one.
+
+
 
 ### 2026-10-07 - Profit over the jobs a business finished
 
