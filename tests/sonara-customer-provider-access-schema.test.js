@@ -46,6 +46,21 @@ describe("customer provider access schema proposal",()=>{
     assert.match(sql,/provider_receipt_hash/);
   });
 
+  it("keeps tenant provider credentials behind a non-browser Vault boundary",()=>{
+    assert.match(sql,/credential_custody text not null/);
+    assert.match(sql,/supabase_vault/);
+    assert.match(sql,/Browser roles never receive SELECT on/);
+    assert.match(sql,/vault\.decrypted_secrets/);
+    assert.match(sql,/Do not create a PUBLIC-schema SECURITY DEFINER credential resolver/);
+  });
+
+  it("requires remediation of broad browser privileges before provider activation",()=>{
+    assert.match(sql,/TRUNCATE\/TRIGGER\/REFERENCES privileges/);
+    assert.match(sql,/public\.business_integration_connections/);
+    assert.match(sql,/RLS is not a substitute for/);
+    assert.match(sql,/REVOKE ALL from anon\/authenticated/);
+  });
+
   it("keeps financial mutation disabled under external-only customer-funds mode",()=>{
     assert.match(sql,/Financial mutation remains disabled while SONARA customer-funds mode is/);
     assert.match(sql,/external_only/);
