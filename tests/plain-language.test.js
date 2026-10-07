@@ -377,7 +377,7 @@ describe("signed-in workspaces speak plainly", () => {
   // requireBusinessManager. Its copy -- including that money is shown per
   // currency and that a capped read is "at least" -- is read by
   // tests/how-the-business-is-doing-counts-real-money.test.js.
-  const SIGNED_IN_SKIPPED = 122;
+  const SIGNED_IN_SKIPPED = 123;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

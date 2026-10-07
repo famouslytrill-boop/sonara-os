@@ -47,6 +47,17 @@
 - Generator: the backtick-template regexes now use disjoint alternations
   (CodeQL polynomial-ReDoS). The inventory output is byte-identical.
 
+## 2026-10-07 — Codex: seller payment/licence evidence (PR #441, implementation)
+
+- Built `/creator-studio/owner/marketplace/reconciliation`, linked from the seller marketplace. It reads authenticated seller orders, grants and the connected Stripe account; all provider operations are GETs. Financial evidence requires a verified owner/admin/manager membership in the same organization; unknown roles and staff are refused before sales/provider reads. The organization resolver runs with automatic workspace creation disabled.
+- Reports missing recorded payments/grants, duplicate paid checkouts, snapshot mismatches, full refunds, disputes and incomplete reads. Currency totals and original-charge fee/net figures remain separate; no payout, profit or production sale is claimed.
+- Buyer downloads now require the grant's organization, buyer, version and licence to match the immutable order. The receipt states payment and delivery separately.
+- Stripe session pagination fails on malformed or repeated cursors and identifies page bounds. Provider objects are projected before rendering; client secrets never enter the report.
+- Local focused validation: 82 passing tests under Node 24 using its test runner's Mocha-compatible globals. The full 6,341-test suite, including the real organization-resolver boundary and three real-server private-storage regressions, passed at `deea8f80971878cf9cf620b5723cfada0608ba8d`. Frozen installation, type checking, lint, build, route smoke and database/storage contracts passed there; its release gate rejected stale inventory. Generated evidence is now refreshed. Current gate decisions and Chromium screenshots are recorded on PR #441; the local clone remains unavailable after an automatic approval-review usage-limit error.
+- Desktop/mobile Chromium checks render the actual route and real document/card shell with fixture provider records, exercise period refresh, and distinguish missing grants/provider failure. Screenshots and logs are uploaded by Browser Quality; this is fixture UI proof, not a live sale. Findings use escaped card markup rather than the shared plain-text card helper.
+- The existing branch regeneration workflow now includes this convergence branch and regenerates capability evidence from a complete CI checkout before a fresh validation commit. The capability map includes a compact generated list of open destination workflows with endpoint, workspace, current fallback and exact source location; these remain open until real screens exist. Derived inventory is never edited by hand.
+- Coordination: #439 is merged; its locks are released. #440 LinkedIn execution and #442 leasing/legal work are untouched. Remaining production proof requires configured accounts and actual customer/provider transactions; no live charges, refunds, payouts or deployment were performed.
+
 ## 2026-10-07 - Claude - Record detail pages for every door; declared doors in the inventory
 
 - `hasDetailPage(page)` (lib/sonara-owner-record-pages.cjs) decides which record

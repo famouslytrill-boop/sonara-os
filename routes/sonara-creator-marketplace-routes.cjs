@@ -53,6 +53,7 @@ const payments = require("../lib/sonara-connected-payments.cjs");
 const checkout = require("../lib/sonara-connected-checkout.cjs");
 const orders = require("../lib/sonara-marketplace-orders.cjs");
 const storage = require("../lib/sonara-file-storage.cjs");
+const { registerMarketplaceReconciliationRoutes, RECONCILIATION_PAGE } = require("./sonara-marketplace-reconciliation-routes.cjs");
 
 const OWNER_PAGE = "/creator-studio/owner/marketplace";
 const PUBLIC_PAGE = "/marketplace";
@@ -125,6 +126,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
 
   const page = (res, input) => res.status(200).type("html").send(layout(input));
   const enc = encodeURIComponent;
+  registerMarketplaceReconciliationRoutes(app, deps);
 
   async function sellerPaymentReadiness(organizationId) {
     if (!UUID.test(String(organizationId || ""))) return { ok: false, code: "no_organization" };
@@ -461,6 +463,7 @@ function registerCreatorMarketplaceRoutes(app, deps = {}) {
       body: "What you are selling, what has sold, and what each listing still needs. Selling is never easier than publishing — anything that cannot be published cannot be sold, and each listing says why.",
       sections,
       actions: [
+        linkAction(RECONCILIATION_PAGE, "Check sales and licences"),
         linkAction("/business-builder/owner/payments", "Payment account"),
         linkAction("/creator-studio/owner/approval-graph", "Approvals"),
         linkAction(PUBLIC_PAGE, "The public marketplace"),
