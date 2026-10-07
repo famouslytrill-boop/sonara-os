@@ -37,6 +37,15 @@ describe("customer automation and agent skills",()=>{
     assert.ok(automationDefinitionPreflight(valid({maxConcurrentRuns:20}))
       .blockers.includes("concurrency_cap_invalid"));
   });
+  it("requires trusted caller time for replayable expiry checks",()=>{
+    let out=automationDefinitionPreflight(valid({expiresAt:"2026-10-08T00:00:00Z"}));
+    assert.ok(out.blockers.includes("trusted_now_required_for_expiry_check"));
+    out=automationDefinitionPreflight(valid({expiresAt:"2026-10-08T00:00:00Z",now:"2026-10-07T00:00:00Z"}));
+    assert.equal(out.state,"automation_definition_review_ready");
+    assert.equal(out.trustedTimeRequiredForExpiry,true);
+    out=automationDefinitionPreflight(valid({expiresAt:"2026-10-06T00:00:00Z",now:"2026-10-07T00:00:00Z"}));
+    assert.ok(out.blockers.includes("automation_expiry_not_future"));
+  });
   it("does not blanket-enable sensitive automations",()=>{
     const out=automationDefinitionPreflight(valid({skillKey:"campaign_dispatch",enabled:true}));
     assert.ok(out.blockers.includes("sensitive_automation_cannot_be_blanket_enabled"));
