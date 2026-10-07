@@ -1445,10 +1445,21 @@ async function createProviderJob(config, context, input) {
   if (!selected.ok) return { ok: false, status: 400, code: selected.code };
   const provider = selected.provider;
   const requiresApproval = provider.adapterMode === "approval_gated" || APPROVAL_OPERATIONS.has(input.operation);
+  if (requiresApproval && input.approved) {
+    const authority = mayApproveOwnerAction(context.role);
+    if (!authority.allowed) {
+      return {
+        ok: false,
+        status: authority.code === "role_unknown" ? 503 : 403,
+        code: authority.code,
+        reason: authority.reason
+      };
+    }
+  }
   let status = "queued";
   if (requiresApproval && !input.approved) status = "approval_required";
-  else if (provider.adapterMode === "approval_gated") status = "manual_required";
   else if (!selected.readiness.configured) status = "setup_required";
+  else if (provider.adapterMode === "approval_gated" && !provider.directExecutionAfterApproval) status = "manual_required";
   const created = await insert(config, TABLES.jobs, {
     organization_id: context.organizationId,
     user_id: context.userId,
@@ -1484,6 +1495,7 @@ async function dispatchProviderJob(config, context, job, provider) {
     if (provider.key === "klaviyo") return dispatchKlaviyo(config, context, job, provider);
     if (provider.key === "posthog") return dispatchPostHog(config, context, job, provider);
     if (provider.key === "google_analytics") return dispatchGoogleAnalytics(config, context, job, provider);
+    if (provider.key === "linkedin_marketing") return dispatchLinkedIn(config, context, job, provider);
     const manual = await updateJob(config, context, job.id, { status: "manual_required", provider_response: { provider_key: provider.key, adapter_mode: provider.adapterMode }, updated_at: new Date().toISOString() });
     return { ok: true, job: manual.rows[0] };
   } catch (error) {
@@ -1599,8 +1611,126 @@ async function dispatchGoogleAnalytics(config, context, job, provider) {
   return { ok: true, job: completed.rows[0], snapshot: snapshot.rows[0] };
 }
 
+async function dispatchLinkedIn(config, context, job, provider) {
+  if (job.operation !== "organization_posts") {
+    return failProviderJob(config, context, job, "linkedin_operation_not_implemented", "Only organization_posts is enabled for direct LinkedIn execution.", 400);
+  }
+
+  const payload = job.request_payload || {};
+  const commentary = clean(payload.commentary || payload.text || payload.content?.body, 3000);
+  if (!commentary) {
+    return failProviderJob(config, context, job, "linkedin_commentary_required", "A LinkedIn organization post needs text to publish.", 400);
+  }
+
+  const organizationValue = clean(process.env.LINKEDIN_ORGANIZATION_ID, 300);
+  const organizationId = organizationValue.startsWith("urn:li:organization:")
+    ? organizationValue.slice("urn:li:organization:".length)
+    : organizationValue;
+  if (!/^\d+$/.test(organizationId)) {
+    return failProviderJob(config, context, job, "linkedin_organization_id_invalid", "LINKEDIN_ORGANIZATION_ID must be a LinkedIn organization numeric id or organization URN.", 503);
+  }
+
+  const revision = String(provider.defaultRevision || "202609");
+  const base = String(provider.defaultBaseUrl || "https://api.linkedin.com").replace(/\/$/, "");
+  const response = await fetch(`${base}/rest/posts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "Linkedin-Version": revision,
+      "X-Restli-Protocol-Version": "2.0.0"
+    },
+    body: JSON.stringify({
+      author: `urn:li:organization:${organizationId}`,
+      commentary,
+      visibility: "PUBLIC",
+      distribution: {
+        feedDistribution: "MAIN_FEED",
+        targetEntities: [],
+        thirdPartyDistributionChannels: []
+      },
+      lifecycleState: "PUBLISHED",
+      isReshareDisabledByAuthor: Boolean(payload.is_reshare_disabled_by_author || payload.isReshareDisabledByAuthor)
+    })
+  });
+
+  if (!response.ok) return failProviderResponse(config, context, job, response, "linkedin_post_failed");
+
+  // LinkedIn returns the new post identifier in x-restli-id for a successful
+  // create. The action may already have happened even if an intermediary strips
+  // that header, so a 201 without it is still completed rather than retried and
+  // potentially posted twice.
+  const providerPostId = clean(response.headers?.get?.("x-restli-id"), 500) || null;
+  const completedAt = new Date().toISOString();
+  const completed = await updateJob(config, context, job.id, {
+    status: "completed",
+    progress_percent: 100,
+    provider_job_id: providerPostId,
+    provider_response: {
+      accepted: true,
+      provider_post_id: providerPostId,
+      linkedin_version: revision,
+      evidence: providerPostId ? "linkedin_http_201_with_post_id" : "linkedin_http_201_without_post_id"
+    },
+    completed_at: completedAt,
+    updated_at: completedAt
+  });
+  const completedJob = completed.rows[0] || { ...job, status: "completed", provider_job_id: providerPostId, completed_at: completedAt };
+  const evidence = await recordProviderPublicationTouchpoint(config, context, completedJob, {
+    providerPostId,
+    revision
+  });
+  await controlEvent(config, context, "provider_job.completed", "success", {
+    provider_key: provider.key,
+    operation: job.operation,
+    provider_job_id: providerPostId,
+    publication_evidence_recorded: evidence.ok
+  }, job.campaign_id, job.id);
+  return { ok: true, job: completedJob, publicationEvidenceRecorded: evidence.ok };
+}
+
+async function recordProviderPublicationTouchpoint(config, context, job, { providerPostId = null, revision = null } = {}) {
+  const result = await insert(config, TABLES.touchpoints, {
+    organization_id: context.organizationId,
+    user_id: context.userId,
+    campaign_id: validUuid(job.campaign_id) ? job.campaign_id : null,
+    lead_id: null,
+    provider_key: "linkedin_marketing",
+    event_name: "provider.published",
+    channel: "linkedin",
+    source: "linkedin",
+    medium: "organic_social",
+    campaign_key: validUuid(job.campaign_id) ? job.campaign_id : null,
+    content_key: validUuid(job.content_id) ? job.content_id : null,
+    anonymous_id: null,
+    external_event_id: providerPostId,
+    deduplication_key: `provider-job:${job.id}:published`,
+    value: null,
+    currency: null,
+    occurred_at: validDate(job.completed_at) || new Date().toISOString(),
+    hand_entered: false,
+    metadata: {
+      job_id: job.id,
+      operation: job.operation,
+      evidence: "linkedin_posts_api",
+      linkedin_version: revision || job.provider_response?.linkedin_version || null
+    }
+  });
+  // A deterministic deduplication key makes refresh/recovery idempotent. If the
+  // evidence already exists, a 409 is success: the proof is already durable.
+  return { ok: result.ok || result.status === 409, duplicate: result.status === 409 };
+}
+
 async function refreshProviderJob(config, context, job, provider) {
   if (!provider) return { ok: false, status: 409, code: "provider_not_found" };
+  if (job.status === "completed" && provider.key === "linkedin_marketing" && job.operation === "organization_posts") {
+    const evidence = await recordProviderPublicationTouchpoint(config, context, job, {
+      providerPostId: clean(job.provider_job_id || job.provider_response?.provider_post_id, 500) || null,
+      revision: clean(job.provider_response?.linkedin_version, 20) || provider.defaultRevision || "202609"
+    });
+    return { ok: true, job, unchanged: true, publicationEvidenceRecorded: evidence.ok, evidenceAlreadyPresent: evidence.duplicate };
+  }
   if (["completed", "failed", "cancelled", "approval_required", "manual_required", "setup_required"].includes(job.status)) return { ok: true, job, unchanged: true };
   return { ok: true, job, unchanged: true, note: "Configured Growth Studio adapters in this release are synchronous; external asynchronous connectors remain manual or approval-gated." };
 }
