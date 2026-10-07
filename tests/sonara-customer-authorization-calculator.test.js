@@ -45,13 +45,16 @@ describe("customer authorization calculator",()=>{
       assert.ok(out.blockers.includes("governance_board_evidence_required"),action);
     }
   });
-  it("permits public reads without tenant membership but not other public actions",()=>{
-    const read=authorizationDecision({organizationId:"",resourceOrganizationId:"",userId:USER,
-      role:"viewer",action:"read",resourceClass:"public",publicResource:true});
+  it("permits anonymous public reads without tenant membership but not other public actions",()=>{
+    const read=authorizationDecision({organizationId:"",resourceOrganizationId:"",userId:"",
+      role:null,action:"read",resourceClass:"public",publicResource:true});
     assert.equal(read.allowed,true);
-    const write=authorizationDecision({organizationId:"",resourceOrganizationId:"",userId:USER,
-      role:"viewer",action:"update",resourceClass:"public",publicResource:true});
+    assert.equal(read.anonymousReadAllowed,true);
+    assert.equal(read.rlsStillRequired,false);
+    const write=authorizationDecision({organizationId:"",resourceOrganizationId:"",userId:"",
+      role:null,action:"update",resourceClass:"public",publicResource:true});
     assert.equal(write.allowed,false);
+    assert.ok(write.blockers.includes("user_identity_unverified"));
   });
   it("never treats authorization policy math as the runtime permission grant",()=>{
     const out=authorizationDecision(valid({action:"delete",stepUpVerified:true,boardEvidenceReady:true}));
