@@ -39,9 +39,9 @@
       "machine_ingress": 3,
       "parent_route": 77,
       "reviewed_no_page": 5,
-      "route_pair": 125,
+      "route_pair": 128,
       "static_page_link": 1,
-      "workspace_fallback": 28
+      "workspace_fallback": 25
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
@@ -51,7 +51,7 @@
       "handler_source_table_reference": 499,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 28,
+    "routesUsingWorkspaceHomeFallback": 25,
     "formActionLinkCount": 128,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
@@ -93,7 +93,7 @@
       "business_builder": 3,
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
-      "growth_studio": 5,
+      "growth_studio": 2,
       "sonara_shared_api": 17
     },
     "resourceTableContractCount": 39,
@@ -37567,7 +37567,8 @@
       "destination": {
         "route": "/growth-studio/automations",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "automation_rules"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -37993,9 +37994,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/campaigns",
+        "route": "/growth-studio/your-campaigns",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_campaigns"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -39461,9 +39463,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/growth-studio/consent",
+        "confidence": "route_pair",
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_contact_consents"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -39885,9 +39888,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/content",
+        "route": "/growth-studio/content-plan",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_content_queue"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -40311,7 +40315,8 @@
       "destination": {
         "route": "/growth-studio/conversions",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_conversions"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -40735,7 +40740,8 @@
       "destination": {
         "route": "/growth-studio/experiments",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_experiments"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -41161,9 +41167,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/leads",
+        "route": "/growth-studio/enquiries",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_leads"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -41593,9 +41600,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/growth-studio/attribution",
+        "confidence": "route_pair",
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_metric_snapshots"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -43051,7 +43059,8 @@
       "destination": {
         "route": "/growth-studio/segments",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_audience_segments"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -43475,7 +43484,8 @@
       "destination": {
         "route": "/growth-studio/touchpoints",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_lists_its_table",
+        "table": "growth_touchpoints"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -291366,7 +291376,8 @@
       "destination": {
         "route": "/growth-studio/automations",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "automation_rules"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -291800,9 +291811,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/campaigns",
+        "route": "/growth-studio/your-campaigns",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_campaigns"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -296314,9 +296326,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/growth-studio/consent",
+        "confidence": "route_pair",
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_contact_consents"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -296771,9 +296784,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/content",
+        "route": "/growth-studio/content-plan",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_content_queue"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -297855,7 +297869,8 @@
       "destination": {
         "route": "/growth-studio/conversions",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_conversions"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -299500,7 +299515,8 @@
       "destination": {
         "route": "/growth-studio/experiments",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_experiments"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -299979,9 +299995,10 @@
       "kind": "api",
       "workspace": "growth_studio",
       "destination": {
-        "route": "/growth-studio/leads",
+        "route": "/growth-studio/enquiries",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_leads"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -301446,7 +301463,8 @@
       "destination": {
         "route": "/growth-studio/segments",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_audience_segments"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -301875,7 +301893,8 @@
       "destination": {
         "route": "/growth-studio/touchpoints",
         "confidence": "route_pair",
-        "reason": "matching_product_workspace_page"
+        "reason": "growth_record_page_renders_its_create_form",
+        "table": "growth_touchpoints"
       },
       "accessMiddleware": [],
       "routeRegistry": null,
@@ -494478,26 +494497,6 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "GET /api/growth/consents",
-      "workspace": "growth_studio",
-      "source": {
-        "file": "routes/growth-studio-control-routes.cjs",
-        "line": 804
-      },
-      "currentDestination": "/growth-studio/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/growth/metrics",
-      "workspace": "growth_studio",
-      "source": {
-        "file": "routes/growth-studio-control-routes.cjs",
-        "line": 1103
-      },
-      "currentDestination": "/growth-studio/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "GET /api/growth/readiness",
       "workspace": "growth_studio",
       "source": {
@@ -494628,16 +494627,6 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "POST /api/growth/consents",
-      "workspace": "growth_studio",
-      "source": {
-        "file": "routes/growth-studio-control-routes.cjs",
-        "line": 805
-      },
-      "currentDestination": "/growth-studio/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "POST /api/integrations/jobs",
       "workspace": "sonara_shared_api",
       "source": {
@@ -494712,6 +494701,7 @@
     "formActionsWithoutRegisteredRoute": [],
     "declaredDoorsNotRendered": [],
     "routeDestinationReviewsNotHeld": [],
+    "growthRecordDoorsNotHeld": [],
     "ownerActionsWithoutRegisteredRoute": [],
     "ownerActionsWithoutActiveTable": [],
     "activeTablesWithoutCreateMigration": [],

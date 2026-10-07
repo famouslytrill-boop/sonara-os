@@ -1785,6 +1785,57 @@ function buildInventory() {
       recordDetailPages: recordPagesWhere((page) => records.hasDetailPage(page))
     });
   })();
+  // Growth Studio's record pages, read from their declarations rather than
+  // paired by name. Each page in lib/sonara-growth-record-pages.cjs names the
+  // table it lists (`tableKey`), and the route file renders the create form of
+  // the spec in lib/sonara-growth-create-specs.cjs for the same table, posting
+  // to /api/growth/<spec.key>. Pairing by name found /growth-studio/segments
+  // for /api/growth/segments and missed /growth-studio/consent for
+  // /api/growth/consents -- a singular page name -- so the permission form a
+  // campaign depends on was reported as having no screen.
+  //
+  // Held by map.validation.growthRecordDoorsNotHeld: the page and the route are
+  // registered, a GET reads the page's table and a POST writes it, and every
+  // create spec has a page. A declaration the code stopped honouring fails.
+  const growthRecordDoors = (() => {
+    const { GROWTH_RECORD_PAGES } = require(path.join(ROOT, "lib", "sonara-growth-record-pages.cjs"));
+    const { GROWTH_CREATE_SPECS } = require(path.join(ROOT, "lib", "sonara-growth-create-specs.cjs"));
+    const { GROWTH_TABLES } = require(path.join(ROOT, "lib", "sonara-growth-tables.cjs"));
+    const doors = new Map();
+    for (const page of GROWTH_RECORD_PAGES) {
+      const table = GROWTH_TABLES[page.tableKey];
+      doors.set(`GET /api/growth/${page.tableKey}`, { page: page.path, table, reason: "growth_record_page_lists_its_table", optional: true });
+      for (const spec of GROWTH_CREATE_SPECS.filter((candidate) => candidate.tableKey === page.tableKey)) {
+        doors.set(`POST /api/growth/${spec.key}`, { page: page.path, table, reason: "growth_record_page_renders_its_create_form" });
+      }
+    }
+    const pagedTables = new Set(GROWTH_RECORD_PAGES.map((page) => page.tableKey));
+    return Object.assign(doors, {
+      pageCount: GROWTH_RECORD_PAGES.length,
+      specsWithoutPage: GROWTH_CREATE_SPECS.filter((spec) => !pagedTables.has(spec.tableKey)).map((spec) => spec.key)
+    });
+  })();
+  function growthRecordDoor(route) {
+    const door = growthRecordDoors.get(route.id);
+    if (!door) return null;
+    return { route: door.page, confidence: "route_pair", reason: door.reason, table: door.table };
+  }
+  function growthRecordDoorProblems() {
+    const problems = [];
+    if (growthRecordDoors.pageCount < 5 || growthRecordDoors.size < 5) problems.push(`only ${growthRecordDoors.pageCount} growth record pages and ${growthRecordDoors.size} doors were read, so this check has gone blind`);
+    for (const key of growthRecordDoors.specsWithoutPage) problems.push(`POST /api/growth/${key}: a create form is described and no growth record page lists its table, so nothing renders it`);
+    for (const [id, door] of growthRecordDoors) {
+      const raw = rawRoutes.find((candidate) => candidate.id === id);
+      if (!raw) {
+        if (!door.optional) problems.push(`${id}: described as a create form and not a registered route`);
+        continue;
+      }
+      if (!rawRoutes.some((candidate) => candidate.id === `GET ${door.page}`)) problems.push(`${id}: ${door.page} is not a registered page`);
+      if (!door.table) problems.push(`${id}: ${door.page} names a table key GROWTH_TABLES does not have`);
+      else if (!(raw.directTableReferences || []).includes(door.table)) problems.push(`${id}: does not touch ${door.table}, the table ${door.page} lists`);
+    }
+    return problems;
+  }
   function declaredDoorProblems() {
     const problems = [];
     // The other side. A form the source credits to every record detail page is
@@ -1888,6 +1939,8 @@ function buildInventory() {
       const parent = nearestRegisteredPage(route.route, "nearest_registered_parent_page");
       if (parent) return parent;
     }
+    const growthDoor = growthRecordDoor(route);
+    if (growthDoor) return growthDoor;
     const productApi = route.route.match(/^\/api\/(business-builder|business|creator-studio|creator|growth-studio|growth)\/(.+)$/);
     if (productApi) {
       const prefix = /^(business-builder|business)$/.test(productApi[1]) ? "/business-builder"
@@ -2697,6 +2750,7 @@ function buildInventory() {
     formActionsWithoutRegisteredRoute: uiFormActionLinks.filter((link) => !formHasRoute(link)).map((link) => `${link.method} ${link.action}`),
     declaredDoorsNotRendered: declaredDoorProblems(),
     routeDestinationReviewsNotHeld: destinationReviewProblems(),
+    growthRecordDoorsNotHeld: growthRecordDoorProblems(),
     ownerActionsWithoutRegisteredRoute: ownerActionContractChecks.filter((action) => !action.routeRegistered).map((action) => action.id),
     ownerActionsWithoutActiveTable: ownerActionContractChecks.filter((action) => !action.tableInMigrations).map((action) => action.id),
     activeTablesWithoutCreateMigration: tables.filter((table) => table.migrationLineage.createdBy.length === 0).map((table) => table.name),

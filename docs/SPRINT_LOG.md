@@ -2,6 +2,29 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - The permission form was there; the inventory paired by name
+
+`POST /api/growth/consents` was listed as a route with no screen. It has had one
+the whole time: `/growth-studio/consent` lists `growth_contact_consents` and
+renders the create form from `lib/sonara-growth-create-specs.cjs`. The generator
+paired `/api/growth/<x>` with a page called `/growth-studio/<x>`, which found
+`/growth-studio/segments` and missed a page named in the singular. So the form a
+campaign's consent check depends on was counted as missing, and
+`/api/growth/metrics` was missed beside `/growth-studio/attribution` for the
+same reason.
+
+The generator now reads the declarations. Each growth record page names its
+table, and the create form it renders is the spec for the same table, so
+`GET /api/growth/<tableKey>` and `POST /api/growth/<spec.key>` are placed on that
+page. `map.validation.growthRecordDoorsNotHeld` holds it from the code side:
+- the page and the route must be registered;
+- the route must touch the table the page lists;
+- every create spec must have a page.
+
+Falsified twice, both failing by name: a page renamed so its spec has no page,
+and the consent endpoint writing a different table. All 19 placements were
+checked against the pages that render them. Workspace fallbacks 28 -> 25.
+
 ### 2026-10-07 - The waiting list is a page
 
 `routes/sonara-operations-expansion-routes.cjs` stored a waiting list (a
