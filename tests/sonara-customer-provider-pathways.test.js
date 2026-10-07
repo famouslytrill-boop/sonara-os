@@ -6,7 +6,8 @@ const assert=require("node:assert/strict");
 const {
   AUTHORITY_SOURCES,providerOriginAssessment,oauthGrantPreflight,
   customerProviderConnectionPreflight,providerActionPreflight,
-  providerDashboardPathway,providerSecretCustodyPlan
+  providerDashboardPathway,providerSecretCustodyPlan,
+  customProviderManifestPreflight
 }=require("../lib/sonara-customer-provider-pathways.cjs");
 
 const ORG="11111111-1111-4111-8111-111111111111";
@@ -218,6 +219,47 @@ describe("customer-owned and customer-provided provider pathways",()=>{
     });
     assert.ok(unsafe.blockers.includes("provider_dashboard_sensitive_query_forbidden"));
     assert.equal(unsafe.navigationUrl,null);
+  });
+
+  it("admits a reviewed custom provider manifest without enabling runtime automatically",()=>{
+    const good=customProviderManifestPreflight({
+      providerKey:"customer_erp",label:"Customer ERP",
+      apiOrigin:"https://api.customer-erp.example",providerIdentityVerified:true,
+      documentationUrl:"https://docs.customer-erp.example/api",
+      authTypes:["oauth2"],capabilities:["orders.read","inventory.read"],
+      dashboardOrigins:["https://app.customer-erp.example"],
+      commercialReview:"approved",securityReview:"approved_read_only",
+      rateLimitMode:"provider_headers",ownerApproved:true,requestedMode:"read_only"
+    });
+    assert.equal(good.state,"custom_provider_manifest_review_ready");
+    assert.equal(good.readOnlyCandidate,true);
+    assert.equal(good.runtimeEnabled,false);
+    assert.equal(good.serverFetchAuthorized,false);
+    assert.equal(good.financialMutationCandidate,false);
+
+    const bad=customProviderManifestPreflight({
+      providerKey:"anything",label:"Anything",
+      apiOrigin:"http://127.0.0.1:9000",providerIdentityVerified:false,
+      documentationUrl:"http://127.0.0.1/docs",
+      authTypes:["unknown_auth"],capabilities:["*"],
+      dashboardOrigins:["http://localhost"],
+      commercialReview:"review_required",securityReview:"review_required",
+      rateLimitMode:"unlimited",ownerApproved:false,requestedMode:"scoped_write"
+    });
+    for(const code of [
+      "custom_provider_origin_https_required",
+      "custom_provider_origin_local_or_ip_forbidden",
+      "custom_provider_origin_owner_unverified",
+      "custom_provider_docs_https_required",
+      "custom_provider_auth_type_invalid",
+      "custom_provider_capability_invalid",
+      "custom_provider_dashboard_origin_invalid",
+      "custom_provider_commercial_review_required",
+      "custom_provider_security_review_required",
+      "custom_provider_rate_limit_review_required",
+      "custom_provider_owner_approval_required",
+      "custom_provider_write_security_review_required"
+    ]) assert.ok(bad.blockers.includes(code),code);
   });
 
   it("routes per-tenant provider secrets to a vault candidate instead of shared env storage",()=>{
