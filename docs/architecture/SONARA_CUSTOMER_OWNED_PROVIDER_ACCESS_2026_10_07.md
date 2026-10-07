@@ -1,5 +1,6 @@
 # SONARA Customer-Owned Provider Access Architecture
 Date: 2026-10-07
+Review by: 2026-11-07
 Status: engineering design + deterministic policy implementation; no new production provider runtime enabled
 
 ## Objective
