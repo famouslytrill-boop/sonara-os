@@ -6,7 +6,7 @@ const assert=require("node:assert/strict");
 const {
   AUTHORITY_SOURCES,providerOriginAssessment,oauthGrantPreflight,
   customerProviderConnectionPreflight,providerActionPreflight,
-  providerDashboardPathway
+  providerDashboardPathway,providerSecretCustodyPlan
 }=require("../lib/sonara-customer-provider-pathways.cjs");
 
 const ORG="11111111-1111-4111-8111-111111111111";
@@ -218,6 +218,26 @@ describe("customer-owned and customer-provided provider pathways",()=>{
     });
     assert.ok(unsafe.blockers.includes("provider_dashboard_sensitive_query_forbidden"));
     assert.equal(unsafe.navigationUrl,null);
+  });
+
+  it("routes per-tenant provider secrets to a vault candidate instead of shared env storage",()=>{
+    const tenant=providerSecretCustodyPlan({
+      secretScope:"tenant_provider",supabaseVaultAvailable:true
+    });
+    assert.equal(tenant.state,"provider_secret_custody_review_ready");
+    assert.equal(tenant.custody,"supabase_vault_candidate");
+    assert.equal(tenant.rawSecretStoredInConnectionTable,false);
+    assert.equal(tenant.decryptedVaultViewBrowserAccessible,false);
+    assert.equal(tenant.pgsodiumDirectUseRecommended,false);
+
+    const blocked=providerSecretCustodyPlan({
+      secretScope:"tenant_provider",supabaseVaultAvailable:false,projectWide:true
+    });
+    assert.ok(blocked.blockers.includes("tenant_secret_vault_required"));
+    assert.ok(blocked.blockers.includes("tenant_secret_must_not_use_shared_project_credential"));
+
+    const global=providerSecretCustodyPlan({secretScope:"project_provider",projectWide:true});
+    assert.equal(global.custody,"deployment_secret_store");
   });
 
   it("fails cross-tenant provider action replay",()=>{
