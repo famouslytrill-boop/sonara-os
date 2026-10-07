@@ -82,6 +82,19 @@ async function mountReport(page, options) {
   return page.goto(BASE_URL + RECONCILIATION_PAGE);
 }
 
+// Reveal each record as an actual visitor scrolling the report would. A full
+// page screenshot otherwise captures off-screen cards mid-reveal and proves
+// layout without proving that the financial details become readable.
+async function readEveryReportCard(page) {
+  const cards = page.locator("main .grid .card");
+  expect(await cards.count()).toBeGreaterThan(0);
+  for (const card of await cards.all()) {
+    await card.scrollIntoViewIfNeeded();
+    await expect(card).toHaveCSS("opacity", "1");
+  }
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+}
+
 test.describe("seller reconciliation browser proof with fixture transactions", () => {
   for (const viewport of [{ name: "desktop", width: 1280, height: 900 }, { name: "mobile", width: 390, height: 844 }]) {
     test("renders the report and refreshes its period on " + viewport.name, async ({ page }) => {
@@ -98,6 +111,7 @@ test.describe("seller reconciliation browser proof with fixture transactions", (
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
       const button = await page.getByRole("button", { name: "Check again", exact: true }).boundingBox();
       expect(button.height).toBeGreaterThanOrEqual(44);
+      await readEveryReportCard(page);
       await page.screenshot({ path: "artifacts/browser/marketplace-reconciliation-" + viewport.name + ".png", fullPage: true });
       await page.getByLabel("Orders created in the last").selectOption("7");
       await page.getByRole("button", { name: "Check again", exact: true }).click();
@@ -110,6 +124,7 @@ test.describe("seller reconciliation browser proof with fixture transactions", (
   }
   test("makes a paid order with no licence visibly incomplete", async ({ page }) => {
     await mountReport(page, { missingGrant: true });
+    await readEveryReportCard(page);
     await expect(page.getByRole("listitem").filter({ hasText: "The paid order has no recorded licence grant." })).toBeVisible();
     await expect(page.locator("body")).toContainText("1 records need attention");
     await expect(page.locator("body")).not.toContainText("The payment record and licence state agree");
