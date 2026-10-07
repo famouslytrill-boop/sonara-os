@@ -44,6 +44,37 @@ describe("commercial integration activation policy", () => {
     assert.equal(result.policy.aiMode, "disabled");
   });
 
+  it("requires server-derived provider proof before OAuth/API/webhook connections are live", () => {
+    const blocked = evaluateIntegrationActivation({
+      settings: approvedGovernance(),
+      connectionMode: "oauth"
+    });
+    for (const code of [
+      "provider_server_verification_required",
+      "provider_connection_assessment_required",
+      "provider_account_binding_required",
+      "provider_credential_reference_verification_required",
+      "provider_origin_verification_required",
+      "oauth_grant_verification_required"
+    ]) assert.ok(blocked.reasons.includes(code), code);
+
+    const ready = evaluateIntegrationActivation({
+      settings: approvedGovernance(),
+      connectionMode: "oauth",
+      providerVerification: {
+        serverDerived: true,
+        connectionAssessmentState: "provider_connection_review_ready",
+        providerAccountBindingVerified: true,
+        credentialReferenceVerified: true,
+        originVerified: true,
+        oauthGrantVerified: true
+      }
+    });
+    assert.equal(ready.allowed, true);
+    assert.equal(ready.policy.providerVerificationRequired, true);
+    assert.equal(ready.policy.providerVerificationServerDerived, true);
+  });
+
   it("fails closed when commercial terms, retry behavior, or secret boundaries are missing", () => {
     const result = evaluateIntegrationActivation({
       settings: {
