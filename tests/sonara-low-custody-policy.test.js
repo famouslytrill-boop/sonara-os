@@ -8,7 +8,8 @@ const {
 } = require("../lib/sonara-low-custody-policy.cjs");
 const { connectReadiness, canAcceptPayments, createAccount, onboardingLink } =
   require("../lib/sonara-connected-payments.cjs");
-const { checkoutReadiness } = require("../lib/sonara-connected-checkout.cjs");
+const { checkoutReadiness, createSession, expireSession, retrieveSession, listSessions } =
+  require("../lib/sonara-connected-checkout.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const FOREIGN="22222222-2222-4222-8222-222222222222";
 const merchant=(overrides={})=>({
@@ -170,6 +171,60 @@ describe("runtime-reviewed low-custody opt-in switch",()=>{
     assert.equal(decision.ok,false);
     assert.equal(decision.status,"setup_required");
     assert.ok(decision.detail.includes("intentionally disabled"));
+  });
+  it("new merchant checkout session creation is blocked with zero network calls", async ()=>{
+    let networkCalls=0;
+    const deps={getEnv:key=>({
+      SONARA_CUSTOMER_FUNDS_MODE:"external_only",
+      STRIPE_CONNECT_ENABLED:"true", STRIPE_SECRET_KEY:"sk_test_"+"b".repeat(40),
+      STRIPE_CONNECT_WEBHOOK_SECRET:"whsec_"+"c".repeat(40)
+    })[key]};
+    const out=await createSession(deps,{
+      accountId:"acct_1234567890",orderId:ORG,
+      fields:{}, idempotencyKey:"sonara-marketplace-order-"+ORG
+    },async()=>{networkCalls++;throw Error("request should never happen")});
+    assert.equal(out.ok,false);
+    assert.equal(networkCalls,0);
+  });
+  it("historical session GET can still reconcile a verified connected account after shutdown",async()=>{
+    let networkCalls=0;
+    const deps={getEnv:key=>({
+      SONARA_CUSTOMER_FUNDS_MODE:"external_only",
+      STRIPE_CONNECT_ENABLED:"false",STRIPE_SECRET_KEY:"sk_test_"+"b".repeat(40)
+    })[key]};
+    const result=await retrieveSession(deps,{
+      accountId:"acct_1234567890",sessionId:"cs_test_123abc"
+    },async(url,init)=>{
+      networkCalls++;
+      assert.equal(init.method,"GET");
+      assert.equal(init.headers["Stripe-Account"],"acct_1234567890");
+      assert.ok(url.includes("cs_test_123abc"));
+      return {ok:true,json:async()=>({id:"cs_test_123abc",payment_status:"paid"})};
+    });
+    assert.equal(result.ok,true);
+    assert.equal(result.session.payment_status,"paid");
+    assert.equal(networkCalls,1);
+  });
+  it("historical session expiry POST stays disabled under fee-only mode",async()=>{
+    let networkCalls=0;
+    const deps={getEnv:key=>({
+      SONARA_CUSTOMER_FUNDS_MODE:"external_only",
+      STRIPE_CONNECT_ENABLED:"true",STRIPE_SECRET_KEY:"sk_test_"+"b".repeat(40)
+    })[key]};
+    const result=await expireSession(deps,{
+      accountId:"acct_1234567890",sessionId:"cs_test_123abc"
+    },async()=>{networkCalls++;throw Error("write should not happen")});
+    assert.equal(result.ok,false);
+    assert.equal(networkCalls,0);
+  });
+  it("merchant session reconciliation rejects missing provider credentials",async()=>{
+    let calls=0;
+    const out=await retrieveSession({getEnv:key=>key==="SONARA_CUSTOMER_FUNDS_MODE"?"external_only":""},{
+      accountId:"acct_1234567890",sessionId:"cs_test_123abc"
+    },async()=>{calls++;throw Error("should not call")});
+    assert.equal(out.ok,false);
+    assert.equal(out.code,"legacy_reconciliation_key_unavailable");
+    assert.equal(calls,0);
   });
   it("Connect-disabled account creation cannot call provider or storage", async ()=>{
     let networkCalls=0;
