@@ -77,6 +77,15 @@ try {
 
 // Tier 1 rulings, keyed by file. Each was checked by opening the file.
 const ACCOUNTED = Object.freeze({
+  "routes/sonara-marketplace-reconciliation-routes.cjs": {
+    columns: ["buyer_user_id", "version_id", "price_cents", "checkout_session_id", "payment_intent_id", "revoked_at", "revoked_reason"],
+    reason: [
+      "The seller-scoped orders and licence grants are handed whole to reconcile in lib/sonara-marketplace-reconciliation.cjs.",
+      "It reads price_cents for currency totals and amount comparison; checkout_session_id and payment_intent_id for provider identity;",
+      "buyer_user_id and version_id for the immutable grant snapshot; revoked_at and revoked_reason for paid delivery and closed-order revocation.",
+      "Opened on 7 October 2026. tests/marketplace-reconciliation.test.js drives mismatched references, buyer/version/licence checks and failed revocations through that consumer."
+    ].join(" ")
+  },
   "routes/sonara-marketplace-checkout-routes.cjs": {
     columns: ["consent_attested", "rights_attested"],
     reason: [
