@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const { createHash } = require("node:crypto");
 const { MONEY_PATHS, moneyPathPreflight, auditMoneyEvents } =
   require("../lib/sonara-money-pathway-guards.cjs");
-const { REQUIRED_SECTIONS, contractEvidencePreflight } =
+const { REQUIRED_SECTIONS, agreementReviewDigest, contractEvidencePreflight } =
   require("../lib/sonara-contract-evidence-gates.cjs");
 
 const ORG = "11111111-1111-4111-8111-111111111111";
@@ -43,7 +43,7 @@ const baseAgreement = {
     reviewedType: "saas_subscription", reviewedJurisdiction: "US-OH",
     approvedTextHash: approvalHash, reviewerRef: "counsel_ref",
     approvalEvidenceRef: "signed_review_report",
-    approvedOn: "2026-10-01", immutableVersionStored: true,
+    approvedOn: "2026-10-01", approvalExpiresOn: "2027-10-01", immutableVersionStored: true,
     reproducibleCopyAvailable: true, sections: allSections
   },
   agreement: {
@@ -58,6 +58,10 @@ const baseAgreement = {
   },
   asOf: "2026-10-06", action: "draft"
 };
+baseAgreement.document.approvedSnapshotHash = agreementReviewDigest({
+  type: baseAgreement.type, jurisdictionCode: baseAgreement.jurisdiction.code,
+  document: baseAgreement.document, agreement: baseAgreement.agreement
+});
 
 describe("SONARA cross-suite monetary boundary, preview-only", () => {
   it("maps every supported suite to explicit beneficiaries and flags custody", () => {
@@ -190,6 +194,35 @@ describe("SONARA leasing/subscription contract evidence, review-only", () => {
     assert.equal(result.customerAccepted, false);
     assert.equal(result.executionAuthorized, false);
     assert.equal(result.enforceabilityProven, false);
+  });
+  it("blocks a fee change even when the approved contract prose is untouched", () => {
+    const adjusted = contractEvidencePreflight({ ...baseAgreement,
+      agreement: { ...baseAgreement.agreement, recurringCents: 29000 } });
+    assert.ok(adjusted.blockers.includes("counsel_scope_review_missing_or_text_changed"));
+    assert.equal(adjusted.documentDigest, null);
+    assert.equal(adjusted.legalApprovalRecorded, false);
+  });
+  it("blocks unreviewed new contract terms hidden in optional metadata", () => {
+    const adjusted = contractEvidencePreflight({ ...baseAgreement,
+      agreement: { ...baseAgreement.agreement, newLiquidatedDamagesCents: 150000 } });
+    assert.ok(adjusted.blockers.includes("counsel_scope_review_missing_or_text_changed"));
+  });
+  it("blocks stale counsel approvals even when text and price remain unchanged", () => {
+    const adjusted = contractEvidencePreflight({ ...baseAgreement,
+      document: { ...baseAgreement.document, approvalExpiresOn: "2026-10-05" } });
+    assert.ok(adjusted.blockers.includes("counsel_scope_review_missing_or_text_changed"));
+  });
+  it("has canonical review digests regardless of harmless object key ordering", () => {
+    const reordered = Object.fromEntries(Object.entries(baseAgreement.agreement).reverse());
+    assert.equal(agreementReviewDigest({
+      type: baseAgreement.type, jurisdictionCode: baseAgreement.jurisdiction.code,
+      document: baseAgreement.document, agreement: reordered
+    }), baseAgreement.document.approvedSnapshotHash);
+  });
+  it("fails closed on unserializable terms and unsupported financial metadata", () => {
+    const adjusted = contractEvidencePreflight({ ...baseAgreement,
+      agreement: { ...baseAgreement.agreement, supplement: undefined } });
+    assert.ok(adjusted.blockers.includes("agreement_snapshot_unverifiable"));
   });
   it("blocks silently edited legal text after approval", () => {
     const result = contractEvidencePreflight({ ...baseAgreement,
