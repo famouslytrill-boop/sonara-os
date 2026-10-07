@@ -118,6 +118,23 @@ describe("SONARA draft lease and licensing ledger (no money moved)", () => {
     const out = depositPosition([first, returned], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT });
     assert.deepEqual(out, { mathVerified: false, projectedLiabilityCents: null, actualLiabilityCents: null, issue: "deposit_overdrawn" });
   });
+  it("flags multiple proposed deductions exceeding the deposit, without reducing liability", () => {
+    const first = journal();
+    const proposal = journal({
+      kind: "deposit_applied_pending_review", eventId: EVENT2,
+      sourceEventId: "deduction_large", amountCents: 15000,
+      sequence: 2, previousHash: first.hash,
+      evidence: { type: "approved_documented_adjustment", organizationId: ORG,
+        ownerApproved: true, legalReviewRecorded: true, reviewerRef: "reviewer_7",
+        documentRef: "proposal_2" }
+    });
+    const out = depositPosition([first, proposal], {
+      organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT
+    });
+    assert.equal(out.mathVerified, false);
+    assert.equal(out.issue, "pending_deductions_exceed_deposit");
+    assert.equal(out.actualLiabilityCents, null);
+  });
   it("requires documented owner and legal approval for deduction proposals", () => {
     const first = journal();
     assert.throws(() => journal({
@@ -131,7 +148,12 @@ describe("SONARA draft lease and licensing ledger (no money moved)", () => {
         ownerApproved: true, legalReviewRecorded: true, reviewerRef: "legal_ref",
         documentRef: "damage_photo_ref" }
     });
-    assert.equal(depositPosition([first, deduction], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT }).projectedLiabilityCents, 9000);
+    const preview = depositPosition([first, deduction], { organizationId: ORG, ledgerId: "lease_books", contractId: CONTRACT });
+    assert.equal(preview.mathVerified, true);
+    assert.equal(preview.projectedLiabilityCents, 10000);
+    assert.equal(preview.pendingDeductionCents, 1000);
+    assert.equal(preview.hypotheticalAfterPendingCents, 9000);
+    assert.equal(preview.actualLiabilityCents, null);
   });
 });
 
