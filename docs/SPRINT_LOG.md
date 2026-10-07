@@ -2,6 +2,33 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - The waiting list is a page
+
+`routes/sonara-operations-expansion-routes.cjs` stored a waiting list (a
+`business_bookings` row marked `metadata.waitlist`) and bookable resources (a
+`business_assets` row marked `metadata.bookable`), and nothing showed either.
+`tests/form-reachability.test.js` excused both save endpoints because "the
+reservation page consumes the saved resource rows". There was no reservation
+page and nothing read those rows.
+
+`/business-builder/owner/waitlist` (`lib/sonara-waitlist-pages.cjs`) lists who
+is waiting and what can be booked, with forms to add to both. Each waiting entry
+can be marked as offered. **Marking it offered records it and tells nobody.**
+The endpoint has always answered `customerNotified: false`, and the page now says
+so beside the button and in the confirmation, so "Offered" does not read as
+"told". Confirming or cancelling the request happens on the booking's own page,
+which already had the status form. Once it is no longer `requested`, it leaves
+the list. A form posts one ticked resource as a string rather than an array, and
+the route took only arrays, so a single choice was silently dropped. It now
+accepts both. The page and the two JSON reads share `readWaitlist` and
+`readResources`, recorded as JSON twins in the destination register.
+
+Falsified six ways, each failing by name: browsers answered with JSON, a single
+tick dropped, the "tells nobody" sentence removed, the offer lookup without its
+organization filter, a failed read shown as an empty list, and an offered entry
+offered again. Separately, the register entry naming the wrong function fails the
+generator with `routeDestinationReviewsNotHeld`. Workspace fallbacks 33 -> 28.
+
 ### 2026-10-07 - A workspace saves its own instructions
 
 The three studio prompt pages said "use these starter instructions straight
