@@ -41,7 +41,7 @@
 
   function storageOf(options) {
     if (options && options.storage) return options.storage;
-    try { return root.localStorage || null; } catch (error) { return null; }
+    try { return root.localStorage || null; } catch { return null; }
   }
 
   function read(storage) {
@@ -49,7 +49,7 @@
     try {
       var parsed = JSON.parse(storage.getItem(STORAGE_KEY) || "[]");
       return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
+    } catch {
       return [];
     }
   }
@@ -59,7 +59,7 @@
     try {
       storage.setItem(STORAGE_KEY, JSON.stringify(items));
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
