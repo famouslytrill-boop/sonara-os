@@ -4,8 +4,8 @@ Active:
 - HELD: reservation-resource and waitlist destination workflow -- Codex,
   PR #445, branch `codex/reservation-workflows-20261007`, taken 2026-10-07.
   Covers the operations expansion controller, reservation renderer, bookings
-  navigation and workflow tests, including removal of the shared builder
-  script's same-document transition wrapper around full-document anchor links. Builds on PR #443's verified management scope.
+  navigation and workflow tests, including the early native transition
+  cancellation handler and its cache-busted page-frame script URL. Builds on PR #443's verified management scope.
   No payments, inventory, schema, market-intelligence or prompt-library edits.
   The fake Supabase addition models jsonb equality; preserve Claude #444's
   nested logical-filter work. Release when PR #445 merges or closes.

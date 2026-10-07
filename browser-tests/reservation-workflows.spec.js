@@ -130,14 +130,18 @@ test.describe("reservation and waitlist browser workflows", () => {
     await expect(page.getByRole("heading", { name: "Nobody is waiting", exact: true })).toHaveCount(0);
   });
 
-  test("keeps full-page links native when a same-document transition cannot run", async ({ page }) => {
+  test("handles cancelled native motion while keeping page navigation usable", async ({ page }) => {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.addInitScript(() => {
-      document.startViewTransition = () => { throw new Error("Full-page links must navigate natively"); };
-    });
     const db = await mountWorkflow();
     await page.goto(db.baseURL + RESOURCE_PAGE);
+    await page.evaluate(() => {
+      const event = new Event("pagereveal");
+      Object.defineProperty(event, "viewTransition", { value: {
+        ready: Promise.reject(new DOMException("Native animation was skipped", "InvalidStateError"))
+      } });
+      window.dispatchEvent(event);
+    });
     await page.getByRole("link", { name: "Waitlist", exact: true }).click();
     await expect(page).toHaveURL(new RegExp("/business-builder/owner/waitlist"));
     await expect(page.getByRole("heading", { name: "Waitlist", exact: true })).toBeVisible();
