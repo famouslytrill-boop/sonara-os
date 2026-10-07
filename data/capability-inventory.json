@@ -396062,7 +396062,7 @@
       },
       "source": {
         "file": "routes/growth-studio-control-routes.cjs",
-        "line": 1367
+        "line": 1365
       },
       "contractCompleteness": {
         "route": true,
