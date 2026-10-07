@@ -294742,6 +294742,7 @@
           "growth_control_events",
           "growth_metric_snapshots",
           "growth_provider_jobs",
+          "growth_touchpoints",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -295060,6 +295061,66 @@
             }
           },
           {
+            "table": "growth_touchpoints",
+            "tableId": "table:growth_touchpoints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
             "table": "organization_memberships",
             "tableId": "table:organization_memberships",
             "migrationLineage": {
@@ -295261,6 +295322,7 @@
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
@@ -297966,6 +298028,7 @@
           "growth_control_events",
           "growth_metric_snapshots",
           "growth_provider_jobs",
+          "growth_touchpoints",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -298225,6 +298288,66 @@
             }
           },
           {
+            "table": "growth_touchpoints",
+            "tableId": "table:growth_touchpoints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
             "table": "organization_memberships",
             "tableId": "table:organization_memberships",
             "migrationLineage": {
@@ -298426,6 +298549,7 @@
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
@@ -298526,6 +298650,7 @@
         "directTables": [
           "business_memberships",
           "growth_provider_jobs",
+          "growth_touchpoints",
           "organization_memberships",
           "organizations",
           "profiles"
@@ -298651,6 +298776,66 @@
             }
           },
           {
+            "table": "growth_touchpoints",
+            "tableId": "table:growth_touchpoints",
+            "migrationLineage": {
+              "createdBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql"
+              ],
+              "changedBy": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260818090000_hand_entered_provenance.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "rlsEvidence": [
+                "supabase/migrations/20260723120000_growth_studio_control_plane.sql",
+                "supabase/migrations/20260728120000_member_read_policies.sql",
+                "supabase/migrations/20260729040000_member_read_policies_core_tables.sql",
+                "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql",
+                "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
+                "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
+                "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
+                "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+              ],
+              "policyEvidence": [
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260728120000_member_read_policies.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729040000_member_read_policies_core_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729220000_member_read_policies_consent_and_zones.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260819030000_member_read_policies_research_sources.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql"
+                },
+                {
+                  "name": "growth_touchpoints_select_member",
+                  "file": "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql"
+                }
+              ]
+            }
+          },
+          {
             "table": "organization_memberships",
             "tableId": "table:organization_memberships",
             "migrationLineage": {
@@ -298852,6 +299037,7 @@
           "supabase/migrations/20260729233000_member_read_policies_staff_tables.sql",
           "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
           "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
+          "supabase/migrations/20260818090000_hand_entered_provenance.sql",
           "supabase/migrations/20260819030000_member_read_policies_research_sources.sql",
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
