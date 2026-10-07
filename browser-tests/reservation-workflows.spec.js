@@ -130,6 +130,20 @@ test.describe("reservation and waitlist browser workflows", () => {
     await expect(page.getByRole("heading", { name: "Nobody is waiting", exact: true })).toHaveCount(0);
   });
 
+  test("keeps full-page links native when a same-document transition cannot run", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.addInitScript(() => {
+      document.startViewTransition = () => { throw new Error("Full-page links must navigate natively"); };
+    });
+    const db = await mountWorkflow();
+    await page.goto(db.baseURL + RESOURCE_PAGE);
+    await page.getByRole("link", { name: "Waitlist", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp("/business-builder/owner/waitlist"));
+    await expect(page.getByRole("heading", { name: "Waitlist", exact: true })).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test("preserves the native draft after an unconfirmed save", async ({ page }) => {
     const db = await mountWorkflow({ unconfirmedSave: true });
     await page.goto(db.baseURL + RESOURCE_PAGE);
@@ -143,4 +157,3 @@ test.describe("reservation and waitlist browser workflows", () => {
     await expect(page).toHaveURL(new RegExp("/api/business/reservation-resources"));
   });
 });
-

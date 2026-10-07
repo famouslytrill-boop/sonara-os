@@ -92,18 +92,9 @@
     update();
   }
 
-  function addRouteTransitions() {
-    if (reduceMotion || typeof document.startViewTransition !== "function") return;
-    document.addEventListener("click", (event) => {
-      const anchor = event.target.closest("a[href]");
-      if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const url = new URL(anchor.href, window.location.href);
-      if (url.origin !== window.location.origin || url.hash || anchor.target || anchor.hasAttribute("download")) return;
-      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
-      event.preventDefault();
-      document.startViewTransition(() => { window.location.href = url.href; });
-    });
-  }
+  // Full-document links use native anchor navigation. The stylesheet's
+  // @view-transition rule provides cross-document motion where supported;
+  // startViewTransition is for DOM updates within the current document.
 
   function addRevealObserver() {
     if (reduceMotion || !("IntersectionObserver" in window)) return;
@@ -316,7 +307,6 @@
 
   addMobileNavigation();
   addScrollProgress();
-  addRouteTransitions();
   addRevealObserver();
   addCardIndices();
   addPointerDepth();

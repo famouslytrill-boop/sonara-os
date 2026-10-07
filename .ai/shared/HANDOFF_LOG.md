@@ -244,3 +244,14 @@ behaviour, not settlement, deployment or real customer/device evidence.
 - Native HTTP browser evidence uses the real controller/renderer and runtime
   assets with offline database and manager fixtures; real authorization runs in
   the server regressions. No physical-device or live-customer proof is claimed.
+
+### Native booking navigation repair — 2026-10-07
+
+The native HTTP browser workflow exposed an intermittent transition rejection:
+the shared builder script wrapped a full document navigation in the API for
+same-document DOM changes. The link now navigates natively; existing CSS handles
+cross-document motion where supported. No page-error filtering or motion disabling
+was added to the test. A fifth browser case makes the same-document API throw and
+requires the real anchor navigation to succeed. Final full checks rerun.
+
+Primary reference: https://developer.chrome.com/docs/web-platform/view-transitions/cross-document
