@@ -238,9 +238,11 @@ describe("the seller can open a scoped reconciliation screen", () => {
     assert.equal(calls.length, 0);
   });
   it("ignores a request-supplied workspace and escapes sale titles", async () => {
-    const { res } = await request({ orders: [order({ title: "<script>bad()</script>" })] }, { organizationId: OTHER });
-    assert.match(res.body, /&lt;script&gt;/);
-    assert.doesNotMatch(res.body, /<script>/);
+    for (const title of ["<script>bad()</script>", "<SCRIPT >bad()</SCRIPT >", "<script src=x>bad()</script>"]) {
+      const { res } = await request({ orders: [order({ title })] }, { organizationId: OTHER });
+      assert.match(res.body, /&lt;script/i);
+      assert.doesNotMatch(res.body, /<script\b/i);
+    }
   });
   for (const fail of ["creator_marketplace_orders", "creator_licence_grants", "checkout/sessions"]) {
     it("reports a failed " + fail + " read instead of an empty successful report", async () => {
