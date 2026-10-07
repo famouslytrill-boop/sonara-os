@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: sonara-branch-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   regenerate:
     if: github.actor != 'github-actions[bot]'

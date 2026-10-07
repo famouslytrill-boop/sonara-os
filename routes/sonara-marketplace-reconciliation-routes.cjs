@@ -20,10 +20,14 @@ function money(minor, currency) {
 }
 
 function registerMarketplaceReconciliationRoutes(app, deps) {
-  const { layout, brandCard, linkAction, escapeHtml, requireWorkspaceAccess,
+  const { layout, linkAction, escapeHtml, requireWorkspaceAccess,
     getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders } = deps;
   const getEnv = deps.getEnv || (() => "");
   const enc = encodeURIComponent;
+  // The shared brandCard accepts plain text. These cards contain lists and
+  // paragraphs; every record value is escaped before joining that markup.
+  const card = (title, body) => '<section class="card"><h2>' + escapeHtml(title)
+    + '</h2><div class="card-content">' + body + "</div></section>";
   const page = (res, status, body, sections = []) => res.status(status).type("html").send(layout({
     title: "Marketplace reconciliation", eyebrow: "Creator Studio",
     heading: "Check sales and licences", body, sections,
@@ -93,36 +97,36 @@ function registerMarketplaceReconciliationRoutes(app, deps) {
       '<form class="card" method="get" action="' + RECONCILIATION_PAGE + '"><label>Orders created in the last<select name="days">'
         + [7, 30, 90].map((value) => '<option value="' + value + '"' + (days === value ? " selected" : "") + ">" + value + " days</option>").join("")
         + '</select></label><button type="submit">Check again</button></form>',
-      brandCard(evidence.complete ? "Records checked" : "Partial check",
+      card(evidence.complete ? "Records checked" : "Partial check",
         h(evidence.checked + " orders checked without a mismatch; " + evidence.attention + " records need attention.")
         + (evidence.ordersTruncated ? "<p>Only the newest 200 orders are shown. Choose a shorter period.</p>" : "")
         + (evidence.sessionsTruncated ? "<p>Stripe has more than 500 checkouts in this period. Missing payments are unverified until a shorter period can be read in full.</p>" : "")
         + (!evidence.grantsComplete ? "<p>The licence list is incomplete. Missing grants are unverified.</p>" : "")),
-      brandCard("What this check means", "Orders created in the last " + days
+      card("What this check means", "Orders created in the last " + days
         + " days are compared with the current connected account and recorded licence grants. This page reads records only. To resolve a payment issue, review its payment notification and the charge in your Stripe account."
         + "<p>These are sales and original charge records. They do not establish bank payout, withdrawable funds or profit.</p>")
     ];
     for (const [currency, total] of Object.entries(evidence.totals)) {
-      sections.push(brandCard(h(currency.toUpperCase() + " sales read"),
+      sections.push(card(currency.toUpperCase() + " sales read",
         h("Recorded paid orders: " + money(total.localPaid, currency)
           + ". Stripe paid checkouts: " + money(total.stripePaid, currency)
           + ". Known refunds on those charges: " + money(total.refunded, currency) + ".")
         + (evidence.unknownRefunds ? "<p>Refund details are unavailable for " + evidence.unknownRefunds + " paid checkouts. The known refund amount is partial.</p>" : "")));
     }
     for (const [currency, balance] of Object.entries(evidence.balances)) {
-      sections.push(brandCard(h(currency.toUpperCase() + " original charge balance"),
+      sections.push(card(currency.toUpperCase() + " original charge balance",
         h("Stripe fee: " + money(balance.fee, currency) + ". Original charge net: " + money(balance.net, currency)
           + ". " + balance.charges + " charge records. Later refunds and disputes are excluded.")));
     }
-    if (evidence.unknownBalances) sections.push(brandCard("Some fee records are unavailable",
+    if (evidence.unknownBalances) sections.push(card("Some fee records are unavailable",
       h(evidence.unknownBalances + " paid checkouts have no expanded fee and net record. No zero fee is assumed.")));
-    if (!evidence.rows.length) sections.push(brandCard("No records in this period", "No marketplace orders or Stripe marketplace checkouts were returned for the period checked."));
+    if (!evidence.rows.length) sections.push(card("No records in this period", "No marketplace orders or Stripe marketplace checkouts were returned for the period checked."));
     for (const row of evidence.rows) {
       const findings = row.codes.length
         ? "<ul>" + row.codes.map((code) => "<li>" + h(report.FINDINGS[code]) + "</li>").join("") + "</ul>"
         : row.waiting ? "<p>Payment is not confirmed yet. No active licence is recorded.</p>"
           : "<p>The payment record and licence state agree with this order.</p>";
-      sections.push(brandCard(h(row.title || "Untitled purchase"),
+      sections.push(card(row.title || "Untitled purchase",
         "<p>Order " + h(row.orderId) + " — " + h(row.state) + (row.licence ? ", " + h(row.licence.replace(/_/g, " ")) : "") + ".</p>"
         + (row.payment ? "<p>Stripe checkout " + h(row.payment.id) + ".</p>" : "") + findings));
     }

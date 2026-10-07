@@ -89,6 +89,8 @@ test.describe("seller reconciliation browser proof with fixture transactions", (
       await expect(page.getByRole("heading", { name: "Check sales and licences", exact: true })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Records checked", exact: true })).toBeVisible();
       await expect(page.getByText("My licensed track", { exact: true })).toBeVisible();
+      await expect(page.locator("body")).not.toContainText("<p>");
+      await expect(page.locator("body")).not.toContainText("<ul>");
       await expect(page.getByRole("button", { name: "Check again", exact: true })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
       const button = await page.getByRole("button", { name: "Check again", exact: true }).boundingBox();
@@ -105,7 +107,7 @@ test.describe("seller reconciliation browser proof with fixture transactions", (
   }
   test("makes a paid order with no licence visibly incomplete", async ({ page }) => {
     await mountReport(page, { missingGrant: true });
-    await expect(page.locator("body")).toContainText("The paid order has no recorded licence grant.");
+    await expect(page.getByRole("listitem").filter({ hasText: "The paid order has no recorded licence grant." })).toBeVisible();
     await expect(page.locator("body")).toContainText("1 records need attention");
     await expect(page.locator("body")).not.toContainText("The payment record and licence state agree");
   });
