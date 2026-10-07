@@ -56,8 +56,9 @@ describe("a manager turns a waitlist entry into a recorded booking offer", funct
     return fake;
   }
   function get(path, workspace = WORKSPACE) {
-    return request(app).get(path).set("accept", "text/html").set("authorization", "Bearer token-booking-workflow")
-      .query({ workspaceId: workspace });
+    const pending = request(app).get(path).set("accept", "text/html").set("authorization", "Bearer token-booking-workflow");
+    return new URL(path, "http://fixture.invalid").searchParams.has("workspaceId")
+      ? pending : pending.query({ workspaceId: workspace });
   }
   function form(path, body) {
     return request(app).post(path).set("accept", "text/html").set("authorization", "Bearer token-booking-workflow")
@@ -107,6 +108,7 @@ describe("a manager turns a waitlist entry into a recorded booking offer", funct
     const row = fake.rows("business_bookings").find((item) => item.id === entry.id);
     assert.equal(row.status, "requested");
     assert.equal(row.metadata.waitlist_state, "offered");
+    assert.equal(row.metadata.offered_by, USER);
     const replay = await api("/api/business/waitlist/" + entry.id + "/offer", {});
     assert.equal(replay.status, 200);
     assert.equal(replay.body.alreadyOffered, true);
@@ -162,4 +164,3 @@ describe("a manager turns a waitlist entry into a recorded booking offer", funct
     assert.equal(row.metadata.waitlist_state, "waiting");
   });
 });
-

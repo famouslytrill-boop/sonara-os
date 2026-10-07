@@ -292,7 +292,7 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
       return res.status(200).json({ ok: true, entry: booking, alreadyOffered: true, customerNotified: false });
     }
     const now = new Date().toISOString();
-    const metadata = { ...booking.metadata, waitlist_state: "offered", offered_at: now };
+    const metadata = { ...booking.metadata, waitlist_state: "offered", offered_at: now, offered_by: scope.userId };
     // Compare the complete metadata snapshot and current status in the same
     // write. A concurrent booking or metadata change must not be overwritten.
     const updated = await request(scope.config, TABLES.bookings,

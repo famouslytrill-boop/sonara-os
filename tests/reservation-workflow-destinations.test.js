@@ -294,6 +294,7 @@ describe("reservation resources and waitlist destinations", () => {
     assert.equal(first.statusCode, 200);
     assert.equal(first.jsonValue.customerNotified, false);
     assert.equal(first.jsonValue.entry.metadata.waitlist_state, "offered");
+    assert.equal(first.jsonValue.entry.metadata.offered_by, USER);
     assert.deepEqual(first.jsonValue.entry.metadata.resource_ids, [RESOURCE]);
     const offeredAt = first.jsonValue.entry.metadata.offered_at;
     const second = await call("post", "/api/business/waitlist/:bookingId/offer", args);
@@ -360,4 +361,3 @@ describe("reservation resources and waitlist destinations", () => {
     assert.equal(mutations(fake).length, 0);
   });
 });
-
