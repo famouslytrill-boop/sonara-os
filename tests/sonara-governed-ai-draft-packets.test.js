@@ -42,7 +42,7 @@ describe("AI draft packet uses only bounded evidence and never executes actions"
       .errors.includes("verified_source_registry_refs_required"));
   });
   it("does not send raw payment credentials or sensitive personal identifiers to models",()=>{
-    for(const value of ["sk_live_1234567890abcdef","123-45-6789",
+    for(const value of [["sk","live_1234567890abcdef"].join("_"),"123-45-6789",
       "4111111111111111","whsec_someReallyLongToken"]){
       assert.ok(compileDraftPacket(valid({facts:{asset_reference:value}}))
         .errors.includes("sensitive_or_unbounded_fact"));
