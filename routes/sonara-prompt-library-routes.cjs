@@ -13,6 +13,7 @@ const {
   validatePromptRecord
 } = require("../lib/sonara-prompt-library.cjs");
 const { escapeHtml } = require("../lib/sonara-shell.cjs");
+const pages = require("../lib/sonara-prompt-library-pages.cjs");
 
 
 module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
@@ -135,11 +136,13 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
   });
 
   app.post("/api/prompt-library/templates", selectWorkspace(requireWorkspaceAccess, (req) => req.body?.productArea || req.body?.product_area), async (req, res) => {
-    const validation = validatePromptRecord(req.body || {});
-    if (!validation.ok) return res.status(400).json({ ok: false, code: "validation_failed", errors: validation.errors, safety: validation.safety });
-    if (validation.record.productArea !== req.promptProductArea) return res.status(400).json({ ok: false, code: "product_mismatch" });
+    // A form sends tags as one comma-separated field; the API takes a list.
+    const input = wantsHtml(req) ? { ...req.body, tags: splitTags(req.body?.tags) } : (req.body || {});
+    const validation = validatePromptRecord(input);
+    if (!validation.ok) return refuse(req, res, 400, { ok: false, code: "validation_failed", errors: validation.errors, safety: validation.safety }, layout, linkAction);
+    if (validation.record.productArea !== req.promptProductArea) return refuse(req, res, 400, { ok: false, code: "product_mismatch" }, layout, linkAction);
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
-    if (!context.ok) return res.status(503).json(context);
+    if (!context.ok) return respond(req, res, 503, context, "template");
 
     const record = {
       organization_id: context.organizationId,
@@ -165,19 +168,19 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
       moderation: validation.safety
     };
     const result = await restRequest(context, "sonara_prompt_templates", "", { method: "POST", body: record, prefer: "return=representation" });
-    if (!result.ok) return res.status(503).json(result);
+    if (!result.ok) return respond(req, res, 503, result, "template");
     const saved = result.rows?.[0] || record;
     await insertActivityEvent(context.organizationId, req.sonaraUser?.id, "sonara.prompt_template_created", { prompt_template_id: saved.id || null, product_area: validation.record.productArea });
-    return res.status(201).json({ ok: true, code: "saved", template: saved });
+    return respond(req, res, 201, { ok: true, code: "saved", template: saved }, "template");
   });
 
   app.post("/api/prompt-library/templates/:id/versions", selectWorkspace(requireWorkspaceAccess, (req) => req.body?.productArea || req.body?.product_area), async (req, res) => {
-    if (!isUuid(req.params.id)) return res.status(400).json({ ok: false, code: "invalid_template_id" });
+    if (!isUuid(req.params.id)) return respond(req, res, 400, { ok: false, code: "invalid_id" }, "version");
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
-    if (!context.ok) return res.status(503).json(context);
+    if (!context.ok) return respond(req, res, 503, context, "version");
     const existing = await getOwnedRecord(context, "sonara_prompt_templates", req.params.id, req.sonaraUser?.id);
-    if (!existing.ok) return res.status(ownedRecordStatus(existing)).json(existing);
-    if (existing.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
+    if (!existing.ok) return respond(req, res, ownedRecordStatus(existing), existing, "version");
+    if (existing.row.product_area !== req.promptProductArea) return respond(req, res, 403, { ok: false, code: "workspace_mismatch" }, "version");
 
     const validation = validatePromptRecord({
       ...existing.row,
@@ -193,7 +196,7 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
       mcpCompatibility: existing.row.mcp_compatibility,
       tags: existing.row.tags
     });
-    if (!validation.ok) return res.status(400).json({ ok: false, code: "validation_failed", errors: validation.errors, safety: validation.safety });
+    if (!validation.ok) return refuse(req, res, 400, { ok: false, code: "validation_failed", errors: validation.errors, safety: validation.safety }, layout, linkAction);
 
     const rpc = await rpcRequest(context, "create_sonara_prompt_version", {
       p_template_id: req.params.id,
@@ -202,17 +205,18 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
       p_change_note: String(req.body?.changeNote || req.body?.change_note || "Updated through SONARA Prompt Library").slice(0, 500),
       p_status: validation.record.status
     });
-    if (!rpc.ok) return res.status(503).json(rpc);
+    if (!rpc.ok) return respond(req, res, 503, rpc, "version");
     await insertActivityEvent(context.organizationId, req.sonaraUser?.id, "sonara.prompt_template_version_created", { prompt_template_id: req.params.id });
-    return res.status(200).json({ ok: true, code: "version_created", version: rpc.rows?.[0] || rpc.rows });
+    return respond(req, res, 200, { ok: true, code: "version_created", version: rpc.rows?.[0] || rpc.rows }, "version");
   });
 
   app.post("/api/prompt-library/runs", selectWorkspace(requireWorkspaceAccess, (req) => req.body?.productArea || req.body?.product_area), async (req, res) => {
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
-    if (!context.ok) return res.status(503).json(context);
-    const values = req.body?.values || req.body?.inputValues || req.body?.input_values || {};
+    if (!context.ok) return respond(req, res, 503, context, "run");
+    // A form sends one value_<variable> field per value; the API takes an object.
+    const values = req.body?.values || req.body?.inputValues || req.body?.input_values || valuesFromForm(req.body);
     const sensitive = detectSensitivePayload(values);
-    if (sensitive.length) return res.status(400).json({ ok: false, code: "protected_data_detected", findings: sensitive });
+    if (sensitive.length) return respond(req, res, 400, { ok: false, code: "protected_data_detected", findings: sensitive }, "run");
 
     let source;
     let templateId = null;
@@ -223,8 +227,8 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     } else if (isUuid(req.body?.templateId || req.body?.template_id)) {
       templateId = req.body?.templateId || req.body?.template_id;
       const owned = await getOwnedRecord(context, "sonara_prompt_templates", templateId, req.sonaraUser?.id);
-      if (!owned.ok) return res.status(ownedRecordStatus(owned)).json(owned);
-      if (owned.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
+      if (!owned.ok) return respond(req, res, ownedRecordStatus(owned), owned, "run");
+      if (owned.row.product_area !== req.promptProductArea) return respond(req, res, 403, { ok: false, code: "workspace_mismatch" }, "run");
       source = {
         slug: owned.row.slug,
         title: owned.row.title,
@@ -233,11 +237,11 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
         currentVersion: owned.row.current_version
       };
     } else {
-      return res.status(400).json({ ok: false, code: "template_required" });
+      return respond(req, res, 400, { ok: false, code: "template_required" }, "run");
     }
 
     const rendered = renderPrompt(source, values);
-    if (!rendered.ok) return res.status(400).json(rendered);
+    if (!rendered.ok) return respond(req, res, 400, rendered, "run");
     const record = {
       organization_id: context.organizationId,
       template_id: templateId,
@@ -254,9 +258,22 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
       execution_metadata: { providerCalled: false, savedBy: "sonara_prompt_library" }
     };
     const result = await restRequest(context, "sonara_prompt_runs", "", { method: "POST", body: record, prefer: "return=representation" });
-    if (!result.ok) return res.status(503).json(result);
+    if (!result.ok) return respond(req, res, 503, result, "run");
     const saved = result.rows?.[0] || record;
     await insertActivityEvent(context.organizationId, req.sonaraUser?.id, "sonara.prompt_run_prepared", { prompt_run_id: saved.id || null, product_area: req.promptProductArea });
+    // A browser is shown the prepared instruction: it was what they asked for,
+    // and a redirect would have to carry it in an address.
+    if (wantsHtml(req)) {
+      const back = backFrom(req, `/${req.promptProductArea.replace("_", "-")}/prompts`);
+      return res.status(201).type("html").send(layout({
+        title: "Prepared instruction",
+        eyebrow: PRODUCT_LABELS[req.promptProductArea],
+        heading: "Your instruction is ready",
+        body: "Copy it into the tool you use. It was recorded as a prepared use; no AI provider was called.",
+        sections: [pages.preparedCard(saved, escapeHtml)],
+        actions: [linkAction(back, "Back to the instruction")]
+      }));
+    }
     return res.status(201).json({ ok: true, code: "prepared_and_saved", providerCalled: false, run: saved });
   });
 
@@ -272,9 +289,9 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
 
   app.post("/api/prompt-library/collections", selectWorkspace(requireWorkspaceAccess, (req) => req.body?.productArea || req.body?.product_area), async (req, res) => {
     const name = String(req.body?.name || "").trim().slice(0, 160);
-    if (!name) return res.status(400).json({ ok: false, code: "name_required" });
+    if (!name) return respond(req, res, 400, { ok: false, code: "name_required" }, "collection");
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
-    if (!context.ok) return res.status(503).json(context);
+    if (!context.ok) return respond(req, res, 503, context, "collection");
     const result = await restRequest(context, "sonara_prompt_collections", "", {
       method: "POST",
       prefer: "return=representation",
@@ -287,42 +304,24 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
         visibility: ["private", "organization"].includes(req.body?.visibility) ? req.body.visibility : "private"
       }
     });
-    return res.status(result.ok ? 201 : 503).json(result.ok ? { ok: true, collection: result.rows?.[0] } : result);
+    return respond(req, res, result.ok ? 201 : 503, result.ok ? { ok: true, collection: result.rows?.[0] } : result, "collection");
   });
 
   app.post("/api/prompt-library/collections/:id/items", selectWorkspace(requireWorkspaceAccess, (req) => req.body?.productArea || req.body?.product_area), async (req, res) => {
-    const templateId = req.body?.templateId || req.body?.template_id;
-    if (!isUuid(req.params.id) || !isUuid(templateId)) return res.status(400).json({ ok: false, code: "invalid_id" });
-    const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
-    if (!context.ok) return res.status(503).json(context);
-    const collection = await getOwnedRecord(context, "sonara_prompt_collections", req.params.id, req.sonaraUser?.id);
-    const prompt = await getOwnedRecord(context, "sonara_prompt_templates", templateId, req.sonaraUser?.id);
-    if (!collection.ok) return res.status(ownedRecordStatus(collection)).json(collection);
-    if (!prompt.ok) return res.status(ownedRecordStatus(prompt)).json(prompt);
-    if (collection.row.product_area !== req.promptProductArea || prompt.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
-    const result = await restRequest(context, "sonara_prompt_collection_items", "", {
-      method: "POST",
-      prefer: "return=representation,resolution=merge-duplicates",
-      body: {
-        organization_id: context.organizationId,
-        collection_id: req.params.id,
-        template_id: templateId,
-        item_order: normalizeInteger(req.body?.order, 0, 999, 0)
-      }
-    });
-    return res.status(result.ok ? 201 : 503).json(result.ok ? { ok: true, item: result.rows?.[0] } : result);
+    const result = await addCollectionItem(req, req.params.id, req.body?.templateId || req.body?.template_id, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
+    return respond(req, res, result.status, result.body, "collection_item");
   });
 
   app.post("/api/prompt-library/connections", selectWorkspace(requireWorkspaceAccess, (req) => req.body?.productArea || req.body?.product_area), async (req, res) => {
     const validation = validateConnection(req.body || {});
-    if (!validation.ok || !isUuid(validation.record.sourceId) || !isUuid(validation.record.targetId)) return res.status(400).json({ ok: false, code: "validation_failed", errors: validation.errors.length ? validation.errors : ["sourceId and targetId must be UUIDs."] });
+    if (!validation.ok || !isUuid(validation.record.sourceId) || !isUuid(validation.record.targetId)) return refuse(req, res, 400, { ok: false, code: "validation_failed", errors: validation.errors.length ? validation.errors : ["sourceId and targetId must be UUIDs."] }, layout, linkAction);
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
-    if (!context.ok) return res.status(503).json(context);
+    if (!context.ok) return respond(req, res, 503, context, "connection");
     const source = await getOwnedRecord(context, "sonara_prompt_templates", validation.record.sourceId, req.sonaraUser?.id);
     const target = await getOwnedRecord(context, "sonara_prompt_templates", validation.record.targetId, req.sonaraUser?.id);
-    if (!source.ok) return res.status(ownedRecordStatus(source)).json(source);
-    if (!target.ok) return res.status(ownedRecordStatus(target)).json(target);
-    if (source.row.product_area !== req.promptProductArea || target.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
+    if (!source.ok) return respond(req, res, ownedRecordStatus(source), source, "connection");
+    if (!target.ok) return respond(req, res, ownedRecordStatus(target), target, "connection");
+    if (source.row.product_area !== req.promptProductArea || target.row.product_area !== req.promptProductArea) return respond(req, res, 403, { ok: false, code: "workspace_mismatch" }, "connection");
     const result = await restRequest(context, "sonara_prompt_connections", "", {
       method: "POST",
       prefer: "return=representation,resolution=merge-duplicates",
@@ -334,7 +333,7 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
         connection_order: validation.record.order
       }
     });
-    return res.status(result.ok ? 201 : 503).json(result.ok ? { ok: true, connection: result.rows?.[0] } : result);
+    return respond(req, res, result.ok ? 201 : 503, result.ok ? { ok: true, connection: result.rows?.[0] } : result, "connection");
   });
 
       };
@@ -342,57 +341,96 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
 function registerWorkspacePage(app, productArea, deps) {
   const { requireWorkspaceAccess, layout, brandCard, linkAction, escapeHtml, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders } = deps;
   const path = `/${productArea.replace("_", "-")}/prompts`;
+  const contextDeps = { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders };
 
-  // A customer's own saved templates and collections.
-  //
-  // This page listed the starter templates and then offered two links labelled
-  // "My saved templates JSON" and "My collections JSON". Clicking either gave a
-  // wall of JSON, and it was the only way to see anything you had saved.
-  //
-  // Returns "" on any failure, so the starter templates still render.
-  async function savedWorkCards(req) {
-    const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders }).catch(() => ({ ok: false }));
-    if (!context.ok) return "";
+  // The workspace's own instructions and collections, with the forms that make
+  // them, above the starter set. Each list carries its read outcome: a list
+  // that could not be read says so rather than reading as "nothing saved".
+  async function savedWork(req) {
+    const context = await customerContext(req, contextDeps).catch(() => ({ ok: false }));
     const visibility = promptVisibilityQuery(req.sonaraUser?.id, false);
-    if (!visibility.ok) return "";
-
+    if (!context.ok || !visibility.ok) return { templates: { ok: false, rows: [] }, collections: { ok: false, rows: [] } };
     const scope = `?organization_id=eq.${encodeURIComponent(context.organizationId)}&product_area=eq.${encodeURIComponent(productArea)}&${visibility.query}`;
     const [templates, collections] = await Promise.all([
-      restRequest(context, "sonara_prompt_templates", `${scope}&select=id,title&order=updated_at.desc&limit=20`).catch(() => ({ ok: false })),
-      restRequest(context, "sonara_prompt_collections", `${scope}&select=id,name&order=updated_at.desc&limit=20`).catch(() => ({ ok: false }))
+      restRequest(context, "sonara_prompt_templates", `${scope}&select=id,title,prompt_type,visibility,current_version&order=updated_at.desc&limit=100`).catch(() => ({ ok: false, rows: [] })),
+      restRequest(context, "sonara_prompt_collections", `${scope}&select=id,name,description,visibility&order=updated_at.desc&limit=100`).catch(() => ({ ok: false, rows: [] }))
     ]);
-
-    const cards = [];
-    const saved = templates.ok ? templates.rows || [] : [];
-    const sets = collections.ok ? collections.rows || [] : [];
-
-    if (saved.length) {
-      cards.push(`<article class="card"><h2>Your saved instructions</h2>${saved
-        .map((row) => `<p>${escapeHtml(String(row.title || "Untitled"))}</p>`)
-        .join("")}</article>`);
-    }
-    if (sets.length) {
-      cards.push(`<article class="card"><h2>Your collections</h2>${sets
-        .map((row) => `<p>${escapeHtml(String(row.name || "Untitled collection"))}</p>`)
-        .join("")}</article>`);
-    }
-    if (!cards.length && (templates.ok || collections.ok)) {
-      cards.push('<article class="card"><h2>Your saved instructions</h2><p>Nothing saved yet. Anything you save here will be private to your workspace and listed on this page.</p></article>');
-    }
-    return cards.join("");
+    return { templates, collections };
   }
 
   app.get(path, requireWorkspaceAccess(productArea), async (req, res) => {
     const templates = listPromptTemplates({ productArea });
-    const savedWork = await savedWorkCards(req);
+    const saved = await savedWork(req);
+    const options = { productArea, back: path, base: path, escape: escapeHtml };
     return res.status(200).type("html").send(layout({
       title: `${PRODUCT_LABELS[productArea]} Prompt Library`,
       eyebrow: PRODUCT_LABELS[productArea],
       heading: "Prompt Library",
-      body: "Use these starter instructions straight away, or save your own. Anything you save stays private to your workspace.",
-      sections: [...(savedWork ? [savedWork] : []), ...templates.map((item) => promptCard(item, brandCard, linkAction))],
+      body: "Use these starter instructions straight away, or save your own. Anything you save stays private to you or your workspace.",
+      sections: [
+        pages.notice(req.query, escapeHtml),
+        pages.savedInstructionsCard(saved.templates, options),
+        pages.collectionsCard(saved.collections, options),
+        ...templates.map((item) => promptCard(item, brandCard, linkAction))
+      ].filter(Boolean),
       actions: [linkAction("/prompt-library", "Public Prompt Library")]
     }));
+  });
+
+  // One saved instruction: what it says, and the forms that use it, version it,
+  // collect it and connect it.
+  app.get(`${path}/:templateId`, requireWorkspaceAccess(productArea), async (req, res) => {
+    const unavailable = (status, message) => res.status(status).type("html").send(layout({
+      title: "Saved instruction",
+      eyebrow: PRODUCT_LABELS[productArea],
+      heading: "Not available",
+      body: message,
+      sections: [],
+      actions: [linkAction(path, "Prompt Library")]
+    }));
+    if (!isUuid(req.params.templateId)) return unavailable(404, "That instruction is not in this workspace.");
+    const context = await customerContext(req, contextDeps).catch(() => ({ ok: false }));
+    if (!context.ok) return unavailable(503, "Your workspace is not connected yet, so there is nothing to show.");
+    const owned = await getOwnedRecord(context, "sonara_prompt_templates", req.params.templateId, req.sonaraUser?.id);
+    if (!owned.ok) return unavailable(owned.code === "not_found" || owned.code === "forbidden" ? 404 : 502, owned.code === "not_found" || owned.code === "forbidden" ? "That instruction is not in this workspace." : "We could not read that instruction just now. Nothing has changed.");
+    const row = owned.row;
+    // Opened under another studio's path -- an old link, or one copied between
+    // studios -- it is still this workspace's instruction, so send the person to
+    // where it lives. That page applies its own studio's access check. A studio
+    // this server does not know is not somewhere to send anybody.
+    if (row.product_area !== productArea) {
+      if (PRODUCT_LABELS[row.product_area]) return res.redirect(303, `/${row.product_area.replace("_", "-")}/prompts/${encodeURIComponent(row.id)}`);
+      return unavailable(404, "That instruction is not in this workspace.");
+    }
+    const saved = await savedWork(req);
+    const runs = await restRequest(context, "sonara_prompt_runs", `?organization_id=eq.${encodeURIComponent(context.organizationId)}&template_id=eq.${encodeURIComponent(row.id)}&select=id,created_at,template_version,prompt_fingerprint&order=created_at.desc&limit=10`).catch(() => ({ ok: false, rows: [] }));
+    const back = `${path}/${row.id}`;
+    const options = { productArea, back, base: path, escape: escapeHtml };
+    return res.status(200).type("html").send(layout({
+      title: `${row.title || "Saved instruction"} | Prompt Library`,
+      eyebrow: PRODUCT_LABELS[productArea],
+      heading: row.title || "Saved instruction",
+      body: row.description || "One of your workspace's saved instructions.",
+      sections: [
+        pages.notice(req.query, escapeHtml),
+        pages.instructionCard(row, escapeHtml),
+        pages.runForm(row, options),
+        pages.versionForm(row, options),
+        pages.addToCollectionForm(row, saved.collections, options),
+        pages.connectForm(row, saved.templates, options),
+        pages.runsCard(runs, escapeHtml)
+      ].filter(Boolean),
+      actions: [linkAction(path, "Prompt Library")]
+    }));
+  });
+
+  // Adding to a collection from the instruction's page. The JSON endpoint takes
+  // the collection in its path, which a form whose collection is picked from a
+  // list cannot write, so this takes it as a field and does the same thing.
+  app.post(`${path}/:templateId/collections`, requireWorkspaceAccess(productArea), async (req, res) => {
+    req.promptProductArea = productArea;
+    const result = await addCollectionItem(req, req.body?.collection_id, req.params.templateId, contextDeps);
+    return respond(req, res, result.status, result.body, "collection_item");
   });
 }
 
@@ -532,7 +570,10 @@ function detectSensitivePayload(value) {
     }
   }
 
-  if (/\b(?:card(?: number)?|pan)\b\s*[:=]?\s*(?:\d[ -]?){13,19}/i.test(text)) {
+  // `\s*(?:[:=]\s*)?` rather than `\s*[:=]?\s*`: the same strings, but two
+  // adjacent \s* runs could split a long run of spaces every possible way, and
+  // this text is typed by whoever fills in the form.
+  if (/\b(?:card(?: number)?|pan)\b\s*(?:[:=]\s*)?(?:\d[ -]?){13,19}/i.test(text)) {
     findings.push("payment_card_number");
   }
 
@@ -560,6 +601,84 @@ function formatRenderError(result) {
   if (result.code === "value_too_large") return `${result.variable} is too long.`;
   if (result.code === "protected_variable_name") return `${result.variable} is not an allowed template variable.`;
   return "The template could not be rendered safely.";
+}
+
+// The outcome of a write, for whoever asked. A browser posting one of the page's
+// forms is sent back to the page with a key the page translates; an API client
+// gets the JSON it always got. `back` is only ever a path on this site.
+function wantsHtml(req) {
+  const accept = String(req.headers?.accept || "");
+  return accept.includes("text/html") && !/^application\/json/.test(accept);
+}
+
+function backFrom(req, fallback) {
+  const back = String(req.body?.back || "");
+  return /^\/[a-z0-9/-]*$/i.test(back) && back.length <= 200 ? back : fallback;
+}
+
+function respond(req, res, status, body, done) {
+  if (!wantsHtml(req)) return res.status(status).json(body);
+  const fallback = req.promptProductArea ? `/${req.promptProductArea.replace("_", "-")}/prompts` : "/prompt-library";
+  const back = backFrom(req, fallback);
+  const outcome = body?.ok ? `done=${encodeURIComponent(done)}` : `problem=${encodeURIComponent(body?.code || "database_unavailable")}`;
+  return res.redirect(303, `${back}${back.includes("?") ? "&" : "?"}${outcome}`);
+}
+
+// A refusal with reasons of this server's own: rendered as a page rather than
+// carried in an address a link could forge.
+function refuse(req, res, status, body, layout, linkAction) {
+  if (!wantsHtml(req)) return res.status(status).json(body);
+  const fallback = req.promptProductArea ? `/${req.promptProductArea.replace("_", "-")}/prompts` : "/prompt-library";
+  const back = backFrom(req, fallback);
+  return res.status(status).type("html").send(layout({
+    title: "Not saved",
+    eyebrow: "Prompt Library",
+    heading: "Not saved",
+    body: "Nothing was recorded. Go back, correct it and save again.",
+    sections: [pages.refusalCard(body?.errors, escapeHtml)],
+    actions: [linkAction(back, "Back")]
+  }));
+}
+
+function splitTags(value) {
+  if (Array.isArray(value)) return value;
+  return String(value || "").split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 20);
+}
+
+// value_<variable> fields from a form, as the { variable: value } object the
+// run endpoint takes from an API client.
+// Built from entries rather than by assigning a key the form chose, so no field
+// name -- `constructor` passes the pattern -- can land on an object's prototype
+// chain.
+function valuesFromForm(body = {}) {
+  const entries = [];
+  for (const [key, value] of Object.entries(body || {})) {
+    const match = key.match(/^value_([a-zA-Z][a-zA-Z0-9_]{0,63})$/);
+    if (match) entries.push([match[1], String(value ?? "")]);
+  }
+  return Object.fromEntries(entries);
+}
+
+async function addCollectionItem(req, collectionId, templateId, deps) {
+  if (!isUuid(collectionId) || !isUuid(templateId)) return { status: 400, body: { ok: false, code: "invalid_id" } };
+  const context = await customerContext(req, deps);
+  if (!context.ok) return { status: 503, body: context };
+  const collection = await getOwnedRecord(context, "sonara_prompt_collections", collectionId, req.sonaraUser?.id);
+  const prompt = await getOwnedRecord(context, "sonara_prompt_templates", templateId, req.sonaraUser?.id);
+  if (!collection.ok) return { status: ownedRecordStatus(collection), body: collection };
+  if (!prompt.ok) return { status: ownedRecordStatus(prompt), body: prompt };
+  if (collection.row.product_area !== req.promptProductArea || prompt.row.product_area !== req.promptProductArea) return { status: 403, body: { ok: false, code: "workspace_mismatch" } };
+  const result = await restRequest(context, "sonara_prompt_collection_items", "?on_conflict=collection_id,template_id", {
+    method: "POST",
+    prefer: "return=representation,resolution=merge-duplicates",
+    body: {
+      organization_id: context.organizationId,
+      collection_id: collectionId,
+      template_id: templateId,
+      item_order: normalizeInteger(req.body?.order, 0, 999, 0)
+    }
+  });
+  return { status: result.ok ? 201 : 503, body: result.ok ? { ok: true, item: result.rows?.[0] } : result };
 }
 
 function normalizeInteger(value, min, max, fallback) {

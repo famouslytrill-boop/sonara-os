@@ -170,7 +170,31 @@ const ACCOUNTED = Object.freeze({
   "routes/sonara-public-booking-routes.cjs": {
     columns: ["employee_id"],
     reason: "The rota rows are handed whole to shiftSpans and freeStaffFor in lib/sonara-booking-availability.cjs, which key on shift.employee_id to work out who is free and which of them the appointment goes to. The route deliberately never touches it -- rendering a rostered person's id on a page a stranger can open would publish the rota. Both files opened to confirm it."
-  }
+  },
+  "routes/market-intelligence-routes.cjs": {
+    columns: ["created_at"],
+    reason: [
+      "The opportunity page reads its reviews and hands the rows to reviewsCard in lib/sonara-market-intelligence-pages.cjs,",
+      "which reads the timestamp directly (line 198 on 7 October 2026: `dateOnly(review.created_at)`) for the When column of the reviews table.",
+      "Fetched to be used, in the file the rows travel to; the select names only the five columns that table shows."
+    ].join(" ")
+  },
+  "routes/sonara-operations-expansion-routes.cjs": {
+    columns: ["quantity_planned", "quantity_used", "unit_cost_cents"],
+    reason: [
+      "The finished jobs' material lines are handed to summarizeBusinessOperations in lib/sonara-business-analytics.cjs, which passes each job's lines to",
+      "profitability in lib/sonara-work-order-lifecycle.cjs; materialCost there reads all three (line 81-82 on 7 October 2026:",
+      "`line?.quantity_used ?? line?.quantity_planned` and `line?.unit_cost_cents`). Fetched to be used, two files along."
+    ].join(" ")
+  },
+  "routes/sonara-prompt-library-routes.cjs": {
+    columns: ["created_at"],
+    reason: [
+      "The saved-instruction page reads the instruction's recent runs and hands the rows to runsCard in lib/sonara-prompt-library-pages.cjs,",
+      "which reads the timestamp directly (line 119 on 7 October 2026: `run.created_at`) for the When column of the recent-uses table.",
+      "Fetched to be used, in the file the rows travel to; the select names only the four columns that table shows."
+    ].join(" ")
+  },
 });
 
 

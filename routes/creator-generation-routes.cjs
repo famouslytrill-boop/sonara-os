@@ -249,25 +249,16 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     return res.status(200).json({ ok: true, job: job.job, assets: assets.rows });
   });
 
-  app.post("/api/creator/generation/jobs", access, submissionLimiter, async (req, res) => {
-    const context = await resolveContext(req, deps);
-    if (!context.ok) return send(req, res, context, "/creator-studio/generation", ui);
-    const config = getConfig(deps);
-    if (!config.ok) return send(req, res, { ok: false, status: 503, code: "supabase_setup_required" }, "/creator-studio/generation", ui);
-
-    const capability = clean(req.body.capability, 80);
-    const prompt = clean(req.body.prompt, MAX_PROMPT_LENGTH + 1);
-    const requestedProvider = clean(req.body.provider_key || req.body.providerKey || "auto", 80) || "auto";
-    const parameters = parseObject(req.body.parameters, {});
-    const inputAssets = parseArray(req.body.input_assets || req.body.inputAssets, []);
-    const rightsAttested = truthy(req.body.rights_attested || req.body.rightsAttested);
-    const consentAttested = truthy(req.body.consent_attested || req.body.consentAttested);
-    const voiceConsentId = clean(req.body.voice_consent_id || req.body.voiceConsentId, 80) || null;
-    const requestedProject = req.body.project_id ?? req.body.projectId;
+  // One path from a request to a job, for a new request and for a retry alike,
+  // so a retry passes every check a new request does: the safety review, an
+  // active voice permission, the project, and a fresh credit reservation. A
+  // retry that skipped any of them would be a way round it.
+  async function submitGeneration(config, context, input) {
+    const { capability, prompt, requestedProvider, parameters, inputAssets, rightsAttested, consentAttested, voiceConsentId, requestedProject } = input;
     let projectId = null;
     if (requestedProject !== undefined && requestedProject !== null && requestedProject !== "") {
       const linked = await loadActiveProject(config, context, requestedProject);
-      if (!linked.ok) return send(req, res, linked, "/creator-studio/projects", ui);
+      if (!linked.ok) return { result: linked, redirectTo: "/creator-studio/projects" };
       projectId = linked.project.id;
     }
 
@@ -281,11 +272,11 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       voiceConsentId
     });
     if (!policy.ok && policy.status !== "review_required") {
-      return send(req, res, { ok: false, status: policy.httpStatus, code: policy.code, reasons: policy.reasons }, "/creator-studio/generation", ui);
+      return { result: { ok: false, status: policy.httpStatus, code: policy.code, reasons: policy.reasons }, redirectTo: "/creator-studio/generation" };
     }
 
     const selected = chooseProvider(capability, requestedProvider);
-    if (!selected.ok) return send(req, res, { ok: false, status: 400, code: selected.code }, "/creator-studio/generation", ui);
+    if (!selected.ok) return { result: { ok: false, status: 400, code: selected.code }, redirectTo: "/creator-studio/generation" };
 
     const initialStatus = policy.status === "review_required"
       ? "review_required"
@@ -311,12 +302,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (initialStatus === "queued") {
       const reservation = await reserveIncludedGeneration({ config, context, capability, parameters, jobId, deps });
       if (!reservation.allowed) {
-        return send(req, res, {
-          ok: false,
-          status: reservation.httpStatus,
-          code: reservation.code,
-          reasons: [reservation.reason]
-        }, "/creator-studio/generation", ui);
+        return { result: { ok: false, status: reservation.httpStatus, code: reservation.code, reasons: [reservation.reason] }, redirectTo: "/creator-studio/generation" };
       }
     }
 
@@ -327,9 +313,9 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       project_id: projectId,
       capability,
       provider_key: selected.provider.key,
-      title: nullable(req.body.title, 200),
+      title: nullable(input.title, 200),
       prompt,
-      negative_prompt: nullable(req.body.negative_prompt || req.body.negativePrompt, 2000),
+      negative_prompt: nullable(input.negativePrompt, 2000),
       input_assets: inputAssets,
       parameters,
       status: initialStatus,
@@ -342,18 +328,73 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     });
     if (!created.ok) {
       if (initialStatus === "queued" && created.status >= 400 && created.status < 500) await usageFor(deps)({ config, organizationId: context.organizationId, action: "release", jobId });
-      return send(req, res, { ok: false, status: 502, code: created.code }, "/creator-studio/generation", ui);
+      return { result: { ok: false, status: 502, code: created.code }, redirectTo: "/creator-studio/generation" };
     }
 
     let job = created.rows[0];
-    await event(config, context, job.id, "generation.job_created", "recorded", { capability, provider_key: selected.provider.key, policy_status: policy.status });
+    await event(config, context, job.id, "generation.job_created", "recorded", { capability, provider_key: selected.provider.key, policy_status: policy.status, ...(input.retryOf ? { retry_of: input.retryOf } : {}) });
 
     if (job.status === "queued") {
       const dispatched = await dispatchJob(config, context, job, selected.provider, deps);
       job = dispatched.job || job;
     }
 
-    return send(req, res, { ok: true, status: 201, job }, jobPath(job.id), ui);
+    return { result: { ok: true, status: 201, job }, redirectTo: jobPath(job.id) };
+  }
+
+  app.post("/api/creator/generation/jobs", access, submissionLimiter, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return send(req, res, context, "/creator-studio/generation", ui);
+    const config = getConfig(deps);
+    if (!config.ok) return send(req, res, { ok: false, status: 503, code: "supabase_setup_required" }, "/creator-studio/generation", ui);
+    const submitted = await submitGeneration(config, context, {
+      capability: clean(req.body.capability, 80),
+      prompt: clean(req.body.prompt, MAX_PROMPT_LENGTH + 1),
+      requestedProvider: clean(req.body.provider_key || req.body.providerKey || "auto", 80) || "auto",
+      parameters: parseObject(req.body.parameters, {}),
+      inputAssets: parseArray(req.body.input_assets || req.body.inputAssets, []),
+      rightsAttested: truthy(req.body.rights_attested || req.body.rightsAttested),
+      consentAttested: truthy(req.body.consent_attested || req.body.consentAttested),
+      voiceConsentId: clean(req.body.voice_consent_id || req.body.voiceConsentId, 80) || null,
+      requestedProject: req.body.project_id ?? req.body.projectId,
+      title: req.body.title,
+      negativePrompt: req.body.negative_prompt || req.body.negativePrompt
+    });
+    return send(req, res, submitted.result, submitted.redirectTo, ui);
+  });
+
+  // Trying a failed or stopped job again, as a new job. The original is never
+  // reopened: its history, its charge or release, and its error stay as they
+  // were, and each job's history names the other. The new one goes through
+  // submitGeneration, so a voice permission revoked since, or a credit balance
+  // that has run out, refuses it exactly as it would a new request.
+  app.post("/api/creator/generation/jobs/:jobId/retry", access, submissionLimiter, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return send(req, res, context, "/creator-studio/generation/jobs", ui);
+    const config = getConfig(deps);
+    if (!config.ok) return send(req, res, { ok: false, status: 503, code: "supabase_setup_required" }, "/creator-studio/generation/jobs", ui);
+    const loaded = await loadJob(config, context, req.params.jobId);
+    if (!loaded.ok) return send(req, res, loaded, "/creator-studio/generation/jobs", ui);
+    const original = loaded.job;
+    if (!RETRYABLE_STATUSES.has(original.status)) return send(req, res, { ok: false, status: 409, code: "job_not_retryable" }, jobPath(original.id), ui);
+    const submitted = await submitGeneration(config, context, {
+      capability: original.capability,
+      prompt: clean(original.prompt, MAX_PROMPT_LENGTH + 1),
+      requestedProvider: original.provider_key || "auto",
+      parameters: original.parameters && typeof original.parameters === "object" ? original.parameters : {},
+      inputAssets: Array.isArray(original.input_assets) ? original.input_assets : [],
+      rightsAttested: original.rights_attested === true,
+      consentAttested: original.consent_attested === true,
+      voiceConsentId: original.voice_consent_id || null,
+      requestedProject: original.project_id || undefined,
+      title: original.title,
+      negativePrompt: original.negative_prompt,
+      retryOf: original.id
+    });
+    if (submitted.result.ok) {
+      await event(config, context, original.id, "generation.job_retried", "recorded", { retried_as: submitted.result.job.id });
+    }
+    return send(req, res, submitted.result, submitted.result.ok ? submitted.redirectTo : jobPath(original.id), ui);
   });
 
   app.post("/api/creator/generation/jobs/:jobId/refresh", access, async (req, res) => {
@@ -376,9 +417,13 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const loaded = await loadJob(config, context, req.params.jobId);
     if (!loaded.ok) return res.status(loaded.status).json(loaded);
-    if (["completed", "failed", "cancelled"].includes(loaded.job.status)) return send(req, res, { ok: false, status: 409, code: "job_not_cancellable" }, jobPath(loaded.job.id), ui);
-    const updated = await updateJob(config, context, loaded.job.id, { status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() });
-    await event(config, context, loaded.job.id, "generation.job_cancelled", "success", { provider_key: loaded.job.provider_key });
+    if (FINISHED_STATUSES.has(loaded.job.status)) return send(req, res, { ok: false, status: 409, code: "job_not_cancellable" }, jobPath(loaded.job.id), ui);
+    // Stopped only if it is still unfinished at the moment of writing. The read
+    // above is a moment earlier, and a job that completed in between has been
+    // charged: cancelling it then would release the credit for work delivered.
+    const updated = await updateJob(config, context, loaded.job.id, { status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onlyIfUnfinished: true });
+    if (updated.ok && !updated.rows.length) return send(req, res, { ok: false, status: 409, code: "job_not_cancellable" }, jobPath(loaded.job.id), ui);
+    if (updated.ok) await event(config, context, loaded.job.id, "generation.job_cancelled", "success", { provider_key: loaded.job.provider_key });
     return send(req, res, { ok: updated.ok, status: updated.ok ? 200 : 502, job: updated.rows[0], code: updated.code }, jobPath(loaded.job.id), ui);
   });
 
@@ -1150,8 +1195,14 @@ async function rest(config, table, query = "", options = {}) {
 }
 
 function insert(config, table, body) { return rest(config, table, "", { method: "POST", prefer: "return=representation", body }); }
-async function updateJob(config, context, jobId, patch) {
-  const result = await rest(config, JOB_TABLE, `id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}`, { method: "PATCH", prefer: "return=representation", body: patch });
+const FINISHED_STATUSES = new Set(["completed", "failed", "cancelled"]);
+// A job that failed or was stopped can be tried again as a new job. A completed
+// one cannot: it produced its output and was charged for it, and running the
+// same request again is a new request.
+const RETRYABLE_STATUSES = new Set(["failed", "cancelled"]);
+async function updateJob(config, context, jobId, patch, { onlyIfUnfinished = false } = {}) {
+  const unfinished = onlyIfUnfinished ? "&status=not.in.(completed,failed,cancelled)" : "";
+  const result = await rest(config, JOB_TABLE, `id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}${unfinished}`, { method: "PATCH", prefer: "return=representation", body: patch });
   if (result.ok && result.rows.length && ["failed", "cancelled"].includes(patch.status)) {
     const released = await generationAllowance({ config, organizationId: context.organizationId, action: "release", jobId });
     if (!released.ok) defaultBillingGapReport({ jobId, code: released.code });
@@ -1312,6 +1363,9 @@ function jobControlsCard(job, escape) {
     controls.push(`<form method="post" action="${escape(`/api/creator/generation/jobs/${encodeURIComponent(job.id)}/refresh`)}"><button type="submit">Check for an update</button></form>`);
     controls.push(`<form method="post" action="${escape(`/api/creator/generation/jobs/${encodeURIComponent(job.id)}/cancel`)}"><button type="submit">Stop this</button></form>`);
   }
+  if (["failed", "cancelled"].includes(String(job.status))) {
+    controls.push(`<form method="post" action="${escape(`/api/creator/generation/jobs/${encodeURIComponent(job.id)}/retry`)}"><button type="submit">Try again</button></form><p class="fine">Runs the same request as a new piece of work. It is checked and reserved again like any new request, and this one stays as it was.</p>`);
+  }
   if (!controls.length) return `<article class="card"><h2>What you can do</h2><p>This one is finished, so there is nothing left to change. Start a new request whenever you need another.</p></article>`;
   return `<article class="card"><h2>What you can do</h2>${controls.join("")}</article>`;
 }
@@ -1342,10 +1396,14 @@ const EVENT_TEXT = Object.freeze({
   "generation.failed": "It did not finish.",
   "generation.output_stored": "A file was saved for you.",
   "generation.output_downloaded": "A file was downloaded.",
-  "generation.status_checked": "We checked for an update."
+  "generation.status_checked": "We checked for an update.",
+  "generation.job_retried": "Tried again as a new piece of work."
 });
 
 function eventText(entry) {
+  // A retry says so on the new job, so its history does not read as a fresh
+  // request with no past.
+  if (entry?.event_type === "generation.job_created" && entry?.details?.retry_of) return "You asked for this again, after an earlier attempt did not finish.";
   const known = EVENT_TEXT[String(entry?.event_type)];
   if (known) return known;
   return String(entry?.event_type || "Something happened").replace(/^generation\./, "").replaceAll("_", " ");

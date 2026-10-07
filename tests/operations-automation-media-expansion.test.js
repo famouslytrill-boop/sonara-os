@@ -10,7 +10,7 @@ describe("operations analytics", () => {
   const start = "2026-09-01T00:00:00.000Z";
   const end = "2026-10-01T00:00:00.000Z";
 
-  it("calculates bookings labor payments inventory and consented location events without inventing unreadable values", () => {
+  it("calculates bookings labor money received inventory and consented location events without inventing unreadable values", () => {
     const summary = summarizeBusinessOperations({
       periodStart: start,
       periodEnd: end,
@@ -23,9 +23,18 @@ describe("operations analytics", () => {
         { clock_in_at: "2026-09-12T08:00:00Z", clock_out_at: "2026-09-12T16:30:00Z", break_minutes: 30 },
         { clock_in_at: "2026-09-13T08:00:00Z", clock_out_at: null }
       ],
-      payments: [
-        { created_at: "2026-09-10T12:00:00Z", status: "paid", amount_cents: 12500 },
-        { created_at: "2026-09-11T12:00:00Z", status: "pending", amount_cents: 3000 }
+      // Money from where the product records it, in two currencies, with a
+      // dispute and a payment whose invoice currency could not be read.
+      invoicePayments: [
+        { received_on: "2026-09-10", amount_cents: 12500, currency: "usd" },
+        { received_on: "2026-09-11", amount_cents: 3000, currency: "gbp" },
+        { received_on: "2026-09-11", amount_cents: 999, currency: null }
+      ],
+      shopOrders: [
+        { paid_at: "2026-09-12T12:00:00Z", payment_state: "paid", amount_paid_cents: 4000, refunded_cents: 0, currency: "usd" },
+        { paid_at: "2026-09-12T13:00:00Z", payment_state: "refunded", amount_paid_cents: 2000, refunded_cents: 500, currency: "gbp" },
+        { paid_at: "2026-09-12T14:00:00Z", payment_state: "disputed", amount_paid_cents: 7000, refunded_cents: 0, currency: "usd" },
+        { paid_at: null, payment_state: "unpaid", amount_paid_cents: null, currency: "usd" }
       ],
       inventoryItems: [
         { quantity: 2, cost_cents: 500, reorder_level: 3 },
@@ -46,8 +55,14 @@ describe("operations analytics", () => {
     assert.equal(summary.labor.minutes, 480);
     assert.equal(summary.labor.hours, 8);
     assert.equal(summary.labor.openEntries, 1);
-    assert.equal(summary.payments.collectedCents, 12500);
-    assert.equal(summary.payments.otherCount, 1);
+    // Per currency and never summed across them: there is no exchange rate here.
+    assert.deepEqual(summary.money.byCurrency, [
+      { currency: "gbp", invoiceCents: 3000, invoicePayments: 1, shopNetCents: 1500, shopOrders: 1, totalCents: 4500 },
+      { currency: "usd", invoiceCents: 12500, invoicePayments: 1, shopNetCents: 4000, shopOrders: 1, totalCents: 16500 }
+    ]);
+    assert.equal(summary.money.disputedShopOrders, 1, "a disputed order was counted as received");
+    assert.equal(summary.money.unreadable, 1, "a payment with no currency was guessed into a total");
+    assert.equal(summary.payments, undefined, "the summary still reports the table nothing writes");
     assert.equal(summary.inventory.valueCents, 3500);
     assert.equal(summary.inventory.reorderRiskCount, 1);
     assert.equal(summary.location.checkIns, 1);

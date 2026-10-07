@@ -17,11 +17,14 @@ const TABLES = Object.freeze({
   events: "market_intelligence_events"
 });
 
-const STUDIO_KEYS = new Set(["sonara_industries", "business_builder", "creator_studio", "growth_studio"]);
-const SIGNAL_TYPES = new Set(["market_size", "customer_need", "pricing", "competitor", "technology", "regulation", "channel", "behavior", "risk"]);
-const CONFIDENCE_LEVELS = new Set(["low", "medium", "high", "authoritative"]);
-const OPPORTUNITY_STATES = new Set(["watch", "validate", "prioritized", "building", "launched", "hold", "rejected"]);
-const REVIEW_DECISIONS = new Set(["prioritize", "validate", "watch", "hold", "reject"]);
+// The option lists live in lib/sonara-market-intelligence-pages.cjs, beside the
+// forms that offer them, so a dropdown cannot offer what this file refuses.
+const pages = require("../lib/sonara-market-intelligence-pages.cjs");
+const STUDIO_KEYS = new Set(pages.STUDIOS.map(([key]) => key));
+const SIGNAL_TYPES = new Set(pages.SIGNAL_TYPES);
+const CONFIDENCE_LEVELS = new Set(pages.CONFIDENCE_LEVELS);
+const OPPORTUNITY_STATES = new Set(pages.OPPORTUNITY_STATES);
+const REVIEW_DECISIONS = new Set(pages.REVIEW_DECISIONS);
 
 const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
 const registerInventionSystemsRoutes = require("./invention-systems-routes.cjs");
@@ -71,13 +74,13 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   app.get("/api/market-intelligence/segments", requireCustomer, listHandler(TABLES.segments, deps, "segments"));
   app.post("/api/market-intelligence/segments", requireCustomer, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
+    if (!context.ok) return respond(req, res, context.status, context, "segment");
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    if (!config.ok) return respond(req, res, 503, { ok: false, code: "supabase_setup_required" }, "segment");
     const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
     const segmentKey = slug(req.body.segment_key || req.body.segmentKey, 120);
     const name = clean(req.body.name, 240);
-    if (!studioKey || !segmentKey || !name) return res.status(400).json({ ok: false, code: "studio_segment_key_and_name_required" });
+    if (!studioKey || !segmentKey || !name) return respond(req, res, 400, { ok: false, code: "studio_segment_key_and_name_required" }, "segment");
     const created = await insert(config, TABLES.segments, {
       organization_id: context.organizationId,
       user_id: context.userId,
@@ -91,23 +94,23 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
       pain_points: parseArray(req.body.pain_points || req.body.painPoints),
       buying_triggers: parseArray(req.body.buying_triggers || req.body.buyingTriggers),
       constraints: parseArray(req.body.constraints),
-      status: oneOf(req.body.status, ["active", "watch", "archived"], "active")
+      status: oneOf(req.body.status, pages.RECORD_STATUSES, "active")
     });
     if (created.ok) await recordEvent(config, context, "segment.created", { segment_id: created.rows[0]?.id, studio_key: studioKey, segment_key: segmentKey });
-    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, segment: created.rows[0], code: created.code });
+    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, segment: created.rows[0], code: created.code }, "segment");
   });
 
   app.get("/api/market-intelligence/competitors", requireCustomer, listHandler(TABLES.competitors, deps, "competitors"));
   app.post("/api/market-intelligence/competitors", requireCustomer, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
+    if (!context.ok) return respond(req, res, context.status, context, "competitor");
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    if (!config.ok) return respond(req, res, 503, { ok: false, code: "supabase_setup_required" }, "competitor");
     const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
     const name = clean(req.body.name, 240);
     const sourceUrl = safeHttpsUrl(req.body.source_url || req.body.sourceUrl);
     const verifiedAt = validDate(req.body.verified_at || req.body.verifiedAt);
-    if (!studioKey || !name || !sourceUrl || !verifiedAt) return res.status(400).json({ ok: false, code: "studio_name_source_and_verified_at_required" });
+    if (!studioKey || !name || !sourceUrl || !verifiedAt) return respond(req, res, 400, { ok: false, code: "studio_name_source_and_verified_at_required" }, "competitor");
     const created = await insert(config, TABLES.competitors, {
       organization_id: context.organizationId,
       user_id: context.userId,
@@ -118,16 +121,16 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
       verified_at: verifiedAt,
       entry_price: nonNegativeNumber(req.body.entry_price || req.body.entryPrice),
       currency: clean(req.body.currency || "USD", 12).toUpperCase(),
-      billing_period: oneOf(req.body.billing_period || req.body.billingPeriod, ["free", "monthly", "annual", "usage", "percentage", "custom", "mixed"], "custom"),
+      billing_period: oneOf(req.body.billing_period || req.body.billingPeriod, pages.BILLING_PERIODS, "custom"),
       pricing_model: nullable(req.body.pricing_model || req.body.pricingModel, 500),
       capabilities: parseArray(req.body.capabilities),
       strengths: parseArray(req.body.strengths),
       weaknesses: parseArray(req.body.weaknesses),
       notes: nullable(req.body.notes, 3000),
-      status: oneOf(req.body.status, ["active", "watch", "archived"], "active")
+      status: oneOf(req.body.status, pages.RECORD_STATUSES, "active")
     });
     if (created.ok) await recordEvent(config, context, "competitor.recorded", { competitor_id: created.rows[0]?.id, studio_key: studioKey, name, verified_at: verifiedAt });
-    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, competitor: created.rows[0], code: created.code });
+    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, competitor: created.rows[0], code: created.code }, "competitor");
   });
 
   // Fetch a source page instead of copying and pasting it.
@@ -150,10 +153,13 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   // server that fetches it is a request forwarder otherwise.
   app.post("/api/market-intelligence/fetch-source", requireCustomer, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
+    if (!context.ok) return respond(req, res, context.status, context, "signal");
 
     const target = safeHttpsUrl(req.body.source_url || req.body.sourceUrl);
-    if (!target) return res.status(400).json({ ok: false, code: "https_source_url_required" });
+    if (!target) return respond(req, res, 400, { ok: false, code: "https_source_url_required" }, "signal");
+    // A browser gets the text as a page to read beside the signal form; an API
+    // client gets the same answer as JSON. Nothing is written either way.
+    const answer = (body) => (wantsHtml(req) ? sendFetchedPage(req, res, ui, target, body) : res.status(200).json(body));
 
     // The permission gate, consulted before anything is fetched.
     //
@@ -163,13 +169,13 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     // designed and nobody built -- and this endpoint was the thing it was for.
     const permission = await sourcePermission(getConfig(deps), context, target);
     if (permission.decision !== "approved") {
-      return res.status(200).json({ ok: true, fetched: false, code: permission.code, detail: permission.detail });
+      return answer({ ok: true, fetched: false, code: permission.code, detail: permission.detail });
     }
 
     const readiness = crawl4ai.getCrawl4aiReadiness();
     if (readiness.status !== "configured") {
       // Not an error. The page works without this and always did.
-      return res.status(200).json({
+      return answer({
         ok: true,
         fetched: false,
         code: readiness.status,
@@ -179,7 +185,7 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
 
     const page = await crawl4ai.fetchPage(target, { readiness });
     if (!page.ok) {
-      return res.status(200).json({
+      return answer({
         ok: true,
         fetched: false,
         code: page.code,
@@ -193,7 +199,7 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     const LIMIT = 20000;
     const text = page.text.length > LIMIT ? page.text.slice(0, LIMIT) : page.text;
 
-    return res.status(200).json({
+    return answer({
       ok: true,
       fetched: true,
       sourceUrl: page.url,
@@ -209,9 +215,9 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   app.get("/api/market-intelligence/signals", requireCustomer, listHandler(TABLES.signals, deps, "signals"));
   app.post("/api/market-intelligence/signals", requireCustomer, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
+    if (!context.ok) return respond(req, res, context.status, context, "signal");
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    if (!config.ok) return respond(req, res, 503, { ok: false, code: "supabase_setup_required" }, "signal");
     const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
     const signalType = oneOf(req.body.signal_type || req.body.signalType, [...SIGNAL_TYPES], null);
     const title = clean(req.body.title, 300);
@@ -221,7 +227,7 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     const observedAt = validDate(req.body.observed_at || req.body.observedAt);
     const confidence = oneOf(req.body.confidence, [...CONFIDENCE_LEVELS], null);
     if (!studioKey || !signalType || !title || !summary || !sourceName || !sourceUrl || !observedAt || !confidence) {
-      return res.status(400).json({ ok: false, code: "complete_evidence_backed_signal_required" });
+      return respond(req, res, 400, { ok: false, code: "complete_evidence_backed_signal_required" }, "signal");
     }
     const created = await insert(config, TABLES.signals, {
       organization_id: context.organizationId,
@@ -243,21 +249,21 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
       metadata: parseObject(req.body.metadata, {})
     });
     if (created.ok) await recordEvent(config, context, "signal.recorded", { signal_id: created.rows[0]?.id, studio_key: studioKey, signal_type: signalType, observed_at: observedAt });
-    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, signal: created.rows[0], code: created.code });
+    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, signal: created.rows[0], code: created.code }, "signal");
   });
 
   app.get("/api/market-intelligence/opportunities", requireCustomer, listHandler(TABLES.opportunities, deps, "opportunities"));
   app.post("/api/market-intelligence/opportunities", requireCustomer, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
+    if (!context.ok) return respond(req, res, context.status, context, "opportunity");
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    if (!config.ok) return respond(req, res, 503, { ok: false, code: "supabase_setup_required" }, "opportunity");
     const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
     const name = clean(req.body.name, 300);
     const problem = clean(req.body.problem, 4000);
     const targetSegment = clean(req.body.target_segment || req.body.targetSegment, 500);
     const proposedValue = clean(req.body.proposed_value || req.body.proposedValue, 4000);
-    if (!studioKey || !name || !problem || !targetSegment || !proposedValue) return res.status(400).json({ ok: false, code: "complete_market_opportunity_required" });
+    if (!studioKey || !name || !problem || !targetSegment || !proposedValue) return respond(req, res, 400, { ok: false, code: "complete_market_opportunity_required" }, "opportunity");
     const scores = scoreFields(req.body);
     const marketScore = scoreMarketOpportunity(scores);
     const recommendation = recommendMarketAction(marketScore);
@@ -286,7 +292,7 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
       metadata: parseObject(req.body.metadata, {})
     });
     if (created.ok) await recordEvent(config, context, "opportunity.created", { opportunity_id: created.rows[0]?.id, studio_key: studioKey, market_score: marketScore, recommendation });
-    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, opportunity: created.rows[0], code: created.code });
+    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, opportunity: created.rows[0], code: created.code }, "opportunity");
   });
 
   app.get("/api/market-intelligence/opportunities/:opportunityId", requireCustomer, async (req, res) => {
@@ -301,52 +307,20 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   });
 
   app.patch("/api/market-intelligence/opportunities/:opportunityId", requireCustomer, async (req, res) => {
-    const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
-    if (!validUuid(req.params.opportunityId)) return res.status(400).json({ ok: false, code: "invalid_opportunity_id" });
-    const config = getConfig(deps);
-    const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
-    if (!loaded.ok) return res.status(loaded.status).json(loaded);
-    const mergedScores = scoreFields({ ...loaded.row, ...req.body });
-    const marketScore = scoreMarketOpportunity(mergedScores);
-    const recommendation = recommendMarketAction(marketScore);
-    const patch = compact({
-      product_lifecycle_initiative_id: req.body.product_lifecycle_initiative_id === undefined && req.body.productLifecycleInitiativeId === undefined ? undefined : validUuid(req.body.product_lifecycle_initiative_id || req.body.productLifecycleInitiativeId) ? String(req.body.product_lifecycle_initiative_id || req.body.productLifecycleInitiativeId) : null,
-      name: req.body.name === undefined ? undefined : clean(req.body.name, 300),
-      problem: req.body.problem === undefined ? undefined : clean(req.body.problem, 4000),
-      target_segment: req.body.target_segment === undefined && req.body.targetSegment === undefined ? undefined : clean(req.body.target_segment || req.body.targetSegment, 500),
-      proposed_value: req.body.proposed_value === undefined && req.body.proposedValue === undefined ? undefined : clean(req.body.proposed_value || req.body.proposedValue, 4000),
-      demand_evidence: mergedScores.demandEvidence,
-      willingness_to_pay: mergedScores.willingnessToPay,
-      strategic_fit: mergedScores.strategicFit,
-      underserved_need: mergedScores.underservedNeed,
-      differentiation: mergedScores.differentiation,
-      channel_access: mergedScores.channelAccess,
-      delivery_complexity: mergedScores.deliveryComplexity,
-      compliance_risk: mergedScores.complianceRisk,
-      market_score: marketScore,
-      recommendation,
-      state: req.body.state === undefined ? undefined : OPPORTUNITY_STATES.has(String(req.body.state)) ? String(req.body.state) : undefined,
-      owner_name: req.body.owner_name === undefined && req.body.ownerName === undefined ? undefined : nullable(req.body.owner_name || req.body.ownerName, 240),
-      next_review_at: req.body.next_review_at === undefined && req.body.nextReviewAt === undefined ? undefined : validDate(req.body.next_review_at || req.body.nextReviewAt),
-      metadata: req.body.metadata === undefined ? undefined : parseObject(req.body.metadata, {}),
-      updated_at: new Date().toISOString()
-    });
-    const updated = await patchRows(config, TABLES.opportunities, context, req.params.opportunityId, patch);
-    if (updated.ok) await recordEvent(config, context, "opportunity.updated", { opportunity_id: req.params.opportunityId, market_score: marketScore, recommendation, fields: Object.keys(patch) });
-    return res.status(updated.ok ? 200 : 502).json({ ok: updated.ok, opportunity: updated.rows[0], code: updated.code });
+    const result = await updateOpportunity(req, deps, req.body);
+    return res.status(result.status).json(result.body);
   });
 
   app.post("/api/market-intelligence/opportunities/:opportunityId/reviews", requireCustomer, async (req, res) => {
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
-    if (!validUuid(req.params.opportunityId)) return res.status(400).json({ ok: false, code: "invalid_opportunity_id" });
+    if (!context.ok) return respond(req, res, context.status, context, "review");
+    if (!validUuid(req.params.opportunityId)) return respond(req, res, 400, { ok: false, code: "invalid_opportunity_id" }, "review");
     const decision = oneOf(req.body.decision, [...REVIEW_DECISIONS], null);
     const rationale = clean(req.body.rationale, 4000);
-    if (!decision || !rationale) return res.status(400).json({ ok: false, code: "decision_and_rationale_required" });
+    if (!decision || !rationale) return respond(req, res, 400, { ok: false, code: "decision_and_rationale_required" }, "review");
     const config = getConfig(deps);
     const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
-    if (!loaded.ok) return res.status(loaded.status).json(loaded);
+    if (!loaded.ok) return respond(req, res, loaded.status, loaded, "review");
     const created = await insert(config, TABLES.reviews, {
       organization_id: context.organizationId,
       user_id: context.userId,
@@ -365,7 +339,61 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
       await patchRows(config, TABLES.opportunities, context, req.params.opportunityId, { state: nextState, updated_at: new Date().toISOString() });
       await recordEvent(config, context, "opportunity.reviewed", { opportunity_id: req.params.opportunityId, review_id: created.rows[0]?.id, decision, market_score: loaded.row.market_score });
     }
-    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, review: created.rows[0], code: created.code });
+    return respond(req, res, created.ok ? 201 : 502, { ok: created.ok, review: created.rows[0], code: created.code }, "review");
+  });
+
+  // One opportunity: its score as the sum it is, its reviews, and the forms that
+  // rescore it, record a review, and record the evidence the pilot focus reads.
+  app.get("/market-intelligence/opportunities/:opportunityId", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    const unavailable = (status, sentence) => res.status(status).type("html").send(ui.layout({
+      title: "Opportunity",
+      eyebrow: "Evidence-led market strategy",
+      heading: "Opportunity unavailable",
+      body: sentence,
+      sections: [],
+      actions: [ui.link("/market-intelligence", "Market intelligence")]
+    }));
+    if (!context.ok) return unavailable(context.status, "We could not tell which business you are signed in to. Sign in again.");
+    if (!validUuid(req.params.opportunityId)) return unavailable(404, "That opportunity is not in your business.");
+    if (!config.ok) return unavailable(503, "Your account database is not connected yet, so there is nothing to show.");
+    const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
+    if (!loaded.ok) return unavailable(loaded.status === 404 ? 404 : 502, loaded.status === 404 ? "That opportunity is not in your business, or it has been removed." : "We could not read that opportunity just now. Nothing has changed.");
+    const row = loaded.row;
+    // The columns the reviews table on this page shows, and no others.
+    const reviews = await rest(config, TABLES.reviews, `select=id,created_at,decision,market_score,rationale&organization_id=eq.${encodeURIComponent(context.organizationId)}&opportunity_id=eq.${encodeURIComponent(row.id)}&order=created_at.desc&limit=100`);
+    const back = `/market-intelligence/opportunities/${row.id}`;
+    const options = { back, escape: ui.escape };
+    return res.status(200).type("html").send(ui.layout({
+      title: `${row.name} | Market intelligence`,
+      eyebrow: `${pages.studioLabel(row.studio_key)} market intelligence`,
+      heading: row.name,
+      body: "The score recommends; a review with a reason decides. Everything here is what your business recorded.",
+      sections: [
+        pages.notice(req.query, ui.escape),
+        pages.opportunitySummary(row, ui.escape),
+        pages.scoreBreakdown(row, ui.escape),
+        pages.reviewsCard(reviews, row, options),
+        pages.focusCard(assessMarketFocus(row), row, options),
+        pages.updateCard(row, options)
+      ].filter(Boolean),
+      actions: [ui.link(studioPath(row.studio_key), `${pages.studioLabel(row.studio_key)} market intelligence`), ui.link("/product-lifecycle", "Roadmap")]
+    }));
+  });
+
+  // The page's rescore form. The state is not among the fields: it changes
+  // through a review, which records why.
+  app.post("/market-intelligence/opportunities/:opportunityId", requireCustomer, async (req, res) => {
+    const fields = ["name", "problem", "target_segment", "proposed_value", "owner_name", "next_review_at", ...pages.SCORE_FIELDS.map((field) => field.name)];
+    const input = Object.fromEntries(fields.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
+    const result = await updateOpportunity(req, deps, input);
+    return respond(req, res, result.status, result.body, "opportunity_updated");
+  });
+
+  app.post("/market-intelligence/opportunities/:opportunityId/focus-evidence", requireCustomer, async (req, res) => {
+    const result = await saveFocusEvidence(req, deps);
+    return respond(req, res, result.status, result.body, "focus_evidence");
   });
 
   registerWorkspacePage(app, "/market-intelligence", requireCustomer, "SONARA Industries", null, ui, deps);
@@ -460,6 +488,23 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui, deps = {
     // was chosen above.
     const config = getConfig(deps);
     const context = await resolveContext(req, deps).catch(() => ({ ok: false }));
+    const work = [];
+    if (config.ok && context.ok) {
+      // The records themselves, with the forms that add to them. A studio page
+      // shows its own studio's records; the parent page shows all four.
+      const studioFilter = studioKey ? `&studio_key=eq.${encodeURIComponent(studioKey)}` : "";
+      const [segments, competitors, signals, opportunities] = await Promise.all(
+        [TABLES.segments, TABLES.competitors, TABLES.signals, TABLES.opportunities].map((table) => list(config, table, context, pages.LIST_LIMIT, studioFilter))
+      );
+      const options = { studioKey, back: path, escape: ui.escape };
+      work.push(
+        pages.notice(req.query, ui.escape),
+        pages.opportunitiesCard(opportunities, options),
+        pages.signalsCard(signals, segments, options),
+        pages.competitorsCard(competitors, options),
+        pages.segmentsCard(segments, options)
+      );
+    }
     if (!config.ok || !context.ok) {
       sections.push(ui.card(
         "Your recorded evidence",
@@ -485,12 +530,14 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui, deps = {
       }
     }
 
+    // The counts first, then the work, then the guidance it is done against.
+    const counts = sections.splice(sections.length - (sections.length && /Not counted just now/.test(sections[sections.length - 1]) ? 2 : 1));
     return res.status(200).type("html").send(ui.layout({
       title: `${label} Market Intelligence`,
       eyebrow: "Evidence-led market strategy",
       heading: `${label} market intelligence`,
       body: "Track customer segments, competitor evidence, pricing, market signals, scored opportunities, and portfolio decisions without turning estimates into facts.",
-      sections,
+      sections: [...counts, ...work.filter(Boolean), ...sections],
       actions: [
         ui.link("/research-2026-market-expansion.html", "Latest market research"),
         ui.link("/product-lifecycle", "Roadmap"),
@@ -499,6 +546,140 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui, deps = {
       ]
     }));
   });
+}
+
+// A browser posting one of the page's forms gets sent back to the page it came
+// from, with the outcome named by a key the page translates; an API client gets
+// the JSON it always got. `back` is only ever a path on this site -- an open
+// redirect is how a Save button becomes a phishing link.
+function wantsHtml(req) {
+  const accept = String(req.headers?.accept || "");
+  return accept.includes("text/html") && !/^application\/json/.test(accept);
+}
+
+function backFrom(req, fallback) {
+  const back = String(req.body?.back || "");
+  return /^\/[a-z0-9/-]*$/i.test(back) && back.length <= 200 ? back : fallback;
+}
+
+function respond(req, res, status, body, done) {
+  if (!wantsHtml(req)) return res.status(status).json(body);
+  const back = backFrom(req, "/market-intelligence");
+  const outcome = body?.ok ? `done=${encodeURIComponent(done)}` : `problem=${encodeURIComponent(body?.code || "database_operation_failed")}`;
+  return res.redirect(303, `${back}${back.includes("?") ? "&" : "?"}${outcome}`);
+}
+
+const STUDIO_PATHS = Object.freeze({
+  business_builder: "/business-builder/market-intelligence",
+  creator_studio: "/creator-studio/market-intelligence",
+  growth_studio: "/growth-studio/market-intelligence"
+});
+function studioPath(studioKey) { return STUDIO_PATHS[studioKey] || "/market-intelligence"; }
+function studioForPath(pathname) { return Object.entries(STUDIO_PATHS).find(([, value]) => value === pathname)?.[0] || null; }
+
+// Outside the fetch handler on purpose: tests/market-intelligence-fetch.test.js
+// reads that handler for any field of a signal it might invent, and the page
+// around the fetched text has a title of its own.
+function sendFetchedPage(req, res, ui, target, body) {
+  const back = backFrom(req, "/market-intelligence");
+  return res.status(200).type("html").send(ui.layout({
+    title: "Read a source page",
+    eyebrow: "Evidence-led market strategy",
+    heading: body.fetched ? "Read it, then record what it shows" : "That page was not fetched",
+    body: "Nothing on this page has been recorded. A signal is your summary of what the source shows, written by you.",
+    sections: pages.fetchedSourceSections({ ...body, requestedUrl: target }, { studioKey: studioForPath(back), back, escape: ui.escape }),
+    actions: [ui.link(back, "Back to market intelligence")]
+  }));
+}
+
+async function updateOpportunity(req, deps, input = {}) {
+  const context = await resolveContext(req, deps);
+  if (!context.ok) return { status: context.status, body: context };
+  if (!validUuid(req.params.opportunityId)) return { status: 400, body: { ok: false, code: "invalid_opportunity_id" } };
+  const config = getConfig(deps);
+  const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
+  if (!loaded.ok) return { status: loaded.status, body: loaded };
+  const mergedScores = scoreFields({ ...loaded.row, ...input });
+  const marketScore = scoreMarketOpportunity(mergedScores);
+  const recommendation = recommendMarketAction(marketScore);
+  const patch = compact({
+    product_lifecycle_initiative_id: input.product_lifecycle_initiative_id === undefined && input.productLifecycleInitiativeId === undefined ? undefined : validUuid(input.product_lifecycle_initiative_id || input.productLifecycleInitiativeId) ? String(input.product_lifecycle_initiative_id || input.productLifecycleInitiativeId) : null,
+    name: input.name === undefined ? undefined : clean(input.name, 300),
+    problem: input.problem === undefined ? undefined : clean(input.problem, 4000),
+    target_segment: input.target_segment === undefined && input.targetSegment === undefined ? undefined : clean(input.target_segment || input.targetSegment, 500),
+    proposed_value: input.proposed_value === undefined && input.proposedValue === undefined ? undefined : clean(input.proposed_value || input.proposedValue, 4000),
+    demand_evidence: mergedScores.demandEvidence,
+    willingness_to_pay: mergedScores.willingnessToPay,
+    strategic_fit: mergedScores.strategicFit,
+    underserved_need: mergedScores.underservedNeed,
+    differentiation: mergedScores.differentiation,
+    channel_access: mergedScores.channelAccess,
+    delivery_complexity: mergedScores.deliveryComplexity,
+    compliance_risk: mergedScores.complianceRisk,
+    market_score: marketScore,
+    recommendation,
+    state: input.state === undefined ? undefined : OPPORTUNITY_STATES.has(String(input.state)) ? String(input.state) : undefined,
+    owner_name: input.owner_name === undefined && input.ownerName === undefined ? undefined : nullable(input.owner_name || input.ownerName, 240),
+    next_review_at: input.next_review_at === undefined && input.nextReviewAt === undefined ? undefined : validDate(input.next_review_at || input.nextReviewAt),
+    metadata: input.metadata === undefined ? undefined : parseObject(input.metadata, {}),
+    updated_at: new Date().toISOString()
+  });
+  // The four fields an opportunity cannot be without, refused rather than
+  // blanked: the create form requires them, and so does this.
+  for (const field of ["name", "problem", "target_segment", "proposed_value"]) {
+    if (patch[field] !== undefined && !patch[field]) return { status: 400, body: { ok: false, code: "complete_market_opportunity_required" } };
+  }
+  const updated = await patchRows(config, TABLES.opportunities, context, req.params.opportunityId, patch);
+  if (!updated.ok) return { status: 502, body: { ok: false, code: updated.code } };
+  // A PATCH that matched nothing answers 200 with an empty list. Not a save.
+  if (!updated.rows.length) return { status: 404, body: { ok: false, code: "resource_not_found" } };
+  await recordEvent(config, context, "opportunity.updated", { opportunity_id: req.params.opportunityId, market_score: marketScore, recommendation, fields: Object.keys(patch) });
+  return { status: 200, body: { ok: true, opportunity: updated.rows[0] } };
+}
+
+// The evidence lib/sonara-market-focus.cjs reads, in the shape it reads it:
+// metadata.focus_evidence, amounts in cents for one month, measured_at as an
+// ISO timestamp. Every field is required -- a missing cost is unknown, never
+// zero, and an assessment over a partial record would read as one over a
+// complete one.
+async function saveFocusEvidence(req, deps) {
+  const context = await resolveContext(req, deps);
+  if (!context.ok) return { status: context.status, body: context };
+  if (!validUuid(req.params.opportunityId)) return { status: 400, body: { ok: false, code: "invalid_opportunity_id" } };
+  const commitment = clean(req.body.customer_commitment, 1000);
+  const source = clean(req.body.source_reference, 2000);
+  const measuredOn = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body.measured_on || "")) ? String(req.body.measured_on) : null;
+  const cents = (value) => {
+    const text = String(value ?? "").trim();
+    if (!/^\d{1,12}(\.\d{1,2})?$/.test(text)) return null;
+    const [whole, fraction = ""] = text.split(".");
+    return Number(whole) * 100 + Number((fraction + "00").slice(0, 2));
+  };
+  const ceiling = cents(req.body.cost_ceiling);
+  const revenue = cents(req.body.revenue);
+  const variable = cents(req.body.variable_cost);
+  if (!commitment || !source || !measuredOn || ceiling === null || revenue === null || variable === null) {
+    return { status: 400, body: { ok: false, code: "focus_evidence_incomplete" } };
+  }
+  const config = getConfig(deps);
+  const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
+  if (!loaded.ok) return { status: loaded.status, body: loaded };
+  const metadata = {
+    ...(loaded.row.metadata && typeof loaded.row.metadata === "object" ? loaded.row.metadata : {}),
+    focus_evidence: {
+      customer_commitment: commitment,
+      source_reference: source,
+      measured_at: `${measuredOn}T00:00:00.000Z`,
+      cost_ceiling_cents: ceiling,
+      revenue_cents: revenue,
+      variable_cost_cents: variable
+    }
+  };
+  const updated = await patchRows(config, TABLES.opportunities, context, req.params.opportunityId, { metadata, updated_at: new Date().toISOString() });
+  if (!updated.ok) return { status: 502, body: { ok: false, code: updated.code } };
+  if (!updated.rows.length) return { status: 404, body: { ok: false, code: "resource_not_found" } };
+  await recordEvent(config, context, "opportunity.focus_evidence_recorded", { opportunity_id: req.params.opportunityId });
+  return { status: 200, body: { ok: true, opportunity: updated.rows[0] } };
 }
 
 function listHandler(table, deps, key) {

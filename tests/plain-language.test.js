@@ -365,11 +365,19 @@ describe("signed-in workspaces speak plainly", () => {
   // which answers 503 here for the same reason -- it cannot read a workspace, and
   // a page comparing payments with Stripe says so rather than showing nothing as
   // "everything agrees".
-  // 120 -> 121 on 7 October 2026: the Creator marketplace reconciliation page
-  // also refuses the outage stub's unresolved workspace. Its successful and
-  // failed-read copy is scanned against this same banned vocabulary in
-  // tests/marketplace-reconciliation.test.js, alongside scoped provider reads.
-  const SIGNED_IN_SKIPPED = 121;
+  // 120 -> 121 on 7 October 2026: /business-builder/owner/waitlist, behind
+  // requireBusinessManager and needing a workspace, so this crawl gets a refusal
+  // rather than the page -- which says it cannot read the list instead of saying
+  // nobody is waiting. Its copy is read by
+  // tests/a-waiting-list-is-kept-on-a-page.test.js with the guard stubbed,
+  // including the sentence that offering an opening tells the customer nothing.
+  // Codex's #441 adds a seller reconciliation page in parallel; measure on the
+  // merged tree rather than adding the two increments by hand (see 118 above).
+  // 121 -> 122 on 7 October 2026: /business-builder/owner/operations, behind
+  // requireBusinessManager. Its copy -- including that money is shown per
+  // currency and that a capped read is "at least" -- is read by
+  // tests/how-the-business-is-doing-counts-real-money.test.js.
+  const SIGNED_IN_SKIPPED = 123;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until
