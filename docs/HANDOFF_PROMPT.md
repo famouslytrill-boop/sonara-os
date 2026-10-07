@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 156 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 451 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 452 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,59 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 28 most recent entries of 445 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 28 most recent entries of 446 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Every roadmap stage gate can be passed from the page
+
+`/product-lifecycle/initiatives/:id` showed the readiness score and what was
+missing, and three of the seven stages could not be passed from it:
+
+- **plan** needs a target for the primary metric. The create form never asked for
+  one, and nothing could edit an initiative after it was created.
+- **build** needs an iteration with a Definition of Done that is active or done.
+  There was no iteration form, and nothing could move an iteration along.
+- **beta, launch, learn & scale** are blocked by any open critical finding, and
+  nothing could close one -- one critical finding blocked an initiative for good.
+
+The page now has an edit form (the fields the gates read), an iteration form, and
+a status control on each iteration and each finding. Closing a finding needs a
+note saying how it was dealt with: the gate reads only the status, so the note is
+the only record of why a blocker went away.
+
+Two defects in the gate itself, found on the way:
+
+- **A failed read was graded as an empty one.** `loadInitiativeBundle` never
+  checked whether its five child reads succeeded. A failed feedback read made "no
+  unresolved critical feedback" true -- the one criterion that is also a blocker
+  -- so a launch could advance past an open critical finding on the strength of a
+  request that did not happen. The bundle now refuses to grade unless every read
+  succeeded, and says which failed.
+- **The JSON PATCH could set the stage.** `lifecycle_stage` (and the statuses a
+  review decides) were accepted, so any caller could skip every gate by naming
+  the stage it wanted. Refused by name now; the stage moves through a review only.
+
+Also: the roadmap dashboard rendered a failed read exactly like a business with
+no initiatives; it says which it is now.
+
+Pinned by `tests/a-stage-gate-can-be-passed-from-the-page.test.js`, which drives
+only the page's own forms through the plan, build and beta gates to the advancing
+review, and checks the failed-read and PATCH cases. Falsified eight ways, each
+failing by name: no iteration form, no status routes, failed read graded as empty,
+the PATCH refusal removed, the PATCH writing the stage again, the target not
+editable, closing without a note, and the dashboard hiding a failed read.
+
+**Inventory, 70 -> 61 workspace fallbacks.** A JSON route with a page-form twin
+(`POST /api/x/:id/evidence` beside `POST /x/:id/evidence`) now takes the twin's
+page; markup held in a module-level constant is read for forms and script tags
+(the device-permissions script was in one); and `"/api/calls/" + id + "/signals"`
+in a public script is read as the path it builds. The status routes name their
+own tables so the trace sees what each one writes.
+
+
 
 ### 2026-10-07 - A door with no page: share, publish, and the record page they need
 
@@ -2041,68 +2089,3 @@ the new assertion red by name. Restores were copy-aside plus `md5sum -c`.
 clock -- it rests on there being no date literal left in either route test and on
 both expectations deriving from the clock the route reads. Worth saying plainly
 rather than claiming more.
-
-
-
-
-### 2026-10-01 - Ordering by a column was counting as reading it
-
-`report-unused-selected-columns.mjs` hunts the sharpest defect in this repository:
-a column fetched into the response and compared to nothing, the way
-`consent_scope` was. It had a blind spot. PostgREST orders by a column whether or
-not the select list asks for it, and the select string and the order clause live
-in separate template chunks -- so stripping the select left `&order=created_at.desc`
-behind, the column name was still in the scope, and it read as used.
-
-Proven on a synthetic scope before touching anything: a function selecting
-`id,status,created_at` and using the timestamp for nothing but `order=`, reported
-zero unused columns. Had `consent_scope` also been ordered on, this check would
-have missed it entirely.
-
-### Four real ones, and three that look identical and are not
-
-Stripping order clauses surfaced seven. Each was opened rather than trusted, and
-they split two ways.
-
-**Genuinely fetched and never read** -- the column is now simply not selected, and
-the ordering is unaffected:
-
-- `routes/sonara-creator-profile-routes.cjs` -- only `artist_profile_id` is read.
-- `routes/sonara-lead-capture-routes.cjs` -- the lead rows render inline and
-  `created_at` is not among the fields printed.
-- `routes/sonara-prompt-library-routes.cjs` -- two recent-item reads map
-  `row.title` and `row.name` and nothing else.
-- `routes/sonara-route-registry-routes.cjs` -- three reads, all rendering inline;
-  `consent_scope` IS read there, which is worth noting, because that is the column
-  the original defect was about.
-
-**Read by a different file**, which tier 1 cannot see, so each ruling cites the
-line that reads the value:
-
-- `lib/sonara-module-records.cjs` -- `lib/sonara-module-crud.cjs` line 353:
-  `const when = record.created_at ? new Date(record.created_at) : null`.
-- `lib/sonara-workspace-dashboard-summary.cjs` -- `server.js` line 1907 prints it
-  in the Recent activity card. Removing it from either select would empty that
-  card.
-- `routes/sonara-last9-routes.cjs` -- `category`, forwarded whole as JSON by
-  `PUBLIC_GETS`, exactly like the `capabilities` and `connection_mode` the ruling
-  on that file already named. It had never surfaced, because the query also
-  carries `order=category.asc`. The masking demonstrating itself.
-
-That ratio is the thing to carry forward: **tier 1 means "not named in this file",
-not "unused".** Three of seven were live readers one file away, and acting on them
-without opening the consumer would have broken a visible card.
-
-### Broken both ways
-
-Re-selecting the timestamp in `sonara-lead-capture-routes.cjs` fails by name.
-Reverting the order-strip while keeping the three rulings fails with all three as
-"outlived their reason" -- which also proves the strip is the load-bearing part
-rather than decoration, since the rulings only exist because of it. Restores were
-copy-aside plus `md5sum -c`.
-
-One stale note corrected while here: an earlier session recorded that this script
-also counted a column named in a comment as used. It does not -- line 303 says "A
-column named in a comment is a column discussed, not used" and it strips comments
-through `lib/sonara-comment-stripping.cjs`. That half was already fixed; only the
-order clause remained.

@@ -65,6 +65,27 @@ const EVIDENCE_TYPES = new Set(["interview", "survey", "market_size", "competito
 const REQUIREMENT_TYPES = new Set(["user_story", "feature", "non_goal", "risk", "metric", "compliance", "support", "operation"]);
 const PRIORITIES = new Set(["must", "should", "could", "wont"]);
 const FEEDBACK_CATEGORIES = new Set(["usability", "functionality", "design", "performance", "satisfaction", "accessibility", "security", "reliability", "pricing", "support", "other"]);
+const ITERATION_STATUSES = new Set(["planned", "active", "review", "completed", "cancelled"]);
+const FEEDBACK_STATUSES = new Set(["new", "triaged", "planned", "resolved", "declined", "duplicate"]);
+// A finding moved to one of these no longer blocks a stage. Saying why is
+// required, because the gate reads only the status: "resolved" with no note is
+// a blocker somebody removed, not one somebody fixed.
+const CLOSED_FEEDBACK_STATUSES = new Set(["resolved", "declined", "duplicate"]);
+
+// What a person edits on the initiative page.
+//
+// The stage is not among them, and neither are the statuses a stage review
+// decides. The stage moves through a review and nowhere else: the review is
+// graded against the stage the record is in (see
+// tests/a-stage-review-grades-the-stage-the-record-is-in.test.js), and a field
+// that moved the stage directly would make that grading optional. The JSON
+// PATCH accepted `lifecycle_stage` until 7 October 2026, so any caller could
+// skip every gate by naming the stage it wanted.
+const EDITABLE_FIELDS = Object.freeze([
+  "name", "problem_statement", "target_audience", "value_proposition",
+  "product_goal", "primary_metric", "target_metric", "target_launch_date"
+]);
+const DECISION_STATUSES = new Set(["on_hold", "pivoting", "stopped", "scaled"]);
 
 module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
   const requireCustomer = typeof deps.requireCustomer === "function" ? deps.requireCustomer : pass;
@@ -105,29 +126,8 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
   });
 
   app.patch("/api/product-lifecycle/initiatives/:initiativeId", requireCustomer, async (req, res) => {
-    const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
-    if (!validUuid(req.params.initiativeId)) return res.status(400).json({ ok: false, code: "invalid_initiative_id" });
-    const config = getConfig(deps);
-    const patch = compact({
-      name: req.body.name === undefined ? undefined : clean(req.body.name, 240),
-      problem_statement: req.body.problem_statement === undefined && req.body.problemStatement === undefined ? undefined : nullable(req.body.problem_statement || req.body.problemStatement, 5000),
-      target_audience: req.body.target_audience === undefined && req.body.targetAudience === undefined ? undefined : nullable(req.body.target_audience || req.body.targetAudience, 3000),
-      value_proposition: req.body.value_proposition === undefined && req.body.valueProposition === undefined ? undefined : nullable(req.body.value_proposition || req.body.valueProposition, 3000),
-      product_goal: req.body.product_goal === undefined && req.body.productGoal === undefined ? undefined : nullable(req.body.product_goal || req.body.productGoal, 3000),
-      lifecycle_stage: req.body.lifecycle_stage === undefined && req.body.lifecycleStage === undefined ? undefined : oneOf(req.body.lifecycle_stage || req.body.lifecycleStage, STAGE_KEYS, null),
-      status: req.body.status === undefined ? undefined : oneOf(req.body.status, INITIATIVE_STATUSES, null),
-      primary_metric: req.body.primary_metric === undefined && req.body.primaryMetric === undefined ? undefined : nullable(req.body.primary_metric || req.body.primaryMetric, 300),
-      target_metric: req.body.target_metric === undefined && req.body.targetMetric === undefined ? undefined : numberOrNull(req.body.target_metric ?? req.body.targetMetric),
-      budget_cents: req.body.budget_cents === undefined && req.body.budgetCents === undefined ? undefined : integerOrNull(req.body.budget_cents ?? req.body.budgetCents, 0),
-      target_launch_date: req.body.target_launch_date === undefined && req.body.targetLaunchDate === undefined ? undefined : dateOnly(req.body.target_launch_date || req.body.targetLaunchDate),
-      metadata: req.body.metadata === undefined ? undefined : parseObject(req.body.metadata, {}),
-      updated_at: new Date().toISOString()
-    });
-    if (!Object.keys(patch).filter((key) => key !== "updated_at").length) return res.status(400).json({ ok: false, code: "initiative_patch_required" });
-    const updated = await patchRows(config, TABLES.initiatives, context, req.params.initiativeId, patch);
-    if (updated.ok) await recordEvent(config, context, req.params.initiativeId, "initiative.updated", "success", { fields: Object.keys(patch) });
-    return res.status(updated.ok ? 200 : 502).json({ ok: updated.ok, initiative: updated.rows[0], code: updated.code });
+    const result = await updateInitiative(req, deps, req.body);
+    return res.status(result.status).json(result.body);
   });
 
   app.get("/api/product-lifecycle/initiatives/:initiativeId/summary", requireCustomer, async (req, res) => {
@@ -173,7 +173,7 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
 
   app.get("/product-lifecycle/initiatives/:initiativeId", requireCustomer, async (req, res) => {
     const loaded = await loadInitiativeBundle(req, deps);
-    if (!loaded.body.ok) return res.status(loaded.status).type("html").send(ui.layout({ title: "Initiative unavailable", eyebrow: "Product lifecycle", heading: "Initiative unavailable", body: loaded.body.code, sections: [], actions: [ui.link("/product-lifecycle", "Return")] }));
+    if (!loaded.body.ok) return res.status(loaded.status).type("html").send(ui.layout({ title: "Initiative unavailable", eyebrow: "Product lifecycle", heading: "Initiative unavailable", body: loaded.body.message || loaded.body.code, sections: [], actions: [ui.link("/product-lifecycle", "Return")] }));
     const data = loaded.body;
     const initiative = data.initiative;
     return res.status(200).type("html").send(ui.layout({
@@ -186,16 +186,43 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
         ui.card("Problem and audience", `${initiative.problem_statement || "Problem not recorded"} Audience: ${initiative.target_audience || "not recorded"}`),
         ui.card("Evidence", `${data.evidence.length} records across ${Object.keys(countBy(data.evidence, "evidence_type")).length} evidence types.`),
         ui.card("MVP scope", `${data.requirements.length} requirements; ${data.requirements.filter((row) => row.priority === "must").length} Must Have items.`),
-        ui.card("Iterations", `${data.iterations.length} planned or completed iterations.`),
-        ui.card("Beta feedback", `${data.feedback.length} findings; ${data.feedback.filter((row) => row.severity === "critical" && !["resolved", "declined", "duplicate"].includes(row.status)).length} unresolved critical findings.`),
+        iterationsCard(initiative.id, data.iterations, ui.escape),
+        feedbackCard(initiative.id, data.feedback, ui.escape),
+        initiativeEditForm(initiative, ui.escape),
         evidenceForm(initiative.id, ui.escape),
         requirementForm(initiative.id, ui.escape),
+        iterationForm(initiative.id, data.iterations, ui.escape),
         feedbackForm(initiative.id, ui.escape),
         reviewForm(initiative.id, data.readiness.score, ui.escape)
       ],
       actions: [ui.link("/product-lifecycle", "Portfolio")]
     }));
   });
+
+  // The initiative page's own form. Only the editable fields travel, so a
+  // crafted post naming a stage or a decision status is refused below rather
+  // than trusted.
+  app.post("/product-lifecycle/initiatives/:initiativeId", requireCustomer, async (req, res) => {
+    const back = `/product-lifecycle/initiatives/${encodeURIComponent(req.params.initiativeId)}`;
+    const edits = Object.fromEntries(EDITABLE_FIELDS.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
+    const result = await updateInitiative(req, deps, edits);
+    if (!result.body.ok) return res.status(result.status).type("html").send(ui.layout({ title: "Initiative not updated", eyebrow: "Product lifecycle", heading: "Initiative not updated", body: result.body.message || result.body.code, sections: [], actions: [ui.link(back, "Return")] }));
+    return res.redirect(303, back);
+  });
+
+  // Moving an iteration along, and closing a finding. Without these an
+  // iteration recorded as planned stayed planned, and a critical finding stayed
+  // open, for good -- and the build gate needs an active iteration while beta,
+  // launch and learn & scale are blocked by any open critical finding. The
+  // gates could be read on this page and not passed from it.
+  for (const [suffix, handler] of [["iterations", changeIterationStatus], ["feedback", changeFeedbackStatus]]) {
+    app.post(`/product-lifecycle/initiatives/:initiativeId/${suffix}/:recordId/status`, requireCustomer, async (req, res) => {
+      const back = `/product-lifecycle/initiatives/${encodeURIComponent(req.params.initiativeId)}`;
+      const result = await handler(req, deps);
+      if (!result.body.ok) return res.status(result.status).type("html").send(ui.layout({ title: "Status not changed", eyebrow: "Product lifecycle", heading: "Status not changed", body: result.body.message || result.body.code, sections: [], actions: [ui.link(back, "Return")] }));
+      return res.redirect(303, back);
+    });
+  }
 
   for (const [suffix, handler] of [["evidence", addEvidence], ["requirements", addRequirement], ["iterations", addIteration], ["feedback", addFeedback], ["reviews", addStageReview]]) {
     app.post(`/product-lifecycle/initiatives/:initiativeId/${suffix}`, requireCustomer, async (req, res) => {
@@ -296,7 +323,7 @@ async function addIteration(req, deps) {
     goal,
     starts_at: dateOnly(req.body.starts_at || req.body.startsAt),
     ends_at: dateOnly(req.body.ends_at || req.body.endsAt),
-    status: oneOf(req.body.status, new Set(["planned", "active", "review", "completed", "cancelled"]), "planned"),
+    status: oneOf(req.body.status, ITERATION_STATUSES, "planned"),
     definition_of_done: nullable(req.body.definition_of_done || req.body.definitionOfDone, 5000),
     review_notes: nullable(req.body.review_notes || req.body.reviewNotes, 5000),
     retrospective_notes: nullable(req.body.retrospective_notes || req.body.retrospectiveNotes, 5000),
@@ -322,7 +349,7 @@ async function addFeedback(req, deps) {
     sentiment: oneOf(req.body.sentiment, new Set(["negative", "neutral", "positive", "mixed"]), "neutral"),
     summary,
     evidence_reference: nullable(req.body.evidence_reference || req.body.evidenceReference, 2000),
-    status: oneOf(req.body.status, new Set(["new", "triaged", "planned", "resolved", "declined", "duplicate"]), "new"),
+    status: oneOf(req.body.status, FEEDBACK_STATUSES, "new"),
     metadata: parseObject(req.body.metadata, {})
   });
   if (created.ok) await recordEvent(base.config, base.context, base.initiative.id, "feedback.recorded", "success", { category, severity: created.rows[0]?.severity });
@@ -370,6 +397,84 @@ async function addStageReview(req, deps) {
   return { status: 201, body: { ok: true, review: created.rows[0], initiative: updated.rows[0], readiness } };
 }
 
+async function updateInitiative(req, deps, input = {}) {
+  const context = await resolveContext(req, deps);
+  if (!context.ok) return { status: context.status, body: context };
+  if (!validUuid(req.params.initiativeId)) return { status: 400, body: { ok: false, code: "invalid_initiative_id" } };
+  if (input.lifecycle_stage !== undefined || input.lifecycleStage !== undefined) {
+    return { status: 400, body: { ok: false, code: "stage_moves_by_review", message: "The stage changes through a stage review, which is graded against the stage the initiative is in. Record a review instead." } };
+  }
+  if (input.status !== undefined && DECISION_STATUSES.has(String(input.status))) {
+    return { status: 400, body: { ok: false, code: "status_set_by_review", message: "On hold, pivoting, stopped and scaled are the outcomes of a stage review. Record a review instead." } };
+  }
+  if (input.name !== undefined && !clean(input.name, 240)) return { status: 400, body: { ok: false, code: "initiative_name_required", message: "An initiative needs a name." } };
+  const config = getConfig(deps);
+  const patch = compact({
+    name: input.name === undefined ? undefined : clean(input.name, 240),
+    problem_statement: input.problem_statement === undefined && input.problemStatement === undefined ? undefined : nullable(input.problem_statement || input.problemStatement, 5000),
+    target_audience: input.target_audience === undefined && input.targetAudience === undefined ? undefined : nullable(input.target_audience || input.targetAudience, 3000),
+    value_proposition: input.value_proposition === undefined && input.valueProposition === undefined ? undefined : nullable(input.value_proposition || input.valueProposition, 3000),
+    product_goal: input.product_goal === undefined && input.productGoal === undefined ? undefined : nullable(input.product_goal || input.productGoal, 3000),
+    status: input.status === undefined ? undefined : oneOf(input.status, INITIATIVE_STATUSES, null),
+    primary_metric: input.primary_metric === undefined && input.primaryMetric === undefined ? undefined : nullable(input.primary_metric || input.primaryMetric, 300),
+    target_metric: input.target_metric === undefined && input.targetMetric === undefined ? undefined : numberOrNull(input.target_metric ?? input.targetMetric),
+    budget_cents: input.budget_cents === undefined && input.budgetCents === undefined ? undefined : integerOrNull(input.budget_cents ?? input.budgetCents, 0),
+    target_launch_date: input.target_launch_date === undefined && input.targetLaunchDate === undefined ? undefined : dateOnly(input.target_launch_date || input.targetLaunchDate),
+    metadata: input.metadata === undefined ? undefined : parseObject(input.metadata, {}),
+    updated_at: new Date().toISOString()
+  });
+  if (!Object.keys(patch).filter((key) => key !== "updated_at").length) return { status: 400, body: { ok: false, code: "initiative_patch_required" } };
+  const updated = await patchRows(config, TABLES.initiatives, context, req.params.initiativeId, patch);
+  if (!updated.ok) return { status: 502, body: { ok: false, code: updated.code } };
+  // A PATCH that matched nothing answers 200 with an empty list. That is not a
+  // saved change, and the page would otherwise say it was.
+  if (!updated.rows.length) return { status: 404, body: { ok: false, code: "resource_not_found", message: "That initiative is not in your business, or it has been removed." } };
+  await recordEvent(config, context, req.params.initiativeId, "initiative.updated", "success", { fields: Object.keys(patch) });
+  return { status: 200, body: { ok: true, initiative: updated.rows[0] } };
+}
+
+// One function per record kind, each naming its own table, rather than a
+// lookup keyed by the path: scripts/generate-capability-inventory.cjs traces
+// what a route writes from the functions it calls, and a table read out of a
+// map at runtime is a write it cannot see.
+function changeIterationStatus(req, deps) {
+  return changeChildStatus(req, deps, { table: TABLES.iterations, statuses: ITERATION_STATUSES, noun: "iteration", noteColumn: "review_notes", event: "iteration.status_changed" });
+}
+
+function changeFeedbackStatus(req, deps) {
+  return changeChildStatus(req, deps, { table: TABLES.feedback, statuses: FEEDBACK_STATUSES, noun: "finding", noteColumn: null, event: "feedback.status_changed", closingNeedsNote: true });
+}
+
+async function changeChildStatus(req, deps, spec) {
+  const base = await prepareChildWrite(req, deps);
+  if (!base.ok) return { status: base.status, body: base };
+  const recordId = String(req.params.recordId || "");
+  if (!validUuid(recordId)) return { status: 400, body: { ok: false, code: "invalid_record_id" } };
+  const status = oneOf(req.body.status, spec.statuses, null);
+  if (!status) return { status: 400, body: { ok: false, code: "status_not_offered", message: `That is not a status a ${spec.noun} can have.` } };
+  const note = nullable(req.body.note, 2000);
+  if (spec.closingNeedsNote && CLOSED_FEEDBACK_STATUSES.has(status) && !note) {
+    return { status: 400, body: { ok: false, code: "closing_note_required", message: "Say how this finding was dealt with. A closed finding no longer blocks a stage, so the reason is the record of why." } };
+  }
+  // Scoped by organization and by initiative, read first for the previous
+  // value. The service key bypasses row level security, so without both
+  // filters a guessed id could move another initiative's -- or another
+  // business's -- record.
+  const scope = `id=eq.${encodeURIComponent(recordId)}&initiative_id=eq.${encodeURIComponent(base.initiative.id)}&organization_id=eq.${encodeURIComponent(base.context.organizationId)}`;
+  const found = await rest(base.config, spec.table, `select=id,status,metadata&${scope}&limit=1`);
+  if (!found.ok) return { status: 502, body: { ok: false, code: "record_unreadable", message: `We could not read that ${spec.noun} just now. Nothing has changed.` } };
+  const before = found.rows[0];
+  if (!before) return { status: 404, body: { ok: false, code: "resource_not_found", message: `That ${spec.noun} is not on this initiative.` } };
+  const patch = { status, updated_at: new Date().toISOString() };
+  if (note && spec.noteColumn) patch[spec.noteColumn] = note;
+  if (note && !spec.noteColumn) patch.metadata = { ...(before.metadata && typeof before.metadata === "object" ? before.metadata : {}), status_note: note };
+  const updated = await rest(base.config, spec.table, scope, { method: "PATCH", prefer: "return=representation", body: patch });
+  if (!updated.ok) return { status: 502, body: { ok: false, code: "status_not_saved", message: "That could not be saved, so the status is unchanged." } };
+  if (!updated.rows.length) return { status: 404, body: { ok: false, code: "resource_not_found", message: `That ${spec.noun} is not on this initiative.` } };
+  await recordEvent(base.config, base.context, base.initiative.id, spec.event, "success", { record_id: recordId, from: before.status, to: status, note });
+  return { status: 200, body: { ok: true, record: updated.rows[0], from: before.status, to: status } };
+}
+
 async function prepareChildWrite(req, deps) {
   const context = await resolveContext(req, deps);
   if (!context.ok) return context;
@@ -397,6 +502,24 @@ async function loadInitiativeBundle(req, deps) {
     list(config, TABLES.feedback, context, 500, idFilter),
     list(config, TABLES.reviews, context, 100, idFilter)
   ]);
+  // A failed read is not an empty list. Graded as one, a feedback read that
+  // failed made "no unresolved critical feedback" true -- the one criterion
+  // that is also a blocker -- so a launch or a scale decision could pass its
+  // gate on the strength of a request that did not happen. The gate is not
+  // graded at all unless every record it grades was read.
+  const unreadable = Object.entries({ evidence, requirements, iterations, feedback, reviews })
+    .filter(([, result]) => !result.ok).map(([name]) => name);
+  if (unreadable.length) {
+    return {
+      status: 502,
+      body: {
+        ok: false,
+        code: "initiative_records_unreadable",
+        unreadable,
+        message: `This initiative's ${unreadable.join(", ")} could not be read just now, so its readiness is not graded and no stage decision can be recorded. Nothing has changed.`
+      }
+    };
+  }
   const bundle = {
     initiative: loaded.row,
     evidence: evidence.rows,
@@ -413,10 +536,14 @@ async function renderLifecycleDashboard(req, res, deps, ui, studioKey) {
   const context = await resolveContext(req, deps);
   if (!context.ok) return res.status(context.status).json(context);
   const config = getConfig(deps);
+  // The outcome travels, not just the rows. A failed read rendered exactly like
+  // a business with no initiatives -- the cards simply were not there.
   let initiatives = [];
+  let readable = false;
   if (config.ok) {
     const result = await list(config, TABLES.initiatives, context, 100, `&studio_key=eq.${encodeURIComponent(studioKey)}`);
-    initiatives = result.rows;
+    readable = result.ok;
+    initiatives = result.ok ? result.rows : [];
   }
   const sections = [
     ui.card("Evidence before expansion", "Do not build because an idea sounds exciting. Record the problem, audience, market evidence, alternatives, pricing evidence, assumptions, and decision rationale."),
@@ -424,7 +551,11 @@ async function renderLifecycleDashboard(req, res, deps, ui, studioKey) {
     ui.card("Definition of Done", "Every increment includes tests, security, accessibility, privacy, operational ownership, support impact, and traces, metrics, and logs where applicable."),
     ui.card("Moving to the next stage", "Move on only when the evidence for this stage is in and nothing critical is still open. The choices are advance, hold, pivot, stop, or scale."),
     initiativeForm(studioKey, ui.escape),
-    ...initiatives.map((initiative) => initiativeCard(initiative, ui))
+    ...(!readable
+      ? [ui.card("Your initiatives", "We could not read your initiatives just now, so none are listed here. Nothing has changed.")]
+      : initiatives.length
+        ? initiatives.map((initiative) => initiativeCard(initiative, ui))
+        : [ui.card("Your initiatives", "None yet. Start one above.")])
   ];
   return res.status(200).type("html").send(ui.layout({
     title: `${studioLabel(studioKey)} Roadmap`,
@@ -519,6 +650,34 @@ function requirementForm(id, escape) {
 
 function feedbackForm(id, escape) {
   return `<article class="card"><h2>Record beta or customer feedback</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/feedback"><label>Category<select name="category">${[...FEEDBACK_CATEGORIES].map((value) => `<option value="${value}">${value}</option>`).join("")}</select></label><label>Severity<select name="severity"><option>low</option><option selected>medium</option><option>high</option><option>critical</option></select></label><label>Summary<textarea name="summary" required></textarea></label><label>Beta cohort<input name="beta_cohort"></label><button type="submit">Record feedback</button></form></article>`;
+}
+
+// The fields the gates read, editable after the initiative exists. The create
+// form asks for a primary metric and no target, and the plan stage needs both,
+// so until this form existed the plan gate could not be passed from the page.
+function initiativeEditForm(initiative, escape) {
+  const id = escape(initiative.id);
+  const value = (field) => escape(initiative[field] === null || initiative[field] === undefined ? "" : String(initiative[field]));
+  return `<article class="card"><h2>Problem, goal and target</h2><form method="post" action="/product-lifecycle/initiatives/${id}"><label>Name<input name="name" required maxlength="240" value="${value("name")}"></label><label>Problem statement<textarea name="problem_statement" maxlength="5000">${value("problem_statement")}</textarea></label><label>Target audience<textarea name="target_audience" maxlength="3000">${value("target_audience")}</textarea></label><label>Value proposition<textarea name="value_proposition" maxlength="3000">${value("value_proposition")}</textarea></label><label>Product Goal<textarea name="product_goal" maxlength="3000">${value("product_goal")}</textarea></label><label>Primary metric<input name="primary_metric" maxlength="300" value="${value("primary_metric")}"></label><label>Target for that metric<input type="number" step="any" name="target_metric" value="${value("target_metric")}"></label><label>Target launch date<input type="date" name="target_launch_date" value="${value("target_launch_date")}"></label><button type="submit">Save changes</button></form></article>`;
+}
+
+function iterationForm(id, iterations, escape) {
+  const next = iterations.reduce((highest, row) => Math.max(highest, Number(row.iteration_number) || 0), 0) + 1;
+  return `<article class="card"><h2>Plan an iteration</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/iterations"><label>Number<input type="number" name="iteration_number" min="1" step="1" value="${next}" required></label><label>Goal<textarea name="goal" required maxlength="3000"></textarea></label><label>Status<select name="status">${[...ITERATION_STATUSES].map((value) => `<option value="${value}">${value}</option>`).join("")}</select></label><label>Starts<input type="date" name="starts_at"></label><label>Ends<input type="date" name="ends_at"></label><label>Definition of Done<textarea name="definition_of_done" maxlength="5000"></textarea></label><button type="submit">Add iteration</button></form></article>`;
+}
+
+function iterationsCard(id, iterations, escape) {
+  const rows = [...iterations].sort((a, b) => (Number(a.iteration_number) || 0) - (Number(b.iteration_number) || 0));
+  if (!rows.length) return `<article class="card"><h2>Iterations</h2><p>None yet. Plan the first one below.</p></article>`;
+  const body = rows.map((row) => `<tr><td>${escape(String(row.iteration_number))}</td><td>${escape(row.goal || "")}</td><td>${escape(row.status || "")}</td><td>${row.definition_of_done ? "Written" : "Not written"}</td><td><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/iterations/${escape(row.id)}/status"><label>Move to<select name="status">${[...ITERATION_STATUSES].map((value) => `<option value="${value}"${value === row.status ? " selected" : ""}>${value}</option>`).join("")}</select></label><label>Review note<input name="note" maxlength="2000"></label><button type="submit">Save</button></form></td></tr>`).join("");
+  return `<article class="card"><h2>Iterations</h2><table><thead><tr><th>Number</th><th>Goal</th><th>Status</th><th>Definition of Done</th><th>Change</th></tr></thead><tbody>${body}</tbody></table></article>`;
+}
+
+function feedbackCard(id, feedback, escape) {
+  const open = feedback.filter((row) => row.severity === "critical" && !CLOSED_FEEDBACK_STATUSES.has(row.status)).length;
+  if (!feedback.length) return `<article class="card"><h2>Beta feedback</h2><p>No findings recorded yet.</p></article>`;
+  const body = feedback.map((row) => `<tr><td>${escape(row.category || "")}</td><td>${escape(row.severity || "")}</td><td>${escape(row.summary || "")}</td><td>${escape(row.status || "")}</td><td><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/feedback/${escape(row.id)}/status"><label>Move to<select name="status">${[...FEEDBACK_STATUSES].map((value) => `<option value="${value}"${value === row.status ? " selected" : ""}>${value}</option>`).join("")}</select></label><label>How it was dealt with<input name="note" maxlength="2000"></label><button type="submit">Save</button></form></td></tr>`).join("");
+  return `<article class="card"><h2>Beta feedback</h2><p>${feedback.length} findings; ${open} unresolved critical. Closing a finding (resolved, declined or duplicate) needs a note saying how it was dealt with.</p><table><thead><tr><th>Category</th><th>Severity</th><th>Finding</th><th>Status</th><th>Change</th></tr></thead><tbody>${body}</tbody></table></article>`;
 }
 
 // The stage is deliberately NOT a field here. `addStageReview` records
@@ -619,3 +778,6 @@ function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => (
 function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
+
+module.exports.EDITABLE_FIELDS = EDITABLE_FIELDS;
+module.exports.DECISION_STATUSES = DECISION_STATUSES;

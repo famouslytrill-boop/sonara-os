@@ -2,6 +2,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Every roadmap stage gate can be passed from the page
+
+`/product-lifecycle/initiatives/:id` showed the readiness score and what was
+missing, and three of the seven stages could not be passed from it:
+
+- **plan** needs a target for the primary metric. The create form never asked for
+  one, and nothing could edit an initiative after it was created.
+- **build** needs an iteration with a Definition of Done that is active or done.
+  There was no iteration form, and nothing could move an iteration along.
+- **beta, launch, learn & scale** are blocked by any open critical finding, and
+  nothing could close one -- one critical finding blocked an initiative for good.
+
+The page now has an edit form (the fields the gates read), an iteration form, and
+a status control on each iteration and each finding. Closing a finding needs a
+note saying how it was dealt with: the gate reads only the status, so the note is
+the only record of why a blocker went away.
+
+Two defects in the gate itself, found on the way:
+
+- **A failed read was graded as an empty one.** `loadInitiativeBundle` never
+  checked whether its five child reads succeeded. A failed feedback read made "no
+  unresolved critical feedback" true -- the one criterion that is also a blocker
+  -- so a launch could advance past an open critical finding on the strength of a
+  request that did not happen. The bundle now refuses to grade unless every read
+  succeeded, and says which failed.
+- **The JSON PATCH could set the stage.** `lifecycle_stage` (and the statuses a
+  review decides) were accepted, so any caller could skip every gate by naming
+  the stage it wanted. Refused by name now; the stage moves through a review only.
+
+Also: the roadmap dashboard rendered a failed read exactly like a business with
+no initiatives; it says which it is now.
+
+Pinned by `tests/a-stage-gate-can-be-passed-from-the-page.test.js`, which drives
+only the page's own forms through the plan, build and beta gates to the advancing
+review, and checks the failed-read and PATCH cases. Falsified eight ways, each
+failing by name: no iteration form, no status routes, failed read graded as empty,
+the PATCH refusal removed, the PATCH writing the stage again, the target not
+editable, closing without a note, and the dashboard hiding a failed read.
+
+**Inventory, 70 -> 61 workspace fallbacks.** A JSON route with a page-form twin
+(`POST /api/x/:id/evidence` beside `POST /x/:id/evidence`) now takes the twin's
+page; markup held in a module-level constant is read for forms and script tags
+(the device-permissions script was in one); and `"/api/calls/" + id + "/signals"`
+in a public script is read as the path it builds. The status routes name their
+own tables so the trace sees what each one writes.
+
 ### 2026-10-07 - A door with no page: share, publish, and the record page they need
 
 **The defect.** The share card (quotes, bookings, invoices) and the publish card

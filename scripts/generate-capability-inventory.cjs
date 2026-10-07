@@ -1533,6 +1533,35 @@ function buildInventory() {
     }
     return inner.startsWith("/") ? inner : null;
   }
+  // Markup held in a module-level constant -- `const LOCAL_IMAGE_FORM = \`<form
+  // ...><script src="/creator-device-access.js">\`` -- and referenced by name.
+  // The walk followed calls only, so a form or a script tag kept in a constant
+  // was invisible to every page that rendered it. Only constants written at
+  // column 0 as a string or template literal that contains markup are kept.
+  const markupConstantCache = new Map();
+  function markupConstantsFor(file) {
+    if (markupConstantCache.has(file)) return markupConstantCache.get(file);
+    const source = readSource(file);
+    const constants = new Map();
+    for (const head of source.matchAll(/^const ([A-Za-z_$][\w$]*)\s*=\s*([`"'])/gm)) {
+      const quote = head[2];
+      const start = head.index + head[0].length;
+      let depth = 0;
+      let end = -1;
+      for (let index = start; index < source.length; index += 1) {
+        const char = source[index];
+        if (char === "\\") { index += 1; continue; }
+        if (quote === "`" && char === "$" && source[index + 1] === "{") { depth += 1; index += 1; continue; }
+        if (quote === "`" && depth > 0 && char === "}") { depth -= 1; continue; }
+        if (char === quote && depth === 0) { end = index; break; }
+      }
+      if (end < 0) continue;
+      const text = source.slice(start, end);
+      if (/<(?:form|script)\b/i.test(text)) constants.set(head[1], { text, reference: new RegExp(`(?<![.$\\w])${escapeRegExp(head[1])}(?![\\w$])`) });
+    }
+    markupConstantCache.set(file, constants);
+    return constants;
+  }
   function formActionsForPage(page) {
     const found = new Map();
     const scripts = new Set();
@@ -1579,6 +1608,12 @@ function buildInventory() {
         seen.add(key);
         const bindings = localBody !== undefined ? closureBindings : new Map([...closureBindings, ...(imported?.injectedFunctions || new Map())]);
         visit(targetFile, body, depth + 1, bindings);
+      }
+      for (const [name, constant] of markupConstantsFor(file)) {
+        const key = `${file}:const:${name}`;
+        if (seen.has(key) || !constant.reference.test(code)) continue;
+        seen.add(key);
+        visit(file, constant.text, depth + 1, closureBindings);
       }
     }
     const handlerNames = (page.handlerNames || []).filter((name) => name && name !== "anonymous").map((name) => `${name}()`);
@@ -1668,8 +1703,13 @@ function buildInventory() {
   const publicScripts = (() => {
     const directory = path.join(ROOT, "public");
     if (!fs.existsSync(directory)) return [];
+    // `"/api/calls/" + encodeURIComponent(callId) + "/signals"` is the path
+    // /api/calls/:callId/signals written in pieces, which is how
+    // public/sonara-call.js builds every one of its requests. Joined into one
+    // path so the matcher below can see it.
+    const joinConcatenatedPaths = (code) => code.replace(/(["'])\s*\+\s*[^"'`;\n]{1,120}?\s*\+\s*(["'])/g, ":parameter");
     return fs.readdirSync(directory).filter((name) => name.endsWith(".js")).sort()
-      .map((name) => ({ src: `/${name}`, code: withoutComments(fs.readFileSync(path.join(directory, name), "utf8")) }));
+      .map((name) => ({ src: `/${name}`, code: joinConcatenatedPaths(withoutComments(fs.readFileSync(path.join(directory, name), "utf8"))) }));
   })();
   function scriptPagesFor(route) {
     const pattern = new RegExp(`${route.route.split("/").map((segment) => (segment.startsWith(":") ? "[^/\"'\`\\s]+" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))).join("/")}(?![\\w/-])`);
@@ -1774,6 +1814,7 @@ function buildInventory() {
     }
     return problems;
   }
+  const twinSeen = new Set();
   function pageForAction(route) {
     if (route.method === "GET" && !route.route.startsWith("/api/")) return { route: route.route, confidence: "exact", reason: "page_route" };
     if (route.kind === "webhook") return { route: null, confidence: "machine_ingress", reason: "provider_or_system_webhook" };
@@ -1803,6 +1844,22 @@ function buildInventory() {
       if (routeIds.has(`GET ${exactPage}`)) return { route: exactPage, confidence: "route_pair", reason: "matching_product_workspace_page" };
       const parent = nearestRegisteredPage(exactPage, "nearest_registered_product_workspace_page");
       if (parent && parent.route !== prefix) return parent;
+    }
+    // A JSON route with a page-form twin -- `POST /api/x/:id/evidence` beside
+    // `POST /x/:id/evidence`, which the page's form posts to -- is the same
+    // action answering JSON instead of redirecting, so the twin's page is its
+    // screen. Same method and the same path without /api, and only when the
+    // twin itself resolves to a page rather than a workspace home.
+    if (route.route.startsWith("/api/") && route.method !== "GET" && !twinSeen.has(route.id)) {
+      const twin = rawRoutes.find((candidate) => candidate.id === `${route.method} ${strippedApi}`);
+      if (twin) {
+        twinSeen.add(route.id);
+        const page = pageForAction(twin);
+        twinSeen.delete(route.id);
+        if (page.route && page.confidence !== "workspace_fallback" && page.confidence !== "no_user_page") {
+          return { route: page.route, confidence: "route_pair", reason: "page_form_twin", twin: twin.id };
+        }
+      }
     }
     const declaredPages = declaredDoors.get(route.id);
     if (declaredPages?.length) return destinationAmong(route, new Set(declaredPages), "declared_door_on_the_page_that_renders_it");
