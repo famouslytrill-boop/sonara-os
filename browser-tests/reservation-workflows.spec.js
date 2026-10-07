@@ -3,6 +3,7 @@
 "use strict";
 
 const { test, expect } = require("@playwright/test");
+const express = require("express");
 const { createPageFrame } = require("../lib/sonara-page-frame.cjs");
 const shell = require("../lib/sonara-shell.cjs");
 const register = require("../routes/sonara-operations-expansion-routes.cjs");
@@ -13,16 +14,31 @@ const WORKSPACE = "33333333-3333-4333-8333-333333333333";
 const RESOURCE_PAGE = "/business-builder/owner/reservation-resources";
 const WAITLIST_PAGE = "/business-builder/owner/waitlist";
 
-// Exercise the actual controller, persistence queries, form POSTs and page
-// renderer with an offline database fixture. Frame/CSS/scripts come from the
-// real isolated runtime. The manager gate itself has separate real-server tests.
-async function mountWorkflow(page, { unavailable = false, unconfirmedSave = false } = {}) {
+// Run native browser forms and redirects against the actual controller and
+// renderer on an isolated HTTP fixture. Its database and manager identity are
+// offline fixtures; authentication is proved separately through server.js.
+// Static assets are the real runtime's built CSS/scripts, served unchanged.
+let fixture;
+test.afterEach(async () => {
+  if (!fixture) return;
+  global.fetch = fixture.originalFetch;
+  await new Promise((resolve) => fixture.server.close(resolve));
+  fixture = null;
+});
+
+async function mountWorkflow({ unavailable = false, unconfirmedSave = false } = {}) {
   const db = createFakeSupabase({ ids: "uuid", tables: { business_assets: [], business_bookings: [], business_locations: [] } });
   const fetch = db.install(async () => { throw new Error("external fixture request refused"); });
+  const originalFetch = global.fetch;
+  global.fetch = (raw, init = {}) => {
+    if (unavailable && init.method === "GET") return Promise.resolve(new Response("{}", { status: 503 }));
+    if (unconfirmedSave && init.method === "POST") return Promise.resolve(new Response("[]", { status: 201 }));
+    return fetch(raw, init);
+  };
   const frame = createPageFrame({ legalPages: () => [], safeListTable: async () => ({ ok: true, rows: [] }) });
-  const routes = new Map();
-  const app = {};
-  for (const method of ["get", "post"]) app[method] = (path, ...handlers) => routes.set(method + " " + path, handlers);
+  const app = express();
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
   register(app, {
     ...shell, layout: (input) => frame.layout({ ...input, authenticated: true }),
     requireBusinessManager: (req, _res, next) => {
@@ -37,38 +53,17 @@ async function mountWorkflow(page, { unavailable = false, unconfirmedSave = fals
     getSupabaseServerConfig: () => ({ ok: true, url: db.url }),
     supabaseHeaders: () => ({})
   });
-  const matcher = /\/(?:business-builder\/owner\/(?:reservation-resources|waitlist)|api\/business\/(?:reservation-resources|waitlist(?:\/[0-9a-f-]+\/offer)?))(?:\?.*)?$/;
-  await page.route(matcher, async (route) => {
-    const incoming = route.request();
-    const url = new URL(incoming.url());
-    let path = url.pathname;
-    const params = {};
-    const offer = path.match(/^\/api\/business\/waitlist\/([0-9a-f-]+)\/offer$/);
-    if (offer) { params.bookingId = offer[1]; path = "/api/business/waitlist/:bookingId/offer"; }
-    const posted = new URLSearchParams(incoming.postData() || "");
-    const body = Object.fromEntries(posted.entries());
-    if (posted.getAll("resource_ids").length > 1) body.resource_ids = posted.getAll("resource_ids");
-    const req = { body, params, query: Object.fromEntries(url.searchParams.entries()), get: () => "text/html" };
-    const res = { statusCode: 200, headers: {},
-      status(value) { this.statusCode = value; return this; },
-      set(name, value) { this.headers[name.toLowerCase()] = value; return this; },
-      type() { return this; }, send(value) { this.body = value; return this; },
-      json(value) { this.body = JSON.stringify(value); return this; },
-      redirect(status, location) { this.statusCode = status; this.headers.location = location; this.body = ""; return this; }
-    };
-    const savedFetch = global.fetch;
-    global.fetch = (raw, init = {}) => {
-      if (unavailable && init.method === "GET") return Promise.resolve(new Response("{}", { status: 503 }));
-      if (unconfirmedSave && init.method === "POST") return Promise.resolve(new Response("[]", { status: 201 }));
-      return fetch(raw, init);
-    };
-    try {
-      const handlers = routes.get(incoming.method().toLowerCase() + " " + path);
-      expect(handlers).toHaveLength(2);
-      await handlers[0](req, res, () => handlers[1](req, res));
-    } finally { global.fetch = savedFetch; }
-    await route.fulfill({ status: res.statusCode, contentType: "text/html", headers: res.headers, body: res.body });
+  app.use(async (req, res) => {
+    if (!["GET", "HEAD"].includes(req.method)) return res.status(404).send("Fixture route unavailable");
+    const response = await originalFetch(BASE_URL + req.originalUrl);
+    res.status(response.status).type(response.headers.get("content-type") || "application/octet-stream");
+    return res.send(Buffer.from(await response.arrayBuffer()));
   });
+  const server = await new Promise((resolve) => {
+    const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
+  });
+  fixture = { server, originalFetch };
+  db.baseURL = "http://127.0.0.1:" + server.address().port;
   return db;
 }
 
@@ -90,8 +85,8 @@ test.describe("reservation and waitlist browser workflows", () => {
       await page.setViewportSize({ width: size.width, height: size.height });
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
-      const db = await mountWorkflow(page);
-      await page.goto(BASE_URL + RESOURCE_PAGE + "?workspaceId=" + WORKSPACE);
+      const db = await mountWorkflow();
+      await page.goto(db.baseURL + RESOURCE_PAGE + "?workspaceId=" + WORKSPACE);
       await page.getByLabel("Resource name", { exact: true }).fill("Quiet room");
       await page.getByLabel("Kind", { exact: true }).selectOption("room");
       await page.getByLabel("Capacity", { exact: true }).fill("6");
@@ -128,16 +123,16 @@ test.describe("reservation and waitlist browser workflows", () => {
   }
 
   test("shows unavailable records without claiming an empty list", async ({ page }) => {
-    await mountWorkflow(page, { unavailable: true });
-    const response = await page.goto(BASE_URL + WAITLIST_PAGE);
+    const db = await mountWorkflow({ unavailable: true });
+    const response = await page.goto(db.baseURL + WAITLIST_PAGE);
     expect(response.status()).toBe(503);
     await expect(page.getByRole("heading", { name: "We could not read your waitlist", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Nobody is waiting", exact: true })).toHaveCount(0);
   });
 
   test("preserves the native draft after an unconfirmed save", async ({ page }) => {
-    await mountWorkflow(page, { unconfirmedSave: true });
-    await page.goto(BASE_URL + RESOURCE_PAGE);
+    const db = await mountWorkflow({ unconfirmedSave: true });
+    await page.goto(db.baseURL + RESOURCE_PAGE);
     await page.getByLabel("Resource name", { exact: true }).fill("Draft room");
     await page.getByLabel("Capacity", { exact: true }).fill("4");
     await page.getByLabel("Notes", { exact: true }).fill("Keep these notes");
