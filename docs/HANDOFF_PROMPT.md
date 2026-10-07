@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 156 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 456 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 457 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,32 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 30 most recent entries of 452 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 31 most recent entries of 453 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Two forms answered the person with JSON
+
+`/creator-studio/device-cues` carries three create forms: sound cues (the page's
+own) and, in `also` blocks, vibration patterns and feedback profiles. All three
+post to generic REST resources, which send a browser back to the page they came
+from, found by `pageForApi`. That function matched only a page's own `api`, so
+the two `also` forms answered the person who filled them in with
+`{"ok":true,"table":...}`, while the sound-cue form beside them went back to the
+page. The capability inventory uses the same function, which is why these four
+routes were reported as having no screen. It was right that they had no way
+back, and wrong about why.
+
+`pageForApi` now finds a page through its `also` blocks too.
+`tests/a-form-on-a-record-page-returns-to-it.test.js` posts every form the page
+declarations describe, as a browser does, and requires a 303 back to its page.
+Without the fix it fails, naming both forms and the JSON they returned. It also
+fails if it finds fewer than ten forms or no `also` form, so it cannot pass by
+walking nothing. Workspace fallbacks 24 -> 20.
+
+
 
 ### 2026-10-07 - Money received was read from a table nothing writes
 

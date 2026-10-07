@@ -35,13 +35,13 @@
     },
     "actionDestinationCounts": {
       "exact": 360,
-      "form_reference": 348,
+      "form_reference": 352,
       "machine_ingress": 3,
       "parent_route": 77,
       "reviewed_no_page": 5,
       "route_pair": 129,
       "static_page_link": 1,
-      "workspace_fallback": 24
+      "workspace_fallback": 20
     },
     "routeDataMappingCounts": {
       "explicit_agent_runner_registry": 3,
@@ -51,7 +51,7 @@
       "handler_source_table_reference": 500,
       "provider_endpoint_reference": 28
     },
-    "routesUsingWorkspaceHomeFallback": 24,
+    "routesUsingWorkspaceHomeFallback": 20,
     "formActionLinkCount": 128,
     "pagesTruncatedByFormWalkBudget": [],
     "formWalkFunctionBudget": 400,
@@ -94,7 +94,7 @@
       "creator_studio": 1,
       "cross_workspace_formulas": 2,
       "growth_studio": 2,
-      "sonara_shared_api": 17
+      "sonara_shared_api": 13
     },
     "resourceTableContractCount": 39,
     "resourceTableContractGaps": 0,
@@ -52111,9 +52111,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/creator-studio/device-cues",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
       },
       "accessMiddleware": [
         "requireBusinessManager"
@@ -52601,9 +52601,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/creator-studio/device-cues",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
       },
       "accessMiddleware": [
         "requireBusinessManager"
@@ -137154,15 +137154,7 @@
         "statusCodes": [
           200
         ],
-        "jsonFieldsObserved": [
-          "archived_at",
-          "duration_ms",
-          "event_name",
-          "id",
-          "name",
-          "sound_type",
-          "status"
-        ],
+        "jsonFieldsObserved": [],
         "redirectTargetsObserved": [
           "/login"
         ],
@@ -137177,7 +137169,7 @@
           "organization_memberships",
           "organizations",
           "profiles",
-          "sound_cues"
+          "sensory_feedback_profiles"
         ],
         "candidateTables": [
           "accounting_exports",
@@ -137429,8 +137421,8 @@
             }
           },
           {
-            "table": "sound_cues",
-            "tableId": "table:sound_cues",
+            "table": "sensory_feedback_profiles",
+            "tableId": "table:sensory_feedback_profiles",
             "migrationLineage": {
               "createdBy": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -137439,8 +137431,7 @@
               "changedBy": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
                 "supabase/migrations/20260811210000_repair_missing_platform_tables.sql",
-                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql",
-                "supabase/migrations/20260929020000_creator_records_can_be_archived.sql"
+                "supabase/migrations/20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql"
               ],
               "rlsEvidence": [
                 "supabase/migrations/015_sonara_device_sensory_location_schema.sql",
@@ -137452,76 +137443,25 @@
         ],
         "noPersistenceReason": null,
         "resourceContract": {
-          "resourceId": "business-resource:/api/sensory/sound-cues",
+          "resourceId": "business-resource:/api/sensory/profiles",
           "operationKind": "workspace_record_list",
           "requiredFields": [
-            "cue_key",
             "name",
-            "event_name"
+            "profile_key"
           ],
           "requiredFieldsEvidence": "resource_registry",
           "editableFields": [],
-          "fields": [
-            {
-              "name": "cue_key",
-              "type": "text",
-              "required": true,
-              "maxLength": 100,
-              "options": [],
-              "default": null
-            },
-            {
-              "name": "name",
-              "type": "text",
-              "required": true,
-              "maxLength": 200,
-              "options": [],
-              "default": null
-            },
-            {
-              "name": "event_name",
-              "type": "text",
-              "required": true,
-              "maxLength": 200,
-              "options": [],
-              "default": null
-            },
-            {
-              "name": "sound_type",
-              "type": "select",
-              "required": false,
-              "maxLength": null,
-              "options": [
-                "tone",
-                "sample",
-                "notification"
-              ],
-              "default": null
-            },
-            {
-              "name": "duration_ms",
-              "type": "number",
-              "required": false,
-              "maxLength": null,
-              "options": [],
-              "default": null
-            }
-          ],
+          "fields": [],
           "defaults": {
             "status": "active",
-            "sound_type": "tone"
+            "sound_enabled": false,
+            "vibration_enabled": false,
+            "motion_enabled": false,
+            "location_enabled": false
           },
           "statuses": [],
           "referencedTables": [],
-          "outputFields": [
-            "archived_at",
-            "duration_ms",
-            "event_name",
-            "id",
-            "name",
-            "sound_type",
-            "status"
-          ],
+          "outputFields": [],
           "actionLabel": null,
           "rowIdField": null,
           "childTables": []
@@ -137596,7 +137536,6 @@
           "supabase/migrations/20260913193000_member_read_policies_purchase_orders.sql",
           "supabase/migrations/20260919033000_organization_tenant_boundary_hardening.sql",
           "supabase/migrations/20260923070000_member_read_policies_business_work_orders.sql",
-          "supabase/migrations/20260929020000_creator_records_can_be_archived.sql",
           "supabase/migrations/20261003010000_a_profile_a_person_can_set.sql"
         ],
         "persistenceMode": "resource_registry_contract"
@@ -317037,9 +316976,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/creator-studio/device-cues",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
       },
       "accessMiddleware": [
         "requireBusinessManager"
@@ -317708,9 +317647,9 @@
       "kind": "api",
       "workspace": "sonara_shared_api",
       "destination": {
-        "route": "/dashboard",
-        "confidence": "workspace_fallback",
-        "reason": "no_exact_page_binding_found"
+        "route": "/creator-studio/device-cues",
+        "confidence": "form_reference",
+        "reason": "registered_resource_page"
       },
       "accessMiddleware": [
         "requireBusinessManager"
@@ -461375,7 +461314,7 @@
     {
       "id": "business-resource:/api/sensory/profiles",
       "route": "/api/sensory/profiles",
-      "pageRoute": null,
+      "pageRoute": "/creator-studio/device-cues",
       "workspace": "business_builder",
       "table": "sensory_feedback_profiles",
       "requiredFields": [
@@ -461427,7 +461366,7 @@
     {
       "id": "business-resource:/api/sensory/haptic-patterns",
       "route": "/api/sensory/haptic-patterns",
-      "pageRoute": null,
+      "pageRoute": "/creator-studio/device-cues",
       "workspace": "business_builder",
       "table": "haptic_patterns",
       "requiredFields": [
@@ -462317,7 +462256,7 @@
     {
       "id": "business-resource:/api/sensory/profiles",
       "route": "/api/sensory/profiles",
-      "pageRoute": null,
+      "pageRoute": "/creator-studio/device-cues",
       "workspace": "business_builder",
       "table": "sensory_feedback_profiles",
       "requiredFields": [
@@ -462369,7 +462308,7 @@
     {
       "id": "business-resource:/api/sensory/haptic-patterns",
       "route": "/api/sensory/haptic-patterns",
-      "pageRoute": null,
+      "pageRoute": "/creator-studio/device-cues",
       "workspace": "business_builder",
       "table": "haptic_patterns",
       "requiredFields": [
@@ -495433,26 +495372,6 @@
       "reason": "No exact registered page, parent page, or unique rendered form action was established."
     },
     {
-      "id": "GET /api/sensory/haptic-patterns",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "GET /api/sensory/profiles",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-last9-routes.cjs",
-        "line": 2171
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
       "id": "POST /api/creator/reference-analyses",
       "workspace": "sonara_shared_api",
       "source": {
@@ -495528,26 +495447,6 @@
       "source": {
         "file": "routes/sonara-prompt-library-routes.cjs",
         "line": 116
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/sensory/haptic-patterns",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
-      },
-      "currentDestination": "/dashboard",
-      "reason": "No exact registered page, parent page, or unique rendered form action was established."
-    },
-    {
-      "id": "POST /api/sensory/profiles",
-      "workspace": "sonara_shared_api",
-      "source": {
-        "file": "routes/sonara-last9-routes.cjs",
-        "line": 2186
       },
       "currentDestination": "/dashboard",
       "reason": "No exact registered page, parent page, or unique rendered form action was established."

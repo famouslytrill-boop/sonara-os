@@ -2,6 +2,25 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Two forms answered the person with JSON
+
+`/creator-studio/device-cues` carries three create forms: sound cues (the page's
+own) and, in `also` blocks, vibration patterns and feedback profiles. All three
+post to generic REST resources, which send a browser back to the page they came
+from, found by `pageForApi`. That function matched only a page's own `api`, so
+the two `also` forms answered the person who filled them in with
+`{"ok":true,"table":...}`, while the sound-cue form beside them went back to the
+page. The capability inventory uses the same function, which is why these four
+routes were reported as having no screen. It was right that they had no way
+back, and wrong about why.
+
+`pageForApi` now finds a page through its `also` blocks too.
+`tests/a-form-on-a-record-page-returns-to-it.test.js` posts every form the page
+declarations describe, as a browser does, and requires a 303 back to its page.
+Without the fix it fails, naming both forms and the JSON they returned. It also
+fails if it finds fewer than ten forms or no `also` form, so it cannot pass by
+walking nothing. Workspace fallbacks 24 -> 20.
+
 ### 2026-10-07 - Money received was read from a table nothing writes
 
 `GET /api/business/operations/analytics` summarised a business's period:
