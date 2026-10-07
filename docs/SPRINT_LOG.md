@@ -2,6 +2,36 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - A failed generation can be tried again; stopping one cannot undo a charge
+
+**Retry.** A generation job that failed or was stopped could only be abandoned.
+The job page offered nothing, and starting again meant retyping the request.
+`POST /api/creator/generation/jobs/:jobId/retry` (a "Try again" button on the
+job page) makes a new job from the same request. It goes through the same
+`submitGeneration` path a new request does, now shared, so every check runs
+again:
+- the safety review;
+- an active voice permission, so one revoked since refuses it;
+- the project;
+- a fresh credit reservation;
+- the submission rate limit.
+
+The original job is never reopened, and each job's history names the other. A
+completed job is not retryable, because it delivered and was charged.
+
+**Cancel.** Stopping a job read its status and then wrote `cancelled`
+unconditionally. A job that completed and was charged between the read and the
+write was cancelled anyway, and the cancel releases the job's reserved credit:
+work delivered, credit returned. The write is now conditional on the job being
+unfinished (`status=not.in.(completed,failed,cancelled)`). When it matches
+nothing, the answer is "not cancellable", and nothing is released or recorded.
+
+Falsified four ways, each failing by name: the cancel write made unconditional,
+completed jobs made retryable, the retry skipping the safety and consent
+checks, and the link between the two jobs not recorded. The release is observed
+at the `generation_usage` RPC, because `updateJob` calls the allowance module
+directly rather than the injected one.
+
 ### 2026-10-07 - Profit over the jobs a business finished
 
 Each job's page has always worked out its direct profit: the agreed price less
