@@ -31,6 +31,10 @@ assert.match(contract.capacitor.reason, /not intended for production/i);
 assert.equal(contract.digitalAssetLinks.status, "setup_required");
 assert.equal(contract.digitalAssetLinks.path, "/.well-known/assetlinks.json");
 assert.equal(contract.digitalAssetLinks.fingerprintEnvironment, "ANDROID_PLAY_SIGNING_SHA256");
+// The path is served from the fingerprint once it is set, and from nowhere
+// else. A contract naming a file that does not exist is the contract going
+// stale.
+assert.ok(fs.existsSync(path.join(root, contract.digitalAssetLinks.servedBy)), `${contract.digitalAssetLinks.servedBy} does not exist; nothing serves ${contract.digitalAssetLinks.path}`);
 assert.ok(contract.digitalAssetLinks.relations.includes("delegate_permission/common.handle_all_urls"));
 assert.ok(contract.digitalAssetLinks.relations.includes("delegate_permission/common.get_login_creds"));
 assert.equal(contract.play.packageRegistrationDeadline, "2026-09-30");

@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3089 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3093 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 158 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 461 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 462 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,42 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 35 most recent entries of 459 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 36 most recent entries of 460 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - The Android app can be vouched for
+
+The Android shell is a Trusted Web Activity (`android/twa`). Android opens it as
+an app, with no browser bar, only when this site serves
+`/.well-known/assetlinks.json` naming the app's signing certificate. The build
+contract recorded that as `setup_required` and nothing served the path, so the
+shell could only ever have opened as a browser tab.
+
+`routes/sonara-well-known-routes.cjs` serves it from
+`ANDROID_PLAY_SIGNING_SHA256`, the Play app-signing fingerprint, which the owner
+reads in the Play Console once the app is registered:
+- Several fingerprints are allowed, comma-separated, for a key rotation.
+- Every value has to be a well-formed SHA-256 fingerprint or none is used.
+  Serving the good half of a list with a typo would hide the typo.
+- Until the value is set the route answers 404, uncached. No association is the
+  honest answer before the key exists, and a file naming a debug or guessed
+  certificate would tell Android to trust whoever holds that key.
+- The package name and relations come from the build contract, so the app that
+  is built and the app the file vouches for cannot drift. The contract names
+  the serving file, and `verify-android-twa` fails if it is missing.
+- The route is its own route surface, `app_association`, declared `json`: it is
+  read by a machine, and it answers 404 by design until configured.
+
+Falsified three ways, each failing by name: serving the good half of a
+half-valid list, a package name written in the route instead of read from the
+contract, and the 404 cached. **Owner step:** set `ANDROID_PLAY_SIGNING_SHA256`
+in Vercel production once the Play app signing key exists. The contract keeps
+`setup_required` until then.
+
+
 
 ### 2026-10-07 - A check-in with no signal is sent later, once
 

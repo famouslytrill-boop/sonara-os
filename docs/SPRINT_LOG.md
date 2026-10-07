@@ -2,6 +2,35 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - The Android app can be vouched for
+
+The Android shell is a Trusted Web Activity (`android/twa`). Android opens it as
+an app, with no browser bar, only when this site serves
+`/.well-known/assetlinks.json` naming the app's signing certificate. The build
+contract recorded that as `setup_required` and nothing served the path, so the
+shell could only ever have opened as a browser tab.
+
+`routes/sonara-well-known-routes.cjs` serves it from
+`ANDROID_PLAY_SIGNING_SHA256`, the Play app-signing fingerprint, which the owner
+reads in the Play Console once the app is registered:
+- Several fingerprints are allowed, comma-separated, for a key rotation.
+- Every value has to be a well-formed SHA-256 fingerprint or none is used.
+  Serving the good half of a list with a typo would hide the typo.
+- Until the value is set the route answers 404, uncached. No association is the
+  honest answer before the key exists, and a file naming a debug or guessed
+  certificate would tell Android to trust whoever holds that key.
+- The package name and relations come from the build contract, so the app that
+  is built and the app the file vouches for cannot drift. The contract names
+  the serving file, and `verify-android-twa` fails if it is missing.
+- The route is its own route surface, `app_association`, declared `json`: it is
+  read by a machine, and it answers 404 by design until configured.
+
+Falsified three ways, each failing by name: serving the good half of a
+half-valid list, a package name written in the route instead of read from the
+contract, and the 404 cached. **Owner step:** set `ANDROID_PLAY_SIGNING_SHA256`
+in Vercel production once the Play app signing key exists. The contract keeps
+`setup_required` until then.
+
 ### 2026-10-07 - A check-in with no signal is sent later, once
 
 The first P1 slice of the offline mutation engine, on the mutation that needs it

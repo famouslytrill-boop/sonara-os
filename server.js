@@ -95,6 +95,7 @@ const registerConnectedPaymentRoutes = require("./routes/sonara-connected-paymen
 const registerNotificationRoutes = require("./routes/sonara-notification-routes.cjs");
 const registerCallRoutes = require("./routes/sonara-call-routes.cjs");
 const registerTwoFactorRoutes = require("./routes/sonara-two-factor-routes.cjs");
+const registerWellKnownRoutes = require("./routes/sonara-well-known-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
@@ -1589,6 +1590,9 @@ for (const [source, destination] of Object.entries(publicCompatibilityRoutes)) {
 }
 
 app.get("/manifest.webmanifest", (req, res) => res.redirect(308, "/site.webmanifest"));
+// /.well-known/assetlinks.json for the Android shell, from the Play signing
+// fingerprint once the owner sets it; 404 until then. routes/sonara-well-known-routes.cjs.
+registerWellKnownRoutes(app, { getEnv });
 
 // What the service worker serves when a navigation cannot reach the network.
 //
