@@ -107,3 +107,14 @@ The `.env.example` file now includes both `SONARA_CUSTOMER_FUNDS_MODE=external_o
 ### Integration tests updated for dual opt-in
 
 All existing mocked legacy Connect flows that intentionally exercise checkout now explicitly declare `SONARA_CUSTOMER_FUNDS_MODE=connect_direct_reviewed` in test fixtures, without silently enabling Connect in an actual deployment. The new fee-only test suite checks missing/invalid mode, unchanged hosted subscription boundary, old-mode Connect flag not overriding the kill switch, no-network creation denial, merchant checkout denial, read-only historic session GET and denied session-expiration POST. These isolated checks are not a production go-live verdict.
+
+
+## Budget and compliance support: start with no-cost resources
+
+- [Ohio SBDC](https://www.ohiosbdc.net/contact/): provides no-cost one-on-one startup advising and financial/business-planning assistance. It is not an automatic substitute for licensed real-estate or payments counsel.
+- [SBA Local Assistance](https://www.sba.gov/counseling/local-assistance/): free or low-cost SBDC and SCORE mentoring resources.
+- Use the official [Ohio brokerage statute](https://codes.ohio.gov/ohio-revised-code/section-4735.01), [landlord deposit rule](https://codes.ohio.gov/ohio-revised-code/section-5321.16), and [Stripe SaaS/Connect guidance](https://docs.stripe.com/connect/saas) for **scope control**, not to claim legal immunity.
+- Defer public property brokerage, custody, escrow, lending, multi-party settlements and complicated multi-state paid leasing products to a future funded/legal-reviewed phase.
+- Before collecting its **own SaaS subscription fees**, SONARA still needs accurate pricing, renewal/cancellation, refund, tax, consumer-protection, privacy, accessibility and security disclosures and genuine customer support. A no-custody software business has fewer financial risks; it is **not exempt from law**.
+
+**Status of code as of this draft:** fee-only is a fail-closed software default; only `connect_direct_reviewed` + `STRIPE_CONNECT_ENABLED=true` unlocks legacy Connect readiness. Sample env uses `external_only`. All money-feature changes are in an **unmerged GitHub draft PR** and have not been applied to deployment environments. In-flight seller checkouts, existing orders, and webhooks must be audited at cutover.
