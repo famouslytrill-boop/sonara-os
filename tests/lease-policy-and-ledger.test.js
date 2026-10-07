@@ -209,3 +209,73 @@ describe("SONARA review-only jurisdiction and customer protections", () => {
     assert.equal(ohioDepositDeadline({ terminationDate: "2026-10-01" }).known, false);
   });
 });
+
+describe("Columbus customer-facing deposit and rent allocation calculations", () => {
+  const { draftRentFirstAllocation, draftDepositInstallments } =
+    require("../lib/sonara-rental-customer-protections.cjs");
+  const leaseDate = "2026-10-06";
+
+  it("allocates periodic tender to rent before fees without moving money", () => {
+    const result = draftRentFirstAllocation({
+      location: COLUMBUS, writtenLeaseExecutedOrRenewedOn: leaseDate,
+      tenderCents: 8500, rentDueCents: 8000, otherChargesDueCents: 3000
+    });
+    assert.equal(result.rentAppliedCents, 8000);
+    assert.equal(result.otherAppliedCents, 500);
+    assert.equal(result.otherStillDueCents, 2500);
+    assert.equal(result.unappliedCents, 0);
+    assert.equal(result.executionAuthorized, false);
+    assert.equal(result.state, "draft_unposted");
+  });
+
+  it("retains excess tender as unapplied; never silently converts it into fees", () => {
+    const result = draftRentFirstAllocation({
+      location: COLUMBUS, writtenLeaseExecutedOrRenewedOn: leaseDate,
+      tenderCents: 18000, rentDueCents: 8000, otherChargesDueCents: 3000
+    });
+    assert.equal(result.rentAppliedCents, 8000);
+    assert.equal(result.otherAppliedCents, 3000);
+    assert.equal(result.unappliedCents, 7000);
+  });
+
+  it("rejects non-Columbus or unknown lease-date allocations and unsafe money inputs", () => {
+    const valid = { location: COLUMBUS, writtenLeaseExecutedOrRenewedOn: leaseDate,
+      tenderCents: 1000, rentDueCents: 1000, otherChargesDueCents: 0 };
+    assert.throws(() => draftRentFirstAllocation({ ...valid, location: { country: "US", state: "OH" } }), /columbus_jurisdiction_unverified/);
+    assert.throws(() => draftRentFirstAllocation({ ...valid, writtenLeaseExecutedOrRenewedOn: "2025-01-31" }), /lease_cohort_requires_review/);
+    assert.throws(() => draftRentFirstAllocation({ ...valid, tenderCents: 1.5 }), /invalid_tender_cents/);
+    assert.throws(() => draftRentFirstAllocation({ ...valid, rentDueCents: -1 }), /invalid_rent_due_cents/);
+  });
+
+  it("generates exact three- and six-month deposit options without penny leakage", () => {
+    const common = {
+      depositCents: 10001, startDueMonth: "2026-10", rentDueDay: 15,
+      location: COLUMBUS, rentalUnits: 5, writtenAlternativesDelivered: true
+    };
+    for (const n of [3, 6]) {
+      const result = draftDepositInstallments({ ...common, numberOfPayments: n });
+      assert.equal(result.installments.length, n);
+      assert.equal(result.installments.reduce((sum, x) => sum + x.depositCents, 0), common.depositCents);
+      assert.equal(result.installments[0].dueDate, "2026-10-15");
+      assert.equal(result.executionAuthorized, false);
+      assert.equal(result.consentAndContractReviewRequired, true);
+    }
+    assert.deepEqual(
+      draftDepositInstallments({ ...common, numberOfPayments: 3 }).installments.map(x => x.depositCents),
+      [3334, 3334, 3333]
+    );
+  });
+
+  it("refuses unreviewed notices, operator scope, unsupported days and dates", () => {
+    const values = {
+      depositCents: 12000, numberOfPayments: 3,
+      startDueMonth: "2026-10", rentDueDay: 10,
+      location: COLUMBUS, rentalUnits: 5, writtenAlternativesDelivered: true
+    };
+    assert.throws(() => draftDepositInstallments({ ...values, writtenAlternativesDelivered: false }), /written_notice_not_confirmed/);
+    assert.throws(() => draftDepositInstallments({ ...values, rentalUnits: 4 }), /renter_choice_scope_requires_review/);
+    assert.throws(() => draftDepositInstallments({ ...values, numberOfPayments: 2 }), /invalid_installment_option/);
+    assert.throws(() => draftDepositInstallments({ ...values, rentDueDay: 31 }), /rent_due_day_needs_manual_schedule_review/);
+    assert.throws(() => draftDepositInstallments({ ...values, startDueMonth: "2026-13" }), /invalid_start_month/);
+  });
+});
