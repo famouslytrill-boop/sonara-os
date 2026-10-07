@@ -4,7 +4,7 @@ const assert=require("node:assert/strict");
 const {proofPacket,marketingProofGate}=require("../lib/sonara-customer-proof-engine.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const H="a".repeat(64);
-const row=(id,type,o={})=>({id,type,sourceRef:"source_"+id.slice(0,8),claimHash:H,
+const row=(id,type,o={})=>({id,organizationId:ORG,type,sourceRef:"source_"+id.slice(0,8),claimHash:H,
   hashVerified:true,independentlyRetrieved:false,actorIdentityVerified:false,...o});
 describe("customer proof/evidence packets",()=>{
   it("treats a file hash as integrity evidence, not truth proof",()=>{
@@ -42,6 +42,13 @@ describe("customer proof/evidence packets",()=>{
       ]});
     assert.equal(p.requiredCoverageBasisPoints,5000);
     assert.deepEqual(p.requiredMissing,["provider_event"]);
+  });
+  it("rejects evidence replayed from a different tenant",()=>{
+    const p=proofPacket({organizationId:ORG,serverOrganizationId:ORG,claimHash:H,
+      requiredEvidenceTypes:["file_hash"],evidence:[row("22222222-2222-4222-8222-222222222222","file_hash",
+        {organizationId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"})]});
+    assert.ok(p.issues.includes("evidence_tenant_mismatch"));
+    assert.equal(p.verifiedEvidenceCount,0);
   });
   it("rejects evidence attached to a different claim snapshot",()=>{
     const p=proofPacket({organizationId:ORG,serverOrganizationId:ORG,claimHash:H,
