@@ -8,6 +8,7 @@ const {
   evaluateIntegrationActivation,
   requiresActivationReview
 } = require("../lib/sonara-integration-activation-policy.cjs");
+const { knownProviderDirectAccess } = require("../lib/sonara-customer-provider-pathways.cjs");
 
 const { randomUUID } = require("node:crypto");
 
@@ -580,7 +581,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const normalized = normalizeFields(req.body, definition.fields, false, acceptsHtml(req));
     if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     if (req.params.resource === "integrations" && requiresActivationReview(normalized.value.connection_status)) {
-      const policy = evaluateIntegrationActivation({ settings: normalized.value.settings });
+      const policy = evaluateIntegrationActivation({
+        settings: normalized.value.settings,
+        connectionMode: normalized.value.connection_mode
+      });
       if (!policy.allowed) {
         await audit(ctx, loaded.business.id, "integrations.activation_denied", "integrations", null, "denied", { reasons: policy.reasons });
         return send(req, res, { ok: false, status: 409, code: policy.code, reasons: policy.reasons }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
@@ -622,14 +626,15 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (req.params.resource === "integrations" && action !== "archive") {
       const existing = await rest(
         definition.table,
-        `select=id,connection_status,settings&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
+        `select=id,connection_mode,connection_status,settings&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
       );
       if (!existing.ok) return send(req, res, { ok: false, status: 502, code: "integration_governance_unreadable" }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
       if (!existing.rows[0]) return send(req, res, { ok: false, status: 404, code: "resource_not_found" }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
+      const connectionMode = patch.connection_mode ?? existing.rows[0].connection_mode ?? "manual";
       const connectionStatus = patch.connection_status ?? existing.rows[0].connection_status;
       const settings = patch.settings ?? existing.rows[0].settings;
       if (requiresActivationReview(connectionStatus)) {
-        const policy = evaluateIntegrationActivation({ settings });
+        const policy = evaluateIntegrationActivation({ settings, connectionMode });
         if (!policy.allowed) {
           await audit(ctx, loaded.business.id, "integrations.activation_denied", "integrations", req.params.id, "denied", { reasons: policy.reasons });
           return send(req, res, { ok: false, status: 409, code: policy.code, reasons: policy.reasons }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
@@ -641,6 +646,36 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     await audit(ctx, loaded.business.id, `${req.params.resource}.${action}d`, req.params.resource, req.params.id, result.ok ? "success" : "failed", { fields: Object.keys(patch) });
     return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
   }
+
+  app.get("/business-builder/businesses/:businessId/integrations/:id/open-provider", workspaceAccess, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return res.redirect(303, "/account/setup");
+    const loaded = await loadBusiness(ctx, req.params.businessId);
+    if (!loaded.ok) return res.status(loaded.status).type("html").send(friendlyPage("Business not found", "The requested business is unavailable or outside your workspace.", [linkAction("/business-builder/control-center", "All businesses")]));
+    const definition = RESOURCES.integrations;
+    const allowed = await permission(req, ctx, loaded.business.id, "integrations.read", definition.ownerOnly);
+    if (!allowed.ok) return res.status(allowed.status).type("html").send(friendlyPage("Access denied", "Your role does not allow connected-tool access.", [linkAction(`/business-builder/businesses/${loaded.business.id}`, "Return to business")]));
+    const result = await rest(
+      "business_integration_connections",
+      `select=id,provider_key,connection_mode,connection_status&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
+    );
+    if (!result.ok) return res.status(503).type("html").send(friendlyPage("Provider access unavailable", "SONARA could not verify this connected-tool record.", [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]));
+    const connection = result.rows[0];
+    if (!connection) return res.status(404).type("html").send(friendlyPage("Provider connection not found", "That provider connection is not available in this business.", [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]));
+    const access = knownProviderDirectAccess(connection.provider_key);
+    if (!access.ok) {
+      await audit(ctx, loaded.business.id, "integrations.provider_access_unavailable", "integrations", connection.id, "denied", { providerKey: connection.provider_key, code: access.code });
+      return res.status(409).type("html").send(friendlyPage(
+        "Direct provider access needs verification",
+        "SONARA does not redirect to a provider address supplied by a browser. This provider needs a reviewed official destination or verified custom-provider manifest first.",
+        [linkAction(`/business-builder/businesses/${loaded.business.id}/manage/integrations`, "Connected tools")]
+      ));
+    }
+    await audit(ctx, loaded.business.id, "integrations.provider_access_opened", "integrations", connection.id, "success", { providerKey: connection.provider_key });
+    res.set("Referrer-Policy", "no-referrer");
+    res.set("Cache-Control", "no-store");
+    return res.redirect(303, access.navigationUrl);
+  });
 
   app.get("/business-builder/businesses/:businessId/manage/:resource", workspaceAccess, async (req, res) => {
     const definition = RESOURCES[req.params.resource];
@@ -851,7 +886,9 @@ function recordCard(businessId, key, definition, row) {
   const title = row.name || row.display_name || row.customer_name || row.title || row.provider_key || row.permission_key || "Saved record";
   const status = row.status || row.connection_status || row.role_key || "active";
   const details = recordDetails(row);
-  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}/archive"><button class="bb-quiet-action" type="submit">Archive</button></form></article>`;
+  const providerAccess = key === "integrations" ? knownProviderDirectAccess(row.provider_key) : null;
+  const directAccess = providerAccess?.ok ? `<a class="bb-quiet-action" href="/business-builder/businesses/${encodeURIComponent(businessId)}/integrations/${encodeURIComponent(row.id)}/open-provider">Open provider</a>` : "";
+  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><div class="card-actions">${directAccess}<form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}/archive"><button class="bb-quiet-action" type="submit">Archive</button></form></div></article>`;
 }
 
 function recordDetails(row) {

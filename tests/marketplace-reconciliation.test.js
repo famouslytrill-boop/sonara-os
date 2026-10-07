@@ -169,7 +169,7 @@ function harness(options = {}) {
   const calls = [];
   const html = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const deps = {
-    getEnv, getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.invalid" }),
+    getEnv: options.getEnv || getEnv, getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.invalid" }),
     supabaseHeaders: () => ({ Authorization: "Bearer service-test-fixture" }),
     getCustomerPrimaryOrganization: options.resolveOrganization || (async (_user, scopeOptions) => {
       assert.equal(scopeOptions.autoBootstrap, false, "A sales check must not create a workspace");
@@ -232,6 +232,24 @@ describe("the seller can open a scoped reconciliation screen", () => {
     assert.match(res.body, /Records checked|original charge balance|Check again/);
     assert.doesNotMatch(res.body, /must-never-be-rendered|client_secret|Bearer/);
     assert.ok(calls.every((call) => !call.init.method || call.init.method === "GET"));
+  });
+  // SONARA_CUSTOMER_FUNDS_MODE closes NEW merchant checkout unless the owner
+  // approves it, and the fixture environment leaves it unset. Sales a business
+  // already has still have to be checkable, which is why historical Stripe
+  // reads stay open on a key alone; this screen used to ask checkoutReadiness
+  // first and so refused whenever new checkout was off.
+  it("checks existing sales while new checkout is closed", async () => {
+    assert.equal(checkout.checkoutReadiness({ getEnv }).ok, false, "the fixture no longer represents checkout being closed");
+    const { res, calls } = await request();
+    assert.equal(res.statusCode, 200);
+    assert.ok(calls.some((call) => call.url.host === "api.stripe.com"), "Stripe was not read");
+  });
+  it("says the payment connection is unavailable when there is no key to read with", async () => {
+    const noKey = (name) => (name === "STRIPE_SECRET_KEY" ? "" : getEnv(name));
+    const { res, calls } = await request({ getEnv: noKey });
+    assert.equal(res.statusCode, 503);
+    assert.match(res.body, /payment connection is unavailable/);
+    assert.ok(!calls.some((call) => call.url.host === "api.stripe.com"), "Stripe was called without a key");
   });
   it("reads nothing when the authenticated workspace cannot be resolved", async () => {
     const { res, calls } = await request({ organization: { ok: false } });

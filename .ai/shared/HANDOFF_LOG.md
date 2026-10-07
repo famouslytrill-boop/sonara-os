@@ -1,5 +1,21 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - main merged into #444; three base-branch failures fixed, one left for Codex
+
+- Main at `e0379b97` fails `pnpm test` (5) and `verify:gates`. Fixed in #444:
+  - seller reconciliation no longer asks `checkoutReadiness`: historical reads
+    must survive `SONARA_CUSTOMER_FUNDS_MODE` being off, as the comment on that
+    gate says;
+  - `business_integration_connections` gets a `to authenticated` member policy
+    via the generator, now writing `20261007120000`; `20260923070000` is marked
+    applied;
+  - `PROVIDER-KEYS.md` regenerated.
+- **For Codex:** `verify:unreferenced-modules` fails on 29 lib modules from
+  #442/#443 required only by tests. Wire each, delete it, or add it to
+  `TEST_ONLY` in `scripts/report-unreferenced-modules.mjs` with what it waits
+  for. Not done here, because the reasons are yours to know. Until then the gate
+  chain stops there in CI. Every later gate passes locally on the merged tree.
+
 ## 2026-10-07 - Claude - Formula calculators, and sixteen formulas that could not be saved (PR #444)
 
 - `/formulas/:formulaKey` (public calculator) and `/formulas/:formulaKey/results`

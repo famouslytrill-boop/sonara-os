@@ -2,6 +2,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
+
+PR #444 had become unmergeable against main, which had taken #440, #442 and
+#443. Only generated files conflicted, and they were regenerated from the merged
+tree. The merged tree failed nothing that main did not already fail, measured by
+running every gate separately on both rather than trusting the chain, which
+stops at its first failure. Main at `e0379b97` was red, and three of its failures
+are fixed here.
+
+**Seller reconciliation refused whenever new checkout was off.**
+- #442 made merchant Connect fail closed unless the owner sets
+  `SONARA_CUSTOMER_FUNDS_MODE=connect_direct_reviewed`. The comment on that gate
+  says read-only reconciliation "must continue separately".
+- `stripeCall` keeps historical GET reads open on a valid secret key for exactly
+  that reason.
+- But `/creator-studio/owner/marketplace/reconciliation` first asked
+  `checkoutReadiness`, which now answers no, so the screen answered 503. Four of
+  its own tests were failing on main.
+- It now relies on the read's own refusal, and maps a missing key to "the
+  payment connection is unavailable".
+- Two tests pin the case: reconciliation runs while checkout is closed, and no
+  Stripe call is made without a key.
+- Falsified: restoring the gate fails four tests; dropping the key mapping fails
+  one.
+
+**Member read policy for `business_integration_connections`.**
+- The control plane reads this table. Its July policy lets members read it but
+  predates `to authenticated`, so the policy check could not see it.
+- It is added to the generator, which grants nothing members could not already
+  read.
+- `20260923070000` has been on main since September, so it joins
+  `APPLIED_MIGRATIONS`. The generator now writes
+  `20261007120000_member_read_policies_integration_connections.sql` rather than
+  rewriting a migration production may already have.
+
+**`docs/owner/PROVIDER-KEYS.md` regenerated** after #440 changed the LinkedIn
+provider.
+
+**Left red, deliberately:** `verify:unreferenced-modules` lists 29 modules from
+#442 and #443 required only by their tests. They include customer money
+pathways, lease policy gates and low-custody policy. Each needs to be wired,
+deleted or given a reason by whoever knows what it is waiting for. Writing 29
+reasons here would be writing them without knowing, which is the failure that
+gate exists to catch. `verify:coverage-floor` follows the suite and passes once
+it does.
+
 ### 2026-10-07 - Every formula can be worked out, and saved
 
 `/formulas` listed fifty-nine formulas and nothing could be worked out from the

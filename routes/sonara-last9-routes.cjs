@@ -513,7 +513,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       );
     }
 
-    const csv = buildRecordCsv(rows.rows, source.columns);
+    const csv = buildRecordCsv(rows.rows, source.columns, { profile: "spreadsheet_human" });
     if (!csv.ok) return res.status(503).type("text").send(csv.message);
 
     const period = `${record.period_start || "start"}-to-${record.period_end || "now"}`.replace(/[^a-zA-Z0-9-]/g, "");
@@ -523,7 +523,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     res.setHeader("X-Sonara-Export-Rows", String(csv.rowCount));
     // Said out loud. A value that would otherwise be executed as a formula by a
     // spreadsheet is prefixed with an apostrophe, and that changes it, so the
-    // customer is told how many rather than left to find out.
+    // customer is told how many rather than left to find out. Human-view CSV
+    // uses a quoted tab prefix for formula-like text; ordinary numeric values
+    // remain numeric.
+    res.setHeader("X-Sonara-CSV-Formula-Guard", csv.formulaGuard);
     if (csv.neutralised) res.setHeader("X-Sonara-Export-Values-Altered", String(csv.neutralised));
     return res.send(csv.body);
   });

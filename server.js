@@ -98,6 +98,7 @@ const registerTwoFactorRoutes = require("./routes/sonara-two-factor-routes.cjs")
 const registerWellKnownRoutes = require("./routes/sonara-well-known-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
+const { runWithBusinessManagementScope } = require("./lib/sonara-business-management-scope.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
 const { renderSetupPage } = require("./lib/sonara-setup-state.cjs");
 const {
@@ -2720,7 +2721,12 @@ async function requireBusinessManager(req, res, next) {
 
   req.sonaraUser = customer.user;
   req.sonaraBusinessMembership = membership.membership;
-  return next();
+  const scoped = runWithBusinessManagementScope(customer.user, membership.membership, next);
+  if (!scoped.ok) {
+    if (acceptsHtml(req)) return res.status(403).type("html").send(responsePage("Business access denied", "We could not confirm your management access for this business.", [linkAction("/business-builder/login", "Business login")]));
+    return res.status(403).json({ ok: false, code: "business_forbidden" });
+  }
+  return scoped.value;
 }
 
 

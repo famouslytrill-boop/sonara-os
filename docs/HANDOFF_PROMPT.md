@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3093 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3099 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 159 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 160 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 463 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 494 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,59 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 37 most recent entries of 461 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 37 most recent entries of 462 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - Main merged into #444: sales checkable while checkout is closed
+
+PR #444 had become unmergeable against main, which had taken #440, #442 and
+#443. Only generated files conflicted, and they were regenerated from the merged
+tree. The merged tree failed nothing that main did not already fail, measured by
+running every gate separately on both rather than trusting the chain, which
+stops at its first failure. Main at `e0379b97` was red, and three of its failures
+are fixed here.
+
+**Seller reconciliation refused whenever new checkout was off.**
+- #442 made merchant Connect fail closed unless the owner sets
+  `SONARA_CUSTOMER_FUNDS_MODE=connect_direct_reviewed`. The comment on that gate
+  says read-only reconciliation "must continue separately".
+- `stripeCall` keeps historical GET reads open on a valid secret key for exactly
+  that reason.
+- But `/creator-studio/owner/marketplace/reconciliation` first asked
+  `checkoutReadiness`, which now answers no, so the screen answered 503. Four of
+  its own tests were failing on main.
+- It now relies on the read's own refusal, and maps a missing key to "the
+  payment connection is unavailable".
+- Two tests pin the case: reconciliation runs while checkout is closed, and no
+  Stripe call is made without a key.
+- Falsified: restoring the gate fails four tests; dropping the key mapping fails
+  one.
+
+**Member read policy for `business_integration_connections`.**
+- The control plane reads this table. Its July policy lets members read it but
+  predates `to authenticated`, so the policy check could not see it.
+- It is added to the generator, which grants nothing members could not already
+  read.
+- `20260923070000` has been on main since September, so it joins
+  `APPLIED_MIGRATIONS`. The generator now writes
+  `20261007120000_member_read_policies_integration_connections.sql` rather than
+  rewriting a migration production may already have.
+
+**`docs/owner/PROVIDER-KEYS.md` regenerated** after #440 changed the LinkedIn
+provider.
+
+**Left red, deliberately:** `verify:unreferenced-modules` lists 29 modules from
+#442 and #443 required only by their tests. They include customer money
+pathways, lease policy gates and low-custody policy. Each needs to be wired,
+deleted or given a reason by whoever knows what it is waiting for. Writing 29
+reasons here would be writing them without knowing, which is the failure that
+gate exists to catch. `verify:coverage-floor` follows the suite and passes once
+it does.
+
+
 
 ### 2026-10-07 - Every formula can be worked out, and saved
 
@@ -2065,80 +2113,3 @@ work, because the module's header quotes the old code.
 Falsified three ways, each failing and restored with `md5sum -c`: back to a plain
 object with a dynamic write (5 red), the uuid check removed with the Map kept (2
 red), and inherited properties allowed into the loop (1 red). Suite 5679 passing.
-
-
-
-### 2026-10-02 - Reading the wrong exit code, and an email check that could be made slow
-
-Two commits went out saying `verify:gates 0` while the chain was exiting 1. The
-mistake is worth writing down because it is the second instance in one session of
-the same class, and the class is this repository's own subject: **a signal that
-reports success without being true**, this time in how I read the signal rather
-than in the signal itself.
-
-The command was:
-
-    pnpm run verify:gates > out.txt 2>&1; echo "GATES: $?"
-
-The task runner reports the exit status of the **compound** command, and `echo`
-always succeeds, so it reported 0. The chain had failed, and `out.txt` ended with
-`ELIFECYCLE Command failed with exit code 1` the whole time. The earlier instance
-in the same session was reading `$?` after a pipe. Both have the same shape: the
-status examined is not the status of the thing being tested.
-
-**The practice that replaces it:** write the real code to its own file --
-`{ pnpm run verify:gates > out.txt 2>&1; echo $? > gates.code; }` -- and read that
-file. There is then nothing in the chain of custody that can succeed on its own.
-Doing that immediately showed exit 1 twice more, for two further causes, which is
-the point.
-
-**What was actually failing.** `verify:api`: seven POST routes registered by Express
-and absent from `openapi/sonara.yaml` -- the four Growth Studio event endpoints and
-the three storefront ones. Then `verify:handoff` behind it, stale. Then
-`report-unused-selected-columns` on five columns in the store route.
-
-**The CodeQL alert was real, and it is measured rather than asserted.** High
-severity, *Polynomial regular expression used on uncontrolled data*, on the email
-check `/^[^@\s]+@[^@\s]+\.[^@\s]+$/` in `lib/sonara-growth-events.cjs` -- which runs
-on whatever a stranger types into the public RSVP form. `[^@\s]` matches `.`, so
-`[^@\s]+\.[^@\s]+` can split a run of punctuation many ways and the engine tries
-them.
-
-On the shape CodeQL named (`!@!.` then repetitions of `!.`): 1.3ms at 2,005
-characters, 4.9ms at 4,005, 19.6ms at 8,005. Quadrupling as the length doubles, which
-is the quadratic signature. Free to send, expensive to match, and there was no
-length bound before the regex.
-
-`lib/sonara-email-shape.cjs` replaces it with `indexOf`/`lastIndexOf` and one
-whitespace scan -- no quantifier to be ambiguous -- and refuses anything over 320
-characters before walking. It had to agree with the two check constraints on
-`growth_event_rsvps.email` and `merchant_orders.buyer_email`, because a validator
-looser than a constraint produces a save that fails in production with no
-explanation.
-
-**Two assertions in my own new test were wrong.** It asserted *exact* agreement with
-the constraint and failed on `a@b.co.`, which PostgreSQL accepts because `[^@\s]+`
-matches a dot so `co.` satisfies the final group. Being stricter is safe; claiming
-exact agreement was the overclaim, so it now asserts only the dangerous direction --
-never accept what the row refuses -- and records where it is deliberately tighter.
-And its "no quadratic pattern remains" check failed on the new module's **own header
-comment**, which quotes the old pattern in order to explain the replacement: prose
-matched as code, the third time in this session's work after the contract check's
-money scan hit it twice. It strips comments with the shared stripper now.
-
-The two-sided half of that exceptions list then refused an entry I had written for
-`a@b.`, because the database rejects that one too, so the reason described no
-disagreement. That is the check doing to my list exactly what
-`report-orphan-tables.mjs` does to its own.
-
-**Five selected columns in the store route**, from my own gate. Two are gone rather
-than ruled on (`category` and `sku` were selected and shown nowhere -- the time to
-select a column is when something reads it). One is now rendered: an order's
-`created_at`, because an owner looking at an order needs to know when it came in.
-Two are recorded in `ACCOUNTED` with the lines that read them, both in
-`lib/sonara-merchant-storefront.cjs`: `price_cents` at line 114 and `product_id` at
-line 178.
-
-`lib/sonara-env-value-checks.cjs` keeps the old email pattern. It reads environment
-variables set at deploy time, which is not uncontrolled data in the sense CodeQL
-means, and sweeping it in would be a different change. Worth doing separately.

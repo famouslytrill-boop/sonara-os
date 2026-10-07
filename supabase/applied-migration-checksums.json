@@ -154,5 +154,6 @@
   "20261006040000_stock_holds_with_orders_and_jobs.sql": "647d6a31b641bb4c3b6490b02790f8619d66e3b662c3c5443336a5fd94a681b5",
   "20261007090000_what_a_campaign_cost.sql": "92c18ad1d0e25401c8cc97f8eff8212c3b5e7a5a1e0c1e5495675e59cd49f360",
   "20261007100000_a_check_in_sent_later_is_one_check_in.sql": "9826fa739a4054d4de1ba8f4997a2b14783a90bc6556bebed4abd884a2dccca1",
-  "20261007110000_every_formula_can_be_saved.sql": "ab846302d2fdf2202b669fd9ea14b01ad5121f6485646a8d035560b53dcf4f50"
+  "20261007110000_every_formula_can_be_saved.sql": "ab846302d2fdf2202b669fd9ea14b01ad5121f6485646a8d035560b53dcf4f50",
+  "20260923070000_member_read_policies_business_work_orders.sql": "961baf6a1e0cb0351608d2d9cd280f99946e0210d4d4a54327410defe2a25c27"
 }

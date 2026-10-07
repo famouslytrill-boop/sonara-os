@@ -79,7 +79,6 @@ function registerMarketplaceReconciliationRoutes(app, deps) {
       || !payments.ACCOUNT_ID.test(String(account.stripe_account_id || ""))) {
       return page(res, 503, "Your payment account could not be verified. Reconciliation has not run.");
     }
-    if (!checkout.checkoutReadiness({ getEnv }).ok) return page(res, 503, "The payment connection is unavailable. Stripe records have not been checked.");
     const orderRows = sold.rows.slice(0, ORDER_LIMIT);
     if (orderRows.some((order) => !orders.isUuid(order.id) || order.organization_id !== organizationId)) {
       return page(res, 503, "The sales records could not be verified for your workspace. Reconciliation has not run.");
@@ -90,6 +89,14 @@ function registerMarketplaceReconciliationRoutes(app, deps) {
         + "&organization_id=eq." + enc(organizationId) + "&order_id=in.(" + enc(ids) + ")&limit=201") : Promise.resolve({ ok: true, rows: [] }),
       checkout.listSessions({ getEnv }, { accountId: account.stripe_account_id, sinceSeconds, maxPages: 5 })
     ]);
+    // Not gated on checkoutReadiness. That asks whether a NEW checkout may
+    // open, and since SONARA_CUSTOMER_FUNDS_MODE it answers no unless the owner
+    // has approved merchant money -- which made this screen refuse to show the
+    // sales a business already has, exactly when it most needs to see them.
+    // lib/sonara-connected-checkout.cjs keeps historical GET reads open on a
+    // valid secret key for this purpose, and refuses them itself when there is
+    // none; that refusal is the one answered here.
+    if (stripe.code === "legacy_reconciliation_key_unavailable") return page(res, 503, "The payment connection is unavailable. Stripe records have not been checked.");
     if (!grants.ok || !stripe.ok) return page(res, 503, "The licence records or Stripe check failed. No reconciliation result is claimed; try again shortly.");
     let evidence;
     try {

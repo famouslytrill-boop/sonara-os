@@ -6,6 +6,7 @@ on:
       - codex/durable-generation-lifecycle-20260916
       - codex/google-signin-no-legacy-rebase-20260919
       - codex/convergence-execution-contract-20261007
+      - codex/business-management-scope-20261007
 
 permissions:
   contents: write
@@ -35,6 +36,11 @@ jobs:
       # inventory from the full checkout here; never hand-edit derived evidence.
       - name: Regenerate convergence route evidence
         if: github.ref_name == 'codex/convergence-execution-contract-20261007'
+        run: |
+          pnpm run capability-map:write
+          pnpm run report:capability-coverage
+      - name: Regenerate management scope route evidence
+        if: github.ref_name == 'codex/business-management-scope-20261007'
         run: |
           pnpm run capability-map:write
           pnpm run report:capability-coverage
