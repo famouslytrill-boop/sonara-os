@@ -570,7 +570,10 @@ function detectSensitivePayload(value) {
     }
   }
 
-  if (/\b(?:card(?: number)?|pan)\b\s*[:=]?\s*(?:\d[ -]?){13,19}/i.test(text)) {
+  // `\s*(?:[:=]\s*)?` rather than `\s*[:=]?\s*`: the same strings, but two
+  // adjacent \s* runs could split a long run of spaces every possible way, and
+  // this text is typed by whoever fills in the form.
+  if (/\b(?:card(?: number)?|pan)\b\s*(?:[:=]\s*)?(?:\d[ -]?){13,19}/i.test(text)) {
     findings.push("payment_card_number");
   }
 
@@ -644,13 +647,16 @@ function splitTags(value) {
 
 // value_<variable> fields from a form, as the { variable: value } object the
 // run endpoint takes from an API client.
+// Built from entries rather than by assigning a key the form chose, so no field
+// name -- `constructor` passes the pattern -- can land on an object's prototype
+// chain.
 function valuesFromForm(body = {}) {
-  const values = {};
+  const entries = [];
   for (const [key, value] of Object.entries(body || {})) {
     const match = key.match(/^value_([a-zA-Z][a-zA-Z0-9_]{0,63})$/);
-    if (match) values[match[1]] = String(value ?? "");
+    if (match) entries.push([match[1], String(value ?? "")]);
   }
-  return values;
+  return Object.fromEntries(entries);
 }
 
 async function addCollectionItem(req, collectionId, templateId, deps) {
