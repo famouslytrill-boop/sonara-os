@@ -5,6 +5,7 @@
 const assert = require("node:assert/strict");
 const { reconcile, projectSession } = require("../lib/sonara-marketplace-reconciliation.cjs");
 const checkout = require("../lib/sonara-connected-checkout.cjs");
+const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { registerMarketplaceReconciliationRoutes, RECONCILIATION_PAGE } = require("../routes/sonara-marketplace-reconciliation-routes.cjs");
 const ORG = "aaaaaaaa-0000-4000-8000-00000000000a";
 const OTHER = "bbbbbbbb-0000-4000-8000-00000000000b";
@@ -211,6 +212,11 @@ describe("the seller can open a scoped reconciliation screen", () => {
       type() { return this; }, set(key, value) { this.headers[key] = value; return this; },
       send(body) { this.body = body; return this; } };
     await test.handler({ query, sonaraUser: { id: BUYER } }, res);
+    const visible = res.body.replace(/<[^>]+>/g, " ");
+    for (const term of plainLanguage.BANNED_ON_CUSTOMER_PAGES) {
+      const escaped = term.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");
+      assert.doesNotMatch(visible, new RegExp("\\b" + escaped, "i"), "Customer copy contains internal vocabulary: " + term);
+    }
     return { ...test, res };
   }
   it("shows real fixture evidence without provider secrets and makes no writes", async () => {

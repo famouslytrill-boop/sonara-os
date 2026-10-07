@@ -99,7 +99,7 @@ function registerMarketplaceReconciliationRoutes(app, deps) {
         + (evidence.sessionsTruncated ? "<p>Stripe has more than 500 checkouts in this period. Missing payments are unverified until a shorter period can be read in full.</p>" : "")
         + (!evidence.grantsComplete ? "<p>The licence list is incomplete. Missing grants are unverified.</p>" : "")),
       brandCard("What this check means", "Orders created in the last " + days
-        + " days are compared with the current connected account and recorded licence grants. This page reads records only. To resolve a payment issue, review its webhook delivery and the charge in your Stripe account."
+        + " days are compared with the current connected account and recorded licence grants. This page reads records only. To resolve a payment issue, review its payment notification and the charge in your Stripe account."
         + "<p>These are sales and original charge records. They do not establish bank payout, withdrawable funds or profit.</p>")
     ];
     for (const [currency, total] of Object.entries(evidence.totals)) {
