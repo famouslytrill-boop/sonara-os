@@ -95,9 +95,6 @@ const TEST_ONLY = new Map([
   ["lib/sonara-connection-registry.cjs",
     "Research-only Connection Registry contract targeting business_integration_connections. It deliberately requires a future migration "
     + "and keeps runtime authority disabled until the registry is implemented and production-verified."],
-  ["lib/sonara-customer-provider-pathways.cjs",
-    "Policy-only customer-owned/provider-provided access boundary. It validates OAuth, origin, scope, approval and direct-dashboard "
-    + "handoff evidence but executes no provider call and grants no runtime authority; keep it test-only until a reviewed server adapter consumes it."],
   ["lib/sonara-read-only-connector-wave.cjs",
     "Research-only ordered read connector wave and shared sync requirements. It declares zero verified native connectors and "
     + "stays test-only until the shared checkpoint, reconciliation and telemetry runtime consumes it."],
