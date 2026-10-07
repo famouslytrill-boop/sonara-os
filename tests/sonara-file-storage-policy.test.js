@@ -3,7 +3,8 @@
 "use strict";
 const assert=require("node:assert/strict");
 const {
-  storagePreflight,generatedObjectKey,localCachePlan,signedAccessPlan
+  storagePreflight,generatedObjectKey,localCachePlan,signedAccessPlan,
+  retentionDecision,restoreIntegrityCheck
 }=require("../lib/sonara-file-storage-policy.cjs");
 const ORG="11111111-1111-4111-8111-111111111111";
 const OBJ="22222222-2222-4222-8222-222222222222";
@@ -100,6 +101,40 @@ describe("secure customer filing/storage policy",()=>{
       assert.equal(out.legalHoldMustOverrideDeletion,true);
     }
   });
+  it("legal hold overrides a customer deletion request without silently deleting evidence",()=>{
+    const out=retentionDecision({classification:"restricted_legal",
+      createdAt:"2026-01-01T00:00:00Z",now:"2026-10-07T06:00:00Z",
+      reviewedRetentionDueAt:"2026-02-01T00:00:00Z",retentionRuleRef:"rule_case_2026",
+      legalHold:true,customerDeletionRequested:true});
+    assert.equal(out.state,"retain_legal_or_incident_hold");
+    assert.equal(out.deletionAuthorized,false);
+    assert.equal(out.holdOverridesCustomerDeletion,true);
+  });
+  it("expired retention plus deletion request creates a purge candidate, not automatic deletion",()=>{
+    const out=retentionDecision({classification:"tenant_standard",
+      createdAt:"2026-01-01T00:00:00Z",now:"2026-10-07T06:00:00Z",
+      reviewedRetentionDueAt:"2026-06-01T00:00:00Z",retentionRuleRef:"rule_records_2026",
+      customerDeletionRequested:true});
+    assert.equal(out.state,"purge_candidate_review_required");
+    assert.equal(out.deletionAuthorized,false);
+    assert.equal(out.purgeExecuted,false);
+  });
+  it("retention cannot run from an invented or missing policy reference",()=>{
+    const out=retentionDecision({classification:"tenant_standard",
+      createdAt:"2026-01-01T00:00:00Z",now:"2026-10-07T06:00:00Z",
+      reviewedRetentionDueAt:"2026-06-01T00:00:00Z",retentionRuleRef:"bad"});
+    assert.ok(out.blockers.includes("reviewed_retention_rule_missing"));
+    assert.equal(out.deletionAuthorized,false);
+  });
+  it("restore proof requires both byte count and SHA-256 to match",()=>{
+    assert.equal(restoreIntegrityCheck({expectedSha256:"a".repeat(64),
+      restoredSha256:"a".repeat(64),expectedBytes:100,restoredBytes:100}).verified,true);
+    assert.equal(restoreIntegrityCheck({expectedSha256:"a".repeat(64),
+      restoredSha256:"b".repeat(64),expectedBytes:100,restoredBytes:100}).code,"restore_hash_mismatch");
+    assert.equal(restoreIntegrityCheck({expectedSha256:"a".repeat(64),
+      restoredSha256:"a".repeat(64),expectedBytes:100,restoredBytes:99}).code,"restore_size_mismatch");
+  });
+
   it("refuses long-lived private signed URL suggestions",()=>{
     assert.ok(signedAccessPlan({classification:"tenant_confidential",authorizationVerified:true,seconds:86400})
       .blockers.includes("signed_url_ttl_out_of_range"));
