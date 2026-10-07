@@ -115,3 +115,43 @@ Every jurisdiction-specific rule must store citation, effective date, review dat
 - Copyright Office DMCA directory: https://copyright.gov/dmca-directory/
 
 **Verification limit:** Sources are public research, not legal advice. Municipal rules, pending federal rulemaking, interpretation, jurisdiction, exceptions, contract forms, and business model must be verified by qualified counsel before any real-world transaction. This document makes no assertion that the current SONARA app already enforces the proposed rules.
+
+## 8. 6 October 2026 statutory update — Columbus residential rental registry and receipts
+
+The initial draft covered Ohio/Columbus housing rules but missed the **new Columbus Chapter 4515 registry**. Research verified the ordinance in the City's official legislative record, Ordinance **0923-2026** (passed April 20, signed April 22, final action April 23, 2026). The initial registration window for the **2027 registry year** runs **October 1–December 31, 2026**. This is already open as of this review. The rent-registry workflow should be surfaced for relevant properties NOW, not as a later P2 feature.
+
+**Applicability:** Owners or local operators of covered Columbus residential rentals generally register annually. Ordinance text excludes property subject to certain vacant-building, hotel/motel/short-term lodging, dormitory, and separately licensed facility regimes. Verify official city limits and exception before showing a requirement. Small owners (<10 Columbus units) may qualify for an exception from naming a Local Operator; **that is not a blanket exception from registration**. The owner's statement and qualification require specific review.
+
+**Data/evidence to track:** parcel identifier, complex address, units, owner and responsible contacts, locally responsible contact or applicable exception, building-systems attestation, submission reference, registration year, payment reference, status, verified source, and update timestamp. Registration changes, transfer of ownership, and newly placed rentals have **30-day update/re-registration** provisions. A separate preventative inspection program has a three-year cadence, subject to city rules. No booking or lease signing should be marketed as “city approved” from a self-attestation.
+
+**Fees:** Separate Columbus Ordinance 1713-2026 passed June 29, 2026; fee schedule states **$15 per unit per year** beginning 2027, capped at **$1,500 per complex**, with conditional-status fees and late fees; amounts depend on specific fee rules. Do not auto-collect taxes/municipal fees or debit customer deposits to cover registry fees.
+
+**Columbus Chapter 4551 correct separation:**
+- **4551.03** bars source-of-income discrimination and prescribes voucher-adjusted income thresholds.
+- **4551.04** requires written Renter's Choice deposit-alternative notice for applicable operators with at least five rental units, describing qualifying three- and six-month installment plans.
+- **4551.05** concerns written rent and deposit **receipts**, including specified timing for manual/nonautomated methods, with an exception for operators of permanent supportive housing.
+- **4551.06** addresses **third-party payment tender** rather than general receipts or bookkeeping.
+- **4551.071** (covered new/renewed written leases after Jan. 31, 2025) requires the rent-increase **contract clause**, with at least 60 days' prior written notice for an increase above 10% and a statutory subsidized-tenancy exclusion to the increase-clause rule; it also requires disclosure of recurring/periodic occupancy charges and **rent-first allocation** of periodic tender. **Do not treat this as an annual 10% rent cap.**
+
+**Status design:** initial_due_for_review, submitted_unverified, registration_verified, exemption_documented, renewal_needed, update_due, enforcement_review_required. Registering in city government cannot be performed by SONARA automatically; only city-issued evidence determines registration acceptance.
+
+**Primary authoritative citations:**
+- Chapter 4515 creation: https://columbus.legistar.com/LegislationDetail.aspx?FullText=1&GUID=791450F8-748B-409F-9C37-5833BC5B54F1&ID=7977133
+- Registry fee schedule: https://columbus.legistar.com/LegislationDetail.aspx?G=4F637594-17B0-4E92-8196-37F14328D337&GUID=27307BE2-4DF2-4B79-B767-C0B143EF7CA8&ID=8117800
+- Chapter 4551: https://library.municode.com/oh/columbus/codes/code_of_ordinances?nodeId=TIT45HOCO_CH4551REOWOC_4551.04RECH
+- Ohio security deposit law (interest on qualifying excess and 30-day return conditions): https://codes.ohio.gov/ohio-revised-code/section-5321.16
+- Ohio UCC Article 2A amended 2026-10-06: https://codes.ohio.gov/ohio-revised-code/chapter-1310
+- FTC consumer report adverse action: https://www.ftc.gov/business-guidance/resources/using-consumer-reports-what-landlords-need-know
+- CFPB Regulation M: https://www.consumerfinance.gov/rules-policy/regulations/1013/
+- Copyright Office DMCA agent registration: https://copyright.gov/dmca-directory/
+
+## 9. Current implementation proof boundary (this draft PR)
+
+Source additions under review:
+- `lib/sonara-lease-policy-gates.cjs` — **non-executing draft-only** jurisdiction checks with separate handling for residential, goods, short-term lodging, and media licensing, location-scoped counsel review, source-of-income, FCRA, Columbus registry/deposit/receipt/review flags, and Ohio deposit return date helper.
+- `lib/sonara-lease-ledger.cjs` — **draft/unposted** balanced two-line journals in exact USD minor units with named liability/clearing accounts, source event and tenant matching, checked chaining/idempotency, and projected—not actual—deposit liabilities.
+- `tests/lease-policy-and-ledger.test.js` — regression scenarios for forgery attempts, idempotency, amount mismatches, chain alteration, deposit overdraw, jurisdiction, legal-owner approval, FCRA, source-of-income, registry, and content rights.
+
+**Nothing herein is a production payment ledger or a legal compliance determination.** The SHA-256 chain is only an integrity check; without external anchoring, independently protected append-only storage, atomic sequencing/unique constraints, approval records, provider reconciliation and strong tenant RLS it is not tamper-evident against administrators who can rewrite all records. The provider-evidence `verifiedByServer` bit is supplied by trusted server code in the future, never browser input; the current module does not authenticate webhooks.
+
+**P0 go-live blockers:** counsel review per jurisdiction and category; transactional DB migration with SECURITY DEFINER/RLS/access audits and hosted-ledger replay; authorization and provider verification at trusted server boundary; atomic idempotent writer in database transaction; immutable audit/monitoring plus periodic external hash anchoring; refunds/charges/payouts owner-controlled; dispute and external statement reconciliation; adversarial replay/tenant/partial-failure tests and production evidence.
