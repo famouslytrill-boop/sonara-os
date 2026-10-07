@@ -71,6 +71,15 @@ describe("customer review/testimonial governance",()=>{
     assert.ok(out.blockers.includes("genuine_review_suppression_unexplained"));
     assert.ok(out.blockers.includes("negative_review_suppression_not_allowed"));
   });
+  it("blocks unsupported legal threats used to suppress or remove reviews",()=>{
+    let out=reviewPublicationGate(valid({legalThreatenedToPreventOrRemoveReview:true,
+      legalThreatBasisVerified:false}));
+    assert.ok(out.blockers.includes("unfounded_legal_threat_review_suppression_prohibited"));
+    assert.equal(out.legalThreatActionExecuted,false);
+    out=reviewPublicationGate(valid({legalThreatenedToPreventOrRemoveReview:true,
+      legalThreatBasisVerified:true}));
+    assert.ok(!out.blockers.includes("unfounded_legal_threat_review_suppression_prohibited"));
+  });
   it("blocks a business-controlled page from claiming independent review status",()=>{
     const out=reviewPublicationGate(valid({businessControlsPage:true,pageClaimsIndependent:true}));
     assert.ok(out.blockers.includes("business_controlled_page_cannot_claim_independent_reviews"));
