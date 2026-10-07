@@ -53,6 +53,9 @@ describe("SONARA aggregator execution wave", () => {
     assert.ok(AUTH_TYPES.includes("service_account"));
     assert.ok(AUTH_TYPES.includes("managed_auth"));
     assert.ok(CONNECTION_REGISTRY_SCHEMA_DELTA.some((entry) => entry.field === "external_account_id"));
+    for (const field of ["authority_source","provider_origin","requested_scopes","revoked_at","last_scope_review_at"]) {
+      assert.ok(CONNECTION_REGISTRY_SCHEMA_DELTA.some((entry) => entry.field === field), field);
+    }
     assert.ok(CONNECTION_REGISTRY_SCHEMA_DELTA.some((entry) => entry.field === "last_reconciliation_at"));
   });
 
