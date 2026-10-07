@@ -25,6 +25,8 @@ function customerFacingRoutes() {
     // Parameterised routes need an id we do not have; /api is not read by a
     // human. Everything else is fair game.
     if (route.path.includes(":") || route.path.startsWith("/api")) continue;
+    // Read by Android's verifier, not by a person; covered by its own test.
+    if (route.path.startsWith("/.well-known/")) continue;
     if (plainLanguage.isTechnicalRoute(route.path)) continue;
     routes.push(route.path);
   }
