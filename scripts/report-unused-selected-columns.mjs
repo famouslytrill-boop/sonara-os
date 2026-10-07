@@ -170,6 +170,14 @@ const ACCOUNTED = Object.freeze({
       "Fetched to be used, in the file the rows travel to; the select names only the five columns that table shows."
     ].join(" ")
   },
+  "routes/sonara-operations-expansion-routes.cjs": {
+    columns: ["quantity_planned", "quantity_used", "unit_cost_cents"],
+    reason: [
+      "The finished jobs' material lines are handed to summarizeBusinessOperations in lib/sonara-business-analytics.cjs, which passes each job's lines to",
+      "profitability in lib/sonara-work-order-lifecycle.cjs; materialCost there reads all three (line 81-82 on 7 October 2026:",
+      "`line?.quantity_used ?? line?.quantity_planned` and `line?.unit_cost_cents`). Fetched to be used, two files along."
+    ].join(" ")
+  },
   "routes/sonara-prompt-library-routes.cjs": {
     columns: ["created_at"],
     reason: [
