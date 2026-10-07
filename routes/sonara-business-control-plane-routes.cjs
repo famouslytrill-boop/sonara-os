@@ -580,7 +580,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const normalized = normalizeFields(req.body, definition.fields, false, acceptsHtml(req));
     if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     if (req.params.resource === "integrations" && requiresActivationReview(normalized.value.connection_status)) {
-      const policy = evaluateIntegrationActivation({ settings: normalized.value.settings });
+      const policy = evaluateIntegrationActivation({
+        settings: normalized.value.settings,
+        connectionMode: normalized.value.connection_mode
+      });
       if (!policy.allowed) {
         await audit(ctx, loaded.business.id, "integrations.activation_denied", "integrations", null, "denied", { reasons: policy.reasons });
         return send(req, res, { ok: false, status: 409, code: policy.code, reasons: policy.reasons }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
@@ -622,14 +625,15 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (req.params.resource === "integrations" && action !== "archive") {
       const existing = await rest(
         definition.table,
-        `select=id,connection_status,settings&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
+        `select=id,connection_mode,connection_status,settings&id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}&limit=1`
       );
       if (!existing.ok) return send(req, res, { ok: false, status: 502, code: "integration_governance_unreadable" }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
       if (!existing.rows[0]) return send(req, res, { ok: false, status: 404, code: "resource_not_found" }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
+      const connectionMode = patch.connection_mode ?? existing.rows[0].connection_mode ?? "manual";
       const connectionStatus = patch.connection_status ?? existing.rows[0].connection_status;
       const settings = patch.settings ?? existing.rows[0].settings;
       if (requiresActivationReview(connectionStatus)) {
-        const policy = evaluateIntegrationActivation({ settings });
+        const policy = evaluateIntegrationActivation({ settings, connectionMode });
         if (!policy.allowed) {
           await audit(ctx, loaded.business.id, "integrations.activation_denied", "integrations", req.params.id, "denied", { reasons: policy.reasons });
           return send(req, res, { ok: false, status: 409, code: policy.code, reasons: policy.reasons }, `/business-builder/businesses/${loaded.business.id}/manage/integrations`);
