@@ -161,6 +161,43 @@ browser TLS form
 
 The generic integration CRUD route must never accept the raw credential.
 
+## Verified Supabase secret-custody posture
+
+Read-only inspection of the currently connected active project on 2026-10-07 found:
+
+- `supabase_vault` **0.3.1 is installed**;
+- `pgsodium` is **not installed**;
+- `vault.secrets` currently contains **0 rows**;
+- `vault.create_secret` and `vault.update_secret` are executable by the server/service role, not browser roles;
+- `vault.decrypted_secrets` is readable by the service role and therefore must be treated as plaintext credential access;
+- the active `business_integration_connections` table has RLS enabled, but browser roles still hold legacy `TRUNCATE`, `TRIGGER`, and `REFERENCES` object privileges.
+
+Supabase's current documentation says Vault stores authenticated encrypted secrets on disk and exposes plaintext through `vault.decrypted_secrets`; anyone with access to that view can read the decrypted values. Supabase also marks direct new `pgsodium` usage as pending deprecation and recommends Vault instead.
+
+Therefore the low-budget credential design is:
+
+```
+customer credential / OAuth token
+  -> server-only credential intake
+  -> Supabase Vault
+  -> opaque vault UUID/reference in SONARA connection metadata
+  -> server-only adapter resolves just in time
+  -> provider request
+  -> credential discarded from request memory as soon as practical
+```
+
+The application must not expose `vault.decrypted_secrets` through a customer RPC, view, browser role, spreadsheet, log, AI prompt, or generic provider API.
+
+Current database security advisors also report broader issues that must be classified before provider-write activation: 64 RLS-enabled public tables with no policy, eight authenticated-callable `SECURITY DEFINER` functions, one extension in the public schema, and leaked-password protection disabled. Some no-policy tables are intentionally service-only; the advisor count therefore requires classification rather than blindly adding user policies.
+
+Provider access should not become write-capable until the active database's object grants and privileged RPC surface are reconciled.
+
+References:
+- https://supabase.com/docs/guides/database/vault
+- https://supabase.com/docs/guides/database/extensions/pgsodium
+- https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+- https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+
 ## Payment-provider boundary
 
 Customer-owned Stripe/payment-provider access needs an additional boundary.
