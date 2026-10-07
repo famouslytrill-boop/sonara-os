@@ -433,16 +433,34 @@ async function updateInitiative(req, deps, input = {}) {
   return { status: 200, body: { ok: true, initiative: updated.rows[0] } };
 }
 
-// One function per record kind, each naming its own table, rather than a
-// lookup keyed by the path: scripts/generate-capability-inventory.cjs traces
-// what a route writes from the functions it calls, and a table read out of a
-// map at runtime is a write it cannot see.
+// One function per record kind, each naming its own table and writing its own
+// organization filter at the call site, rather than a lookup keyed by the path.
+// Two readers depend on that: scripts/generate-capability-inventory.cjs traces
+// what a route writes from the functions it calls, and
+// scripts/report-tenant-scoped-queries.mjs checks every rest() call for an
+// organization filter. A table read out of a map at runtime is invisible to
+// both -- the second refused this file when the table came from the spec.
 function changeIterationStatus(req, deps) {
-  return changeChildStatus(req, deps, { table: TABLES.iterations, statuses: ITERATION_STATUSES, noun: "iteration", noteColumn: "review_notes", event: "iteration.status_changed" });
+  return changeChildStatus(req, deps, {
+    statuses: ITERATION_STATUSES,
+    noun: "iteration",
+    noteColumn: "review_notes",
+    event: "iteration.status_changed",
+    read: (config, recordId, initiativeId, organizationId) => rest(config, TABLES.iterations, `select=id,status,metadata&id=eq.${encodeURIComponent(recordId)}&initiative_id=eq.${encodeURIComponent(initiativeId)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`),
+    write: (config, recordId, initiativeId, organizationId, body) => rest(config, TABLES.iterations, `id=eq.${encodeURIComponent(recordId)}&initiative_id=eq.${encodeURIComponent(initiativeId)}&organization_id=eq.${encodeURIComponent(organizationId)}`, { method: "PATCH", prefer: "return=representation", body })
+  });
 }
 
 function changeFeedbackStatus(req, deps) {
-  return changeChildStatus(req, deps, { table: TABLES.feedback, statuses: FEEDBACK_STATUSES, noun: "finding", noteColumn: null, event: "feedback.status_changed", closingNeedsNote: true });
+  return changeChildStatus(req, deps, {
+    statuses: FEEDBACK_STATUSES,
+    noun: "finding",
+    noteColumn: null,
+    event: "feedback.status_changed",
+    closingNeedsNote: true,
+    read: (config, recordId, initiativeId, organizationId) => rest(config, TABLES.feedback, `select=id,status,metadata&id=eq.${encodeURIComponent(recordId)}&initiative_id=eq.${encodeURIComponent(initiativeId)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`),
+    write: (config, recordId, initiativeId, organizationId, body) => rest(config, TABLES.feedback, `id=eq.${encodeURIComponent(recordId)}&initiative_id=eq.${encodeURIComponent(initiativeId)}&organization_id=eq.${encodeURIComponent(organizationId)}`, { method: "PATCH", prefer: "return=representation", body })
+  });
 }
 
 async function changeChildStatus(req, deps, spec) {
@@ -460,15 +478,14 @@ async function changeChildStatus(req, deps, spec) {
   // value. The service key bypasses row level security, so without both
   // filters a guessed id could move another initiative's -- or another
   // business's -- record.
-  const scope = `id=eq.${encodeURIComponent(recordId)}&initiative_id=eq.${encodeURIComponent(base.initiative.id)}&organization_id=eq.${encodeURIComponent(base.context.organizationId)}`;
-  const found = await rest(base.config, spec.table, `select=id,status,metadata&${scope}&limit=1`);
+  const found = await spec.read(base.config, recordId, base.initiative.id, base.context.organizationId);
   if (!found.ok) return { status: 502, body: { ok: false, code: "record_unreadable", message: `We could not read that ${spec.noun} just now. Nothing has changed.` } };
   const before = found.rows[0];
   if (!before) return { status: 404, body: { ok: false, code: "resource_not_found", message: `That ${spec.noun} is not on this initiative.` } };
   const patch = { status, updated_at: new Date().toISOString() };
   if (note && spec.noteColumn) patch[spec.noteColumn] = note;
   if (note && !spec.noteColumn) patch.metadata = { ...(before.metadata && typeof before.metadata === "object" ? before.metadata : {}), status_note: note };
-  const updated = await rest(base.config, spec.table, scope, { method: "PATCH", prefer: "return=representation", body: patch });
+  const updated = await spec.write(base.config, recordId, base.initiative.id, base.context.organizationId, patch);
   if (!updated.ok) return { status: 502, body: { ok: false, code: "status_not_saved", message: "That could not be saved, so the status is unchanged." } };
   if (!updated.rows.length) return { status: 404, body: { ok: false, code: "resource_not_found", message: `That ${spec.noun} is not on this initiative.` } };
   await recordEvent(base.config, base.context, base.initiative.id, spec.event, "success", { record_id: recordId, from: before.status, to: status, note });
