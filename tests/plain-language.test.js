@@ -373,7 +373,11 @@ describe("signed-in workspaces speak plainly", () => {
   // including the sentence that offering an opening tells the customer nothing.
   // Codex's #441 adds a seller reconciliation page in parallel; measure on the
   // merged tree rather than adding the two increments by hand (see 118 above).
-  const SIGNED_IN_SKIPPED = 121;
+  // 121 -> 122 on 7 October 2026: /business-builder/owner/operations, behind
+  // requireBusinessManager. Its copy -- including that money is shown per
+  // currency and that a capped read is "at least" -- is read by
+  // tests/how-the-business-is-doing-counts-real-money.test.js.
+  const SIGNED_IN_SKIPPED = 122;
 
   it("says how much of the application it actually read", () => {
     // The number that was missing. 179 rendered is not 282 walked, and until

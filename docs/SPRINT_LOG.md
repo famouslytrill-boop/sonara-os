@@ -2,6 +2,32 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - Money received was read from a table nothing writes
+
+`GET /api/business/operations/analytics` summarised a business's period:
+bookings, hours, stock, check-ins and money collected. Nothing showed it, and
+building the page found the money figure was never true. It read `payments`, a
+table no code path in the runtime writes, so "collected" was 0 for every
+business, including one that had recorded thousands against its invoices. It
+also added `amount_cents` across rows with no currency, so a business taking
+two currencies would have had them summed into one number.
+
+`lib/sonara-business-analytics.cjs` now reads money where the product records
+it: `customer_invoice_payments`, with the currency taken from the invoice, and
+`merchant_orders` paid through the shop, net of refunds. It totals per currency,
+with no grand total, because there is no exchange rate to make one. A disputed
+shop order is counted apart from money received. A payment whose invoice
+currency cannot be read is counted as unreadable rather than guessed.
+
+`/business-builder/owner/operations` renders it, and the API answers from the
+same `readOperations`, recorded as a JSON twin. A source that could not be read
+is named and no figures are shown. A read that came back at its 1,000-row limit
+is named beside the figure as "at least".
+
+Falsified five ways, each failing by name: currencies summed together, a dispute
+counted as received, the cap ignored, a failed invoice read ignored, and the
+`payments` table read again. Workspace fallbacks 25 -> 24.
+
 ### 2026-10-07 - The permission form was there; the inventory paired by name
 
 `POST /api/growth/consents` was listed as a route with no screen. It has had one

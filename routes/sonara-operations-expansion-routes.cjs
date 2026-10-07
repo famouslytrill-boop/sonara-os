@@ -12,11 +12,16 @@ const TABLES = Object.freeze({
   assets: "business_assets",
   time: "employee_time_entries",
   inventory: "inventory_items",
-  payments: "payments",
+  invoicePayments: "customer_invoice_payments",
+  invoices: "customer_invoices",
+  shopOrders: "merchant_orders",
   locations: "location_events"
 });
 const BUSINESS_ASSET_TYPES = new Set(pages.RESOURCE_TYPES);
 const WAITLIST_PAGE = "/business-builder/owner/waitlist";
+const OPERATIONS_PAGE = "/business-builder/owner/operations";
+const READ_LIMIT = 1000;
+const operationsPages = require("../lib/sonara-operations-pages.cjs");
 
 function registerOperationsExpansionRoutes(app, deps = {}) {
   const {
@@ -108,40 +113,82 @@ function registerOperationsExpansionRoutes(app, deps = {}) {
     ].filter(Boolean));
   });
 
-  app.get("/api/business/operations/analytics", requireBusinessManager, async (req, res) => {
-    const scope = await context(req);
-    if (!scope.ok) return res.status(scope.status).json(scope);
-    const days = Math.min(366, Math.max(1, Number(req.query.days) || 30));
+  // One reader for the page and the JSON, so they cannot disagree. A source
+  // that could not be read is named rather than counted as zero, and a source
+  // whose read came back at the limit is named too: a total over the first
+  // thousand rows is a lower bound, and the page says so rather than presenting
+  // it as the figure.
+  async function readOperations(scope, days) {
     const end = new Date();
     const start = new Date(end.getTime() - days * 86400000);
     const floor = start.toISOString();
+    const floorDay = floor.slice(0, 10);
     const org = scope.organizationId;
-    const [bookings, time, inventory, payments, locations] = await Promise.all([
-      list(scope.config, TABLES.bookings, org, "id,status,starts_at,ends_at,created_at", `&or=(starts_at.gte.${encodeURIComponent(floor)},created_at.gte.${encodeURIComponent(floor)})`),
-      list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,created_at", `&clock_in_at=gte.${encodeURIComponent(floor)}`),
-      list(scope.config, TABLES.inventory, org, "id,quantity,cost_cents,reorder_level,status"),
-      list(scope.config, TABLES.payments, org, "id,status,amount_cents,created_at", `&created_at=gte.${encodeURIComponent(floor)}`),
-      list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${encodeURIComponent(floor)}`)
+    const [bookings, time, inventory, invoicePayments, shopOrders, locations] = await Promise.all([
+      list(scope.config, TABLES.bookings, org, "id,status,starts_at,ends_at,created_at", `&or=(starts_at.gte.${encodeURIComponent(floor)},created_at.gte.${encodeURIComponent(floor)})`, READ_LIMIT),
+      list(scope.config, TABLES.time, org, "id,clock_in_at,clock_out_at,break_minutes,created_at", `&clock_in_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT),
+      list(scope.config, TABLES.inventory, org, "id,quantity,cost_cents,reorder_level,status", "", READ_LIMIT),
+      list(scope.config, TABLES.invoicePayments, org, "id,invoice_id,amount_cents,received_on", `&received_on=gte.${encodeURIComponent(floorDay)}`, READ_LIMIT),
+      list(scope.config, TABLES.shopOrders, org, "id,payment_state,amount_paid_cents,refunded_cents,currency,paid_at", `&paid_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT),
+      list(scope.config, TABLES.locations, org, "id,event_type,captured_at,created_at", `&captured_at=gte.${encodeURIComponent(floor)}`, READ_LIMIT)
     ]);
 
-    const unreadableSources = Object.entries({ bookings, time, inventory, payments, locations })
-      .filter(([, result]) => !result.ok)
-      .map(([name]) => name);
-    if (unreadableSources.length) {
-      return res.status(503).json({
-        ok: false,
-        code: "analytics_sources_unreadable",
-        unreadableSources,
-        reason: "The dashboard refuses to convert failed reads into zeroes."
-      });
+    // An invoice payment carries no currency; its invoice does. Read in small
+    // batches so the address stays short, and a batch that fails makes the
+    // whole money figure unreadable rather than silently smaller.
+    const invoiceIds = [...new Set((invoicePayments.rows || []).map((row) => row.invoice_id).filter(validUuid))];
+    const currencyByInvoice = new Map();
+    let invoices = { ok: true };
+    for (let index = 0; invoicePayments.ok && index < invoiceIds.length; index += 100) {
+      const batch = invoiceIds.slice(index, index + 100);
+      const read = await request(scope.config, TABLES.invoices,
+        `organization_id=eq.${enc(org)}&id=in.(${batch.map(enc).join(",")})&select=id,currency&limit=100`);
+      if (!read.ok) { invoices = read; break; }
+      for (const row of read.rows) currencyByInvoice.set(row.id, row.currency);
     }
+
+    const sources = { bookings, time, inventory, invoicePayments, invoices, shopOrders, locations };
+    const unreadableSources = Object.entries(sources).filter(([, result]) => !result.ok).map(([name]) => name);
+    if (unreadableSources.length) return { ok: false, code: "analytics_sources_unreadable", unreadableSources };
+    const truncatedSources = Object.entries({ bookings, time, inventory, invoicePayments, shopOrders, locations })
+      .filter(([, result]) => result.rows.length >= READ_LIMIT)
+      .map(([name]) => name);
 
     const summary = summarizeBusinessOperations({
       periodStart: start.toISOString(), periodEnd: end.toISOString(),
       bookings: bookings.rows, timeEntries: time.rows, inventoryItems: inventory.rows,
-      payments: payments.rows, locationEvents: locations.rows
+      invoicePayments: invoicePayments.rows.map((row) => ({ ...row, currency: currencyByInvoice.get(row.invoice_id) || null })),
+      shopOrders: shopOrders.rows,
+      locationEvents: locations.rows
     });
-    return res.status(summary.ok ? 200 : 400).json({ ...summary, source: "organization_scoped_operational_rows" });
+    return { ...summary, days, truncatedSources };
+  }
+
+  const daysFrom = (value) => Math.min(366, Math.max(1, Number(value) || 30));
+
+  app.get("/api/business/operations/analytics", requireBusinessManager, async (req, res) => {
+    const scope = await context(req);
+    if (!scope.ok) return res.status(scope.status).json(scope);
+    const result = await readOperations(scope, daysFrom(req.query.days));
+    if (result.code === "analytics_sources_unreadable") {
+      return res.status(503).json({ ...result, reason: "The dashboard refuses to convert failed reads into zeroes." });
+    }
+    return res.status(result.ok ? 200 : 400).json({ ...result, source: "organization_scoped_operational_rows" });
+  });
+
+  app.get(OPERATIONS_PAGE, requireBusinessManager, async (req, res) => {
+    const days = operationsPages.PERIODS.includes(Number(req.query.days)) ? Number(req.query.days) : 30;
+    const page = (sections, status = 200) => res.status(status).type("html").send(layout({
+      title: "How the business is doing", eyebrow: "Business Builder", heading: "How the business is doing",
+      body: "Money received, bookings, hours worked and stock, from what you have recorded.",
+      sections,
+      actions: [linkAction("/business-builder/owner/receivables", "Money owed to you"), linkAction("/business-builder/dashboard", "Back to your workspace")]
+    }));
+    const scope = await context(req);
+    if (!scope.ok) return page([operationsPages.unreadableCard(["workspace"], escapeHtml)], scope.status);
+    const result = await readOperations(scope, days);
+    if (!result.ok) return page([operationsPages.periodForm(days, OPERATIONS_PAGE, escapeHtml), operationsPages.unreadableCard(result.unreadableSources || [], escapeHtml)], 503);
+    return page(operationsPages.sections(result, { path: OPERATIONS_PAGE, escape: escapeHtml }));
   });
 
   app.get("/api/business/reservation-resources", requireBusinessManager, async (req, res) => {
