@@ -131,7 +131,12 @@ describe("reservation resources and waitlist destinations", () => {
     assert.equal(failed.statusCode, 400);
     assert.match(failed.html, /&lt;script&gt;/);
     assert.match(failed.html, /&lt;unsafe&gt;/);
-    assert.doesNotMatch(failed.html, /<script>/);
+    assert.doesNotMatch(failed.html, /<script\b/i);
+    const mixedCase = await call("post", "/api/business/waitlist", { html: true,
+      body: { customer_name: '\"><ScRiPt src=x>attack()</ScRiPt >', party_size: "1.5" } });
+    assert.equal(mixedCase.statusCode, 400);
+    assert.match(mixedCase.html, /&lt;ScRiPt src=x&gt;/);
+    assert.doesNotMatch(mixedCase.html, /<script\b/i);
   });
 
   it("shows failed and malformed reads as unavailable rather than an empty list", async () => {

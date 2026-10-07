@@ -112,3 +112,20 @@ The following entries preserve earlier checkpoints; their counts and branch stat
 - Merge #443 first. #444 independently owns market/prompt screens, destination
   review evidence, and nested fake Supabase logical filters. Preserve those edits.
 - No production deployment, migration, customer message or live transaction.
+
+### PR #445 workflow proof at `6bb6a49aedf19ca2698df644c412f672283e0c9f`
+
+- Full server suite: 6,394 tests pass, including six real-server native form,
+  workspace, foreign-reference and concurrent-booking regressions.
+- Chromium: all 38 cases pass, including four new desktop/mobile native HTTP
+  workflows. Screenshots of both resource and offered-waitlist pages have been
+  inspected: readable cards and forms, no mobile horizontal overflow.
+- Generated inventory: 939 HTTP operations, 303 declared pages, zero route
+  data-contract review gaps and 56 workspace destination fallbacks (five closed).
+- CodeQL identified a case-sensitive script-tag assertion in the new unit test.
+  The assertion now checks mixed-case opening tags, including tags with attributes;
+  mixed-case malicious input is explicitly tested. Final exact-head checks rerun
+  after this correction. The runtime renderer already escaped those values.
+- Native HTTP browser evidence uses the real controller/renderer and runtime
+  assets with offline database and manager fixtures; real authorization runs in
+  the server regressions. No physical-device or live-customer proof is claimed.
