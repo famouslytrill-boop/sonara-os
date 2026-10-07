@@ -155,3 +155,10 @@ Source additions under review:
 **Nothing herein is a production payment ledger or a legal compliance determination.** The SHA-256 chain is only an integrity check; without external anchoring, independently protected append-only storage, atomic sequencing/unique constraints, approval records, provider reconciliation and strong tenant RLS it is not tamper-evident against administrators who can rewrite all records. The provider-evidence `verifiedByServer` bit is supplied by trusted server code in the future, never browser input; the current module does not authenticate webhooks.
 
 **P0 go-live blockers:** counsel review per jurisdiction and category; transactional DB migration with SECURITY DEFINER/RLS/access audits and hosted-ledger replay; authorization and provider verification at trusted server boundary; atomic idempotent writer in database transaction; immutable audit/monitoring plus periodic external hash anchoring; refunds/charges/payouts owner-controlled; dispute and external statement reconciliation; adversarial replay/tenant/partial-failure tests and production evidence.
+
+### Customer-calculation addition
+
+- `lib/sonara-rental-customer-protections.cjs` now includes **non-executing, draft-only** `draftRentFirstAllocation` for covered Columbus post-Jan-31-2025 written lease cohorts, and `draftDepositInstallments` for qualifying covered 5+ rental-unit operators when written Renter's Choice notice is recorded.
+- Unapplied money remains explicitly unallocated; it is not booked to fees silently. No incoming funds, bank ledger, accounting entry, refund, actual city registration, or lease agreement is changed by these functions.
+- Installment builder conservatively accepts monthly rent due days 1–28 only; dates 29–31 require manual review rather than silently rolling to the wrong calendar day.
+- These routines are **not** automatically connected to any payment routes or production databases. Integration requires server-owned source data, tenant isolation, provider settlement receipts, legal review, and atomic persistence.
