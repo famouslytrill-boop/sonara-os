@@ -11,20 +11,23 @@ const OWNER = "22222222-2222-4222-8222-222222222222";
 const AUDITOR = "33333333-3333-4333-8333-333333333333";
 const ACCOUNT = "acct_1234567890";
 const PERIOD = "period:2026-10";
+const BANK_DESTINATION = "verified_bank_destination_1";
 const payout = (override = {}) => ({
   payoutId: "po_1234567890", organizationId: ORG,
   connectedAccountId: ACCOUNT, currency: "USD",
-  amountCents: 19000, status: "paid", statementPeriodId: PERIOD, ...override
+  amountCents: 19000, status: "paid", statementPeriodId: PERIOD,
+  verifiedDestinationRef: BANK_DESTINATION, ...override
 });
 const deposit = (override = {}) => ({
   bankTransactionId: "bank_txn_123456",
   organizationId: ORG, statementPeriodId: PERIOD, currency: "USD",
   amountCents: 19000, status: "posted",
-  verifiedLinkedPayoutId: "po_1234567890", ...override
+  verifiedLinkedPayoutId: "po_1234567890",
+  verifiedDestinationRef: BANK_DESTINATION, ...override
 });
 const tieout = (overrides = {}) => ({
   organizationId: ORG, connectedAccountId: ACCOUNT, currency: "USD",
-  statementPeriodId: PERIOD,
+  expectedDestinationRef: BANK_DESTINATION, statementPeriodId: PERIOD,
   processorPayouts: [payout()], bankDeposits: [deposit()],
   processorWindowComplete: true, bankWindowComplete: true,
   processorReadVerified: true, bankReadVerified: true,
@@ -72,6 +75,23 @@ describe("independent payout versus bank deposit review controls", () => {
     }));
     assert.ok(result.issues.includes("bank_credit_missing_unique_verified_payout_link"));
     assert.equal(result.matchedGrossCents, null);
+  });
+  it("blocks an otherwise equal payout redirected to a different bank destination", () => {
+    const result = payoutTieout(tieout({
+      processorPayouts: [payout({ verifiedDestinationRef: "foreign_bank_destination" })]
+    }));
+    assert.ok(result.issues.includes("provider_payout_unsettled_or_scope_mismatch"));
+    assert.equal(result.matchedGrossCents, null);
+  });
+  it("rejects an unapproved destination even when amounts and payout IDs match", () => {
+    const result = payoutTieout(tieout({
+      bankDeposits: [deposit({ verifiedDestinationRef: "foreign_bank_destination" })]
+    }));
+    assert.ok(result.issues.includes("bank_credit_unposted_or_scope_mismatch"));
+  });
+  it("blocks reconciliation when owner bank destination is unverified", () => {
+    const result = payoutTieout(tieout({ expectedDestinationRef: undefined }));
+    assert.ok(result.issues.includes("approved_bank_destination_unverified"));
   });
   it("rejects payout amount mismatch and contradictory ownership", () => {
     assert.ok(payoutTieout(tieout({ bankDeposits: [deposit({ amountCents: 18000 })] }))
