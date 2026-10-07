@@ -232,7 +232,7 @@ describe("a sale is a licence delivered", () => {
 
   describe("who may download", () => {
     const PAID = Object.freeze({ ...ORDER_ROW, state: "paid" });
-    const GRANT = Object.freeze({ order_id: ORDER, buyer_user_id: BUYER, version_id: VERSION, revoked_at: null });
+    const GRANT = Object.freeze({ order_id: ORDER, organization_id: SELLER, buyer_user_id: BUYER, version_id: VERSION, licence: ORDER_ROW.licence, revoked_at: null });
     const may = (overrides) => orders.downloadDecision({ order: PAID, grant: GRANT, userId: BUYER, ...overrides });
 
     it("lets the buyer download a paid, granted order for two minutes", () => {
@@ -267,6 +267,19 @@ describe("a sale is a licence delivered", () => {
       const disputed = may({ grant: { ...GRANT, revoked_at: "2026-10-06T00:00:00Z", revoked_reason: "disputed" } });
       assert.equal(disputed.status, 410);
       assert.match(disputed.sentence, /disputed/);
+    });
+
+    it("never authorizes a different workspace, version or licence", () => {
+      for (const changed of [{ organization_id: STRANGER }, { version_id: STRANGER }, { licence: "exclusive_transfer" }, { version_id: undefined }]) {
+        const result = may({ grant: { ...GRANT, ...changed } });
+        assert.equal(result.ok, false);
+        assert.equal(result.code, "grant_mismatch");
+        assert.equal(result.status, 409);
+      }
+    });
+
+    it("does not promise a licence from the payment state alone", () => {
+      assert.doesNotMatch(orders.orderSentence(PAID), /licence is granted/);
     });
   });
 
