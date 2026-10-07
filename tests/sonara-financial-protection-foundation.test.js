@@ -212,6 +212,16 @@ describe("SONARA leasing/subscription contract evidence, review-only", () => {
       document: { ...baseAgreement.document, approvalExpiresOn: "2026-10-05" } });
     assert.ok(adjusted.blockers.includes("counsel_scope_review_missing_or_text_changed"));
   });
+  it("blocks impossible or incorrectly formatted attorney review dates", () => {
+    for (const document of [
+      { ...baseAgreement.document, approvedOn: "2026-02-30" },
+      { ...baseAgreement.document, approvalExpiresOn: "2027-02-30" },
+      { ...baseAgreement.document, approvalExpiresOn: "2026-01-01" }
+    ]) {
+      const result = contractEvidencePreflight({ ...baseAgreement, document });
+      assert.ok(result.blockers.includes("counsel_scope_review_missing_or_text_changed"));
+    }
+  });
   it("has canonical review digests regardless of harmless object key ordering", () => {
     const reordered = Object.fromEntries(Object.entries(baseAgreement.agreement).reverse());
     assert.equal(agreementReviewDigest({
