@@ -25,7 +25,10 @@ async function renderReport(query, { missingGrant = false, providerFailure = fal
   registerMarketplaceReconciliationRoutes({ get: (_path, _guard, render) => { handler = render; } }, {
     ...shell, layout: (input) => frame.layout({ ...input, authenticated: true }),
     requireWorkspaceAccess: () => (_req, _res, next) => next(),
-    getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORG }),
+    getCustomerPrimaryOrganization: async (_user, options) => {
+      expect(options.autoBootstrap).toBe(false);
+      return { ok: true, organizationId: ORG, role: "owner" };
+    },
     getSupabaseServerConfig: () => ({ ok: true, url: "https://fixture.example.invalid" }),
     supabaseHeaders: () => ({}),
     getEnv: (name) => ({ STRIPE_CONNECT_ENABLED: "true",

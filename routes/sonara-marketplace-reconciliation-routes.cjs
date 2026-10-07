@@ -56,9 +56,13 @@ function registerMarketplaceReconciliationRoutes(app, deps) {
     res.set("Cache-Control", "private, no-store");
     const days = req.query?.days === undefined ? 30 : Number(req.query.days);
     if (![7, 30, 90].includes(days)) return page(res, 400, "Choose a period of 7, 30 or 90 days.");
-    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser, { autoBootstrap: false }).catch(() => null);
     if (!organization?.ok || !orders.isUuid(organization.organizationId)) {
       return page(res, 503, "We could not identify your workspace. No sales or payment records were read.");
+    }
+    if (!organization.role) return page(res, 503, "We could not confirm your role in this workspace. No sales or payment records were read.");
+    if (!["owner", "admin", "manager"].includes(organization.role)) {
+      return page(res, 403, "An owner, admin or manager must open this sales check. No sales or payment records were read.");
     }
     const organizationId = organization.organizationId;
     const sinceSeconds = Math.floor(Date.now() / 1000) - days * 86400;

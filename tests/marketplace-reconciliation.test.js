@@ -171,7 +171,10 @@ function harness(options = {}) {
   const deps = {
     getEnv, getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.invalid" }),
     supabaseHeaders: () => ({ Authorization: "Bearer service-test-fixture" }),
-    getCustomerPrimaryOrganization: async () => options.organization || { ok: true, organizationId: ORG },
+    getCustomerPrimaryOrganization: options.resolveOrganization || (async (_user, scopeOptions) => {
+      assert.equal(scopeOptions.autoBootstrap, false, "A sales check must not create a workspace");
+      return options.organization || { ok: true, organizationId: ORG, role: "owner" };
+    }),
     requireWorkspaceAccess: (key) => { assert.equal(key, "creator_studio"); return (_req, _res, next) => next(); },
     escapeHtml: html, linkAction: (href, label) => '<a href="' + href + '">' + label + "</a>",
     brandCard: (title, body) => "<section><h2>" + title + "</h2>" + body + "</section>",
@@ -185,6 +188,9 @@ function harness(options = {}) {
   const fetchImpl = async (raw, init) => {
     const url = new URL(raw);
     calls.push({ url, init });
+    if (["/rest/v1/organization_memberships", "/rest/v1/business_memberships"].includes(url.pathname)) {
+      return new Response("[]");
+    }
     if (options.fail && url.pathname.includes(options.fail)) return new Response("{}", { status: 503 });
     if (url.host === "api.stripe.com") return new Response(JSON.stringify({
       data: options.sessions || [session()], has_more: false
@@ -231,6 +237,41 @@ describe("the seller can open a scoped reconciliation screen", () => {
     const { res, calls } = await request({ organization: { ok: false } });
     assert.equal(res.statusCode, 503);
     assert.equal(calls.length, 0);
+  });
+  it("does not bootstrap a workspace when both membership reads are empty", async () => {
+    const { createCustomerPrimaryOrganizationResolver } = require("../lib/sonara-customer-organization.cjs");
+    const resolveOrganization = createCustomerPrimaryOrganizationResolver({
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://database.example.invalid" }),
+      supabaseHeaders: () => ({})
+    });
+    const { res, calls } = await request({ resolveOrganization });
+    assert.equal(res.statusCode, 503);
+    assert.equal(calls.length, 2);
+    assert.ok(calls.every((call) => (!call.init.method || call.init.method === "GET")
+      && call.url.pathname.endsWith("_memberships")));
+  });
+  it("refuses staff and ordinary members before sales or provider records are read", async () => {
+    for (const role of ["employee", "member", "customer", "other"]) {
+      const { res, calls } = await request({ organization: { ok: true, organizationId: ORG, role } });
+      assert.equal(res.statusCode, 403, role);
+      assert.equal(calls.length, 0);
+      assert.match(res.body, /owner, admin or manager/);
+    }
+  });
+  it("keeps an unverified role separate from a successful sales check", async () => {
+    for (const role of [null, undefined, ""]) {
+      const { res, calls } = await request({ organization: { ok: true, organizationId: ORG, role } });
+      assert.equal(res.statusCode, 503);
+      assert.equal(calls.length, 0);
+      assert.doesNotMatch(res.body, /No records in this period|Records checked/);
+    }
+  });
+  it("allows verified owners, admins and managers within their own workspace", async () => {
+    for (const role of ["owner", "admin", "manager"]) {
+      const { res } = await request({ organization: { ok: true, organizationId: ORG, role } });
+      assert.equal(res.statusCode, 200, role);
+      assert.match(res.body, /Records checked/);
+    }
   });
   it("rejects a request-supplied period before any data read", async () => {
     const { res, calls } = await request({}, { days: "999", organizationId: OTHER });
