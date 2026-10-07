@@ -75,6 +75,74 @@ The remaining sections connect the existing resource registries, deterministic r
 | SONARA Shared API | `/api` | 117 | 0 | `/dashboard` |
 | SONARA Shared Pages | `/` | 148 | 125 | `/dashboard` |
 
+### Destination workflows still open
+
+These operations still resolve to workspace homes. Each needs a real destination workflow; an entry in this list is not provider execution or customer proof.
+
+| Operation | Workspace | Current fallback | Source |
+| --- | --- | --- | --- |
+| `GET /api/billing/status` | sonara_shared_api | `/dashboard` | `server.js:1340` |
+| `GET /api/business-builder/control-plane` | business_builder | `/business-builder/dashboard` | `routes/sonara-business-control-plane-routes.cjs:425` |
+| `GET /api/business/map/snapshot` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:202` |
+| `GET /api/business/operations/analytics` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:65` |
+| `GET /api/business/reservation-resources` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:101` |
+| `GET /api/business/waitlist` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:138` |
+| `GET /api/checkout/session` | sonara_shared_api | `/dashboard` | `server.js:1303` |
+| `GET /api/creator-studio/readiness` | creator_studio | `/creator-studio/dashboard` | `server.js:1522` |
+| `GET /api/growth-studio/readiness` | growth_studio | `/growth-studio/dashboard` | `server.js:1546` |
+| `GET /api/growth/consents` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:804` |
+| `GET /api/growth/metrics` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:1103` |
+| `GET /api/growth/readiness` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:89` |
+| `GET /api/health` | sonara_shared_api | `/dashboard` | `server.js:1570` |
+| `GET /api/infrastructure/manifest` | shared_infrastructure | `/infrastructure` | `routes/sonara-infrastructure-routes.cjs:10` |
+| `GET /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/integrations/providers` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:1952` |
+| `GET /api/invention-systems/catalog` | sonara_shared_api | `/dashboard` | `routes/invention-systems-routes.cjs:17` |
+| `GET /api/last9/readiness` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2159` |
+| `GET /api/market-intelligence/competitors` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:100` |
+| `GET /api/market-intelligence/framework` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:36` |
+| `GET /api/market-intelligence/opportunities` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:249` |
+| `GET /api/market-intelligence/opportunities/:opportunityId` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:292` |
+| `GET /api/market-intelligence/portfolio` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:40` |
+| `GET /api/market-intelligence/segments` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:71` |
+| `GET /api/market-intelligence/signals` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:209` |
+| `GET /api/product-lifecycle/framework` | sonara_shared_api | `/dashboard` | `routes/product-lifecycle-routes.cjs:95` |
+| `GET /api/product-lifecycle/initiatives/:initiativeId/summary` | sonara_shared_api | `/dashboard` | `routes/product-lifecycle-routes.cjs:133` |
+| `GET /api/prompt-library/collections` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:263` |
+| `GET /api/prompt-library/discovery` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:96` |
+| `GET /api/prompt-library/templates` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:127` |
+| `GET /api/routes/public` | sonara_shared_api | `/dashboard` | `routes/sonara-route-registry-routes.cjs:81` |
+| `GET /api/sensory/haptic-patterns` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/sensory/profiles` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2171` |
+| `GET /api/support/status` | sonara_shared_api | `/dashboard` | `server.js:968` |
+| `PATCH /api/market-intelligence/opportunities/:opportunityId` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:303` |
+| `POST /api/agents/schedule/tick` | business_builder_agent_ops | `/owner/agent-activity` | `routes/sonara-agent-activity-routes.cjs:912` |
+| `POST /api/business/reservation-resources` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:111` |
+| `POST /api/business/waitlist` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:149` |
+| `POST /api/business/waitlist/:bookingId/offer` | business_builder | `/business-builder/dashboard` | `routes/sonara-operations-expansion-routes.cjs:186` |
+| `POST /api/creator/reference-analyses` | sonara_shared_api | `/dashboard` | `routes/creator-generation-routes.cjs:458` |
+| `POST /api/creator/workflows/plan` | sonara_shared_api | `/dashboard` | `routes/creator-music-system-readonly.cjs:128` |
+| `POST /api/formulas/evaluate` | cross_workspace_formulas | `/formulas` | `routes/sonara-formula-routes.cjs:73` |
+| `POST /api/formulas/results` | cross_workspace_formulas | `/formulas` | `routes/sonara-formula-routes.cjs:78` |
+| `POST /api/growth/consents` | growth_studio | `/growth-studio/dashboard` | `routes/growth-studio-control-routes.cjs:805` |
+| `POST /api/integrations/jobs` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2186` |
+| `POST /api/market-intelligence/competitors` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:101` |
+| `POST /api/market-intelligence/fetch-source` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:151` |
+| `POST /api/market-intelligence/opportunities` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:250` |
+| `POST /api/market-intelligence/opportunities/:opportunityId/reviews` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:340` |
+| `POST /api/market-intelligence/segments` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:72` |
+| `POST /api/market-intelligence/signals` | sonara_shared_api | `/dashboard` | `routes/market-intelligence-routes.cjs:210` |
+| `POST /api/motion/events` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2135` |
+| `POST /api/prompt-library/collections` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:273` |
+| `POST /api/prompt-library/collections/:id/items` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:293` |
+| `POST /api/prompt-library/connections` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:316` |
+| `POST /api/prompt-library/render` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:115` |
+| `POST /api/prompt-library/runs` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:210` |
+| `POST /api/prompt-library/templates` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:137` |
+| `POST /api/prompt-library/templates/:id/versions` | sonara_shared_api | `/dashboard` | `routes/sonara-prompt-library-routes.cjs:174` |
+| `POST /api/sensory/haptic-patterns` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2186` |
+| `POST /api/sensory/profiles` | sonara_shared_api | `/dashboard` | `routes/sonara-last9-routes.cjs:2186` |
+
 ### Research-only repositories
 
 All 497 repository records are in `repositories.records`; the 259 records marked research/reference/watch-only are also listed under `repositories.researchOrReferenceRecords`. The additional 25 creator-tool, technology, and AI integration catalog entries are row-level under `repositories.otherReferenceRecords`. Each record retains source catalog, status, route, and any URL/license/product-fit fields present in the source.
