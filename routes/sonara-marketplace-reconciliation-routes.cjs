@@ -12,7 +12,11 @@ const ORDER_LIMIT = 200;
 function money(minor, currency) {
   try {
     const format = new Intl.NumberFormat("en", { style: "currency", currency });
-    const digits = format.resolvedOptions().maximumFractionDigits;
+    // Stripe keeps ISK/UGX API amounts in two decimals for compatibility even
+    // though Intl formats their displayed currency with zero decimal places.
+    // https://docs.stripe.com/currencies#special-cases
+    const digits = ["isk", "ugx"].includes(String(currency).toLowerCase())
+      ? 2 : format.resolvedOptions().maximumFractionDigits;
     return format.format(minor / (10 ** digits));
   } catch {
     return String(minor) + " minor units " + String(currency || "").toUpperCase();

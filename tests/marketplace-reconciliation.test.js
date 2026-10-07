@@ -261,4 +261,14 @@ describe("the seller can open a scoped reconciliation screen", () => {
     assert.equal(res.statusCode, 200);
     assert.match(res.body, /reconciliation has not run/);
   });
+  it("uses Stripe minor units for zero-decimal and compatibility currencies", async () => {
+    for (const [currency, shown] of [["jpy", "¥500"], ["isk", "ISK 5"], ["ugx", "UGX 5"]]) {
+      const value = session({ amount_total: 500, currency });
+      value.payment_intent.latest_charge = { ...value.payment_intent.latest_charge,
+        amount: 500, currency, balance_transaction: { currency, fee: 100, net: 400 } };
+      const { res } = await request({ orders: [order({ price_cents: 500, currency })], sessions: [value] });
+      assert.equal(res.statusCode, 200);
+      assert.ok(res.body.replace(/\u00a0/g, " ").includes("Recorded paid orders: " + shown), currency + " was scaled incorrectly");
+    }
+  });
 });
