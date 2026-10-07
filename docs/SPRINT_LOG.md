@@ -2,6 +2,43 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-10-07 - An enquiry is credited to the campaign that brought it
+
+The Growth chain's conversion → attribution link had a hole in the middle. A
+campaign's page counts "people who came in through it" by
+`growth_leads.campaign_id`, and nothing set that column for somebody who arrived
+by following a campaign. The public chat page wrote every lead as
+`source: "chat_widget"` with no campaign. An emailed campaign that brought in
+five enquiries showed none, and its return was worked out against whatever
+conversions somebody remembered to record.
+
+The reference now rides on the link as `?c=<campaign id>`
+(`lib/sonara-campaign-links.cjs`):
+- **When a campaign sends,** links in its plain-text body to this site's own
+  chat pages are tagged. Other links, and chat links the owner already gave a
+  query, are sent exactly as written. The send form says so.
+- **The chat page** carries the reference to the first answer, which keeps it on
+  the conversation's `metadata` as a claim. Later forms cannot change it.
+- **When the conversation produces a lead,** the claim is checked against the
+  campaigns of the business that owns the page. Only then does it become
+  `campaign_id`. A campaign from another business, a deleted one, a failed read
+  or nonsense credits nothing.
+  - The lead is still saved, because `campaign_id` is a foreign key: an unchecked
+    id would make the insert fail and lose the enquiry.
+- **The campaign page** shows the tracked link and a QR code for print. If there
+  is no chat page, it is switched off, or no https address is known, the page
+  says so rather than showing a link that would not work.
+
+No migration. The conversation row already had `metadata`, and the lead
+already had `campaign_id`.
+
+Falsified five ways, each failing a named test:
+- the claim trusted without the check;
+- the email sent untagged;
+- a later form allowed to change the campaign;
+- the page dropping the reference;
+- an http origin trusted for the printed link.
+
 ### 2026-10-07 - #446 CI: a scanner finding and two CodeQL alerts on the receipt webhook
 
 Three new reds on 50da60d4.

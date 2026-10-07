@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-10-07 - Claude - Campaign link attribution (PR #446)
+
+- `?c=<campaign id>` on `/chat/:slug` credits the resulting lead to the
+  campaign. It is checked against the page owner's campaigns at capture, never
+  trusted from the link. `lib/sonara-campaign-links.cjs`.
+- `dispatchCampaign` tags this site's chat links in the email body. If you add
+  an HTML body, tag its hrefs the same way, or HTML campaigns lose attribution.
+- `CHAT_POST_SCHEMA` gained `campaign`; `lead_conversations.metadata` carries
+  `claimed_campaign_id`.
+
 ## 2026-10-07 - Claude - Campaign email delivery receipts (PR #446)
 
 - New table `growth_email_delivery_events`, migration

@@ -197,12 +197,14 @@ const ACCOUNTED = Object.freeze({
     ].join(" ")
   },
   "routes/growth-studio-control-routes.cjs": {
-    columns: ["bounce_type", "provider_message_id"],
+    columns: ["bounce_type", "provider_message_id", "slug"],
     reason: [
       "The campaign page hands its sends and the provider's delivery events to summarizeCampaign in lib/sonara-campaign-results.cjs,",
       "which passes both to summarizeDelivery in lib/sonara-email-delivery-receipts.cjs. That reads provider_message_id from both",
       "(counting each email once, and only accepted sends that carry one as reportable) and bounce_type from the events (permanent",
-      "bounces, which set the next step). Checked 7 October 2026. Fetched to be used, two files along."
+      "bounces, which set the next step). Checked 7 October 2026. Fetched to be used, two files along.",
+      "slug: the campaign page reads the business's chat page and hands the row to campaignLinkCard in lib/sonara-campaign-results-pages.cjs,",
+      "which builds the tracked link from it (`campaignLink({ origin, slug: page.slug, campaignId })`, checked 7 October 2026)."
     ].join(" ")
   },
   "routes/sonara-formula-routes.cjs": {

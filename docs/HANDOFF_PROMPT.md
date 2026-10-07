@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 161 migrations, 148 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 45 public routes and 21 customer routes. The operator console the third number counted was removed on 1 October 2026.
-- 498 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
+- 499 test files run under mocha. `pnpm test` is the whole suite; runtime varies with instrumentation and environment.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,11 +103,50 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 
 ## Sprint log
 
-The 40 most recent entries of 468 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
+The 41 most recent entries of 469 are below, newest first. **The rest are not omitted, they are in `docs/SPRINT_LOG.md`** -- read that file in the repository rather than asking for it to be pasted. This document is bounded on purpose: it used to embed all of it, which made it 1.25 MB and impossible to paste into the assistant its first line tells you to paste it into.
 
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-10-07 - An enquiry is credited to the campaign that brought it
+
+The Growth chain's conversion → attribution link had a hole in the middle. A
+campaign's page counts "people who came in through it" by
+`growth_leads.campaign_id`, and nothing set that column for somebody who arrived
+by following a campaign. The public chat page wrote every lead as
+`source: "chat_widget"` with no campaign. An emailed campaign that brought in
+five enquiries showed none, and its return was worked out against whatever
+conversions somebody remembered to record.
+
+The reference now rides on the link as `?c=<campaign id>`
+(`lib/sonara-campaign-links.cjs`):
+- **When a campaign sends,** links in its plain-text body to this site's own
+  chat pages are tagged. Other links, and chat links the owner already gave a
+  query, are sent exactly as written. The send form says so.
+- **The chat page** carries the reference to the first answer, which keeps it on
+  the conversation's `metadata` as a claim. Later forms cannot change it.
+- **When the conversation produces a lead,** the claim is checked against the
+  campaigns of the business that owns the page. Only then does it become
+  `campaign_id`. A campaign from another business, a deleted one, a failed read
+  or nonsense credits nothing.
+  - The lead is still saved, because `campaign_id` is a foreign key: an unchecked
+    id would make the insert fail and lose the enquiry.
+- **The campaign page** shows the tracked link and a QR code for print. If there
+  is no chat page, it is switched off, or no https address is known, the page
+  says so rather than showing a link that would not work.
+
+No migration. The conversation row already had `metadata`, and the lead
+already had `campaign_id`.
+
+Falsified five ways, each failing a named test:
+- the claim trusted without the check;
+- the email sent untagged;
+- a later form allowed to change the campaign;
+- the page dropping the reference;
+- an http origin trusted for the printed link.
+
+
 
 ### 2026-10-07 - #446 CI: a scanner finding and two CodeQL alerts on the receipt webhook
 
